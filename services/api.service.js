@@ -1234,6 +1234,7 @@ module.exports = {
           // Dashboard API (v0.19+) — UI-optimised aggregate endpoints
           'GET /dashboard/vnb-overview': 'dashboard-api.vnbOverview',
           'GET /dashboard/redispatch-metering-cockpit': 'dashboard-api.redispatchMeteringCockpit',
+          'GET /dashboard/load-profile-stream-monitor': 'dashboard-api.loadProfileStreamMonitor',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

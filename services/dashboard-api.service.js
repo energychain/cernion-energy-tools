@@ -39,6 +39,7 @@ module.exports = {
     cacheTtlMs: {
       vnbOverview: 5 * 60 * 1000, // 5 min
       redispatchMeteringCockpit: 5 * 60 * 1000, // 5 min
+      loadProfileStreamMonitor: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -508,6 +509,277 @@ module.exports = {
                 energySharingAllocationId: allocLatest?.id || null,
                 mastrQualityAuditId: mqLatest?.id || null,
               },
+              timestamp: new Date().toISOString(),
+              _errors: errors,
+            };
+          }
+        );
+      },
+    },
+
+    // ── loadProfileStreamMonitor ───────────────────────────────────────────
+    /**
+     * GET /api/dashboard/load-profile-stream-monitor?meloId=...&from=...&to=...
+     *
+     * Read-only composite monitor for Lastgangdaten/Bewegungsstrom diagnostics.
+     * Reuses EDM summary + EDM validation + forecast quality + VDMI governance
+     * findings and classifies signals into strict anomaly buckets.
+     *
+     * Partial findings are explicitly allowed: failed upstream calls are listed
+     * in `_errors` while available bucket data is still returned.
+     */
+    loadProfileStreamMonitor: {
+      rest: 'GET /load-profile-stream-monitor',
+      params: {
+        meloId: { type: 'string', min: 1 },
+        from: { type: 'string', min: 1 },
+        to: { type: 'string', min: 1 },
+        obis: { type: 'string', optional: true, default: '1-0:1.8.0' },
+        gridOperatorId: {
+          type: 'string',
+          optional: true,
+          pattern: /^[SG]NB\d+$/,
+          messages: {
+            stringPattern:
+              'gridOperatorId muss im Format SNBxxx oder GNBxxx sein (Beispiel: SNB935578300972)',
+          },
+        },
+        profileId: { type: 'string', optional: true, default: 'H0' },
+        annualConsumptionKwh: { type: 'number', optional: true, convert: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Load profile movement monitor — strict anomaly-class buckets',
+        description:
+          'Read-only monitor for Lastgangdaten/Bewegungsstrom diagnostics using existing deterministic ' +
+          'services only (edm.getTimeseriesSummary, edm-validation.validate, forecast-engine.evaluateQuality, vdmi.findings). ' +
+          'Returns strict anomaly buckets (`dataQualityGap`, `realAnomaly`, `forecastProblem`, `processGovernanceBreak`) ' +
+          'and allows partial findings with explicit `_errors`.',
+        parameters: [
+          {
+            name: 'meloId',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', example: 'DE0012345678901234567890123456789' },
+            description: 'MeLo identifier (Marktlokation) for the monitored stream.',
+          },
+          {
+            name: 'from',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', example: '2026-05-01T00:00:00.000Z' },
+            description: 'Start timestamp (inclusive).',
+          },
+          {
+            name: 'to',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', example: '2026-05-02T00:00:00.000Z' },
+            description: 'End timestamp (exclusive).',
+          },
+          {
+            name: 'obis',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', default: '1-0:1.8.0' },
+            description: 'OBIS channel to evaluate.',
+          },
+          {
+            name: 'gridOperatorId',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'SNB935578300972' },
+            description: 'Optional VNB scope for governance findings.',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Composite stream monitor payload with strict anomaly buckets',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    streamStatus: { type: 'object' },
+                    qualityFindings: { type: 'object' },
+                    anomalySignals: { type: 'object' },
+                    restrictionRefs: { type: 'array' },
+                    forecastQuality: { type: 'object', nullable: true },
+                    decisionNotes: { type: 'array', items: { type: 'string' } },
+                    sourceActions: { type: 'object' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+        'x-oeo-class': ['OEO_00000143'],
+      },
+      async handler(ctx) {
+        const {
+          meloId,
+          from,
+          to,
+          obis,
+          gridOperatorId,
+          profileId,
+          annualConsumptionKwh,
+        } = ctx.params;
+
+        const cacheKey = `load-profile-stream-monitor:${meloId}:${obis}:${from}:${to}:${gridOperatorId || 'all'}:${profileId}:${annualConsumptionKwh || 'default'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.loadProfileStreamMonitor,
+          async () => {
+            const errors = [];
+
+            const [summaryRes, validationRes, forecastRes, vdmiRes] = await Promise.all([
+              this.safeCall(
+                ctx,
+                'edm.getTimeseriesSummary',
+                {
+                  meloId,
+                  obis,
+                  from,
+                  to,
+                  groupBy: 'day',
+                },
+                null,
+                errors,
+                'edm.getTimeseriesSummary'
+              ),
+              this.safeCall(
+                ctx,
+                'edm-validation.validate',
+                {
+                  meloId,
+                  obis,
+                  from,
+                  to,
+                  autoFix: false,
+                },
+                null,
+                errors,
+                'edm-validation.validate'
+              ),
+              this.safeCall(
+                ctx,
+                'forecast-engine.evaluateQuality',
+                {
+                  meloId,
+                  obis,
+                  from,
+                  to,
+                  profileId,
+                  annualConsumptionKwh,
+                },
+                null,
+                errors,
+                'forecast-engine.evaluateQuality'
+              ),
+              this.safeCall(
+                ctx,
+                ACTION_VDMI_FINDINGS,
+                {
+                  status: 'open',
+                  limit: 500,
+                },
+                null,
+                errors,
+                ACTION_VDMI_FINDINGS
+              ),
+            ]);
+
+            const validationFindings = Array.isArray(validationRes?.findings)
+              ? validationRes.findings
+              : [];
+
+            const vdmiFindingsRaw = Array.isArray(vdmiRes?.findings) ? vdmiRes.findings : [];
+            const vdmiFindings = gridOperatorId
+              ? vdmiFindingsRaw.filter((f) => {
+                  const findingOperatorId =
+                    f?.gridOperatorId || f?.operatorId || f?.mastrId || f?.gridOperatorMastrId || null;
+                  if (!findingOperatorId) return true;
+                  return String(findingOperatorId) === String(gridOperatorId);
+                })
+              : vdmiFindingsRaw;
+
+            const anomalySignals = this.buildLoadProfileAnomalyBuckets(
+              validationFindings,
+              vdmiFindings,
+              forecastRes?.quality || null
+            );
+
+            const qualityFindings = {
+              summary: validationRes?.summary || null,
+              recommendations: validationRes?.recommendations || [],
+              total: validationFindings.length,
+              errors: validationFindings.filter((f) => f?.severity === 'error').length,
+              warnings: validationFindings.filter((f) => f?.severity === 'warning').length,
+              infos: validationFindings.filter((f) => f?.severity === 'info').length,
+            };
+
+            const forecastQuality = forecastRes?.quality
+              ? {
+                  ...forecastRes.quality,
+                  signal:
+                    forecastRes.quality.rating === 'excellent' ||
+                    forecastRes.quality.rating === 'good'
+                      ? 'green'
+                      : forecastRes.quality.rating === 'fair'
+                        ? 'yellow'
+                        : 'red',
+                }
+              : null;
+
+            const restrictionRefs = this.buildLoadProfileRestrictionRefs(anomalySignals);
+            const streamStatus = this.deriveLoadProfileStreamStatus({
+              qualitySummary: validationRes?.summary || null,
+              anomalySignals,
+              hasPartialData: errors.length > 0,
+              forecastQuality,
+            });
+
+            const sourceActions = {
+              'edm.getTimeseriesSummary': {
+                success: !!summaryRes,
+                partial: false,
+                groups: Array.isArray(summaryRes?.groups) ? summaryRes.groups.length : 0,
+              },
+              'edm-validation.validate': {
+                success: !!validationRes,
+                partial: false,
+                findings: validationFindings.length,
+              },
+              'forecast-engine.evaluateQuality': {
+                success: !!forecastRes,
+                partial: false,
+                rating: forecastRes?.quality?.rating || null,
+              },
+              'vdmi.findings': {
+                success: !!vdmiRes,
+                partial: !!gridOperatorId,
+                findings: vdmiFindings.length,
+              },
+            };
+
+            return {
+              streamStatus,
+              qualityFindings,
+              anomalySignals,
+              restrictionRefs,
+              forecastQuality,
+              decisionNotes: this.buildLoadProfileDecisionNotes({
+                streamStatus,
+                anomalySignals,
+                qualitySummary: validationRes?.summary || null,
+                forecastQuality,
+                hasPartialData: errors.length > 0,
+              }),
+              sourceActions,
               timestamp: new Date().toISOString(),
               _errors: errors,
             };
@@ -1769,6 +2041,190 @@ module.exports = {
       }
 
       return stale;
+    },
+
+    buildLoadProfileAnomalyBuckets(validationFindings, vdmiFindings, forecastQuality) {
+      const findings = Array.isArray(validationFindings) ? validationFindings : [];
+      const governance = Array.isArray(vdmiFindings) ? vdmiFindings : [];
+
+      const dataQualityGapRules = new Set(['GAP_DETECTION', 'DUPLICATE_CHECK', 'MONOTONY_CHECK']);
+      const realAnomalyRules = new Set(['BANDWIDTH_CHECK', 'NEGATIVE_VALUE_CHECK']);
+      const forecastProblemRules = new Set(['SLP_PLAUSIBILITY']);
+
+      const dataQualityGap = findings
+        .filter((f) => dataQualityGapRules.has(String(f?.ruleId || '')))
+        .map((f) => ({
+          class: 'dataQualityGap',
+          source: 'edm-validation.validate',
+          ref: f.ruleId,
+          severity: f.severity || null,
+          timestamp: f.timestamp || null,
+          message: f.message || null,
+        }));
+
+      const realAnomaly = findings
+        .filter((f) => realAnomalyRules.has(String(f?.ruleId || '')))
+        .map((f) => ({
+          class: 'realAnomaly',
+          source: 'edm-validation.validate',
+          ref: f.ruleId,
+          severity: f.severity || null,
+          timestamp: f.timestamp || null,
+          value: f.value != null ? f.value : null,
+          message: f.message || null,
+        }));
+
+      const forecastProblem = findings
+        .filter((f) => forecastProblemRules.has(String(f?.ruleId || '')))
+        .map((f) => ({
+          class: 'forecastProblem',
+          source: 'edm-validation.validate',
+          ref: f.ruleId,
+          severity: f.severity || null,
+          timestamp: f.timestamp || null,
+          message: f.message || null,
+        }));
+
+      if (forecastQuality && ['poor', 'fair'].includes(String(forecastQuality.rating || ''))) {
+        forecastProblem.push({
+          class: 'forecastProblem',
+          source: 'forecast-engine.evaluateQuality',
+          ref: 'FORECAST_QUALITY',
+          severity: forecastQuality.rating === 'poor' ? 'error' : 'warning',
+          timestamp: null,
+          message: `Forecast quality rated as ${forecastQuality.rating} (MAPE=${forecastQuality.mape}).`,
+        });
+      }
+
+      const processGovernanceBreak = governance
+        .filter((f) => {
+          const severity = String(f?.severity || '').toUpperCase();
+          const code = String(f?.code || '').toUpperCase();
+          return severity === 'H' || severity === 'K' || code.startsWith('VD_GOV_');
+        })
+        .map((f) => ({
+          class: 'processGovernanceBreak',
+          source: 'vdmi.findings',
+          ref: f.code || null,
+          severity: f.severity || null,
+          timestamp: f.updatedAt || f.createdAt || null,
+          message: f.title || f.reason || null,
+          findingId: f.id || null,
+        }));
+
+      return {
+        dataQualityGap,
+        realAnomaly,
+        forecastProblem,
+        processGovernanceBreak,
+      };
+    },
+
+    buildLoadProfileRestrictionRefs(anomalySignals = {}) {
+      const refs = [];
+      const buckets = [
+        ...(Array.isArray(anomalySignals.dataQualityGap) ? anomalySignals.dataQualityGap : []),
+        ...(Array.isArray(anomalySignals.realAnomaly) ? anomalySignals.realAnomaly : []),
+        ...(Array.isArray(anomalySignals.forecastProblem) ? anomalySignals.forecastProblem : []),
+        ...(Array.isArray(anomalySignals.processGovernanceBreak)
+          ? anomalySignals.processGovernanceBreak
+          : []),
+      ];
+
+      for (const item of buckets) {
+        if (!item?.ref) continue;
+        refs.push({
+          ref: item.ref,
+          source: item.source || null,
+          class: item.class || null,
+          severity: item.severity || null,
+        });
+      }
+
+      return refs;
+    },
+
+    deriveLoadProfileStreamStatus({ qualitySummary, anomalySignals, hasPartialData, forecastQuality }) {
+      const dataQualityGap = (anomalySignals?.dataQualityGap || []).length;
+      const realAnomaly = (anomalySignals?.realAnomaly || []).length;
+      const forecastProblem = (anomalySignals?.forecastProblem || []).length;
+      const governanceBreak = (anomalySignals?.processGovernanceBreak || []).length;
+
+      const dataQuality = qualitySummary?.dataQuality;
+      const rating = String(forecastQuality?.rating || '').toLowerCase();
+
+      let signal = 'green';
+      if (
+        governanceBreak > 0 ||
+        realAnomaly > 0 ||
+        (typeof dataQuality === 'number' && dataQuality < 0.85) ||
+        rating === 'poor'
+      ) {
+        signal = 'red';
+      } else if (dataQualityGap > 0 || forecastProblem > 0 || hasPartialData || rating === 'fair') {
+        signal = 'yellow';
+      }
+
+      return {
+        signal,
+        partial: !!hasPartialData,
+        classification: {
+          dataQualityGap,
+          realAnomaly,
+          forecastProblem,
+          processGovernanceBreak: governanceBreak,
+        },
+        dataQuality: typeof dataQuality === 'number' ? dataQuality : null,
+      };
+    },
+
+    buildLoadProfileDecisionNotes({
+      streamStatus,
+      anomalySignals,
+      qualitySummary,
+      forecastQuality,
+      hasPartialData,
+    }) {
+      const notes = [];
+
+      if (hasPartialData) {
+        notes.push(
+          'Partial findings active: mindestens eine Quelle ist nicht verfügbar, vorhandene Evidenz wurde dennoch ausgewertet.'
+        );
+      }
+
+      if ((anomalySignals?.processGovernanceBreak || []).length > 0) {
+        notes.push(
+          'Process-governance break erkannt: offene kritische VDMI-Findings vor operativer Entscheidung schließen.'
+        );
+      }
+
+      if ((anomalySignals?.dataQualityGap || []).length > 0) {
+        notes.push('Data-quality gap erkannt: Lücken/Dubletten/Monotonieabweichungen vor Prognosefreigabe bereinigen.');
+      }
+
+      if ((anomalySignals?.realAnomaly || []).length > 0) {
+        notes.push('Real anomaly signal erkannt: Messwertausreißer/Negativwerte gegen Zähler- und Anlagenzustand verifizieren.');
+      }
+
+      if ((anomalySignals?.forecastProblem || []).length > 0) {
+        notes.push('Forecast problem signal erkannt: SLP-/Forecast-Parameter und Vergleichsfenster nachkalibrieren.');
+      }
+
+      if (qualitySummary && typeof qualitySummary.dataQuality === 'number') {
+        notes.push(`Gemessene Datenqualität im Zeitraum: ${(qualitySummary.dataQuality * 100).toFixed(1)}%.`);
+      }
+
+      if (forecastQuality?.rating) {
+        notes.push(`Forecast-Qualität: ${forecastQuality.rating} (MAPE=${forecastQuality.mape}).`);
+      }
+
+      if (notes.length === 0) {
+        notes.push('Keine relevanten Auffälligkeiten erkannt; Stream aktuell unauffällig.');
+      }
+
+      notes.push(`Gesamtstatus: ${streamStatus?.signal || 'unknown'}.`);
+      return notes;
     },
 
     computeRedispatchMeteringScore({ rdLatest, mqLatest, dpOverview, openCriticalFindings }) {

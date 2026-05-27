@@ -269,6 +269,81 @@ const MOCK_VDMI_FINDINGS = {
   ],
 };
 
+const MOCK_EDM_SUMMARY = {
+  success: true,
+  meloId: 'DE0012345678901234567890123456789',
+  obis: '1-0:1.8.0',
+  from: '2026-03-31T00:00:00Z',
+  to: '2026-04-01T00:00:00Z',
+  groupBy: 'day',
+  groups: [
+    {
+      period: '2026-03-31',
+      total_kwh: 121.4,
+      count: 96,
+      measured: 90,
+      min_kw: 0.2,
+      max_kw: 12.1,
+      avg_kw: 5.058333,
+      dataQuality: 0.9375,
+    },
+  ],
+};
+
+const MOCK_EDM_VALIDATION = {
+  success: true,
+  summary: {
+    totalValues: 96,
+    findings: 4,
+    errors: 1,
+    warnings: 2,
+    infos: 1,
+    autoFixed: 0,
+    dataQuality: 0.9375,
+  },
+  recommendations: ['Lücken erkannt: Gap-Filling mit Interpolation oder Vortagswerten ausführen.'],
+  findings: [
+    {
+      ruleId: 'GAP_DETECTION',
+      severity: 'warning',
+      timestamp: '2026-03-31T04:00:00Z',
+      message: 'Gap erkannt',
+    },
+    {
+      ruleId: 'BANDWIDTH_CHECK',
+      severity: 'error',
+      timestamp: '2026-03-31T09:00:00Z',
+      value: 56,
+      message: 'Ausreißer erkannt',
+    },
+    {
+      ruleId: 'SLP_PLAUSIBILITY',
+      severity: 'warning',
+      timestamp: '2026-03-31T11:00:00Z',
+      message: 'Profilabweichung',
+    },
+    {
+      ruleId: 'MONOTONY_CHECK',
+      severity: 'info',
+      timestamp: '2026-03-31T12:00:00Z',
+      message: 'Monotoniehinweis',
+    },
+  ],
+};
+
+const MOCK_FORECAST_QUALITY = {
+  success: true,
+  quality: {
+    rmse: 0.282144,
+    mae: 0.216441,
+    mape: 12.312,
+    bias: 0.031,
+    correlation: 0.91,
+    sampleSize: 96,
+    rating: 'fair',
+  },
+};
+
 // ── Broker setup ─────────────────────────────────────────────────────────
 
 describe('dashboard-api.service', () => {
@@ -411,6 +486,28 @@ describe('dashboard-api.service', () => {
       name: 'observability',
       actions: {
         summary: makeHandler('observabilitySummary', MOCK_OBSERVABILITY_SUMMARY),
+      },
+    });
+
+    // Mock EDM + validation + forecast-engine for load-profile monitor
+    broker.createService({
+      name: 'edm',
+      actions: {
+        getTimeseriesSummary: makeHandler('edmGetTimeseriesSummary', MOCK_EDM_SUMMARY),
+      },
+    });
+
+    broker.createService({
+      name: 'edm-validation',
+      actions: {
+        validate: makeHandler('edmValidationValidate', MOCK_EDM_VALIDATION),
+      },
+    });
+
+    broker.createService({
+      name: 'forecast-engine',
+      actions: {
+        evaluateQuality: makeHandler('forecastEvaluateQuality', MOCK_FORECAST_QUALITY),
       },
     });
 
@@ -757,6 +854,84 @@ describe('dashboard-api.service', () => {
       expect(result.blockingEvidenceGaps.some((b) => b.code === 'MASTERDATA_EVIDENCE_MISSING')).toBe(
         true
       );
+    });
+  });
+
+  // ── loadProfileStreamMonitor ─────────────────────────────────────────────
+
+  describe('loadProfileStreamMonitor', () => {
+    it('returns strict anomaly buckets and source action traces', async () => {
+      const result = await broker.call('dashboard-api.loadProfileStreamMonitor', {
+        meloId: 'DE0012345678901234567890123456789',
+        from: '2026-03-31T00:00:00Z',
+        to: '2026-04-01T00:00:00Z',
+        gridOperatorId: 'SNB935578300972',
+      });
+
+      expect(result).toHaveProperty('streamStatus');
+      expect(result).toHaveProperty('qualityFindings');
+      expect(result).toHaveProperty('anomalySignals');
+      expect(result).toHaveProperty('restrictionRefs');
+      expect(result).toHaveProperty('forecastQuality');
+      expect(result).toHaveProperty('decisionNotes');
+      expect(result).toHaveProperty('sourceActions');
+      expect(result).toHaveProperty('_errors');
+
+      expect(Array.isArray(result.anomalySignals.dataQualityGap)).toBe(true);
+      expect(Array.isArray(result.anomalySignals.realAnomaly)).toBe(true);
+      expect(Array.isArray(result.anomalySignals.forecastProblem)).toBe(true);
+      expect(Array.isArray(result.anomalySignals.processGovernanceBreak)).toBe(true);
+      expect(result.sourceActions['edm-validation.validate'].success).toBe(true);
+      expect(result.sourceActions['vdmi.findings'].success).toBe(true);
+    });
+
+    it('classifies findings into strict classes', async () => {
+      handlers.vdmiFindings = () => ({
+        count: 1,
+        findings: [
+          {
+            id: 'vf-gov',
+            code: 'VD_GOV_RECURRENCE_K',
+            severity: 'K',
+            status: 'open',
+            gridOperatorId: 'SNB935578300972',
+          },
+        ],
+      });
+
+      const result = await broker.call('dashboard-api.loadProfileStreamMonitor', {
+        meloId: 'DE0012345678901234567890123456789',
+        from: '2026-03-31T00:00:00Z',
+        to: '2026-04-01T00:00:00Z',
+        gridOperatorId: 'SNB935578300972',
+      });
+
+      expect(result.anomalySignals.dataQualityGap.some((f) => f.ref === 'GAP_DETECTION')).toBe(true);
+      expect(result.anomalySignals.realAnomaly.some((f) => f.ref === 'BANDWIDTH_CHECK')).toBe(true);
+      expect(result.anomalySignals.forecastProblem.some((f) => f.ref === 'SLP_PLAUSIBILITY')).toBe(
+        true
+      );
+      expect(
+        result.anomalySignals.processGovernanceBreak.some((f) => f.ref === 'VD_GOV_RECURRENCE_K')
+      ).toBe(true);
+    });
+
+    it('allows partial findings when one upstream source fails', async () => {
+      handlers.forecastEvaluateQuality = () => {
+        throw new Error('forecast down');
+      };
+
+      const result = await broker.call('dashboard-api.loadProfileStreamMonitor', {
+        meloId: 'DE0012345678901234567890123456789',
+        from: '2026-03-31T00:00:00Z',
+        to: '2026-04-01T00:00:00Z',
+      });
+
+      expect(result._errors).toContain('forecast-engine.evaluateQuality');
+      expect(result.streamStatus.partial).toBe(true);
+      expect(result.forecastQuality).toBeNull();
+      expect(result.qualityFindings.total).toBeGreaterThan(0);
+      expect(result.anomalySignals.realAnomaly.length).toBeGreaterThan(0);
     });
   });
 

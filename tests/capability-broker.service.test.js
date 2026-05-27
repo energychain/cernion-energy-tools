@@ -183,6 +183,28 @@ describe('Capability Broker Service', () => {
     );
   });
 
+  it('routes Lastgangdaten Bewegungsstrom monitor prompts to dashboard-api.loadProfileStreamMonitor', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte Lastgangdaten Bewegungsstrom Stream-Monitor mit Anomaly-Class Buckets prüfen.',
+      knownContext: {
+        meloId: 'DE0012345678901234567890123456789',
+        from: '2026-03-31T00:00:00Z',
+        to: '2026-04-01T00:00:00Z',
+        gridOperatorId: 'SNB935578300972',
+      },
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('load_profile_stream_monitor');
+    expect(result.recommendedPlan[0].action).toBe('dashboard-api.loadProfileStreamMonitor');
+    expect(result.recommendedPlan[0].params).toEqual(
+      expect.objectContaining({
+        meloId: 'DE0012345678901234567890123456789',
+        from: '2026-03-31T00:00:00Z',
+        to: '2026-04-01T00:00:00Z',
+      })
+    );
+  });
+
   it('routes financier due-diligence prompts to finance-agent.analyze instead of interface placeholder', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Erstelle ein vorläufiges Risk Assessment für den Kreditausschuss (Due Diligence, Condition Precedent).',

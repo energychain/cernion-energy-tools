@@ -241,6 +241,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/cookbook']).toBeDefined();
       expect(schema.paths['/api/dashboard/vnb-overview']).toBeDefined();
       expect(schema.paths['/api/dashboard/redispatch-metering-cockpit']).toBeDefined();
+      expect(schema.paths['/api/dashboard/load-profile-stream-monitor']).toBeDefined();
       expect(schema.paths['/api/dashboard/observability-mini']).toBeDefined();
       expect(schema.paths['/api/observability/logs']).toBeDefined();
       expect(schema.paths['/api/observability/agent-prompt']).toBeDefined();
@@ -250,6 +251,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/cookbook'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/vnb-overview'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/redispatch-metering-cockpit'].get).toBeDefined();
+      expect(schema.paths['/api/dashboard/load-profile-stream-monitor'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/observability-mini'].get).toBeDefined();
       expect(schema.paths['/api/observability/logs'].get).toBeDefined();
       expect(schema.paths['/api/observability/agent-prompt'].get).toBeDefined();
@@ -259,6 +261,9 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/cookbook'].get.tags).toContain('Cookbook');
       expect(schema.paths['/api/dashboard/vnb-overview'].get.tags).toContain('Dashboard API');
       expect(schema.paths['/api/dashboard/redispatch-metering-cockpit'].get.tags).toContain(
+        'Dashboard API'
+      );
+      expect(schema.paths['/api/dashboard/load-profile-stream-monitor'].get.tags).toContain(
         'Dashboard API'
       );
       expect(schema.paths['/api/dashboard/observability-mini'].get.tags).toContain('Dashboard API');
@@ -403,6 +408,9 @@ describe('API Gateway Service', () => {
 
       expect(aliases['GET /dashboard/redispatch-metering-cockpit']).toBe(
         'dashboard-api.redispatchMeteringCockpit'
+      );
+      expect(aliases['GET /dashboard/load-profile-stream-monitor']).toBe(
+        'dashboard-api.loadProfileStreamMonitor'
       );
       expect(aliases['GET /dashboard/observability-mini']).toBe('dashboard-api.observabilityMini');
       expect(aliases['GET /observability/logs']).toBe('observability.logs');

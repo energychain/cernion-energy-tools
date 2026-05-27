@@ -478,6 +478,36 @@ const COOKBOOK_RECIPES = [
     prerequisites: ['BDEW code of the target grid operator'],
   },
   {
+    id: 'dashboard-load-profile-stream-monitor',
+    title: 'Monitor Lastgangdaten with strict anomaly classes',
+    domain: 'monitoring',
+    tags: ['dashboard', 'lastgang', 'bewegungsstrom', 'edm', 'anomaly', 'forecast'],
+    problem:
+      'Operations teams need a single read-only view that separates data-quality gaps, real anomalies, forecast issues, and governance breaks for one MeLo stream.',
+    process: [
+      {
+        step: 1,
+        service: 'dashboard-api',
+        action: 'dashboard-api.loadProfileStreamMonitor',
+        restPath: 'GET /api/dashboard/load-profile-stream-monitor',
+        params: {
+          meloId: null,
+          from: null,
+          to: null,
+          obis: '1-0:1.8.0',
+          gridOperatorId: null,
+        },
+        description:
+          'Fetch strict anomaly-class buckets and decision notes from existing EDM/validation/forecast/governance services.',
+        expectedOutput:
+          '{ streamStatus, qualityFindings, anomalySignals, restrictionRefs, forecastQuality, decisionNotes, sourceActions, timestamp, _errors }',
+      },
+    ],
+    expectedResult:
+      'Partial-safe monitor payload with strict bucket separation: dataQualityGap vs realAnomaly vs forecastProblem vs processGovernanceBreak.',
+    prerequisites: ['MeLo ID', 'from/to time window'],
+  },
+  {
     id: 'dashboard-market-snapshot',
     title: 'Pull energy market snapshot for a region',
     domain: 'monitoring',

@@ -102,6 +102,18 @@ function findBestCapability(taskText, options = {}) {
     'delta',
     'abweichung',
   ];
+  const loadProfileMonitorSignals = [
+    'lastgang',
+    'lastgangdaten',
+    'bewegungsstrom',
+    'load profile',
+    'stream monitor',
+    'streamstatus',
+    'anomaly class',
+    'datenqualitätslücke',
+    'datenqualitaetsluecke',
+    'forecast quality',
+  ];
   const financierDueDiligenceSignals = [
     'due diligence',
     'risk assessment',
@@ -269,6 +281,17 @@ function findBestCapability(taskText, options = {}) {
     if (settlementA96Capability) {
       return {
         capability: settlementA96Capability,
+        score: 100,
+        usedFallback: false,
+      };
+    }
+  }
+
+  if (loadProfileMonitorSignals.some((signal) => haystack.includes(signal))) {
+    const loadProfileMonitorCapability = findCapabilityByName('load_profile_stream_monitor');
+    if (loadProfileMonitorCapability) {
+      return {
+        capability: loadProfileMonitorCapability,
         score: 100,
         usedFallback: false,
       };
@@ -457,6 +480,17 @@ function buildActionTemplate(action) {
       settlementId: null,
       incomingRows: null,
       toleranceEur: 0.01,
+    };
+  }
+  if (action === 'dashboard-api.loadProfileStreamMonitor') {
+    return {
+      meloId: null,
+      obis: '1-0:1.8.0',
+      from: null,
+      to: null,
+      gridOperatorId: null,
+      profileId: 'H0',
+      annualConsumptionKwh: null,
     };
   }
   if (action === 'vdmi.agentRole') {
@@ -713,6 +747,30 @@ function interpolateTemplateWithKnownContext(
     }
     if (hydrated.toleranceEur == null && knownContext.toleranceEur != null) {
       hydrated.toleranceEur = knownContext.toleranceEur;
+    }
+  }
+
+  if (action === 'dashboard-api.loadProfileStreamMonitor') {
+    if (hydrated.meloId == null) {
+      hydrated.meloId = knownContext.meloId || knownContext.messlokationId || null;
+    }
+    if (hydrated.obis == null && knownContext.obis) {
+      hydrated.obis = knownContext.obis;
+    }
+    if (hydrated.from == null) {
+      hydrated.from = knownContext.from || knownContext.dateFrom || knownContext.startDate || null;
+    }
+    if (hydrated.to == null) {
+      hydrated.to = knownContext.to || knownContext.dateTo || knownContext.endDate || null;
+    }
+    if (hydrated.gridOperatorId == null && knownContext.gridOperatorId) {
+      hydrated.gridOperatorId = knownContext.gridOperatorId;
+    }
+    if (hydrated.profileId == null && knownContext.profileId) {
+      hydrated.profileId = knownContext.profileId;
+    }
+    if (hydrated.annualConsumptionKwh == null && knownContext.annualConsumptionKwh != null) {
+      hydrated.annualConsumptionKwh = knownContext.annualConsumptionKwh;
     }
   }
 
