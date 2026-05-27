@@ -247,6 +247,55 @@ const COOKBOOK_RECIPES = [
     prerequisites: ['MaStR operator ID or resolvable BDEW code'],
   },
   {
+    id: 'fnav-contract-gate-netzsignal-priority',
+    title: 'Validate fNAV contract gate with Netzsignal priority evidence',
+    domain: 'grid_connection_flexibility',
+    tags: ['fnav', 'netzfahrplan', 'netzsignal', 'contract-gate', 'finance'],
+    problem:
+      'A flexible connection request should be validated only if Netzsignal priority wording and control evidence are explicitly documented.',
+    process: [
+      {
+        step: 1,
+        service: 'grid-connection',
+        action: 'grid-connection.fnavValidate',
+        restPath: 'POST /api/grid-connection/fnav/validate',
+        params: {
+          gridOperatorName: null,
+          voltageLevel: 'MS',
+          ownerContact: null,
+          fnavProfile: {
+            requestedCapacity: null,
+            firmCapacity: null,
+            flexibleCapacity: null,
+            curtailmentWindow: null,
+            signalPriorityPolicy: null,
+            controlEvidenceRef: null,
+            contractStatus: null,
+            legalStatus: null,
+          },
+        },
+        description: 'Run the deterministic Phase-5 validation and surface contract-gate blockers.',
+      },
+      {
+        step: 2,
+        service: 'finance-agent',
+        action: 'finance-agent.fnavEconomics',
+        restPath: 'POST /api/finance-agent/fnav/economics',
+        params: {
+          gridOperator: '__step_1.data.gridOperatorName',
+          voltageLevel: '__step_1.data.voltageLevel',
+          ownerContact: '__step_1.data.ownerContact',
+          fnavProfile: '__step_1.data.fnavProfile',
+          annualFeeEur: null,
+        },
+        description: 'Reuse the validated profile for additive CAPEX/payback evaluation.',
+      },
+    ],
+    expectedResult:
+      'Technical feasibility, explicit contract-gate status, and additive economics for the same fNAV profile.',
+    prerequisites: ['Grid operator', 'Requested capacity', 'Signal priority wording', 'Control evidence reference'],
+  },
+  {
     id: 'energy-sharing-validation',
     title: 'Validate an Energy Sharing community (§42c EnWG)',
     domain: 'agent-validation',

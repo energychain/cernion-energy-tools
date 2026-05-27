@@ -472,6 +472,8 @@ module.exports = {
               convert: true,
             },
             operatingConstraint: { type: 'string', optional: true },
+            signalPriorityPolicy: { type: 'string', optional: true },
+            controlEvidenceRef: { type: 'string', optional: true },
             contractStatus: { type: 'string', optional: true },
             legalStatus: { type: 'string', optional: true },
             evidenceLevel: { type: 'string', optional: true },
@@ -525,6 +527,9 @@ module.exports = {
                       firmCapacity: 3000,
                       flexibleCapacity: 2000,
                       curtailmentWindow: 4,
+                      signalPriorityPolicy:
+                        'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+                      controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
                       contractStatus: 'negotiating',
                       legalStatus: 'pending',
                     },
@@ -551,6 +556,15 @@ module.exports = {
                         description: 'Max curtailment hours per day (0–24)',
                       },
                       operatingConstraint: { type: 'string', example: '§14a max 2h/event' },
+                      signalPriorityPolicy: {
+                        type: 'string',
+                        example:
+                          'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+                      },
+                      controlEvidenceRef: {
+                        type: 'string',
+                        example: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
+                      },
                       contractStatus: { type: 'string', example: 'negotiating' },
                       legalStatus: { type: 'string', example: 'pending' },
                     },
@@ -582,6 +596,9 @@ module.exports = {
                       firmCapacity: 3000,
                       flexibleCapacity: 2000,
                       curtailmentWindow: 4,
+                      signalPriorityPolicy:
+                        'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+                      controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
                       contractStatus: 'signed',
                       legalStatus: 'approved',
                     },
@@ -612,6 +629,7 @@ module.exports = {
                     },
                     governanceStatus: { type: 'string' },
                     governanceBlockers: { type: 'array', items: { type: 'string' } },
+                    contractGate: { type: 'object', description: 'Explicit contract-gate assessment' },
                     governanceArtifact: { type: 'object', nullable: true },
                     decisionChain: { type: 'array', items: { type: 'object' } },
                     proof: { type: 'object' },
@@ -653,6 +671,8 @@ module.exports = {
             flexibleCapacityKW: fnavProfile.flexibleCapacity || 0,
             curtailmentWindow: fnavProfile.curtailmentWindow || 0,
             operatingConstraint: fnavProfile.operatingConstraint,
+            signalPriorityPolicy: fnavProfile.signalPriorityPolicy,
+            controlEvidenceRef: fnavProfile.controlEvidenceRef,
             contractStatus: fnavProfile.contractStatus,
             legalStatus: fnavProfile.legalStatus,
             ownerContact,
@@ -721,6 +741,7 @@ module.exports = {
           feasibility: result.feasibility,
           governanceStatus: result.governanceStatus,
           governanceBlockers: result.governanceBlockers,
+          contractGate: result.contractGate,
           placeholder: governanceArtifact,
           source: 'grid-connection.fnavValidate',
         });
@@ -731,6 +752,7 @@ module.exports = {
           feasibility: result.feasibility,
           governanceStatus: result.governanceStatus,
           governanceBlockers: result.governanceBlockers,
+          contractGate: result.contractGate,
           placeholder: governanceArtifact,
           findings: result.findings,
         });

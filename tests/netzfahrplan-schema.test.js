@@ -10,6 +10,7 @@ const {
   resolveN1Threshold,
   resolveGovernanceStatus,
   checkEvidenceCompleteness,
+  evaluateContractGate,
   buildGovernanceArtifactConfig,
   buildDecisionChain,
   buildProof,
@@ -202,6 +203,23 @@ describe('netzfahrplan-schema — resolveGovernanceStatus (Option B)', () => {
     const { blockers } = resolveGovernanceStatus(model, true);
     expect(blockers.length).toBeGreaterThan(1);
   });
+
+  it('blocks flexible profiles without explicit signal priority and control evidence', () => {
+    const model = normaliseFnavProfile({
+      requestedCapacity: 5000,
+      firmCapacity: 3000,
+      flexibleCapacity: 2000,
+      curtailmentWindow: 4,
+      contractStatus: 'signed',
+      legalStatus: 'approved',
+    });
+    const contractGate = evaluateContractGate(model);
+    const { governanceStatus, blockers } = resolveGovernanceStatus(model, false, contractGate);
+    expect(contractGate.satisfied).toBe(false);
+    expect(governanceStatus).toBe(GOVERNANCE_STATUS.REQUIRES_GOVERNANCE_DECISION);
+    expect(blockers.some((blocker) => blocker.includes('signalPriorityPolicy'))).toBe(true);
+    expect(blockers.some((blocker) => blocker.includes('controlEvidenceRef'))).toBe(true);
+  });
 });
 
 describe('netzfahrplan-schema — checkEvidenceCompleteness', () => {
@@ -231,6 +249,21 @@ describe('netzfahrplan-schema — checkEvidenceCompleteness', () => {
     expect(evidenceLevel).toBe(EVIDENCE_LEVEL.INSUFFICIENT);
     expect(missingFields.length).toBeGreaterThan(2);
   });
+
+  it('requires contract-gate evidence for flexible profiles', () => {
+    const { evidenceLevel, missingFields } = checkEvidenceCompleteness({
+      requestedCapacity: 5000,
+      firmCapacity: 3000,
+      flexibleCapacity: 2000,
+      curtailmentWindow: 4,
+      contractStatus: 'signed',
+      legalStatus: 'approved',
+    });
+    expect(evidenceLevel).toBe(EVIDENCE_LEVEL.PARTIAL);
+    expect(missingFields).toEqual(
+      expect.arrayContaining(['signalPriorityPolicy', 'controlEvidenceRef'])
+    );
+  });
 });
 
 describe('netzfahrplan-schema — governance artifact + proof helpers', () => {
@@ -259,6 +292,11 @@ describe('netzfahrplan-schema — governance artifact + proof helpers', () => {
       feasibility: 'feasible',
       governanceStatus: 'approved',
       governanceBlockers: [],
+      contractGate: evaluateContractGate({
+        ...capacityModel,
+        signalPriorityPolicy: 'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+        controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
+      }),
       source: 'grid-operations.netzfahrplanGenerate',
     });
     const proof = buildProof({
@@ -267,12 +305,19 @@ describe('netzfahrplan-schema — governance artifact + proof helpers', () => {
       feasibility: 'feasible',
       governanceStatus: 'approved',
       governanceBlockers: [],
+      contractGate: evaluateContractGate({
+        ...capacityModel,
+        signalPriorityPolicy: 'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+        controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
+      }),
       findings: [{ finding: 'FN_N1_PASS' }],
     });
 
     expect(decisionChain).toHaveLength(6);
     expect(decisionChain[1].key).toBe('technical_constraint');
+    expect(decisionChain[5].data.contractGateSatisfied).toBe(true);
     expect(proof.summary.thresholdSource).toBe(n1Check.thresholdSource);
+    expect(proof.contractGate.satisfied).toBe(true);
     expect(proof.findingCodes).toContain('FN_N1_PASS');
   });
 });

@@ -406,6 +406,8 @@ function buildActionTemplate(action) {
       firmCapacityKW: null,
       flexibleCapacityKW: null,
       curtailmentWindow: null,
+      signalPriorityPolicy: null,
+      controlEvidenceRef: null,
       contractStatus: null,
       legalStatus: null,
       ownerContact: null,
@@ -500,7 +502,13 @@ function parseRequestedCapacityKW(taskText = '') {
 
 function buildFnavProfile(knownContext = {}, taskText = '') {
   if (knownContext?.fnavProfile && typeof knownContext.fnavProfile === 'object') {
-    return knownContext.fnavProfile;
+    return {
+      ...knownContext.fnavProfile,
+      signalPriorityPolicy:
+        knownContext.fnavProfile.signalPriorityPolicy ?? knownContext.signalPriorityPolicy,
+      controlEvidenceRef:
+        knownContext.fnavProfile.controlEvidenceRef ?? knownContext.controlEvidenceRef,
+    };
   }
 
   const requestedCapacity =
@@ -517,6 +525,8 @@ function buildFnavProfile(knownContext = {}, taskText = '') {
     firmCapacity: knownContext?.firmCapacity ?? knownContext?.firmCapacityKW,
     flexibleCapacity: knownContext?.flexibleCapacity ?? knownContext?.flexibleCapacityKW,
     curtailmentWindow: knownContext?.curtailmentWindow,
+    signalPriorityPolicy: knownContext?.signalPriorityPolicy,
+    controlEvidenceRef: knownContext?.controlEvidenceRef,
     contractStatus: knownContext?.contractStatus,
     legalStatus: knownContext?.legalStatus,
   };
@@ -607,6 +617,12 @@ function interpolateTemplateWithKnownContext(
     if (hydrated.curtailmentWindow == null && knownContext.curtailmentWindow != null) {
       hydrated.curtailmentWindow = knownContext.curtailmentWindow;
     }
+    if (hydrated.signalPriorityPolicy == null && knownContext.signalPriorityPolicy) {
+      hydrated.signalPriorityPolicy = knownContext.signalPriorityPolicy;
+    }
+    if (hydrated.controlEvidenceRef == null && knownContext.controlEvidenceRef) {
+      hydrated.controlEvidenceRef = knownContext.controlEvidenceRef;
+    }
     if (hydrated.contractStatus == null && knownContext.contractStatus) {
       hydrated.contractStatus = knownContext.contractStatus;
     }
@@ -630,6 +646,15 @@ function interpolateTemplateWithKnownContext(
     }
     if (hydrated.annualFeeEur == null && knownContext.annualFeeEur != null) {
       hydrated.annualFeeEur = knownContext.annualFeeEur;
+    }
+    if (hydrated.fnavProfile && typeof hydrated.fnavProfile === 'object') {
+      hydrated.fnavProfile = {
+        ...hydrated.fnavProfile,
+        signalPriorityPolicy:
+          hydrated.fnavProfile.signalPriorityPolicy ?? knownContext.signalPriorityPolicy,
+        controlEvidenceRef:
+          hydrated.fnavProfile.controlEvidenceRef ?? knownContext.controlEvidenceRef,
+      };
     }
     if (hydrated.fnavProfile == null) {
       hydrated.fnavProfile = buildFnavProfile(knownContext, taskText);

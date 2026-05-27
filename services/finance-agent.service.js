@@ -752,6 +752,8 @@ module.exports = {
               default: 0,
               convert: true,
             },
+            signalPriorityPolicy: { type: 'string', optional: true },
+            controlEvidenceRef: { type: 'string', optional: true },
             contractStatus: { type: 'string', optional: true },
             legalStatus: { type: 'string', optional: true },
           },
@@ -795,6 +797,9 @@ module.exports = {
                       firmCapacity: 3000,
                       flexibleCapacity: 2000,
                       curtailmentWindow: 4,
+                      signalPriorityPolicy:
+                        'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+                      controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
                       contractStatus: 'negotiating',
                       legalStatus: 'pending',
                     },
@@ -808,6 +813,15 @@ module.exports = {
                       firmCapacity: { type: 'number', example: 3000 },
                       flexibleCapacity: { type: 'number', example: 2000 },
                       curtailmentWindow: { type: 'number', example: 4 },
+                      signalPriorityPolicy: {
+                        type: 'string',
+                        example:
+                          'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+                      },
+                      controlEvidenceRef: {
+                        type: 'string',
+                        example: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
+                      },
                       contractStatus: { type: 'string', example: 'negotiating' },
                       legalStatus: { type: 'string', example: 'pending' },
                     },
@@ -839,6 +853,9 @@ module.exports = {
                       firmCapacity: 3000,
                       flexibleCapacity: 2000,
                       curtailmentWindow: 4,
+                      signalPriorityPolicy:
+                        'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+                      controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
                       contractStatus: 'signed',
                       legalStatus: 'approved',
                     },
@@ -870,6 +887,7 @@ module.exports = {
                     sensitivityFlags: { type: 'array', items: { type: 'string' } },
                     governanceStatus: { type: 'string' },
                     governanceBlockers: { type: 'array', items: { type: 'string' } },
+                    contractGate: { type: 'object', description: 'Explicit contract-gate assessment' },
                     governanceArtifact: { type: 'object', nullable: true },
                     decisionChain: { type: 'array', items: { type: 'object' } },
                     proof: { type: 'object' },
@@ -887,6 +905,7 @@ module.exports = {
           normaliseFnavProfile,
           resolveGovernanceStatus,
           checkEvidenceCompleteness,
+          evaluateContractGate,
           buildGovernanceArtifactConfig,
           buildDecisionChain,
           buildProof,
@@ -908,6 +927,7 @@ module.exports = {
         // Normalise the fNAV profile
         const { evidenceLevel } = checkEvidenceCompleteness(p.fnavProfile);
         const capacityModel = normaliseFnavProfile({ ...p.fnavProfile, evidenceLevel });
+        const contractGate = evaluateContractGate(capacityModel);
         const requestedMW = capacityModel.requestedCapacityKW / 1000;
         const voltageLevel = p.voltageLevel || 'MS';
 
@@ -984,7 +1004,11 @@ module.exports = {
 
         // Governance gate (Option B)
         const ownerMissing = !p.ownerContact;
-        const { governanceStatus, blockers } = resolveGovernanceStatus(capacityModel, ownerMissing);
+        const { governanceStatus, blockers } = resolveGovernanceStatus(
+          capacityModel,
+          ownerMissing,
+          contractGate
+        );
         const govFinding =
           governanceStatus === 'approved' ? FN_GOVERNANCE_APPROVED : FN_GOVERNANCE_REQUIRED;
         findings.push(
@@ -1077,6 +1101,7 @@ module.exports = {
           economics,
           governanceStatus,
           governanceBlockers: blockers,
+          contractGate,
           placeholder: governanceArtifact,
           source: 'finance-agent.fnavEconomics',
         });
@@ -1086,6 +1111,7 @@ module.exports = {
           economics,
           governanceStatus,
           governanceBlockers: blockers,
+          contractGate,
           placeholder: governanceArtifact,
           findings,
         });
@@ -1094,6 +1120,7 @@ module.exports = {
           ...economics,
           governanceStatus,
           governanceBlockers: blockers,
+          contractGate,
           governanceArtifact,
           decisionChain,
           proof,

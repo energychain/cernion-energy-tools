@@ -46,6 +46,7 @@ const ALARM_STATUS = {
 
 const pendingJobsByTenant = new Map();
 const runningJobsByTenant = new Map();
+const runningJobsByTenantAndClass = new Map();
 const wakeUpQueueByIdempotencyKey = new Map();
 let roundRobinOffset = 0;
 let dispatchScheduled = false;
@@ -142,23 +143,62 @@ function getRunningCount(tenantId) {
   return Number(runningJobsByTenant.get(tenantId) || 0);
 }
 
-function incRunningCount(tenantId) {
-  runningJobsByTenant.set(tenantId, getRunningCount(tenantId) + 1);
+function getRunningCountByClass(tenantId, jobClass) {
+  const key = `${String(tenantId || 'default')}:${String(jobClass || 'default')}`;
+  return Number(runningJobsByTenantAndClass.get(key) || 0);
 }
 
-function decRunningCount(tenantId) {
-  const next = Math.max(0, getRunningCount(tenantId) - 1);
+function getJobDispatchClass(service, action) {
+  const normalizedService = String(service || '').trim();
+  const normalizedAction = String(action || '').trim();
+  if (normalizedService === 'personal-agent' && normalizedAction === 'chat') {
+    return 'interactive';
+  }
+  if (normalizedService === 'personal-agent' && normalizedAction === 'dream-pipeline') {
+    return 'background';
+  }
+  return 'default';
+}
+
+function incRunningCount(tenantId, jobClass = 'default') {
+  const normalizedTenantId = String(tenantId || 'default');
+  const normalizedClass = String(jobClass || 'default');
+  runningJobsByTenant.set(normalizedTenantId, getRunningCount(normalizedTenantId) + 1);
+
+  const classKey = `${normalizedTenantId}:${normalizedClass}`;
+  runningJobsByTenantAndClass.set(
+    classKey,
+    getRunningCountByClass(normalizedTenantId, normalizedClass) + 1
+  );
+}
+
+function decRunningCount(tenantId, jobClass = 'default') {
+  const normalizedTenantId = String(tenantId || 'default');
+  const normalizedClass = String(jobClass || 'default');
+
+  const next = Math.max(0, getRunningCount(normalizedTenantId) - 1);
   if (next === 0) {
-    runningJobsByTenant.delete(tenantId);
+    runningJobsByTenant.delete(normalizedTenantId);
+  } else {
+    runningJobsByTenant.set(normalizedTenantId, next);
+  }
+
+  const classKey = `${normalizedTenantId}:${normalizedClass}`;
+  const nextClass = Math.max(0, getRunningCountByClass(normalizedTenantId, normalizedClass) - 1);
+  if (nextClass === 0) {
+    runningJobsByTenantAndClass.delete(classKey);
     return;
   }
-  runningJobsByTenant.set(tenantId, next);
+  runningJobsByTenantAndClass.set(classKey, nextClass);
 }
 
 function enqueuePendingJob(entry) {
   const tenantId = String(entry.tenantId || 'default');
   const queue = pendingJobsByTenant.get(tenantId) || [];
-  queue.push(entry);
+  queue.push({
+    ...entry,
+    jobClass: entry.jobClass || getJobDispatchClass(entry.service, entry.action),
+  });
   pendingJobsByTenant.set(tenantId, queue);
 }
 
@@ -279,14 +319,44 @@ function enqueueWakeUp(entry) {
   return true;
 }
 
+function canDispatchEntry(entry, tenantId) {
+  if (!entry) return false;
+  const jobClass = String(entry.jobClass || getJobDispatchClass(entry.service, entry.action));
+  const totalRunning = getRunningCount(tenantId);
+  if (jobClass === 'interactive') {
+    return (
+      totalRunning < MAX_CONCURRENT_PER_TENANT ||
+      getRunningCountByClass(tenantId, 'interactive') === 0
+    );
+  }
+  return totalRunning < MAX_CONCURRENT_PER_TENANT;
+}
+
+function findDispatchableQueueIndex(queue, tenantId) {
+  if (!Array.isArray(queue) || queue.length === 0) return -1;
+
+  let firstBackgroundIndex = -1;
+  for (let index = 0; index < queue.length; index += 1) {
+    const entry = queue[index];
+    if (!canDispatchEntry(entry, tenantId)) {
+      continue;
+    }
+
+    const jobClass = String(entry.jobClass || getJobDispatchClass(entry.service, entry.action));
+    if (jobClass === 'interactive') {
+      return index;
+    }
+    if (firstBackgroundIndex < 0) {
+      firstBackgroundIndex = index;
+    }
+  }
+
+  return firstBackgroundIndex;
+}
+
 function pickNextTenantForDispatch() {
   const tenants = Array.from(pendingJobsByTenant.entries())
-    .filter(
-      ([tenantId, queue]) =>
-        Array.isArray(queue) &&
-        queue.length > 0 &&
-        getRunningCount(tenantId) < MAX_CONCURRENT_PER_TENANT
-    )
+    .filter(([tenantId, queue]) => Array.isArray(queue) && queue.length > 0 && findDispatchableQueueIndex(queue, tenantId) >= 0)
     .map(([tenantId]) => tenantId);
 
   if (tenants.length === 0) return null;
@@ -300,8 +370,9 @@ function pickNextTenantForDispatch() {
 function runQueuedJob(entry) {
   const tenantId = String(entry.tenantId || 'default');
   const jobId = entry.jobId;
+  const jobClass = String(entry.jobClass || getJobDispatchClass(entry.service, entry.action));
 
-  incRunningCount(tenantId);
+  incRunningCount(tenantId, jobClass);
   updateJob(jobId, {
     status: JOB_STATUS.RUNNING,
     missedLeases: 0,
@@ -371,7 +442,7 @@ function runQueuedJob(entry) {
     })
     .finally(() => {
       if (heartbeat) clearInterval(heartbeat);
-      decRunningCount(tenantId);
+      decRunningCount(tenantId, jobClass);
       scheduleDispatch();
     });
 }
@@ -382,7 +453,12 @@ function dispatchPendingJobs() {
     if (!tenantId) break;
 
     const queue = pendingJobsByTenant.get(tenantId) || [];
-    const next = queue.shift();
+    const nextIndex = findDispatchableQueueIndex(queue, tenantId);
+    if (nextIndex < 0) {
+      continue;
+    }
+
+    const [next] = queue.splice(nextIndex, 1);
     if (queue.length > 0) {
       pendingJobsByTenant.set(tenantId, queue);
     } else {
@@ -733,6 +809,7 @@ function rehydrateOnStartup(options = {}) {
 function resetDispatchStateForTests() {
   pendingJobsByTenant.clear();
   runningJobsByTenant.clear();
+  runningJobsByTenantAndClass.clear();
   wakeUpQueueByIdempotencyKey.clear();
   roundRobinOffset = 0;
   dispatchScheduled = false;
@@ -909,6 +986,8 @@ async function startJob(ctx, jobMeta, worker, options = {}) {
         enqueuePendingJob({
           tenantId: existing.tenantId || tenantId,
           jobId: existing.jobId,
+          service: jobMeta?.service,
+          action: jobMeta?.action,
           idempotencyKey,
           worker,
         });
@@ -989,6 +1068,8 @@ async function startJob(ctx, jobMeta, worker, options = {}) {
   enqueuePendingJob({
     tenantId,
     jobId,
+    service: jobMeta?.service,
+    action: jobMeta?.action,
     idempotencyKey,
     worker,
   });

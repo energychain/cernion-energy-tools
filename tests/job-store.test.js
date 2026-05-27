@@ -526,6 +526,66 @@ describe('startJob', () => {
       expect(jobStore.getResult(second.jobId)).toEqual({ slot: 2 });
     });
 
+    it('prioritizes interactive personal-agent chat jobs over running dream jobs', async () => {
+      process.env.JOB_STORE_MAX_CONCURRENT_PER_TENANT = '1';
+      loadFreshModule();
+
+      const ctx = { meta: { $gateway: true, tenantId: 'tenant-priority' } };
+      let resolveDream1;
+      let resolveChat1;
+      const dream1Worker = jest.fn(
+        () =>
+          new Promise((resolve) => {
+            resolveDream1 = resolve;
+          })
+      );
+      const chat1Worker = jest.fn(
+        () =>
+          new Promise((resolve) => {
+            resolveChat1 = resolve;
+          })
+      );
+      const dream2Worker = jest.fn(async () => ({ ok: 'dream-2' }));
+
+      const dream1 = await jobStore.startJob(
+        ctx,
+        { service: 'personal-agent', action: 'dream-pipeline' },
+        dream1Worker
+      );
+      await new Promise((r) => setTimeout(r, 30));
+      expect(jobStore.getJob(dream1.jobId).status).toBe('running');
+      expect(dream1Worker).toHaveBeenCalledTimes(1);
+
+      const chat1 = await jobStore.startJob(
+        ctx,
+        { service: 'personal-agent', action: 'chat' },
+        chat1Worker
+      );
+      await new Promise((r) => setTimeout(r, 30));
+      expect(jobStore.getJob(chat1.jobId).status).toBe('running');
+      expect(chat1Worker).toHaveBeenCalledTimes(1);
+
+      const dream2 = await jobStore.startJob(
+        ctx,
+        { service: 'personal-agent', action: 'dream-pipeline' },
+        dream2Worker
+      );
+      await new Promise((r) => setTimeout(r, 30));
+      expect(jobStore.getJob(dream2.jobId).status).toBe('queued');
+      expect(dream2Worker).toHaveBeenCalledTimes(0);
+
+      resolveChat1({ ok: 'chat-1' });
+      await new Promise((r) => setTimeout(r, 30));
+      expect(jobStore.getJob(dream2.jobId).status).toBe('queued');
+      expect(jobStore.getResult(dream2.jobId)).toBeNull();
+
+      resolveDream1({ ok: 'dream-1' });
+      await new Promise((r) => setTimeout(r, 40));
+      expect(dream2Worker).toHaveBeenCalledTimes(1);
+      expect(jobStore.getJob(dream2.jobId).status).not.toBe('queued');
+      expect(jobStore.getResult(dream2.jobId)).toEqual({ ok: 'dream-2' });
+    });
+
     it('keeps tenant isolation under queue pressure so one tenant cannot block another', async () => {
       process.env.JOB_STORE_MAX_CONCURRENT_PER_TENANT = '1';
       loadFreshModule();

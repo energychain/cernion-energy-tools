@@ -21,11 +21,15 @@ Request:
     "gridOperatorName": "Stadtwerke Troisdorf",
     "fnavProfile": {
       "requestedCapacity": 5000,
-      "flexibleCapacity": 2000
+      "flexibleCapacity": 2000,
+      "signalPriorityPolicy": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung",
+      "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05"
     }
   }
 }
 ```
+
+Hinweis für Phase-5-fNAV-Flows: Begriffe wie `Netzsignal Vorrang`, `Vertragsgate` oder `Fernwirknachweis` routen weiterhin auf die bestehende Capability `netzfahrplan_fnav_assessment`. Für flexible Profile blockiert der Agent konservativ, wenn die Prioritätsregel oder der Steuerbarkeitsnachweis fehlen.
 
 Response:
 ```json

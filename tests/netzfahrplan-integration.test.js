@@ -72,6 +72,8 @@ describe('netzfahrplan integration — netzfahrplanGenerate', () => {
       firmCapacityKW: 3000,
       flexibleCapacityKW: 2000,
       curtailmentWindow: 4,
+      signalPriorityPolicy: 'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+      controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
       contractStatus: 'signed',
       legalStatus: 'approved',
       ownerContact: 'netzplanung@twl.de',
@@ -82,6 +84,7 @@ describe('netzfahrplan integration — netzfahrplanGenerate', () => {
     expect(result.n1Check.passes).toBe(true);
     // Governance APPROVED because legal+contract+owner all present
     expect(result.governanceStatus).toBe('approved');
+    expect(result.contractGate.satisfied).toBe(true);
     expect(result.governanceBlockers).toHaveLength(0);
     expect(result.findings.some((f) => f.finding === 'FN_FLEX_NAV_FEASIBLE')).toBe(true);
     expect(result.findings.some((f) => f.finding === 'FN_GOVERNANCE_APPROVED')).toBe(true);
@@ -102,6 +105,28 @@ describe('netzfahrplan integration — netzfahrplanGenerate', () => {
     expect(result.governanceStatus).toBe('requires_governance_decision');
     expect(result.governanceBlockers.some((b) => b.includes('legalStatus'))).toBe(true);
     expect(result.findings.some((f) => f.finding === 'FN_GOVERNANCE_REQUIRED')).toBe(true);
+  });
+
+  it('blocks flexible profiles when contract-gate evidence is missing', async () => {
+    const result = await broker.call('grid-operations.netzfahrplanGenerate', {
+      voltageLevel: 'MS',
+      requestedCapacityKW: 5000,
+      firmCapacityKW: 3000,
+      flexibleCapacityKW: 2000,
+      curtailmentWindow: 4,
+      contractStatus: 'signed',
+      legalStatus: 'approved',
+      ownerContact: 'netzplanung@twl.de',
+    });
+
+    expect(result.contractGate.satisfied).toBe(false);
+    expect(result.governanceStatus).toBe('requires_governance_decision');
+    expect(result.governanceBlockers).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('signalPriorityPolicy'),
+        expect.stringContaining('controlEvidenceRef'),
+      ])
+    );
   });
 
   it('returns FN_N1_FAIL when effective capacity exceeds N-1 threshold', async () => {
@@ -223,6 +248,8 @@ describe('netzfahrplan integration — grid-connection.fnavValidate', () => {
         firmCapacity: 2500,
         flexibleCapacity: 1500,
         curtailmentWindow: 4,
+        signalPriorityPolicy: 'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+        controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
         contractStatus: 'signed',
         legalStatus: 'approved',
       },
@@ -232,6 +259,7 @@ describe('netzfahrplan integration — grid-connection.fnavValidate', () => {
     expect(result.source).toBe('grid-connection.fnavValidate');
     expect(result.feasibility).toBeDefined();
     expect(result.governanceStatus).toBeDefined();
+    expect(result.contractGate.satisfied).toBe(true);
     expect(Array.isArray(result.findings)).toBe(true);
   });
 
@@ -342,6 +370,8 @@ describe('netzfahrplan integration — finance-agent.fnavEconomics', () => {
         firmCapacity: 3000,
         flexibleCapacity: 2000,
         curtailmentWindow: 4,
+        signalPriorityPolicy: 'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+        controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
         contractStatus: 'signed',
         legalStatus: 'approved',
       },
@@ -356,6 +386,7 @@ describe('netzfahrplan integration — finance-agent.fnavEconomics', () => {
     expect(result.annualFeeEur).toBe(15000);
     expect(result.paybackYears).toBe(parseFloat((EOG_CAPEX_EUR / 15000).toFixed(1)));
     expect(result.governanceStatus).toBe('approved');
+    expect(result.contractGate.satisfied).toBe(true);
     expect(result.findings.some((f) => f.finding === 'FN_ECONOMICS_AVAILABLE')).toBe(true);
   });
 

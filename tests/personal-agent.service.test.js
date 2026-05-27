@@ -871,6 +871,47 @@ describe('personal-agent.service', () => {
     ]);
   });
 
+  it('forwards contract-gate fields through Personal Agent execution', async () => {
+    await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+        chatMode: 'execution',
+        executionMode: 'auto',
+        knownContext: {
+          gridOperatorName: 'TWL Netze',
+          voltageLevel: 'MS',
+          ownerContact: 'netzplanung@twl.de',
+          signalPriorityPolicy: 'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+          controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
+          fnavProfile: { requestedCapacity: 5000, flexibleCapacity: 2000 },
+          annualFeeEur: 12000,
+        },
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    const validationCall = executedCallDetails.find(
+      (entry) => entry.action === 'grid-connection.fnavValidate'
+    );
+    const financeCall = executedCallDetails.find(
+      (entry) => entry.action === 'finance-agent.fnavEconomics'
+    );
+
+    expect(validationCall.params.fnavProfile).toEqual(
+      expect.objectContaining({
+        signalPriorityPolicy: 'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+        controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
+      })
+    );
+    expect(financeCall.params.fnavProfile).toEqual(
+      expect.objectContaining({
+        signalPriorityPolicy: 'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+        controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
+      })
+    );
+  });
+
   it('blocks dependent step execution when lookup result list is empty', async () => {
     const result = await broker.call(
       'personal-agent.chat',

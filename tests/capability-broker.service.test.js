@@ -155,6 +155,16 @@ describe('Capability Broker Service', () => {
     expect(result.recommendedPlan[0].action).toBe('grid-connection.fnavValidate');
   });
 
+  it('routes Netzsignal-Vorrang Vertragsgate prompts to the Phase-5 fNAV capability', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task:
+        'Bitte fNAV Netzfahrplan mit Netzsignal Vorrang Vertragsgate für einen flexiblen Netzanschlussvertrag prüfen.',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('netzfahrplan_fnav_assessment');
+    expect(result.recommendedPlan[0].action).toBe('grid-connection.fnavValidate');
+  });
+
   it('routes financier due-diligence prompts to finance-agent.analyze instead of interface placeholder', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Erstelle ein vorläufiges Risk Assessment für den Kreditausschuss (Due Diligence, Condition Precedent).',

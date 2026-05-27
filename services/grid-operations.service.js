@@ -2084,6 +2084,8 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
           convert: true,
         },
         operatingConstraint: { type: 'string', optional: true },
+        signalPriorityPolicy: { type: 'string', optional: true },
+        controlEvidenceRef: { type: 'string', optional: true },
         contractStatus: { type: 'string', optional: true },
         legalStatus: { type: 'string', optional: true },
         ownerContact: { type: 'string', optional: true },
@@ -2119,7 +2121,8 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
 
 **Governance (Option B):**
 - Technical feasibility is reported deterministically
-- Final governanceStatus is \`requires_governance_decision\` until legalStatus=approved AND contractStatus=signed`,
+- Final governanceStatus is \`requires_governance_decision\` until legalStatus=approved AND contractStatus=signed
+- Flexible profiles should explicitly document Netzsignal-Vorrang plus a control-evidence reference for the contract gate`,
         requestBody: {
           required: true,
           content: {
@@ -2172,6 +2175,18 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                     description: 'Free-text operating constraint',
                     example: '§14a max 2h/event, 30-min notice',
                   },
+                  signalPriorityPolicy: {
+                    type: 'string',
+                    description:
+                      'Optional contract-gate wording that explicitly documents grid-signal priority over schedule/market optimisation',
+                    example: 'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+                  },
+                  controlEvidenceRef: {
+                    type: 'string',
+                    description:
+                      'Optional reference to the control/remote-control evidence backing the contract gate',
+                    example: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
+                  },
                   contractStatus: {
                     type: 'string',
                     description: 'Contract status',
@@ -2209,6 +2224,9 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                     flexibleCapacityKW: 2000,
                     curtailmentWindow: 4,
                     operatingConstraint: '§14a max 2h/event',
+                    signalPriorityPolicy:
+                      'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+                    controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
                     contractStatus: 'negotiating',
                     legalStatus: 'pending',
                     ownerContact: 'netzplanung@twl.de',
@@ -2246,6 +2264,11 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                     },
                     governanceStatus: { type: 'string', description: 'Governance decision status' },
                     governanceBlockers: { type: 'array', items: { type: 'string' } },
+                    contractGate: {
+                      type: 'object',
+                      description:
+                        'Explicit contract-gate assessment for grid-signal priority and control evidence',
+                    },
                     governanceArtifact: {
                       type: 'object',
                       nullable: true,
@@ -2277,6 +2300,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
           resolveGovernanceStatus,
           checkEvidenceCompleteness,
           FNAV_PROFILE_TYPE,
+          evaluateContractGate,
           buildGovernanceArtifactConfig,
           buildDecisionChain,
           buildProof,
@@ -2306,6 +2330,8 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
           flexibleCapacity: p.flexibleCapacityKW || 0,
           curtailmentWindow: p.curtailmentWindow || 0,
           operatingConstraint: p.operatingConstraint,
+          signalPriorityPolicy: p.signalPriorityPolicy,
+          controlEvidenceRef: p.controlEvidenceRef,
           contractStatus: p.contractStatus,
           legalStatus: p.legalStatus,
         };
@@ -2313,6 +2339,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
         rawProfile.evidenceLevel = evidenceLevel;
 
         const capacityModel = normaliseFnavProfile(rawProfile);
+        const contractGate = evaluateContractGate(capacityModel);
         const findings = [];
         let fidx = 1;
 
@@ -2410,7 +2437,11 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
 
         // Step 4 — Governance gate (Option B)
         const ownerMissing = !p.ownerContact;
-        const { governanceStatus, blockers } = resolveGovernanceStatus(capacityModel, ownerMissing);
+        const { governanceStatus, blockers } = resolveGovernanceStatus(
+          capacityModel,
+          ownerMissing,
+          contractGate
+        );
         const govFinding =
           governanceStatus === 'approved' ? FN_GOVERNANCE_APPROVED : FN_GOVERNANCE_REQUIRED;
         const govSeverity = governanceStatus === 'approved' ? 'info' : 'warning';
@@ -2426,7 +2457,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
               : 'All governance prerequisites met.',
             { governanceStatus, blockers, ownerMissing },
             blockers.length
-              ? 'Obtain legal approval and signed contract before finalising fNAV.'
+              ? 'Document legal approval, signed contract, Netzsignal-Vorrang wording, and control evidence before finalising fNAV.'
               : null,
             fidx++
           )
@@ -2493,6 +2524,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
           feasibility,
           governanceStatus,
           governanceBlockers: blockers,
+          contractGate,
           placeholder: governanceArtifact,
           source: 'grid-operations.netzfahrplanGenerate',
         });
@@ -2503,6 +2535,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
           feasibility,
           governanceStatus,
           governanceBlockers: blockers,
+          contractGate,
           placeholder: governanceArtifact,
           findings,
         });
@@ -2513,6 +2546,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
           feasibility,
           governanceStatus,
           governanceBlockers: blockers,
+          contractGate,
           governanceArtifact,
           decisionChain,
           proof,

@@ -98,6 +98,66 @@ const DOMAIN_DEFAULT_N1_MVA = Object.freeze({
   NS: parseFloat(process.env.N1_THRESHOLD_NS_MVA || `${NETZFAHRPLAN_DEFAULTS.n1ThresholdMVA.NS}`),
 });
 
+function normalizeSignalPriorityPolicy(policy) {
+  const value = typeof policy === 'string' ? policy.trim() : '';
+  return value || null;
+}
+
+function normalizeControlEvidenceRef(reference) {
+  const value = typeof reference === 'string' ? reference.trim() : '';
+  return value || null;
+}
+
+function isRecognizedSignalPriorityPolicy(policy) {
+  const normalized = normalizeSignalPriorityPolicy(policy);
+  if (!normalized) {
+    return false;
+  }
+
+  return [
+    /netzsignal.*vorrang/i,
+    /vorrang.*netzsignal/i,
+    /grid\s*signal.*priority/i,
+    /priority.*grid\s*signal/i,
+    /grid\s*signal.*override/i,
+    /vnb.*signal.*vorrang/i,
+    /netzbetreiber.*signal.*vorrang/i,
+  ].some((pattern) => pattern.test(normalized));
+}
+
+function evaluateContractGate(profile = {}) {
+  const flexibleCapacity = Number(profile.flexibleCapacityKW ?? profile.flexibleCapacity ?? 0);
+  const curtailmentWindow = Number(profile.curtailmentWindow || 0);
+  const required =
+    profile.profileType != null
+      ? profile.profileType !== FNAV_PROFILE_TYPE.STATIC_CAP
+      : flexibleCapacity > 0 || curtailmentWindow > 0;
+  const signalPriorityPolicy = normalizeSignalPriorityPolicy(profile.signalPriorityPolicy);
+  const controlEvidenceRef = normalizeControlEvidenceRef(profile.controlEvidenceRef);
+  const blockers = [];
+
+  if (required) {
+    if (!signalPriorityPolicy) {
+      blockers.push('signalPriorityPolicy missing for flexible grid contract gate');
+    } else if (!isRecognizedSignalPriorityPolicy(signalPriorityPolicy)) {
+      blockers.push('signalPriorityPolicy does not explicitly confirm grid signal priority');
+    }
+
+    if (!controlEvidenceRef) {
+      blockers.push('controlEvidenceRef missing for flexible grid contract gate');
+    }
+  }
+
+  return {
+    required,
+    satisfied: required ? blockers.length === 0 : true,
+    signalPriorityPolicy,
+    controlEvidenceRef,
+    priorityConfirmed: required ? isRecognizedSignalPriorityPolicy(signalPriorityPolicy) : false,
+    blockers,
+  };
+}
+
 function buildGovernanceArtifactConfig(blockers = []) {
   const joined = blockers.join(' | ').toLowerCase();
 
@@ -109,11 +169,27 @@ function buildGovernanceArtifactConfig(blockers = []) {
     };
   }
 
+  if (joined.includes('signalprioritypolicy')) {
+    return {
+      reason: 'NEEDS_DECISION',
+      blockingLevel: 'hard',
+      signalCodes: ['NEEDS_DECISION', 'CONTRACT_GATE_SIGNAL_PRIORITY'],
+    };
+  }
+
   if (joined.includes('evidencelevel')) {
     return {
       reason: 'NEEDS_EVIDENCE',
       blockingLevel: 'soft',
       signalCodes: ['NEEDS_EVIDENCE'],
+    };
+  }
+
+  if (joined.includes('controlevidenceref')) {
+    return {
+      reason: 'NEEDS_EVIDENCE',
+      blockingLevel: 'soft',
+      signalCodes: ['NEEDS_EVIDENCE', 'CONTRACT_GATE_CONTROL_EVIDENCE'],
     };
   }
 
@@ -142,6 +218,7 @@ function buildDecisionChain(input = {}) {
     economics,
     governanceStatus,
     governanceBlockers,
+    contractGate,
     placeholder,
     source,
   } = input;
@@ -177,6 +254,11 @@ function buildDecisionChain(input = {}) {
         feasibility: feasibility || null,
         curtailmentWindow: capacityModel?.curtailmentWindow ?? null,
         operatingConstraint: capacityModel?.operatingConstraint ?? null,
+        signalPriorityPolicy:
+          contractGate?.signalPriorityPolicy ?? capacityModel?.signalPriorityPolicy ?? null,
+        controlEvidenceRef:
+          contractGate?.controlEvidenceRef ?? capacityModel?.controlEvidenceRef ?? null,
+        contractGateSatisfied: contractGate?.satisfied ?? null,
       },
     },
     {
@@ -192,6 +274,9 @@ function buildDecisionChain(input = {}) {
       data: {
         governanceStatus: governanceStatus || null,
         governanceBlockers: governanceBlockers || [],
+        contractGateRequired: contractGate?.required ?? false,
+        contractGateSatisfied: contractGate?.satisfied ?? null,
+        contractGateBlockers: contractGate?.blockers || [],
         placeholderId: placeholder?.placeholderId || null,
         hitlId: placeholder?.hitlItem?.id || placeholder?.hitlItemId || null,
       },
@@ -207,6 +292,7 @@ function buildProof(input = {}) {
     economics,
     governanceStatus,
     governanceBlockers,
+    contractGate,
     placeholder,
     findings,
   } = input;
@@ -222,8 +308,20 @@ function buildProof(input = {}) {
       avoidedCopperCapexEur: economics?.avoidedCopperCapexEur ?? null,
       paybackYears: economics?.paybackYears ?? null,
       governanceStatus: governanceStatus || null,
+      contractGateRequired: contractGate?.required ?? false,
+      contractGateSatisfied: contractGate?.satisfied ?? null,
     },
     blockerCount: (governanceBlockers || []).length,
+    contractGate: contractGate
+      ? {
+          required: contractGate.required,
+          satisfied: contractGate.satisfied,
+          priorityConfirmed: contractGate.priorityConfirmed,
+          signalPriorityPolicy: contractGate.signalPriorityPolicy,
+          controlEvidenceRef: contractGate.controlEvidenceRef,
+          blockers: contractGate.blockers,
+        }
+      : null,
     placeholderRef: placeholder
       ? {
           placeholderId: placeholder.placeholderId || null,
@@ -342,6 +440,8 @@ function normaliseFnavProfile(profile = {}) {
     curtailmentWindow: curtailmentHours,
     curtailmentFactor: parseFloat(curtailmentFactor.toFixed(4)),
     operatingConstraint: profile.operatingConstraint || null,
+    signalPriorityPolicy: normalizeSignalPriorityPolicy(profile.signalPriorityPolicy),
+    controlEvidenceRef: normalizeControlEvidenceRef(profile.controlEvidenceRef),
     contractStatus,
     legalStatus,
     evidenceLevel,
@@ -396,12 +496,14 @@ function checkN1Compliance(loadMW, voltageLevel, n1Overrides = {}) {
  *   - contractStatus is not `signed`
  *   - evidenceLevel is `insufficient`
  *   - or ownerMissing is true
+ *   - or the flexible contract gate is incomplete
  *
  * @param {object} capacityModel   Output of normaliseFnavProfile
  * @param {boolean} [ownerMissing] True if no responsible owner/contact is recorded
+ * @param {object} [contractGate]  Output of evaluateContractGate
  * @returns {{ governanceStatus: string, blockers: string[] }}
  */
-function resolveGovernanceStatus(capacityModel, ownerMissing = false) {
+function resolveGovernanceStatus(capacityModel, ownerMissing = false, contractGate = null) {
   const blockers = [];
 
   if (capacityModel.legalStatus !== LEGAL_STATUS.APPROVED) {
@@ -415,6 +517,9 @@ function resolveGovernanceStatus(capacityModel, ownerMissing = false) {
   }
   if (ownerMissing) {
     blockers.push('no responsible owner / contact recorded');
+  }
+  if (Array.isArray(contractGate?.blockers) && contractGate.blockers.length > 0) {
+    blockers.push(...contractGate.blockers);
   }
 
   const governanceStatus =
@@ -443,6 +548,7 @@ function resolveGovernanceStatus(capacityModel, ownerMissing = false) {
  */
 function checkEvidenceCompleteness(profile = {}) {
   const missing = [];
+  const contractGate = evaluateContractGate(profile);
 
   if (!profile.requestedCapacity || Number(profile.requestedCapacity) <= 0) {
     missing.push('requestedCapacity');
@@ -456,17 +562,28 @@ function checkEvidenceCompleteness(profile = {}) {
   if (!profile.legalStatus || profile.legalStatus === LEGAL_STATUS.UNKNOWN) {
     missing.push('legalStatus');
   }
+  if (contractGate.required && !contractGate.signalPriorityPolicy) {
+    missing.push('signalPriorityPolicy');
+  }
+  if (contractGate.required && !contractGate.priorityConfirmed) {
+    missing.push('signalPriorityPolicy');
+  }
+  if (contractGate.required && !contractGate.controlEvidenceRef) {
+    missing.push('controlEvidenceRef');
+  }
+
+  const uniqueMissing = [...new Set(missing)];
 
   let evidenceLevel;
-  if (missing.length === 0) {
+  if (uniqueMissing.length === 0) {
     evidenceLevel = EVIDENCE_LEVEL.COMPLETE;
-  } else if (missing.length <= 2) {
+  } else if (uniqueMissing.length <= 2) {
     evidenceLevel = EVIDENCE_LEVEL.PARTIAL;
   } else {
     evidenceLevel = EVIDENCE_LEVEL.INSUFFICIENT;
   }
 
-  return { evidenceLevel, missingFields: missing };
+  return { evidenceLevel, missingFields: uniqueMissing };
 }
 
 // ---------------------------------------------------------------------------
@@ -489,6 +606,7 @@ module.exports = {
   normaliseFnavProfile,
   // Governance
   resolveGovernanceStatus,
+  evaluateContractGate,
   // Evidence
   checkEvidenceCompleteness,
   buildGovernanceArtifactConfig,

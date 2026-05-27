@@ -15,6 +15,15 @@
 | `GET`  | `/api/grid-connection/validations/:id` | Get a specific validation |
 | `DELETE` | `/api/grid-connection/validations/:id` | Delete a validation record — ⚠ not yet implemented (see CR-0003) |
 
+### Additional deterministic Phase-5 endpoints
+
+| Method | URL | Purpose |
+|--------|-----|---------|
+| `POST` | `/api/grid-connection/fnav/validate` | Validate flexible Netzanschlussvertrag profile and governance blockers |
+| `POST` | `/api/netzfahrplan/generate` | Build the Phase-5 Netzfahrplan / N-1 / governance assessment |
+
+For flexible fNAV profiles, both endpoints accept additive optional fields `signalPriorityPolicy` and `controlEvidenceRef`. Missing values do not break the API contract, but they produce explicit contract-gate blockers instead of implicit approval.
+
 ---
 
 ## Trigger (POST /api/grid-connection/validate)

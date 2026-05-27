@@ -313,6 +313,8 @@ const ACTION_PARAM_ALIASES = Object.freeze({
     firmCapacityKW: ['firmCapacityKW', 'firmCapacity'],
     flexibleCapacityKW: ['flexibleCapacityKW', 'flexibleCapacity'],
     curtailmentWindow: ['curtailmentWindow'],
+    signalPriorityPolicy: ['signalPriorityPolicy', 'priorityPolicy', 'netzsignalPriority'],
+    controlEvidenceRef: ['controlEvidenceRef', 'controlEvidence', 'fernwirknachweis'],
     contractStatus: ['contractStatus'],
     legalStatus: ['legalStatus'],
     ownerContact: ['ownerContact'],
@@ -640,6 +642,10 @@ function findBestCapability(message) {
     'voltage level',
     'rechenzentrum',
     'kupferausbau',
+    'netzsignal',
+    'vorrang',
+    'vertragsgate',
+    'fernwirknachweis',
     'firm capacity',
     'flexible capacity',
   ];
@@ -1266,6 +1272,15 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
     if (typeof hydrated.fnavProfile === 'string') {
       hydrated.fnavProfile = undefined;
     }
+    if (hydrated.fnavProfile && typeof hydrated.fnavProfile === 'object') {
+      hydrated.fnavProfile = {
+        ...hydrated.fnavProfile,
+        signalPriorityPolicy:
+          hydrated.fnavProfile.signalPriorityPolicy ?? knownContext?.signalPriorityPolicy,
+        controlEvidenceRef:
+          hydrated.fnavProfile.controlEvidenceRef ?? knownContext?.controlEvidenceRef,
+      };
+    }
     if (hydrated.fnavProfile == null) {
       const requestedCapacity =
         knownContext?.requestedCapacityKW ??
@@ -1277,6 +1292,8 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
           firmCapacity: knownContext?.firmCapacityKW ?? knownContext?.firmCapacity,
           flexibleCapacity: knownContext?.flexibleCapacityKW ?? knownContext?.flexibleCapacity,
           curtailmentWindow: knownContext?.curtailmentWindow,
+          signalPriorityPolicy: knownContext?.signalPriorityPolicy,
+          controlEvidenceRef: knownContext?.controlEvidenceRef,
           contractStatus: knownContext?.contractStatus,
           legalStatus: knownContext?.legalStatus,
         };
@@ -1293,6 +1310,42 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
     }
     if (hydrated.ownerContact == null && knownContext?.ownerContact) {
       hydrated.ownerContact = knownContext.ownerContact;
+    }
+    if (hydrated.signalPriorityPolicy == null && knownContext?.signalPriorityPolicy) {
+      hydrated.signalPriorityPolicy = knownContext.signalPriorityPolicy;
+    }
+    if (hydrated.controlEvidenceRef == null && knownContext?.controlEvidenceRef) {
+      hydrated.controlEvidenceRef = knownContext.controlEvidenceRef;
+    }
+  }
+
+  if (action === 'finance-agent.fnavEconomics') {
+    if (hydrated.fnavProfile && typeof hydrated.fnavProfile === 'object') {
+      hydrated.fnavProfile = {
+        ...hydrated.fnavProfile,
+        signalPriorityPolicy:
+          hydrated.fnavProfile.signalPriorityPolicy ?? knownContext?.signalPriorityPolicy,
+        controlEvidenceRef:
+          hydrated.fnavProfile.controlEvidenceRef ?? knownContext?.controlEvidenceRef,
+      };
+    }
+    if (hydrated.fnavProfile == null) {
+      const requestedCapacity =
+        knownContext?.requestedCapacityKW ??
+        knownContext?.requestedCapacity ??
+        promptHints?.requestedCapacityKW;
+      if (requestedCapacity != null) {
+        hydrated.fnavProfile = {
+          requestedCapacity,
+          firmCapacity: knownContext?.firmCapacityKW ?? knownContext?.firmCapacity,
+          flexibleCapacity: knownContext?.flexibleCapacityKW ?? knownContext?.flexibleCapacity,
+          curtailmentWindow: knownContext?.curtailmentWindow,
+          signalPriorityPolicy: knownContext?.signalPriorityPolicy,
+          controlEvidenceRef: knownContext?.controlEvidenceRef,
+          contractStatus: knownContext?.contractStatus,
+          legalStatus: knownContext?.legalStatus,
+        };
+      }
     }
   }
 
