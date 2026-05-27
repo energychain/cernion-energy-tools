@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [0.55.7] — Persona/HITL Workflow & Availability Enhancements (2026-05-27)
+
+### Added
+
 - [services/hitl.service.js](services/hitl.service.js): Workflow-Abschluss-Tracking mit `workflowCompletionState` (pending/completed) und `workflowAuditTrail` für durable Prozessmetriken.
   - Neue Aktion `getWorkflowState` zur Abfrage des Workflow-Abschluss-Status.
   - Neue Aktion `markWorkflowCompleted` zur expliziten Workflow-Finalisierung mit `completionNotes` und `handoffPersonaId`.
@@ -31,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Workflow-Audit-Trail verfolgt jetzt Zeit-bis-Auflösung und Schrittzähler für verbesserte Post-Hoc-Analytik.
 - Persona-Verfügbarkeitsstatus ermöglicht Escalation-Routing auf Basis von Online-/Offline-Status.
 
-## [0.55.6] — Persona/HITL Workflow & Availability Enhancements (2026-05-27)
+## [0.55.5] — Persona/HITL Workflow & Availability Enhancements (2026-05-27)
 
 ### Added
 

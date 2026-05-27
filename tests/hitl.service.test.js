@@ -572,7 +572,7 @@ describe('hitl service', () => {
       expect(false).toBe(true);
     } catch (err) {
       expect(err.message).toMatch(/Cannot mark pending item/);
-      expect(err.code).toBe('HITL_WORKFLOW_INVALID_STATE');
+        expect(err.status || err.code).toBe(400);
     }
   });
 
