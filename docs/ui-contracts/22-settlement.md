@@ -24,6 +24,7 @@ mit internen Marktpreis- und Prognosefallbacks wenn externe Quellen nicht verfü
 | `POST` | `/api/settlement/eeg/calculate` | EEG-Vergütung berechnen | Bearer |
 | `GET`  | `/api/settlement/eeg/report/:settlementId` | EEG-Bericht abrufen | Bearer |
 | `POST` | `/api/settlement/a96/prepare` | A96-Export vorbereiten | Bearer (full-access) |
+| `POST` | `/api/settlement/a96/reconcile` | Externe A96-Daten gegen internes Settlement abgleichen | Bearer (full-access) |
 | `GET`  | `/api/settlement/a96/export/:settlementId` | A96-Datei herunterladen | Bearer |
 | `GET`  | `/api/settlement/eeg-tariff` | EEG-Tariflookup nach Inbetriebnahmejahr | Bearer |
 | `GET`  | `/api/settlement/` | Alle Settlement-Datensätze auflisten | Bearer |
@@ -213,6 +214,62 @@ mit internen Marktpreis- und Prognosefallbacks wenn externe Quellen nicht verfü
 ```
 
 Anschließend via `GET /api/settlement/a96/export/:settlementId` herunterladen.
+
+---
+
+## A96-Reconciliation (POST /api/settlement/a96/reconcile)
+
+| Feld | Wert |
+|---|---|
+| Method | POST |
+| Path | /api/settlement/a96/reconcile |
+| Action | settlement.reconcileA96 |
+| Auth | Bearer Token (full-access) |
+| Sync/Async | Synchron |
+
+### Request Body
+
+```json
+{
+  "settlementId": "redispatch_2026q2_SEE999952467552",
+  "toleranceEur": 0.01,
+  "incomingRows": [
+    {
+      "anlageId": "SEE999952467552",
+      "timeSlice": "2026-04-01T10:00:00.000Z/2026-04-01T12:00:00.000Z",
+      "compensationEur": 132.42
+    }
+  ]
+}
+```
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "settlementId": "redispatch_2026q2_SEE999952467552",
+  "matchingKey": "anlageId/timeSlice",
+  "toleranceEur": 0.01,
+  "summary": {
+    "totalExpectedRows": 1,
+    "totalInboundRows": 1,
+    "total": 1,
+    "MATCH": 1
+  },
+  "deltas": [
+    {
+      "deltaClass": "MATCH",
+      "anlageId": "SEE999952467552",
+      "timeSlice": "2026-04-01T10:00:00.000Z/2026-04-01T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+- Vergleich erfolgt strikt über `anlageId/timeSlice`.
+- `deltaClass` kann u. a. `MATCH`, `VALUE_MISMATCH`, `MISSING_IN_INTERNAL`, `MISSING_IN_INBOUND`, `INVALID_INBOUND` sein.
+- Inbound-Reconciliationdaten werden **nicht** als Settlement gespeichert (nur stateless Response).
 
 ---
 

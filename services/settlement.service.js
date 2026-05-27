@@ -8,6 +8,7 @@ const {
   calculateEegRevenue,
   prepareA96Export,
 } = require('../src/settlement-calculator');
+const { validateA96Message } = require('../src/a96-validator');
 
 const NAMESPACE = 'settlements';
 const FEEDIN_OBIS = '1-0:2.8.0';
@@ -110,6 +111,60 @@ function toCsv(rows) {
     lines.push(columns.map((column) => `${row[column] ?? ''}`).join(';'));
   }
   return lines.join('\n');
+}
+
+function toIsoTimestamp(value) {
+  if (value == null || value === '') return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
+function normalizeTimeSlice(row = {}) {
+  if (typeof row.timeSlice === 'string' && row.timeSlice.trim()) {
+    return row.timeSlice.trim();
+  }
+
+  const from = toIsoTimestamp(row.from || row.periodFrom || row.AllokationsZeitraumVon);
+  const to = toIsoTimestamp(row.to || row.periodTo || row.AllokationsZeitraumBis);
+  if (!from || !to) return null;
+  return `${from}/${to}`;
+}
+
+function normalizeA96ComparisonRow(row = {}) {
+  const anlageId =
+    row.anlageId || row.mastrNummer || row.installationMastrNummer || row.ErzeugerMastrNummer;
+  const timeSlice = normalizeTimeSlice(row);
+  const compensationEur = toNumber(
+    row.compensation_eur ?? row.compensationEur ?? row.valueEur ?? row.amountEur,
+    null
+  );
+
+  return {
+    anlageId: anlageId ? String(anlageId).trim() : null,
+    timeSlice,
+    compensationEur: Number.isFinite(compensationEur) ? compensationEur : null,
+  };
+}
+
+function buildComparisonKey(anlageId, timeSlice) {
+  if (!anlageId || !timeSlice) return null;
+  return `${anlageId}::${timeSlice}`;
+}
+
+function buildValidatorProbeMessage(normalizedRow, rawRow = {}) {
+  const [from, to] = String(normalizedRow.timeSlice || '').split('/');
+  return {
+    GemeinschaftsId: rawRow.GemeinschaftsId || `RECON_${normalizedRow.anlageId || 'UNKNOWN'}`,
+    MaloIdVerbraucher: rawRow.MaloIdVerbraucher || rawRow.meloId || `DE${'0'.repeat(31)}`,
+    ZugeteilteEnergieMenge: toNumber(
+      rawRow.ZugeteilteEnergieMenge ?? rawRow.lost_kwh ?? rawRow.forecast_kwh,
+      0
+    ),
+    AllokationsZeitraumVon: from || null,
+    AllokationsZeitraumBis: to || null,
+    ErzeugerMastrNummer: normalizedRow.anlageId,
+  };
 }
 
 module.exports = {
@@ -599,6 +654,184 @@ module.exports = {
         }
 
         return toCsv(rows);
+      },
+    },
+
+    reconcileA96: {
+      rest: 'POST /a96/reconcile',
+      params: {
+        settlementId: { type: 'string' },
+        incomingRows: {
+          type: 'array',
+          min: 1,
+          items: {
+            type: 'object',
+          },
+        },
+        toleranceEur: { type: 'number', optional: true, default: 0.01, convert: true },
+      },
+      openapi: {
+        summary: 'Reconcile inbound A96 rows against internal settlement baseline',
+        tags: ['Settlement (Abrechnung)'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['settlementId', 'incomingRows'],
+                properties: {
+                  settlementId: { type: 'string', example: 'redispatch_2026q2_SEE999952467552' },
+                  toleranceEur: { type: 'number', example: 0.01, default: 0.01 },
+                  incomingRows: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      required: ['anlageId', 'timeSlice'],
+                      properties: {
+                        anlageId: { type: 'string', example: 'SEE999952467552' },
+                        timeSlice: {
+                          type: 'string',
+                          example: '2026-04-01T10:00:00.000Z/2026-04-01T12:00:00.000Z',
+                        },
+                        compensationEur: { type: 'number', example: 132.42 },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const settlement = await this.loadSettlement(ctx, ctx.params.settlementId);
+        if (!settlement || settlement.type !== 'redispatch') {
+          throw new MoleculerClientError('Settlement not found', 404, 'SETTLEMENT_NOT_FOUND');
+        }
+
+        const toleranceEur = Math.max(0, toNumber(ctx.params.toleranceEur, 0.01));
+        const baselineRows = prepareA96Export(settlement, {});
+        const baselineByKey = new Map();
+        for (const row of baselineRows) {
+          const normalized = normalizeA96ComparisonRow(row);
+          const key = buildComparisonKey(normalized.anlageId, normalized.timeSlice);
+          if (!key) continue;
+          baselineByKey.set(key, {
+            anlageId: normalized.anlageId,
+            timeSlice: normalized.timeSlice,
+            compensationEur: normalized.compensationEur,
+            row,
+          });
+        }
+
+        const deltas = [];
+        const matchedBaselineKeys = new Set();
+        const inboundSeenKeys = new Set();
+
+        for (const inboundRow of ctx.params.incomingRows) {
+          const normalizedInbound = normalizeA96ComparisonRow(inboundRow);
+          const key = buildComparisonKey(normalizedInbound.anlageId, normalizedInbound.timeSlice);
+          const validatorProbe = buildValidatorProbeMessage(normalizedInbound, inboundRow);
+          const validation = validateA96Message(validatorProbe);
+
+          const validationErrors = [];
+          if (!normalizedInbound.anlageId) validationErrors.push('anlageId missing');
+          if (!normalizedInbound.timeSlice) validationErrors.push('timeSlice missing or invalid');
+          if (!validation.valid) validationErrors.push(...validation.errors);
+
+          if (!key || validationErrors.length > 0) {
+            deltas.push({
+              deltaClass: 'INVALID_INBOUND',
+              anlageId: normalizedInbound.anlageId,
+              timeSlice: normalizedInbound.timeSlice,
+              errors: validationErrors,
+            });
+            continue;
+          }
+
+          if (inboundSeenKeys.has(key)) {
+            deltas.push({
+              deltaClass: 'INVALID_INBOUND',
+              anlageId: normalizedInbound.anlageId,
+              timeSlice: normalizedInbound.timeSlice,
+              errors: ['duplicate inbound key (anlageId/timeSlice)'],
+            });
+            continue;
+          }
+          inboundSeenKeys.add(key);
+
+          const expected = baselineByKey.get(key);
+          if (!expected) {
+            deltas.push({
+              deltaClass: 'MISSING_IN_INTERNAL',
+              anlageId: normalizedInbound.anlageId,
+              timeSlice: normalizedInbound.timeSlice,
+              inboundCompensationEur: normalizedInbound.compensationEur,
+            });
+            continue;
+          }
+
+          matchedBaselineKeys.add(key);
+          const expectedCompensation = toNumber(expected.compensationEur, 0);
+          const inboundCompensation =
+            normalizedInbound.compensationEur == null
+              ? expectedCompensation
+              : toNumber(normalizedInbound.compensationEur, expectedCompensation);
+          const diff = round(Math.abs(expectedCompensation - inboundCompensation), 6);
+          if (diff <= toleranceEur) {
+            deltas.push({
+              deltaClass: 'MATCH',
+              anlageId: normalizedInbound.anlageId,
+              timeSlice: normalizedInbound.timeSlice,
+              expectedCompensationEur: round(expectedCompensation, 6),
+              inboundCompensationEur: round(inboundCompensation, 6),
+              diffCompensationEur: diff,
+            });
+            continue;
+          }
+
+          deltas.push({
+            deltaClass: 'VALUE_MISMATCH',
+            anlageId: normalizedInbound.anlageId,
+            timeSlice: normalizedInbound.timeSlice,
+            expectedCompensationEur: round(expectedCompensation, 6),
+            inboundCompensationEur: round(inboundCompensation, 6),
+            diffCompensationEur: diff,
+          });
+        }
+
+        for (const [key, expected] of baselineByKey.entries()) {
+          if (matchedBaselineKeys.has(key)) continue;
+          deltas.push({
+            deltaClass: 'MISSING_IN_INBOUND',
+            anlageId: expected.anlageId,
+            timeSlice: expected.timeSlice,
+            expectedCompensationEur: round(toNumber(expected.compensationEur, 0), 6),
+          });
+        }
+
+        const summary = deltas.reduce(
+          (acc, item) => {
+            acc.total += 1;
+            acc[item.deltaClass] = (acc[item.deltaClass] || 0) + 1;
+            return acc;
+          },
+          {
+            totalExpectedRows: baselineByKey.size,
+            totalInboundRows: ctx.params.incomingRows.length,
+            total: 0,
+          }
+        );
+
+        return {
+          success: true,
+          settlementId: settlement.settlementId,
+          matchingKey: 'anlageId/timeSlice',
+          toleranceEur,
+          summary,
+          deltas,
+        };
       },
     },
 

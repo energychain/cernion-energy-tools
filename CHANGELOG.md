@@ -15,21 +15,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Liefert `staleData`-Hinweise sowie `sourceReports`-Referenzen für UI-Auditierbarkeit.
 - [docs/ui-contracts/32-redispatch-metering-cockpit.md](docs/ui-contracts/32-redispatch-metering-cockpit.md): neuer UI-Contract für das Redispatch-Metering-Datenfluss-Cockpit inkl. Response-Semantik, Blocker-Logik und Datenquellen.
 - [src/cookbook-recipes.js](src/cookbook-recipes.js): neues Rezept `fnav-contract-gate-netzsignal-priority` für den vollständigen Phase-5-Flow aus technischer fNAV-Validierung und additiver Wirtschaftlichkeitsbewertung mit explizitem Netzsignal-Vorrang-Vertragsgate.
+- [services/settlement.service.js](services/settlement.service.js): neues Endpoint-Action-Paar `reconcileA96` (`POST /api/settlement/a96/reconcile`) für stateless A96-Abgleich externer Zeilen gegen interne Redispatch-Baselines.
+  - Matching erfolgt strikt über `anlageId/timeSlice`.
+  - Delta-Klassen: `MATCH`, `VALUE_MISMATCH`, `MISSING_IN_INTERNAL`, `MISSING_IN_INBOUND`, `INVALID_INBOUND`.
+  - Reuse des bestehenden A96-Validators für Inbound-Formatprüfung ohne Persistenz der Inbound-Payload.
 
 ### Changed
 
 - [services/api.service.js](services/api.service.js): API-Alias ergänzt — `GET /dashboard/redispatch-metering-cockpit` → `dashboard-api.redispatchMeteringCockpit`.
+- [services/api.service.js](services/api.service.js): Settlement-Alias ergänzt — `POST /settlement/a96/reconcile` → `settlement.reconcileA96`.
 - [services/dashboard-api.service.js](services/dashboard-api.service.js): `cacheTtlMs` um `redispatchMeteringCockpit` erweitert (5 Minuten); BDEW-basierte Operatorauflösung über `grid-operations.vnbLookupCodes` für Cockpit-Scoping ergänzt.
 - [src/netzfahrplan-schema.js](src/netzfahrplan-schema.js): additive Contract-Gate-Logik für flexible fNAV-Profile ergänzt (`signalPriorityPolicy`, `controlEvidenceRef`, `contractGate`) und in Evidence-/Governance-/Proof-Helfer integriert.
 - [services/grid-operations.service.js](services/grid-operations.service.js), [services/grid-connection.service.js](services/grid-connection.service.js), [services/finance-agent.service.js](services/finance-agent.service.js): direkte Phase-5-fNAV-Endpunkte akzeptieren nun die optionalen Contract-Gate-Felder und geben eine explizite `contractGate`-Bewertung zurück.
 - [src/capability-catalog.js](src/capability-catalog.js), [src/personal-agent-routing.js](src/personal-agent-routing.js), [services/capability-broker.service.js](services/capability-broker.service.js): Routing-/Hydration-Logik erweitert, damit Begriffe wie `Netzsignal Vorrang`, `Vertragsgate` und `Fernwirknachweis` auf die bestehende fNAV-Capability zeigen und die neuen Felder sowohl über Personal Agent als auch direkt weitergereicht werden.
+- [src/capability-catalog.js](src/capability-catalog.js), [services/capability-broker.service.js](services/capability-broker.service.js), [src/personal-agent-routing.js](src/personal-agent-routing.js), [src/personal-agent-tdd-matrix-normalizer.js](src/personal-agent-tdd-matrix-normalizer.js): neue Personal-Agent-Capability `settlement_a96_reconciliation` inkl. Keyword-Erkennung und Param-Hydration (`settlementId`, `incomingRows`) für den direkten A96-Abgleichspfad.
 - [docs/ui-contracts/41-personal-agent.md](docs/ui-contracts/41-personal-agent.md), [docs/ui-contracts/06-grid-connection.md](docs/ui-contracts/06-grid-connection.md): UI-Verträge für Personal Agent und Grid Connection um Contract-Gate-Felder und konservative Blocker-Semantik ergänzt.
+- [docs/ui-contracts/22-settlement.md](docs/ui-contracts/22-settlement.md): UI-Contract um `POST /api/settlement/a96/reconcile` inkl. Request/Response- und Delta-Klassen-Semantik erweitert.
 
 ### Tests
 
 - [tests/dashboard-api.test.js](tests/dashboard-api.test.js): neue Regressionen für Cockpit-Happy-Path, BDEW→`gridOperatorId`-Auflösung/Filter-Forwarding, High-Severity-Blocker (`red`) und graceful degradation bei Upstream-Fehlern.
 - [tests/api.service.test.js](tests/api.service.test.js): OpenAPI- und Alias-Assertions für `/api/dashboard/redispatch-metering-cockpit` ergänzt.
 - [tests/netzfahrplan-schema.test.js](tests/netzfahrplan-schema.test.js), [tests/netzfahrplan-integration.test.js](tests/netzfahrplan-integration.test.js), [tests/capability-broker.service.test.js](tests/capability-broker.service.test.js), [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): Regressionen für Contract-Gate-Blocker, happy path mit explizitem Netzsignal-Vorrang, Capability-Routing und Personal-Agent-Weitergabe der neuen Felder ergänzt.
+- [tests/settlement.service.test.js](tests/settlement.service.test.js), [tests/capability-broker.service.test.js](tests/capability-broker.service.test.js), [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js), [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): Regressionen für A96-Reconciliation (anlageId/timeSlice-Matching), Broker/Router-Hydration und Personal-Agent-Ausführung ergänzt.
 
 ## [0.55.5] — Durable Approved HITL Resume & Plan-Stack Metadata Preservation (2026-05-26)
 

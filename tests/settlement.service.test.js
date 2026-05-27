@@ -235,6 +235,62 @@ describe('settlement.service', () => {
     expect(csv).toContain('compensation_eur');
   });
 
+  test('reconcileA96: matched by anlageId/timeSlice and classifies value mismatches', async () => {
+    const list = await broker.call('settlement.listSettlements', {
+      type: 'redispatch',
+    });
+    const settlementId = list.data[0].key;
+
+    const prepared = await broker.call('settlement.prepareA96', {
+      settlementId,
+    });
+    const firstRow = prepared.rows[0];
+
+    const result = await broker.call('settlement.reconcileA96', {
+      settlementId,
+      incomingRows: [
+        {
+          anlageId: firstRow.mastrNummer,
+          timeSlice: `${firstRow.from}/${firstRow.to}`,
+          compensationEur: firstRow.compensation_eur,
+        },
+        {
+          anlageId: firstRow.mastrNummer,
+          timeSlice: `${firstRow.from}/${firstRow.to}`,
+          compensationEur: Number(firstRow.compensation_eur) + 1,
+        },
+      ],
+      toleranceEur: 0.001,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.matchingKey).toBe('anlageId/timeSlice');
+    expect(result.summary.MATCH).toBeGreaterThanOrEqual(1);
+    expect(result.summary.INVALID_INBOUND).toBeGreaterThanOrEqual(1);
+  });
+
+  test('reconcileA96: does not persist inbound reconciliation payload', async () => {
+    const before = await broker.call('settlement.listSettlements', {
+      type: 'all',
+    });
+
+    const redispatch = await broker.call('settlement.listSettlements', {
+      type: 'redispatch',
+    });
+    const settlementId = redispatch.data[0].key;
+
+    await broker.call('settlement.reconcileA96', {
+      settlementId,
+      incomingRows: [{ anlageId: null, timeSlice: null }],
+    });
+
+    const after = await broker.call('settlement.listSettlements', {
+      type: 'all',
+    });
+
+    expect(after.count).toBe(before.count);
+  });
+
   test('tenant isolation: settlements bleiben pro Tenant getrennt', async () => {
     const tenantA = { meta: { tenantId: 'stadtwerk-a' } };
     const tenantB = { meta: { tenantId: 'stadtwerk-b' } };

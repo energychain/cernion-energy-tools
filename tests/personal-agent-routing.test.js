@@ -302,6 +302,38 @@ describe('personal-agent-routing', () => {
     expect(vdmiParams.taskId).toBe('network-operator-decision');
   });
 
+  it('hydrates settlement.reconcileA96 params from knownContext aliases', () => {
+    const params = pruneUndefinedDeep(
+      fillTemplateWithContext(
+        {
+          settlementId: null,
+          incomingRows: null,
+          toleranceEur: 0.01,
+        },
+        'settlement.reconcileA96',
+        {
+          settlementId: 'redispatch_2026q2_SEE999952467552',
+          a96Rows: [
+            {
+              anlageId: 'SEE999952467552',
+              timeSlice: '2026-04-01T00:00:00.000Z/2026-04-01T01:00:00.000Z',
+            },
+          ],
+        },
+        {},
+        { stepResults: {} }
+      )
+    );
+
+    expect(params).toEqual(
+      expect.objectContaining({
+        settlementId: 'redispatch_2026q2_SEE999952467552',
+      })
+    );
+    expect(Array.isArray(params.incomingRows)).toBe(true);
+    expect(params.incomingRows[0].anlageId).toBe('SEE999952467552');
+  });
+
   it('keeps broker-selected VDMI asset-validation governance intent in execution plan', () => {
     const plan = buildExecutionPlan({
       message: 'Bitte Task asset-1 validieren',

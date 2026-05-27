@@ -241,6 +241,7 @@ const ACTION_REQUIREMENTS = Object.freeze({
     anyOf: ['gridOperatorId', 'gridOperatorBdew', 'gridOperatorName'],
   },
   'settlement.calculateRedispatch': { allOf: ['installations', 'period'] },
+  'settlement.reconcileA96': { allOf: ['settlementId', 'incomingRows'] },
   'grid-connection.fnavValidate': { allOf: ['fnavProfile'] },
   'finance-agent.fnavEconomics': { allOf: ['fnavProfile'] },
   'finance-agent.analyze': { allOf: ['query'] },
@@ -287,6 +288,11 @@ const ACTION_PARAM_ALIASES = Object.freeze({
     installations: ['installations'],
     period: ['period'],
     compensationMethod: ['compensationMethod'],
+  },
+  'settlement.reconcileA96': {
+    settlementId: ['settlementId'],
+    incomingRows: ['incomingRows', 'a96Rows', 'externalRows'],
+    toleranceEur: ['toleranceEur'],
   },
   'grid-connection.fnavValidate': {
     gridOperatorId: ['gridOperatorId'],

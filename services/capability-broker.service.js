@@ -91,6 +91,17 @@ function findBestCapability(taskText, options = {}) {
     'firm capacity',
     'flexible capacity',
   ];
+  const settlementA96Signals = [
+    'a96',
+    'abgleich',
+    'reconcile',
+    'reconciliation',
+    'timeslice',
+    'time slice',
+    'anlageid',
+    'delta',
+    'abweichung',
+  ];
   const financierDueDiligenceSignals = [
     'due diligence',
     'risk assessment',
@@ -247,6 +258,17 @@ function findBestCapability(taskText, options = {}) {
     if (fnavCapability) {
       return {
         capability: fnavCapability,
+        score: 100,
+        usedFallback: false,
+      };
+    }
+  }
+
+  if (settlementA96Signals.some((signal) => haystack.includes(signal))) {
+    const settlementA96Capability = findCapabilityByName('settlement_a96_reconciliation');
+    if (settlementA96Capability) {
+      return {
+        capability: settlementA96Capability,
         score: 100,
         usedFallback: false,
       };
@@ -428,6 +450,13 @@ function buildActionTemplate(action) {
       mode: 'rule_plus_hyde',
       allowHypotheticals: false,
       includeTrace: false,
+    };
+  }
+  if (action === 'settlement.reconcileA96') {
+    return {
+      settlementId: null,
+      incomingRows: null,
+      toleranceEur: 0.01,
     };
   }
   if (action === 'vdmi.agentRole') {
@@ -671,6 +700,19 @@ function interpolateTemplateWithKnownContext(
     }
     if (hydrated.profileId == null && knownContext.profileId) {
       hydrated.profileId = knownContext.profileId;
+    }
+  }
+
+  if (action === 'settlement.reconcileA96') {
+    if (hydrated.settlementId == null && knownContext.settlementId) {
+      hydrated.settlementId = knownContext.settlementId;
+    }
+    if (hydrated.incomingRows == null) {
+      hydrated.incomingRows =
+        knownContext.incomingRows || knownContext.a96Rows || knownContext.externalRows || null;
+    }
+    if (hydrated.toleranceEur == null && knownContext.toleranceEur != null) {
+      hydrated.toleranceEur = knownContext.toleranceEur;
     }
   }
 

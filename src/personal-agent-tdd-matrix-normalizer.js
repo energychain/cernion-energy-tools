@@ -234,7 +234,11 @@ const FIXED_TDD_NORMALIZATION_MAP = Object.freeze({
   },
   'T-SET-02': {
     intentClass: 'settlement.a96',
-    aliases: ['POST /settlement/a96/prepare', 'GET /settlement/a96/export/:settlementId'],
+    aliases: [
+      'POST /settlement/a96/prepare',
+      'POST /settlement/a96/reconcile',
+      'GET /settlement/a96/export/:settlementId',
+    ],
   },
 
   // -------------------------------------------------------------------------

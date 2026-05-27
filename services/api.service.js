@@ -1416,6 +1416,7 @@ module.exports = {
           'POST /settlement/eeg/calculate': 'settlement.calculateEeg',
           'GET /settlement/eeg/report/:settlementId': 'settlement.getEegReport',
           'POST /settlement/a96/prepare': 'settlement.prepareA96',
+          'POST /settlement/a96/reconcile': 'settlement.reconcileA96',
           'GET /settlement/a96/export/:settlementId': 'settlement.exportA96',
           'GET /settlement/eeg-tariff': 'settlement.lookupEegTariff',
           'GET /settlement': 'settlement.listSettlements',

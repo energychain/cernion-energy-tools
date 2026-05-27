@@ -438,6 +438,23 @@ describe('personal-agent.service', () => {
       },
     });
     broker.createService({
+      name: 'settlement',
+      actions: {
+        reconcileA96: {
+          handler(ctx) {
+            executedActions.push('settlement.reconcileA96');
+            executedCallDetails.push({ action: 'settlement.reconcileA96', params: ctx.params });
+            return {
+              success: true,
+              settlementId: ctx.params.settlementId,
+              matchingKey: 'anlageId/timeSlice',
+              summary: { total: Array.isArray(ctx.params.incomingRows) ? ctx.params.incomingRows.length : 0 },
+            };
+          },
+        },
+      },
+    });
+    broker.createService({
       name: 'grid-operations',
       actions: {
         marketPartners: {
@@ -908,6 +925,44 @@ describe('personal-agent.service', () => {
       expect.objectContaining({
         signalPriorityPolicy: 'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
         controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
+      })
+    );
+  });
+
+  it('routes A96 reconciliation through Personal Agent and forwards anlageId/timeSlice rows', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte A96 Abgleich per anlageId/timeSlice durchführen.',
+        chatMode: 'execution',
+        executionMode: 'auto',
+        knownContext: {
+          settlementId: 'redispatch_2026q2_SEE999952467552',
+          incomingRows: [
+            {
+              anlageId: 'SEE999952467552',
+              timeSlice: '2026-04-01T10:00:00.000Z/2026-04-01T12:00:00.000Z',
+              compensationEur: 123.45,
+            },
+          ],
+        },
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.execution.status).toBe('completed');
+    expect(executedActions).toContain('settlement.reconcileA96');
+
+    const call = executedCallDetails.find((entry) => entry.action === 'settlement.reconcileA96');
+    expect(call.params).toEqual(
+      expect.objectContaining({
+        settlementId: 'redispatch_2026q2_SEE999952467552',
+      })
+    );
+    expect(call.params.incomingRows[0]).toEqual(
+      expect.objectContaining({
+        anlageId: 'SEE999952467552',
       })
     );
   });

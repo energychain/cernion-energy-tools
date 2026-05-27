@@ -165,6 +165,24 @@ describe('Capability Broker Service', () => {
     expect(result.recommendedPlan[0].action).toBe('grid-connection.fnavValidate');
   });
 
+  it('routes A96 reconciliation prompts to settlement.reconcileA96 and hydrates knownContext', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte A96 Abgleich per anlageId/timeSlice durchführen und Deltas zeigen.',
+      knownContext: {
+        settlementId: 'redispatch_2026q2_SEE999952467552',
+        incomingRows: [{ anlageId: 'SEE999952467552', timeSlice: '2026-04-01T00:00:00.000Z/2026-04-01T01:00:00.000Z' }],
+      },
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('settlement_a96_reconciliation');
+    expect(result.recommendedPlan[0].action).toBe('settlement.reconcileA96');
+    expect(result.recommendedPlan[0].params).toEqual(
+      expect.objectContaining({
+        settlementId: 'redispatch_2026q2_SEE999952467552',
+      })
+    );
+  });
+
   it('routes financier due-diligence prompts to finance-agent.analyze instead of interface placeholder', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Erstelle ein vorläufiges Risk Assessment für den Kreditausschuss (Due Diligence, Condition Precedent).',
