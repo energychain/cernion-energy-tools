@@ -490,4 +490,116 @@ describe('hitl service', () => {
     expect(loaded.item.status).toBe('expired');
     expect(emitted.some((event) => event.eventName === 'hitl.item.expired')).toBe(true);
   });
+
+  test('gets workflow completion state for HITL item', async () => {
+    const created = await createItem('tenant-workflow', {
+      kind: 'workflow-test',
+    });
+
+    const state = await broker.call(
+      'hitl.getWorkflowState',
+      { id: created.item.id },
+      tenantMeta('tenant-workflow')
+    );
+
+    expect(state.success).toBe(true);
+    expect(state.itemId).toBe(created.item.id);
+    expect(state.status).toBe('pending');
+    expect(state.workflowCompletionState).toBe('pending');
+    expect(state.workflowCompletedAt).toBeNull();
+    expect(Array.isArray(state.workflowAuditTrail)).toBe(true);
+    expect(state.interventionCount).toBe(1);
+  });
+
+  test('populates workflowAuditTrail when resolving HITL item', async () => {
+    const created = await createItem('tenant-audit', {
+      kind: 'audit-test',
+    });
+
+    const approved = await broker.call(
+      'hitl.approve',
+      { id: created.item.id, comment: 'Looks good' },
+      tenantMeta('tenant-audit')
+    );
+
+    expect(approved.item.workflowAuditTrail).toBeDefined();
+    expect(Array.isArray(approved.item.workflowAuditTrail)).toBe(true);
+    expect(approved.item.workflowAuditTrail.length).toBeGreaterThan(0);
+
+    const entry = approved.item.workflowAuditTrail[0];
+    expect(entry.action).toBe('resolution_approved');
+    expect(entry.stepNumber).toBeDefined();
+    expect(entry.duration_seconds).toBeDefined();
+  });
+
+  test('marks workflow as completed after approval', async () => {
+    const created = await createItem('tenant-complete', {
+      kind: 'complete-test',
+    });
+
+    const approved = await broker.call(
+      'hitl.approve',
+      { id: created.item.id, comment: 'Approved' },
+      tenantMeta('tenant-complete')
+    );
+
+    const completed = await broker.call(
+      'hitl.markWorkflowCompleted',
+      { id: created.item.id, completionNotes: 'Workflow finished successfully' },
+      tenantMeta('tenant-complete')
+    );
+
+    expect(completed.item.workflowCompletionState).toBe('completed');
+    expect(completed.item.workflowCompletedAt).toBeDefined();
+    expect(completed.item.workflowAuditTrail).toHaveLength(2);
+
+    const completionEntry = completed.item.workflowAuditTrail[1];
+    expect(completionEntry.action).toBe('workflow_completed');
+    expect(completionEntry.notes).toBe('Workflow finished successfully');
+  });
+
+  test('prevents marking pending items as completed', async () => {
+    const created = await createItem('tenant-prevent', {
+      kind: 'prevent-test',
+    });
+
+    try {
+      await broker.call(
+        'hitl.markWorkflowCompleted',
+        { id: created.item.id, completionNotes: 'Should fail' },
+        tenantMeta('tenant-prevent')
+      );
+      expect(false).toBe(true);
+    } catch (err) {
+      expect(err.message).toMatch(/Cannot mark pending item/);
+      expect(err.code).toBe('HITL_WORKFLOW_INVALID_STATE');
+    }
+  });
+
+  test('emits hitl.workflow.completed event', async () => {
+    const created = await createItem('tenant-event', {
+      kind: 'event-test',
+    });
+
+    await broker.call(
+      'hitl.approve',
+      { id: created.item.id },
+      tenantMeta('tenant-event')
+    );
+
+    const completedCount = emitted.filter((e) => e.eventName === 'hitl.workflow.completed').length;
+
+    await broker.call(
+      'hitl.markWorkflowCompleted',
+      { id: created.item.id },
+      tenantMeta('tenant-event')
+    );
+
+    const newCount = emitted.filter((e) => e.eventName === 'hitl.workflow.completed').length;
+    expect(newCount).toBe(completedCount + 1);
+
+    const event = emitted.find((e) => e.eventName === 'hitl.workflow.completed' && e.payload.itemId === created.item.id);
+    expect(event).toBeDefined();
+    expect(event.payload.workflowCompletionState).toBe('completed');
+  });
 });

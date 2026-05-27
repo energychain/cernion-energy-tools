@@ -166,6 +166,7 @@ module.exports = {
           type: 'hitl-item',
           tenantId,
           status: 'pending',
+          workflowCompletionState: 'pending',
           kind: ctx.params.kind,
           severity: ctx.params.severity,
           requiredScope: ctx.params.requiredScope,
@@ -183,6 +184,8 @@ module.exports = {
           createdAt,
           updatedAt: createdAt,
           resolvedAt: null,
+          workflowCompletedAt: null,
+          workflowAuditTrail: [],
           agent_interventions: [
             {
               at: createdAt,
@@ -689,6 +692,125 @@ module.exports = {
         return this.bulkEscalateItems(ctx, ctx.params.comment || null);
       },
     },
+
+    getWorkflowState: {
+      rest: 'GET /items/:id/workflow-state',
+      params: {
+        id: { type: 'string' },
+      },
+      openapi: {
+        summary: 'Get workflow completion state for HITL item',
+        tags: [OPENAPI_TAG],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: '00000000-0000-4000-8000-000000000001' },
+          },
+        ],
+      },
+      async handler(ctx) {
+        const tenantId = getTenantId(ctx);
+        const item = await this.getItemById(ctx.params.id, tenantId);
+        return {
+          success: true,
+          itemId: item.id,
+          status: item.status,
+          workflowCompletionState: item.workflowCompletionState || 'pending',
+          workflowCompletedAt: item.workflowCompletedAt || null,
+          resolvedAt: item.resolvedAt || null,
+          workflowAuditTrail: item.workflowAuditTrail || [],
+          interventionCount: (item.agent_interventions || []).length,
+        };
+      },
+    },
+
+    markWorkflowCompleted: {
+      rest: 'POST /items/:id/mark-completed',
+      params: {
+        id: { type: 'string' },
+        completionNotes: { type: 'string', optional: true },
+        handoffPersonaId: { type: 'string', optional: true },
+      },
+      openapi: {
+        summary: 'Mark HITL workflow as completed',
+        tags: [OPENAPI_TAG],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: '00000000-0000-4000-8000-000000000001' },
+          },
+        ],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  completionNotes: { type: 'string', example: 'Workflow completed with approval' },
+                  handoffPersonaId: { type: 'string', example: 'tenant-a/persona-b' },
+                },
+              },
+              examples: {
+                default: {
+                  value: {
+                    completionNotes: 'Workflow completed with approval',
+                    handoffPersonaId: null,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const tenantId = getTenantId(ctx);
+        const item = await this.getItemById(ctx.params.id, tenantId);
+
+        if (normalizeStatus(item.status) === 'pending') {
+          throw new MoleculerClientError(
+            'Cannot mark pending item as completed; must approve/reject first',
+            400,
+            'HITL_WORKFLOW_INVALID_STATE'
+          );
+        }
+
+        const completedAt = nowIso();
+        const auditEntry = {
+          at: completedAt,
+          action: 'workflow_completed',
+          actor: this.buildInterventionActor(ctx).actor || 'system',
+          notes: ctx.params.completionNotes || null,
+          handoffPersonaId: ctx.params.handoffPersonaId || null,
+        };
+
+        const updated = {
+          ...item,
+          workflowCompletionState: 'completed',
+          workflowCompletedAt: completedAt,
+          updatedAt: completedAt,
+          workflowAuditTrail: [...(item.workflowAuditTrail || []), auditEntry],
+        };
+
+        await this.db.put(updated);
+
+        this.broker.emit('hitl.workflow.completed', {
+          eventId: crypto.randomUUID(),
+          itemId: updated.id,
+          tenantId: updated.tenantId,
+          completedAt,
+          workflowCompletionState: 'completed',
+          previousStatus: item.status,
+          interventionCount: (updated.agent_interventions || []).length,
+        });
+
+        return { success: true, item: this.toPublic(updated) };
+      },
+    },
   },
 
   methods: {
@@ -999,12 +1121,21 @@ module.exports = {
         intervention.feedbackToAgent = options.feedbackToAgent;
       }
 
+      const auditEntry = {
+        at: resolvedAt,
+        action: `resolution_${status}`,
+        actor: this.buildInterventionActor(ctx).actor || 'system',
+        stepNumber: (item.agent_interventions || []).length + 1,
+        duration_seconds: item.createdAt ? Math.round((Date.parse(resolvedAt) - Date.parse(item.createdAt)) / 1000) : null,
+      };
+
       const updated = {
         ...item,
         status,
         updatedAt: resolvedAt,
         resolvedAt,
         agent_interventions: [...(item.agent_interventions || []), intervention],
+        workflowAuditTrail: [...(item.workflowAuditTrail || []), auditEntry],
       };
 
       await this.db.put(updated);

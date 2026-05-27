@@ -491,6 +491,83 @@ module.exports = {
         return { success: true, tenantId, role: ctx.params.role, count: items.length, items };
       },
     },
+
+    updateAvailability: {
+      rest: 'PUT /personas/:id/availability',
+      params: {
+        tenantId: { type: 'string', optional: true },
+        id: { type: 'string', trim: true, min: 1 },
+        available: { type: 'boolean', optional: true },
+        availabilityWindow: { type: 'object', optional: true, props: {
+          startHour: { type: 'number', integer: true, min: 0, max: 23, optional: true },
+          endHour: { type: 'number', integer: true, min: 0, max: 23, optional: true },
+          timezone: { type: 'string', optional: true, default: 'UTC' },
+        }},
+      },
+      openapi: {
+        summary: 'Update persona availability status and windows',
+        tags: [OPENAPI_TAG],
+        parameters: [tenantHeaderParameter(), tenantQueryParameter(), personaIdPathParameter()],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  available: { type: 'boolean', example: true },
+                  availabilityWindow: {
+                    type: 'object',
+                    properties: {
+                      startHour: { type: 'integer', example: 9 },
+                      endHour: { type: 'integer', example: 17 },
+                      timezone: { type: 'string', example: 'Europe/Berlin' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const tenantId = this.assertTenantAccess(ctx, ctx.params.tenantId);
+        const updated = await this.updatePersonaAvailability(tenantId, ctx.params.id, ctx.params);
+        return { success: true, item: this.toPublic(updated) };
+      },
+    },
+
+    recordPersonaActivity: {
+      rest: 'POST /personas/:id/record-activity',
+      params: {
+        tenantId: { type: 'string', optional: true },
+        id: { type: 'string', trim: true, min: 1 },
+        activityType: { type: 'string', trim: true, optional: true, default: 'interaction' },
+      },
+      openapi: {
+        summary: 'Record persona last-seen activity for availability tracking',
+        tags: [OPENAPI_TAG],
+        parameters: [tenantHeaderParameter(), tenantQueryParameter(), personaIdPathParameter()],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  activityType: { type: 'string', example: 'interaction', enum: ['interaction', 'approval', 'message'] },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const tenantId = this.assertTenantAccess(ctx, ctx.params.tenantId);
+        const updated = await this.recordLastSeenActivity(tenantId, ctx.params.id);
+        return { success: true, item: this.toPublic(updated) };
+      },
+    },
   },
 
   methods: {
@@ -696,6 +773,9 @@ module.exports = {
           'defaultPersonalAgentSessionId'
         ),
         status: this.normalizeStatus(params.status || 'active'),
+        available: true,
+        lastSeenAt: new Date().toISOString(),
+        availabilityWindow: { startHour: 0, endHour: 24, timezone: 'UTC' },
         createdAt: nowIso(),
         updatedAt: nowIso(),
       });
@@ -788,6 +868,31 @@ module.exports = {
       // eslint-disable-next-line no-unused-vars
       const { _id, _rev, docType, ...rest } = doc;
       return { ...rest };
+    },
+
+    async updatePersonaAvailability(tenantId, id, params) {
+      const current = await this.getPersonaOrThrow(tenantId, id);
+      const updated = {
+        ...current,
+        available: params.available !== undefined ? params.available : current.available,
+        availabilityWindow: params.availabilityWindow || current.availabilityWindow || { startHour: 0, endHour: 24, timezone: 'UTC' },
+        updatedAt: nowIso(),
+      };
+
+      await this.db.put(updated);
+      return updated;
+    },
+
+    async recordLastSeenActivity(tenantId, id) {
+      const current = await this.getPersonaOrThrow(tenantId, id);
+      const updated = {
+        ...current,
+        lastSeenAt: nowIso(),
+        updatedAt: nowIso(),
+      };
+
+      await this.db.put(updated);
+      return updated;
     },
   },
 };

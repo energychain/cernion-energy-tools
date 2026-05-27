@@ -317,4 +317,72 @@ describe('agent-persona service', () => {
     );
     expect(roleLookup.count).toBe(0);
   });
+
+  test('new personas include availability tracking fields', async () => {
+    const persona = await createPersona('tenant-avail', {
+      id: 'avail-test',
+      personaName: 'Availability Test',
+      assignedRoles: ['support'],
+    });
+
+    expect(persona.item.available).toBe(true);
+    expect(persona.item.lastSeenAt).toBeDefined();
+    expect(persona.item.availabilityWindow).toBeDefined();
+    expect(persona.item.availabilityWindow.startHour).toBe(0);
+    expect(persona.item.availabilityWindow.endHour).toBe(24);
+    expect(persona.item.availabilityWindow.timezone).toBe('UTC');
+  });
+
+  test('updates persona availability status', async () => {
+    await createPersona('tenant-update', {
+      id: 'availability-persona',
+      personaName: 'Update Availability',
+      assignedRoles: ['support'],
+    });
+
+    const updated = await broker.call(
+      'agent-persona.updateAvailability',
+      {
+        tenantId: 'tenant-update',
+        id: 'availability-persona',
+        available: false,
+        availabilityWindow: {
+          startHour: 9,
+          endHour: 17,
+          timezone: 'Europe/Berlin',
+        },
+      },
+      tenantMeta('tenant-update')
+    );
+
+    expect(updated.item.available).toBe(false);
+    expect(updated.item.availabilityWindow.startHour).toBe(9);
+    expect(updated.item.availabilityWindow.endHour).toBe(17);
+    expect(updated.item.availabilityWindow.timezone).toBe('Europe/Berlin');
+  });
+
+  test('records persona activity and updates lastSeenAt', async () => {
+    const persona = await createPersona('tenant-activity', {
+      id: 'activity-persona',
+      personaName: 'Activity Test',
+      assignedRoles: ['support'],
+    });
+
+    const initialLastSeen = persona.item.lastSeenAt;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const updated = await broker.call(
+      'agent-persona.recordPersonaActivity',
+      {
+        tenantId: 'tenant-activity',
+        id: 'activity-persona',
+        activityType: 'interaction',
+      },
+      tenantMeta('tenant-activity')
+    );
+
+    expect(updated.item.lastSeenAt).toBeDefined();
+    expect(updated.item.lastSeenAt).not.toBe(initialLastSeen);
+    expect(new Date(updated.item.lastSeenAt).getTime()).toBeGreaterThan(new Date(initialLastSeen).getTime());
+  });
 });
