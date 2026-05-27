@@ -658,6 +658,108 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── redispatchMeteringCockpit ──────────────────────────────────────────────
+
+  describe('redispatchMeteringCockpit', () => {
+    it('returns cockpit payload with readiness signal, evidence and blockers', async () => {
+      const result = await broker.call('dashboard-api.redispatchMeteringCockpit', {
+        gridOperatorId: 'SNB935578300972',
+      });
+
+      expect(result).toHaveProperty('operator');
+      expect(result).toHaveProperty('decisionReadiness');
+      expect(result).toHaveProperty('evidence');
+      expect(result).toHaveProperty('blockingEvidenceGaps');
+      expect(result).toHaveProperty('staleData');
+      expect(result).toHaveProperty('sourceReports');
+      expect(result).toHaveProperty('_errors');
+
+      expect(result.operator.gridOperatorId).toBe('SNB935578300972');
+      expect(['green', 'yellow', 'red']).toContain(result.decisionReadiness.signal);
+      expect(Array.isArray(result.blockingEvidenceGaps)).toBe(true);
+      expect(Array.isArray(result.staleData)).toBe(true);
+      expect(result.evidence.redispatch.settlementReadinessPercent).toBe(88.1);
+      expect(result.evidence.masterData.qualityScore).toBe(78);
+    });
+
+    it('resolves gridOperatorId from bdewCode and forwards it to list calls', async () => {
+      let capturedRdParams;
+      let capturedMqParams;
+
+      handlers.rdList = (ctx) => {
+        capturedRdParams = ctx.params;
+        return MOCK_RD_AUDITS;
+      };
+      handlers.mqList = (ctx) => {
+        capturedMqParams = ctx.params;
+        return MOCK_MQ_AUDITS;
+      };
+
+      const result = await broker.call('dashboard-api.redispatchMeteringCockpit', {
+        bdewCode: '9907473000008',
+      });
+
+      expect(result.operator.gridOperatorId).toBe('SNB935578300972');
+      expect(capturedRdParams.gridOperatorId).toBe('SNB935578300972');
+      expect(capturedMqParams.gridOperatorId).toBe('SNB935578300972');
+    });
+
+    it('returns red signal with high-severity blockers', async () => {
+      handlers.rdList = () => ({
+        count: 1,
+        audits: [
+          {
+            id: 'rd-critical',
+            createdAt: '2026-03-29T08:00:00Z',
+            settlementReadiness: { readinessPercent: 52 },
+            riskAssessment: { level: 'high' },
+          },
+        ],
+      });
+      handlers.vdmiFindings = () => ({
+        count: 1,
+        findings: [
+          {
+            id: 'vf-critical',
+            status: 'open',
+            severity: 'H',
+            gridOperatorId: 'SNB935578300972',
+          },
+        ],
+      });
+
+      const result = await broker.call('dashboard-api.redispatchMeteringCockpit', {
+        gridOperatorId: 'SNB935578300972',
+      });
+
+      expect(result.decisionReadiness.signal).toBe('red');
+      expect(result.blockingEvidenceGaps.some((b) => b.code === 'REDISPATCH_RISK_HIGH')).toBe(true);
+      expect(result.blockingEvidenceGaps.some((b) => b.code === 'VDMI_OPEN_CRITICAL')).toBe(true);
+    });
+
+    it('degrades gracefully when upstream calls fail', async () => {
+      handlers.rdList = () => {
+        throw new Error('rd unavailable');
+      };
+      handlers.mqList = () => {
+        throw new Error('mq unavailable');
+      };
+
+      const result = await broker.call('dashboard-api.redispatchMeteringCockpit', {
+        gridOperatorId: 'SNB935578300972',
+      });
+
+      expect(result._errors).toContain('redispatch-expost.list');
+      expect(result._errors).toContain('mastr-quality.list');
+      expect(result.blockingEvidenceGaps.some((b) => b.code === 'REDISPATCH_EVIDENCE_MISSING')).toBe(
+        true
+      );
+      expect(result.blockingEvidenceGaps.some((b) => b.code === 'MASTERDATA_EVIDENCE_MISSING')).toBe(
+        true
+      );
+    });
+  });
+
   // ── marketSnapshot ───────────────────────────────────────────────────────────
 
   describe('marketSnapshot', () => {

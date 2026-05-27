@@ -38,6 +38,7 @@ module.exports = {
   settings: {
     cacheTtlMs: {
       vnbOverview: 5 * 60 * 1000, // 5 min
+      redispatchMeteringCockpit: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -250,6 +251,268 @@ module.exports = {
             _errors: errors,
           };
         });
+      },
+    },
+
+    // ── redispatchMeteringCockpit ──────────────────────────────────────────
+    /**
+     * GET /api/dashboard/redispatch-metering-cockpit?gridOperatorId=...&bdewCode=...
+     *
+     * Read-only cockpit payload for Redispatch + metering/masterdata readiness.
+     * Reuses existing deterministic report pipelines and surfaces evidence gaps
+     * as explicit blockers instead of inferring hidden assumptions.
+     *
+     * Optional operator context:
+     *  - gridOperatorId (SNB.../GNB...) directly
+     *  - bdewCode (resolved via grid-operations.vnbLookupCodes)
+     */
+    redispatchMeteringCockpit: {
+      rest: 'GET /redispatch-metering-cockpit',
+      params: {
+        gridOperatorId: {
+          type: 'string',
+          optional: true,
+          pattern: /^[SG]NB\d+$/,
+          messages: {
+            stringPattern:
+              'gridOperatorId muss im Format SNBxxx oder GNBxxx sein (Beispiel: SNB935578300972)',
+          },
+        },
+        bdewCode: {
+          type: 'string',
+          optional: true,
+          pattern: /^\d{7,13}$/,
+          messages: {
+            stringPattern: 'bdewCode muss 7-13 Ziffern enthalten (Beispiel: 9907473000008)',
+          },
+        },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Redispatch Metering Cockpit — operator-level decision readiness',
+        description:
+          'Read-only cockpit for Redispatch, metering, masterdata and governance readiness. ' +
+          'Builds a traffic-light readiness signal from existing deterministic pipelines ' +
+          '(redispatch-expost, energy-sharing-allocation, mastr-quality, vdmi, datapoint.health). ' +
+          'Evidence gaps and blockers are returned explicitly.',
+        parameters: [
+          {
+            name: 'gridOperatorId',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'SNB935578300972' },
+            description: 'MaStR ID of the grid operator (SNB.../GNB...)',
+          },
+          {
+            name: 'bdewCode',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: '9907473000008' },
+            description:
+              'BDEW code as fallback operator context. Used to resolve gridOperatorId when not provided.',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Cockpit payload with readiness signal and explicit blockers',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    operator: {
+                      type: 'object',
+                      properties: {
+                        gridOperatorId: { type: 'string', nullable: true },
+                        bdewCode: { type: 'string', nullable: true },
+                        name: { type: 'string', nullable: true },
+                      },
+                    },
+                    decisionReadiness: {
+                      type: 'object',
+                      properties: {
+                        signal: { type: 'string', enum: ['green', 'yellow', 'red'] },
+                        score: { type: 'number', nullable: true },
+                        blocked: { type: 'boolean' },
+                      },
+                    },
+                    evidence: { type: 'object' },
+                    blockingEvidenceGaps: { type: 'array' },
+                    staleData: { type: 'array' },
+                    sourceReports: { type: 'object' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+        'x-oeo-class': ['OEO_00000143'],
+      },
+      async handler(ctx) {
+        const { gridOperatorId: incomingGridOperatorId, bdewCode } = ctx.params;
+        const cacheKey = `redispatch-metering-cockpit:${incomingGridOperatorId || 'none'}:${bdewCode || 'none'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.redispatchMeteringCockpit,
+          async () => {
+            const errors = [];
+
+            const identityLookup =
+              !incomingGridOperatorId && bdewCode
+                ? await this.safeCall(
+                    ctx,
+                    'grid-operations.vnbLookupCodes',
+                    { bdewCode },
+                    null,
+                    errors,
+                    'grid-operations.vnbLookupCodes'
+                  )
+                : null;
+
+            const resolvedGridOperatorId =
+              incomingGridOperatorId || identityLookup?.results?.[0]?.mastrId || identityLookup?.mastrId || null;
+
+            const baseFilter = resolvedGridOperatorId ? { gridOperatorId: resolvedGridOperatorId } : {};
+
+            const [rdRes, allocRes, mqRes, vdmiRes, dpRes] = await Promise.all([
+              this.safeCall(
+                ctx,
+                ACTION_RD_LIST,
+                { ...baseFilter, limit: 5 },
+                null,
+                errors,
+                ACTION_RD_LIST
+              ),
+              this.safeCall(
+                ctx,
+                'energy-sharing-allocation.list',
+                { ...baseFilter, limit: 5 },
+                null,
+                errors,
+                'energy-sharing-allocation.list'
+              ),
+              this.safeCall(
+                ctx,
+                ACTION_MQ_LIST,
+                { ...baseFilter, limit: 5 },
+                null,
+                errors,
+                ACTION_MQ_LIST
+              ),
+              this.safeCall(
+                ctx,
+                ACTION_VDMI_FINDINGS,
+                { limit: 500 },
+                null,
+                errors,
+                ACTION_VDMI_FINDINGS
+              ),
+              this.safeCall(ctx, 'datapoint.health', {}, null, errors, 'datapoint.health'),
+            ]);
+
+            const rdLatest = rdRes?.audits?.[0] || null;
+            const allocLatest = allocRes?.allocations?.[0] || null;
+            const mqLatest = mqRes?.audits?.[0] || null;
+            const dpOverview = dpRes?.overview || dpRes || {};
+
+            const allFindings = Array.isArray(vdmiRes?.findings) ? vdmiRes.findings : [];
+            const filteredFindings = resolvedGridOperatorId
+              ? allFindings.filter((f) => {
+                  if (!f || typeof f !== 'object') return false;
+                  const findingOperatorId =
+                    f.gridOperatorId || f.operatorId || f.mastrId || f.gridOperatorMastrId || null;
+                  if (!findingOperatorId) return true;
+                  return String(findingOperatorId) === String(resolvedGridOperatorId);
+                })
+              : allFindings;
+
+            const openCriticalFindings = filteredFindings.filter((f) => {
+              if (!f || typeof f !== 'object') return false;
+              const status = String(f.status || '').toLowerCase();
+              const sev = String(f.severity || '').toUpperCase();
+              return status === 'open' && (sev === 'H' || sev === 'K' || sev === 'ERROR');
+            });
+
+            const blockingEvidenceGaps = this.buildRedispatchMeteringBlockers({
+              resolvedGridOperatorId,
+              rdLatest,
+              allocLatest,
+              mqLatest,
+              dpOverview,
+              openCriticalFindings,
+            });
+
+            const staleData = this.buildRedispatchMeteringStaleData({
+              rdLatest,
+              allocLatest,
+              mqLatest,
+              dpOverview,
+            });
+
+            const score = this.computeRedispatchMeteringScore({
+              rdLatest,
+              mqLatest,
+              dpOverview,
+              openCriticalFindings,
+            });
+
+            const signal = this.deriveRedispatchMeteringSignal({
+              score,
+              blockingEvidenceGaps,
+            });
+
+            return {
+              operator: {
+                gridOperatorId: resolvedGridOperatorId,
+                bdewCode: bdewCode || identityLookup?.results?.[0]?.bdew || null,
+                name: identityLookup?.results?.[0]?.name || identityLookup?.name || null,
+              },
+              decisionReadiness: {
+                signal,
+                score,
+                blocked: blockingEvidenceGaps.length > 0,
+              },
+              evidence: {
+                redispatch: {
+                  settlementReadinessPercent: rdLatest?.settlementReadiness?.readinessPercent ?? null,
+                  riskLevel: rdLatest?.riskAssessment?.level ?? null,
+                  lastAuditAt: rdLatest?.createdAt || null,
+                  auditId: rdLatest?.id || null,
+                },
+                metering: {
+                  datapointsHealthy: dpOverview.healthy ?? null,
+                  datapointsStale: dpOverview.stale ?? null,
+                  datapointsErrored: dpOverview.errored ?? null,
+                  lastAllocationAt: allocLatest?.createdAt || null,
+                  allocationId: allocLatest?.id || null,
+                },
+                masterData: {
+                  qualityScore: mqLatest?.qualityScore ?? null,
+                  lastAuditAt: mqLatest?.createdAt || null,
+                  auditId: mqLatest?.id || null,
+                },
+                governance: {
+                  openCriticalFindings: openCriticalFindings.length,
+                  openFindingsTotal: filteredFindings.filter(
+                    (f) => String(f?.status || '').toLowerCase() === 'open'
+                  ).length,
+                },
+              },
+              blockingEvidenceGaps,
+              staleData,
+              sourceReports: {
+                redispatchExpostId: rdLatest?.id || null,
+                energySharingAllocationId: allocLatest?.id || null,
+                mastrQualityAuditId: mqLatest?.id || null,
+              },
+              timestamp: new Date().toISOString(),
+              _errors: errors,
+            };
+          }
+        );
       },
     },
 
@@ -1362,6 +1625,206 @@ module.exports = {
           signal: slowCallCount === 0 ? 'green' : slowCallCount < 10 ? 'yellow' : 'red',
         },
       };
+    },
+
+    buildRedispatchMeteringBlockers({
+      resolvedGridOperatorId,
+      rdLatest,
+      allocLatest,
+      mqLatest,
+      dpOverview,
+      openCriticalFindings,
+    }) {
+      const blockers = [];
+
+      if (!resolvedGridOperatorId) {
+        blockers.push({
+          code: 'MISSING_OPERATOR_CONTEXT',
+          severity: 'high',
+          source: 'operator-context',
+          message: 'Kein eindeutiger Netzbetreiber-Kontext (gridOperatorId/BDEW) verfügbar.',
+        });
+      }
+
+      if (!rdLatest) {
+        blockers.push({
+          code: 'REDISPATCH_EVIDENCE_MISSING',
+          severity: 'high',
+          source: 'redispatch-expost.list',
+          message: 'Keine Redispatch-Ex-Post-Auswertung vorhanden.',
+        });
+      }
+
+      const readinessPercent = rdLatest?.settlementReadiness?.readinessPercent;
+      if (readinessPercent != null && readinessPercent < 70) {
+        blockers.push({
+          code: 'REDISPATCH_READINESS_LOW',
+          severity: 'high',
+          source: 'redispatch-expost.list',
+          message: `Settlement-Readiness ist kritisch niedrig (${readinessPercent}%).`,
+        });
+      }
+
+      const rdRisk = String(rdLatest?.riskAssessment?.level || '').toLowerCase();
+      if (rdRisk === 'high' || rdRisk === 'critical') {
+        blockers.push({
+          code: 'REDISPATCH_RISK_HIGH',
+          severity: 'high',
+          source: 'redispatch-expost.list',
+          message: `Redispatch-Risiko ist ${rdRisk}.`,
+        });
+      }
+
+      if (!mqLatest) {
+        blockers.push({
+          code: 'MASTERDATA_EVIDENCE_MISSING',
+          severity: 'high',
+          source: 'mastr-quality.list',
+          message: 'Keine MaStR-Qualitätsauswertung vorhanden.',
+        });
+      }
+
+      const qualityScore = mqLatest?.qualityScore;
+      if (qualityScore != null && qualityScore < 70) {
+        blockers.push({
+          code: 'MASTERDATA_QUALITY_LOW',
+          severity: 'medium',
+          source: 'mastr-quality.list',
+          message: `MaStR-Qualität ist niedrig (${qualityScore}).`,
+        });
+      }
+
+      if (!allocLatest && dpOverview?.healthy == null && dpOverview?.stale == null && dpOverview?.errored == null) {
+        blockers.push({
+          code: 'METERING_EVIDENCE_MISSING',
+          severity: 'high',
+          source: 'energy-sharing-allocation.list/datapoint.health',
+          message: 'Keine belastbare Metering-Evidenz verfügbar.',
+        });
+      }
+
+      if ((dpOverview?.errored ?? 0) > 0) {
+        blockers.push({
+          code: 'METERING_DATAPOINT_ERRORS',
+          severity: 'high',
+          source: 'datapoint.health',
+          message: `${dpOverview.errored} Datapoints im Fehlerzustand.`,
+        });
+      }
+
+      if ((dpOverview?.stale ?? 0) > 0) {
+        blockers.push({
+          code: 'METERING_DATAPOINT_STALE',
+          severity: 'medium',
+          source: 'datapoint.health',
+          message: `${dpOverview.stale} Datapoints sind stale.`,
+        });
+      }
+
+      if ((openCriticalFindings || []).length > 0) {
+        blockers.push({
+          code: 'VDMI_OPEN_CRITICAL',
+          severity: 'high',
+          source: 'vdmi.findings',
+          message: `${openCriticalFindings.length} offene kritische VDMI-Findings.`,
+        });
+      }
+
+      return blockers;
+    },
+
+    buildRedispatchMeteringStaleData({ rdLatest, allocLatest, mqLatest, dpOverview }) {
+      const stale = [];
+
+      if ((dpOverview?.stale ?? 0) > 0) {
+        stale.push({
+          source: 'datapoint.health',
+          indicator: 'staleDatapoints',
+          value: dpOverview.stale,
+        });
+      }
+
+      if (this.isOlderThanDays(rdLatest?.createdAt, 30)) {
+        stale.push({
+          source: 'redispatch-expost.list',
+          indicator: 'lastAuditAgeDays',
+          value: this.daysSince(rdLatest?.createdAt),
+        });
+      }
+
+      if (this.isOlderThanDays(allocLatest?.createdAt, 30)) {
+        stale.push({
+          source: 'energy-sharing-allocation.list',
+          indicator: 'lastAllocationAgeDays',
+          value: this.daysSince(allocLatest?.createdAt),
+        });
+      }
+
+      if (this.isOlderThanDays(mqLatest?.createdAt, 30)) {
+        stale.push({
+          source: 'mastr-quality.list',
+          indicator: 'lastAuditAgeDays',
+          value: this.daysSince(mqLatest?.createdAt),
+        });
+      }
+
+      return stale;
+    },
+
+    computeRedispatchMeteringScore({ rdLatest, mqLatest, dpOverview, openCriticalFindings }) {
+      const parts = [];
+
+      const redispatchReadiness = rdLatest?.settlementReadiness?.readinessPercent;
+      if (typeof redispatchReadiness === 'number') {
+        parts.push(Math.max(0, Math.min(100, redispatchReadiness)));
+      }
+
+      const qualityScore = mqLatest?.qualityScore;
+      if (typeof qualityScore === 'number') {
+        parts.push(Math.max(0, Math.min(100, qualityScore)));
+      }
+
+      const healthy = dpOverview?.healthy;
+      const stale = dpOverview?.stale;
+      const errored = dpOverview?.errored;
+      const total = [healthy, stale, errored].every((v) => typeof v === 'number') ? healthy + stale + errored : null;
+      if (total && total > 0) {
+        const datapointScore = ((healthy - errored) / total) * 100;
+        parts.push(Math.max(0, Math.min(100, datapointScore)));
+      }
+
+      if (Array.isArray(openCriticalFindings)) {
+        const governanceScore = openCriticalFindings.length === 0 ? 100 : Math.max(0, 60 - openCriticalFindings.length * 10);
+        parts.push(governanceScore);
+      }
+
+      if (!parts.length) return null;
+      const avg = parts.reduce((a, b) => a + b, 0) / parts.length;
+      return Math.round(avg * 10) / 10;
+    },
+
+    deriveRedispatchMeteringSignal({ score, blockingEvidenceGaps }) {
+      const hasHighBlocker = (blockingEvidenceGaps || []).some((b) => b?.severity === 'high');
+      if (hasHighBlocker) return 'red';
+      if ((blockingEvidenceGaps || []).length > 0) return 'yellow';
+      if (score == null) return 'yellow';
+      if (score < 60) return 'red';
+      if (score < 80) return 'yellow';
+      return 'green';
+    },
+
+    isOlderThanDays(isoDate, days) {
+      if (!isoDate) return false;
+      const ts = Date.parse(isoDate);
+      if (!Number.isFinite(ts)) return false;
+      return Date.now() - ts > days * 24 * 60 * 60 * 1000;
+    },
+
+    daysSince(isoDate) {
+      if (!isoDate) return null;
+      const ts = Date.parse(isoDate);
+      if (!Number.isFinite(ts)) return null;
+      return Math.floor((Date.now() - ts) / (24 * 60 * 60 * 1000));
     },
   },
 };

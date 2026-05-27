@@ -240,6 +240,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/cya/profile']).toBeDefined();
       expect(schema.paths['/api/cookbook']).toBeDefined();
       expect(schema.paths['/api/dashboard/vnb-overview']).toBeDefined();
+      expect(schema.paths['/api/dashboard/redispatch-metering-cockpit']).toBeDefined();
       expect(schema.paths['/api/dashboard/observability-mini']).toBeDefined();
       expect(schema.paths['/api/observability/logs']).toBeDefined();
       expect(schema.paths['/api/observability/agent-prompt']).toBeDefined();
@@ -248,6 +249,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/cya/profile'].post).toBeDefined();
       expect(schema.paths['/api/cookbook'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/vnb-overview'].get).toBeDefined();
+      expect(schema.paths['/api/dashboard/redispatch-metering-cockpit'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/observability-mini'].get).toBeDefined();
       expect(schema.paths['/api/observability/logs'].get).toBeDefined();
       expect(schema.paths['/api/observability/agent-prompt'].get).toBeDefined();
@@ -256,6 +258,9 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/cya/profile'].post.tags).toContain('CYA Agent');
       expect(schema.paths['/api/cookbook'].get.tags).toContain('Cookbook');
       expect(schema.paths['/api/dashboard/vnb-overview'].get.tags).toContain('Dashboard API');
+      expect(schema.paths['/api/dashboard/redispatch-metering-cockpit'].get.tags).toContain(
+        'Dashboard API'
+      );
       expect(schema.paths['/api/dashboard/observability-mini'].get.tags).toContain('Dashboard API');
       expect(schema.paths['/api/observability/logs'].get.tags).toContain('Observability');
       expect(schema.paths['/api/observability/agent-prompt'].get.tags).toContain('Observability');
@@ -396,6 +401,9 @@ describe('API Gateway Service', () => {
       const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
       const aliases = apiRoute?.aliases || {};
 
+      expect(aliases['GET /dashboard/redispatch-metering-cockpit']).toBe(
+        'dashboard-api.redispatchMeteringCockpit'
+      );
       expect(aliases['GET /dashboard/observability-mini']).toBe('dashboard-api.observabilityMini');
       expect(aliases['GET /observability/logs']).toBe('observability.logs');
       expect(aliases['GET /observability/metrics']).toBe('observability.metrics');

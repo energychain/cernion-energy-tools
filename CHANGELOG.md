@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- [services/dashboard-api.service.js](services/dashboard-api.service.js): neues read-only Cockpit-Endpoint `redispatchMeteringCockpit` (`GET /api/dashboard/redispatch-metering-cockpit`) für operatorbezogene Redispatch/Metering/Masterdata/Governance-Readiness.
+  - Liefert `decisionReadiness` (`signal`, `score`, `blocked`) als Traffic-Light-Metadaten aus bestehenden deterministischen Reports.
+  - Liefert explizite `blockingEvidenceGaps` statt impliziter Annahmen (u. a. fehlende Redispatch-/MaStR-Evidenz, offene kritische VDMI-Findings, Datapoint-Fehler).
+  - Liefert `staleData`-Hinweise sowie `sourceReports`-Referenzen für UI-Auditierbarkeit.
+- [docs/ui-contracts/32-redispatch-metering-cockpit.md](docs/ui-contracts/32-redispatch-metering-cockpit.md): neuer UI-Contract für das Redispatch-Metering-Datenfluss-Cockpit inkl. Response-Semantik, Blocker-Logik und Datenquellen.
+
+### Changed
+
+- [services/api.service.js](services/api.service.js): API-Alias ergänzt — `GET /dashboard/redispatch-metering-cockpit` → `dashboard-api.redispatchMeteringCockpit`.
+- [services/dashboard-api.service.js](services/dashboard-api.service.js): `cacheTtlMs` um `redispatchMeteringCockpit` erweitert (5 Minuten); BDEW-basierte Operatorauflösung über `grid-operations.vnbLookupCodes` für Cockpit-Scoping ergänzt.
+
+### Tests
+
+- [tests/dashboard-api.test.js](tests/dashboard-api.test.js): neue Regressionen für Cockpit-Happy-Path, BDEW→`gridOperatorId`-Auflösung/Filter-Forwarding, High-Severity-Blocker (`red`) und graceful degradation bei Upstream-Fehlern.
+- [tests/api.service.test.js](tests/api.service.test.js): OpenAPI- und Alias-Assertions für `/api/dashboard/redispatch-metering-cockpit` ergänzt.
+
 ## [0.55.5] — Durable Approved HITL Resume & Plan-Stack Metadata Preservation (2026-05-26)
 
 ### Added

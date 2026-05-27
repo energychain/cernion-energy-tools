@@ -1231,8 +1231,9 @@ module.exports = {
           'PUT /companies/:id': 'company.update',
           'PUT /companies/:id/confirm': 'company.confirm',
           'DELETE /companies/:id': 'company.delete',
-          // Dashboard API (v0.19) — UI-optimised aggregate endpoints
+          // Dashboard API (v0.19+) — UI-optimised aggregate endpoints
           'GET /dashboard/vnb-overview': 'dashboard-api.vnbOverview',
+          'GET /dashboard/redispatch-metering-cockpit': 'dashboard-api.redispatchMeteringCockpit',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',
