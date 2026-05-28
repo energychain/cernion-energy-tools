@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.55.5",
+    "version": "0.56.5",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -9203,6 +9203,10 @@
                         "type": "string"
                       }
                     },
+                    "contractGate": {
+                      "type": "object",
+                      "description": "Explicit contract-gate assessment for grid-signal priority and control evidence"
+                    },
                     "governanceArtifact": {
                       "type": "object",
                       "nullable": true,
@@ -9234,7 +9238,7 @@
             }
           }
         },
-        "description": "Deterministic fNAV feasibility assessment — evaluates whether a flexible Netzanschlussvertrag (§14a EnWG) is a viable alternative to conventional grid expansion.\n\n**Capacity model (Option B):**\n- firmCapacityKW: guaranteed, contractually fixed power\n- flexibleCapacityKW: legally curtailable portion under §14a\n- resultingEffectiveCapacityKW: firm + flexible × (1 − curtailmentFactor)\n\n**N-1 threshold (Option C — hybrid default + override):**\n- Domain defaults: HS=81 MVA, MS=20 MVA, NS=0.63 MVA (env-configurable)\n- tenant/project/scenario overrides are applied in priority order\n- Result always reports thresholdMVA, thresholdSource, and overrideApplied\n\n**Governance (Option B):**\n- Technical feasibility is reported deterministically\n- Final governanceStatus is `requires_governance_decision` until legalStatus=approved AND contractStatus=signed",
+        "description": "Deterministic fNAV feasibility assessment — evaluates whether a flexible Netzanschlussvertrag (§14a EnWG) is a viable alternative to conventional grid expansion.\n\n**Capacity model (Option B):**\n- firmCapacityKW: guaranteed, contractually fixed power\n- flexibleCapacityKW: legally curtailable portion under §14a\n- resultingEffectiveCapacityKW: firm + flexible × (1 − curtailmentFactor)\n\n**N-1 threshold (Option C — hybrid default + override):**\n- Domain defaults: HS=81 MVA, MS=20 MVA, NS=0.63 MVA (env-configurable)\n- tenant/project/scenario overrides are applied in priority order\n- Result always reports thresholdMVA, thresholdSource, and overrideApplied\n\n**Governance (Option B):**\n- Technical feasibility is reported deterministically\n- Final governanceStatus is `requires_governance_decision` until legalStatus=approved AND contractStatus=signed\n- Flexible profiles should explicitly document Netzsignal-Vorrang plus a control-evidence reference for the contract gate",
         "requestBody": {
           "required": true,
           "content": {
@@ -9292,6 +9296,16 @@
                     "description": "Free-text operating constraint",
                     "example": "§14a max 2h/event, 30-min notice"
                   },
+                  "signalPriorityPolicy": {
+                    "type": "string",
+                    "description": "Optional contract-gate wording that explicitly documents grid-signal priority over schedule/market optimisation",
+                    "example": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung"
+                  },
+                  "controlEvidenceRef": {
+                    "type": "string",
+                    "description": "Optional reference to the control/remote-control evidence backing the contract gate",
+                    "example": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05"
+                  },
                   "contractStatus": {
                     "type": "string",
                     "description": "Contract status",
@@ -9340,6 +9354,8 @@
                     "flexibleCapacityKW": 2000,
                     "curtailmentWindow": 4,
                     "operatingConstraint": "§14a max 2h/event",
+                    "signalPriorityPolicy": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung",
+                    "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
                     "contractStatus": "negotiating",
                     "legalStatus": "pending",
                     "ownerContact": "netzplanung@twl.de"
@@ -9408,6 +9424,10 @@
                         "type": "string"
                       }
                     },
+                    "contractGate": {
+                      "type": "object",
+                      "description": "Explicit contract-gate assessment"
+                    },
                     "governanceArtifact": {
                       "type": "object",
                       "nullable": true
@@ -9471,6 +9491,8 @@
                       "firmCapacity": 3000,
                       "flexibleCapacity": 2000,
                       "curtailmentWindow": 4,
+                      "signalPriorityPolicy": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung",
+                      "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
                       "contractStatus": "negotiating",
                       "legalStatus": "pending"
                     },
@@ -9501,6 +9523,14 @@
                       "operatingConstraint": {
                         "type": "string",
                         "example": "§14a max 2h/event"
+                      },
+                      "signalPriorityPolicy": {
+                        "type": "string",
+                        "example": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung"
+                      },
+                      "controlEvidenceRef": {
+                        "type": "string",
+                        "example": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05"
                       },
                       "contractStatus": {
                         "type": "string",
@@ -9550,6 +9580,8 @@
                       "firmCapacity": 3000,
                       "flexibleCapacity": 2000,
                       "curtailmentWindow": 4,
+                      "signalPriorityPolicy": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung",
+                      "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
                       "contractStatus": "signed",
                       "legalStatus": "approved"
                     },
@@ -9613,6 +9645,10 @@
                         "type": "string"
                       }
                     },
+                    "contractGate": {
+                      "type": "object",
+                      "description": "Explicit contract-gate assessment"
+                    },
                     "governanceArtifact": {
                       "type": "object",
                       "nullable": true
@@ -9659,6 +9695,8 @@
                       "firmCapacity": 3000,
                       "flexibleCapacity": 2000,
                       "curtailmentWindow": 4,
+                      "signalPriorityPolicy": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung",
+                      "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
                       "contractStatus": "negotiating",
                       "legalStatus": "pending"
                     },
@@ -9682,6 +9720,14 @@
                       "curtailmentWindow": {
                         "type": "number",
                         "example": 4
+                      },
+                      "signalPriorityPolicy": {
+                        "type": "string",
+                        "example": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung"
+                      },
+                      "controlEvidenceRef": {
+                        "type": "string",
+                        "example": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05"
                       },
                       "contractStatus": {
                         "type": "string",
@@ -9731,6 +9777,8 @@
                       "firmCapacity": 3000,
                       "flexibleCapacity": 2000,
                       "curtailmentWindow": 4,
+                      "signalPriorityPolicy": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung",
+                      "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
                       "contractStatus": "signed",
                       "legalStatus": "approved"
                     },
@@ -12719,6 +12767,248 @@
         ],
         "x-oeo-class": [
           "OEO_00000446"
+        ]
+      }
+    },
+    "/api/dashboard/redispatch-metering-cockpit": {
+      "get": {
+        "operationId": "dashboard-api_redispatchMeteringCockpit",
+        "summary": "Redispatch Metering Cockpit — operator-level decision readiness",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Cockpit payload with readiness signal and explicit blockers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "operator": {
+                      "type": "object",
+                      "properties": {
+                        "gridOperatorId": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "bdewCode": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "name": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "decisionReadiness": {
+                      "type": "object",
+                      "properties": {
+                        "signal": {
+                          "type": "string",
+                          "enum": [
+                            "green",
+                            "yellow",
+                            "red"
+                          ]
+                        },
+                        "score": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "blocked": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "evidence": {
+                      "type": "object"
+                    },
+                    "blockingEvidenceGaps": {
+                      "type": "array"
+                    },
+                    "staleData": {
+                      "type": "array"
+                    },
+                    "sourceReports": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Read-only cockpit for Redispatch, metering, masterdata and governance readiness. Builds a traffic-light readiness signal from existing deterministic pipelines (redispatch-expost, energy-sharing-allocation, mastr-quality, vdmi, datapoint.health). Evidence gaps and blockers are returned explicitly.",
+        "parameters": [
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "SNB935578300972"
+            },
+            "description": "MaStR ID of the grid operator (SNB.../GNB...)"
+          },
+          {
+            "name": "bdewCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "9907473000008"
+            },
+            "description": "BDEW code as fallback operator context. Used to resolve gridOperatorId when not provided."
+          }
+        ],
+        "x-oeo-class": [
+          "OEO_00000143"
+        ]
+      }
+    },
+    "/api/dashboard/load-profile-stream-monitor": {
+      "get": {
+        "operationId": "dashboard-api_loadProfileStreamMonitor",
+        "summary": "Load profile movement monitor — strict anomaly-class buckets",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Composite stream monitor payload with strict anomaly buckets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "streamStatus": {
+                      "type": "object"
+                    },
+                    "qualityFindings": {
+                      "type": "object"
+                    },
+                    "anomalySignals": {
+                      "type": "object"
+                    },
+                    "restrictionRefs": {
+                      "type": "array"
+                    },
+                    "forecastQuality": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "decisionNotes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Read-only monitor for Lastgangdaten/Bewegungsstrom diagnostics using existing deterministic services only (edm.getTimeseriesSummary, edm-validation.validate, forecast-engine.evaluateQuality, vdmi.findings). Returns strict anomaly buckets (`dataQualityGap`, `realAnomaly`, `forecastProblem`, `processGovernanceBreak`) and allows partial findings with explicit `_errors`.",
+        "parameters": [
+          {
+            "name": "meloId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "DE0012345678901234567890123456789"
+            },
+            "description": "MeLo identifier (Marktlokation) for the monitored stream."
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2026-05-01T00:00:00.000Z"
+            },
+            "description": "Start timestamp (inclusive)."
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2026-05-02T00:00:00.000Z"
+            },
+            "description": "End timestamp (exclusive)."
+          },
+          {
+            "name": "obis",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "1-0:1.8.0"
+            },
+            "description": "OBIS channel to evaluate."
+          },
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "SNB935578300972"
+            },
+            "description": "Optional VNB scope for governance findings."
+          },
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "H0"
+            },
+            "description": "Optional load profile identifier for the monitor request."
+          },
+          {
+            "name": "annualConsumptionKwh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "example": 3500
+            },
+            "description": "Optional annual consumption in kWh used for the stream monitor context."
+          }
+        ],
+        "x-oeo-class": [
+          "OEO_00000143"
         ]
       }
     },
@@ -16908,6 +17198,46 @@
                           "updatedAt": {
                             "type": "string",
                             "format": "date-time"
+                          },
+                          "roleIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "nullable": true,
+                            "example": [
+                              "grid_planner"
+                            ]
+                          },
+                          "contextAffinities": {
+                            "type": "object",
+                            "nullable": true,
+                            "example": {
+                              "workflowTypes": [
+                                "grid_connection_validation"
+                              ],
+                              "domainIntents": [
+                                "grid_planning"
+                              ]
+                            }
+                          },
+                          "handoffTargets": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "nullable": true,
+                            "example": [
+                              "governance-reviewer-agent"
+                            ]
+                          },
+                          "resolutionPolicy": {
+                            "type": "object",
+                            "nullable": true,
+                            "example": {
+                              "mode": "auto",
+                              "priority": 1
+                            }
                           }
                         }
                       }
@@ -17058,6 +17388,46 @@
                         "updatedAt": {
                           "type": "string",
                           "format": "date-time"
+                        },
+                        "roleIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "example": [
+                            "grid_planner"
+                          ]
+                        },
+                        "contextAffinities": {
+                          "type": "object",
+                          "nullable": true,
+                          "example": {
+                            "workflowTypes": [
+                              "grid_connection_validation"
+                            ],
+                            "domainIntents": [
+                              "grid_planning"
+                            ]
+                          }
+                        },
+                        "handoffTargets": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "example": [
+                            "governance-reviewer-agent"
+                          ]
+                        },
+                        "resolutionPolicy": {
+                          "type": "object",
+                          "nullable": true,
+                          "example": {
+                            "mode": "auto",
+                            "priority": 1
+                          }
                         }
                       }
                     }
@@ -17300,6 +17670,46 @@
                           "updatedAt": {
                             "type": "string",
                             "format": "date-time"
+                          },
+                          "roleIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "nullable": true,
+                            "example": [
+                              "grid_planner"
+                            ]
+                          },
+                          "contextAffinities": {
+                            "type": "object",
+                            "nullable": true,
+                            "example": {
+                              "workflowTypes": [
+                                "grid_connection_validation"
+                              ],
+                              "domainIntents": [
+                                "grid_planning"
+                              ]
+                            }
+                          },
+                          "handoffTargets": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "nullable": true,
+                            "example": [
+                              "governance-reviewer-agent"
+                            ]
+                          },
+                          "resolutionPolicy": {
+                            "type": "object",
+                            "nullable": true,
+                            "example": {
+                              "mode": "auto",
+                              "priority": 1
+                            }
                           }
                         }
                       }
@@ -17478,6 +17888,46 @@
                           "updatedAt": {
                             "type": "string",
                             "format": "date-time"
+                          },
+                          "roleIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "nullable": true,
+                            "example": [
+                              "grid_planner"
+                            ]
+                          },
+                          "contextAffinities": {
+                            "type": "object",
+                            "nullable": true,
+                            "example": {
+                              "workflowTypes": [
+                                "grid_connection_validation"
+                              ],
+                              "domainIntents": [
+                                "grid_planning"
+                              ]
+                            }
+                          },
+                          "handoffTargets": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "nullable": true,
+                            "example": [
+                              "governance-reviewer-agent"
+                            ]
+                          },
+                          "resolutionPolicy": {
+                            "type": "object",
+                            "nullable": true,
+                            "example": {
+                              "mode": "auto",
+                              "priority": 1
+                            }
                           }
                         }
                       }
@@ -17643,6 +18093,46 @@
                         "updatedAt": {
                           "type": "string",
                           "format": "date-time"
+                        },
+                        "roleIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "example": [
+                            "grid_planner"
+                          ]
+                        },
+                        "contextAffinities": {
+                          "type": "object",
+                          "nullable": true,
+                          "example": {
+                            "workflowTypes": [
+                              "grid_connection_validation"
+                            ],
+                            "domainIntents": [
+                              "grid_planning"
+                            ]
+                          }
+                        },
+                        "handoffTargets": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "example": [
+                            "governance-reviewer-agent"
+                          ]
+                        },
+                        "resolutionPolicy": {
+                          "type": "object",
+                          "nullable": true,
+                          "example": {
+                            "mode": "auto",
+                            "priority": 1
+                          }
                         }
                       }
                     }
@@ -17801,6 +18291,46 @@
                         "updatedAt": {
                           "type": "string",
                           "format": "date-time"
+                        },
+                        "roleIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "example": [
+                            "grid_planner"
+                          ]
+                        },
+                        "contextAffinities": {
+                          "type": "object",
+                          "nullable": true,
+                          "example": {
+                            "workflowTypes": [
+                              "grid_connection_validation"
+                            ],
+                            "domainIntents": [
+                              "grid_planning"
+                            ]
+                          }
+                        },
+                        "handoffTargets": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "example": [
+                            "governance-reviewer-agent"
+                          ]
+                        },
+                        "resolutionPolicy": {
+                          "type": "object",
+                          "nullable": true,
+                          "example": {
+                            "mode": "auto",
+                            "priority": 1
+                          }
                         }
                       }
                     }
@@ -18037,6 +18567,46 @@
                         "updatedAt": {
                           "type": "string",
                           "format": "date-time"
+                        },
+                        "roleIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "example": [
+                            "grid_planner"
+                          ]
+                        },
+                        "contextAffinities": {
+                          "type": "object",
+                          "nullable": true,
+                          "example": {
+                            "workflowTypes": [
+                              "grid_connection_validation"
+                            ],
+                            "domainIntents": [
+                              "grid_planning"
+                            ]
+                          }
+                        },
+                        "handoffTargets": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "example": [
+                            "governance-reviewer-agent"
+                          ]
+                        },
+                        "resolutionPolicy": {
+                          "type": "object",
+                          "nullable": true,
+                          "example": {
+                            "mode": "auto",
+                            "priority": 1
+                          }
                         }
                       }
                     }
@@ -22740,6 +23310,76 @@
         }
       }
     },
+    "/api/settlement/a96/reconcile": {
+      "post": {
+        "operationId": "settlement_reconcileA96",
+        "summary": "Reconcile inbound A96 rows against internal settlement baseline",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "settlementId",
+                  "incomingRows"
+                ],
+                "properties": {
+                  "settlementId": {
+                    "type": "string",
+                    "example": "redispatch_2026q2_SEE999952467552"
+                  },
+                  "toleranceEur": {
+                    "type": "number",
+                    "example": 0.01,
+                    "default": 0.01
+                  },
+                  "incomingRows": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "anlageId",
+                        "timeSlice"
+                      ],
+                      "properties": {
+                        "anlageId": {
+                          "type": "string",
+                          "example": "SEE999952467552"
+                        },
+                        "timeSlice": {
+                          "type": "string",
+                          "example": "2026-04-01T10:00:00.000Z/2026-04-01T12:00:00.000Z"
+                        },
+                        "compensationEur": {
+                          "type": "number",
+                          "example": 132.42
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/settlement/a96/export/:settlementId": {
       "get": {
         "operationId": "settlement_exportA96",
@@ -24228,5 +24868,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.55.5"
+  "x-version": "0.56.5"
 }

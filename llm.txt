@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.55.5
-- changelog_latest_release: 0.55.5
+- version: 0.56.5
+- changelog_latest_release: 0.56.5
 - source_files_hash:
-  - CHANGELOG.md: c6d4d426bb1207d40545ab7d49614cefd7c60700e5d0849d57e12e6ec763a34b
+  - CHANGELOG.md: 9e40c66aac24c6c65cd852a8424a46bdd4af8d8f61aaff450a26007ffd995da5
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
-  - src/cookbook-recipes.js: 5d30cd990f6ed8eac314d7f9730847c80c698b2d427132225f91fad2e1ba509d
-  - openapi-export.json: 845d323b22629683a2e6649ae55ee7ca0caa54743581213fde11d6d463f3de52
+  - src/cookbook-recipes.js: 9f247688a1a08f4d265ccec73a2fc5d7cc60078739d0c4273aaf6c29a2e58aa0
+  - openapi-export.json: b61aa2e6886e52708a70587d322f0b9507bebdc28aefdd178daa43adcd77a4da
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -18,6 +18,28 @@ It provides a complete implementation picture: architecture, domain knowledge, c
 ## Release Provenance
 ### Unreleased (from CHANGELOG)
 ## [Unreleased]
+
+### Added
+
+- [src/personal-agent-context.js](src/personal-agent-context.js), [services/personal-agent.service.js](services/personal-agent.service.js): v0.57.1 Bootstrap-Context-Handling vorbereitet (noch nicht released). `bootstrapContext` wird streng sanitisiert und minimal in `agentTrace`/L3 geführt (`status`, `organizationType`, `source`, `updatedAt`).
+- [tests/personal-agent-context.test.js](tests/personal-agent-context.test.js), [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): v0.57.1 Testabdeckung erweitert für Enum-/Whitelist-Normalisierung (`status`: `unknown|partial|established`, `source`: `default|knownContext|session|user_confirmed`) sowie Non-Leakage (`tenantId`/`confidence`).
+- [src/personal-agent-context.js](src/personal-agent-context.js), [services/personal-agent.service.js](services/personal-agent.service.js): v0.57.2 Scope-Basis ergänzt mit minimalen `scopedDataPoint`-Feldern (`key`, `scope`, `source`, `status`, `updatedAt`), ohne Rohwerte und ohne neue REST/OpenAPI-Fläche.
+- [tests/personal-agent-context.test.js](tests/personal-agent-context.test.js), [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): v0.57.2 Testabdeckung ergänzt für Scope-Sanitizing, Downgrade von `tenant`/`tenant_operational` auf `tenant_candidate`, Non-Leakage und Reply-Stabilität.
+
+### Changed
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): explizites `knownContext.organizationType` setzt `bootstrapContext.status` auf `partial` und `source` auf `knownContext`; `established` wird in v0.57.1 nur bei explizit strukturiertem Status akzeptiert (nicht aus `organizationType` abgeleitet).
+- [services/personal-agent.service.js](services/personal-agent.service.js): `agentTrace` enthält additiv `knowledgeScope` nur als Summary (`total`, `byScope`, `bySource`) ohne Keys/Werte/Evidence.
+- [services/personal-agent.service.js](services/personal-agent.service.js): v0.57.2 Auto-Derivation aus `knownContext` auf enge Allowlist begrenzt (`organizationType`, `responsibleRole`, `roleId`); beliebige Scalar-Keys werden nicht automatisch als `scopedDataPoint` übernommen.
+- [scripts/check-tdd-matrix-coverage.js](scripts/check-tdd-matrix-coverage.js), [docs/v0.52-implementation-plans/personal-agent-v052-architecture-tdd.md](docs/v0.52-implementation-plans/personal-agent-v052-architecture-tdd.md): v0.57.2 Release-Gate-Coverage trennt jetzt explizit zwischen `T-*`-Pflichtabdeckung in normaler CI und `MT-*`-Blackbox-Abdeckung, die nur mit `RUN_PERSONAL_AGENT_TDD_MATRIX_BLACKBOX=true` hart erzwungen wird.
+- [openapi-export.json](openapi-export.json), [llm.txt](llm.txt): generierte Artefakte via bestehender Projektskripte (`npm run generate:llm`) synchronisiert; `check:llm`-Drift behoben.
+
+### Fixed
+
+- [src/personal-agent-context.js](src/personal-agent-context.js): ungültige/freie `bootstrapContext.source`-Werte fallen strikt auf `default` zurück; ungültige Statuswerte fallen auf `unknown` zurück.
+- [src/personal-agent-context.js](src/personal-agent-context.js): nicht persistierbare Scopes `tenant` und `tenant_operational` werden in v0.57.2 konservativ zu `tenant_candidate`-Markern herabgestuft; `confirmed` ist für `tenant_candidate` nicht zulässig.
+- [src/personal-agent-context.js](src/personal-agent-context.js): `scopedDataPoint.key` wird strikt validiert (trim, max 120 Zeichen, nur `[a-zA-Z0-9._:-]`); ungültige/sensitive Keys werden verworfen.
+- [services/dashboard-api.service.js](services/dashboard-api.service.js): OpenAPI-Metadaten für `GET /load-profile-stream-monitor` ergänzt; Query-Parameter `profileId` und `annualConsumptionKwh` sind jetzt explizit in `openapi.parameters[]` deklariert (Audit-Blocker behoben).
 
 ## Domain-Specific Business Knowledge (Energy + Utility)
 
@@ -98,17 +120,18 @@ FINDING_CODE_METADATA['MQ_ZERO_CAPACITY']
 ---
 
 ## Cookbook Summary
-- total_recipes: 39
+- total_recipes: 41
 - recipes_by_domain:
 - agent-validation: 8
 - customer-service: 1
 - datapoints: 3
 - geo: 2
+- grid_connection_flexibility: 1
 - grid-operations: 1
 - inhouse-analytics: 1
 - inhouse-pipeline: 4
 - market-partners: 1
-- monitoring: 8
+- monitoring: 9
 - planning: 9
 - research-datasets: 1
 
@@ -137,6 +160,17 @@ process:
   - step 1: vnb-monitor.vnb-monitor.alerts | rest: GET /api/vnb-monitor/:bdewCode/alerts | params: {   "bdewCode": null,   "lang": "de",   "refresh": true,   "thermalAlertLevel": 1,   "thermalWarningLevel": 0.8 }
   - step 2: osm-geo.osm-geo.substationFinder | rest: POST /api/osm-geo/substation-finder | params: {   "limit": 3,   "location": null }
   - step 3: osm-geo.osm-geo.infrastructureNearby | rest: POST /api/osm-geo/infrastructure-nearby | params: {   "land_use_filtering": true,   "lat": "__step_2.data.results[0].lat",   "lon": "__step_2.data.results[0].lon",   "radiusMeters": 500 }
+
+### Recipe: dashboard-load-profile-stream-monitor
+title: Monitor Lastgangdaten with strict anomaly classes
+domain: monitoring
+deprecated: false
+tags: dashboard, lastgang, bewegungsstrom, edm, anomaly, forecast
+problem: Operations teams need a single read-only view that separates data-quality gaps, real anomalies, forecast issues, and governance breaks for one MeLo stream.
+expectedResult: Partial-safe monitor payload with strict bucket separation: dataQualityGap vs realAnomaly vs forecastProblem vs processGovernanceBreak.
+prerequisites: MeLo ID | from/to time window
+process:
+  - step 1: dashboard-api.dashboard-api.loadProfileStreamMonitor | rest: GET /api/dashboard/load-profile-stream-monitor | params: {   "from": null,   "gridOperatorId": null,   "meloId": null,   "obis": "1-0:1.8.0",   "to": null }
 
 ### Recipe: dashboard-market-snapshot
 title: Pull energy market snapshot for a region
@@ -270,6 +304,18 @@ expectedResult: Eligibility decision and finding timeline for the proposed commu
 prerequisites: Operator reference | Generator list | Consumer list
 process:
   - step 1: energy-sharing.energy-sharing.validate | rest: POST /api/energy-sharing/validate | params: {   "consumers": null,   "generators": null,   "operatorId": null }
+
+### Recipe: fnav-contract-gate-netzsignal-priority
+title: Validate fNAV contract gate with Netzsignal priority evidence
+domain: grid_connection_flexibility
+deprecated: false
+tags: fnav, netzfahrplan, netzsignal, contract-gate, finance
+problem: A flexible connection request should be validated only if Netzsignal priority wording and control evidence are explicitly documented.
+expectedResult: Technical feasibility, explicit contract-gate status, and additive economics for the same fNAV profile.
+prerequisites: Grid operator | Requested capacity | Signal priority wording | Control evidence reference
+process:
+  - step 1: grid-connection.grid-connection.fnavValidate | rest: POST /api/grid-connection/fnav/validate | params: {   "fnavProfile": {     "contractStatus": null,     "controlEvidenceRef": null,     "curtailmentWindow": null,     "firmCapacity": null,     "flexibleCapacity": null,     "legalStatus": null,     "requestedCapacity": null,     "signalPriorityPolicy": null   },   "gridOperatorName": null,   "ownerContact": null,   "voltageLevel": "MS" }
+  - step 2: finance-agent.finance-agent.fnavEconomics | rest: POST /api/finance-agent/fnav/economics | params: {   "annualFeeEur": null,   "fnavProfile": "__step_1.data.fnavProfile",   "gridOperator": "__step_1.data.gridOperatorName",   "ownerContact": "__step_1.data.ownerContact",   "voltageLevel": "__step_1.data.voltageLevel" }
 
 ### Recipe: forecast-vs-actual-comparison
 title: Compare inhouse actual generation with forecast
@@ -588,8 +634,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 289
-- operation_count: 337
+- path_count: 292
+- operation_count: 340
 - operations_by_tag:
 - Actor Personas: 7 operations
 - Agent Receipts: 10 operations
@@ -602,7 +648,7 @@ process:
 - Companies: 6 operations
 - Cookbook: 6 operations
 - CYA Agent: 19 operations
-- Dashboard API: 5 operations
+- Dashboard API: 7 operations
 - Datapoints: 17 operations
 - DataSources: 27 operations
 - EDM (Energiedatenmanagement): 19 operations
@@ -633,7 +679,7 @@ process:
 - Personal Agent: 5 operations
 - Presentation: 1 operations
 - Redispatch Ex-Post: 3 operations
-- Settlement (Abrechnung): 16 operations
+- Settlement (Abrechnung): 17 operations
 - SLP (Standardlastprofile): 5 operations
 - Tenant Quotas: 3 operations
 - vdmi-evidence: 2 operations
@@ -722,9 +768,11 @@ process:
 - GET /api/cya/templates | tags: [CYA Agent] | operationId: cya_listTemplates | summary: List prebuilt CYA profile templates
 - GET /api/cya/templates/:templateId | tags: [CYA Agent] | operationId: cya_getTemplate | summary: Load one prebuilt CYA profile template
 - GET /api/dashboard/finding-codes | tags: [Dashboard API] | operationId: dashboard-api_findingCodes | summary: Finding codes reference — all 92 codes with metadata
+- GET /api/dashboard/load-profile-stream-monitor | tags: [Dashboard API] | operationId: dashboard-api_loadProfileStreamMonitor | summary: Load profile movement monitor — strict anomaly-class buckets
 - GET /api/dashboard/market-snapshot | tags: [Dashboard API] | operationId: dashboard-api_marketSnapshot | summary: Market snapshot — current spot prices, CO₂ intensity, renewable forecast
 - GET /api/dashboard/observability-mini | tags: [Dashboard API] | operationId: dashboard-api_observabilityMini | summary: Observability mini dashboard — compact production feedback cards
 - GET /api/dashboard/quality-summary | tags: [Dashboard API] | operationId: dashboard-api_qualitySummary | summary: Quality summary — recent reports from all agent pipelines
+- GET /api/dashboard/redispatch-metering-cockpit | tags: [Dashboard API] | operationId: dashboard-api_redispatchMeteringCockpit | summary: Redispatch Metering Cockpit — operator-level decision readiness
 - GET /api/dashboard/vnb-overview | tags: [Dashboard API] | operationId: dashboard-api_vnbOverview | summary: VNB overview — aggregated dashboard data for one grid operator
 - GET /api/datapoints | tags: [Datapoints] | operationId: datapoint_list | summary: List all registered Datapoints
 - POST /api/datapoints | tags: [Datapoints] | operationId: datapoint_create | summary: Create a metadata-only datapoint directly
@@ -925,6 +973,7 @@ process:
 - GET /api/settlement | tags: [Settlement (Abrechnung)] | operationId: settlement_listSettlements | summary: List stored settlements
 - GET /api/settlement/a96/export/:settlementId | tags: [Settlement (Abrechnung)] | operationId: settlement_exportA96 | summary: Export A96 rows as CSV or JSON
 - POST /api/settlement/a96/prepare | tags: [Settlement (Abrechnung)] | operationId: settlement_prepareA96 | summary: Prepare A96 export rows from a Redispatch settlement
+- POST /api/settlement/a96/reconcile | tags: [Settlement (Abrechnung)] | operationId: settlement_reconcileA96 | summary: Reconcile inbound A96 rows against internal settlement baseline
 - GET /api/settlement/eeg-tariff | tags: [Settlement (Abrechnung)] | operationId: settlement_lookupEegTariff | summary: Read-only EEG tariff lookup
 - POST /api/settlement/eeg/calculate | tags: [Settlement (Abrechnung)] | operationId: settlement_calculateEeg | summary: Calculate EEG revenue for an installation
 - GET /api/settlement/eeg/report/:settlementId | tags: [Settlement (Abrechnung)] | operationId: settlement_getEegReport | summary: Get a stored EEG settlement report
@@ -988,7 +1037,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.55.5"
+    "version": "0.56.5"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -1269,6 +1318,18 @@ process:
                             },
                             "type": "array"
                           },
+                          "contextAffinities": {
+                            "example": {
+                              "domainIntents": [
+                                "grid_planning"
+                              ],
+                              "workflowTypes": [
+                                "grid_connection_validation"
+                              ]
+                            },
+                            "nullable": true,
+                            "type": "object"
+                          },
                           "createdAt": {
                             "format": "date-time",
                             "type": "string"
@@ -1277,6 +1338,16 @@ process:
                             "example": "pa_12345678",
                             "nullable": true,
                             "type": "string"
+                          },
+                          "handoffTargets": {
+                            "example": [
+                              "governance-reviewer-agent"
+                            ],
+                            "items": {
+                              "type": "string"
+                            },
+                            "nullable": true,
+                            "type": "array"
                           },
                           "id": {
                             "example": "thorsten-human",
@@ -1298,6 +1369,24 @@ process:
                             ],
                             "example": "human",
                             "type": "string"
+                          },
+                          "resolutionPolicy": {
+                            "example": {
+                              "mode": "auto",
+                              "priority": 1
+                            },
+                            "nullable": true,
+                            "type": "object"
+                          },
+                          "roleIds": {
+                            "example": [
+                              "grid_planner"
+                            ],
+                            "items": {
+                              "type": "string"
+                            },
+                            "nullable": true,
+                            "type": "array"
                           },
                           "status": {
                             "enum": [
@@ -1504,6 +1593,18 @@ process:
                           },
                           "type": "array"
                         },
+                        "contextAffinities": {
+                          "example": {
+                            "domainIntents": [
+                              "grid_planning"
+                            ],
+                            "workflowTypes": [
+                              "grid_connection_validation"
+                            ]
+                          },
+                          "nullable": true,
+                          "type": "object"
+                        },
                         "createdAt": {
                           "format": "date-time",
                           "type": "string"
@@ -1512,6 +1613,16 @@ process:
                           "example": "pa_12345678",
                           "nullable": true,
                           "type": "string"
+                        },
+                        "handoffTargets": {
+                          "example": [
+                            "governance-reviewer-agent"
+                          ],
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "type": "array"
                         },
                         "id": {
                           "example": "thorsten-human",
@@ -1533,6 +1644,24 @@ process:
                           ],
                           "example": "human",
                           "type": "string"
+                        },
+                        "resolutionPolicy": {
+                          "example": {
+                            "mode": "auto",
+                            "priority": 1
+                          },
+                          "nullable": true,
+                          "type": "object"
+                        },
+                        "roleIds": {
+                          "example": [
+                            "grid_planner"
+                          ],
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "type": "array"
                         },
                         "status": {
                           "enum": [
@@ -1664,6 +1793,18 @@ process:
                           },
                           "type": "array"
                         },
+                        "contextAffinities": {
+                          "example": {
+                            "domainIntents": [
+                              "grid_planning"
+                            ],
+                            "workflowTypes": [
+                              "grid_connection_validation"
+                            ]
+                          },
+                          "nullable": true,
+                          "type": "object"
+                        },
                         "createdAt": {
                           "format": "date-time",
                           "type": "string"
@@ -1672,6 +1813,16 @@ process:
                           "example": "pa_12345678",
                           "nullable": true,
                           "type": "string"
+                        },
+                        "handoffTargets": {
+                          "example": [
+                            "governance-reviewer-agent"
+                          ],
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "type": "array"
                         },
                         "id": {
                           "example": "thorsten-human",
@@ -1693,6 +1844,24 @@ process:
                           ],
                           "example": "human",
                           "type": "string"
+                        },
+                        "resolutionPolicy": {
+                          "example": {
+                            "mode": "auto",
+                            "priority": 1
+                          },
+                          "nullable": true,
+                          "type": "object"
+                        },
+                        "roleIds": {
+                          "example": [
+                            "grid_planner"
+                          ],
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "type": "array"
                         },
                         "status": {
                           "enum": [
@@ -1822,6 +1991,18 @@ process:
                           },
                           "type": "array"
                         },
+                        "contextAffinities": {
+                          "example": {
+                            "domainIntents": [
+                              "grid_planning"
+                            ],
+                            "workflowTypes": [
+                              "grid_connection_validation"
+                            ]
+                          },
+                          "nullable": true,
+                          "type": "object"
+                        },
                         "createdAt": {
                           "format": "date-time",
                           "type": "string"
@@ -1830,6 +2011,16 @@ process:
                           "example": "pa_12345678",
                           "nullable": true,
                           "type": "string"
+                        },
+                        "handoffTargets": {
+                          "example": [
+                            "governance-reviewer-agent"
+                          ],
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "type": "array"
                         },
                         "id": {
                           "example": "thorsten-human",
@@ -1851,6 +2042,24 @@ process:
                           ],
                           "example": "human",
                           "type": "string"
+                        },
+                        "resolutionPolicy": {
+                          "example": {
+                            "mode": "auto",
+                            "priority": 1
+                          },
+                          "nullable": true,
+                          "type": "object"
+                        },
+                        "roleIds": {
+                          "example": [
+                            "grid_planner"
+                          ],
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "type": "array"
                         },
                         "status": {
                           "enum": [
@@ -2058,6 +2267,18 @@ process:
                           },
                           "type": "array"
                         },
+                        "contextAffinities": {
+                          "example": {
+                            "domainIntents": [
+                              "grid_planning"
+                            ],
+                            "workflowTypes": [
+                              "grid_connection_validation"
+                            ]
+                          },
+                          "nullable": true,
+                          "type": "object"
+                        },
                         "createdAt": {
                           "format": "date-time",
                           "type": "string"
@@ -2066,6 +2287,16 @@ process:
                           "example": "pa_12345678",
                           "nullable": true,
                           "type": "string"
+                        },
+                        "handoffTargets": {
+                          "example": [
+                            "governance-reviewer-agent"
+                          ],
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "type": "array"
                         },
                         "id": {
                           "example": "thorsten-human",
@@ -2087,6 +2318,24 @@ process:
                           ],
                           "example": "human",
                           "type": "string"
+                        },
+                        "resolutionPolicy": {
+                          "example": {
+                            "mode": "auto",
+                            "priority": 1
+                          },
+                          "nullable": true,
+                          "type": "object"
+                        },
+                        "roleIds": {
+                          "example": [
+                            "grid_planner"
+                          ],
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "type": "array"
                         },
                         "status": {
                           "enum": [
@@ -2223,6 +2472,18 @@ process:
                             },
                             "type": "array"
                           },
+                          "contextAffinities": {
+                            "example": {
+                              "domainIntents": [
+                                "grid_planning"
+                              ],
+                              "workflowTypes": [
+                                "grid_connection_validation"
+                              ]
+                            },
+                            "nullable": true,
+                            "type": "object"
+                          },
                           "createdAt": {
                             "format": "date-time",
                             "type": "string"
@@ -2231,6 +2492,16 @@ process:
                             "example": "pa_12345678",
                             "nullable": true,
                             "type": "string"
+                          },
+                          "handoffTargets": {
+                            "example": [
+                              "governance-reviewer-agent"
+                            ],
+                            "items": {
+                              "type": "string"
+                            },
+                            "nullable": true,
+                            "type": "array"
                           },
                           "id": {
                             "example": "thorsten-human",
@@ -2252,6 +2523,24 @@ process:
                             ],
                             "example": "human",
                             "type": "string"
+                          },
+                          "resolutionPolicy": {
+                            "example": {
+                              "mode": "auto",
+                              "priority": 1
+                            },
+                            "nullable": true,
+                            "type": "object"
+                          },
+                          "roleIds": {
+                            "example": [
+                              "grid_planner"
+                            ],
+                            "items": {
+                              "type": "string"
+                            },
+                            "nullable": true,
+                            "type": "array"
                           },
                           "status": {
                             "enum": [
@@ -2401,6 +2690,18 @@ process:
                             },
                             "type": "array"
                           },
+                          "contextAffinities": {
+                            "example": {
+                              "domainIntents": [
+                                "grid_planning"
+                              ],
+                              "workflowTypes": [
+                                "grid_connection_validation"
+                              ]
+                            },
+                            "nullable": true,
+                            "type": "object"
+                          },
                           "createdAt": {
                             "format": "date-time",
                             "type": "string"
@@ -2409,6 +2710,16 @@ process:
                             "example": "pa_12345678",
                             "nullable": true,
                             "type": "string"
+                          },
+                          "handoffTargets": {
+                            "example": [
+                              "governance-reviewer-agent"
+                            ],
+                            "items": {
+                              "type": "string"
+                            },
+                            "nullable": true,
+                            "type": "array"
                           },
                           "id": {
                             "example": "thorsten-human",
@@ -2430,6 +2741,24 @@ process:
                             ],
                             "example": "human",
                             "type": "string"
+                          },
+                          "resolutionPolicy": {
+                            "example": {
+                              "mode": "auto",
+                              "priority": 1
+                            },
+                            "nullable": true,
+                            "type": "object"
+                          },
+                          "roleIds": {
+                            "example": [
+                              "grid_planner"
+                            ],
+                            "items": {
+                              "type": "string"
+                            },
+                            "nullable": true,
+                            "type": "array"
                           },
                           "status": {
                             "enum": [
@@ -6830,6 +7159,140 @@ process:
         ]
       }
     },
+    "/api/dashboard/load-profile-stream-monitor": {
+      "get": {
+        "description": "Read-only monitor for Lastgangdaten/Bewegungsstrom diagnostics using existing deterministic services only (edm.getTimeseriesSummary, edm-validation.validate, forecast-engine.evaluateQuality, vdmi.findings). Returns strict anomaly buckets (`dataQualityGap`, `realAnomaly`, `forecastProblem`, `processGovernanceBreak`) and allows partial findings with explicit `_errors`.",
+        "operationId": "dashboard-api_loadProfileStreamMonitor",
+        "parameters": [
+          {
+            "description": "MeLo identifier (Marktlokation) for the monitored stream.",
+            "in": "query",
+            "name": "meloId",
+            "required": true,
+            "schema": {
+              "example": "DE0012345678901234567890123456789",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start timestamp (inclusive).",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "example": "2026-05-01T00:00:00.000Z",
+              "type": "string"
+            }
+          },
+          {
+            "description": "End timestamp (exclusive).",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "example": "2026-05-02T00:00:00.000Z",
+              "type": "string"
+            }
+          },
+          {
+            "description": "OBIS channel to evaluate.",
+            "in": "query",
+            "name": "obis",
+            "required": false,
+            "schema": {
+              "default": "1-0:1.8.0",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional VNB scope for governance findings.",
+            "in": "query",
+            "name": "gridOperatorId",
+            "required": false,
+            "schema": {
+              "example": "SNB935578300972",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional load profile identifier for the monitor request.",
+            "in": "query",
+            "name": "profileId",
+            "required": false,
+            "schema": {
+              "default": "H0",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional annual consumption in kWh used for the stream monitor context.",
+            "in": "query",
+            "name": "annualConsumptionKwh",
+            "required": false,
+            "schema": {
+              "example": 3500,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "anomalySignals": {
+                      "type": "object"
+                    },
+                    "decisionNotes": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "forecastQuality": {
+                      "nullable": true,
+                      "type": "object"
+                    },
+                    "qualityFindings": {
+                      "type": "object"
+                    },
+                    "restrictionRefs": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "streamStatus": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Composite stream monitor payload with strict anomaly buckets"
+          }
+        },
+        "summary": "Load profile movement monitor — strict anomaly-class buckets",
+        "tags": [
+          "Dashboard API"
+        ],
+        "x-oeo-class": [
+          "OEO_00000143"
+        ]
+      }
+    },
     "/api/dashboard/market-snapshot": {
       "get": {
         "description": "Aggregates current day-ahead spot prices, CO₂ intensity (with forecast), and wind/solar generation forecast for the next 24 hours into a single response.\n\nFixed upstream parameters: `market: day-ahead`, today's date, `forecastType: both`.\n\nOptional overrides:\n- `?location=Heidelberg` overrides the CO₂ intensity location (default: Deutschland)\n- `?region=Bayern` enables the ENTSO-E wind/solar forecast (region-specific); omit to skip — `renewableForecast24h` will be null when no region is given\n\nCache TTL: 15 minutes (key: location + region).",
@@ -7153,6 +7616,114 @@ process:
           }
         },
         "summary": "Quality summary — recent reports from all agent pipelines",
+        "tags": [
+          "Dashboard API"
+        ],
+        "x-oeo-class": [
+          "OEO_00000143"
+        ]
+      }
+    },
+    "/api/dashboard/redispatch-metering-cockpit": {
+      "get": {
+        "description": "Read-only cockpit for Redispatch, metering, masterdata and governance readiness. Builds a traffic-light readiness signal from existing deterministic pipelines (redispatch-expost, energy-sharing-allocation, mastr-quality, vdmi, datapoint.health). Evidence gaps and blockers are returned explicitly.",
+        "operationId": "dashboard-api_redispatchMeteringCockpit",
+        "parameters": [
+          {
+            "description": "MaStR ID of the grid operator (SNB.../GNB...)",
+            "in": "query",
+            "name": "gridOperatorId",
+            "required": false,
+            "schema": {
+              "example": "SNB935578300972",
+              "type": "string"
+            }
+          },
+          {
+            "description": "BDEW code as fallback operator context. Used to resolve gridOperatorId when not provided.",
+            "in": "query",
+            "name": "bdewCode",
+            "required": false,
+            "schema": {
+              "example": "9907473000008",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "blockingEvidenceGaps": {
+                      "type": "array"
+                    },
+                    "decisionReadiness": {
+                      "properties": {
+                        "blocked": {
+                          "type": "boolean"
+                        },
+                        "score": {
+                          "nullable": true,
+                          "type": "number"
+                        },
+                        "signal": {
+                          "enum": [
+                            "green",
+                            "yellow",
+                            "red"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "evidence": {
+                      "type": "object"
+                    },
+                    "operator": {
+                      "properties": {
+                        "bdewCode": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "gridOperatorId": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "name": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "sourceReports": {
+                      "type": "object"
+                    },
+                    "staleData": {
+                      "type": "array"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Cockpit payload with readiness signal and explicit blockers"
+          }
+        },
+        "summary": "Redispatch Metering Cockpit — operator-level decision readiness",
         "tags": [
           "Dashboard API"
         ],
@@ -11776,11 +12347,13 @@ process:
                     "annualFeeEur": 15000,
                     "fnavProfile": {
                       "contractStatus": "signed",
+                      "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
                       "curtailmentWindow": 4,
                       "firmCapacity": 3000,
                       "flexibleCapacity": 2000,
                       "legalStatus": "approved",
-                      "requestedCapacity": 5000
+                      "requestedCapacity": 5000,
+                      "signalPriorityPolicy": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung"
                     },
                     "gridOperator": "TWL Netze",
                     "ownerContact": "netzplanung@twl.de",
@@ -11803,15 +12376,21 @@ process:
                   "fnavProfile": {
                     "example": {
                       "contractStatus": "negotiating",
+                      "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
                       "curtailmentWindow": 4,
                       "firmCapacity": 3000,
                       "flexibleCapacity": 2000,
                       "legalStatus": "pending",
-                      "requestedCapacity": 5000
+                      "requestedCapacity": 5000,
+                      "signalPriorityPolicy": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung"
                     },
                     "properties": {
                       "contractStatus": {
                         "example": "negotiating",
+                        "type": "string"
+                      },
+                      "controlEvidenceRef": {
+                        "example": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
                         "type": "string"
                       },
                       "curtailmentWindow": {
@@ -11834,6 +12413,10 @@ process:
                         "description": "Requested capacity kW",
                         "example": 5000,
                         "type": "number"
+                      },
+                      "signalPriorityPolicy": {
+                        "example": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung",
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -11888,6 +12471,10 @@ process:
                         "override"
                       ],
                       "type": "string"
+                    },
+                    "contractGate": {
+                      "description": "Explicit contract-gate assessment",
+                      "type": "object"
                     },
                     "decisionChain": {
                       "items": {
@@ -13087,11 +13674,13 @@ process:
                   "value": {
                     "fnavProfile": {
                       "contractStatus": "signed",
+                      "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
                       "curtailmentWindow": 4,
                       "firmCapacity": 3000,
                       "flexibleCapacity": 2000,
                       "legalStatus": "approved",
-                      "requestedCapacity": 5000
+                      "requestedCapacity": 5000,
+                      "signalPriorityPolicy": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung"
                     },
                     "gridOperatorName": "TWL Netze",
                     "ownerContact": "netzplanung@twl.de",
@@ -13104,15 +13693,21 @@ process:
                   "fnavProfile": {
                     "example": {
                       "contractStatus": "negotiating",
+                      "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
                       "curtailmentWindow": 4,
                       "firmCapacity": 3000,
                       "flexibleCapacity": 2000,
                       "legalStatus": "pending",
-                      "requestedCapacity": 5000
+                      "requestedCapacity": 5000,
+                      "signalPriorityPolicy": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung"
                     },
                     "properties": {
                       "contractStatus": {
                         "example": "negotiating",
+                        "type": "string"
+                      },
+                      "controlEvidenceRef": {
+                        "example": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
                         "type": "string"
                       },
                       "curtailmentWindow": {
@@ -13142,6 +13737,10 @@ process:
                         "description": "Requested capacity in kW",
                         "example": 5000,
                         "type": "number"
+                      },
+                      "signalPriorityPolicy": {
+                        "example": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung",
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -13207,6 +13806,10 @@ process:
                   "properties": {
                     "capacityModel": {
                       "description": "Normalised fNAV capacity model",
+                      "type": "object"
+                    },
+                    "contractGate": {
+                      "description": "Explicit contract-gate assessment",
                       "type": "object"
                     },
                     "decisionChain": {
@@ -18435,7 +19038,7 @@ process:
     },
     "/api/netzfahrplan/generate": {
       "post": {
-        "description": "Deterministic fNAV feasibility assessment — evaluates whether a flexible Netzanschlussvertrag (§14a EnWG) is a viable alternative to conventional grid expansion.\n\n**Capacity model (Option B):**\n- firmCapacityKW: guaranteed, contractually fixed power\n- flexibleCapacityKW: legally curtailable portion under §14a\n- resultingEffectiveCapacityKW: firm + flexible × (1 − curtailmentFactor)\n\n**N-1 threshold (Option C — hybrid default + override):**\n- Domain defaults: HS=81 MVA, MS=20 MVA, NS=0.63 MVA (env-configurable)\n- tenant/project/scenario overrides are applied in priority order\n- Result always reports thresholdMVA, thresholdSource, and overrideApplied\n\n**Governance (Option B):**\n- Technical feasibility is reported deterministically\n- Final governanceStatus is `requires_governance_decision` until legalStatus=approved AND contractStatus=signed",
+        "description": "Deterministic fNAV feasibility assessment — evaluates whether a flexible Netzanschlussvertrag (§14a EnWG) is a viable alternative to conventional grid expansion.\n\n**Capacity model (Option B):**\n- firmCapacityKW: guaranteed, contractually fixed power\n- flexibleCapacityKW: legally curtailable portion under §14a\n- resultingEffectiveCapacityKW: firm + flexible × (1 − curtailmentFactor)\n\n**N-1 threshold (Option C — hybrid default + override):**\n- Domain defaults: HS=81 MVA, MS=20 MVA, NS=0.63 MVA (env-configurable)\n- tenant/project/scenario overrides are applied in priority order\n- Result always reports thresholdMVA, thresholdSource, and overrideApplied\n\n**Governance (Option B):**\n- Technical feasibility is reported deterministically\n- Final governanceStatus is `requires_governance_decision` until legalStatus=approved AND contractStatus=signed\n- Flexible profiles should explicitly document Netzsignal-Vorrang plus a control-evidence reference for the contract gate",
         "operationId": "grid-operations_netzfahrplanGenerate",
         "requestBody": {
           "content": {
@@ -18444,6 +19047,7 @@ process:
                 "fNAV hybrid MS": {
                   "value": {
                     "contractStatus": "negotiating",
+                    "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
                     "curtailmentWindow": 4,
                     "firmCapacityKW": 3000,
                     "flexibleCapacityKW": 2000,
@@ -18452,6 +19056,7 @@ process:
                     "operatingConstraint": "§14a max 2h/event",
                     "ownerContact": "netzplanung@twl.de",
                     "requestedCapacityKW": 5000,
+                    "signalPriorityPolicy": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung",
                     "voltageLevel": "MS"
                   }
                 },
@@ -18474,6 +19079,11 @@ process:
                   "contractStatus": {
                     "description": "Contract status",
                     "example": "negotiating",
+                    "type": "string"
+                  },
+                  "controlEvidenceRef": {
+                    "description": "Optional reference to the control/remote-control evidence backing the contract gate",
+                    "example": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
                     "type": "string"
                   },
                   "curtailmentWindow": {
@@ -18544,6 +19154,11 @@ process:
                     "example": 5000,
                     "type": "number"
                   },
+                  "signalPriorityPolicy": {
+                    "description": "Optional contract-gate wording that explicitly documents grid-signal priority over schedule/market optimisation",
+                    "example": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung",
+                    "type": "string"
+                  },
                   "voltageLevel": {
                     "default": "MS",
                     "description": "Voltage level of the connection point",
@@ -18572,6 +19187,10 @@ process:
                   "properties": {
                     "capacityModel": {
                       "description": "Normalised capacity model",
+                      "type": "object"
+                    },
+                    "contractGate": {
+                      "description": "Explicit contract-gate assessment for grid-signal priority and control evidence",
                       "type": "object"
                     },
                     "decisionChain": {
@@ -21904,6 +22523,76 @@ process:
         ]
       }
     },
+    "/api/settlement/a96/reconcile": {
+      "post": {
+        "operationId": "settlement_reconcileA96",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "incomingRows": {
+                    "items": {
+                      "properties": {
+                        "anlageId": {
+                          "example": "SEE999952467552",
+                          "type": "string"
+                        },
+                        "compensationEur": {
+                          "example": 132.42,
+                          "type": "number"
+                        },
+                        "timeSlice": {
+                          "example": "2026-04-01T10:00:00.000Z/2026-04-01T12:00:00.000Z",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "anlageId",
+                        "timeSlice"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "settlementId": {
+                    "example": "redispatch_2026q2_SEE999952467552",
+                    "type": "string"
+                  },
+                  "toleranceEur": {
+                    "default": 0.01,
+                    "example": 0.01,
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "settlementId",
+                  "incomingRows"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Reconcile inbound A96 rows against internal settlement baseline",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ]
+      }
+    },
     "/api/settlement/eeg-tariff": {
       "get": {
         "operationId": "settlement_lookupEegTariff",
@@ -25214,8 +25903,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.55.5"
+  "x-version": "0.56.5"
 }
 
 ## Integrity
-- llm_txt_sha256: eb1115f7da1a4540f9019ac935df4e574461968b897939efad18659807b4f329
+- llm_txt_sha256: 6a25e3fac1ee3dda60d5cc251ab681fd2b5b5bd2bb9beea42ce5f716d0342731
