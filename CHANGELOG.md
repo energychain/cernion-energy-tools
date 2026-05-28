@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.57.2] — Scoped Knowledge Basis & Release-Gate Stabilization (2026-05-28)
+
 ### Added
 
-- [src/personal-agent-context.js](src/personal-agent-context.js), [services/personal-agent.service.js](services/personal-agent.service.js): v0.57.1 Bootstrap-Context-Handling vorbereitet (noch nicht released). `bootstrapContext` wird streng sanitisiert und minimal in `agentTrace`/L3 geführt (`status`, `organizationType`, `source`, `updatedAt`).
+- [src/personal-agent-context.js](src/personal-agent-context.js), [services/personal-agent.service.js](services/personal-agent.service.js): v0.57.1 Bootstrap-Context-Handling finalisiert. `bootstrapContext` wird streng sanitisiert und minimal in `agentTrace`/L3 geführt (`status`, `organizationType`, `source`, `updatedAt`).
 - [tests/personal-agent-context.test.js](tests/personal-agent-context.test.js), [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): v0.57.1 Testabdeckung erweitert für Enum-/Whitelist-Normalisierung (`status`: `unknown|partial|established`, `source`: `default|knownContext|session|user_confirmed`) sowie Non-Leakage (`tenantId`/`confidence`).
 - [src/personal-agent-context.js](src/personal-agent-context.js), [services/personal-agent.service.js](services/personal-agent.service.js): v0.57.2 Scope-Basis ergänzt mit minimalen `scopedDataPoint`-Feldern (`key`, `scope`, `source`, `status`, `updatedAt`), ohne Rohwerte und ohne neue REST/OpenAPI-Fläche.
 - [tests/personal-agent-context.test.js](tests/personal-agent-context.test.js), [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): v0.57.2 Testabdeckung ergänzt für Scope-Sanitizing, Downgrade von `tenant`/`tenant_operational` auf `tenant_candidate`, Non-Leakage und Reply-Stabilität.
