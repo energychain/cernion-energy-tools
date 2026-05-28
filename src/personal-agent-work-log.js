@@ -9,7 +9,7 @@
  * Safety principles:
  * - primitives + enum_array only in metadata (no nested objects, no free-text arrays)
  * - no personaId, confidence, tenantId, userId, sessionId, toolsUsed, warnings, blockers, questionId
- * - toArray() returns Object.freeze([...entries]) — immutable snapshot
+ * - toArray() returns a frozen array of frozen entry/metadata snapshots — deep immutable
  * - unknown actions dropped silently in service path; validateWorkLogEntry() throws in test path
  */
 
@@ -449,21 +449,23 @@ function sanitizeMetadataField(value, fieldSpec) {
   const { type, maxLength, enumValues, enumCodes } = fieldSpec;
   switch (type) {
     case 'string': {
-      const str = String(value || '')
-        .slice(0, maxLength || 64)
-        .trim();
+      if (typeof value !== 'string') {
+        throw new Error('Expected string value');
+      }
+      const str = value.slice(0, maxLength || 64).trim();
       if (enumValues && !enumValues.includes(str)) {
         throw new Error(`Invalid enum value: ${str}`);
       }
       return str;
     }
     case 'number': {
-      const num = Number(value);
-      if (!Number.isFinite(num)) throw new Error('Invalid number');
-      return num;
+      if (typeof value !== 'number') throw new Error('Expected number value');
+      if (!Number.isFinite(value)) throw new Error('Invalid number');
+      return value;
     }
     case 'boolean':
-      return Boolean(value);
+      if (typeof value !== 'boolean') throw new Error('Expected boolean value');
+      return value;
     case 'enum_array': {
       // Only pre-defined codes pass — no free-text strings from runtime sources.
       if (!Array.isArray(enumCodes) || enumCodes.length === 0) {
@@ -601,7 +603,14 @@ function createTurnWorkLog() {
    * @returns {ReadonlyArray}
    */
   function toArray() {
-    return Object.freeze([...entries]);
+    return Object.freeze(
+      entries.map(e =>
+        Object.freeze({
+          ...e,
+          metadata: Object.freeze({ ...e.metadata }),
+        })
+      )
+    );
   }
 
   return { addEntry, toArray };
@@ -661,6 +670,26 @@ function validateWorkLogEntry(entry) {
 }
 
 // ---------------------------------------------------------------------------
+// Safe label helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Return a safe label string for a persona_resolved work log entry.
+ * rawRoleLabel is accepted only if it matches the persona_resolved whitelist enum.
+ * Falls back to 'Persona resolved' for any free/invalid/unknown value.
+ *
+ * @param {*} rawRoleLabel
+ * @returns {string}
+ */
+function getSafePersonaLabel(rawRoleLabel) {
+  const spec = WORK_LOG_METADATA_WHITELIST.persona_resolved.roleLabel;
+  if (typeof rawRoleLabel === 'string' && spec.enumValues.includes(rawRoleLabel)) {
+    return `Persona: ${rawRoleLabel}`;
+  }
+  return 'Persona resolved';
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -673,4 +702,5 @@ module.exports = {
   sanitizeWorkLogMetadata,
   sanitizeMetadataField,
   validateWorkLogEntry,
+  getSafePersonaLabel,
 };

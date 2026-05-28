@@ -13,6 +13,7 @@ const {
   sanitizeWorkLogMetadata,
   sanitizeMetadataField,
   validateWorkLogEntry,
+  getSafePersonaLabel,
 } = require('../src/personal-agent-work-log');
 
 // ---------------------------------------------------------------------------
@@ -44,6 +45,35 @@ describe('T-PA-WOL-001: createTurnWorkLog returns empty frozen array', () => {
     copy.push({ step: 99, action: 'fake' });
     const arr2 = wl.toArray();
     expect(arr2.length).toBe(1); // Still 1, not 2
+  });
+
+  test('mutating a returned entry.metadata does not affect a later toArray call', () => {
+    const wl = createTurnWorkLog();
+    wl.addEntry({
+      action: WORK_LOG_ACTIONS.ROUTING_CLASSIFIED,
+      label: 'Test',
+      metadata: { targetDomain: 'grid', primaryIntent: 'check', reasonCode: 'DEFAULT_ROUTE' },
+    });
+    const snapshot1 = wl.toArray();
+    // Attempt to mutate the returned entry's metadata (should throw in strict mode or be ignored)
+    expect(() => {
+      snapshot1[0].metadata.targetDomain = 'MUTATED';
+    }).toThrow();
+    // The internal state must not have been mutated
+    const snapshot2 = wl.toArray();
+    expect(snapshot2[0].metadata.targetDomain).toBe('grid');
+  });
+
+  test('each entry object in the returned array is frozen', () => {
+    const wl = createTurnWorkLog();
+    wl.addEntry({
+      action: WORK_LOG_ACTIONS.ROUTING_CLASSIFIED,
+      label: 'Test',
+      metadata: { targetDomain: 'grid', primaryIntent: 'check', reasonCode: 'DEFAULT_ROUTE' },
+    });
+    const snapshot = wl.toArray();
+    expect(Object.isFrozen(snapshot[0])).toBe(true);
+    expect(Object.isFrozen(snapshot[0].metadata)).toBe(true);
   });
 });
 
@@ -224,6 +254,27 @@ describe('T-PA-WOL-005: sanitizeMetadataField enforces types', () => {
   test('unknown type throws', () => {
     expect(() => sanitizeMetadataField('x', { type: 'array' })).toThrow();
     expect(() => sanitizeMetadataField('x', { type: 'object' })).toThrow();
+  });
+
+  test('object passed as string field throws (no coercion)', () => {
+    const fieldSpec = { type: 'string', maxLength: 64 };
+    expect(() => sanitizeMetadataField({ key: 'val' }, fieldSpec)).toThrow(/Expected string/);
+  });
+
+  test('array passed as string field throws (no coercion)', () => {
+    const fieldSpec = { type: 'string', maxLength: 64 };
+    expect(() => sanitizeMetadataField(['a', 'b'], fieldSpec)).toThrow(/Expected string/);
+  });
+
+  test('numeric string is rejected for number field (no coercion)', () => {
+    expect(() => sanitizeMetadataField('42', { type: 'number' })).toThrow(/Expected number/);
+    expect(() => sanitizeMetadataField('3.14', { type: 'number' })).toThrow(/Expected number/);
+  });
+
+  test('non-boolean truthy value is rejected for boolean field (no coercion)', () => {
+    expect(() => sanitizeMetadataField(1, { type: 'boolean' })).toThrow(/Expected boolean/);
+    expect(() => sanitizeMetadataField('true', { type: 'boolean' })).toThrow(/Expected boolean/);
+    expect(() => sanitizeMetadataField(null, { type: 'boolean' })).toThrow(/Expected boolean/);
   });
 });
 
@@ -467,6 +518,58 @@ describe('T-PA-WOL-009: validateWorkLogEntry throws on violations', () => {
     expect(() =>
       validateWorkLogEntry(makeValidEntry({ step: 'one' }))
     ).toThrow(/Invalid step/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Persona resolved label sanitization
+// ---------------------------------------------------------------------------
+
+describe('persona_resolved label sanitization', () => {
+  test('getSafePersonaLabel returns "Persona: <label>" for a valid whitelist roleLabel', () => {
+    expect(getSafePersonaLabel('Grid Analyst')).toBe('Persona: Grid Analyst');
+    expect(getSafePersonaLabel('Trader')).toBe('Persona: Trader');
+    expect(getSafePersonaLabel('Unknown')).toBe('Persona: Unknown');
+  });
+
+  test('getSafePersonaLabel returns "Persona resolved" for invalid/free roleLabel', () => {
+    expect(getSafePersonaLabel('SomeUnknownRole')).toBe('Persona resolved');
+    expect(getSafePersonaLabel('Admin')).toBe('Persona resolved');
+    expect(getSafePersonaLabel('')).toBe('Persona resolved');
+    expect(getSafePersonaLabel(null)).toBe('Persona resolved');
+    expect(getSafePersonaLabel(undefined)).toBe('Persona resolved');
+    expect(getSafePersonaLabel({ roleId: 'admin' })).toBe('Persona resolved');
+  });
+
+  test('invalid roleLabel does not appear in workLog entry label or metadata after addEntry', () => {
+    const invalidRoleLabel = 'INJECTED_FREE_ROLE';
+    const wl = createTurnWorkLog();
+    // Service derives label via getSafePersonaLabel before calling addEntry
+    wl.addEntry({
+      action: WORK_LOG_ACTIONS.PERSONA_RESOLVED,
+      label: getSafePersonaLabel(invalidRoleLabel),
+      metadata: { roleLabel: invalidRoleLabel, source: 'session', updateReason: 'role_consistency_check' },
+    });
+    const e = wl.toArray();
+    // Entry is recorded (action is valid)
+    expect(e.length).toBe(1);
+    // Label must be the neutral fallback, not the free-text value
+    expect(e[0].label).toBe('Persona resolved');
+    expect(e[0].label).not.toContain(invalidRoleLabel);
+    // roleLabel is dropped from metadata because it fails the enum check
+    expect(e[0].metadata.roleLabel).toBeUndefined();
+  });
+
+  test('valid roleLabel appears sanitized in both label and metadata', () => {
+    const wl = createTurnWorkLog();
+    wl.addEntry({
+      action: WORK_LOG_ACTIONS.PERSONA_RESOLVED,
+      label: getSafePersonaLabel('Grid Analyst'),
+      metadata: { roleLabel: 'Grid Analyst', source: 'session', updateReason: 'role_consistency_check' },
+    });
+    const e = wl.toArray();
+    expect(e[0].label).toBe('Persona: Grid Analyst');
+    expect(e[0].metadata.roleLabel).toBe('Grid Analyst');
   });
 });
 

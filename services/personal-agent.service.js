@@ -119,6 +119,7 @@ const { buildZnpContextSnapshot } = require('../src/znp-context-snapshot'); // v
 const {
   WORK_LOG_ACTIONS,
   createTurnWorkLog,
+  getSafePersonaLabel,
 } = require('../src/personal-agent-work-log'); // v0.57.3
 
 const OPENAPI_TAG = 'Personal Agent';
@@ -1479,7 +1480,7 @@ module.exports = {
           if (personaResolution?.roleLabel) {
             turnWorkLog.addEntry({
               action: WORK_LOG_ACTIONS.PERSONA_RESOLVED,
-              label: `Persona: ${personaResolution.roleLabel}`,
+              label: getSafePersonaLabel(personaResolution.roleLabel),
               metadata: {
                 roleLabel: personaResolution.roleLabel,
                 source: personaResolution.source || 'session',
@@ -2126,7 +2127,7 @@ module.exports = {
           if (personaResolution?.roleLabel) {
             turnWorkLog.addEntry({
               action: WORK_LOG_ACTIONS.PERSONA_RESOLVED,
-              label: `Persona: ${personaResolution.roleLabel}`,
+              label: getSafePersonaLabel(personaResolution.roleLabel),
               metadata: {
                 roleLabel: personaResolution.roleLabel,
                 source: personaResolution.source || 'session',
@@ -2689,7 +2690,7 @@ module.exports = {
           if (personaResolution?.roleLabel) {
             turnWorkLog.addEntry({
               action: WORK_LOG_ACTIONS.PERSONA_RESOLVED,
-              label: `Persona: ${personaResolution.roleLabel}`,
+              label: getSafePersonaLabel(personaResolution.roleLabel),
               metadata: {
                 roleLabel: personaResolution.roleLabel,
                 source: personaResolution.source || 'session',
