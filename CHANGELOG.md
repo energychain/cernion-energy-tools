@@ -7,7 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.57.3] — Work Out Loud: agentTrace.workLog (2026-05-29)
+## [0.57.4] — Work Out Loud hardening patch (2026-05-28)
+
+### Fixed
+
+- [src/personal-agent-work-log.js](src/personal-agent-work-log.js): `toArray()` now returns a **deep-immutable** snapshot — each entry object and its nested `metadata` object are individually frozen via `Object.freeze({ ...e, metadata: Object.freeze({ ...e.metadata }) })`. Prior implementation only froze the outer array, leaving entry objects and metadata mutable after snapshot.
+- [src/personal-agent-work-log.js](src/personal-agent-work-log.js): `sanitizeMetadataField()` enforces **strict primitive typing** — `typeof` checks replace silent `String()`/`Number()`/`Boolean()` coercion. Objects, arrays, numeric strings, and truthy non-booleans now throw explicitly instead of being coerced into a passing value.
+- [src/personal-agent-work-log.js](src/personal-agent-work-log.js): new exported helper `getSafePersonaLabel(rawRoleLabel)` — gates persona labels against `WORK_LOG_METADATA_WHITELIST.persona_resolved.roleLabel.enumValues`. Returns `"Persona: ${rawRoleLabel}"` only for whitelisted values; falls back to `'Persona resolved'` for any invalid, null, or non-string input.
+- [services/personal-agent.service.js](services/personal-agent.service.js): all three `persona_resolved` workLog callsites updated from `` `Persona: ${personaResolution.roleLabel}` `` to `getSafePersonaLabel(personaResolution.roleLabel)`, preventing free-text persona labels from entering the workLog.
+
+### Tests
+
+- [tests/personal-agent-work-log.test.js](tests/personal-agent-work-log.test.js): extended T-PA-WOL-001 with deep-freeze assertions — `Object.isFrozen(snapshot[0])` and `Object.isFrozen(snapshot[0].metadata)`; mutation of a returned entry throws.
+- [tests/personal-agent-work-log.test.js](tests/personal-agent-work-log.test.js): extended T-PA-WOL-005 with strict-typing rejection cases — object/array passed as string field throws; numeric string rejected for number field; non-boolean truthy value rejected for boolean field.
+- [tests/personal-agent-work-log.test.js](tests/personal-agent-work-log.test.js): new `describe` block `persona_resolved label sanitization` (4 tests) covering valid/invalid `getSafePersonaLabel` cases and end-to-end `addEntry` label and metadata behavior.
+
+## [0.57.3] — Work Out Loud: agentTrace.workLog (2026-05-28)
 
 ### Added
 
