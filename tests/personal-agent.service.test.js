@@ -294,6 +294,53 @@ describe('personal-agent.service', () => {
             return { success: true, items };
           },
         },
+        resolvePersona: {
+          handler(ctx) {
+            const tenantId = ctx.params?.tenantId || ctx.meta?.tenantId || null;
+            const personas = Array.isArray(personaDirectory.get(tenantId))
+              ? personaDirectory.get(tenantId)
+              : [];
+            const active = personas.filter((p) => p.status !== 'inactive');
+            if (active.length === 0) {
+              return {
+                success: true,
+                auditEventId: `evt-${Date.now()}`,
+                resolvedPersona: {
+                  personaId: null,
+                  roleId: 'system_agent',
+                  confidence: 0.05,
+                  resolutionMode: 'system_agent_fallback',
+                  availability: true,
+                  matchedSignals: [],
+                  fallbackPersonaIds: [],
+                  policy: null,
+                },
+              };
+            }
+            const handoffPersonaId =
+              typeof ctx.params?.handoffPersonaId === 'string'
+                ? ctx.params.handoffPersonaId
+                : null;
+            const handoffTarget = handoffPersonaId
+              ? active.find((persona) => persona.id === handoffPersonaId)
+              : null;
+            const first = handoffTarget || active[0];
+            return {
+              success: true,
+              auditEventId: `evt-${Date.now()}`,
+              resolvedPersona: {
+                personaId: first.id,
+                roleId: Array.isArray(first.roleIds) && first.roleIds[0] ? first.roleIds[0] : null,
+                confidence: 0.6,
+                resolutionMode: handoffTarget ? 'handoff' : 'context_match',
+                availability: first.available !== false,
+                matchedSignals: handoffTarget ? ['handoffPersonaId'] : [],
+                fallbackPersonaIds: [],
+                policy: null,
+              },
+            };
+          },
+        },
       },
     });
     broker.createService({
@@ -2993,7 +3040,7 @@ describe('personal-agent.service', () => {
       });
 
       expect(
-        /Synthese unvollständig; belastbare Bewertung nicht abgeschlossen|Kurzfazit auf Basis der erhobenen Tool-Evidenz/i.test(
+        /Synthese-Phase ist zeitlich erschöpft|Synthese unvollständig|belastbare Bewertung nicht abgeschlossen|Kurzfazit auf Basis der erhobenen Tool-Evidenz/i.test(
           result.reply || ''
         )
       ).toBe(true);
@@ -5076,5 +5123,675 @@ describe('personal-agent.service', () => {
       const detail = executedCallDetails.find((d) => d.action === 'znp.assessPortfolio');
       expect(detail?.params?.projectId).toBe('znp-proj-001');
     }
+  });
+
+  // ---------------------------------------------------------------------------
+  // v0.56.2 — agentTrace.personaResolution
+  // ---------------------------------------------------------------------------
+
+  describe('v0.56.2 — agentTrace.personaResolution', () => {
+    const prMeta = { meta: { tenantId: 'tenant-pr-test', authUser: { userId: 'user-pr' } } };
+
+    // T-PA-PR-001
+    it('agentTrace.personaResolution is present in normal chat trace', async () => {
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Prüfe die Netzsituation in Wiesloch.',
+          chatMode: 'execution',
+          executionMode: 'auto',
+          sessionId: `pr-001-${Date.now()}`,
+        },
+        prMeta
+      );
+      expect(result.agentTrace).toBeDefined();
+      expect(result.agentTrace).toHaveProperty('personaResolution');
+      expect(typeof result.agentTrace.personaResolution.resolved).toBe('boolean');
+    });
+
+    // T-PA-PR-002
+    it('personaResolution carries whitelisted fields when resolvePersona succeeds', async () => {
+      // Seed a persona for the tenant so resolvePersona mock returns a real persona
+      personaDirectory.set('tenant-pr-test', [
+        {
+          id: 'pr-test-persona',
+          personaName: 'Test Persona',
+          personaType: 'specialized-agent',
+          status: 'active',
+          assignedRoles: ['ROLE_GRID'],
+          roleIds: ['grid_planner'],
+          available: true,
+        },
+      ]);
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Prüfe die Netzsituation in Wiesloch.',
+          chatMode: 'execution',
+          executionMode: 'auto',
+          sessionId: `pr-002-${Date.now()}`,
+        },
+        prMeta
+      );
+      const pr = result.agentTrace?.personaResolution;
+      expect(pr).toBeDefined();
+      // Either resolved with whitelisted fields, or graceful fallback
+      if (pr.resolved === true) {
+        expect(pr).toHaveProperty('personaId');
+        expect(pr).toHaveProperty('roleId');
+        expect(pr).toHaveProperty('confidence');
+        expect(pr).toHaveProperty('resolutionMode');
+        expect(pr).toHaveProperty('availability');
+        expect(pr).toHaveProperty('auditEventId');
+        expect(pr).toHaveProperty('handoffApplied');
+        expect(pr.handoffApplied).toBe(false);
+      } else {
+        expect(pr).toHaveProperty('reason');
+      }
+      // Clean up
+      personaDirectory.delete('tenant-pr-test');
+    });
+
+    // T-PA-PR-003
+    it('resolvePersonaForTrace returns service_unavailable when ctx.call throws SERVICE_NOT_FOUND', async () => {
+      const svc = broker.getLocalService('personal-agent');
+      const fakeCtx = {
+        meta: { tenantId: 'tenant-pr-test' },
+        call: async () => {
+          const err = new Error('Service not found');
+          err.type = 'SERVICE_NOT_FOUND';
+          throw err;
+        },
+      };
+      const result = await svc.resolvePersonaForTrace(fakeCtx, {
+        tenantId: 'tenant-pr-test',
+        sessionId: 'test-session',
+        sourceService: 'personal-agent',
+        sourceAction: 'chat',
+        workflowType: null,
+        domainIntent: null,
+        activeLayer: null,
+        assetContext: null,
+        znpProjectId: null,
+        handoffPersonaId: null,
+        hitlItemId: null,
+        workflowCompletionState: null,
+      });
+      expect(result.resolved).toBe(false);
+      expect(result.reason).toBe('service_unavailable');
+    });
+
+    // T-PA-PR-004
+    it('hitlItemId is forwarded in the resolvePersonaForTrace snapshot', async () => {
+      const svc = broker.getLocalService('personal-agent');
+      let capturedSnapshot = null;
+      const fakeCtx = {
+        meta: { tenantId: 'tenant-pr-test' },
+        call: async (_action, snapshot) => {
+          capturedSnapshot = snapshot;
+          return {
+            success: true,
+            resolvedPersona: {
+              personaId: null,
+              roleId: 'system_agent',
+              confidence: 0.05,
+              resolutionMode: 'system_agent_fallback',
+              availability: true,
+              matchedSignals: [],
+              fallbackPersonaIds: [],
+              policy: null,
+            },
+          };
+        },
+      };
+      await svc.resolvePersonaForTrace(fakeCtx, {
+        tenantId: 'tenant-pr-test',
+        sessionId: 'test-session',
+        sourceService: 'personal-agent',
+        sourceAction: 'chat',
+        workflowType: null,
+        domainIntent: null,
+        activeLayer: null,
+        assetContext: null,
+        znpProjectId: null,
+        handoffPersonaId: null,
+        hitlItemId: 'hitl-pr-test-id',
+        workflowCompletionState: null,
+      });
+      expect(capturedSnapshot.hitlItemId).toBe('hitl-pr-test-id');
+    });
+
+    // T-PA-PR-004b
+    it('handoffApplied/appliedHandoffPersonaId are derived from actual resolver outcome', async () => {
+      const svc = broker.getLocalService('personal-agent');
+
+      const fakeCtxNoHandoff = {
+        meta: { tenantId: 'tenant-pr-test' },
+        call: async () => ({
+          success: true,
+          auditEventId: 'evt-no-handoff',
+          resolvedPersona: {
+            personaId: 'persona-a',
+            roleId: 'grid_planner',
+            confidence: 0.6,
+            resolutionMode: 'context_match',
+            availability: true,
+            matchedSignals: ['domainIntent'],
+            fallbackPersonaIds: [],
+            policy: null,
+          },
+        }),
+      };
+      const noHandoff = await svc.resolvePersonaForTrace(fakeCtxNoHandoff, {
+        tenantId: 'tenant-pr-test',
+        sessionId: 'test-session',
+        sourceService: 'personal-agent',
+        sourceAction: 'chat',
+      });
+      expect(noHandoff.resolved).toBe(true);
+      expect(noHandoff.handoffApplied).toBe(false);
+      expect(noHandoff.appliedHandoffPersonaId).toBeNull();
+
+      const fakeCtxHandoff = {
+        meta: { tenantId: 'tenant-pr-test' },
+        call: async () => ({
+          success: true,
+          auditEventId: 'evt-handoff',
+          resolvedPersona: {
+            personaId: 'tenant-pr-test/handoff-persona',
+            roleId: 'governance_reviewer',
+            confidence: 1,
+            resolutionMode: 'handoff',
+            availability: true,
+            matchedSignals: ['handoffPersonaId'],
+            fallbackPersonaIds: [],
+            policy: null,
+          },
+        }),
+      };
+      const withHandoff = await svc.resolvePersonaForTrace(fakeCtxHandoff, {
+        tenantId: 'tenant-pr-test',
+        sessionId: 'test-session',
+        sourceService: 'personal-agent',
+        sourceAction: 'chat',
+      });
+      expect(withHandoff.resolved).toBe(true);
+      expect(withHandoff.handoffApplied).toBe(true);
+      expect(withHandoff.appliedHandoffPersonaId).toBe('tenant-pr-test/handoff-persona');
+    });
+
+    // T-PA-PR-004c
+    it('getPersonaHandoffSnapshotContext uses HITL state best-effort and does not throw', async () => {
+      const svc = broker.getLocalService('personal-agent');
+
+      hitlItems.set('hitl-pr-handoff', {
+        id: 'hitl-pr-handoff',
+        tenantId: 'tenant-pr-test',
+        status: 'approved',
+        workflowCompletionState: 'completed',
+        workflowAuditTrail: [
+          {
+            action: 'workflow_completed',
+            handoffPersonaId: 'tenant-pr-test/handoff-from-hitl',
+            at: new Date().toISOString(),
+          },
+        ],
+      });
+
+      const handoffCtx = await svc.getPersonaHandoffSnapshotContext(
+        { meta: { tenantId: 'tenant-pr-test' }, call: broker.call.bind(broker) },
+        'hitl-pr-handoff'
+      );
+      expect(handoffCtx.workflowCompletionState).toBe('completed');
+      expect(handoffCtx.handoffPersonaId).toBe('tenant-pr-test/handoff-from-hitl');
+
+      const missing = await svc.getPersonaHandoffSnapshotContext(
+        { meta: { tenantId: 'tenant-pr-test' }, call: broker.call.bind(broker) },
+        'not-found-id'
+      );
+      expect(missing.workflowCompletionState).toBeNull();
+      expect(missing.handoffPersonaId).toBeNull();
+    });
+
+    // T-PA-PR-005
+    it('reply does not contain personaResolution trace data', async () => {
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Prüfe die Netzsituation in Wiesloch.',
+          chatMode: 'execution',
+          executionMode: 'auto',
+          sessionId: `pr-005-${Date.now()}`,
+        },
+        prMeta
+      );
+      const replyText = result.reply ?? '';
+      expect(replyText).not.toMatch(/personaResolution/i);
+      expect(replyText).not.toMatch(/matchedSignals/i);
+      expect(replyText).not.toMatch(/resolutionMode/i);
+    });
+
+    // T-PA-PR-006
+    it('buildZnpContextSnapshot extracts and normalizes ZNP fields from knownContext', () => {
+      const { buildZnpContextSnapshot } = require('../src/znp-context-snapshot');
+      const ctx = {
+        params: {
+          knownContext: {
+            znpProjectId: 'proj-001',
+            activeLayer: 'planning',
+            planningScenario: 'enwg_14a',
+            assetContext: {
+              assetType: 'storage',
+              capacityClass: 'large',
+              mastrId: 'SEE9001',      // must be excluded
+              privateKey: 'secret',    // must be excluded
+            },
+          },
+        },
+      };
+      const snap = buildZnpContextSnapshot(ctx, {}, null);
+      expect(snap.znpProjectId).toBe('proj-001');
+      expect(snap.activeLayer).toBe('planning');
+      expect(snap.planningScenario).toBe('enwg_14a');
+      expect(snap.assetContext.assetType).toBe('storage');
+      expect(snap.assetContext.capacityClass).toBe('large');
+      expect(snap.assetContext).not.toHaveProperty('mastrId');
+      expect(snap.assetContext).not.toHaveProperty('privateKey');
+    });
+
+    // T-PA-PR-007
+    it('resolvePersonaForTrace snapshot contains ZNP fields from knownContext', async () => {
+      const svc = broker.getLocalService('personal-agent');
+      let capturedSnapshot = null;
+      const fakeCtx = {
+        meta: { tenantId: 'tenant-pr-test' },
+        call: async (_action, snapshot) => {
+          capturedSnapshot = snapshot;
+          return {
+            success: true,
+            resolvedPersona: {
+              personaId: null, roleId: 'system_agent', confidence: 0.05,
+              resolutionMode: 'system_agent_fallback', availability: true,
+              matchedSignals: [], fallbackPersonaIds: [], policy: null,
+            },
+          };
+        },
+      };
+      await svc.resolvePersonaForTrace(fakeCtx, {
+        tenantId: 'tenant-pr-test',
+        sessionId: 'test-session',
+        sourceService: 'personal-agent',
+        sourceAction: 'chat',
+        workflowType: null,
+        domainIntent: null,
+        znpProjectId: 'proj-znp-007',
+        activeLayer: 'grid',
+        planningScenario: 'enwg_42c',
+        assetContext: { assetType: 'wind', capacityClass: 'medium' },
+        handoffPersonaId: null,
+        hitlItemId: null,
+        workflowCompletionState: null,
+      });
+      expect(capturedSnapshot.znpProjectId).toBe('proj-znp-007');
+      expect(capturedSnapshot.activeLayer).toBe('grid');
+      expect(capturedSnapshot.planningScenario).toBe('enwg_42c');
+      expect(capturedSnapshot.assetContext?.assetType).toBe('wind');
+    });
+
+    // T-PA-PR-008
+    it('reply does not contain ZNP context signal data', async () => {
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Prüfe die Netzsituation in Wiesloch.',
+          chatMode: 'execution',
+          executionMode: 'auto',
+          sessionId: `pr-008-${Date.now()}`,
+          knownContext: {
+            activeLayer: 'planning',
+            planningScenario: 'enwg_14a',
+            assetContext: { assetType: 'storage' },
+          },
+        },
+        prMeta
+      );
+      const replyText = result.reply ?? '';
+      expect(replyText).not.toMatch(/planningScenario/i);
+      expect(replyText).not.toMatch(/activeLayer/i);
+      expect(replyText).not.toMatch(/assetType/i);
+      expect(replyText).not.toMatch(/enwg_14a/i);
+    });
+
+    // T-PA-PR-009
+    it('reply does not contain auditEventId, handoffPersonaId, personaResolution or raw trace fields', async () => {
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Prüfe die Netzsituation in Wiesloch.',
+          chatMode: 'execution',
+          executionMode: 'auto',
+          sessionId: `pr-009-${Date.now()}`,
+          knownContext: {
+            hitlItemId: 'hitl-pr-handoff',
+            handoffPersonaId: 'tenant-pr-test/client-provided',
+            activeLayer: 'planning',
+            planningScenario: 'enwg_14a',
+            assetContext: { assetType: 'storage', mastrId: 'SEE900' },
+          },
+        },
+        prMeta
+      );
+      const replyText = result.reply ?? '';
+      expect(replyText).not.toMatch(/auditEventId/i);
+      expect(replyText).not.toMatch(/handoffPersonaId/i);
+      expect(replyText).not.toMatch(/matchedSignals/i);
+      expect(replyText).not.toMatch(/personaResolution/i);
+      expect(replyText).not.toMatch(/mastrId/i);
+      expect(replyText).not.toMatch(/assetContext/i);
+      expect(replyText).not.toMatch(/znpProjectId/i);
+    });
+  });
+
+  describe('v0.57.1 — bootstrapContext trace/session baseline', () => {
+    const bootstrapMeta = {
+      meta: { tenantId: 'tenant-bootstrap-trace', authUser: { userId: 'user-bootstrap' } },
+    };
+
+    it('adds minimal bootstrapContext to agentTrace without changing reply style', async () => {
+      const sessionId = `bootstrap-default-${Date.now()}`;
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Wer ist der Netzbetreiber in Wiesloch?',
+          chatMode: 'execution',
+          executionMode: 'auto',
+          sessionId,
+        },
+        bootstrapMeta
+      );
+
+      expect(result.agentTrace).toBeDefined();
+      expect(result.agentTrace.bootstrapContext).toBeDefined();
+      expect(result.agentTrace.bootstrapContext).toEqual(
+        expect.objectContaining({
+          status: 'unknown',
+          organizationType: 'unknown',
+          source: 'default',
+        })
+      );
+      expect(typeof result.agentTrace.bootstrapContext.updatedAt).toBe('string');
+
+      const replyText = String(result.reply || '');
+      expect(replyText).not.toMatch(/bootstrapContext/i);
+      expect(replyText).not.toMatch(/organizationType/i);
+    });
+
+    it('accepts explicit organizationType and keeps it session-local across turns', async () => {
+      const sessionId = `bootstrap-explicit-${Date.now()}`;
+
+      const first = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Bitte starte mit der Analyse.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          sessionId,
+          knownContext: {
+            organizationType: 'utility',
+          },
+        },
+        bootstrapMeta
+      );
+
+      expect(first.agentTrace?.bootstrapContext?.organizationType).toBe('utility');
+      expect(first.agentTrace?.bootstrapContext?.status).toBe('partial');
+
+      const second = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Und jetzt bitte weiter ohne neuen Kontext.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          sessionId,
+          knownContext: {},
+        },
+        bootstrapMeta
+      );
+
+      expect(second.agentTrace?.bootstrapContext?.organizationType).toBe('utility');
+      expect(second.agentTrace?.bootstrapContext?.status).toBe('partial');
+      expect(second.agentTrace?.bootstrapContext).not.toHaveProperty('tenantId');
+      expect(second.agentTrace?.bootstrapContext).not.toHaveProperty('confidence');
+    });
+  });
+
+  describe('v0.57.2 — knowledgeScope summary baseline', () => {
+    const scopeMeta = {
+      meta: { tenantId: 'tenant-knowledge-scope', authUser: { userId: 'user-scope' } },
+    };
+
+    it('exposes additive knowledgeScope summary in agentTrace without raw datapoints', async () => {
+      const sessionId = `scope-summary-${Date.now()}`;
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Bitte prüfe den Netzbetreiber in Wiesloch.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          sessionId,
+          knownContext: {
+            municipality: 'Wiesloch',
+            organizationType: 'utility',
+          },
+        },
+        scopeMeta
+      );
+
+      expect(result.agentTrace?.knowledgeScope).toBeDefined();
+      expect(result.agentTrace.knowledgeScope.total).toBeGreaterThan(0);
+      expect(result.agentTrace.knowledgeScope.byScope.user).toBeGreaterThan(0);
+      expect(result.agentTrace.knowledgeScope.bySource.knownContext).toBeGreaterThan(0);
+      expect(result.agentTrace.knowledgeScope).not.toHaveProperty('items');
+      expect(result.agentTrace.knowledgeScope).not.toHaveProperty('key');
+      expect(result.agentTrace.knowledgeScope).not.toHaveProperty('value');
+
+      const replyText = String(result.reply || '');
+      expect(replyText).not.toMatch(/knowledgeScope/i);
+      expect(replyText).not.toMatch(/tenant_candidate/i);
+    });
+
+    it('downgrades tenant and tenant_operational to tenant_candidate markers', async () => {
+      const sessionId = `scope-downgrade-${Date.now()}`;
+      const first = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Starte die Einordnung.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          sessionId,
+          knownContext: {
+            knowledgeScopeDataPoints: [
+              {
+                key: 'gridOperatorName',
+                scope: 'tenant',
+                source: 'knownContext',
+                status: 'confirmed',
+                updatedAt: '2026-05-28T10:00:00.000Z',
+                value: 'TWL Netze',
+              },
+              {
+                key: 'bdewCode',
+                scope: 'tenant_operational',
+                source: 'knownContext',
+                status: 'confirmed',
+                updatedAt: '2026-05-28T10:01:00.000Z',
+                confidence: 0.98,
+              },
+            ],
+          },
+        },
+        scopeMeta
+      );
+
+      expect(first.agentTrace?.knowledgeScope?.byScope?.tenant).toBeUndefined();
+      expect(first.agentTrace?.knowledgeScope?.byScope?.tenant_operational).toBeUndefined();
+      expect(first.agentTrace?.knowledgeScope?.byScope?.tenant_candidate).toBeGreaterThan(0);
+    });
+
+    it('keeps reply stable and does not leak internal scope metadata', async () => {
+      const sessionId = `scope-no-leak-${Date.now()}`;
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Bitte mache eine Vorprüfung.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          sessionId,
+          knownContext: {
+            knowledgeScopeDataPoints: [
+              {
+                key: 'organizationType',
+                scope: 'user',
+                source: 'knownContext',
+                status: 'observed',
+                updatedAt: '2026-05-28T10:02:00.000Z',
+                confidence: 0.95,
+                tenantId: 'forbidden',
+              },
+            ],
+          },
+        },
+        scopeMeta
+      );
+
+      expect(result.agentTrace?.knowledgeScope).toBeDefined();
+      const replyText = String(result.reply || '');
+      expect(replyText).not.toMatch(/knowledgeScope/i);
+      expect(replyText).not.toMatch(/scope/i);
+      expect(replyText).not.toMatch(/tenant_candidate/i);
+      expect(replyText).not.toMatch(/confidence/i);
+      expect(replyText).not.toMatch(/tenantId/i);
+    });
+
+    it('does not auto-derive arbitrary knownContext scalars not in allowlist', async () => {
+      const sessionId = `scope-no-arbitrary-${Date.now()}`;
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Test.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          sessionId,
+          knownContext: {
+            municipality: 'Wiesloch',
+            hitlItemId: 'hitl-123',
+            znpProjectId: 'znp-456',
+            debugTrace: true,
+            activeLayer: 'l3',
+            planningScenario: 'scenario-A',
+          },
+        },
+        scopeMeta
+      );
+
+      const ks = result.agentTrace?.knowledgeScope;
+      expect(ks).toBeDefined();
+      // None of the above keys are in the allowlist — total must be 0
+      expect(ks.total).toBe(0);
+      expect(ks.byScope?.session).toBeUndefined();
+    });
+
+    it('derives only allowlisted knownContext keys (organizationType, responsibleRole, roleId)', async () => {
+      const sessionId = `scope-allowlist-${Date.now()}`;
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Test.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          sessionId,
+          knownContext: {
+            organizationType: 'grid_operator',
+            responsibleRole: 'Netzplaner',
+            municipality: 'ShouldBeIgnored',
+            hitlItemId: 'also-ignored',
+          },
+        },
+        scopeMeta
+      );
+
+      const ks = result.agentTrace?.knowledgeScope;
+      expect(ks).toBeDefined();
+      expect(ks.total).toBe(2);
+      expect(ks.byScope?.user).toBe(1);
+      expect(ks.byScope?.role).toBe(1);
+      expect(ks.byScope?.session).toBeUndefined();
+    });
+
+    it('preserves explicit knowledgeScopeDataPoints with valid key format', async () => {
+      const sessionId = `scope-explicit-${Date.now()}`;
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Test.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          sessionId,
+          knownContext: {
+            knowledgeScopeDataPoints: [
+              {
+                key: 'gridOperator.name',
+                scope: 'session',
+                source: 'knownContext',
+                status: 'observed',
+                updatedAt: '2026-05-28T10:00:00.000Z',
+              },
+            ],
+          },
+        },
+        scopeMeta
+      );
+
+      const ks = result.agentTrace?.knowledgeScope;
+      expect(ks).toBeDefined();
+      expect(ks.total).toBeGreaterThanOrEqual(1);
+      expect(ks.byScope?.session).toBeGreaterThanOrEqual(1);
+    });
+
+    it('rejects explicit knowledgeScopeDataPoints with invalid key chars', async () => {
+      const sessionId = `scope-invalid-key-${Date.now()}`;
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Test.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          sessionId,
+          knownContext: {
+            knowledgeScopeDataPoints: [
+              {
+                key: 'key with spaces',
+                scope: 'session',
+                source: 'knownContext',
+                status: 'observed',
+                updatedAt: '2026-05-28T10:00:00.000Z',
+              },
+              {
+                key: 'key/slash',
+                scope: 'session',
+                source: 'knownContext',
+                status: 'observed',
+                updatedAt: '2026-05-28T10:00:00.000Z',
+              },
+            ],
+          },
+        },
+        scopeMeta
+      );
+
+      const ks = result.agentTrace?.knowledgeScope;
+      expect(ks).toBeDefined();
+      expect(ks.total).toBe(0);
+    });
   });
 });

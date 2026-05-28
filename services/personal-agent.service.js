@@ -10,6 +10,8 @@ const {
   synthesizeAndPurgeLayer4,
   assertNoL4RawInPersistedState,
   resolveContextMutation,
+  sanitizeBootstrapContext,
+  sanitizeScopedDatapoints,
 } = require('../src/personal-agent-context');
 const {
   PERSONAL_AGENT_STATES,
@@ -113,6 +115,7 @@ const {
   hasRecentIntentLoop,
   assertNoRecentIntentLoop,
 } = require('../src/session-manager');
+const { buildZnpContextSnapshot } = require('../src/znp-context-snapshot'); // v0.56.3
 
 const OPENAPI_TAG = 'Personal Agent';
 const SESSION_NAMESPACE = process.env.PERSONAL_AGENT_SESSION_NAMESPACE || 'personal_agent_sessions';
@@ -1203,6 +1206,20 @@ module.exports = {
           session.resolvedParams = contextMutation.mergedParams;
         }
         const knownContext = { ...rawKnownContext };
+        const bootstrapContext = this.resolveBootstrapContext({
+          session,
+          knownContext: rawKnownContext,
+        });
+        session.l3.bootstrapContext = bootstrapContext;
+        const scopedKnowledgeState = this.resolveScopedKnowledgeState({
+          session,
+          knownContext: rawKnownContext,
+        });
+        session.l3.knowledgeScopeDataPoints = scopedKnowledgeState.sessionDataPoints;
+        session.l2.userProfile = {
+          ...(session.l2?.userProfile || {}),
+          knowledgeScopeDataPoints: scopedKnowledgeState.userDataPoints,
+        };
         // ─────────────────────────────────────────────────────────────────
 
         const sessionHitlGate = await this.resolveSessionHitlResumeGate(ctx, {
@@ -1281,6 +1298,8 @@ module.exports = {
             userProfile: session.l2?.userProfile || {},
             sessionHistory: [...(session.l3?.history || []), userMessage],
             fileAttachments: session.l3?.fileAttachments || [],
+            bootstrapContext,
+            knowledgeScopeDataPoints: session.l3?.knowledgeScopeDataPoints || [],
             toolContext: ctx.params.toolContext || null,
             maxContextTokens: this.settings.maxContextTokens,
           });
@@ -1412,6 +1431,24 @@ module.exports = {
             execution,
             consultation: null,
           });
+          // v0.56.2 — persona resolution for agentTrace (best-effort, never throws)
+          // v0.56.3 — ZNP context signals
+          const _hitlItemId1 =
+            session?.l3?.stopPoint?.hitlItemId ?? ctx.params?.knownContext?.hitlItemId ?? null;
+          const _handoffCtx1 = await this.getPersonaHandoffSnapshotContext(ctx, _hitlItemId1);
+          const _znpCtx1 = buildZnpContextSnapshot(ctx, session, null);
+          const personaResolution = await this.resolvePersonaForTrace(ctx, {
+            tenantId,
+            sessionId,
+            sourceService: 'personal-agent',
+            sourceAction: 'chat',
+            workflowType: null,
+            domainIntent: null,
+            ..._znpCtx1,
+            handoffPersonaId: _handoffCtx1.handoffPersonaId,
+            hitlItemId: _hitlItemId1,
+            workflowCompletionState: _handoffCtx1.workflowCompletionState,
+          });
           const agentTrace = this.buildAgentTrace({
             routing: {
               source: 'session-hitl-gate',
@@ -1438,6 +1475,12 @@ module.exports = {
               confidence: 1,
               determinism: 'high',
             },
+            personaResolution,
+            bootstrapContext,
+            knowledgeScope: [
+              ...(session.l3?.knowledgeScopeDataPoints || []),
+              ...(session.l2?.userProfile?.knowledgeScopeDataPoints || []),
+            ],
           });
 
           return {
@@ -1932,6 +1975,8 @@ module.exports = {
             userProfile: session.l2?.userProfile || {},
             sessionHistory: [...(session.l3?.history || []), userMessage],
             fileAttachments: session.l3?.fileAttachments || [],
+            bootstrapContext,
+            knowledgeScopeDataPoints: session.l3?.knowledgeScopeDataPoints || [],
             toolContext: ctx.params.toolContext || null,
             maxContextTokens: this.settings.maxContextTokens,
           });
@@ -2005,6 +2050,24 @@ module.exports = {
             createdAt: session.createdAt,
           });
           await this.persistSession(ctx, tenantId, sessionId, persisted);
+          // v0.56.2 — persona resolution for agentTrace (best-effort, never throws)
+          // v0.56.3 — ZNP context signals
+          const _hitlItemId2 = ctx.params?.knownContext?.hitlItemId ?? null;
+          const _handoffCtx2 = await this.getPersonaHandoffSnapshotContext(ctx, _hitlItemId2);
+          const _znpCtx2 = buildZnpContextSnapshot(ctx, session, semanticClassification);
+          const personaResolution = await this.resolvePersonaForTrace(ctx, {
+            tenantId,
+            sessionId,
+            sourceService: 'personal-agent',
+            sourceAction: 'chat',
+            workflowType: semanticClassification?.workflowType ?? null,
+            domainIntent:
+              semanticClassification?.domainIntent ?? brokerRecommendation?.intent ?? null,
+            ..._znpCtx2,
+            handoffPersonaId: _handoffCtx2.handoffPersonaId,
+            hitlItemId: _hitlItemId2,
+            workflowCompletionState: _handoffCtx2.workflowCompletionState,
+          });
           return {
             success: true,
             sessionId,
@@ -2049,6 +2112,12 @@ module.exports = {
               executionStateGraph,
               turnGraph,
               routingDecision,
+              personaResolution,
+              bootstrapContext,
+              knowledgeScope: [
+                ...(session.l3?.knowledgeScopeDataPoints || []),
+                ...(session.l2?.userProfile?.knowledgeScopeDataPoints || []),
+              ],
             }),
             ...(receiptSelectionMetadata ? { metadata: receiptSelectionMetadata } : {}),
           };
@@ -2137,6 +2206,8 @@ module.exports = {
             userProfile: session.l2?.userProfile || {},
             sessionHistory: [...(session.l3?.history || []), userMessage],
             fileAttachments: session.l3?.fileAttachments || [],
+            bootstrapContext,
+            knowledgeScopeDataPoints: session.l3?.knowledgeScopeDataPoints || [],
             toolContext: ctx.params.toolContext || null,
             maxContextTokens: this.settings.maxContextTokens,
           });
@@ -2493,6 +2564,26 @@ module.exports = {
           receiptSelectionMetadata = this.buildReceiptSelectionMetadata(receiptSelectionResult, {
             includeDiagnostics: receiptSelectionDiagnosticsRequested,
           });
+          // v0.56.2 — persona resolution for agentTrace (best-effort, never throws)
+          // v0.56.3 — ZNP context signals
+          const _hitlItemId3 =
+            session?.l3?.stopPoint?.hitlItemId ?? ctx.params?.knownContext?.hitlItemId ?? null;
+          const _handoffCtx3 = await this.getPersonaHandoffSnapshotContext(ctx, _hitlItemId3);
+          const _znpCtx3 = buildZnpContextSnapshot(ctx, session, semanticClassification);
+          const personaResolution = await this.resolvePersonaForTrace(ctx, {
+            tenantId,
+            sessionId,
+            sourceService: 'personal-agent',
+            sourceAction: 'chat',
+            workflowType:
+              consultationPayload?.workflowType ?? semanticClassification?.workflowType ?? null,
+            domainIntent:
+              consultationPayload?.domainIntent ?? semanticClassification?.domainIntent ?? null,
+            ..._znpCtx3,
+            handoffPersonaId: _handoffCtx3.handoffPersonaId,
+            hitlItemId: _hitlItemId3,
+            workflowCompletionState: _handoffCtx3.workflowCompletionState,
+          });
           const agentTrace = this.buildAgentTrace({
             routing: consultationRouting,
             plan: null,
@@ -2504,6 +2595,12 @@ module.exports = {
             executionStateGraph,
             turnGraph,
             routingDecision,
+            personaResolution,
+            bootstrapContext,
+            knowledgeScope: [
+              ...(session.l3?.knowledgeScopeDataPoints || []),
+              ...(session.l2?.userProfile?.knowledgeScopeDataPoints || []),
+            ],
           });
 
           persisted.l3.turnGraph = summarizeTurnGraph(turnGraph);
@@ -2925,6 +3022,8 @@ module.exports = {
           userProfile: session.l2?.userProfile || {},
           sessionHistory: [...(session.l3?.history || []), userMessage],
           fileAttachments: session.l3?.fileAttachments || [],
+          bootstrapContext,
+          knowledgeScopeDataPoints: session.l3?.knowledgeScopeDataPoints || [],
           toolContext: ctx.params.toolContext || null,
           maxContextTokens: this.settings.maxContextTokens,
         });
@@ -3348,6 +3447,30 @@ module.exports = {
           execution,
           consultation: null,
         });
+        // v0.56.2 — persona resolution for agentTrace (best-effort, never throws)
+        // v0.56.2 — persona resolution for agentTrace (best-effort, never throws)
+        // v0.56.3 — ZNP context signals
+        const _hitlItemId4 = ctx.params?.knownContext?.hitlItemId ?? null;
+        const _handoffCtx4 = await this.getPersonaHandoffSnapshotContext(ctx, _hitlItemId4);
+        const _znpCtx4 = buildZnpContextSnapshot(ctx, session, semanticClassification);
+        const personaResolution = await this.resolvePersonaForTrace(ctx, {
+          tenantId,
+          sessionId,
+          sourceService: 'personal-agent',
+          sourceAction: 'chat',
+          workflowType:
+            executionResponsePolicyContract?.workflowType ??
+            semanticClassification?.workflowType ??
+            null,
+          domainIntent:
+            executionResponsePolicyContract?.domainIntent ??
+            semanticClassification?.domainIntent ??
+            null,
+          ..._znpCtx4,
+          handoffPersonaId: _handoffCtx4.handoffPersonaId,
+          hitlItemId: _hitlItemId4,
+          workflowCompletionState: _handoffCtx4.workflowCompletionState,
+        });
         const agentTrace = this.buildAgentTrace({
           routing: {
             source: responsePlan.source,
@@ -3365,6 +3488,12 @@ module.exports = {
           executionStateGraph,
           turnGraph,
           routingDecision,
+          personaResolution,
+          bootstrapContext,
+          knowledgeScope: [
+            ...(session.l3?.knowledgeScopeDataPoints || []),
+            ...(session.l2?.userProfile?.knowledgeScopeDataPoints || []),
+          ],
         });
 
         // Log completion
@@ -7855,6 +7984,238 @@ module.exports = {
       };
     },
 
+    getHandoffPersonaIdFromWorkflowAuditTrail(item = null) {
+      const trail = Array.isArray(item?.workflowAuditTrail) ? item.workflowAuditTrail : [];
+      if (trail.length === 0) {
+        return null;
+      }
+      for (let i = trail.length - 1; i >= 0; i -= 1) {
+        const entry = trail[i];
+        if (!entry || entry.action !== 'workflow_completed') {
+          continue;
+        }
+        const handoffPersonaId =
+          typeof entry.handoffPersonaId === 'string' ? entry.handoffPersonaId.trim() : '';
+        if (handoffPersonaId) {
+          return handoffPersonaId;
+        }
+      }
+      return null;
+    },
+
+    async getPersonaHandoffSnapshotContext(ctx, hitlItemId) {
+      const normalizedHitlItemId =
+        typeof hitlItemId === 'string' && hitlItemId.trim() ? hitlItemId.trim() : null;
+      if (!normalizedHitlItemId) {
+        return {
+          workflowCompletionState: null,
+          handoffPersonaId: null,
+        };
+      }
+
+      const item = await this.getHitlItem(ctx, normalizedHitlItemId);
+      if (!item) {
+        return {
+          workflowCompletionState: null,
+          handoffPersonaId: null,
+        };
+      }
+
+      const workflowCompletionStateRaw =
+        typeof item.workflowCompletionState === 'string' ? item.workflowCompletionState.trim() : '';
+      const workflowCompletionState = workflowCompletionStateRaw || null;
+
+      const explicitHandoffPersonaId =
+        typeof item.handoffPersonaId === 'string' ? item.handoffPersonaId.trim() : '';
+      const handoffPersonaId =
+        explicitHandoffPersonaId || this.getHandoffPersonaIdFromWorkflowAuditTrail(item) || null;
+
+      return {
+        workflowCompletionState,
+        handoffPersonaId,
+      };
+    },
+
+    /**
+     * v0.56.2 — Resolve persona for agentTrace. Best-effort, never throws.
+     * Returns { resolved: true, ...whitelisted fields } or { resolved: false, reason }.
+     */
+    async resolvePersonaForTrace(ctx, snapshot) {
+      const { tenantId } = snapshot;
+      if (!tenantId) {
+        return { resolved: false, reason: 'no_tenant' };
+      }
+      try {
+        const result = await ctx.call(
+          'agent-persona.resolvePersona',
+          snapshot,
+          { meta: { ...ctx.meta, $gateway: false }, timeout: 1500 }
+        );
+        if (result?.success && result?.resolvedPersona) {
+          const handoffApplied = result.resolvedPersona.resolutionMode === 'handoff';
+          return {
+            resolved: true,
+            ...result.resolvedPersona,
+            auditEventId:
+              typeof result.auditEventId === 'string' && result.auditEventId.trim()
+                ? result.auditEventId.trim()
+                : null,
+            handoffApplied,
+            appliedHandoffPersonaId:
+              handoffApplied && typeof result.resolvedPersona.personaId === 'string'
+                ? result.resolvedPersona.personaId
+                : null,
+          };
+        }
+        return { resolved: false, reason: 'no_match' };
+      } catch (err) {
+        const isUnavailable =
+          err?.type === 'SERVICE_NOT_FOUND' ||
+          err?.type === 'SERVICE_NOT_AVAILABLE' ||
+          err?.code === 'SERVICE_NOT_FOUND';
+        const isTimeout =
+          err?.type === 'REQUEST_TIMEOUT' || /timeout/i.test(err?.message || '');
+        if (isTimeout) return { resolved: false, reason: 'timeout' };
+        if (isUnavailable) return { resolved: false, reason: 'service_unavailable' };
+        return { resolved: false, reason: 'error' };
+      }
+    },
+
+    resolveBootstrapContext({ session = {}, knownContext = {} } = {}) {
+      const existingRaw =
+        session?.l3?.bootstrapContext && typeof session.l3.bootstrapContext === 'object'
+          ? session.l3.bootstrapContext
+          : null;
+      const existing = sanitizeBootstrapContext(existingRaw);
+
+      // Extract explicit organizationType from knownContext (root level or nested bootstrapContext)
+      const explicitRootOrganizationType =
+        typeof knownContext?.organizationType === 'string' ? knownContext.organizationType : null;
+      const explicitBootstrap =
+        knownContext?.bootstrapContext && typeof knownContext.bootstrapContext === 'object'
+          ? knownContext.bootstrapContext
+          : null;
+      const explicitOrganizationType =
+        typeof explicitBootstrap?.organizationType === 'string'
+          ? explicitBootstrap.organizationType
+          : explicitRootOrganizationType;
+
+      const candidateForOrgType = sanitizeBootstrapContext({
+        status: 'unknown',
+        organizationType: explicitOrganizationType,
+        source: 'knownContext',
+        updatedAt: new Date().toISOString(),
+      });
+      const hasExplicitOrganizationType = candidateForOrgType.organizationType !== 'unknown';
+
+      if (hasExplicitOrganizationType) {
+        // established ONLY if explicitly set to 'established' in knownContext.bootstrapContext.status
+        // and it passes sanitization — never derived from organizationType alone
+        const rawExplicitStatus = String(explicitBootstrap?.status || '').trim().toLowerCase();
+        const status = rawExplicitStatus === 'established' ? 'established' : 'partial';
+
+        return sanitizeBootstrapContext({
+          status,
+          organizationType: candidateForOrgType.organizationType,
+          source: 'knownContext',
+          updatedAt: new Date().toISOString(),
+        });
+      }
+
+      // No explicit organizationType: carry forward existing sanitized context
+      return sanitizeBootstrapContext({
+        status: existing.status,
+        organizationType: existing.organizationType,
+        source: existing.source || 'default',
+        updatedAt: new Date().toISOString(),
+      });
+    },
+
+    buildBootstrapTraceContext(bootstrapContext = null) {
+      return sanitizeBootstrapContext(bootstrapContext);
+    },
+
+    resolveScopedKnowledgeState({ session = {}, knownContext = {} } = {}) {
+      const now = new Date().toISOString();
+      const existingSession = sanitizeScopedDatapoints(session?.l3?.knowledgeScopeDataPoints || []);
+      const existingUser = sanitizeScopedDatapoints(
+        session?.l2?.userProfile?.knowledgeScopeDataPoints || []
+      );
+
+      const KNOWN_CONTEXT_ALLOWLIST = {
+        organizationType: 'user',
+        responsibleRole: 'role',
+        roleId: 'role',
+      };
+
+      const derivedFromKnownContext = Object.entries(KNOWN_CONTEXT_ALLOWLIST).reduce(
+        (acc, [key, scope]) => {
+          const value = (knownContext || {})[key];
+          if (value === undefined || value === null) {
+            return acc;
+          }
+          const isScalar =
+            typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
+          if (!isScalar) {
+            return acc;
+          }
+          acc.push({
+            key,
+            scope,
+            source: 'knownContext',
+            status: 'observed',
+            updatedAt: now,
+          });
+          return acc;
+        },
+        []
+      );
+
+      const explicitRaw = Array.isArray(knownContext?.knowledgeScopeDataPoints)
+        ? knownContext.knowledgeScopeDataPoints
+        : [];
+      const explicitNormalized = sanitizeScopedDatapoints(
+        explicitRaw.map((point) => ({
+          key: point?.key,
+          scope: point?.scope,
+          source: point?.source || 'knownContext',
+          status: point?.status,
+          updatedAt: point?.updatedAt || now,
+        }))
+      );
+
+      const merged = sanitizeScopedDatapoints([
+        ...existingSession,
+        ...existingUser,
+        ...derivedFromKnownContext,
+        ...explicitNormalized,
+      ]);
+
+      return {
+        sessionDataPoints: merged.filter(
+          (point) => point.scope === 'session' || point.scope === 'tenant_candidate'
+        ),
+        userDataPoints: merged.filter((point) => point.scope === 'user' || point.scope === 'role'),
+      };
+    },
+
+    buildKnowledgeScopeTraceSummary(knowledgeScope = []) {
+      const sanitized = sanitizeScopedDatapoints(knowledgeScope);
+      const byScope = {};
+      const bySource = {};
+
+      for (const point of sanitized) {
+        byScope[point.scope] = (byScope[point.scope] || 0) + 1;
+        bySource[point.source] = (bySource[point.source] || 0) + 1;
+      }
+
+      return {
+        total: sanitized.length,
+        byScope,
+        bySource,
+      };
+    },
+
     buildAgentTrace({
       routing = null,
       plan = null,
@@ -7866,6 +8227,9 @@ module.exports = {
       executionStateGraph = null,
       turnGraph = null,
       routingDecision = null,
+      personaResolution = null,
+      bootstrapContext = null,
+      knowledgeScope = null,
     } = {}) {
       const toolAttempts = Array.isArray(consultation?.attemptsSummary)
         ? consultation.attemptsSummary.map((attempt) => ({
@@ -7945,6 +8309,9 @@ module.exports = {
           ? consultation.debugTrace
           : undefined,
         toolAttempts,
+        personaResolution, // v0.56.2
+        bootstrapContext: this.buildBootstrapTraceContext(bootstrapContext),
+        knowledgeScope: this.buildKnowledgeScopeTraceSummary(knowledgeScope || []),
       };
     },
 
@@ -10508,12 +10875,30 @@ module.exports = {
           userId,
           chatMode: normalizeChatMode(payload?.l3?.chatMode) || CHAT_MODES.CONSULTATION,
           l1: payload.l1 || { tenantFacts: [] },
-          l2: payload.l2 || { userProfile },
+          l2: {
+            ...(payload?.l2 && typeof payload.l2 === 'object' ? payload.l2 : {}),
+            userProfile: {
+              ...(
+                payload?.l2?.userProfile && typeof payload.l2.userProfile === 'object'
+                  ? payload.l2.userProfile
+                  : userProfile
+              ),
+              knowledgeScopeDataPoints: sanitizeScopedDatapoints(
+                payload?.l2?.userProfile?.knowledgeScopeDataPoints ||
+                  userProfile?.knowledgeScopeDataPoints ||
+                  []
+              ),
+            },
+          },
           l3: {
             history: Array.isArray(payload?.l3?.history) ? payload.l3.history : [],
             fileAttachments: Array.isArray(payload?.l3?.fileAttachments)
               ? payload.l3.fileAttachments
               : [],
+            bootstrapContext: sanitizeBootstrapContext(payload?.l3?.bootstrapContext || null),
+            knowledgeScopeDataPoints: sanitizeScopedDatapoints(
+              payload?.l3?.knowledgeScopeDataPoints || []
+            ),
             summary: payload?.l3?.summary || null,
             compressed: Boolean(payload?.l3?.compressed),
             chatMode: normalizeChatMode(payload?.l3?.chatMode) || CHAT_MODES.CONSULTATION,
@@ -10584,10 +10969,19 @@ module.exports = {
           userId,
           chatMode: CHAT_MODES.CONSULTATION,
           l1: { tenantFacts: [] },
-          l2: { userProfile },
+          l2: {
+            userProfile: {
+              ...userProfile,
+              knowledgeScopeDataPoints: sanitizeScopedDatapoints(
+                userProfile?.knowledgeScopeDataPoints || []
+              ),
+            },
+          },
           l3: {
             history: [],
             fileAttachments: [],
+            bootstrapContext: sanitizeBootstrapContext(null),
+            knowledgeScopeDataPoints: sanitizeScopedDatapoints([]),
             summary: null,
             compressed: false,
             chatMode: CHAT_MODES.CONSULTATION,

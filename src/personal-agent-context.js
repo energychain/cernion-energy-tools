@@ -21,6 +21,125 @@ const FORBIDDEN_L4_KEYS = new Set([
   'responseRaw',
 ]);
 
+const ALLOWED_BOOTSTRAP_STATUSES = new Set(['unknown', 'partial', 'established']);
+const ALLOWED_BOOTSTRAP_SOURCES = new Set(['default', 'knownContext', 'session', 'user_confirmed']);
+const ALLOWED_ORGANIZATION_TYPES = new Set([
+  'utility',
+  'municipality',
+  'project_developer',
+  'aggregator',
+  'consultant',
+  'energy_trader',
+  'internal',
+  'unknown',
+]);
+
+const ALLOWED_KNOWLEDGE_SCOPES = new Set(['session', 'user', 'role', 'tenant_candidate']);
+const ALLOWED_KNOWLEDGE_STATUSES = new Set(['observed', 'candidate', 'confirmed']);
+const ALLOWED_KNOWLEDGE_SOURCES = new Set(['default', 'knownContext', 'session', 'user_confirmed']);
+
+function sanitizeBootstrapContext(bootstrapContext = null) {
+  if (!bootstrapContext || typeof bootstrapContext !== 'object' || Array.isArray(bootstrapContext)) {
+    return {
+      status: 'unknown',
+      organizationType: 'unknown',
+      source: 'default',
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  const rawStatus = String(bootstrapContext.status || '').trim().toLowerCase();
+  const status = ALLOWED_BOOTSTRAP_STATUSES.has(rawStatus) ? rawStatus : 'unknown';
+
+  const rawOrganizationType = String(bootstrapContext.organizationType || '').trim().toLowerCase();
+  const organizationType = ALLOWED_ORGANIZATION_TYPES.has(rawOrganizationType)
+    ? rawOrganizationType
+    : 'unknown';
+
+  const rawSource = String(bootstrapContext.source || '').trim();
+  const source = ALLOWED_BOOTSTRAP_SOURCES.has(rawSource) ? rawSource : 'default';
+
+  const updatedAtText = String(bootstrapContext.updatedAt || '').trim();
+  const parsedUpdatedAt = updatedAtText ? Date.parse(updatedAtText) : NaN;
+  const updatedAt = Number.isFinite(parsedUpdatedAt)
+    ? new Date(parsedUpdatedAt).toISOString()
+    : new Date().toISOString();
+
+  return {
+    status,
+    organizationType,
+    source,
+    updatedAt,
+  };
+}
+
+function sanitizeScopedDatapoint(dataPoint = null) {
+  if (!dataPoint || typeof dataPoint !== 'object' || Array.isArray(dataPoint)) {
+    return null;
+  }
+
+  const rawKey = String(dataPoint.key || '').trim();
+  if (!rawKey) {
+    return null;
+  }
+
+  const key = rawKey.slice(0, 120);
+  if (!/^[a-zA-Z0-9._:-]+$/.test(key)) {
+    return null;
+  }
+
+  const rawScope = String(dataPoint.scope || '').trim().toLowerCase();
+  const scope = ALLOWED_KNOWLEDGE_SCOPES.has(rawScope)
+    ? rawScope
+    : rawScope === 'tenant' || rawScope === 'tenant_operational'
+      ? 'tenant_candidate'
+      : null;
+
+  if (!scope) {
+    return null;
+  }
+
+  const rawStatus = String(dataPoint.status || '').trim().toLowerCase();
+  let status = ALLOWED_KNOWLEDGE_STATUSES.has(rawStatus) ? rawStatus : 'observed';
+  if (scope === 'tenant_candidate' && status === 'confirmed') {
+    status = 'candidate';
+  }
+
+  const rawSource = String(dataPoint.source || '').trim();
+  const source = ALLOWED_KNOWLEDGE_SOURCES.has(rawSource) ? rawSource : 'default';
+
+  const updatedAtText = String(dataPoint.updatedAt || '').trim();
+  const parsedUpdatedAt = updatedAtText ? Date.parse(updatedAtText) : NaN;
+  const updatedAt = Number.isFinite(parsedUpdatedAt)
+    ? new Date(parsedUpdatedAt).toISOString()
+    : new Date().toISOString();
+
+  return {
+    key,
+    scope,
+    source,
+    status,
+    updatedAt,
+  };
+}
+
+function sanitizeScopedDatapoints(dataPoints = []) {
+  if (!Array.isArray(dataPoints)) {
+    return [];
+  }
+
+  const deduped = new Map();
+  for (const entry of dataPoints) {
+    const sanitized = sanitizeScopedDatapoint(entry);
+    if (!sanitized) {
+      continue;
+    }
+    deduped.set(`${sanitized.scope}:${sanitized.key}`, sanitized);
+  }
+
+  return Array.from(deduped.values());
+}
+
 function estimateTokens(value) {
   return rateQuotaStore.estimateTextTokens(value);
 }
@@ -143,6 +262,8 @@ function enforceLayerBudgets(stack, options = {}) {
     l3: {
       history: compressedL3.history,
       fileAttachments: Array.isArray(stack?.l3?.fileAttachments) ? stack.l3.fileAttachments : [],
+      bootstrapContext: sanitizeBootstrapContext(stack?.l3?.bootstrapContext || null),
+      knowledgeScopeDataPoints: sanitizeScopedDatapoints(stack?.l3?.knowledgeScopeDataPoints || []),
       summary: compressedL3.summary,
       compressed: compressedL3.compressed,
     },
@@ -180,6 +301,8 @@ function enforceLayerBudgets(stack, options = {}) {
 function buildContextStack(input = {}) {
   const layer4 = buildLayer4(input.toolContext || null);
   const fileAttachments = Array.isArray(input.fileAttachments) ? input.fileAttachments : [];
+  const bootstrapContext = sanitizeBootstrapContext(input.bootstrapContext || null);
+  const knowledgeScopeDataPoints = sanitizeScopedDatapoints(input.knowledgeScopeDataPoints || []);
   const initial = {
     l0: {
       systemPrompt: String(input.systemPrompt || ''),
@@ -193,6 +316,8 @@ function buildContextStack(input = {}) {
     l3: {
       history: Array.isArray(input.sessionHistory) ? input.sessionHistory : [],
       fileAttachments,
+      bootstrapContext,
+      knowledgeScopeDataPoints,
       summary: null,
       compressed: false,
     },
@@ -370,11 +495,18 @@ function buildPersistableSessionState(input = {}) {
       tenantFacts: Array.isArray(input?.l1?.tenantFacts) ? input.l1.tenantFacts : [],
     },
     l2: {
-      userProfile: input?.l2?.userProfile || {},
+      userProfile: {
+        ...(input?.l2?.userProfile || {}),
+        knowledgeScopeDataPoints: sanitizeScopedDatapoints(
+          input?.l2?.userProfile?.knowledgeScopeDataPoints || []
+        ),
+      },
     },
     l3: {
       history: Array.isArray(input?.l3?.history) ? input.l3.history : [],
       fileAttachments: Array.isArray(input?.l3?.fileAttachments) ? input.l3.fileAttachments : [],
+      bootstrapContext: sanitizeBootstrapContext(input?.l3?.bootstrapContext || null),
+      knowledgeScopeDataPoints: sanitizeScopedDatapoints(input?.l3?.knowledgeScopeDataPoints || []),
       summary: input?.l3?.summary || null,
       compressed: Boolean(input?.l3?.compressed),
       chatMode: String(input?.l3?.chatMode || input?.chatMode || 'consultation'),
@@ -506,4 +638,6 @@ module.exports = {
   buildPersistableSessionState,
   resolveContextMutation,
   DECISIVE_PARAMS,
+  sanitizeBootstrapContext,
+  sanitizeScopedDatapoints,
 };
