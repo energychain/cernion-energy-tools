@@ -84,6 +84,26 @@ function sanitizePathSegment(value, fallback) {
   return cleaned || String(fallback || 'default');
 }
 
+/**
+ * Moves a file with cross-device link fallback.
+ * Handles EXDEV errors (cross-device link) when /tmp and target are on different mounts.
+ * @param {string} sourcePath - Path to source file
+ * @param {string} targetPath - Path to target file
+ */
+function moveFileWithCrossDeviceFallback(sourcePath, targetPath) {
+  try {
+    fs.renameSync(sourcePath, targetPath);
+  } catch (err) {
+    if (err.code === 'EXDEV') {
+      // Fallback for cross-device moves (e.g., Docker mount boundary)
+      fs.copyFileSync(sourcePath, targetPath);
+      fs.unlinkSync(sourcePath);
+    } else {
+      throw err;
+    }
+  }
+}
+
 function parseOptionalJsonObject(value, fallback = {}) {
   if (value == null || value === '') {
     return fallback;
@@ -1878,7 +1898,7 @@ module.exports = {
 
               fs.mkdirSync(path.dirname(targetPath), { recursive: true });
               if (sourcePath && fs.existsSync(sourcePath) && sourcePath !== targetPath) {
-                fs.renameSync(sourcePath, targetPath);
+                moveFileWithCrossDeviceFallback(sourcePath, targetPath);
               }
 
               return {

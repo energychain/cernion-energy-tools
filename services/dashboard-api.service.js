@@ -591,6 +591,20 @@ module.exports = {
             schema: { type: 'string', example: 'SNB935578300972' },
             description: 'Optional VNB scope for governance findings.',
           },
+          {
+            name: 'profileId',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', default: 'H0' },
+            description: 'Optional load profile identifier for the monitor request.',
+          },
+          {
+            name: 'annualConsumptionKwh',
+            in: 'query',
+            required: false,
+            schema: { type: 'number', example: 3500 },
+            description: 'Optional annual consumption in kWh used for the stream monitor context.',
+          },
         ],
         responses: {
           200: {
