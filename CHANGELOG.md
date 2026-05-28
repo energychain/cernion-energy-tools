@@ -9,9 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- [src/personal-agent-context.js](src/personal-agent-context.js), [services/personal-agent.service.js](services/personal-agent.service.js): v0.57.1 Bootstrap-Context-Handling vorbereitet (noch nicht released). `bootstrapContext` wird streng sanitisiert und minimal in `agentTrace`/L3 geführt (`status`, `organizationType`, `source`, `updatedAt`).
+- [tests/personal-agent-context.test.js](tests/personal-agent-context.test.js), [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): v0.57.1 Testabdeckung erweitert für Enum-/Whitelist-Normalisierung (`status`: `unknown|partial|established`, `source`: `default|knownContext|session|user_confirmed`) sowie Non-Leakage (`tenantId`/`confidence`).
+- [src/personal-agent-context.js](src/personal-agent-context.js), [services/personal-agent.service.js](services/personal-agent.service.js): v0.57.2 Scope-Basis ergänzt mit minimalen `scopedDataPoint`-Feldern (`key`, `scope`, `source`, `status`, `updatedAt`), ohne Rohwerte und ohne neue REST/OpenAPI-Fläche.
+- [tests/personal-agent-context.test.js](tests/personal-agent-context.test.js), [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): v0.57.2 Testabdeckung ergänzt für Scope-Sanitizing, Downgrade von `tenant`/`tenant_operational` auf `tenant_candidate`, Non-Leakage und Reply-Stabilität.
+
 ### Changed
 
+- [services/personal-agent.service.js](services/personal-agent.service.js): explizites `knownContext.organizationType` setzt `bootstrapContext.status` auf `partial` und `source` auf `knownContext`; `established` wird in v0.57.1 nur bei explizit strukturiertem Status akzeptiert (nicht aus `organizationType` abgeleitet).
+- [services/personal-agent.service.js](services/personal-agent.service.js): `agentTrace` enthält additiv `knowledgeScope` nur als Summary (`total`, `byScope`, `bySource`) ohne Keys/Werte/Evidence.
+- [services/personal-agent.service.js](services/personal-agent.service.js): v0.57.2 Auto-Derivation aus `knownContext` auf enge Allowlist begrenzt (`organizationType`, `responsibleRole`, `roleId`); beliebige Scalar-Keys werden nicht automatisch als `scopedDataPoint` übernommen.
+- [scripts/check-tdd-matrix-coverage.js](scripts/check-tdd-matrix-coverage.js), [docs/v0.52-implementation-plans/personal-agent-v052-architecture-tdd.md](docs/v0.52-implementation-plans/personal-agent-v052-architecture-tdd.md): v0.57.2 Release-Gate-Coverage trennt jetzt explizit zwischen `T-*`-Pflichtabdeckung in normaler CI und `MT-*`-Blackbox-Abdeckung, die nur mit `RUN_PERSONAL_AGENT_TDD_MATRIX_BLACKBOX=true` hart erzwungen wird.
+- [openapi-export.json](openapi-export.json), [llm.txt](llm.txt): generierte Artefakte via bestehender Projektskripte (`npm run generate:llm`) synchronisiert; `check:llm`-Drift behoben.
+
 ### Fixed
+
+- [src/personal-agent-context.js](src/personal-agent-context.js): ungültige/freie `bootstrapContext.source`-Werte fallen strikt auf `default` zurück; ungültige Statuswerte fallen auf `unknown` zurück.
+- [src/personal-agent-context.js](src/personal-agent-context.js): nicht persistierbare Scopes `tenant` und `tenant_operational` werden in v0.57.2 konservativ zu `tenant_candidate`-Markern herabgestuft; `confirmed` ist für `tenant_candidate` nicht zulässig.
+- [src/personal-agent-context.js](src/personal-agent-context.js): `scopedDataPoint.key` wird strikt validiert (trim, max 120 Zeichen, nur `[a-zA-Z0-9._:-]`); ungültige/sensitive Keys werden verworfen.
+- [services/dashboard-api.service.js](services/dashboard-api.service.js): OpenAPI-Metadaten für `GET /load-profile-stream-monitor` ergänzt; Query-Parameter `profileId` und `annualConsumptionKwh` sind jetzt explizit in `openapi.parameters[]` deklariert (Audit-Blocker behoben).
 
 ## [0.56.5] — Persona Resolution Audit Store & Tenant-Scoped Query/Prune (2026-05-27)
 

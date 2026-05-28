@@ -356,6 +356,8 @@ Fuer faelle, in denen der Nutzer-Prompt **mehrere Domains** beruehrt, definiert 
 
 Die Single-Turn-Matrix oben bleibt die fachliche Vollabdeckung fuer einzelne Intent-Aufloesungen. Fuer Personal-Agent-Dialoge mit Session-Kontext definieren wir zusaetzlich **Multi-Turn-Szenarien**, die ueber mehrere aufeinanderfolgende `personal-agent.chat`-Aufrufe laufen und dieselbe `sessionId` wiederverwenden muessen.
 
+> Hinweis zur Coverage: Die `MT-*`-Szenarien sind explizite Blackbox-Multi-Turn-Abdeckung und werden nur als harte Release-Gate-Coverage geprueft, wenn `RUN_PERSONAL_AGENT_TDD_MATRIX_BLACKBOX=true` gesetzt ist. In normaler CI bleibt fuer das harte Gate die 100%-Abdeckung der `T-*`-Matrix aktiv.
+
 #### Scenario: Journalist / CYA-artige Einordnung
 
 | ID | Turn | Nutzer-Prompt | Intent-Klasse | Service-Calls (sequentiell) | Erwartetes Ergebnis | Session-State |
