@@ -116,6 +116,10 @@ const {
   assertNoRecentIntentLoop,
 } = require('../src/session-manager');
 const { buildZnpContextSnapshot } = require('../src/znp-context-snapshot'); // v0.56.3
+const {
+  WORK_LOG_ACTIONS,
+  createTurnWorkLog,
+} = require('../src/personal-agent-work-log'); // v0.57.3
 
 const OPENAPI_TAG = 'Personal Agent';
 const SESSION_NAMESPACE = process.env.PERSONAL_AGENT_SESSION_NAMESPACE || 'personal_agent_sessions';
@@ -1106,6 +1110,9 @@ module.exports = {
           message: ctx.params.message,
         });
 
+        // v0.57.3 — per-turn work log accumulator (local closure, never stored on this)
+        const turnWorkLog = createTurnWorkLog();
+
         // jobId parameter passed from startJob wrapper
         const jobStore = jobId ? require('../src/job-store') : null;
 
@@ -1211,6 +1218,24 @@ module.exports = {
           knownContext: rawKnownContext,
         });
         session.l3.bootstrapContext = bootstrapContext;
+
+        // v0.57.3 — workLog callsite 2: onboarding gap detected
+        if (bootstrapContext?.status === 'unknown' || bootstrapContext?.status === 'partial') {
+          const _wlMissingField = bootstrapContext.organizationType === 'unknown'
+            ? 'organizationType'
+            : 'knowledgeScope';
+          turnWorkLog.addEntry({
+            action: WORK_LOG_ACTIONS.ONBOARDING_GAP_DETECTED,
+            label: `Missing: ${_wlMissingField}`,
+            metadata: {
+              missingField: _wlMissingField,
+              source: bootstrapContext.source || 'knownContext',
+              status: bootstrapContext.status,
+              severity: 'warning',
+            },
+          });
+        }
+
         const scopedKnowledgeState = this.resolveScopedKnowledgeState({
           session,
           knownContext: rawKnownContext,
@@ -1449,6 +1474,20 @@ module.exports = {
             hitlItemId: _hitlItemId1,
             workflowCompletionState: _handoffCtx1.workflowCompletionState,
           });
+
+          // v0.57.3 — workLog callsite 3: persona resolved
+          if (personaResolution?.roleLabel) {
+            turnWorkLog.addEntry({
+              action: WORK_LOG_ACTIONS.PERSONA_RESOLVED,
+              label: `Persona: ${personaResolution.roleLabel}`,
+              metadata: {
+                roleLabel: personaResolution.roleLabel,
+                source: personaResolution.source || 'session',
+                updateReason: 'role_consistency_check',
+              },
+            });
+          }
+
           const agentTrace = this.buildAgentTrace({
             routing: {
               source: 'session-hitl-gate',
@@ -1481,6 +1520,7 @@ module.exports = {
               ...(session.l3?.knowledgeScopeDataPoints || []),
               ...(session.l2?.userProfile?.knowledgeScopeDataPoints || []),
             ],
+            workLog: turnWorkLog.toArray(),
           });
 
           return {
@@ -1949,6 +1989,19 @@ module.exports = {
           },
         });
 
+        // v0.57.3 — workLog callsite 1: routing classified
+        turnWorkLog.addEntry({
+          action: WORK_LOG_ACTIONS.ROUTING_CLASSIFIED,
+          label: `Classified as ${brokerRecommendation?.intent || routingDecision.target || 'unknown'} inquiry`,
+          metadata: {
+            targetDomain: brokerRecommendation?.domain || null,
+            primaryIntent: brokerRecommendation?.intent || null,
+            reasonCode: routingDecision.target && routingDecision.target !== 'mark_unknown_execution_gap'
+              ? 'INTENT_SIGNAL_DETECTED'
+              : 'DEFAULT_ROUTE',
+          },
+        });
+
         if (
           routingDecision.target === 'mark_unknown_execution_gap' &&
           String(
@@ -2068,6 +2121,20 @@ module.exports = {
             hitlItemId: _hitlItemId2,
             workflowCompletionState: _handoffCtx2.workflowCompletionState,
           });
+
+          // v0.57.3 — workLog callsite 3: persona resolved
+          if (personaResolution?.roleLabel) {
+            turnWorkLog.addEntry({
+              action: WORK_LOG_ACTIONS.PERSONA_RESOLVED,
+              label: `Persona: ${personaResolution.roleLabel}`,
+              metadata: {
+                roleLabel: personaResolution.roleLabel,
+                source: personaResolution.source || 'session',
+                updateReason: 'role_consistency_check',
+              },
+            });
+          }
+
           return {
             success: true,
             sessionId,
@@ -2118,6 +2185,7 @@ module.exports = {
                 ...(session.l3?.knowledgeScopeDataPoints || []),
                 ...(session.l2?.userProfile?.knowledgeScopeDataPoints || []),
               ],
+              workLog: turnWorkLog.toArray(),
             }),
             ...(receiptSelectionMetadata ? { metadata: receiptSelectionMetadata } : {}),
           };
@@ -2368,6 +2436,38 @@ module.exports = {
           const consultationAttempts = Array.isArray(consultationPayload.attemptsSummary)
             ? consultationPayload.attemptsSummary
             : [];
+
+          // v0.57.3 — workLog callsite 4a: consultation synthesis
+          if (consultationResult && !consultationResult._isFallback) {
+            turnWorkLog.addEntry({
+              action: WORK_LOG_ACTIONS.CONSULTATION_SYNTHESIS,
+              label: `Synthesized response from ${consultationAttempts.length} tool calls`,
+              metadata: {
+                toolCount: consultationAttempts.length,
+                sourceCategory: (() => {
+                  const d = String(brokerRecommendation?.domain || '').toLowerCase();
+                  if (d.includes('grid') || d.includes('netz')) return 'grid_data';
+                  if (d.includes('market') || d.includes('markt') || d.includes('price')) return 'market_data';
+                  if (d.includes('geo') || d.includes('location') || d.includes('osm')) return 'geo_data';
+                  if (d.includes('regulat') || d.includes('recht') || d.includes('compliance')) return 'regulatory_data';
+                  return 'other';
+                })(),
+                phase: 'synthesis',
+              },
+            });
+          } else {
+            // callsite 4b: consultation fallback
+            turnWorkLog.addEntry({
+              action: WORK_LOG_ACTIONS.CONSULTATION_FALLBACK,
+              label: `Used fallback: TOOLS_UNAVAILABLE`,
+              metadata: {
+                reason: 'TOOLS_UNAVAILABLE',
+                phase: 'synthesis',
+                attemptCount: consultationAttempts.length,
+              },
+            });
+          }
+
           consultationAttempts.forEach((attempt, idx) => {
             const toolNodeId = `tool:consultation:${idx + 1}:${attempt.tool || 'unknown'}`;
             turnGraph = addNode(turnGraph, {
@@ -2584,6 +2684,20 @@ module.exports = {
             hitlItemId: _hitlItemId3,
             workflowCompletionState: _handoffCtx3.workflowCompletionState,
           });
+
+          // v0.57.3 — workLog callsite 3: persona resolved
+          if (personaResolution?.roleLabel) {
+            turnWorkLog.addEntry({
+              action: WORK_LOG_ACTIONS.PERSONA_RESOLVED,
+              label: `Persona: ${personaResolution.roleLabel}`,
+              metadata: {
+                roleLabel: personaResolution.roleLabel,
+                source: personaResolution.source || 'session',
+                updateReason: 'role_consistency_check',
+              },
+            });
+          }
+
           const agentTrace = this.buildAgentTrace({
             routing: consultationRouting,
             plan: null,
@@ -2601,6 +2715,7 @@ module.exports = {
               ...(session.l3?.knowledgeScopeDataPoints || []),
               ...(session.l2?.userProfile?.knowledgeScopeDataPoints || []),
             ],
+            workLog: turnWorkLog.toArray(),
           });
 
           persisted.l3.turnGraph = summarizeTurnGraph(turnGraph);
@@ -3494,6 +3609,7 @@ module.exports = {
             ...(session.l3?.knowledgeScopeDataPoints || []),
             ...(session.l2?.userProfile?.knowledgeScopeDataPoints || []),
           ],
+          workLog: turnWorkLog.toArray(),
         });
 
         // Log completion
@@ -8230,6 +8346,7 @@ module.exports = {
       personaResolution = null,
       bootstrapContext = null,
       knowledgeScope = null,
+      workLog = null, // v0.57.3
     } = {}) {
       const toolAttempts = Array.isArray(consultation?.attemptsSummary)
         ? consultation.attemptsSummary.map((attempt) => ({
@@ -8312,6 +8429,7 @@ module.exports = {
         personaResolution, // v0.56.2
         bootstrapContext: this.buildBootstrapTraceContext(bootstrapContext),
         knowledgeScope: this.buildKnowledgeScopeTraceSummary(knowledgeScope || []),
+        workLog: Array.isArray(workLog) ? workLog : [], // v0.57.3
       };
     },
 

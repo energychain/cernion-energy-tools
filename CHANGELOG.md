@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.57.3] — Work Out Loud: agentTrace.workLog (2026-05-29)
+
+### Added
+
+- [src/personal-agent-work-log.js](src/personal-agent-work-log.js): New module — Work Out Loud accumulator. Provides `WORK_LOG_ACTIONS` (15-key frozen enum), `VALID_WORK_LOG_ACTIONS` (Set), `WORK_LOG_METADATA_WHITELIST` (per-action field specs), `createTurnWorkLog()` (per-turn request-scoped closure with `addEntry`/`toArray`), `sanitizeMetadataField`, `sanitizeWorkLogMetadata`, `sanitizeWorkLogEntry`, `validateWorkLogEntry`.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `agentTrace.workLog[]` — sanitized per-turn activity log emitted in every chat response. Populated at five callsite groups: `routing_classified`, `onboarding_gap_detected`, `persona_resolved` (3 path branches), `consultation_synthesis`/`consultation_fallback`, plus `worklog_truncated` on overflow. `buildAgentTrace` updated with `workLog` parameter and return field.
+- [tests/personal-agent-work-log.test.js](tests/personal-agent-work-log.test.js): Unit tests T-PA-WOL-001 through T-PA-WOL-009 covering accumulator isolation, label truncation, field stripping, unknown-action safety, metadata sanitization, enum_array filtering, overflow truncation, multi-overflow `totalActivities`, and `validateWorkLogEntry` forbidden-key enforcement. Contract sanity suite for `WORK_LOG_ACTIONS`/`VALID_WORK_LOG_ACTIONS`/whitelist shape.
+- [tests/personal-agent-work-log.integration.test.js](tests/personal-agent-work-log.integration.test.js): Integration tests T-PA-WOL-010 through T-PA-WOL-017 (opt-in via `RUN_PERSONAL_AGENT_TDD_MATRIX_BLACKBOX=true`). Covers: workLog shape in live response, sequential/concurrent request isolation, chronological timestamps, `persona_resolved` no `personaId`/`confidence` leak, `consultation_synthesis` no `toolsUsed` leak, no forbidden keys, workLog only in `agentTrace` not in `reply`.
+
+### Changed
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): `buildAgentTrace` signature extended with optional `workLog` parameter (default `null`); return object always includes `workLog: []` or sanitized array snapshot.
+
 ## [0.57.2] — Scoped Knowledge Basis & Release-Gate Stabilization (2026-05-28)
 
 ### Added
