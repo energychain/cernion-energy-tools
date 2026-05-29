@@ -126,6 +126,12 @@ const {
   WORK_OUT_LOUD_SIGNAL_TYPES,
   buildContextFieldWorkOutLoudPayload,
 } = require('../src/personal-agent-work-out-loud');
+const {
+  REFLECTION_OUTPUT_SCHEMA,
+  buildReflectionPrompt,
+  validateReflectionPatch,
+  hasScopeBlockedOrMissingSteps,
+} = require('../src/personal-agent-reflection'); // v0.57.5 #158
 
 const OPENAPI_TAG = 'Personal Agent';
 const SESSION_NAMESPACE = process.env.PERSONAL_AGENT_SESSION_NAMESPACE || 'personal_agent_sessions';
@@ -2550,6 +2556,10 @@ module.exports = {
           // ═══ Consultation-to-Execution Bridge ═══
           let executionReadiness = null;
           let consultationPlanResults = null;
+          let receiptReflectionResult = null; // v0.57.5 #158
+          // effectiveReceiptContext carries the hydrated context into executeWithReceipt.
+          // Starts as brokerKnownContext; upgraded to patchedContext after a successful reflection.
+          let effectiveReceiptContext = brokerKnownContext || {}; // v0.57.5 #158
 
           try {
             executionReadiness = buildConsultationExecutionPlan({
@@ -2567,7 +2577,169 @@ module.exports = {
             // ─── Receipt Selection Integration (v0.54.3) ─────
             // If receiptSelectionResult has a selectedReceipt and disableReceiptSelection is false,
             // use executeWithReceipt for deterministic receipt-based execution.
-            const selectedReceipt = receiptSelectionResult?.selectedReceipt || null;
+            let selectedReceipt = receiptSelectionResult?.selectedReceipt || null;
+
+            // ─── Receipt Reflection / Context-Hydration Loop (v0.57.5 #158) ─────
+            // When a receipt is selected but not executable due to scope-blocked or
+            // missing-input steps, perform exactly one bounded reflection attempt:
+            // extract structured context from the user message and session history,
+            // validate the patch, merge it, and re-run receipt evaluation.
+            // No WOL events, no tenant knowledge promotion, no raw-data persistence.
+            if (
+              selectedReceipt &&
+              !ctx.params.disableReceiptSelection &&
+              !forceReceiptRequested &&
+              receiptSelectionResult?.evaluation?.executable === false &&
+              hasScopeBlockedOrMissingSteps(receiptSelectionResult?.evaluation)
+            ) {
+              try {
+                const reflectionEval = receiptSelectionResult.evaluation;
+                const missingRequiredInputs = Array.isArray(reflectionEval?.missingRequiredInputs)
+                  ? reflectionEval.missingRequiredInputs
+                  : [];
+                const scopeViolations = (
+                  Array.isArray(reflectionEval?.plannedToolCalls)
+                    ? reflectionEval.plannedToolCalls
+                    : []
+                ).flatMap((step) =>
+                  Array.isArray(step?.scopeViolations) ? step.scopeViolations : []
+                );
+
+                // Source: current session only (tenant-scoped, sanitized by #149 infrastructure)
+                const recentHistory = this.buildConsultationRecentHistoryWindow(session);
+
+                const { system: reflSystem, user: reflUser } = buildReflectionPrompt({
+                  userMessage: ctx.params.message,
+                  consultationHistory: recentHistory,
+                  knownContext: brokerKnownContext || {},
+                  missingRequiredInputs,
+                  scopeViolations,
+                  receiptId: receiptSelectionResult.receiptId || null,
+                });
+
+                const reflectionResponse = await this.callLlmGenerate(ctx, {
+                  system: reflSystem,
+                  user: reflUser,
+                  schema: REFLECTION_OUTPUT_SCHEMA,
+                  temperature: 0.1,
+                  maxTokens: 512,
+                });
+
+                // Unwrap structured response (broker vs local llm-client shape)
+                const reflData =
+                  reflectionResponse &&
+                  typeof reflectionResponse === 'object' &&
+                  reflectionResponse.data &&
+                  typeof reflectionResponse.data === 'object'
+                    ? reflectionResponse.data
+                    : reflectionResponse || {};
+
+                const rawPatch =
+                  reflData.resolvedContextPatch &&
+                  typeof reflData.resolvedContextPatch === 'object'
+                    ? reflData.resolvedContextPatch
+                    : {};
+                const rawConfidence =
+                  typeof reflData.confidence === 'string' ? reflData.confidence : 'low';
+                const rawEvidence =
+                  typeof reflData.evidence === 'string' ? reflData.evidence : '';
+                const rawUnresolvedScopes = Array.isArray(reflData.unresolvedScopes)
+                  ? reflData.unresolvedScopes
+                  : [];
+
+                const { sanitizedPatch, rejectedKeys } = validateReflectionPatch({
+                  patch: rawPatch,
+                  missingRequiredInputs,
+                  scopeViolations,
+                });
+
+                const patchedFields = Object.keys(sanitizedPatch);
+
+                if (patchedFields.length > 0) {
+                  // Merge via resolveContextMutation to enforce Zwiebelmodus semantics
+                  const { mergedParams: patchedContext } = resolveContextMutation(
+                    brokerKnownContext || {},
+                    sanitizedPatch
+                  );
+
+                  // Re-run receipt selection exactly once with the hydrated context
+                  const reflectedResult = await this.selectRuntimeReceipt(ctx, {
+                    message: ctx.params.message,
+                    context: {
+                      knownContext: patchedContext,
+                      semanticClassification,
+                      brokerRecommendation,
+                      effectiveChatMode,
+                      sessionId,
+                    },
+                    input: {
+                      message: ctx.params.message,
+                      knownContext: patchedContext,
+                      workflowType: semanticClassification?.workflowType || null,
+                      domainIntent:
+                        semanticClassification?.domainIntent ||
+                        brokerRecommendation?.intent ||
+                        null,
+                    },
+                    // Prefer the same receipt; do NOT forceReceipt (would throw if still blocked)
+                    preferredReceipts: [receiptSelectionResult.receiptId].filter(Boolean),
+                    allowDraftReceipts: ctx.params.allowDraftReceipts === true,
+                    explainReceiptSelection: false,
+                    disableReceiptSelection: false,
+                  });
+
+                  const reflectionResolved =
+                    reflectedResult?.evaluation?.executable === true;
+
+                  if (reflectionResolved) {
+                    // Promote the reflected result into the live receipt selection state
+                    selectedReceipt =
+                      reflectedResult?.selectedReceipt || selectedReceipt;
+                    receiptSelectionResult.evaluation = reflectedResult.evaluation;
+                    receiptSelectionResult.selectedReceipt =
+                      reflectedResult.selectedReceipt ||
+                      receiptSelectionResult.selectedReceipt;
+                    // Ensure execution uses the hydrated context, not the original brokerKnownContext
+                    effectiveReceiptContext = patchedContext; // v0.57.5 #158
+                  }
+
+                  receiptReflectionResult = {
+                    attempted: true,
+                    outcome: reflectionResolved ? 'resolved' : 'still-blocked',
+                    resolvedFields: patchedFields,
+                    confidence: rawConfidence,
+                    evidence: String(rawEvidence).slice(0, 300),
+                    unresolvedScopes: rawUnresolvedScopes,
+                    rejectedKeys,
+                  };
+                } else {
+                  receiptReflectionResult = {
+                    attempted: true,
+                    outcome: 'validation-rejected',
+                    resolvedFields: [],
+                    confidence: rawConfidence,
+                    evidence: String(rawEvidence).slice(0, 300),
+                    unresolvedScopes: rawUnresolvedScopes,
+                    rejectedKeys,
+                  };
+                }
+              } catch (reflectionError) {
+                this.logger?.warn(
+                  `Receipt reflection attempt failed: ${reflectionError.message}`
+                );
+                receiptReflectionResult = {
+                  attempted: true,
+                  outcome: 'error',
+                  resolvedFields: [],
+                  confidence: 'low',
+                  evidence: '',
+                  unresolvedScopes: [],
+                  rejectedKeys: [],
+                };
+              }
+            }
+            // ─────────────────────────────────────────────────
+
             const useReceiptExecution =
               selectedReceipt &&
               !ctx.params.disableReceiptSelection &&
@@ -2588,7 +2760,7 @@ module.exports = {
                   selectedReceipt,
                   this.buildReceiptExecutionContext({
                     message: ctx.params.message,
-                    knownContext: brokerKnownContext || {},
+                    knownContext: effectiveReceiptContext, // v0.57.5 #158: patched after reflection
                     resolvedParams: session?.resolvedParams || {},
                     observations: [],
                   }),
@@ -2754,6 +2926,7 @@ module.exports = {
               ...(session.l2?.userProfile?.knowledgeScopeDataPoints || []),
             ],
             workLog: turnWorkLog.toArray(),
+            reflection: receiptReflectionResult, // v0.57.5 #158
           });
 
           persisted.l3.turnGraph = summarizeTurnGraph(turnGraph);
@@ -8714,6 +8887,7 @@ module.exports = {
       bootstrapContext = null,
       knowledgeScope = null,
       workLog = null, // v0.57.3
+      reflection = null, // v0.57.5 #158
     } = {}) {
       const toolAttempts = Array.isArray(consultation?.attemptsSummary)
         ? consultation.attemptsSummary.map((attempt) => ({
@@ -8801,6 +8975,8 @@ module.exports = {
         bootstrapContext: this.buildBootstrapTraceContext(bootstrapContext),
         knowledgeScope: this.buildKnowledgeScopeTraceSummary(knowledgeScope || []),
         workLog: Array.isArray(workLog) ? workLog : [], // v0.57.3
+        reflection:
+          reflection && typeof reflection === 'object' ? reflection : undefined, // v0.57.5 #158
       };
     },
 

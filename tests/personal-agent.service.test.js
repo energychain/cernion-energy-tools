@@ -6350,4 +6350,652 @@ describe('personal-agent.service', () => {
       expect(ks.total).toBe(0);
     });
   });
+
+  // ─── Receipt Reflection / Context-Hydration Loop (#158) ───────────────────
+
+  describe('receipt reflection loop (#158)', () => {
+    /**
+     * Helper: build a minimal scope-blocked evaluation result to inject via
+     * the agent-receipts.select mock, without naming a specific receipt.
+     */
+    const makeScopeBlockedEval = (receiptId = 'generic-fixture-v1') => ({
+      executable: false,
+      matchScore: 80,
+      plannedToolCalls: [
+        {
+          step: 1,
+          status: 'scope-blocked',
+          action: 'some-tool.query',
+          selectedAction: 'some-tool.query',
+          params: {},
+          scopeViolations: [
+            {
+              code: 'RECEIPT_SCOPE_NOT_RESOLVED',
+              scope: 'locationScope',
+              message: 'city/postalCode required',
+              available: 'no scope',
+            },
+          ],
+        },
+      ],
+      missingRequiredInputs: ['city', 'postalCode'],
+      errors: [],
+      warnings: [],
+    });
+
+    const makeExecutableEval = () => ({
+      executable: true,
+      matchScore: 92,
+      plannedToolCalls: [{ step: 1, status: 'ready', action: 'some-tool.query', params: {} }],
+      missingRequiredInputs: [],
+      errors: [],
+      warnings: [],
+    });
+
+    const makeFixtureReceipt = (receiptId = 'generic-fixture-v1') => ({
+      receiptId,
+      status: 'active',
+      toolPlan: {
+        steps: [
+          {
+            step: 1,
+            action: 'some-tool.query',
+            required: true,
+            requiredScopes: ['locationScope'],
+            paramMapping: {
+              city: { source: 'context', contextField: 'city' },
+              postalCode: { source: 'context', contextField: 'postalCode' },
+            },
+          },
+        ],
+      },
+    });
+
+    it('receipt becomes executable after reflection resolves missing location scope', async () => {
+      const svc = broker.getLocalService('personal-agent');
+
+      // agent-receipts.select call count tracking
+      let selectCallCount = 0;
+
+      // Use ctx.call intercept instead via direct service spy on selectRuntimeReceipt
+      const origSelectRuntimeReceipt = svc.selectRuntimeReceipt.bind(svc);
+      const selectReceiptSpy = jest
+        .spyOn(svc, 'selectRuntimeReceipt')
+        .mockImplementation(async (ctx, payload) => {
+          selectCallCount += 1;
+          const knownContext =
+            payload?.context?.knownContext ||
+            payload?.input?.knownContext ||
+            {};
+          const hasLocation =
+            typeof knownContext.city === 'string' && knownContext.city.trim().length > 0;
+
+          return {
+            selected: true,
+            receiptId: 'generic-fixture-v1',
+            mode: 'matched',
+            score: 85,
+            status: 'active',
+            warnings: [],
+            diagnostics: null,
+            selectedReceipt: makeFixtureReceipt(),
+            evaluation: hasLocation ? makeExecutableEval() : makeScopeBlockedEval(),
+            execution: { used: false, executor: null, fallbackReason: null },
+            knowledgeEvidence: null,
+          };
+        });
+
+      // LLM reflection call returns a city extracted from the message
+      let llmCallCount = 0;
+      const callLlmSpy = jest
+        .spyOn(svc, 'callLlmGenerate')
+        .mockImplementation(async (_ctx, payload) => {
+          llmCallCount += 1;
+          // Reflection call: schema has resolvedContextPatch → return structured patch
+          if (payload?.schema?.properties?.resolvedContextPatch) {
+            return {
+              resolvedContextPatch: { city: 'Teststadt', postalCode: '12345' },
+              confidence: 'high',
+              evidence: 'Teststadt aus Nutzeranfrage',
+              unresolvedScopes: [],
+            };
+          }
+          // All other LLM calls (planner, synthesis) return minimal valid responses
+          if (String(payload?.system || '').includes('Synthese')) {
+            return {
+              data: {
+                reply: 'Ich habe die Anfrage bearbeitet.',
+                hypotheses: [],
+                openQuestions: [],
+                nextActions: [],
+                factsUsed: [],
+              },
+            };
+          }
+          return {
+            text: JSON.stringify({
+              mode: 'final',
+              thought: 'Reflection test final',
+              reply: 'Ergebnis nach Kontext-Hydration.',
+            }),
+          };
+        });
+
+      const sessionId = `reflection-test-${Date.now()}`;
+      const meta = { tenantId: 'tenant-reflection-test', authUser: { userId: 'u1' } };
+
+      try {
+        const result = await broker.call(
+          'personal-agent.chat',
+          {
+            message: 'Bitte hilf mir mit meiner Anfrage in Teststadt 12345.',
+            chatMode: 'consultation',
+            executionMode: 'auto',
+            sessionId,
+            knownContext: {},
+          },
+          { meta }
+        );
+
+        expect(result.success).toBe(true);
+
+        // reflection should have been attempted
+        const reflection = result.agentTrace?.reflection;
+        expect(reflection).toBeDefined();
+        expect(reflection.attempted).toBe(true);
+        expect(reflection.outcome).toBe('resolved');
+        expect(reflection.resolvedFields).toEqual(expect.arrayContaining(['city', 'postalCode']));
+
+        // selectRuntimeReceipt called twice: initial + one reflection re-run
+        expect(selectCallCount).toBe(2);
+      } finally {
+        selectReceiptSpy.mockRestore();
+        callLlmSpy.mockRestore();
+      }
+    });
+
+    it('reflection is called at most once (still-blocked path falls through to consultation)', async () => {
+      const svc = broker.getLocalService('personal-agent');
+
+      let selectCallCount = 0;
+      const selectReceiptSpy = jest
+        .spyOn(svc, 'selectRuntimeReceipt')
+        .mockImplementation(async () => {
+          selectCallCount += 1;
+          return {
+            selected: true,
+            receiptId: 'generic-fixture-v1',
+            mode: 'matched',
+            score: 80,
+            status: 'active',
+            warnings: [],
+            diagnostics: null,
+            selectedReceipt: makeFixtureReceipt(),
+            // always scope-blocked, regardless of context
+            evaluation: makeScopeBlockedEval(),
+            execution: { used: false, executor: null, fallbackReason: null },
+            knowledgeEvidence: null,
+          };
+        });
+
+      let llmCallsWithSchema = 0;
+      const callLlmSpy = jest
+        .spyOn(svc, 'callLlmGenerate')
+        .mockImplementation(async (_ctx, payload) => {
+          if (payload?.schema?.properties?.resolvedContextPatch) {
+            llmCallsWithSchema += 1;
+            return {
+              resolvedContextPatch: { city: 'Irgendwo' },
+              confidence: 'medium',
+              evidence: 'Irgendwo aus Prompt',
+              unresolvedScopes: ['locationScope'],
+            };
+          }
+          if (String(payload?.system || '').includes('Synthese')) {
+            return {
+              data: {
+                reply: 'Fallback-Beratung nach gescheiterter Reflection.',
+                hypotheses: [],
+                openQuestions: [],
+                nextActions: [],
+                factsUsed: [],
+              },
+            };
+          }
+          return {
+            text: JSON.stringify({ mode: 'final', thought: 'done', reply: 'Fallback.' }),
+          };
+        });
+
+      const sessionId = `reflection-once-${Date.now()}`;
+      const meta = { tenantId: 'tenant-reflection-once', authUser: { userId: 'u2' } };
+
+      try {
+        const result = await broker.call(
+          'personal-agent.chat',
+          {
+            message: 'Irgendeine Anfrage ohne auflösbaren Kontext.',
+            chatMode: 'consultation',
+            executionMode: 'auto',
+            sessionId,
+            knownContext: {},
+          },
+          { meta }
+        );
+
+        expect(result.success).toBe(true);
+
+        // Reflection was attempted exactly once
+        expect(llmCallsWithSchema).toBe(1);
+        // selectRuntimeReceipt: initial call + exactly one reflection re-run
+        expect(selectCallCount).toBe(2);
+
+        const reflection = result.agentTrace?.reflection;
+        expect(reflection).toBeDefined();
+        expect(reflection.attempted).toBe(true);
+        expect(reflection.outcome).toBe('still-blocked');
+      } finally {
+        selectReceiptSpy.mockRestore();
+        callLlmSpy.mockRestore();
+      }
+    });
+
+    it('rejects non-whitelisted keys from the reflection patch', async () => {
+      const svc = broker.getLocalService('personal-agent');
+
+      const selectReceiptSpy = jest
+        .spyOn(svc, 'selectRuntimeReceipt')
+        .mockImplementation(async () => ({
+          selected: true,
+          receiptId: 'generic-fixture-v1',
+          mode: 'matched',
+          score: 80,
+          status: 'active',
+          warnings: [],
+          diagnostics: null,
+          selectedReceipt: makeFixtureReceipt(),
+          evaluation: makeScopeBlockedEval(),
+          execution: { used: false, executor: null, fallbackReason: null },
+          knowledgeEvidence: null,
+        }));
+
+      const callLlmSpy = jest
+        .spyOn(svc, 'callLlmGenerate')
+        .mockImplementation(async (_ctx, payload) => {
+          if (payload?.schema) {
+            return {
+              // includes non-whitelisted keys
+              resolvedContextPatch: {
+                city: 'Testort',
+                __proto__: 'injected',
+                internalSecret: 'leaked',
+                tenantId: 'other-tenant',
+              },
+              confidence: 'high',
+              evidence: 'Testort',
+              unresolvedScopes: [],
+            };
+          }
+          if (String(payload?.system || '').includes('Synthese')) {
+            return {
+              data: {
+                reply: 'Beratung.',
+                hypotheses: [],
+                openQuestions: [],
+                nextActions: [],
+                factsUsed: [],
+              },
+            };
+          }
+          return { text: JSON.stringify({ mode: 'final', thought: 'done', reply: 'ok' }) };
+        });
+
+      const sessionId = `reflection-reject-${Date.now()}`;
+      const meta = { tenantId: 'tenant-reflection-reject', authUser: { userId: 'u3' } };
+
+      try {
+        const result = await broker.call(
+          'personal-agent.chat',
+          {
+            message: 'Teste die Validation.',
+            chatMode: 'consultation',
+            executionMode: 'auto',
+            sessionId,
+            knownContext: {},
+          },
+          { meta }
+        );
+
+        expect(result.success).toBe(true);
+
+        const reflection = result.agentTrace?.reflection;
+        expect(reflection).toBeDefined();
+        expect(reflection.attempted).toBe(true);
+        // Non-whitelisted keys must appear in rejectedKeys
+        expect(reflection.rejectedKeys).toEqual(
+          expect.arrayContaining(['internalSecret', 'tenantId'])
+        );
+      } finally {
+        selectReceiptSpy.mockRestore();
+        callLlmSpy.mockRestore();
+      }
+    });
+
+    it('does not attempt reflection when receipt is already executable (existing path unchanged)', async () => {
+      const svc = broker.getLocalService('personal-agent');
+
+      let selectCallCount = 0;
+      const selectReceiptSpy = jest
+        .spyOn(svc, 'selectRuntimeReceipt')
+        .mockImplementation(async () => {
+          selectCallCount += 1;
+          return {
+            selected: true,
+            receiptId: 'generic-fixture-v1',
+            mode: 'matched',
+            score: 95,
+            status: 'active',
+            warnings: [],
+            diagnostics: null,
+            selectedReceipt: makeFixtureReceipt(),
+            evaluation: makeExecutableEval(), // already executable
+            execution: { used: false, executor: null, fallbackReason: null },
+            knowledgeEvidence: null,
+          };
+        });
+
+      let llmCallsWithSchema = 0;
+      const callLlmSpy = jest
+        .spyOn(svc, 'callLlmGenerate')
+        .mockImplementation(async (_ctx, payload) => {
+          if (payload?.schema?.properties?.resolvedContextPatch) {
+            llmCallsWithSchema += 1;
+          }
+          if (String(payload?.system || '').includes('Synthese')) {
+            return {
+              data: {
+                reply: 'Beratung ohne Reflection.',
+                hypotheses: [],
+                openQuestions: [],
+                nextActions: [],
+                factsUsed: [],
+              },
+            };
+          }
+          return { text: JSON.stringify({ mode: 'final', thought: 'done', reply: 'ok' }) };
+        });
+
+      // executeWithReceipt needs a mock since we're returning an executable receipt
+      const executeReceiptSpy = jest
+        .spyOn(require('../src/consultation-execution-bridge'), 'executeWithReceipt')
+        .mockResolvedValue({
+          status: 'completed',
+          completedSteps: 1,
+          steps: [{ step: 1, action: 'some-tool.query', status: 'completed', params: {} }],
+        });
+
+      const sessionId = `reflection-skip-${Date.now()}`;
+      const meta = { tenantId: 'tenant-reflection-skip', authUser: { userId: 'u4' } };
+
+      try {
+        await broker.call(
+          'personal-agent.chat',
+          {
+            message: 'Anfrage mit vollständigem Kontext.',
+            chatMode: 'consultation',
+            executionMode: 'auto',
+            sessionId,
+            knownContext: { city: 'Köln', postalCode: '50667' },
+          },
+          { meta }
+        );
+
+        // Reflection LLM call (structured schema) must NOT be made
+        expect(llmCallsWithSchema).toBe(0);
+        // selectRuntimeReceipt called only once (no reflection re-run)
+        expect(selectCallCount).toBe(1);
+      } finally {
+        selectReceiptSpy.mockRestore();
+        callLlmSpy.mockRestore();
+        executeReceiptSpy.mockRestore();
+      }
+    });
+
+    it('does not attempt reflection when no receipt is selected (existing consultation path unchanged)', async () => {
+      const svc = broker.getLocalService('personal-agent');
+
+      const selectReceiptSpy = jest.spyOn(svc, 'selectRuntimeReceipt').mockResolvedValue({
+        selected: false,
+        receiptId: null,
+        mode: 'none',
+        score: null,
+        status: null,
+        warnings: [],
+        diagnostics: null,
+        selectedReceipt: null,
+        evaluation: null,
+        execution: { used: false, executor: null, fallbackReason: 'no_selected_receipt' },
+        knowledgeEvidence: null,
+      });
+
+      let llmCallsWithSchema = 0;
+      const callLlmSpy = jest
+        .spyOn(svc, 'callLlmGenerate')
+        .mockImplementation(async (_ctx, payload) => {
+          if (payload?.schema?.properties?.resolvedContextPatch) llmCallsWithSchema += 1;
+          if (String(payload?.system || '').includes('Synthese')) {
+            return {
+              data: {
+                reply: 'Normale Beratung.',
+                hypotheses: [],
+                openQuestions: [],
+                nextActions: [],
+                factsUsed: [],
+              },
+            };
+          }
+          return { text: JSON.stringify({ mode: 'final', thought: 'done', reply: 'ok' }) };
+        });
+
+      const sessionId = `reflection-no-receipt-${Date.now()}`;
+      const meta = { tenantId: 'tenant-reflection-no-receipt', authUser: { userId: 'u5' } };
+
+      try {
+        const result = await broker.call(
+          'personal-agent.chat',
+          {
+            message: 'Allgemeine Frage ohne passendes Receipt.',
+            chatMode: 'consultation',
+            executionMode: 'auto',
+            sessionId,
+            knownContext: {},
+          },
+          { meta }
+        );
+
+        expect(result.success).toBe(true);
+        // No reflection LLM call
+        expect(llmCallsWithSchema).toBe(0);
+        // agentTrace.reflection should be absent or undefined
+        expect(result.agentTrace?.reflection).toBeUndefined();
+      } finally {
+        selectReceiptSpy.mockRestore();
+        callLlmSpy.mockRestore();
+      }
+    });
+
+    it('does not emit a Work Out Loud event during reflection', async () => {
+      const svc = broker.getLocalService('personal-agent');
+
+      const selectReceiptSpy = jest
+        .spyOn(svc, 'selectRuntimeReceipt')
+        .mockImplementation(async (_ctx, payload) => {
+          const kc = payload?.context?.knownContext || payload?.input?.knownContext || {};
+          const hasCity = typeof kc.city === 'string' && kc.city.trim().length > 0;
+          return {
+            selected: true,
+            receiptId: 'generic-fixture-v1',
+            mode: 'matched',
+            score: 80,
+            status: 'active',
+            warnings: [],
+            diagnostics: null,
+            selectedReceipt: makeFixtureReceipt(),
+            evaluation: hasCity ? makeExecutableEval() : makeScopeBlockedEval(),
+            execution: { used: false, executor: null, fallbackReason: null },
+            knowledgeEvidence: null,
+          };
+        });
+
+      const callLlmSpy = jest
+        .spyOn(svc, 'callLlmGenerate')
+        .mockImplementation(async (_ctx, payload) => {
+          if (payload?.schema) {
+            return {
+              resolvedContextPatch: { city: 'Neustadt' },
+              confidence: 'high',
+              evidence: 'Neustadt im Text',
+              unresolvedScopes: [],
+            };
+          }
+          if (String(payload?.system || '').includes('Synthese')) {
+            return {
+              data: {
+                reply: 'Beratung.',
+                hypotheses: [],
+                openQuestions: [],
+                nextActions: [],
+                factsUsed: [],
+              },
+            };
+          }
+          return { text: JSON.stringify({ mode: 'final', thought: 'done', reply: 'ok' }) };
+        });
+
+      const sessionId = `reflection-wol-${Date.now()}`;
+      const meta = { tenantId: 'tenant-reflection-wol', authUser: { userId: 'u6' } };
+      const beforeEventCount = emittedEvents.filter(
+        (e) => e.eventName === 'personal-agent.work-out-loud'
+      ).length;
+
+      try {
+        await broker.call(
+          'personal-agent.chat',
+          {
+            message: 'Anfrage in Neustadt.',
+            chatMode: 'consultation',
+            executionMode: 'auto',
+            sessionId,
+            knownContext: {},
+          },
+          { meta }
+        );
+
+        const wolEventsAfter = emittedEvents.filter(
+          (e) => e.eventName === 'personal-agent.work-out-loud'
+        ).length;
+
+        // Reflection must not emit any Work Out Loud event.
+        // The count before and after must be identical: no WOL event is emitted
+        // by buildReflectionPrompt, validateReflectionPatch, or the reflection
+        // LLM call path inside the service.
+        expect(wolEventsAfter).toBe(beforeEventCount);
+      } finally {
+        selectReceiptSpy.mockRestore();
+        callLlmSpy.mockRestore();
+      }
+    });
+
+    it('executeWithReceipt receives the patched context, not the original brokerKnownContext', async () => {
+      const svc = broker.getLocalService('personal-agent');
+
+      const selectReceiptSpy = jest
+        .spyOn(svc, 'selectRuntimeReceipt')
+        .mockImplementation(async (_ctx, payload) => {
+          const kc = payload?.context?.knownContext || payload?.input?.knownContext || {};
+          const hasCity = typeof kc.city === 'string' && kc.city.trim().length > 0;
+          return {
+            selected: true,
+            receiptId: 'generic-fixture-v1',
+            mode: 'matched',
+            score: 85,
+            status: 'active',
+            warnings: [],
+            diagnostics: null,
+            selectedReceipt: makeFixtureReceipt(),
+            evaluation: hasCity ? makeExecutableEval() : makeScopeBlockedEval(),
+            execution: { used: false, executor: null, fallbackReason: null },
+            knowledgeEvidence: null,
+          };
+        });
+
+      const callLlmSpy = jest
+        .spyOn(svc, 'callLlmGenerate')
+        .mockImplementation(async (_ctx, payload) => {
+          if (payload?.schema?.properties?.resolvedContextPatch) {
+            return {
+              resolvedContextPatch: { city: 'PatchedCity', postalCode: '99999' },
+              confidence: 'high',
+              evidence: 'PatchedCity aus Prompt',
+              unresolvedScopes: [],
+            };
+          }
+          if (String(payload?.system || '').includes('Synthese')) {
+            return {
+              data: {
+                reply: 'Ergebnis.',
+                hypotheses: [],
+                openQuestions: [],
+                nextActions: [],
+                factsUsed: [],
+              },
+            };
+          }
+          return { text: JSON.stringify({ mode: 'final', thought: 'done', reply: 'ok' }) };
+        });
+
+      // Spy on buildReceiptExecutionContext to capture the knownContext it receives.
+      // This is the correct interception point because executeWithReceipt is a
+      // closed-over module-level binding in the service.
+      let capturedKnownContext = null;
+      const origBuildCtx = svc.buildReceiptExecutionContext.bind(svc);
+      const buildCtxSpy = jest
+        .spyOn(svc, 'buildReceiptExecutionContext')
+        .mockImplementation((args) => {
+          capturedKnownContext = args?.knownContext ?? null;
+          return origBuildCtx(args);
+        });
+
+      const sessionId = `reflection-ctx-${Date.now()}`;
+      const meta = { tenantId: 'tenant-reflection-ctx', authUser: { userId: 'u7' } };
+
+      try {
+        const result = await broker.call(
+          'personal-agent.chat',
+          {
+            message: 'Anfrage ohne initialen Kontext.',
+            chatMode: 'consultation',
+            executionMode: 'auto',
+            sessionId,
+            knownContext: {}, // no city initially
+          },
+          { meta }
+        );
+
+        expect(result.success).toBe(true);
+
+        // Reflection must have resolved
+        expect(result.agentTrace?.reflection?.outcome).toBe('resolved');
+
+        // buildReceiptExecutionContext must have been called with the patched city
+        expect(capturedKnownContext).not.toBeNull();
+        expect(capturedKnownContext.city).toBe('PatchedCity');
+        expect(capturedKnownContext.postalCode).toBe('99999');
+      } finally {
+        selectReceiptSpy.mockRestore();
+        callLlmSpy.mockRestore();
+        buildCtxSpy.mockRestore();
+      }
+    });
+  });
 });
