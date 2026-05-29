@@ -248,6 +248,202 @@ function isActionUnavailable(error) {
   );
 }
 
+function sanitizeReflectionContextValue(value, maxLen = 120) {
+  if (value == null) return null;
+  return String(value)
+    .replace(/(authorization|api[_-]?key|token|bearer)\s*[:=]\s*[^\s,;]+/gi, '$1=[REDACTED]')
+    .replace(/\bBearer\s+[A-Za-z0-9._-]+\b/gi, 'Bearer [REDACTED]')
+    .replace(/\b(?:sk|ck)_[A-Za-z0-9_-]+\b/g, '[REDACTED]')
+    .replace(/\s+/g, ' ')
+    .slice(0, maxLen)
+    .trim();
+}
+
+function isReflectionContextSuspiciousKey(key = '') {
+  const normalized = String(key || '').toLowerCase();
+  return (
+    normalized.includes('l4') ||
+    normalized.includes('toolcontext') ||
+    normalized.includes('tool_context') ||
+    normalized.includes('raw') ||
+    normalized.includes('payload') ||
+    normalized.includes('response') ||
+    normalized.includes('hems') ||
+    normalized.includes('nap') ||
+    normalized.includes('inhouse') ||
+    normalized.includes('tenant') ||
+    normalized.includes('session') ||
+    normalized.includes('auth') ||
+    normalized.includes('token') ||
+    normalized.includes('secret') ||
+    normalized.includes('attachment') ||
+    normalized.includes('datasource') ||
+    normalized.includes('result')
+  );
+}
+
+function isReflectionContextSuspiciousValue(value = '') {
+  const normalized = String(value || '').toLowerCase();
+  return (
+    normalized.includes('tenant:') ||
+    normalized.includes('session:') ||
+    normalized.includes('layer4') ||
+    normalized.includes('l4') ||
+    normalized.includes('hems') ||
+    normalized.includes('nap') ||
+    normalized.includes('inhouse') ||
+    normalized.includes('toolcontext') ||
+    normalized.includes('responseRaw'.toLowerCase()) ||
+    normalized.includes('datasource-cache.query')
+  );
+}
+
+function sanitizeKnownContextForReflectionPrompt(knownContext = {}) {
+  if (!knownContext || typeof knownContext !== 'object' || Array.isArray(knownContext)) {
+    return {};
+  }
+
+  const sanitized = {};
+  for (const [key, value] of Object.entries(knownContext)) {
+    if (value == null || value === '') continue;
+    if (isReflectionContextSuspiciousKey(key)) continue;
+
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      const safeValue = sanitizeReflectionContextValue(value, 140);
+      if (!safeValue || isReflectionContextSuspiciousValue(safeValue)) continue;
+      sanitized[key] = safeValue;
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      const preview = value
+        .filter((entry) => entry != null)
+        .slice(0, 3)
+        .map((entry) => sanitizeReflectionContextValue(entry, 80))
+        .filter((entry) => entry && !isReflectionContextSuspiciousValue(entry));
+      if (preview.length > 0) {
+        sanitized[key] = preview.join(', ');
+      }
+      continue;
+    }
+
+    if (typeof value === 'object') {
+      const compactEntries = Object.entries(value)
+        .filter(([nestedKey, nestedVal]) => {
+          if (nestedVal == null || nestedVal === '') return false;
+          if (isReflectionContextSuspiciousKey(nestedKey)) return false;
+          return (
+            typeof nestedVal === 'string' ||
+            typeof nestedVal === 'number' ||
+            typeof nestedVal === 'boolean'
+          );
+        })
+        .slice(0, 4)
+        .map(([nestedKey, nestedVal]) => {
+          const safeNestedVal = sanitizeReflectionContextValue(nestedVal, 80);
+          return [nestedKey, safeNestedVal];
+        })
+        .filter(([, nestedVal]) => nestedVal && !isReflectionContextSuspiciousValue(nestedVal));
+
+      if (compactEntries.length > 0) {
+        sanitized[key] = compactEntries.map(([k, v]) => `${k}=${v}`).join('; ');
+      }
+    }
+  }
+
+  return sanitized;
+}
+
+function flattenScopeViolations(evaluation = null) {
+  return (
+    Array.isArray(evaluation?.plannedToolCalls) ? evaluation.plannedToolCalls : []
+  ).flatMap((step) =>
+    Array.isArray(step?.scopeViolations)
+      ? step.scopeViolations
+          .filter((violation) => violation && typeof violation === 'object')
+          .map((violation) => ({
+            scope: violation.scope || null,
+            code: violation.code || null,
+            message: sanitizeReflectionContextValue(violation.message || '', 160),
+          }))
+      : []
+  );
+}
+
+function buildReceiptReflectionSummary(selection = null) {
+  if (!selection || typeof selection !== 'object') return null;
+  const evaluation = selection?.evaluation && typeof selection.evaluation === 'object'
+    ? selection.evaluation
+    : null;
+  const receiptIdCandidate =
+    selection?.receiptId || selection?.selectedReceipt?.receiptId || selection?.selectedReceipt?.id;
+  if (!receiptIdCandidate && !evaluation && selection?.selected !== true) {
+    return null;
+  }
+  const missingRequiredInputs = Array.isArray(evaluation?.missingRequiredInputs)
+    ? evaluation.missingRequiredInputs.filter((item) => typeof item === 'string' && item.trim())
+    : [];
+  const scopeViolations = flattenScopeViolations(evaluation);
+  const blockedSteps = Array.isArray(evaluation?.plannedToolCalls)
+    ? evaluation.plannedToolCalls.filter(
+        (step) => step?.status === 'scope-blocked' || step?.status === 'missing-input'
+      ).length
+    : 0;
+
+  return {
+    receiptId: receiptIdCandidate || null,
+    status: selection?.status || selection?.selectedReceipt?.status || null,
+    mode: selection?.mode || null,
+    score: typeof selection?.score === 'number' ? selection.score : null,
+    execution: {
+      used: selection?.execution?.used === true,
+      fallbackReason: selection?.execution?.fallbackReason || null,
+    },
+    evaluation: {
+      executable:
+        typeof evaluation?.executable === 'boolean' ? evaluation.executable : null,
+      missingRequiredInputsCount: missingRequiredInputs.length,
+      scopeViolationsCount: scopeViolations.length,
+      blockedStepsCount: blockedSteps,
+    },
+  };
+}
+
+function buildReceiptReflectionAuditSeed(selection = null) {
+  if (!selection || typeof selection !== 'object') return null;
+  const receiptSummary = buildReceiptReflectionSummary(selection);
+  if (!receiptSummary) return null;
+  const evaluation = selection?.evaluation && typeof selection.evaluation === 'object'
+    ? selection.evaluation
+    : null;
+  const missingRequiredInputs = Array.isArray(evaluation?.missingRequiredInputs)
+    ? evaluation.missingRequiredInputs.filter((item) => typeof item === 'string' && item.trim())
+    : [];
+  const scopeViolations = flattenScopeViolations(evaluation);
+
+  return {
+    attempted: false,
+    outcome: 'unavailable',
+    initialExecutable:
+      typeof evaluation?.executable === 'boolean' ? evaluation.executable : null,
+    initialBlocked:
+      typeof evaluation?.executable === 'boolean' ? evaluation.executable === false : null,
+    initialMissingRequiredInputs: missingRequiredInputs,
+    initialScopeViolations: scopeViolations,
+    validationOutcome: 'not-performed',
+    rejectedKeys: [],
+    resolvedFields: [],
+    confidence: null,
+    evidence: '',
+    unresolvedScopes: [],
+    reEvaluation: {
+      performed: false,
+      executable: null,
+    },
+    receipt: receiptSummary,
+  };
+}
+
 /**
  * Detects a Moleculer parameter validation error that slipped past preflight.
  * These should be converted to a structured PREFLIGHT_MISS signal instead of
@@ -2556,7 +2752,9 @@ module.exports = {
           // ═══ Consultation-to-Execution Bridge ═══
           let executionReadiness = null;
           let consultationPlanResults = null;
-          let receiptReflectionResult = null; // v0.57.5 #158
+          let receiptReflectionResult = buildReceiptReflectionAuditSeed(
+            receiptSelectionResult
+          ); // v0.57.5 #158
           // effectiveReceiptContext carries the hydrated context into executeWithReceipt.
           // Starts as brokerKnownContext; upgraded to patchedContext after a successful reflection.
           let effectiveReceiptContext = brokerKnownContext || {}; // v0.57.5 #158
@@ -2597,13 +2795,7 @@ module.exports = {
                 const missingRequiredInputs = Array.isArray(reflectionEval?.missingRequiredInputs)
                   ? reflectionEval.missingRequiredInputs
                   : [];
-                const scopeViolations = (
-                  Array.isArray(reflectionEval?.plannedToolCalls)
-                    ? reflectionEval.plannedToolCalls
-                    : []
-                ).flatMap((step) =>
-                  Array.isArray(step?.scopeViolations) ? step.scopeViolations : []
-                );
+                const scopeViolations = flattenScopeViolations(reflectionEval);
 
                 // Source: current session only (tenant-scoped, sanitized by #149 infrastructure)
                 const recentHistory = this.buildConsultationRecentHistoryWindow(session);
@@ -2611,7 +2803,9 @@ module.exports = {
                 const { system: reflSystem, user: reflUser } = buildReflectionPrompt({
                   userMessage: ctx.params.message,
                   consultationHistory: recentHistory,
-                  knownContext: brokerKnownContext || {},
+                  knownContext: sanitizeKnownContextForReflectionPrompt(
+                    brokerKnownContext || {}
+                  ),
                   missingRequiredInputs,
                   scopeViolations,
                   receiptId: receiptSelectionResult.receiptId || null,
@@ -2704,39 +2898,71 @@ module.exports = {
                   }
 
                   receiptReflectionResult = {
+                    ...(receiptReflectionResult || {}),
                     attempted: true,
                     outcome: reflectionResolved ? 'resolved' : 'still-blocked',
+                    validationOutcome:
+                      rejectedKeys.length > 0 ? 'accepted-with-rejections' : 'accepted',
                     resolvedFields: patchedFields,
                     confidence: rawConfidence,
                     evidence: String(rawEvidence).slice(0, 300),
                     unresolvedScopes: rawUnresolvedScopes,
                     rejectedKeys,
+                    reEvaluation: {
+                      performed: true,
+                      executable: reflectedResult?.evaluation?.executable === true,
+                    },
+                    receipt: buildReceiptReflectionSummary(receiptSelectionResult),
                   };
                 } else {
                   receiptReflectionResult = {
+                    ...(receiptReflectionResult || {}),
                     attempted: true,
                     outcome: 'validation-rejected',
+                    validationOutcome: 'rejected',
                     resolvedFields: [],
                     confidence: rawConfidence,
                     evidence: String(rawEvidence).slice(0, 300),
                     unresolvedScopes: rawUnresolvedScopes,
                     rejectedKeys,
+                    reEvaluation: {
+                      performed: false,
+                      executable: null,
+                    },
+                    receipt: buildReceiptReflectionSummary(receiptSelectionResult),
                   };
                 }
               } catch (reflectionError) {
                 this.logger?.warn(
                   `Receipt reflection attempt failed: ${reflectionError.message}`
                 );
+                const reflectionOutcome =
+                  isActionUnavailable(reflectionError) || isNotFound(reflectionError)
+                    ? 'unavailable'
+                    : 'llm-error';
                 receiptReflectionResult = {
+                  ...(receiptReflectionResult || {}),
                   attempted: true,
-                  outcome: 'error',
+                  outcome: reflectionOutcome,
+                  validationOutcome: 'not-performed',
                   resolvedFields: [],
                   confidence: 'low',
                   evidence: '',
                   unresolvedScopes: [],
                   rejectedKeys: [],
+                  reEvaluation: {
+                    performed: false,
+                    executable: null,
+                  },
+                  receipt: buildReceiptReflectionSummary(receiptSelectionResult),
                 };
               }
+            }
+
+            if (receiptReflectionResult && receiptSelectionResult) {
+              receiptReflectionResult.receipt = buildReceiptReflectionSummary(
+                receiptSelectionResult
+              );
             }
             // ─────────────────────────────────────────────────
 

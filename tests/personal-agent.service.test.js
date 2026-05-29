@@ -2668,7 +2668,6 @@ describe('personal-agent.service', () => {
       'vdmi.negotiationTrace',
       'vdmi.agentRole',
     ]);
-
     expect(result.presentationApplied).toBe(true);
     expect(result.presentationType).toBe('vdmi_matrix_table');
     expect(result.presentation).toBeTruthy();
@@ -6411,7 +6410,7 @@ describe('personal-agent.service', () => {
       },
     });
 
-    it('receipt becomes executable after reflection resolves missing location scope', async () => {
+    it('scope-blocked receipt becomes executable via extracted location-like context from prompt/session', async () => {
       const svc = broker.getLocalService('personal-agent');
 
       // agent-receipts.select call count tracking
@@ -6427,8 +6426,11 @@ describe('personal-agent.service', () => {
             payload?.context?.knownContext ||
             payload?.input?.knownContext ||
             {};
-          const hasLocation =
-            typeof knownContext.city === 'string' && knownContext.city.trim().length > 0;
+          const locationFields = ['city', 'postalCode', 'location', 'municipality'];
+          const hasLocation = locationFields.some(
+            (field) =>
+              typeof knownContext[field] === 'string' && knownContext[field].trim().length > 0
+          );
 
           return {
             selected: true,
@@ -6454,9 +6456,9 @@ describe('personal-agent.service', () => {
           // Reflection call: schema has resolvedContextPatch → return structured patch
           if (payload?.schema?.properties?.resolvedContextPatch) {
             return {
-              resolvedContextPatch: { city: 'Teststadt', postalCode: '12345' },
+              resolvedContextPatch: { location: 'Mauer-Nord Quartier' },
               confidence: 'high',
-              evidence: 'Teststadt aus Nutzeranfrage',
+              evidence: 'Standortbezug aus Anfrage und Sitzung',
               unresolvedScopes: [],
             };
           }
@@ -6488,11 +6490,13 @@ describe('personal-agent.service', () => {
         const result = await broker.call(
           'personal-agent.chat',
           {
-            message: 'Bitte hilf mir mit meiner Anfrage in Teststadt 12345.',
+            message: 'Bitte prüfe den Anschluss im Mauer-Nord Quartier.',
             chatMode: 'consultation',
             executionMode: 'auto',
             sessionId,
-            knownContext: {},
+            knownContext: {
+              locationHint: 'Mauer-Nord Quartier',
+            },
           },
           { meta }
         );
@@ -6504,7 +6508,32 @@ describe('personal-agent.service', () => {
         expect(reflection).toBeDefined();
         expect(reflection.attempted).toBe(true);
         expect(reflection.outcome).toBe('resolved');
-        expect(reflection.resolvedFields).toEqual(expect.arrayContaining(['city', 'postalCode']));
+        expect(reflection.initialExecutable).toBe(false);
+        expect(reflection.initialBlocked).toBe(true);
+        expect(reflection.initialMissingRequiredInputs).toEqual(
+          expect.arrayContaining(['city', 'postalCode'])
+        );
+        expect(reflection.initialScopeViolations).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              scope: 'locationScope',
+              code: 'RECEIPT_SCOPE_NOT_RESOLVED',
+            }),
+          ])
+        );
+        expect(reflection.validationOutcome).toBe('accepted');
+        expect(reflection.resolvedFields).toEqual(expect.arrayContaining(['location']));
+        expect(reflection.reEvaluation).toEqual(
+          expect.objectContaining({ performed: true, executable: true })
+        );
+        expect(reflection.receipt).toEqual(
+          expect.objectContaining({
+            receiptId: 'generic-fixture-v1',
+            mode: 'matched',
+            score: 85,
+            evaluation: expect.objectContaining({ executable: true }),
+          })
+        );
 
         // selectRuntimeReceipt called twice: initial + one reflection re-run
         expect(selectCallCount).toBe(2);
@@ -6594,6 +6623,22 @@ describe('personal-agent.service', () => {
         expect(reflection).toBeDefined();
         expect(reflection.attempted).toBe(true);
         expect(reflection.outcome).toBe('still-blocked');
+        expect(reflection.initialExecutable).toBe(false);
+        expect(reflection.initialBlocked).toBe(true);
+        expect(reflection.initialMissingRequiredInputs).toEqual(
+          expect.arrayContaining(['city', 'postalCode'])
+        );
+        expect(reflection.validationOutcome).toBe('accepted');
+        expect(reflection.reEvaluation).toEqual(
+          expect.objectContaining({ performed: true, executable: false })
+        );
+        expect(reflection.receipt).toEqual(
+          expect.objectContaining({
+            receiptId: 'generic-fixture-v1',
+            evaluation: expect.objectContaining({ executable: false }),
+            execution: expect.objectContaining({ used: false }),
+          })
+        );
       } finally {
         selectReceiptSpy.mockRestore();
         callLlmSpy.mockRestore();
@@ -6603,21 +6648,25 @@ describe('personal-agent.service', () => {
     it('rejects non-whitelisted keys from the reflection patch', async () => {
       const svc = broker.getLocalService('personal-agent');
 
+      let selectCallCount = 0;
       const selectReceiptSpy = jest
         .spyOn(svc, 'selectRuntimeReceipt')
-        .mockImplementation(async () => ({
-          selected: true,
-          receiptId: 'generic-fixture-v1',
-          mode: 'matched',
-          score: 80,
-          status: 'active',
-          warnings: [],
-          diagnostics: null,
-          selectedReceipt: makeFixtureReceipt(),
-          evaluation: makeScopeBlockedEval(),
-          execution: { used: false, executor: null, fallbackReason: null },
-          knowledgeEvidence: null,
-        }));
+        .mockImplementation(async () => {
+          selectCallCount += 1;
+          return {
+            selected: true,
+            receiptId: 'generic-fixture-v1',
+            mode: 'matched',
+            score: 80,
+            status: 'active',
+            warnings: [],
+            diagnostics: null,
+            selectedReceipt: makeFixtureReceipt(),
+            evaluation: makeScopeBlockedEval(),
+            execution: { used: false, executor: null, fallbackReason: null },
+            knowledgeEvidence: null,
+          };
+        });
 
       const callLlmSpy = jest
         .spyOn(svc, 'callLlmGenerate')
@@ -6626,7 +6675,6 @@ describe('personal-agent.service', () => {
             return {
               // includes non-whitelisted keys
               resolvedContextPatch: {
-                city: 'Testort',
                 __proto__: 'injected',
                 internalSecret: 'leaked',
                 tenantId: 'other-tenant',
@@ -6671,10 +6719,105 @@ describe('personal-agent.service', () => {
         const reflection = result.agentTrace?.reflection;
         expect(reflection).toBeDefined();
         expect(reflection.attempted).toBe(true);
+        expect(reflection.outcome).toBe('validation-rejected');
+        expect(reflection.validationOutcome).toBe('rejected');
         // Non-whitelisted keys must appear in rejectedKeys
         expect(reflection.rejectedKeys).toEqual(
           expect.arrayContaining(['internalSecret', 'tenantId'])
         );
+        expect(reflection.reEvaluation).toEqual(
+          expect.objectContaining({ performed: false, executable: null })
+        );
+        expect(reflection.receipt).toEqual(
+          expect.objectContaining({
+            execution: expect.objectContaining({ used: false }),
+            evaluation: expect.objectContaining({ executable: false }),
+          })
+        );
+        // validation-rejected must not run re-evaluation / receipt execution
+        expect(selectCallCount).toBe(1);
+      } finally {
+        selectReceiptSpy.mockRestore();
+        callLlmSpy.mockRestore();
+      }
+    });
+
+    it('sanitizes knownContext before reflection prompt and blocks cross-session/cross-tenant/raw markers', async () => {
+      const svc = broker.getLocalService('personal-agent');
+
+      const selectReceiptSpy = jest.spyOn(svc, 'selectRuntimeReceipt').mockResolvedValue({
+        selected: true,
+        receiptId: 'generic-fixture-v1',
+        mode: 'matched',
+        score: 80,
+        status: 'active',
+        warnings: [],
+        diagnostics: null,
+        selectedReceipt: makeFixtureReceipt(),
+        evaluation: makeScopeBlockedEval(),
+        execution: { used: false, executor: null, fallbackReason: null },
+        knowledgeEvidence: null,
+      });
+
+      let capturedReflectionPrompt = null;
+      const callLlmSpy = jest
+        .spyOn(svc, 'callLlmGenerate')
+        .mockImplementation(async (_ctx, payload) => {
+          if (payload?.schema?.properties?.resolvedContextPatch) {
+            capturedReflectionPrompt = String(payload?.user || '');
+            return {
+              resolvedContextPatch: {
+                internalSecret: 'blocked',
+              },
+              confidence: 'low',
+              evidence: 'keine erlaubten Felder',
+              unresolvedScopes: ['locationScope'],
+            };
+          }
+          if (String(payload?.system || '').includes('Synthese')) {
+            return {
+              data: {
+                reply: 'Beratung.',
+                hypotheses: [],
+                openQuestions: [],
+                nextActions: [],
+                factsUsed: [],
+              },
+            };
+          }
+          return { text: JSON.stringify({ mode: 'final', thought: 'done', reply: 'ok' }) };
+        });
+
+      const sessionId = `reflection-sanitize-${Date.now()}`;
+      const meta = { tenantId: 'tenant-reflection-sanitize', authUser: { userId: 'u8' } };
+
+      try {
+        const result = await broker.call(
+          'personal-agent.chat',
+          {
+            message: 'Bitte prüfe meinen Anschluss im Nordquartier.',
+            chatMode: 'consultation',
+            executionMode: 'auto',
+            sessionId,
+            knownContext: {
+              city: 'Nordquartier',
+              tenantShadow: 'cross-tenant-string-should-not-leak',
+              foreignSessionRef: 'foreign-session-token-should-not-leak',
+              contextMemoA: 'L4 marker should not appear in prompt',
+              contextMemoB: 'HEMS marker should not appear in prompt',
+              contextMemoC: 'NAP marker should not appear in prompt',
+              contextMemoD: 'INHOUSE marker should not appear in prompt',
+            },
+          },
+          { meta }
+        );
+
+        expect(result.success).toBe(true);
+        expect(capturedReflectionPrompt).toBeTruthy();
+        expect(capturedReflectionPrompt).toContain('Bekannter Kontext');
+        expect(capturedReflectionPrompt).not.toContain('cross-tenant-string-should-not-leak');
+        expect(capturedReflectionPrompt).not.toContain('foreign-session-token-should-not-leak');
+        expect(capturedReflectionPrompt).not.toMatch(/\b(l4|hems|nap|inhouse)\b/i);
       } finally {
         selectReceiptSpy.mockRestore();
         callLlmSpy.mockRestore();
