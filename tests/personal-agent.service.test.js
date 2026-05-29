@@ -10,6 +10,10 @@ const PresentationService = require('../services/presentation.service');
 const PersonalAgentService = require('../services/personal-agent.service');
 const jobStore = require('../src/job-store');
 const { WORKFLOW_TYPES } = require('../src/consultation-execution-bridge');
+const {
+  PERSONAL_AGENT_WORK_OUT_LOUD_EVENT,
+  WORK_OUT_LOUD_SIGNAL_TYPES,
+} = require('../src/personal-agent-work-out-loud');
 
 describe('personal-agent.service', () => {
   let broker;
@@ -20,6 +24,7 @@ describe('personal-agent.service', () => {
   let hitlItems;
   let personaDirectory;
   let seedPersona;
+  let emittedEvents;
 
   beforeEach(async () => {
     objectStorePath = path.join(os.tmpdir(), `personal-agent-store-${Date.now()}-${Math.random()}`);
@@ -28,6 +33,7 @@ describe('personal-agent.service', () => {
     executedCallDetails = [];
     hitlItems = new Map();
     personaDirectory = new Map();
+    emittedEvents = [];
     seedPersona = (tenantId, overrides = {}) => {
       const list = personaDirectory.get(tenantId) || [];
       const persona = {
@@ -44,6 +50,11 @@ describe('personal-agent.service', () => {
       return persona;
     };
     broker = new ServiceBroker({ logger: false });
+    const originalEmit = broker.emit.bind(broker);
+    broker.emit = (eventName, payload, groups) => {
+      emittedEvents.push({ eventName, payload });
+      return originalEmit(eventName, payload, groups);
+    };
     broker.createService({
       ...ObjectStoreService,
       settings: {
@@ -1233,6 +1244,141 @@ describe('personal-agent.service', () => {
     );
 
     expect(hydrated.gridOperatorName).toBe('Pfalzwerken');
+  });
+
+  it('emits Work Out Loud bootstrap event when organizationType is learned', async () => {
+    await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte im Mandantenkontext starten.',
+        knownContext: {
+          organizationType: 'utility',
+        },
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    const bootstrapEvents = emittedEvents.filter(
+      (entry) =>
+        entry.eventName === PERSONAL_AGENT_WORK_OUT_LOUD_EVENT &&
+        entry.payload?.signal?.type === WORK_OUT_LOUD_SIGNAL_TYPES.BOOTSTRAP_CONTEXT_UPDATED
+    );
+
+    expect(bootstrapEvents).toHaveLength(1);
+    expect(bootstrapEvents[0].payload).toMatchObject({
+      tenantId: 'tenant-a',
+      userId: 'user-1',
+      agentId: 'personal-agent',
+      signal: {
+        type: 'bootstrap_context_updated',
+        category: 'organization',
+        value: 'utility',
+      },
+      relevance: {
+        suggestedCapabilities: [],
+        suggestedRoles: [],
+      },
+      evidence: {
+        sourceKind: 'bootstrap_context',
+        contextField: 'organizationType',
+        scope: 'user',
+      },
+    });
+  });
+
+  it('emits Work Out Loud scoped fact event when roleId is learned from knownContext', async () => {
+    await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Ich arbeite in der Netzplanung.',
+        knownContext: {
+          roleId: 'grid_planner',
+        },
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    const scopedEvents = emittedEvents.filter(
+      (entry) =>
+        entry.eventName === PERSONAL_AGENT_WORK_OUT_LOUD_EVENT &&
+        entry.payload?.signal?.type === WORK_OUT_LOUD_SIGNAL_TYPES.SCOPED_FACT_LEARNED &&
+        entry.payload?.evidence?.contextField === 'roleId'
+    );
+
+    expect(scopedEvents).toHaveLength(1);
+    expect(scopedEvents[0].payload).toMatchObject({
+      tenantId: 'tenant-a',
+      userId: 'user-1',
+      signal: {
+        type: 'scoped_fact_learned',
+        category: 'role',
+        value: 'grid_planner',
+      },
+      relevance: {
+        suggestedCapabilities: [],
+        suggestedRoles: ['grid_planner'],
+      },
+      evidence: {
+        sourceKind: 'known_context',
+        contextField: 'roleId',
+        scope: 'role',
+        updateReason: 'known_context_merge',
+      },
+    });
+  });
+
+  it('emits onboarding Work Out Loud without leaking raw onboarding answer text', async () => {
+    const first = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+        chatMode: 'execution',
+        executionMode: 'auto',
+        knownContext: {
+          gridOperatorName: 'TWL Netze',
+          voltageLevel: 'MS',
+          ownerContact: 'netzplanung@twl.de',
+        },
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    emittedEvents.length = 0;
+
+    await broker.call(
+      'personal-agent.chat',
+      {
+        sessionId: first.sessionId,
+        message: 'Hybridprofil 5 MW, flexibel 2 MW',
+        chatMode: 'execution',
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    const onboardingEvents = emittedEvents.filter(
+      (entry) =>
+        entry.eventName === PERSONAL_AGENT_WORK_OUT_LOUD_EVENT &&
+        entry.payload?.signal?.type === WORK_OUT_LOUD_SIGNAL_TYPES.ONBOARDING_FACT_LEARNED
+    );
+
+    expect(onboardingEvents).toHaveLength(1);
+    expect(onboardingEvents[0].payload).toMatchObject({
+      tenantId: 'tenant-a',
+      userId: 'user-1',
+      signal: {
+        type: 'onboarding_fact_learned',
+        category: 'technical',
+        value: 'fnavProfile',
+      },
+      evidence: {
+        sourceKind: 'onboarding_answer',
+        contextField: 'fnavProfile',
+        scope: 'user',
+        updateReason: 'onboarding_answer',
+      },
+    });
+    expect(JSON.stringify(onboardingEvents[0].payload)).not.toContain('Hybridprofil 5 MW');
+    expect(JSON.stringify(onboardingEvents[0].payload)).not.toContain('flexibel 2 MW');
   });
 
   it('preserves working assumptions across turns and does not repeat the T1 onboarding question on a persisted follow-up', async () => {

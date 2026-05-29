@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- [src/personal-agent-work-out-loud.js](src/personal-agent-work-out-loud.js): new shared Work Out Loud event contract for internal broker event `personal-agent.work-out-loud`. Adds strict payload factory/validator, canonical signal enums, allowlist-only `evidence` sanitization, fixed technical `agentId` (`personal-agent`), and tenant-safe payload construction without raw prompt/tool/L4/HEMS/NAP leakage.
+- [services/personal-agent-work-out-loud-listener.service.js](services/personal-agent-work-out-loud-listener.service.js): new minimal, non-persistent listener service for `personal-agent.work-out-loud`. Validates payloads, rejects missing/invalid `tenantId`, and deliberately performs no database writes or tenant-candidate persistence in this milestone.
+
+### Changed
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): emits tenant-isolated `personal-agent.work-out-loud` events only on **material structured context changes**: bootstrap organization type establishment/update, new scoped knowledge datapoints derived from `knownContext`, and onboarding answers after they are converted into structured hydrated context. Emission is best-effort and uses shared contract helpers instead of inline payload assembly.
+
+### Tests
+
+- [tests/personal-agent-work-out-loud.test.js](tests/personal-agent-work-out-loud.test.js): new unit suite for schema validity, missing `tenantId` rejection, forbidden raw-like `evidence` fields, and no-leakage guarantees for onboarding-derived signals.
+- [tests/personal-agent-work-out-loud-listener.service.test.js](tests/personal-agent-work-out-loud-listener.service.test.js): new listener suite covering tenant rejection, valid payload acceptance, and broker-event handling without persistence side effects.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): extended with Personal Agent emission tests for bootstrap context learning, scoped fact learning, and onboarding no-leakage behavior.
+
 ## [0.57.4] — Work Out Loud hardening patch (2026-05-28)
 
 ### Fixed

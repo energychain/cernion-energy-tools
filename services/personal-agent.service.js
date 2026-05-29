@@ -121,6 +121,11 @@ const {
   createTurnWorkLog,
   getSafePersonaLabel,
 } = require('../src/personal-agent-work-log'); // v0.57.3
+const {
+  PERSONAL_AGENT_WORK_OUT_LOUD_EVENT,
+  WORK_OUT_LOUD_SIGNAL_TYPES,
+  buildContextFieldWorkOutLoudPayload,
+} = require('../src/personal-agent-work-out-loud');
 
 const OPENAPI_TAG = 'Personal Agent';
 const SESSION_NAMESPACE = process.env.PERSONAL_AGENT_SESSION_NAMESPACE || 'personal_agent_sessions';
@@ -1198,6 +1203,13 @@ module.exports = {
         // If incoming knownContext changes a decisive parameter (location,
         // operator, project), replace the stored resolvedParams to prevent
         // old-scenario context bleeding into the new turn.
+        const previousBootstrapContext = sanitizeBootstrapContext(session?.l3?.bootstrapContext || null);
+        const previousSessionKnowledgeScopeDataPoints = sanitizeScopedDatapoints(
+          session?.l3?.knowledgeScopeDataPoints || []
+        );
+        const previousUserKnowledgeScopeDataPoints = sanitizeScopedDatapoints(
+          session?.l2?.userProfile?.knowledgeScopeDataPoints || []
+        );
         const rawKnownContext =
           ctx.params.knownContext && typeof ctx.params.knownContext === 'object'
             ? ctx.params.knownContext
@@ -1246,6 +1258,18 @@ module.exports = {
           ...(session.l2?.userProfile || {}),
           knowledgeScopeDataPoints: scopedKnowledgeState.userDataPoints,
         };
+        this.emitBootstrapWorkOutLoudIfChanged(ctx, {
+          previousBootstrapContext,
+          nextBootstrapContext: bootstrapContext,
+          contextMutationMode: contextMutation.mode,
+        });
+        this.emitScopedKnowledgeWorkOutLoud(ctx, {
+          previousSessionDataPoints: previousSessionKnowledgeScopeDataPoints,
+          previousUserDataPoints: previousUserKnowledgeScopeDataPoints,
+          nextSessionDataPoints: scopedKnowledgeState.sessionDataPoints,
+          nextUserDataPoints: scopedKnowledgeState.userDataPoints,
+          knownContext: rawKnownContext,
+        });
         // ─────────────────────────────────────────────────────────────────
 
         const sessionHitlGate = await this.resolveSessionHitlResumeGate(ctx, {
@@ -8252,6 +8276,115 @@ module.exports = {
       return sanitizeBootstrapContext(bootstrapContext);
     },
 
+    emitWorkOutLoudSafe(ctx, payload) {
+      if (!payload) {
+        return null;
+      }
+
+      try {
+        this.broker.emit(PERSONAL_AGENT_WORK_OUT_LOUD_EVENT, payload);
+        return payload;
+      } catch (error) {
+        this.logger?.warn(
+          `personal-agent.work-out-loud emit failed for tenantId=${payload?.tenantId || 'n/a'}: ${error.message}`
+        );
+        return null;
+      }
+    },
+
+    emitBootstrapWorkOutLoudIfChanged(
+      ctx,
+      { previousBootstrapContext = null, nextBootstrapContext = null, contextMutationMode = 'append' } = {}
+    ) {
+      const before = sanitizeBootstrapContext(previousBootstrapContext);
+      const after = sanitizeBootstrapContext(nextBootstrapContext);
+
+      if (!after?.organizationType || after.organizationType === 'unknown') {
+        return null;
+      }
+
+      const sameOrganizationType = before?.organizationType === after.organizationType;
+      const sameStatus = before?.status === after.status;
+      if (sameOrganizationType && sameStatus) {
+        return null;
+      }
+
+      const payload = buildContextFieldWorkOutLoudPayload({
+        tenantId: getTenantId(ctx),
+        userId: String(ctx.meta?.authUser?.userId || 'anonymous'),
+        signalType: WORK_OUT_LOUD_SIGNAL_TYPES.BOOTSTRAP_CONTEXT_UPDATED,
+        contextField: 'organizationType',
+        rawValue: after.organizationType,
+        sourceKind: 'bootstrap_context',
+        scope: 'user',
+        updateReason: contextMutationMode === 'replace' ? 'context_replace' : 'context_append',
+        confidence: after.status === 'established' ? 1 : 0.9,
+      });
+
+      return this.emitWorkOutLoudSafe(ctx, payload);
+    },
+
+    emitScopedKnowledgeWorkOutLoud(
+      ctx,
+      {
+        previousSessionDataPoints = [],
+        previousUserDataPoints = [],
+        nextSessionDataPoints = [],
+        nextUserDataPoints = [],
+        knownContext = {},
+      } = {}
+    ) {
+      const previous = new Set(
+        [...previousSessionDataPoints, ...previousUserDataPoints].map(
+          (point) => `${point.scope}|${point.key}|${point.status}|${point.source}`
+        )
+      );
+      const next = [...nextSessionDataPoints, ...nextUserDataPoints];
+
+      for (const point of next) {
+        const diffKey = `${point.scope}|${point.key}|${point.status}|${point.source}`;
+        if (previous.has(diffKey)) {
+          continue;
+        }
+
+        const payload = buildContextFieldWorkOutLoudPayload({
+          tenantId: getTenantId(ctx),
+          userId: String(ctx.meta?.authUser?.userId || 'anonymous'),
+          signalType: WORK_OUT_LOUD_SIGNAL_TYPES.SCOPED_FACT_LEARNED,
+          contextField: point.key,
+          rawValue: knownContext?.[point.key],
+          sourceKind: point.source === 'knownContext' ? 'known_context' : 'scoped_knowledge',
+          scope: point.scope,
+          updateReason: 'known_context_merge',
+          confidence: 0.8,
+        });
+
+        this.emitWorkOutLoudSafe(ctx, payload);
+      }
+
+      return null;
+    },
+
+    emitOnboardingWorkOutLoud(ctx, { answer = null, hydratedContext = {} } = {}) {
+      if (!answer?.paramKey) {
+        return null;
+      }
+
+      const payload = buildContextFieldWorkOutLoudPayload({
+        tenantId: getTenantId(ctx),
+        userId: String(ctx.meta?.authUser?.userId || 'anonymous'),
+        signalType: WORK_OUT_LOUD_SIGNAL_TYPES.ONBOARDING_FACT_LEARNED,
+        contextField: answer.paramKey,
+        rawValue: hydratedContext?.[answer.paramKey],
+        sourceKind: 'onboarding_answer',
+        scope: 'user',
+        updateReason: 'onboarding_answer',
+        confidence: 0.85,
+      });
+
+      return this.emitWorkOutLoudSafe(ctx, payload);
+    },
+
     resolveScopedKnowledgeState({ session = {}, knownContext = {} } = {}) {
       const now = new Date().toISOString();
       const existingSession = sanitizeScopedDatapoints(session?.l3?.knowledgeScopeDataPoints || []);
@@ -9203,9 +9336,10 @@ module.exports = {
         ? session.l3.assumptions
         : [];
       let effectivePlan = plan;
+      let answer = null;
       if (pendingQuestion) {
         const explicitSwitch = detectExplicitChatModeSwitch(message);
-        const answer = explicitSwitch
+        answer = explicitSwitch
           ? null
           : captureOnboardingAnswer({ question: pendingQuestion, message });
         if (!answer) {
@@ -9251,6 +9385,13 @@ module.exports = {
       }
 
       const hydratedContext = this.hydrateKnownContextFromSession(knownContext, session);
+
+      if (answer) {
+        this.emitOnboardingWorkOutLoud(ctx, {
+          answer,
+          hydratedContext,
+        });
+      }
 
       const firstMissing = this.findFirstMissingStep(effectivePlan, hydratedContext);
       if (firstMissing) {
