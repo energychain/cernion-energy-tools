@@ -4982,8 +4982,120 @@ module.exports = {
               }))
             : [],
         toolTrace: [],
+        degradation: this.buildConsultationDegradation({
+          reason: options?.degradationReason || 'synthesis_budget_exhausted',
+          timeoutFallback: true,
+          recoveredFromEvidence: topFacts.length > 0,
+          userVisible: true,
+        }),
         ...(Array.isArray(options?.debugTrace) ? { debugTrace: options.debugTrace } : {}),
       };
+    },
+
+    buildConsultationOperationalDegradationReply(message = '', options = {}) {
+      const normalizedMessage = String(message || '').trim();
+
+      return {
+        reply:
+          'Der Beratungsmodus ist aktuell nur eingeschränkt verfügbar. ' +
+          'Die sprachliche Synthese konnte nicht zuverlässig abgeschlossen werden; ' +
+          'deshalb gebe ich keine belastbare fachliche Einordnung aus. ' +
+          'Wenn Sie möchten, kann ich stattdessen konkrete Prüfschritte im Ausführungs-Modus starten ' +
+          'oder gezielt die fehlenden Evidenzpunkte klären.',
+        hypotheses: [],
+        openQuestions: normalizedMessage
+          ? [
+              {
+                question: 'Soll ich direkt in den Ausführungs-Modus wechseln oder zuerst fehlende Evidenz sammeln?',
+                whyRelevant:
+                  'So bleibt das weitere Vorgehen transparent, obwohl die Synthese derzeit degradiert ist.',
+              },
+            ]
+          : [],
+        nextActions: [
+          {
+            action: 'Ausführungs-Modus verwenden',
+            description:
+              'Starte konkrete Prüfschritte statt einer rein sprachlichen Einordnung.',
+          },
+          {
+            action: 'Fehlende Evidenz klären',
+            description:
+              'Sammle erst belastbare Eingaben oder Tool-Evidenz für eine spätere Bewertung.',
+          },
+        ],
+        factsUsed: normalizedMessage
+          ? [
+              {
+                source: 'user_prompt',
+                value: normalizedMessage.slice(0, 280),
+              },
+            ]
+          : [],
+        degradation: this.buildConsultationDegradation({
+          reason: options?.reason || 'non_agentic_synthesis_unavailable',
+          timeoutFallback: options?.timeoutFallback !== false,
+          recoveredFromEvidence: false,
+          userVisible: true,
+        }),
+        ...(Array.isArray(options?.debugTrace) ? { debugTrace: options.debugTrace } : {}),
+      };
+    },
+
+    buildConsultationDegradation({
+      reason = 'consultation_degraded',
+      timeoutFallback = false,
+      recoveredFromEvidence = false,
+      userVisible = true,
+    } = {}) {
+      return {
+        active: true,
+        code: 'CONSULTATION_SYNTHESIS_DEGRADED',
+        phase: 'consultation_synthesis',
+        reason: String(reason || 'consultation_degraded').slice(0, 80),
+        timeoutFallback: Boolean(timeoutFallback),
+        recoveredFromEvidence: Boolean(recoveredFromEvidence),
+        userVisible: Boolean(userVisible),
+      };
+    },
+
+    deriveConsultationDegradation(result = {}, { timeoutFallback = false } = {}) {
+      if (result?.degradation && typeof result.degradation === 'object') {
+        return result.degradation;
+      }
+
+      const debugTrace = Array.isArray(result?.debugTrace) ? result.debugTrace : [];
+      if (debugTrace.length === 0 && !timeoutFallback) {
+        return null;
+      }
+
+      const fallbackEvent = debugTrace.find(
+        (event) => event?.type === 'consultation_fallback_selected'
+      );
+      const synthesisNullEvent = debugTrace.find(
+        (event) => event?.type === 'consultation_synthesis_null'
+      );
+      const synthesisErrorEvent = debugTrace.find(
+        (event) => event?.type === 'consultation_synthesis_error'
+      );
+      const synthesisSkippedEvent = debugTrace.find(
+        (event) => event?.type === 'consultation_synthesis_skipped'
+      );
+      const recoveredFromEvidence =
+        fallbackEvent?.branch === 'observation_summary_reply' ||
+        (Array.isArray(result?.factsUsed) && result.factsUsed.length > 0 && !timeoutFallback);
+
+      return this.buildConsultationDegradation({
+        reason:
+          fallbackEvent?.reason ||
+          synthesisNullEvent?.reason ||
+          synthesisErrorEvent?.errorCode ||
+          synthesisSkippedEvent?.reason ||
+          (timeoutFallback ? 'timeout_fallback' : 'consultation_degraded'),
+        timeoutFallback,
+        recoveredFromEvidence,
+        userVisible: true,
+      });
     },
 
     buildConsultationVnbUncertaintyNote(message = '', observations = []) {
@@ -6503,6 +6615,9 @@ module.exports = {
 
       const finalizeConsultationResult = (result, { timeoutFallback = false } = {}) => {
         const normalizedResult = result && typeof result === 'object' ? result : {};
+        const degradation = this.deriveConsultationDegradation(normalizedResult, {
+          timeoutFallback,
+        });
         const responsePolicyContract = this.buildResponsePolicyContract({
           message,
           workflowType:
@@ -6535,6 +6650,7 @@ module.exports = {
           missingEvidence: responsePolicyContract.missingEvidence,
           nextVerificationSteps: responsePolicyContract.nextVerificationSteps,
           guardrailCorrections: guarded.guardrailCorrections,
+          ...(degradation ? { degradation } : {}),
         };
       };
 
@@ -6572,45 +6688,17 @@ module.exports = {
         );
       }
 
-      const fallback = {
-        reply:
-          'Ich ordne die Lage vorläufig ein: Eine Abregelung hängt typischerweise von lokaler Netzlast, Einspeisespitzen und Steuerbarkeit ab. Ich kann als nächsten Schritt eine strukturierte Prüfung mit Ihren Bestandsdaten starten oder wir klären zuerst die fehlenden Evidenzpunkte.',
-        hypotheses: [
-          {
-            statement:
-              'Die Abregelungswahrscheinlichkeit ist ohne lokale Last-/Engpassdaten nicht belastbar quantifizierbar.',
-            confidence: 'medium',
-            evidence: 'Es fehlen standortspezifische Netzengpass- und Betriebsdaten.',
-          },
-        ],
-        openQuestions: [
-          {
-            question:
-              'Geht es um gelegentliche Spitzenkappung oder dauerhafte Leistungsbegrenzung?',
-            whyRelevant:
-              'Die Maßnahmen und wirtschaftlichen Auswirkungen unterscheiden sich deutlich.',
-          },
-        ],
-        nextActions: [
-          {
-            action: 'Prüfmodus starten',
-            description:
-              'Wenn gewünscht, starte ich sofort die konkrete Prüfung im execution-Modus.',
-          },
-        ],
-        factsUsed: [
-          {
-            source: 'user_prompt',
-            value: message.slice(0, 280),
-          },
-        ],
-      };
+      const buildLegacyFallback = (reason) =>
+        this.buildConsultationOperationalDegradationReply(message, {
+          reason,
+          timeoutFallback: true,
+          debugTrace: consultationDebugEnabled ? consultationDebugSink : null,
+        });
 
       if (!message) {
-        const fallbackResult = consultationDebugEnabled
-          ? { ...fallback, debugTrace: consultationDebugSink }
-          : fallback;
-        return finalizeConsultationResult(fallbackResult, { timeoutFallback: true });
+        return finalizeConsultationResult(buildLegacyFallback('empty_message'), {
+          timeoutFallback: true,
+        });
       }
 
       try {
@@ -6636,12 +6724,36 @@ module.exports = {
 
         const data = raw?.data || raw;
         if (!data || typeof data !== 'object' || !String(data.reply || '').trim()) {
-          return finalizeConsultationResult(fallback, { timeoutFallback: true });
+          if (consultationDebugEnabled) {
+            createConsultationDebugRecorder({ enabled: true, trace: consultationDebugSink }).emit(
+              'consultation_synthesis_null',
+              {
+                reason: 'non_agentic_empty_payload',
+              }
+            );
+            createConsultationDebugRecorder({ enabled: true, trace: consultationDebugSink }).emit(
+              'consultation_fallback_selected',
+              {
+                reason: 'non_agentic_empty_payload',
+                branch: 'deterministic_consultation_fallback',
+                plannerFailed: false,
+                hadUnavailableAttempt: false,
+                remainingMs: null,
+                elapsedMs: null,
+                iterations: null,
+                lastToolStatus: null,
+                lastError: null,
+              }
+            );
+          }
+          return finalizeConsultationResult(buildLegacyFallback('non_agentic_empty_payload'), {
+            timeoutFallback: true,
+          });
         }
 
         const sanitizeArray = (arr) => (Array.isArray(arr) ? arr : []);
         return finalizeConsultationResult({
-          reply: String(data.reply || fallback.reply).trim(),
+          reply: String(data.reply || '').trim(),
           hypotheses: sanitizeArray(data.hypotheses),
           openQuestions: sanitizeArray(data.openQuestions),
           nextActions: sanitizeArray(data.nextActions),
@@ -6672,9 +6784,7 @@ module.exports = {
             }
           );
         }
-        const fallbackResult = consultationDebugEnabled
-          ? { ...fallback, debugTrace: consultationDebugSink }
-          : fallback;
+        const fallbackResult = buildLegacyFallback('non_agentic_exception');
         return finalizeConsultationResult(fallbackResult, { timeoutFallback: true });
       }
     },
@@ -8559,6 +8669,10 @@ module.exports = {
         consultationDebug: Array.isArray(consultation?.debugTrace)
           ? consultation.debugTrace
           : undefined,
+        degradation:
+          consultation?.degradation && typeof consultation.degradation === 'object'
+            ? consultation.degradation
+            : undefined,
         toolAttempts,
         personaResolution, // v0.56.2
         bootstrapContext: this.buildBootstrapTraceContext(bootstrapContext),

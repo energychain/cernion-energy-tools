@@ -3625,6 +3625,136 @@ describe('personal-agent.service', () => {
     }
   });
 
+  it('uses explicit operational degradation notice when legacy non-agentic consultation returns empty payload', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const agenticSpy = jest.spyOn(svc, 'handleConsultationTurnAgentic').mockResolvedValue(null);
+    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockResolvedValue({ data: {} });
+
+    const mockCtx = {
+      broker,
+      meta: { tenantId: 'tenant-legacy-consultation-null', authUser: { userId: 'user-1' } },
+      call: jest.fn((action, params) => broker.call(action, params, { meta: mockCtx.meta })),
+    };
+
+    try {
+      const result = await svc.handleConsultationTurn(mockCtx, {
+        message: 'Bitte ordne die Situation für mein Projekt ein.',
+        brokerRecommendation: {
+          intent: 'consultation',
+          capability: 'grid-operations.marketPartners',
+        },
+        semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
+        knownContext: { debugTrace: true },
+      });
+
+      expect(result.reply).toContain('Beratungsmodus ist aktuell nur eingeschränkt verfügbar');
+      expect(result.reply).toContain('sprachliche Synthese konnte nicht zuverlässig abgeschlossen werden');
+      expect(result.reply).not.toContain('Eine Abregelung hängt typischerweise');
+      expect(result.degradation).toEqual(
+        expect.objectContaining({
+          active: true,
+          code: 'CONSULTATION_SYNTHESIS_DEGRADED',
+          phase: 'consultation_synthesis',
+          reason: 'non_agentic_empty_payload',
+          timeoutFallback: true,
+          userVisible: true,
+        })
+      );
+      expect(result.debugTrace || []).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'consultation_fallback_selected',
+            reason: 'agentic_returned_null',
+            branch: 'legacy_non_agentic_consultation',
+          }),
+          expect.objectContaining({
+            type: 'consultation_synthesis_null',
+            reason: 'non_agentic_empty_payload',
+          }),
+          expect.objectContaining({
+            type: 'consultation_fallback_selected',
+            reason: 'non_agentic_empty_payload',
+            branch: 'deterministic_consultation_fallback',
+          }),
+        ])
+      );
+    } finally {
+      agenticSpy.mockRestore();
+      callLlmSpy.mockRestore();
+    }
+  });
+
+  it('preserves degradation metadata in agentTrace when legacy non-agentic consultation throws', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const agenticSpy = jest.spyOn(svc, 'handleConsultationTurnAgentic').mockResolvedValue(null);
+    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockRejectedValue(new Error('LLM offline'));
+
+    const mockCtx = {
+      broker,
+      meta: { tenantId: 'tenant-legacy-consultation-error', authUser: { userId: 'user-1' } },
+      call: jest.fn((action, params) => broker.call(action, params, { meta: mockCtx.meta })),
+    };
+
+    try {
+      const consultationResult = await svc.handleConsultationTurn(mockCtx, {
+        message: 'Bitte gib mir eine belastbare Einordnung.',
+        brokerRecommendation: {
+          intent: 'consultation',
+          capability: 'grid-operations.marketPartners',
+        },
+        semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
+        knownContext: { debugTrace: true },
+      });
+
+      const agentTrace = svc.buildAgentTrace({
+        routing: null,
+        plan: null,
+        execution: null,
+        evidencePlan: null,
+        consultation: consultationResult,
+        responseStrategy: null,
+        stateMachine: null,
+        executionStateGraph: null,
+        turnGraph: null,
+        routingDecision: null,
+        personaResolution: null,
+        bootstrapContext: null,
+        knowledgeScope: [],
+        workLog: [],
+      });
+
+      expect(consultationResult.reply).toContain(
+        'Die sprachliche Synthese konnte nicht zuverlässig abgeschlossen werden'
+      );
+      expect(consultationResult.reply).not.toContain('Eine Abregelung hängt typischerweise');
+      expect(consultationResult.degradation).toEqual(
+        expect.objectContaining({
+          reason: 'non_agentic_exception',
+          timeoutFallback: true,
+        })
+      );
+      expect(agentTrace.degradation).toEqual(
+        expect.objectContaining({
+          active: true,
+          code: 'CONSULTATION_SYNTHESIS_DEGRADED',
+          reason: 'non_agentic_exception',
+        })
+      );
+      expect(consultationResult.debugTrace || []).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'consultation_fallback_selected',
+            reason: 'non_agentic_exception',
+            branch: 'deterministic_consultation_fallback',
+          }),
+        ])
+      );
+    } finally {
+      agenticSpy.mockRestore();
+      callLlmSpy.mockRestore();
+    }
+  });
+
   it('uses 90000ms as default consultation synthesis timeout', () => {
     const svc = broker.getLocalService('personal-agent');
     const previous = process.env.PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS;

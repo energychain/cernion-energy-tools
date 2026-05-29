@@ -15,12 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - [services/personal-agent.service.js](services/personal-agent.service.js): emits tenant-isolated `personal-agent.work-out-loud` events only on **material structured context changes**: bootstrap organization type establishment/update, new scoped knowledge datapoints derived from `knownContext`, and onboarding answers after they are converted into structured hydrated context. Emission is best-effort and uses shared contract helpers instead of inline payload assembly.
+- [services/personal-agent.service.js](services/personal-agent.service.js): consultation degradation for LLM/synthesis failures is now operationally transparent. The legacy hardcoded business-style fallback was replaced with an explicit availability notice, additive `consultation.degradation` / `agentTrace.degradation` metadata, and branch-specific debug reasons for null/exception fallback paths.
 
 ### Tests
 
 - [tests/personal-agent-work-out-loud.test.js](tests/personal-agent-work-out-loud.test.js): new unit suite for schema validity, missing `tenantId` rejection, forbidden raw-like `evidence` fields, and no-leakage guarantees for onboarding-derived signals.
 - [tests/personal-agent-work-out-loud-listener.service.test.js](tests/personal-agent-work-out-loud-listener.service.test.js): new listener suite covering tenant rejection, valid payload acceptance, and broker-event handling without persistence side effects.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): extended with Personal Agent emission tests for bootstrap context learning, scoped fact learning, and onboarding no-leakage behavior.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added focused regressions for legacy non-agentic consultation degradation, covering explicit operational notice text, exact null/exception degradation reasons, and additive `agentTrace.degradation` propagation.
 
 ## [0.57.4] — Work Out Loud hardening patch (2026-05-28)
 
