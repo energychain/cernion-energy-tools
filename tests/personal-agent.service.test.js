@@ -6543,6 +6543,171 @@ describe('personal-agent.service', () => {
       }
     });
 
+    it('reproduces dev-session shape: resolved reflection dispatches receipt and surfaces execution visibility', async () => {
+      const svc = broker.getLocalService('personal-agent');
+
+      let selectCallCount = 0;
+      const selectReceiptSpy = jest
+        .spyOn(svc, 'selectRuntimeReceipt')
+        .mockImplementation(async (_ctx, payload) => {
+          selectCallCount += 1;
+          const knownContext = payload?.context?.knownContext || payload?.input?.knownContext || {};
+          const hasCity =
+            typeof knownContext.city === 'string' && knownContext.city.trim().length > 0;
+          const hasPostalCode =
+            typeof knownContext.postalCode === 'string' && knownContext.postalCode.trim().length > 0;
+
+          return {
+            selected: true,
+            receiptId: 'ev-charging-co2-optimization-v1',
+            mode: 'matched',
+            score: 87,
+            status: 'active',
+            warnings: [],
+            diagnostics: null,
+            selectedReceipt: {
+              receiptId: 'ev-charging-co2-optimization-v1',
+              status: 'active',
+              toolPlan: {
+                steps: [
+                  {
+                    step: 1,
+                    action: 'energy-market.co2Intensity',
+                    required: true,
+                    requiredScopes: ['locationScope'],
+                    paramMapping: {
+                      city: { source: 'context', contextField: 'city' },
+                      postalCode: { source: 'context', contextField: 'postalCode' },
+                    },
+                  },
+                ],
+              },
+            },
+            evaluation:
+              hasCity && hasPostalCode
+                ? {
+                    executable: true,
+                    matchScore: 91,
+                    plannedToolCalls: [
+                      {
+                        step: 1,
+                        status: 'ready',
+                        action: 'energy-market.co2Intensity',
+                        selectedAction: 'energy-market.co2Intensity',
+                        params: {
+                          city: knownContext.city,
+                          postalCode: knownContext.postalCode,
+                        },
+                      },
+                    ],
+                    missingRequiredInputs: [],
+                    errors: [],
+                    warnings: [],
+                  }
+                : {
+                    executable: false,
+                    matchScore: 72,
+                    plannedToolCalls: [
+                      {
+                        step: 1,
+                        status: 'scope-blocked',
+                        action: 'energy-market.co2Intensity',
+                        selectedAction: 'energy-market.co2Intensity',
+                        params: {},
+                        scopeViolations: [
+                          {
+                            code: 'RECEIPT_SCOPE_NOT_RESOLVED',
+                            scope: 'locationScope',
+                            message: 'city/postalCode required',
+                          },
+                        ],
+                      },
+                    ],
+                    missingRequiredInputs: ['city', 'postalCode'],
+                    errors: [],
+                    warnings: [],
+                  },
+            execution: { used: false, executor: null, fallbackReason: null },
+            knowledgeEvidence: null,
+          };
+        });
+
+      const callLlmSpy = jest
+        .spyOn(svc, 'callLlmGenerate')
+        .mockImplementation(async (_ctx, payload) => {
+          if (payload?.schema?.properties?.resolvedContextPatch) {
+            return {
+              resolvedContextPatch: { city: 'Mauer', postalCode: '69256' },
+              confidence: 'high',
+              evidence: 'Ich bin in 69256 Mauer',
+              unresolvedScopes: [],
+            };
+          }
+          if (String(payload?.system || '').includes('Synthese')) {
+            return {
+              data: {
+                reply: 'CO2-Optimierung wurde ausgeführt.',
+                hypotheses: [],
+                openQuestions: [],
+                nextActions: [],
+                factsUsed: [],
+              },
+            };
+          }
+          return {
+            text: JSON.stringify({ mode: 'final', thought: 'done', reply: 'ok' }),
+          };
+        });
+
+
+      const sessionId = `reflection-visibility-${Date.now()}`;
+      const meta = { tenantId: 'tenant-reflection-visibility', authUser: { userId: 'u-vis' } };
+
+      try {
+        const result = await broker.call(
+          'personal-agent.chat',
+          {
+            message: 'Bitte optimiere EV-Laden. Ich bin in 69256 Mauer.',
+            chatMode: 'consultation',
+            executionMode: 'auto',
+            sessionId,
+            knownContext: {},
+          },
+          { meta }
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.status).toBe('consulting');
+
+        expect(result.agentTrace?.reflection).toEqual(
+          expect.objectContaining({
+            outcome: 'resolved',
+            resolvedFields: expect.arrayContaining(['city', 'postalCode']),
+            reEvaluation: expect.objectContaining({ performed: true, executable: true }),
+            receipt: expect.objectContaining({
+              receiptId: 'ev-charging-co2-optimization-v1',
+              execution: expect.objectContaining({ used: true, fallbackReason: null }),
+            }),
+          })
+        );
+
+        expect(selectCallCount).toBe(2);
+        expect(result.consultationPlanResults).toBeDefined();
+        expect(Array.isArray(result.consultationPlanResults.steps)).toBe(true);
+        expect(result.consultationPlanResults.steps.length).toBeGreaterThan(0);
+
+        expect(result.execution.status).toBe('completed');
+        expect(Array.isArray(result.execution.steps)).toBe(true);
+        expect(result.execution.steps.length).toBeGreaterThan(0);
+        expect(result.execution.steps.map((step) => step.action)).toEqual(
+          expect.arrayContaining(['energy-market.co2Intensity'])
+        );
+      } finally {
+        selectReceiptSpy.mockRestore();
+        callLlmSpy.mockRestore();
+      }
+    });
+
     it('reflection is called at most once (still-blocked path falls through to consultation)', async () => {
       const svc = broker.getLocalService('personal-agent');
 
@@ -6639,6 +6804,8 @@ describe('personal-agent.service', () => {
             execution: expect.objectContaining({ used: false }),
           })
         );
+        expect(result.execution.status).toBe('consulting');
+        expect(result.execution.steps).toEqual([]);
       } finally {
         selectReceiptSpy.mockRestore();
         callLlmSpy.mockRestore();
@@ -6961,6 +7128,8 @@ describe('personal-agent.service', () => {
         expect(llmCallsWithSchema).toBe(0);
         // agentTrace.reflection should be absent or undefined
         expect(result.agentTrace?.reflection).toBeUndefined();
+        expect(result.execution.status).toBe('consulting');
+        expect(result.execution.steps).toEqual([]);
       } finally {
         selectReceiptSpy.mockRestore();
         callLlmSpy.mockRestore();

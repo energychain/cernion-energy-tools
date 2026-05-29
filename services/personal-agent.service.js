@@ -3007,6 +3007,11 @@ module.exports = {
                       }))
                     : [],
                 };
+                if (receiptReflectionResult && receiptSelectionResult) {
+                  receiptReflectionResult.receipt = buildReceiptReflectionSummary(
+                    receiptSelectionResult
+                  );
+                }
               } catch (receiptExecError) {
                 this.logger?.warn(
                   `Receipt execution failed (${selectedReceipt.receiptId || selectedReceipt.id || 'unknown-receipt'}): ${receiptExecError.message}, falling back to legacy execution`
@@ -3157,6 +3162,17 @@ module.exports = {
 
           persisted.l3.turnGraph = summarizeTurnGraph(turnGraph);
 
+          const consultationExecutionPublic =
+            receiptSelectionResult?.execution?.used === true &&
+            Array.isArray(consultationPlanResults?.steps) &&
+            consultationPlanResults.steps.length > 0
+              ? {
+                  ...consultationExecution,
+                  status: 'completed',
+                  steps: consultationPlanResults.steps,
+                }
+              : consultationExecution;
+
           return {
             success: true,
             status,
@@ -3192,7 +3208,7 @@ module.exports = {
             stateMachine: summarizeStateMachine(stateMachine),
             executionStateGraph: summarizeExecutionStateGraph(executionStateGraph),
             turnGraph: summarizeTurnGraph(turnGraph),
-            execution: consultationExecution,
+            execution: consultationExecutionPublic,
             ...(receiptSelectionMetadata ? { metadata: receiptSelectionMetadata } : {}),
           };
         }
