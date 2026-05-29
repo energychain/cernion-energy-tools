@@ -5,7 +5,7 @@
 - version: 0.57.4
 - changelog_latest_release: 0.57.4
 - source_files_hash:
-  - CHANGELOG.md: 00c7e4634ec945d14d4c8f47aa8e08d07adbefed30956093557a5e6e73ec08ff
+  - CHANGELOG.md: ee50a8a40cecb02a6b5a4bab6b058b4870dca83919623792812c023f7f869146
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 9f247688a1a08f4d265ccec73a2fc5d7cc60078739d0c4273aaf6c29a2e58aa0
@@ -28,6 +28,7 @@ It provides a complete implementation picture: architecture, domain knowledge, c
 
 - [services/personal-agent.service.js](services/personal-agent.service.js): emits tenant-isolated `personal-agent.work-out-loud` events only on **material structured context changes**: bootstrap organization type establishment/update, new scoped knowledge datapoints derived from `knownContext`, and onboarding answers after they are converted into structured hydrated context. Emission is best-effort and uses shared contract helpers instead of inline payload assembly.
 - [services/personal-agent.service.js](services/personal-agent.service.js): consultation degradation for LLM/synthesis failures is now operationally transparent. The legacy hardcoded business-style fallback was replaced with an explicit availability notice, additive `consultation.degradation` / `agentTrace.degradation` metadata, and branch-specific debug reasons for null/exception fallback paths.
+- [services/personal-agent.service.js](services/personal-agent.service.js): consultation prompt generation now receives a bounded, sanitized recent-history window from the already loaded current session. The window is prompt-only, same-session scoped, redacts raw technical payloads, and is threaded through agentic planner/synthesis plus legacy non-agentic consultation without promoting facts to tenant knowledge or emitting Work Out Loud events.
 
 ### Tests
 
@@ -35,6 +36,7 @@ It provides a complete implementation picture: architecture, domain knowledge, c
 - [tests/personal-agent-work-out-loud-listener.service.test.js](tests/personal-agent-work-out-loud-listener.service.test.js): new listener suite covering tenant rejection, valid payload acceptance, and broker-event handling without persistence side effects.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): extended with Personal Agent emission tests for bootstrap context learning, scoped fact learning, and onboarding no-leakage behavior.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added focused regressions for legacy non-agentic consultation degradation, covering explicit operational notice text, exact null/exception degradation reasons, and additive `agentTrace.degradation` propagation.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added focused regressions for consultation recent-history prompting: multi-turn slot filling, explicit recall, no cross-session/cross-tenant leakage, bounded window size, raw-payload redaction, and unchanged no-history prompt shape.
 
 ## Domain-Specific Business Knowledge (Energy + Utility)
 
@@ -25902,4 +25904,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: c9cba1010908e515f1e9322f181aab940152c7eb9eb1228d7b7369d7e3af6ad8
+- llm_txt_sha256: d2586cfb8c8a5f859a8f570a45e35aea7883d891f374f11d361737bebd1fe969

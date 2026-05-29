@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - [services/personal-agent.service.js](services/personal-agent.service.js): emits tenant-isolated `personal-agent.work-out-loud` events only on **material structured context changes**: bootstrap organization type establishment/update, new scoped knowledge datapoints derived from `knownContext`, and onboarding answers after they are converted into structured hydrated context. Emission is best-effort and uses shared contract helpers instead of inline payload assembly.
 - [services/personal-agent.service.js](services/personal-agent.service.js): consultation degradation for LLM/synthesis failures is now operationally transparent. The legacy hardcoded business-style fallback was replaced with an explicit availability notice, additive `consultation.degradation` / `agentTrace.degradation` metadata, and branch-specific debug reasons for null/exception fallback paths.
+- [services/personal-agent.service.js](services/personal-agent.service.js): consultation prompt generation now receives a bounded, sanitized recent-history window from the already loaded current session. The window is prompt-only, same-session scoped, redacts raw technical payloads, and is threaded through agentic planner/synthesis plus legacy non-agentic consultation without promoting facts to tenant knowledge or emitting Work Out Loud events.
 
 ### Tests
 
@@ -23,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [tests/personal-agent-work-out-loud-listener.service.test.js](tests/personal-agent-work-out-loud-listener.service.test.js): new listener suite covering tenant rejection, valid payload acceptance, and broker-event handling without persistence side effects.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): extended with Personal Agent emission tests for bootstrap context learning, scoped fact learning, and onboarding no-leakage behavior.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added focused regressions for legacy non-agentic consultation degradation, covering explicit operational notice text, exact null/exception degradation reasons, and additive `agentTrace.degradation` propagation.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added focused regressions for consultation recent-history prompting: multi-turn slot filling, explicit recall, no cross-session/cross-tenant leakage, bounded window size, raw-payload redaction, and unchanged no-history prompt shape.
 
 ## [0.57.4] — Work Out Loud hardening patch (2026-05-28)
 

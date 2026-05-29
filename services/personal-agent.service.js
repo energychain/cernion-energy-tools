@@ -216,6 +216,17 @@ const CONSULTATION_TOOL_TIMEOUT_MS = Number(
 const CONSULTATION_MIN_EFFECTIVE_TOOL_TIMEOUT_MS = Number(
   process.env.PERSONAL_AGENT_CONSULTATION_MIN_EFFECTIVE_TOOL_TIMEOUT_MS || 750
 );
+const CONSULTATION_HISTORY_MAX_ENTRIES = Number(
+  process.env.PERSONAL_AGENT_CONSULTATION_HISTORY_MAX_ENTRIES || 6
+);
+const CONSULTATION_HISTORY_MAX_CHARS = Number(
+  process.env.PERSONAL_AGENT_CONSULTATION_HISTORY_MAX_CHARS || 1200
+);
+const CONSULTATION_HISTORY_ENTRY_MAX_CHARS = Number(
+  process.env.PERSONAL_AGENT_CONSULTATION_HISTORY_ENTRY_MAX_CHARS || 220
+);
+const CONSULTATION_HISTORY_REDACTION_PLACEHOLDER =
+  '[technischer Rohinhalt aus vorherigem Turn ausgeblendet]';
 
 function isNotFound(error) {
   return error?.code === 404 || error?.type === 'OBJECT_NOT_FOUND';
@@ -2248,6 +2259,7 @@ module.exports = {
               ? session.l3.assumptions
               : [],
           });
+          const recentHistoryWindow = this.buildConsultationRecentHistoryWindow(session);
 
           const consultationResult = await this.handleConsultationTurn(ctx, {
             message: ctx.params.message,
@@ -2263,6 +2275,7 @@ module.exports = {
             jobId,
             executionTrace,
             toolCallTracker,
+            recentHistoryWindow,
           });
 
           const consultationExecution = {
@@ -4841,6 +4854,7 @@ module.exports = {
       resolvedParams,
       knowledgeContext,
       responseStrategy = null,
+      recentHistoryWindow = [],
       observations = [],
       toolRegistry = [],
     }) {
@@ -4895,6 +4909,23 @@ module.exports = {
         facts.push('- technische Begriffe in Klartext, aber ohne interne Parameternamen');
       }
 
+      if (Array.isArray(recentHistoryWindow) && recentHistoryWindow.length > 0) {
+        facts.push('');
+        facts.push('Gleicher Session-Verlauf (nur vorherige Turns, lokal/unbestätigt):');
+        facts.push('- Diese Turns stammen nur aus derselben Session.');
+        facts.push('- Behandle sie als Gesprächskontext, nicht als bestätigtes Tenant-Wissen.');
+        facts.push('- Bei Konflikten zählen neuere Angaben und deterministische Evidenz stärker.');
+        facts.push('- Fehlende Felder nicht erfinden; stattdessen eine präzise Rückfrage stellen.');
+        for (const entry of recentHistoryWindow) {
+          const roleLabel = entry?.role === 'assistant' ? 'ASSISTANT' : 'NUTZER';
+          const text = String(entry?.text || '').trim();
+          if (!text) {
+            continue;
+          }
+          facts.push(`- ${roleLabel}: ${text}`);
+        }
+      }
+
       if (Array.isArray(observations) && observations.length > 0) {
         facts.push('');
         facts.push('Tool-Beobachtungen:');
@@ -4937,6 +4968,86 @@ module.exports = {
         '',
         'Antworte im geforderten JSON-Schema.',
       ].join('\n');
+    },
+
+    sanitizeConsultationRecentHistoryText(value = '') {
+      const raw = String(value || '');
+      if (!raw.trim()) {
+        return null;
+      }
+
+      const normalized = raw.replace(/\s+/g, ' ').trim();
+      if (!normalized) {
+        return null;
+      }
+
+      const jsonLike =
+        ((/^[\[{]/.test(normalized) || /[\]}]$/.test(normalized)) &&
+          /"[^"\n]{1,80}"\s*:/.test(normalized)) ||
+        /"responseRaw"\s*:|"toolContext"\s*:|"inhouseData"\s*:|"rawJson"\s*:/i.test(raw);
+      const xmlLike = /<[^>]{1,80}>/.test(raw);
+      const base64Like = /(?:^|\s)[A-Za-z0-9+/]{80,}={0,2}(?:\s|$)/.test(raw);
+      const csvLike =
+        /(?:^|[\r\n])[^\r\n]*(,|;|\t)[^\r\n]*(,|;|\t)[^\r\n]*(?:[\r\n]|$)/.test(raw) &&
+        raw.split(/\r?\n/).length > 1;
+      const rawSensitiveHint =
+        /(responseRaw|toolContext|inhouseData|rawJson|rawResponse|attachment|extract|hems|nap|payload)/i.test(
+          raw
+        ) && normalized.length > 80;
+
+      if (jsonLike || xmlLike || base64Like || csvLike || rawSensitiveHint) {
+        return CONSULTATION_HISTORY_REDACTION_PLACEHOLDER;
+      }
+
+      return normalized.slice(0, CONSULTATION_HISTORY_ENTRY_MAX_CHARS);
+    },
+
+    buildConsultationRecentHistoryWindow(session = null) {
+      const history = Array.isArray(session?.l3?.history) ? session.l3.history : [];
+      if (history.length === 0) {
+        return [];
+      }
+
+      const sanitizedEntries = history
+        .map((entry) => ({
+          role: String(entry?.role || '').trim().toLowerCase(),
+          text: this.sanitizeConsultationRecentHistoryText(entry?.text || entry?.content || ''),
+        }))
+        .filter(
+          (entry) =>
+            ['user', 'assistant'].includes(entry.role) && Boolean(String(entry.text || '').trim())
+        );
+
+      if (sanitizedEntries.length === 0) {
+        return [];
+      }
+
+      const recentEntries = sanitizedEntries.slice(-CONSULTATION_HISTORY_MAX_ENTRIES);
+      const bounded = [];
+      let remainingChars = CONSULTATION_HISTORY_MAX_CHARS;
+
+      for (let index = recentEntries.length - 1; index >= 0; index -= 1) {
+        const entry = recentEntries[index];
+        const text = String(entry?.text || '').trim();
+        if (!text) {
+          continue;
+        }
+
+        const allowedChars = Math.max(0, remainingChars - 24);
+        if (allowedChars <= 0) {
+          break;
+        }
+
+        const truncatedText = text.slice(0, allowedChars).trim();
+        if (!truncatedText) {
+          continue;
+        }
+
+        bounded.unshift({ role: entry.role, text: truncatedText });
+        remainingChars -= truncatedText.length;
+      }
+
+      return bounded;
     },
 
     /**
@@ -5455,6 +5566,9 @@ module.exports = {
       const knowledgeContext = input.knowledgeContext || null;
       const responseStrategy = input.responseStrategy || null;
       const knownContext = input.knownContext || {};
+      const recentHistoryWindow = Array.isArray(input.recentHistoryWindow)
+        ? input.recentHistoryWindow
+        : [];
       const session = input.session && typeof input.session === 'object' ? input.session : null;
       const executionTrace = input.executionTrace || null;
       const toolCallTracker = input.toolCallTracker || null;
@@ -5694,6 +5808,7 @@ module.exports = {
               resolvedParams,
               knowledgeContext,
               responseStrategy,
+              recentHistoryWindow,
               observations,
               toolRegistry,
             }),
@@ -6222,6 +6337,8 @@ module.exports = {
           brokerRecommendation,
           resolvedParams,
           knowledgeContext,
+          responseStrategy,
+          recentHistoryWindow,
           observations,
           toolRegistry,
         });
@@ -6606,6 +6723,9 @@ module.exports = {
           : {};
       const knowledgeContext = input.knowledgeContext || null;
       const responseStrategy = input.responseStrategy || null;
+      const recentHistoryWindow = Array.isArray(input.recentHistoryWindow)
+        ? input.recentHistoryWindow
+        : this.buildConsultationRecentHistoryWindow(input.session || null);
       const consultationDebugEnabled = isConsultationDebugEnabled(input.knownContext || {});
       const consultationDebugSink = consultationDebugEnabled
         ? Array.isArray(input.consultationDebugSink)
@@ -6657,6 +6777,7 @@ module.exports = {
       const agenticConsultation = await this.handleConsultationTurnAgentic(ctx, {
         ...input,
         responseStrategy,
+        recentHistoryWindow,
         consultationDebugSink,
       });
       if (agenticConsultation) {
@@ -6707,6 +6828,8 @@ module.exports = {
           brokerRecommendation,
           resolvedParams,
           knowledgeContext,
+          responseStrategy,
+          recentHistoryWindow,
         });
         const synthesisTimeoutMs = this.resolveConsultationSynthesisTimeoutMs();
 

@@ -4230,6 +4230,286 @@ describe('personal-agent.service', () => {
     expect(prompt).toContain('keine internen Schema-Feldnamen');
   });
 
+  it('builds a bounded sanitized consultation recent-history window', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const session = {
+      l3: {
+        history: [
+          { role: 'user', text: 'Adresse Musterstraße 1, 12345 Teststadt.' },
+          { role: 'assistant', text: 'Verstanden, ich merke mir die Adresse.' },
+          { role: 'user', text: '{"responseRaw": {"hems": true, "payload": "SECRET"}}' },
+          { role: 'assistant', text: 'QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo='.repeat(4) },
+          { role: 'user', text: 'Zählerstand 3456 kWh und Messlokation ABC-123.' },
+          { role: 'assistant', text: 'Ich nutze das als Session-Kontext.' },
+          { role: 'user', text: 'Zusatzhinweis für denselben Vorgang.' },
+        ],
+      },
+    };
+
+    const recentHistory = svc.buildConsultationRecentHistoryWindow(session);
+    const totalChars = recentHistory.reduce((sum, entry) => sum + String(entry.text || '').length, 0);
+
+    expect(recentHistory.length).toBeLessThanOrEqual(6);
+    expect(totalChars).toBeLessThanOrEqual(1200);
+    expect(recentHistory).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          text: '[technischer Rohinhalt aus vorherigem Turn ausgeblendet]',
+        }),
+      ])
+    );
+  });
+
+  it('adds same-session history rules and entries to consultation prompts', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const prompt = svc.buildConsultationPrompt({
+      message: 'Was weißt du bisher?',
+      responseStrategy: {
+        audience: 'general',
+        epistemicState: 'ambiguous',
+        abstractionLevel: 'balanced',
+        nextMove: 'clarify',
+      },
+      recentHistoryWindow: [
+        { role: 'user', text: 'Adresse Musterstraße 1, 12345 Teststadt.' },
+        { role: 'assistant', text: 'Ich habe die Adresse nur als Session-Kontext notiert.' },
+      ],
+    });
+
+    expect(prompt).toContain('Gleicher Session-Verlauf');
+    expect(prompt).toContain('nicht als bestätigtes Tenant-Wissen');
+    expect(prompt).toContain('Bei Konflikten zählen neuere Angaben');
+    expect(prompt).toContain('NUTZER: Adresse Musterstraße 1, 12345 Teststadt.');
+  });
+
+  it('injects prior same-session facts into the next consultation synthesis prompt', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const capturedPrompts = [];
+    const agenticSpy = jest.spyOn(svc, 'handleConsultationTurnAgentic').mockResolvedValue(null);
+    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
+      if (payload?.trace?.phase === 'consultation_non_agentic') {
+        capturedPrompts.push(String(payload.system || ''));
+      }
+
+      return {
+        data: {
+          reply: 'Verstanden.',
+          hypotheses: [],
+          openQuestions: [],
+          nextActions: [],
+          factsUsed: [],
+        },
+      };
+    });
+
+    try {
+      const first = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Adresse Musterstraße 1, 12345 Teststadt. Zählerstand 3456 kWh.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+        },
+        { meta: { tenantId: 'tenant-history-slot-fill', authUser: { userId: 'user-1' } } }
+      );
+
+      await broker.call(
+        'personal-agent.chat',
+        {
+          sessionId: first.sessionId,
+          message: 'Die Zählernummer ist DE1234567890.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+        },
+        { meta: { tenantId: 'tenant-history-slot-fill', authUser: { userId: 'user-1' } } }
+      );
+
+      const secondPrompt = capturedPrompts[capturedPrompts.length - 1] || '';
+      const historySection = secondPrompt.split('Nutzerfrage:')[0] || secondPrompt;
+      expect(secondPrompt).toContain('Gleicher Session-Verlauf');
+      expect(historySection).toContain('Musterstraße 1');
+      expect(historySection).toContain('3456 kWh');
+      expect(historySection).not.toContain('DE1234567890');
+    } finally {
+      agenticSpy.mockRestore();
+      callLlmSpy.mockRestore();
+    }
+  });
+
+  it('supports explicit recall without leaking another session or tenant history', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const capturedPrompts = [];
+    const agenticSpy = jest.spyOn(svc, 'handleConsultationTurnAgentic').mockResolvedValue(null);
+    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
+      if (payload?.trace?.phase === 'consultation_non_agentic') {
+        capturedPrompts.push(String(payload.system || ''));
+      }
+
+      return {
+        data: {
+          reply: 'Ich fasse den Session-Kontext zusammen.',
+          hypotheses: [],
+          openQuestions: [],
+          nextActions: [],
+          factsUsed: [],
+        },
+      };
+    });
+
+    try {
+      const alpha = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Merke dir bitte: Projekt Alpha steht in Dortmund.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+        },
+        { meta: { tenantId: 'tenant-history-alpha', authUser: { userId: 'user-1' } } }
+      );
+
+      await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Merke dir bitte: Projekt Beta steht in Hamburg.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+        },
+        { meta: { tenantId: 'tenant-history-beta', authUser: { userId: 'user-2' } } }
+      );
+
+      await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Merke dir bitte: Projekt Gamma steht in Köln.',
+          sessionId: 'separate-session-same-tenant',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+        },
+        { meta: { tenantId: 'tenant-history-alpha', authUser: { userId: 'user-1' } } }
+      );
+
+      await broker.call(
+        'personal-agent.chat',
+        {
+          sessionId: alpha.sessionId,
+          message: 'Was habe ich dir vorhin gesagt?',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+        },
+        { meta: { tenantId: 'tenant-history-alpha', authUser: { userId: 'user-1' } } }
+      );
+
+      const recallPrompt = capturedPrompts[capturedPrompts.length - 1] || '';
+      expect(recallPrompt).toContain('Projekt Alpha steht in Dortmund');
+      expect(recallPrompt).not.toContain('Projekt Beta steht in Hamburg');
+      expect(recallPrompt).not.toContain('Projekt Gamma steht in Köln');
+    } finally {
+      agenticSpy.mockRestore();
+      callLlmSpy.mockRestore();
+    }
+  });
+
+  it('redacts raw-looking prior history before injecting it into consultation prompts', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const capturedPrompts = [];
+    const agenticSpy = jest.spyOn(svc, 'handleConsultationTurnAgentic').mockResolvedValue(null);
+    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
+      if (payload?.trace?.phase === 'consultation_non_agentic') {
+        capturedPrompts.push(String(payload.system || ''));
+      }
+
+      return {
+        data: {
+          reply: 'OK',
+          hypotheses: [],
+          openQuestions: [],
+          nextActions: [],
+          factsUsed: [],
+        },
+      };
+    });
+
+    try {
+      const first = await broker.call(
+        'personal-agent.chat',
+        {
+          message:
+            'Hier ist Rohmaterial: {"responseRaw":{"hems":true,"payload":"SECRET-XYZ"}} <nap><raw>VALUE</raw></nap> QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+        },
+        { meta: { tenantId: 'tenant-history-redaction', authUser: { userId: 'user-1' } } }
+      );
+
+      await broker.call(
+        'personal-agent.chat',
+        {
+          sessionId: first.sessionId,
+          message: 'Bitte nutze nur die sauberen Angaben aus dem Verlauf.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+        },
+        { meta: { tenantId: 'tenant-history-redaction', authUser: { userId: 'user-1' } } }
+      );
+
+      const prompt = capturedPrompts[capturedPrompts.length - 1] || '';
+      expect(prompt).toContain('[technischer Rohinhalt aus vorherigem Turn ausgeblendet]');
+      expect(prompt).not.toContain('SECRET-XYZ');
+      expect(prompt).not.toContain('<nap><raw>VALUE</raw></nap>');
+      expect(prompt).not.toContain('QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=');
+    } finally {
+      agenticSpy.mockRestore();
+      callLlmSpy.mockRestore();
+    }
+  });
+
+  it('keeps no-history consultation prompts valid and unchanged in shape', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const capturedPrompts = [];
+    const agenticSpy = jest.spyOn(svc, 'handleConsultationTurnAgentic').mockResolvedValue(null);
+    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
+      if (payload?.trace?.phase === 'consultation_non_agentic') {
+        capturedPrompts.push(String(payload.system || ''));
+      }
+
+      return {
+        data: {
+          reply: 'Normale Antwort ohne Verlauf.',
+          hypotheses: [],
+          openQuestions: [],
+          nextActions: [],
+          factsUsed: [],
+        },
+      };
+    });
+
+    const mockCtx = {
+      broker,
+      meta: { tenantId: 'tenant-no-history-consultation', authUser: { userId: 'user-1' } },
+      call: jest.fn((action, params) => broker.call(action, params, { meta: mockCtx.meta })),
+    };
+
+    try {
+      const result = await svc.handleConsultationTurn(mockCtx, {
+        message: 'Bitte ordne meinen Fall ein.',
+        brokerRecommendation: {
+          intent: 'consultation',
+          capability: 'grid-operations.marketPartners',
+        },
+        semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
+        knownContext: {},
+      });
+
+      const prompt = capturedPrompts[capturedPrompts.length - 1] || '';
+      expect(result.reply).toBe('Normale Antwort ohne Verlauf.');
+      expect(prompt).not.toContain('Gleicher Session-Verlauf');
+      expect(prompt).toContain('Verfügbare Fakten:');
+    } finally {
+      agenticSpy.mockRestore();
+      callLlmSpy.mockRestore();
+    }
+  });
+
   it('normalizes chatMode alias consulting from meta fallback to consultation', async () => {
     const result = await broker.call(
       'personal-agent.chat',
