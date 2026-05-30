@@ -993,20 +993,76 @@ function buildCuratedBrokerSteps(capability, brokerRecommendation) {
   const blockedActions = new Set(GLOBAL_DO_NOT_USE.map((entry) => entry.action));
   const brokerActions = brokerRecommendation?.recommendedCapabilities?.[0]?.actions;
   const actions =
-    Array.isArray(brokerActions) && brokerActions.length > 0
-      ? brokerActions.filter((action) => !blockedActions.has(action))
-      : (capability.preferredActions || []).filter((action) => !blockedActions.has(action));
+    capability.isFallback && Array.isArray(capability.fallbackActions)
+      ? capability.fallbackActions.filter((action) => !blockedActions.has(action))
+      : Array.isArray(brokerActions) && brokerActions.length > 0
+        ? brokerActions.filter((action) => !blockedActions.has(action))
+        : (capability.preferredActions || []).filter((action) => !blockedActions.has(action));
 
-  return actions.map((action, index) => ({
-    step: index + 1,
-    action,
-    purpose: `Execute curated capability path for ${capability.capability}`,
-    paramsTemplate:
-      brokerRecommendation?.recommendedPlan?.find((item) => item.action === action)?.params || {},
-    source: 'capability-broker',
-    hitlRequired: isHitlRequiredForAction(capability, action),
-    criticalityClass: capability?.hitlPolicy?.criticalityClass || null,
-  }));
+  return actions.map((action, index) => {
+    const recommendedParams =
+      brokerRecommendation?.recommendedPlan?.find((item) => item.action === action)?.params || {};
+    const paramsTemplate =
+      action === 'interface-placeholder.markGap'
+        ? {
+            role: 'personal_agent_orchestrator',
+            capabilityId: capability.capability,
+            reason: `No deterministic interface is registered for ${capability.capability}.`,
+            reasonCode: 'CAPABILITY_INTERFACE_GAP',
+            ...recommendedParams,
+          }
+        : recommendedParams;
+
+    return {
+      step: index + 1,
+      action,
+      purpose: `Execute curated capability path for ${capability.capability}`,
+      paramsTemplate,
+      source: 'capability-broker',
+      hitlRequired: isHitlRequiredForAction(capability, action),
+      criticalityClass: capability?.hitlPolicy?.criticalityClass || null,
+    };
+  });
+}
+
+function sanitizePromptLocationCandidate(candidate) {
+  const cleaned = String(candidate || '')
+    .replace(/[.!?;:]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!cleaned) {
+    return undefined;
+  }
+
+  if (
+    /\b(?:ich|wir|bitte|als|wann|wie|was|warum|fortfahren|weiter|freigabe|freigeben|frei|genehmig|best[äa]tig|bestaetig|bestätogt|approve|reject|ablehnen)\b/i.test(
+      cleaned
+    ) ||
+    /\b(?:pv-ausbau|pv\s+ausbau|bestandskunden|strategie|vorstand|rechenzentrum|data\s*center|bess|speicher|lade|laden|co2|grünstrom|gruenstrom)\b/i.test(
+      cleaned
+    )
+  ) {
+    return undefined;
+  }
+
+  if (
+    /\d/.test(cleaned) &&
+    !/^\d{5}\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2}$/.test(cleaned)
+  ) {
+    return undefined;
+  }
+
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  if (words.length > 3) {
+    return undefined;
+  }
+
+  if (!/^[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2}$/.test(cleaned)) {
+    return undefined;
+  }
+
+  return cleaned;
 }
 
 function extractPromptHints(message) {
@@ -1029,6 +1085,12 @@ function extractPromptHints(message) {
   const locationPhraseMatch = text.match(
     /\b(?:in|bei|für|fuer|standort|ort)\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2})/
   );
+  const postalLocationMatch = text.match(
+    /\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2})\b/
+  );
+  const civicLocationMatch = text.match(
+    /\b(?:[Bb]ürgermeister(?:in)?|[Bb]uergermeister(?:in)?|[Oo]berbürgermeister(?:in)?|[Kk]ommune|[Gg]emeinde|[Ss]tadt)\s+(?:von|in|für|fuer)\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2})\b/
+  );
   const operatorAssertionMatch = text.match(
     /\b(?:netzbetreiber|vnb|betreiber)\b\s*(?:soll|sei|ist|=|:)?\s*([A-ZÄÖÜ][^,.;\n]+)/i
   );
@@ -1040,7 +1102,10 @@ function extractPromptHints(message) {
     leadingSegment.split(/\s+/).length <= 4;
 
   const locationCandidate =
-    locationPhraseMatch?.[1]?.trim() || (leadingLooksLikeLocation ? leadingSegment : undefined);
+    sanitizePromptLocationCandidate(postalLocationMatch?.[2]) ||
+    sanitizePromptLocationCandidate(civicLocationMatch?.[1]) ||
+    sanitizePromptLocationCandidate(locationPhraseMatch?.[1]) ||
+    (leadingLooksLikeLocation ? sanitizePromptLocationCandidate(leadingSegment) : undefined);
 
   const operatorCandidate = operatorAssertionMatch?.[1]
     ? operatorAssertionMatch[1].replace(/\b(?:sein|ist|sind)\b.*$/i, '').trim()
@@ -1499,7 +1564,11 @@ function getMissingInputs(action, params = {}) {
  * @param {string[]} [options.requiredScopes]  - Scopes that must be present in contextScopes
  * @param {object}  [options.contextScopes]    - Map of scope key → boolean/truthy from context
  */
-function runExecutionPreflight(action, params = {}, { requiredScopes = [], contextScopes = null } = {}) {
+function runExecutionPreflight(
+  action,
+  params = {},
+  { requiredScopes = [], contextScopes = null } = {}
+) {
   const rules = ACTION_REQUIREMENTS[action];
   const missingParams = [];
 
@@ -1514,7 +1583,8 @@ function runExecutionPreflight(action, params = {}, { requiredScopes = [], conte
 
     if (Array.isArray(rules.anyOf) && rules.anyOf.length > 0) {
       const hasAny = rules.anyOf.some(
-        (key) => Object.prototype.hasOwnProperty.call(params, key) && !isMissingRequired(params[key])
+        (key) =>
+          Object.prototype.hasOwnProperty.call(params, key) && !isMissingRequired(params[key])
       );
       if (!hasAny) {
         missingParams.push(`oneOf:${rules.anyOf.join('|')}`);

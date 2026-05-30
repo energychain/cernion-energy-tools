@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): consultation replies now synthesize EV-charging guidance from executed `energy-market.co2Intensity` evidence (time window, location, CO₂ intensity), preventing contradictory fallback phrasing when live evidence is available.
+- [services/personal-agent.service.js](services/personal-agent.service.js): pending mandatory HITL checkpoints now accept natural-language approval intents (e.g. "Ich gebe frei"), apply approval via `hitl.approve`, and resume the blocked deterministic step in the same turn when possible.
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): fallback capability planning now uses configured fallback actions and provides safe default params for `interface-placeholder.markGap` (`role`, `capabilityId`, `reason`, `reasonCode`) to avoid preflight/validation drift.
+
+### Changed
+
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): prompt-hint location extraction is hardened via sanitization and civic/postal patterns so topic/control phrases (e.g. approval text, strategy terms) are no longer misclassified as cities.
+- [services/personal-agent.service.js](services/personal-agent.service.js): runtime receipt preference resolution now injects `ev-charging-co2-optimization-v1` for EV+CO₂ charging intents while preserving explicit per-request `preferredReceipts` order.
+
+### Tests
+
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regressions for prompt-hint location sanitization (`Wiesloch` civic extraction, approval/topic false-positive rejection), natural-language HITL approval resume behavior, and EV CO₂ reply grounding against executed GrünstromIndex evidence.
+
+## [0.57.5] — Receipt execution visibility fix (#158) (2026-05-29)
+
+### Fixed
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): post-reflection receipt execution is now surfaced in the public consultation response after `executeWithReceipt()` succeeds. The reflection audit summary is refreshed after dispatch, and `execution.status` / `execution.steps` reflect the completed receipt run while keeping the top-level consultation status unchanged.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added a regression that reproduces the resolved-reflection dispatch shape from the live session and asserts public execution visibility (`consultationPlanResults.steps`, `execution.status`, `execution.steps`, `agentTrace.reflection.receipt.execution.used`).
+
 ### Added
 
 - [src/personal-agent-reflection.js](src/personal-agent-reflection.js): new pure-helper module for the Receipt Reflection / Context-Hydration Loop (#158). Exports `buildReflectionPrompt`, `validateReflectionPatch`, `hasScopeBlockedOrMissingSteps`, `buildReflectionAllowedFields`, and `REFLECTION_OUTPUT_SCHEMA`. No LLM or broker calls; all async work is performed by the service. Whitelist = `DECISIVE_PARAMS ∪ missingRequiredInputs ∪ scope-implied fields`. No WOL emission, no tenant knowledge promotion, no raw-data persistence.

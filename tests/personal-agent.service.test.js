@@ -10,6 +10,7 @@ const PresentationService = require('../services/presentation.service');
 const PersonalAgentService = require('../services/personal-agent.service');
 const jobStore = require('../src/job-store');
 const { WORKFLOW_TYPES } = require('../src/consultation-execution-bridge');
+const { buildExecutionPlan } = require('../src/personal-agent-routing');
 const {
   PERSONAL_AGENT_WORK_OUT_LOUD_EVENT,
   WORK_OUT_LOUD_SIGNAL_TYPES,
@@ -110,6 +111,23 @@ describe('personal-agent.service', () => {
                         source: 'fixed',
                         value: '__step_1.data.results[0].contacts[0].city',
                       },
+                    },
+                  },
+                ],
+              },
+            });
+            const buildEvCo2Receipt = (receiptId, status = 'active') => ({
+              receiptId,
+              status,
+              toolPlan: {
+                steps: [
+                  {
+                    step: 1,
+                    action: 'energy-market.co2Intensity',
+                    required: true,
+                    paramMapping: {
+                      city: { source: 'context', contextField: 'city' },
+                      postalCode: { source: 'context', contextField: 'postalCode' },
                     },
                   },
                 ],
@@ -250,6 +268,45 @@ describe('personal-agent.service', () => {
               };
             }
 
+            if (preferredReceipts.includes('ev-charging-co2-optimization-v1')) {
+              const messageLocation = String(ctx.params.message || '').match(
+                /\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+)/
+              );
+              const city = knownContext.city || messageLocation?.[2] || null;
+              const postalCode = knownContext.postalCode || messageLocation?.[1] || null;
+              const executable = Boolean(city && postalCode);
+              return {
+                success: true,
+                data: {
+                  selected: true,
+                  receiptId: 'ev-charging-co2-optimization-v1',
+                  status: 'active',
+                  mode: 'preferred',
+                  score: 94,
+                  warnings: [],
+                  selectedReceipt: buildEvCo2Receipt('ev-charging-co2-optimization-v1', 'active'),
+                  evaluation: {
+                    executable,
+                    matchScore: 94,
+                    plannedToolCalls: executable
+                      ? [
+                          {
+                            step: 1,
+                            status: 'ready',
+                            action: 'energy-market.co2Intensity',
+                            selectedAction: 'energy-market.co2Intensity',
+                            params: { city, postalCode },
+                          },
+                        ]
+                      : [],
+                    missingRequiredInputs: executable ? [] : ['city', 'postalCode'],
+                    errors: [],
+                    warnings: [],
+                  },
+                },
+              };
+            }
+
             return {
               success: true,
               data: {
@@ -273,6 +330,9 @@ describe('personal-agent.service', () => {
       actions: {
         markGap: {
           handler(ctx) {
+            if (!ctx.params?.role || (!ctx.params?.reason && !ctx.params?.reasonCode)) {
+              throw new Error('interface-placeholder.markGap requires role and reason');
+            }
             const item = {
               success: true,
               placeholder: {
@@ -282,6 +342,32 @@ describe('personal-agent.service', () => {
             };
             placeholderCalls.push({ ...ctx.params, ...item });
             return item;
+          },
+        },
+      },
+    });
+    broker.createService({
+      name: 'energy-market',
+      actions: {
+        co2Intensity: {
+          handler(ctx) {
+            executedActions.push('energy-market.co2Intensity');
+            executedCallDetails.push({ action: 'energy-market.co2Intensity', params: ctx.params });
+            return {
+              success: true,
+              data: {
+                source: 'GrünstromIndex',
+                city: ctx.params.city,
+                postalCode: ctx.params.postalCode,
+                recommendation: {
+                  bestWindow: {
+                    start: '13:00',
+                    end: '17:00',
+                    avgCo2gPerKWh: 180,
+                  },
+                },
+              },
+            };
           },
         },
       },
@@ -4573,6 +4659,33 @@ describe('personal-agent.service', () => {
     expect(result.reply).not.toMatch(/notification|dispatch|unresolved_recipient|channel/i);
   });
 
+  it('validates promptHints so topics and approval typos are not extracted as city', () => {
+    const municipalPlan = buildExecutionPlan({
+      message:
+        'Als Bürgermeister von Wiesloch brauche ich eine Strategie für PV-Ausbau und Bestandskunden.',
+      brokerRecommendation: null,
+      knownContext: {},
+    });
+    expect(municipalPlan.promptHints.city).toBe('Wiesloch');
+    expect(municipalPlan.promptHints.location).toBe('Wiesloch');
+
+    const ewrPlan = buildExecutionPlan({
+      message: 'EWR Vorstand: AI Data Center Readiness für Bestandskunden bewerten.',
+      brokerRecommendation: null,
+      knownContext: {},
+    });
+    expect(ewrPlan.promptHints.city).toBeUndefined();
+    expect(ewrPlan.promptHints.location).toBeUndefined();
+
+    const approvalPlan = buildExecutionPlan({
+      message: 'bestätogt, bitte fortfahren',
+      brokerRecommendation: null,
+      knownContext: {},
+    });
+    expect(approvalPlan.promptHints.city).toBeUndefined();
+    expect(approvalPlan.promptHints.location).toBeUndefined();
+  });
+
   it('propagates actor identity and routing metadata for critical HITL stopPoint', async () => {
     seedPersona('tenant-critical-hitl-routing', {
       id: 'tenant-critical-hitl-routing/thorsten-human',
@@ -4690,6 +4803,51 @@ describe('personal-agent.service', () => {
     expect(second.agentTrace?.stateMachine?.currentState).toBe('hitl_blocked');
     expect(second.reply).not.toMatch(/PREFLIGHT_MISS/i);
     expect(placeholderCalls.length).toBe(placeholderCallsBeforeSecondTurn);
+  });
+
+  it('applies natural-language HITL approval and resumes without rerouting', async () => {
+    const sessionId = `hitl-natural-approval-${Date.now()}`;
+    const meta = {
+      tenantId: 'tenant-critical-hitl-natural-approval',
+      authUser: { userId: 'user-hitl-natural-approval' },
+    };
+
+    const first = await broker.call(
+      'personal-agent.chat',
+      {
+        sessionId,
+        message: 'Bitte Due Diligence für den Kreditausschuss durchführen.',
+        chatMode: 'execution',
+        executionMode: 'auto',
+      },
+      { meta }
+    );
+
+    expect(first.execution.stopPoint.reasonCode).toBe('MANDATORY_HITL_APPROVAL');
+    const hitlItemId = first.execution.stopPoint.hitlItemId;
+    const placeholderCallsBefore = placeholderCalls.length;
+
+    const resumed = await broker.call(
+      'personal-agent.chat',
+      {
+        sessionId,
+        message: 'Ich gebe frei, bitte fortfahren.',
+        chatMode: 'execution',
+        executionMode: 'auto',
+      },
+      { meta }
+    );
+
+    expect(hitlItems.get(hitlItemId).status).toBe('approved');
+    expect(resumed.success).toBe(true);
+    expect(resumed.execution.stopPoint?.reasonCode).not.toBe('MANDATORY_HITL_APPROVAL');
+    expect(resumed.execution.stopPoint?.reasonCode).not.toBe('PREFLIGHT_MISS');
+    expect(placeholderCalls.length).toBe(placeholderCallsBefore);
+    expect(
+      resumed.execution.steps.some(
+        (step) => step.action === 'finance-agent.analyze' && step.status === 'completed'
+      )
+    ).toBe(true);
   });
 
   it('resumes critical flow after HITL approval on next turn', async () => {
@@ -6702,6 +6860,9 @@ describe('personal-agent.service', () => {
         expect(result.execution.steps.map((step) => step.action)).toEqual(
           expect.arrayContaining(['energy-market.co2Intensity'])
         );
+        expect(result.reply).toMatch(/GrünstromIndex|CO₂-Prognose/i);
+        expect(result.reply).toMatch(/13:00.*17:00|bestes Fenster/i);
+        expect(result.reply).not.toMatch(/keine Live-Daten|ohne Live-Daten verfügbar/i);
       } finally {
         selectReceiptSpy.mockRestore();
         callLlmSpy.mockRestore();

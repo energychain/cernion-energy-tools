@@ -2129,6 +2129,12 @@ module.exports = {
           );
         }
 
+        const preferredReceiptsForTurn = this.buildPreferredReceiptsForTurn(
+          ctx.params.message,
+          brokerKnownContext,
+          ctx.params.preferredReceipts
+        );
+
         const receiptSelectionResult = await this.selectRuntimeReceipt(ctx, {
           message: ctx.params.message,
           context: {
@@ -2146,9 +2152,7 @@ module.exports = {
               semanticClassification?.domainIntent || brokerRecommendation?.intent || null,
           },
           forceReceipt: ctx.params.forceReceipt,
-          preferredReceipts: Array.isArray(ctx.params.preferredReceipts)
-            ? ctx.params.preferredReceipts
-            : [],
+          preferredReceipts: preferredReceiptsForTurn,
           allowDraftReceipts: ctx.params.allowDraftReceipts === true,
           explainReceiptSelection: receiptSelectionDiagnosticsRequested,
           disableReceiptSelection: ctx.params.disableReceiptSelection === true,
@@ -3172,6 +3176,11 @@ module.exports = {
                   steps: consultationPlanResults.steps,
                 }
               : consultationExecution;
+          const groundedReceiptReply = this.buildGroundedReceiptReply(
+            ctx.params.message,
+            receiptSelectionResult,
+            consultationPlanResults
+          );
 
           return {
             success: true,
@@ -3179,7 +3188,7 @@ module.exports = {
             sessionId,
             executionMode,
             chatMode: effectiveChatMode,
-            reply: consultationResult.reply,
+            reply: groundedReceiptReply || consultationResult.reply,
             workflowType: consultationPayload.workflowType,
             domainIntent: consultationPayload.domainIntent,
             evidenceStatus: consultationPayload.evidenceStatus,
@@ -8420,6 +8429,106 @@ module.exports = {
       }
     },
 
+    isEvCo2ChargingRequest(message = '', knownContext = {}) {
+      const haystack = [
+        message,
+        knownContext?.message,
+        knownContext?.intent,
+        knownContext?.domainIntent,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      const hasChargingIntent =
+        /\b(?:ev|e-?auto|elektroauto|wallbox|laden|ladezeit|ladung|charging)\b/i.test(haystack);
+      const hasCarbonIntent =
+        /\b(?:co2|kohlenstoff|emission|emissions|grünstrom|gruenstrom|gsi|strommix|klima)\b/i.test(
+          haystack
+        );
+
+      return hasChargingIntent && hasCarbonIntent;
+    },
+
+    buildPreferredReceiptsForTurn(message = '', knownContext = {}, explicitPreferred = []) {
+      const preferred = Array.isArray(explicitPreferred) ? [...explicitPreferred] : [];
+      if (
+        this.isEvCo2ChargingRequest(message, knownContext) &&
+        !preferred.includes('ev-charging-co2-optimization-v1')
+      ) {
+        preferred.unshift('ev-charging-co2-optimization-v1');
+      }
+      return preferred;
+    },
+
+    isHitlApprovalIntent(message = '') {
+      const normalized = String(message || '')
+        .toLowerCase()
+        .replace(/ä/g, 'ae')
+        .replace(/ö/g, 'oe')
+        .replace(/ü/g, 'ue')
+        .replace(/ß/g, 'ss');
+
+      return (
+        /\b(?:ja|ok|okay|approve|approved|freigeben|freigabe|genehmigen|genehmigt|bestaetigen|bestaetigt|bestaetogt)\b/.test(
+          normalized
+        ) || /\bich\s+(?:gebe\s+frei|genehmige|bestaetige)\b/.test(normalized)
+      );
+    },
+
+    buildGroundedReceiptReply(_message = '', receiptSelection = null, executionResult = null) {
+      const steps = Array.isArray(executionResult?.steps) ? executionResult.steps : [];
+      const co2Step = steps.find((step) => step?.action === 'energy-market.co2Intensity');
+      if (!co2Step) {
+        return null;
+      }
+
+      const rawResult = co2Step?.outcome?.result || co2Step?.result || null;
+      const data =
+        rawResult?.data && typeof rawResult.data === 'object' ? rawResult.data : rawResult;
+      if (!data || typeof data !== 'object') {
+        return null;
+      }
+
+      const recommendation =
+        data.recommendation && typeof data.recommendation === 'object' ? data.recommendation : data;
+      const bestWindow =
+        recommendation.bestWindow && typeof recommendation.bestWindow === 'object'
+          ? recommendation.bestWindow
+          : recommendation.window && typeof recommendation.window === 'object'
+            ? recommendation.window
+            : null;
+      const source = data.source || data.provider || data.dataset || 'GrünstromIndex/CO₂-Prognose';
+      const start = bestWindow?.start || bestWindow?.from || bestWindow?.dateFrom || null;
+      const end = bestWindow?.end || bestWindow?.to || bestWindow?.dateTo || null;
+      const intensity =
+        bestWindow?.avgCo2gPerKWh ??
+        bestWindow?.co2gPerKWh ??
+        bestWindow?.co2Intensity ??
+        recommendation?.avgCo2gPerKWh ??
+        recommendation?.co2gPerKWh ??
+        null;
+      const postalCode = co2Step?.params?.postalCode || data.postalCode || null;
+      const city = co2Step?.params?.city || data.city || data.location || null;
+      const location = [postalCode, city].filter(Boolean).join(' ').trim();
+
+      const evidenceBits = [];
+      if (location) {
+        evidenceBits.push(`Standort ${location}`);
+      }
+      if (start || end) {
+        evidenceBits.push(`bestes Fenster ${[start, end].filter(Boolean).join('–')}`);
+      }
+      if (intensity !== null && intensity !== undefined) {
+        evidenceBits.push(`Ø ${intensity} g CO₂/kWh`);
+      }
+
+      const receiptLabel = receiptSelection?.receiptId || 'EV/CO₂-Optimierung';
+      const summary =
+        evidenceBits.length > 0 ? evidenceBits.join(', ') : 'Forecast erfolgreich ausgewertet';
+      return `Auf Basis der Tool-Evidenz (${source}, Receipt ${receiptLabel}) empfehle ich: ${summary}. Ich stütze diese Aussage auf die ausgeführte CO₂-/Grünstrom-Prognose und nicht auf eine Annahme ohne Live-Daten.`;
+    },
+
     buildReceiptExecutionContext({
       message = '',
       knownContext = {},
@@ -9553,15 +9662,32 @@ module.exports = {
 
       session.l3.stopPoint = stopPoint;
 
-      const normalizedMessage = String(message || '').toLowerCase();
-      const explicitDecisionIntent =
-        /(ich\s+(gebe\s+frei|genehmige|lehne\s+ab)|freigeben|freigabe|genehmigen|ablehnen|reject|approve)/i.test(
-          normalizedMessage
-        );
+      const explicitApprovalIntent = this.isHitlApprovalIntent(message);
+
+      if (explicitApprovalIntent) {
+        try {
+          await ctx.call(
+            'hitl.approve',
+            {
+              id: hitlRef.hitlItemId,
+              comment: 'Approved from Personal Agent conversation turn.',
+            },
+            { meta: { ...ctx.meta, $gateway: false } }
+          );
+          this.updateCriticalStepCheckpointStatus(session, hitlRef.hitlItemId, 'approved');
+          return this.resolveSessionHitlResumeGate(ctx, {
+            session,
+            knownContext: { ...(knownContext || {}), hitlItemId: hitlRef.hitlItemId },
+            message: '',
+          });
+        } catch (error) {
+          this.logger?.warn?.(`HITL approval intent could not be applied: ${error.message}`);
+        }
+      }
 
       const replyBase = this.buildHitlApprovalMarkdown(onboardingQuestion);
-      const reply = explicitDecisionIntent
-        ? `${replyBase}\n\nHinweis: Die Entscheidung wird erst wirksam, wenn das HITL-Element explizit bestätigt oder abgelehnt wurde.`
+      const reply = explicitApprovalIntent
+        ? `${replyBase}\n\nHinweis: Ich habe die Freigabe erkannt, konnte sie aber nicht automatisch auf das HITL-Element anwenden. Bitte bestätigen Sie das HITL-Element explizit oder nennen Sie die HITL-ID.`
         : replyBase;
 
       return {
