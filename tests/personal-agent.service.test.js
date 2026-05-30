@@ -22,6 +22,8 @@ describe('personal-agent.service', () => {
   let placeholderCalls;
   let executedActions;
   let executedCallDetails;
+  let co2ResponseOverride;
+  let vnbLookupResponseOverride;
   let hitlItems;
   let personaDirectory;
   let seedPersona;
@@ -32,6 +34,8 @@ describe('personal-agent.service', () => {
     placeholderCalls = [];
     executedActions = [];
     executedCallDetails = [];
+    co2ResponseOverride = null;
+    vnbLookupResponseOverride = null;
     hitlItems = new Map();
     personaDirectory = new Map();
     emittedEvents = [];
@@ -353,19 +357,20 @@ describe('personal-agent.service', () => {
           handler(ctx) {
             executedActions.push('energy-market.co2Intensity');
             executedCallDetails.push({ action: 'energy-market.co2Intensity', params: ctx.params });
+            if (typeof co2ResponseOverride === 'function') {
+              return co2ResponseOverride(ctx.params);
+            }
+            const forecastValues = Array.from({ length: 24 }, (_unused, index) =>
+              index >= 7 && index < 17 ? 57 : 180 + index
+            );
             return {
               success: true,
               data: {
                 source: 'GrünstromIndex',
                 city: ctx.params.city,
                 postalCode: ctx.params.postalCode,
-                recommendation: {
-                  bestWindow: {
-                    start: '13:00',
-                    end: '17:00',
-                    avgCo2gPerKWh: 180,
-                  },
-                },
+                timestamp: '2026-05-30T00:00:00Z',
+                forecast_next_24h_gco2eq_kwh: forecastValues,
               },
             };
           },
@@ -662,6 +667,9 @@ describe('personal-agent.service', () => {
           handler(ctx) {
             executedActions.push('grid-operations.vnbLookup');
             executedCallDetails.push({ action: 'grid-operations.vnbLookup', params: ctx.params });
+            if (typeof vnbLookupResponseOverride === 'function') {
+              return vnbLookupResponseOverride(ctx.params);
+            }
             if (!ctx.params.bdew && !ctx.params.city && !ctx.params.query && !ctx.params.vnbName) {
               throw new Error('Parameters validation error!');
             }
@@ -5273,6 +5281,369 @@ describe('personal-agent.service', () => {
     );
   });
 
+  it('grounds EV/CO₂ consultation for Mauer in GrünstromIndex evidence', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte optimiere mein EV-Laden nach CO₂. Ich bin in 69256 Mauer.',
+        sessionId: `ev-co2-consult-${Date.now()}`,
+        chatMode: 'consultation',
+        executionMode: 'auto',
+        knownContext: {},
+      },
+      { meta: { tenantId: 'tenant-ev-co2-consult', authUser: { userId: 'user-ev-consult' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(['consulting', 'completed', 'partial']).toContain(result.status);
+    expect(['completed', 'partial']).toContain(result.execution.status);
+    expect(result.execution.steps.map((step) => step.action)).toContain(
+      'energy-market.co2Intensity'
+    );
+    expect(result.reply).toMatch(/GrünstromIndex|CO₂-Prognose/i);
+    expect(result.reply).toMatch(/09:00.*19:00.*CEST|bestes Ladefenster/i);
+    expect(result.reply).toMatch(/57\s*g\s*CO₂\/kWh/i);
+    expect(result.reply).toMatch(/Handlungsempfehlung|Lade bevorzugt/i);
+    expect(result.reply).toMatch(/Datengrundlage|Tool-Evidenz/i);
+    expect(result.reply).not.toMatch(/keine Live-Daten|ohne Live-Daten|Bitburg|TEN Thüringer/i);
+  });
+
+  it('grounds EV/CO₂ execution for Mauer and bypasses stale evidence-gap rendering', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte optimiere mein EV-Laden nach CO₂. Ich bin in 69256 Mauer.',
+        sessionId: `ev-co2-exec-${Date.now()}`,
+        chatMode: 'execution',
+        executionMode: 'auto',
+        explainReceiptSelection: true,
+        knownContext: {},
+      },
+      { meta: { tenantId: 'tenant-ev-co2-exec', authUser: { userId: 'user-ev-exec' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(['completed', 'partial']).toContain(result.status);
+    expect(['completed', 'partial']).toContain(result.execution.status);
+    expect(result.metadata.receiptSelection).toMatchObject({
+      receiptId: 'ev-charging-co2-optimization-v1',
+      execution: expect.objectContaining({ used: true, executor: 'executeWithReceipt' }),
+    });
+    expect(result.execution.steps.map((step) => step.action)).toContain(
+      'energy-market.co2Intensity'
+    );
+    expect(result.reply).toMatch(/GrünstromIndex|CO₂-Prognose/i);
+    expect(result.reply).toMatch(/bestes Ladefenster/i);
+    expect(result.reply).toMatch(/09:00.*19:00.*CEST/i);
+    expect(result.reply).toMatch(/07:00.*17:00.*UTC/i);
+    expect(result.reply).toMatch(/57\s*g\s*CO₂\/kWh/i);
+    expect(result.reply).toMatch(/Forecast-Spanne\s+57.*203\s*g\s*CO₂\/kWh/i);
+    expect(result.reply).toMatch(/Handlungsempfehlung|Lade bevorzugt/i);
+    expect(result.reply).toMatch(/Datengrundlage|Tool-Evidenz/i);
+    expect(result.reply).not.toMatch(/Plan abgeschlossen|deterministische[rn]? Schritt/i);
+    expect(result.presentationApplied).toBe(true);
+    expect(result.presentationType).toBe('receipt_grounded_reply');
+    expect(result.presentation?.markdown).toContain('09:00');
+    expect(result.reply).not.toMatch(
+      /evidence_gap_table_renderer_not_implemented|PREFLIGHT_MISS|Bitburg/i
+    );
+  });
+
+  it('routes known-location EV/CO₂ execution directly to CO₂ forecast without DSO/VNB detour', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message:
+          'Ich bin in 69256 Mauer, wann soll ich hier heute mein Auto laden, um möglichst wenig CO2 Emission zu verursachen?',
+        sessionId: `ev-co2-direct-${Date.now()}`,
+        chatMode: 'execution',
+        executionMode: 'auto',
+        explainReceiptSelection: true,
+        knownContext: {},
+      },
+      { meta: { tenantId: 'tenant-ev-co2-direct', authUser: { userId: 'user-ev-direct' } } }
+    );
+
+    const executedToolNames = executedCallDetails.map((entry) => entry.action);
+    const co2Call = executedCallDetails.find((entry) => entry.action === 'energy-market.co2Intensity');
+
+    expect(result.success).toBe(true);
+    expect(result.routing.primaryIntent).toMatch(/ev.*co2|ev.*co₂|co2.*optimization/i);
+    expect(result.routing.primaryIntent).not.toBe('residual_load_forecast_for_dso');
+    expect(result.plan.steps.map((step) => step.action)).toEqual(['energy-market.co2Intensity']);
+    expect(co2Call).toBeTruthy();
+    expect(co2Call.params).toMatchObject({ city: 'Mauer', postalCode: '69256' });
+    expect(executedToolNames).not.toEqual(
+      expect.arrayContaining([
+        'grid-operations.marketPartners',
+        'grid-operations.vnbLookup',
+        'residual-load.netResidualLoad',
+        'energy-market.prices',
+      ])
+    );
+    expect(result.reply).toMatch(/09:00.*19:00.*CEST/i);
+    expect(result.reply).toMatch(/57\s*g\s*CO₂\/kWh/i);
+    expect(result.reply).not.toMatch(/evidence_gap_table_renderer_not_implemented/i);
+  });
+
+  it('rejects wrong-location CO₂ evidence instead of recommending from Bitburg or fallback PLZ', async () => {
+    co2ResponseOverride = () => {
+      const forecastValues = Array.from({ length: 24 }, (_unused, index) =>
+        index >= 7 && index < 17 ? 57 : 180 + index
+      );
+      return {
+        success: true,
+        data: {
+          source: 'GrünstromIndex',
+          city: 'Bitburg',
+          postalCode: '10117',
+          timestamp: '2026-05-30T00:00:00Z',
+          forecast_next_24h_gco2eq_kwh: forecastValues,
+        },
+      };
+    };
+
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message:
+          'Ich bin in 69256 Mauer, wann soll ich hier heute mein Auto laden, um möglichst wenig CO2 Emission zu verursachen?',
+        sessionId: `ev-co2-wrong-location-${Date.now()}`,
+        chatMode: 'execution',
+        executionMode: 'auto',
+        knownContext: {},
+      },
+      {
+        meta: {
+          tenantId: 'tenant-ev-co2-wrong-location',
+          authUser: { userId: 'user-ev-wrong-location' },
+        },
+      }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.reply).toMatch(/keine Ladeempfehlung|ander.*Standort|Standort.*abweich/i);
+    expect(result.reply).toMatch(/69256 Mauer/i);
+    expect(result.reply).toMatch(/Bitburg|10117/i);
+    expect(result.reply).not.toMatch(/bestes Ladefenster 09:00.*19:00.*CEST/i);
+    expect(result.reply).not.toMatch(/evidence_gap_table_renderer_not_implemented/i);
+  });
+
+  it('does not treat failed VNB name lookup as a completed successful step', async () => {
+    vnbLookupResponseOverride = (params) => {
+      if (/syna/i.test(String(params.vnbName || params.query || '')) && !params.bdew) {
+        return {
+          success: false,
+          data: null,
+          error: {
+            code: 'BDEW_REQUIRED',
+            message: 'Parameter "bdew" is required.',
+          },
+        };
+      }
+      return null;
+    };
+
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Netzbetreiber ist Syna',
+        sessionId: `syna-vnb-contract-${Date.now()}`,
+        chatMode: 'execution',
+        executionMode: 'auto',
+        forceReceipt: 'vnb-lookup-v1',
+        knownContext: {
+          vnbName: 'Syna',
+        },
+      },
+      { meta: { tenantId: 'tenant-syna-vnb-contract', authUser: { userId: 'user-syna-vnb' } } }
+    );
+
+    const vnbStep = result.execution.steps.find((step) => step.action === 'grid-operations.vnbLookup');
+
+    expect(result.success).toBe(true);
+    expect(result.execution.status).toBe('partial');
+    expect(vnbStep).toMatchObject({ status: 'failed' });
+    expect(result.execution.completedSteps).toBe(0);
+    expect(result.reply).toMatch(/BDEW|Marktpartner|Netzbetreiber-Suche/i);
+    expect(result.reply).not.toMatch(/abgeschlossen.*grid-operations\.vnbLookup/i);
+  });
+
+  it('applies Syna Netzbetreiber follow-up to the pending blocker and asks for remaining data', async () => {
+    const sessionId = `syna-follow-up-${Date.now()}`;
+    const meta = { tenantId: 'tenant-syna-follow-up', authUser: { userId: 'user-syna' } };
+    await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Hallo, wir starten eine fNAV-Klärung.',
+        sessionId,
+        chatMode: 'consultation',
+        executionMode: 'auto',
+        knownContext: {},
+      },
+      { meta }
+    );
+
+    const seededPlan = buildExecutionPlan({
+      message: 'Bitte fNAV und Finance bewerten',
+      knownContext: {
+        fnavProfile: { requestedCapacity: 5000 },
+        voltageLevel: 'MS',
+        ownerContact: 'netzplanung@example.invalid',
+      },
+    });
+    const persisted = await broker.call(
+      'object-store.get',
+      {
+        namespace: 'tenant:tenant-syna-follow-up:personal_agent_sessions',
+        key: sessionId,
+      },
+      { meta }
+    );
+    await broker.call(
+      'object-store.put',
+      {
+        namespace: 'tenant:tenant-syna-follow-up:personal_agent_sessions',
+        key: sessionId,
+        payload: {
+          ...persisted.payload,
+          l3: {
+            ...(persisted.payload.l3 || {}),
+            onboardingQuestions: [
+              {
+                questionId: 'q-grid-operator-name',
+                questionText: 'Welcher Netzbetreiber ist zuständig?',
+                status: 'pending',
+                action: 'grid-connection.fnavValidate',
+                paramKey: 'gridOperatorName',
+                missingParams: ['gridOperatorName'],
+                answeredAt: null,
+                answer: null,
+                planSnapshot: seededPlan,
+              },
+            ],
+          },
+        },
+      },
+      { meta }
+    );
+
+    const first = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Netzbetreiber ist die Syna',
+        sessionId,
+        chatMode: 'execution',
+        executionMode: 'auto',
+        knownContext: {
+          fnavProfile: { requestedCapacity: 5000 },
+          voltageLevel: 'MS',
+          ownerContact: 'netzplanung@example.invalid',
+        },
+      },
+      { meta }
+    );
+
+    expect(['completed', 'awaiting-onboarding']).toContain(first.execution.status);
+    expect(first.reply).toMatch(/Syna/i);
+    expect(first.execution.stopPoint?.missingParams || []).not.toContain('gridOperatorName');
+    expect(
+      first.execution.steps.some(
+        (step) =>
+          step.action === 'grid-connection.fnavValidate' &&
+          /Syna/i.test(String(step.params?.gridOperatorName || ''))
+      )
+    ).toBe(true);
+
+    const session = await broker.call('personal-agent.getSession', { sessionId }, { meta });
+    expect(session.l3.onboardingQuestions[0]).toMatchObject({
+      answer: 'Netzbetreiber ist die Syna',
+    });
+    expect(session.l3.onboardingQuestions[0].answeredAt).toBeTruthy();
+  });
+
+  it('keeps municipal Wiesloch consultation grounded without unrelated operator drift', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Als Bürgermeister von Wiesloch brauche ich eine Strategie für PV-Ausbau und Bestandskunden.',
+        sessionId: `wiesloch-municipal-${Date.now()}`,
+        chatMode: 'consultation',
+        executionMode: 'auto',
+        knownContext: {
+          city: 'Wiesloch',
+          organizationType: 'municipality',
+        },
+      },
+      { meta: { tenantId: 'tenant-wiesloch-municipal', authUser: { userId: 'user-wiesloch' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(['consulting', 'completed']).toContain(result.status);
+    expect(result.reply).toMatch(/Wiesloch|Datengrundlage|Datenpunkte/i);
+    expect(result.reply).not.toMatch(/Bitburg|TEN Thüringer|Stadtwerk Trier/i);
+  });
+
+  it('returns a stable EWR data-center execution gap without PREFLIGHT leakage', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'EWR Vorstand: AI Data Center Readiness für Bestandskunden bewerten.',
+        sessionId: `ewr-dc-exec-${Date.now()}`,
+        chatMode: 'execution',
+        executionMode: 'auto',
+        knownContext: {
+          organizationType: 'utility',
+          responsibleRole: 'Vorstand',
+        },
+      },
+      { meta: { tenantId: 'tenant-ewr-dc-exec', authUser: { userId: 'user-ewr-exec' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.reply).toMatch(
+      /keinen belastbaren deterministischen|Schnittstelle|Datengrundlage/i
+    );
+    expect(result.reply).not.toMatch(
+      /PREFLIGHT_MISS|Parameters validation|requires role and reason/i
+    );
+    expect(placeholderCalls.length).toBeGreaterThan(0);
+    expect(placeholderCalls[0]).toEqual(
+      expect.objectContaining({ role: 'personal_agent_orchestrator' })
+    );
+  });
+
+  it('surfaces datapoints and assumptions for EWR data-center consultation', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'EWR Vorstand: AI Data Center Readiness für Bestandskunden bewerten.',
+        sessionId: `ewr-dc-consult-${Date.now()}`,
+        chatMode: 'consultation',
+        executionMode: 'auto',
+        knownContext: {
+          organizationType: 'utility',
+          responsibleRole: 'Vorstand',
+          knowledgeScopeDataPoints: [
+            {
+              key: 'bestandskundenLastprofil',
+              scope: 'session',
+              source: 'user-provided',
+              status: 'observed',
+            },
+          ],
+        },
+      },
+      { meta: { tenantId: 'tenant-ewr-dc-consult', authUser: { userId: 'user-ewr-consult' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.status).toBe('consulting');
+    expect(result.reply).toMatch(/Datengrundlage/i);
+    expect(result.reply).toMatch(/Genutzte Datenpunkte|bestandskundenLastprofil/i);
+    expect(result.reply).toMatch(/Annahmen/i);
+  });
+
   it('processes gateway async forced receipt jobs to completion without queued stall', async () => {
     const response = await broker.call(
       'personal-agent.chat',
@@ -6861,7 +7232,8 @@ describe('personal-agent.service', () => {
           expect.arrayContaining(['energy-market.co2Intensity'])
         );
         expect(result.reply).toMatch(/GrünstromIndex|CO₂-Prognose/i);
-        expect(result.reply).toMatch(/13:00.*17:00|bestes Fenster/i);
+        expect(result.reply).toMatch(/09:00.*19:00.*CEST|bestes Ladefenster/i);
+        expect(result.reply).toMatch(/57\s*g\s*CO₂\/kWh/i);
         expect(result.reply).not.toMatch(/keine Live-Daten|ohne Live-Daten verfügbar/i);
       } finally {
         selectReceiptSpy.mockRestore();

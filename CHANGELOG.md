@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- [services/personal-agent.service.js](services/personal-agent.service.js): receipt-backed EV/CO₂ execution now synthesizes the final answer from the executed GrünstromIndex/CO₂ evidence and bypasses stale evidence-gap presentation when the receipt completed successfully.
+- [services/personal-agent.service.js](services/personal-agent.service.js): EV/CO₂ receipt presentation now derives concrete charging windows from timestamped forecast rows (`forecast_next_24h_gco2eq_kwh` / `data.forecast`), including Germany local-time conversion, UTC reference window, CO₂ minimum/range, and optional kWh-based emissions.
+- [src/personal-agent-routing.js](src/personal-agent-routing.js), [services/personal-agent.service.js](services/personal-agent.service.js): known-location EV/CO₂ charging prompts now stay on the direct CO₂ forecast path instead of drifting into residual-load/VNB/price workflows; mismatched location evidence is rejected before synthesis, evidence-gap stubs are replaced with concrete missing-evidence text, and failed VNB lookups are no longer counted as completed steps.
+- [services/personal-agent.service.js](services/personal-agent.service.js): response grounding now appends a `Datengrundlage` contract with scoped datapoints, completed tool evidence, assumptions, and open evidence gaps for consultation and execution replies.
+- [services/personal-agent.service.js](services/personal-agent.service.js): VNB evidence gating no longer treats a generic city/municipality as sufficient reason to force VNB lookup gaps, reducing unrelated operator drift in municipal strategy consultations.
 - [services/personal-agent.service.js](services/personal-agent.service.js): consultation replies now synthesize EV-charging guidance from executed `energy-market.co2Intensity` evidence (time window, location, CO₂ intensity), preventing contradictory fallback phrasing when live evidence is available.
 - [services/personal-agent.service.js](services/personal-agent.service.js): pending mandatory HITL checkpoints now accept natural-language approval intents (e.g. "Ich gebe frei"), apply approval via `hitl.approve`, and resume the blocked deterministic step in the same turn when possible.
 - [src/personal-agent-routing.js](src/personal-agent-routing.js): fallback capability planning now uses configured fallback actions and provides safe default params for `interface-placeholder.markGap` (`role`, `capabilityId`, `reason`, `reasonCode`) to avoid preflight/validation drift.
@@ -20,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added grounding-contract regressions for EV/CO₂ Mauer consultation/execution, Syna follow-up blocker capture, municipal Wiesloch strategy grounding, and EWR data-center execution/consultation placeholder paths.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added EV/CO₂ regression coverage for direct Mauer routing without DSO/VNB detours, wrong-location CO₂ evidence rejection (`Bitburg`/`10117`), concrete forecast presentation, and failed Syna VNB lookup contract handling.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regressions for prompt-hint location sanitization (`Wiesloch` civic extraction, approval/topic false-positive rejection), natural-language HITL approval resume behavior, and EV CO₂ reply grounding against executed GrünstromIndex evidence.
 
 ## [0.57.5] — Receipt execution visibility fix (#158) (2026-05-29)

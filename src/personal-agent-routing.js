@@ -312,6 +312,11 @@ const ACTION_PARAM_ALIASES = Object.freeze({
     vnbName: ['vnbName', 'gridOperatorName', 'operatorName', 'query'],
     query: ['query', 'gridOperatorName', 'operatorName', 'location'],
   },
+  'energy-market.co2Intensity': {
+    city: ['city', 'location', 'gemeinde'],
+    postalCode: ['postalCode', 'postleitzahl'],
+    location: ['location', 'city'],
+  },
   'grid-operations.netzfahrplanGenerate': {
     gridOperatorName: ['gridOperatorName', 'query', 'operatorName'],
     voltageLevel: ['voltageLevel'],
@@ -976,6 +981,86 @@ function findMatchingMatrixRoute(domainKeys = []) {
   );
 }
 
+function isDirectEvCo2ChargingRequest(message = '', knownContext = {}, promptHints = {}) {
+  const haystack = [message, knownContext?.intent, knownContext?.domainIntent]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  const hasChargingIntent =
+    /\b(?:ev|e-?auto|elektroauto|wallbox|laden|ladezeit|ladung|charging)\b/i.test(haystack);
+  const hasCarbonIntent =
+    /(?:\b(?:co2|kohlenstoff|emission|emissions|grünstrom|gruenstrom|gsi|strommix|klima)\b|co₂)/i.test(
+      haystack
+    );
+  const hasKnownLocation = Boolean(
+    promptHints?.postalCode ||
+    promptHints?.city ||
+    knownContext?.postalCode ||
+    knownContext?.postleitzahl ||
+    knownContext?.city ||
+    knownContext?.location
+  );
+  const explicitlyRequestsGridWorkflow =
+    /\b(?:residuallast|residual\s*load|netzbetreiber|vnb|dso|stadtwerk|netzlast|netzauslastung)\b/i.test(
+      haystack
+    );
+  const explicitlyRequestsPriceWorkflow =
+    /\b(?:preis|preise|strompreis|market\s*price|day-ahead|intraday|tarif|beschaffung)\b/i.test(
+      haystack
+    );
+
+  return (
+    hasChargingIntent &&
+    hasCarbonIntent &&
+    hasKnownLocation &&
+    !explicitlyRequestsGridWorkflow &&
+    !explicitlyRequestsPriceWorkflow
+  );
+}
+
+function buildDirectEvCo2ChargingPlan({ message, knownContext = {}, promptHints = {} }) {
+  const plan = {
+    source: 'ev-co2-direct',
+    routeKey: 'ev_charging_co2_direct',
+    routeLabel: 'EV/CO₂ charging optimization',
+    primaryIntent: 'ev_charging_co2_optimization',
+    secondaryIntents: [],
+    requestedDomains: detectRequestedDomains(message),
+    unsupportedDomains: [],
+    steps: [
+      {
+        step: 1,
+        action: 'energy-market.co2Intensity',
+        purpose: 'Direct CO₂ forecast for EV charging optimization at the requested location',
+        paramsTemplate: {
+          city: knownContext?.city || knownContext?.location || promptHints?.city || null,
+          postalCode:
+            knownContext?.postalCode ||
+            knownContext?.postleitzahl ||
+            promptHints?.postalCode ||
+            null,
+        },
+        source: 'ev-co2-direct',
+        hitlRequired: false,
+        criticalityClass: null,
+      },
+    ],
+    status: 'ready',
+    warnings: [],
+    promptHints,
+    capability: {
+      capability: 'ev_charging_co2_optimization',
+      intent: 'ev_charging_co2_optimization',
+      preferredActions: ['energy-market.co2Intensity'],
+    },
+  };
+  plan.evidencePlan = planEvidence(plan, {
+    ...(promptHints || {}),
+    ...(knownContext || {}),
+  });
+  return plan;
+}
+
 function isHitlRequiredForAction(capability, action) {
   const policy = capability?.hitlPolicy;
   if (!policy || policy.criticalFlow !== true) {
@@ -1632,6 +1717,9 @@ function buildExecutionPlan({
   const promptHints = extractPromptHints(message);
   const evidenceSignalKey = detectEvidenceSignalKey(message, knownContext, promptHints);
   const requestedDomains = detectRequestedDomains(message);
+  if (isDirectEvCo2ChargingRequest(message, knownContext, promptHints)) {
+    return buildDirectEvCo2ChargingPlan({ message, knownContext, promptHints });
+  }
   const route = findMatchingMatrixRoute(requestedDomains);
 
   if (route) {

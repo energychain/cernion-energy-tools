@@ -2979,10 +2979,13 @@ module.exports = {
               try {
                 const toolResolver = {
                   executeTool: async (action, params) => {
+                    const result = await ctx.call(action, params, { meta: ctx.meta });
                     return {
                       action,
-                      status: 'completed',
-                      result: await ctx.call(action, params, { meta: ctx.meta }),
+                      status: result?.success === false ? 'failed' : 'completed',
+                      result,
+                      error:
+                        result?.success === false ? result?.error?.message || result?.message : null,
                     };
                   },
                 };
@@ -2990,7 +2993,10 @@ module.exports = {
                   selectedReceipt,
                   this.buildReceiptExecutionContext({
                     message: ctx.params.message,
-                    knownContext: effectiveReceiptContext, // v0.57.5 #158: patched after reflection
+                    knownContext: {
+                      ...effectiveReceiptContext,
+                      ...(receiptSelectionResult?.evaluation?.plannedToolCalls?.[0]?.params || {}),
+                    }, // v0.57.5 #158: patched after reflection + receipt-evaluated hints
                     resolvedParams: session?.resolvedParams || {},
                     observations: [],
                   }),
@@ -3182,13 +3188,26 @@ module.exports = {
             consultationPlanResults
           );
 
+          const consultationGroundedReply = this.appendGroundingContractToReply(
+            groundedReceiptReply || consultationResult.reply,
+            {
+              execution: consultationPlanResults || consultationExecutionPublic,
+              knowledgeScope: [
+                ...(session.l3?.knowledgeScopeDataPoints || []),
+                ...(session.l2?.userProfile?.knowledgeScopeDataPoints || []),
+              ],
+              missingEvidence: consultationPayload.missingEvidence,
+              assumptions: consultationPayload.hypotheses,
+            }
+          );
+
           return {
             success: true,
             status,
             sessionId,
             executionMode,
             chatMode: effectiveChatMode,
-            reply: groundedReceiptReply || consultationResult.reply,
+            reply: consultationGroundedReply,
             workflowType: consultationPayload.workflowType,
             domainIntent: consultationPayload.domainIntent,
             evidenceStatus: consultationPayload.evidenceStatus,
@@ -3323,7 +3342,11 @@ module.exports = {
           try {
             const receiptExecutionContext = this.buildReceiptExecutionContext({
               message: ctx.params.message,
-              knownContext: preflightKnownContext,
+              knownContext: {
+                ...preflightKnownContext,
+                ...(routedPlan?.promptHints || {}),
+                ...(receiptSelectionResult?.evaluation?.plannedToolCalls?.[0]?.params || {}),
+              },
               resolvedParams: session?.resolvedParams || {},
               observations: [],
             });
@@ -3333,13 +3356,18 @@ module.exports = {
               receiptExecutionContext,
               [],
               {
-                executeTool: async (action, params) => ({
-                  action,
-                  status: 'completed',
-                  result: await ctx.call(action, params, {
+                executeTool: async (action, params) => {
+                  const result = await ctx.call(action, params, {
                     meta: { ...ctx.meta, $gateway: false },
-                  }),
-                }),
+                  });
+                  return {
+                    action,
+                    status: result?.success === false ? 'failed' : 'completed',
+                    result,
+                    error:
+                      result?.success === false ? result?.error?.message || result?.message : null,
+                  };
+                },
               },
               this.logger
             );
@@ -3461,6 +3489,10 @@ module.exports = {
         }
 
         let responsePlan = execution?.plan || routedPlan || plan;
+        const receiptExecutionUsed = receiptSelectionResult?.execution?.used === true;
+        const receiptGroundedReply = receiptExecutionUsed
+          ? this.buildGroundedReceiptReply(ctx.params.message, receiptSelectionResult, execution)
+          : null;
         status = execution?.status || 'completed';
         const evidenceGapsForGraph = Array.isArray(responsePlan?.evidencePlan?.gaps)
           ? responsePlan.evidencePlan.gaps
@@ -3666,6 +3698,9 @@ module.exports = {
           tenantId,
           sessionId,
         });
+        if (receiptGroundedReply) {
+          synthesisText = receiptGroundedReply;
+        }
 
         // A) Strategic milestone: synthesis done, now building presentation
         if (jobStore) {
@@ -3685,13 +3720,41 @@ module.exports = {
         let presentationApplied = false;
         let presentationType = null;
 
+        if (receiptGroundedReply) {
+          presentationApplied = true;
+          presentationType = 'receipt_grounded_reply';
+          presentationResult = {
+            markdown: synthesisText,
+            presentation: {
+              type: presentationType,
+              title: 'EV-Ladefenster nach CO₂-Prognose',
+              summary: 'Receipt-Ausführung mit ausgewerteter CO₂-/Grünstrom-Prognose.',
+              sources: ['energy-market.co2Intensity'],
+              sections: [
+                {
+                  title: 'Empfehlung',
+                  content: synthesisText,
+                },
+              ],
+              nextActions: [
+                {
+                  label: 'Laden im empfohlenen Fenster planen',
+                  action: 'schedule_ev_charging_window',
+                },
+              ],
+            },
+          };
+        }
+
         // ── Phase 2: Evidence-Gap-Gate (before synthesis) ──
         // If critical evidence gaps exist, block synthesis and surface evidence_gap_table
         if (
           execution?.status === 'completed' &&
+          !receiptExecutionUsed &&
           responsePlan?.evidencePlan &&
           shouldBlockSynthesisOnGaps(responsePlan.evidencePlan)
         ) {
+          const fallbackGapMarkdown = this.buildEvidenceGapUserMessage(responsePlan.evidencePlan);
           try {
             const gapPresentation = buildEvidenceGapPresentation(responsePlan.evidencePlan);
             presentationResult = await ctx.call(
@@ -3720,11 +3783,26 @@ module.exports = {
               presentationApplied = true;
               presentationType = 'evidence_gap_table';
               // Synthesis is skipped — we replace reply with the gap table
-              synthesisText = presentationResult.markdown;
+              synthesisText = /evidence_gap_table_renderer_not_implemented/i.test(
+                presentationResult.markdown
+              )
+                ? fallbackGapMarkdown
+                : presentationResult.markdown;
+              presentationResult.markdown = synthesisText;
             }
           } catch (error) {
             this.logger?.warn(`Evidence-gap presentation render failed: ${error.message}`);
-            // Fall through to normal synthesis if gate rendering fails
+            presentationApplied = true;
+            presentationType = 'evidence_gap_table';
+            presentationResult = {
+              markdown: fallbackGapMarkdown,
+              presentation: {
+                type: 'evidence_gap_table',
+                title: 'Fehlende Evidenz',
+                summary: 'Für eine belastbare Antwort fehlen noch konkrete Nachweise.',
+              },
+            };
+            synthesisText = fallbackGapMarkdown;
           }
         }
 
@@ -3910,7 +3988,7 @@ module.exports = {
           receiptKnowledgeEvidence: receiptSelectionResult?.knowledgeEvidence || null,
           responsePlan,
           execution,
-          evidencePlan: responsePlan?.evidencePlan || null,
+          evidencePlan: receiptExecutionUsed ? null : responsePlan?.evidencePlan || null,
         });
         const executionTimeoutFallback =
           execution?.status === 'partial' ||
@@ -3921,7 +3999,15 @@ module.exports = {
           contract: executionResponsePolicyContract,
           timeoutFallback: executionTimeoutFallback,
         });
-        const responseReply = executionGuardedReply.reply;
+        const responseReply = this.appendGroundingContractToReply(executionGuardedReply.reply, {
+          execution,
+          knowledgeScope: [
+            ...(session.l3?.knowledgeScopeDataPoints || []),
+            ...(session.l2?.userProfile?.knowledgeScopeDataPoints || []),
+          ],
+          missingEvidence: executionResponsePolicyContract.missingEvidence,
+          assumptions: execution?.assumptions,
+        });
         turnGraph = addNode(turnGraph, {
           id: 'answer:final',
           type: 'answer',
@@ -4848,7 +4934,7 @@ module.exports = {
       const hasMarketPartnersContext = (Array.isArray(observations) ? observations : []).some(
         (obs) => obs?.action === 'grid-operations.marketPartners'
       );
-      const hasVnbContext =
+      const hasVnbEvidenceSignal =
         /(?:\bvnb\b|\bnetzbetreiber\b|\bnetzgebiet\b|\bnetzzone\b|\bstandort\b|\banschluss\b|\bbdew\b|\bmarktlokation\b|\bnetzanschlusspunkt\b)/i.test(
           String(message || '')
         ) ||
@@ -4858,12 +4944,13 @@ module.exports = {
           knownContext?.assertedGridOperatorName ||
           knownContext?.bdew ||
           knownContext?.bdewCode ||
-          knownContext?.municipality ||
-          knownContext?.city
+          knownContext?.vnbName ||
+          knownContext?.operatorEvidence ||
+          knownContext?.gridOperatorBdew
         );
 
       const missingEvidence = [];
-      if (hasVnbContext && !hasVerifiedVnbLookup) {
+      if (hasVnbEvidenceSignal && !hasVerifiedVnbLookup) {
         missingEvidence.push({
           id: 'vnb_lookup_required',
           label: 'Dedizierter VNB-/Netzgebietslookup fehlt.',
@@ -4904,7 +4991,7 @@ module.exports = {
       }
 
       const unverifiedAssumptions = [];
-      if (hasVnbContext && !hasVerifiedVnbLookup) {
+      if (hasVnbEvidenceSignal && !hasVerifiedVnbLookup) {
         unverifiedAssumptions.push({
           type: 'location_operator_unverified',
           statement:
@@ -7973,9 +8060,12 @@ module.exports = {
       }
 
       if (stopPoint.reasonCode === 'ACTION_FAILED') {
+        const detail = stopPoint.message
+          ? ` Grund: ${this.normalizeRecoveryText(stopPoint.message)}`
+          : '';
         return taskTone === 'finance-risk'
-          ? `Der Prüfpunkt "${blockedStepLabel}" konnte fachlich nicht belastbar abgeschlossen werden.`
-          : `Der Schritt "${blockedStepLabel}" konnte fachlich nicht belastbar abgeschlossen werden.`;
+          ? `Der Prüfpunkt "${blockedStepLabel}" konnte fachlich nicht belastbar abgeschlossen werden.${detail}`
+          : `Der Schritt "${blockedStepLabel}" konnte fachlich nicht belastbar abgeschlossen werden.${detail}`;
       }
 
       if (stopPoint.reasonCode) {
@@ -8181,6 +8271,10 @@ module.exports = {
       }
 
       if (stopPoint.reasonCode === 'ACTION_FAILED') {
+        const failureText = String(stopPoint.message || '').toLowerCase();
+        if (/vnblookup|vnb|bdew|netzbetreiber/.test(failureText)) {
+          return 'Nächster Schritt: den BDEW-Code nennen oder zuerst eine eindeutige Marktpartner-/Netzbetreiber-Suche durchführen, damit die VNB-Zuordnung belastbar aufgelöst werden kann.';
+        }
         return taskTone === 'finance-risk'
           ? 'Nächster Schritt: die offene Evidenz nachreichen oder den Prüfpunkt mit einer verfügbaren Capability neu anstoßen.'
           : 'Nächster Schritt: die offene Evidenz nachreichen oder den Prüfschritt mit einer verfügbaren Capability neu anstoßen.';
@@ -8443,7 +8537,7 @@ module.exports = {
       const hasChargingIntent =
         /\b(?:ev|e-?auto|elektroauto|wallbox|laden|ladezeit|ladung|charging)\b/i.test(haystack);
       const hasCarbonIntent =
-        /\b(?:co2|kohlenstoff|emission|emissions|grünstrom|gruenstrom|gsi|strommix|klima)\b/i.test(
+        /(?:\b(?:co2|kohlenstoff|emission|emissions|grünstrom|gruenstrom|gsi|strommix|klima)\b|co₂)/i.test(
           haystack
         );
 
@@ -8484,11 +8578,246 @@ module.exports = {
       }
 
       const rawResult = co2Step?.outcome?.result || co2Step?.result || null;
-      const data =
-        rawResult?.data && typeof rawResult.data === 'object' ? rawResult.data : rawResult;
+      const findCo2Payload = (value, depth = 0) => {
+        if (!value || typeof value !== 'object' || depth > 6) {
+          return null;
+        }
+        if (
+          value.recommendation ||
+          value.bestWindow ||
+          value.window ||
+          value.avgCo2gPerKWh ||
+          value.co2gPerKWh ||
+          value.co2_intensity_gco2eq_kwh ||
+          value.forecast_next_24h_gco2eq_kwh ||
+          value.forecast
+        ) {
+          return value;
+        }
+        return (
+          findCo2Payload(value.data, depth + 1) ||
+          findCo2Payload(value.result, depth + 1) ||
+          findCo2Payload(value.outcome, depth + 1)
+        );
+      };
+      const data = findCo2Payload(rawResult);
       if (!data || typeof data !== 'object') {
         return null;
       }
+
+      const normalizeComparableLocation = (value) =>
+        String(value || '')
+          .toLowerCase()
+          .replace(/[^a-z0-9äöüß]+/gi, ' ')
+          .trim();
+      const promptLocationMatch = String(_message || '').match(
+        /\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2})\b/
+      );
+      const expectedPostalCode =
+        co2Step?.params?.postalCode ||
+        co2Step?.params?.postleitzahl ||
+        promptLocationMatch?.[1] ||
+        null;
+      const expectedCity =
+        co2Step?.params?.city || co2Step?.params?.location || promptLocationMatch?.[2] || null;
+      const evidencePostalCode =
+        data.postalCode || data.postleitzahl || data.zip || rawResult?.data?.postalCode || null;
+      const evidenceCity =
+        data.city ||
+        data.gemeinde ||
+        data.location ||
+        rawResult?.data?.city ||
+        rawResult?.data?.location ||
+        null;
+      const postalMismatch = Boolean(
+        expectedPostalCode &&
+          evidencePostalCode &&
+          String(expectedPostalCode) !== String(evidencePostalCode)
+      );
+      const cityMismatch = Boolean(
+        expectedCity &&
+          evidenceCity &&
+          normalizeComparableLocation(expectedCity) !== normalizeComparableLocation(evidenceCity)
+      );
+
+      if (postalMismatch || cityMismatch) {
+        const expectedLocation = [expectedPostalCode, expectedCity].filter(Boolean).join(' ').trim();
+        const evidenceLocation = [evidencePostalCode, evidenceCity].filter(Boolean).join(' ').trim();
+        return [
+          `Ich kann daraus keine Ladeempfehlung für ${expectedLocation || 'den angefragten Standort'} ableiten, weil die CO₂-Evidenz einen anderen Standort betrifft (${evidenceLocation || 'abweichender Standort'}).`,
+          `Bitte die CO₂-/Grünstrom-Prognose für ${expectedLocation || 'den angefragten Standort'} erneut abrufen; Evidenz aus einem anderen Ort verwende ich nicht für diese Empfehlung.`,
+        ].join(' ');
+      }
+
+      const parseIsoDate = (value) => {
+        if (!value) return null;
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+      };
+
+      const extractNumeric = (item) => {
+        if (typeof item === 'number' && Number.isFinite(item)) return item;
+        if (!item || typeof item !== 'object') return null;
+        const value =
+          item.gCO2eqPerKWh ??
+          item.gco2eqPerKWh ??
+          item.gco2eq_kwh ??
+          item.gCO2eq_kWh ??
+          item.co2_intensity_gco2eq_kwh ??
+          item.co2gPerKWh ??
+          item.avgCo2gPerKWh ??
+          item.value ??
+          null;
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric : null;
+      };
+
+      const buildForecastPoints = (payload) => {
+        const baseTimestamp =
+          payload?.timestamp ||
+          payload?.generatedAt ||
+          payload?.data?.timestamp ||
+          rawResult?.timestamp ||
+          rawResult?.data?.timestamp ||
+          null;
+        const baseDate = parseIsoDate(baseTimestamp);
+        const forecastCandidates = [
+          payload?.forecast,
+          payload?.data?.forecast,
+          payload?.forecast_next_24h_gco2eq_kwh,
+          payload?.data?.forecast_next_24h_gco2eq_kwh,
+          payload?.forecastNext24h,
+          payload?.data?.forecastNext24h,
+        ].filter(Array.isArray);
+        const points = [];
+
+        forecastCandidates.forEach((forecast) => {
+          forecast.forEach((item, index) => {
+            const value = extractNumeric(item);
+            if (value === null) return;
+            const timestamp =
+              typeof item === 'object'
+                ? item.timestamp || item.time || item.validFrom || item.from || item.start || null
+                : null;
+            const date =
+              parseIsoDate(timestamp) ||
+              (baseDate ? new Date(baseDate.getTime() + index * 60 * 60 * 1000) : null);
+            if (!date) return;
+            points.push({
+              start: date,
+              end: parseIsoDate(
+                typeof item === 'object' ? item.end || item.to || item.validTo || null : null
+              ),
+              value,
+            });
+          });
+        });
+
+        return points.sort((left, right) => left.start.getTime() - right.start.getTime());
+      };
+
+      const inferStepMs = (points) => {
+        const deltas = [];
+        for (let index = 1; index < points.length; index += 1) {
+          const delta = points[index].start.getTime() - points[index - 1].start.getTime();
+          if (delta > 0) deltas.push(delta);
+        }
+        if (deltas.length === 0) return 60 * 60 * 1000;
+        deltas.sort((left, right) => left - right);
+        return deltas[Math.floor(deltas.length / 2)] || 60 * 60 * 1000;
+      };
+
+      const deriveBestForecastWindow = (points) => {
+        if (!Array.isArray(points) || points.length === 0) return null;
+        const stepMs = inferStepMs(points);
+        const minValue = Math.min(...points.map((point) => point.value));
+        const minPoints = points.filter((point) => point.value === minValue);
+        const runs = [];
+        let currentRun = [];
+
+        minPoints.forEach((point) => {
+          const previous = currentRun[currentRun.length - 1];
+          const contiguous =
+            previous && point.start.getTime() - previous.start.getTime() <= stepMs * 1.5;
+          if (!previous || contiguous) {
+            currentRun.push(point);
+          } else {
+            runs.push(currentRun);
+            currentRun = [point];
+          }
+        });
+        if (currentRun.length > 0) runs.push(currentRun);
+
+        const bestRun = runs.reduce((best, run) => {
+          if (!best) return run;
+          return run.length > best.length ? run : best;
+        }, null);
+        if (!bestRun || bestRun.length === 0) return null;
+
+        const startPoint = bestRun[0];
+        const lastPoint = bestRun[bestRun.length - 1];
+        const end = lastPoint.end || new Date(lastPoint.start.getTime() + stepMs);
+        const allValues = points.map((point) => point.value);
+        return {
+          start: startPoint.start,
+          end,
+          minValue,
+          rangeMin: Math.min(...allValues),
+          rangeMax: Math.max(...allValues),
+        };
+      };
+
+      const berlinParts = (date) => {
+        if (!date) return null;
+        const parts = new Intl.DateTimeFormat('de-DE', {
+          timeZone: 'Europe/Berlin',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hourCycle: 'h23',
+        })
+          .formatToParts(date)
+          .reduce((acc, part) => ({ ...acc, [part.type]: part.value }), {});
+        const localAsUtc = Date.UTC(
+          Number(parts.year),
+          Number(parts.month) - 1,
+          Number(parts.day),
+          Number(parts.hour),
+          Number(parts.minute)
+        );
+        const offsetMinutes = Math.round((localAsUtc - date.getTime()) / 60000);
+        return {
+          date: `${parts.day}.${parts.month}.${parts.year}`,
+          time: `${parts.hour}:${parts.minute}`,
+          zone: offsetMinutes === 120 ? 'CEST' : offsetMinutes === 60 ? 'CET' : 'Europe/Berlin',
+        };
+      };
+
+      const formatBerlinWindow = (startDate, endDate) => {
+        const startParts = berlinParts(startDate);
+        const endParts = berlinParts(endDate);
+        if (!startParts || !endParts) return null;
+        const dateSuffix =
+          startParts.date === endParts.date
+            ? ` (${startParts.date})`
+            : ` (${startParts.date}–${endParts.date})`;
+        return `${startParts.time}–${endParts.time} ${endParts.zone}${dateSuffix}`;
+      };
+
+      const formatUtcWindow = (startDate, endDate) => {
+        if (!startDate || !endDate) return null;
+        const formatTime = (date) => date.toISOString().slice(11, 16);
+        return `${formatTime(startDate)}–${formatTime(endDate)} UTC`;
+      };
+
+      const parseRequestedKwh = (message) => {
+        const match = String(message || '').match(/(\d+(?:[.,]\d+)?)\s*k\s*wh\b/i);
+        if (!match) return null;
+        const value = Number(match[1].replace(',', '.'));
+        return Number.isFinite(value) && value > 0 ? value : null;
+      };
 
       const recommendation =
         data.recommendation && typeof data.recommendation === 'object' ? data.recommendation : data;
@@ -8508,6 +8837,15 @@ module.exports = {
         recommendation?.avgCo2gPerKWh ??
         recommendation?.co2gPerKWh ??
         null;
+      const forecastWindow = deriveBestForecastWindow(buildForecastPoints(data));
+      const concreteWindow = forecastWindow
+        ? formatBerlinWindow(forecastWindow.start, forecastWindow.end)
+        : null;
+      const utcWindow = forecastWindow
+        ? formatUtcWindow(forecastWindow.start, forecastWindow.end)
+        : null;
+      const concreteIntensity = forecastWindow?.minValue ?? intensity;
+      const requestedKwh = parseRequestedKwh(_message);
       const postalCode = co2Step?.params?.postalCode || data.postalCode || null;
       const city = co2Step?.params?.city || data.city || data.location || null;
       const location = [postalCode, city].filter(Boolean).join(' ').trim();
@@ -8516,17 +8854,117 @@ module.exports = {
       if (location) {
         evidenceBits.push(`Standort ${location}`);
       }
-      if (start || end) {
-        evidenceBits.push(`bestes Fenster ${[start, end].filter(Boolean).join('–')}`);
+      if (concreteWindow) {
+        evidenceBits.push(`bestes Ladefenster ${concreteWindow}`);
+      } else if (start || end) {
+        evidenceBits.push(`bestes Ladefenster ${[start, end].filter(Boolean).join('–')}`);
       }
-      if (intensity !== null && intensity !== undefined) {
-        evidenceBits.push(`Ø ${intensity} g CO₂/kWh`);
+      if (concreteIntensity !== null && concreteIntensity !== undefined) {
+        evidenceBits.push(`${concreteIntensity} g CO₂/kWh im Minimum`);
+      }
+      if (forecastWindow && forecastWindow.rangeMax !== forecastWindow.rangeMin) {
+        evidenceBits.push(
+          `Forecast-Spanne ${forecastWindow.rangeMin}–${forecastWindow.rangeMax} g CO₂/kWh`
+        );
+      }
+      if (utcWindow) {
+        evidenceBits.push(`entspricht ${utcWindow}`);
+      }
+      if (requestedKwh && concreteIntensity !== null && concreteIntensity !== undefined) {
+        const emissionsKg = (requestedKwh * Number(concreteIntensity)) / 1000;
+        if (Number.isFinite(emissionsKg)) {
+          evidenceBits.push(`bei ${requestedKwh} kWh etwa ${emissionsKg.toFixed(2)} kg CO₂e`);
+        }
       }
 
       const receiptLabel = receiptSelection?.receiptId || 'EV/CO₂-Optimierung';
       const summary =
         evidenceBits.length > 0 ? evidenceBits.join(', ') : 'Forecast erfolgreich ausgewertet';
-      return `Auf Basis der Tool-Evidenz (${source}, Receipt ${receiptLabel}) empfehle ich: ${summary}. Ich stütze diese Aussage auf die ausgeführte CO₂-/Grünstrom-Prognose und nicht auf eine Annahme ohne Live-Daten.`;
+      return `Auf Basis der Tool-Evidenz (${source}, Receipt ${receiptLabel}) empfehle ich: ${summary}. Handlungsempfehlung: Lade bevorzugt im genannten Fenster und verschiebe flexible Ladevorgänge außerhalb dieses Zeitraums nur, wenn Komfort- oder Netzrestriktionen das erzwingen. Ich stütze diese Aussage auf die ausgeführte CO₂-/Grünstrom-Prognose und nicht auf eine ungestützte Annahme.`;
+    },
+
+    buildEvidenceGapUserMessage(evidencePlan = {}) {
+      const gaps = Array.isArray(evidencePlan?.gaps) ? evidencePlan.gaps : [];
+      const requiredGaps = gaps.filter((gap) => gap?.required !== false).slice(0, 5);
+      const listed = (requiredGaps.length > 0 ? requiredGaps : gaps.slice(0, 5)).map((gap) => {
+        const label = gap?.label || gap?.id || gap?.sourceId || 'Evidenz';
+        const reason =
+          gap?.reason ||
+          gap?.missingReason ||
+          gap?.severity ||
+          'für die belastbare Prüfung erforderlich';
+        return `- ${label}: ${reason}.`;
+      });
+
+      if (listed.length === 0) {
+        return 'Ich kann die Antwort noch nicht belastbar abschließen, weil die erforderliche Evidenz noch nicht vollständig vorliegt. Bitte ergänze die fehlenden Nachweise oder starte die passende Datenabfrage erneut.';
+      }
+
+      return [
+        'Ich kann die Antwort noch nicht belastbar abschließen, weil folgende Evidenz fehlt:',
+        ...listed,
+        'Sobald diese Evidenz vorliegt, kann ich die Bewertung ohne Platzhalter fortsetzen.',
+      ].join('\n');
+    },
+
+    appendGroundingContractToReply(
+      reply = '',
+      { execution = null, knowledgeScope = [], missingEvidence = [], assumptions = [] } = {}
+    ) {
+      const baseReply = String(reply || '').trim();
+      if (!baseReply || /\bDatengrundlage\s*:/i.test(baseReply)) {
+        return baseReply;
+      }
+
+      const datapoints = sanitizeScopedDatapoints(knowledgeScope)
+        .slice(0, 4)
+        .map((point) => {
+          const status = point.status ? `, ${point.status}` : '';
+          return `${point.key} (${point.scope}/${point.source}${status})`;
+        });
+
+      const toolEvidence = (Array.isArray(execution?.steps) ? execution.steps : [])
+        .filter((step) => step?.status === 'completed' && step?.action)
+        .slice(0, 4)
+        .map((step) => step.action);
+
+      const openEvidence = (Array.isArray(missingEvidence) ? missingEvidence : [])
+        .map((gap) => gap?.label || gap?.id || gap)
+        .filter(Boolean)
+        .slice(0, 3);
+
+      const assumptionTexts = (Array.isArray(assumptions) ? assumptions : [])
+        .map((item) => {
+          if (typeof item === 'string') return item;
+          return item?.label || item?.type || item?.value || null;
+        })
+        .filter(Boolean)
+        .slice(0, 3);
+
+      if (
+        datapoints.length === 0 &&
+        toolEvidence.length === 0 &&
+        openEvidence.length === 0 &&
+        assumptionTexts.length === 0
+      ) {
+        return baseReply;
+      }
+
+      const lines = ['Datengrundlage:'];
+      if (datapoints.length > 0) {
+        lines.push(`- Genutzte Datenpunkte: ${datapoints.join('; ')}.`);
+      }
+      if (toolEvidence.length > 0) {
+        lines.push(`- Tool-Evidenz: ${toolEvidence.join('; ')}.`);
+      }
+      lines.push(
+        `- Annahmen: ${assumptionTexts.length > 0 ? `${assumptionTexts.join('; ')}.` : 'keine zusätzlichen Annahmen für die Kernaussage.'}`
+      );
+      if (openEvidence.length > 0) {
+        lines.push(`- Noch offen: ${openEvidence.join('; ')}.`);
+      }
+
+      return `${baseReply}\n\n${lines.join('\n')}`;
     },
 
     buildReceiptExecutionContext({
@@ -11211,6 +11649,48 @@ module.exports = {
           const result = await ctx.call(plannedStep.action, params, {
             meta: { ...ctx.meta, $gateway: false },
           });
+          if (result && typeof result === 'object' && result.success === false) {
+            const toolMessage =
+              result?.error?.message ||
+              result?.message ||
+              `${plannedStep.action} returned success=false`;
+            stopPoint = this.buildStopPoint({
+              reasonCode: 'ACTION_FAILED',
+              message: `${plannedStep.action} konnte nicht abgeschlossen werden: ${toolMessage}`,
+              blockedStep: plannedStep.step,
+              status: 'action-error',
+              placeholder: {
+                blockedAction: plannedStep.action,
+                missingParams: /bdew/i.test(toolMessage) ? ['bdew'] : [],
+              },
+            });
+            steps.push({
+              step: plannedStep.step,
+              action: plannedStep.action,
+              status: 'failed',
+              params,
+              result,
+              error: toolMessage,
+            });
+            toolCallTracker?.record({
+              phase: 'execution',
+              tool: plannedStep.action,
+              params,
+              success: false,
+              retries: 0,
+              error: toolMessage,
+            });
+            executionTrace?.recordToolInvocation({
+              phase: 'execution',
+              tool: plannedStep.action,
+              params,
+              success: false,
+              latencyMs: Date.now() - startedAt,
+              retries: 0,
+              error: toolMessage,
+            });
+            break;
+          }
           const normalizedData =
             result && typeof result === 'object' && result.data !== undefined
               ? result.data
