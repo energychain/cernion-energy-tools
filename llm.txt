@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.57.4
-- changelog_latest_release: 0.57.4
+- version: 0.57.6
+- changelog_latest_release: 0.57.6
 - source_files_hash:
-  - CHANGELOG.md: d0f10438867ee9841db1b989abb24dad55770c07fee7ff9f0fb709d565c191f4
+  - CHANGELOG.md: 2e204ab991837eb65f76d25fa442114f0c60b4cd28d254f4cfd10e7fca507458
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 9f247688a1a08f4d265ccec73a2fc5d7cc60078739d0c4273aaf6c29a2e58aa0
-  - openapi-export.json: b5fad258fbf4797cd843b102874710cdeff6f13efdca8a580f857dac6a4e4742
+  - openapi-export.json: 14bd8f8474e33e0be64b9231c0a8419cc6313319235f61fe1bde7162aa18bd89
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -18,30 +18,6 @@ It provides a complete implementation picture: architecture, domain knowledge, c
 ## Release Provenance
 ### Unreleased (from CHANGELOG)
 ## [Unreleased]
-
-### Added
-
-- [src/personal-agent-reflection.js](src/personal-agent-reflection.js): new pure-helper module for the Receipt Reflection / Context-Hydration Loop (#158). Exports `buildReflectionPrompt`, `validateReflectionPatch`, `hasScopeBlockedOrMissingSteps`, `buildReflectionAllowedFields`, and `REFLECTION_OUTPUT_SCHEMA`. No LLM or broker calls; all async work is performed by the service. Whitelist = `DECISIVE_PARAMS ∪ missingRequiredInputs ∪ scope-implied fields`. No WOL emission, no tenant knowledge promotion, no raw-data persistence.
-- [src/personal-agent-work-out-loud.js](src/personal-agent-work-out-loud.js): new shared Work Out Loud event contract for internal broker event `personal-agent.work-out-loud`. Adds strict payload factory/validator, canonical signal enums, allowlist-only `evidence` sanitization, fixed technical `agentId` (`personal-agent`), and tenant-safe payload construction without raw prompt/tool/L4/HEMS/NAP leakage.
-- [services/personal-agent-work-out-loud-listener.service.js](services/personal-agent-work-out-loud-listener.service.js): new minimal, non-persistent listener service for `personal-agent.work-out-loud`. Validates payloads, rejects missing/invalid `tenantId`, and deliberately performs no database writes or tenant-candidate persistence in this milestone.
-
-### Changed
-
-- [services/personal-agent.service.js](services/personal-agent.service.js): implements the one-shot Receipt Reflection Loop (#158). When a selected receipt is not executable due to `scope-blocked` or `missing-input` steps, exactly one bounded reflection attempt is made: builds a prompt from the current user message and same-session consultation history (#149 window), calls `this.callLlmGenerate` with `REFLECTION_OUTPUT_SCHEMA`, validates the patch against `DECISIVE_PARAMS ∪ missingRequiredInputs`, merges via `resolveContextMutation`, re-runs `selectRuntimeReceipt` once. Executes only if `evaluation.executable === true` deterministically. Falls back to existing consultation path if still blocked. No WOL events, no tenant knowledge promotion.
-- [services/personal-agent.service.js](services/personal-agent.service.js): `buildAgentTrace` now accepts and emits an additive `reflection` field: `{ attempted, outcome, resolvedFields, confidence, evidence, unresolvedScopes, rejectedKeys }`. Consultation-node `buildAgentTrace` callsite passes `receiptReflectionResult`.
-- [services/personal-agent.service.js](services/personal-agent.service.js): emits tenant-isolated `personal-agent.work-out-loud` events only on **material structured context changes**: bootstrap organization type establishment/update, new scoped knowledge datapoints derived from `knownContext`, and onboarding answers after they are converted into structured hydrated context. Emission is best-effort and uses shared contract helpers instead of inline payload assembly.
-- [services/personal-agent.service.js](services/personal-agent.service.js): consultation degradation for LLM/synthesis failures is now operationally transparent. The legacy hardcoded business-style fallback was replaced with an explicit availability notice, additive `consultation.degradation` / `agentTrace.degradation` metadata, and branch-specific debug reasons for null/exception fallback paths.
-- [services/personal-agent.service.js](services/personal-agent.service.js): consultation prompt generation now receives a bounded, sanitized recent-history window from the already loaded current session. The window is prompt-only, same-session scoped, redacts raw technical payloads, and is threaded through agentic planner/synthesis plus legacy non-agentic consultation without promoting facts to tenant knowledge or emitting Work Out Loud events.
-
-### Tests
-
-- [tests/personal-agent-reflection.test.js](tests/personal-agent-reflection.test.js): new unit suite for `buildReflectionPrompt`, `validateReflectionPatch`, `hasScopeBlockedOrMissingSteps`, `buildReflectionAllowedFields`. Covers whitelist enforcement, non-whitelisted key rejection, scope-implied field expansion, blank/non-string value rejection, prompt truncation, no hard-coded domain values, and schema validity.
-- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added integration tests for the reflection loop: receipt becomes executable after reflection resolves missing location scope; reflection called exactly once (still-blocked path falls through); non-whitelisted patch keys reported in `rejectedKeys`; no reflection when receipt already executable; no reflection when no receipt selected; no WOL event emitted by reflection.
-- [tests/personal-agent-work-out-loud.test.js](tests/personal-agent-work-out-loud.test.js): new unit suite for schema validity, missing `tenantId` rejection, forbidden raw-like `evidence` fields, and no-leakage guarantees for onboarding-derived signals.
-- [tests/personal-agent-work-out-loud-listener.service.test.js](tests/personal-agent-work-out-loud-listener.service.test.js): new listener suite covering tenant rejection, valid payload acceptance, and broker-event handling without persistence side effects.
-- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): extended with Personal Agent emission tests for bootstrap context learning, scoped fact learning, and onboarding no-leakage behavior.
-- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added focused regressions for legacy non-agentic consultation degradation, covering explicit operational notice text, exact null/exception degradation reasons, and additive `agentTrace.degradation` propagation.
-- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added focused regressions for consultation recent-history prompting: multi-turn slot filling, explicit recall, no cross-session/cross-tenant leakage, bounded window size, raw-payload redaction, and unchanged no-history prompt shape.
 
 ## Domain-Specific Business Knowledge (Energy + Utility)
 
@@ -1039,7 +1015,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.57.4"
+    "version": "0.57.6"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -22026,6 +22002,7 @@ process:
                     "enum": [
                       "auto",
                       "kpi_fact",
+                      "municipal_strategy_brief",
                       "comparison_table",
                       "vdmi_matrix_table",
                       "decision_brief",
@@ -25905,8 +25882,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.57.4"
+  "x-version": "0.57.6"
 }
 
 ## Integrity
-- llm_txt_sha256: 97744c7c4834d937469707908cbdb680002ac1c21b5f06a345a4914b1e371084
+- llm_txt_sha256: 4e7c1e863bbb5298295b2d308dba52a1daf0dfdbb94637ed374f5a61cc709938

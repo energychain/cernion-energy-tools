@@ -7,11 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.57.6] — Runtime receipt grounding & routing hardening (2026-05-31)
+
 ### Fixed
 
+- [services/personal-agent.service.js](services/personal-agent.service.js), [services/presentation.service.js](services/presentation.service.js): completed active Runtime Receipts now own synthesis, renderer selection, `presentationType`, visible routing/plan metadata, and trace planning source; the municipal strategy receipt renders `municipal_strategy_brief` from executed receipt steps instead of falling back to stale broker metadata or `debug_summary`.
 - [services/personal-agent.service.js](services/personal-agent.service.js): receipt-backed EV/CO₂ execution now synthesizes the final answer from the executed GrünstromIndex/CO₂ evidence and bypasses stale evidence-gap presentation when the receipt completed successfully.
 - [services/personal-agent.service.js](services/personal-agent.service.js): EV/CO₂ receipt presentation now derives concrete charging windows from timestamped forecast rows (`forecast_next_24h_gco2eq_kwh` / `data.forecast`), including Germany local-time conversion, UTC reference window, CO₂ minimum/range, and optional kWh-based emissions.
 - [src/personal-agent-routing.js](src/personal-agent-routing.js), [services/personal-agent.service.js](services/personal-agent.service.js): known-location EV/CO₂ charging prompts now stay on the direct CO₂ forecast path instead of drifting into residual-load/VNB/price workflows; mismatched location evidence is rejected before synthesis, evidence-gap stubs are replaced with concrete missing-evidence text, and failed VNB lookups are no longer counted as completed steps.
+- [src/personal-agent-routing.js](src/personal-agent-routing.js), [services/capability-broker.service.js](services/capability-broker.service.js), [services/personal-agent.service.js](services/personal-agent.service.js): broad municipal/grid strategy prompts now stay on an advisory VNB/data-point path instead of forcing VDMI decision governance; VDMI is reserved for explicit VDMI/formal commitment signals and is only suggested as an optional next process step for mayor-style strategy prompts.
+- [services/personal-agent.service.js](services/personal-agent.service.js), [src/personal-agent-context.js](src/personal-agent-context.js): Runtime Receipts now persist an active receipt frame and same-session routing feedback, so parameter-only follow-ups continue the selected receipt context before fresh broker routing and receipt-owned presentation is not overwritten by stale capability metadata.
 - [services/personal-agent.service.js](services/personal-agent.service.js): response grounding now appends a `Datengrundlage` contract with scoped datapoints, completed tool evidence, assumptions, and open evidence gaps for consultation and execution replies.
 - [services/personal-agent.service.js](services/personal-agent.service.js): VNB evidence gating no longer treats a generic city/municipality as sufficient reason to force VNB lookup gaps, reducing unrelated operator drift in municipal strategy consultations.
 - [services/personal-agent.service.js](services/personal-agent.service.js): consultation replies now synthesize EV-charging guidance from executed `energy-market.co2Intensity` evidence (time window, location, CO₂ intensity), preventing contradictory fallback phrasing when live evidence is available.
@@ -25,8 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js), [tests/presentation.service.test.js](tests/presentation.service.test.js): added activeReceipt presentation-owner regressions covering receipt-owned render inputs, stale broker metadata isolation, sparse municipal evidence rendering, and `municipal_strategy_brief` output.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added grounding-contract regressions for EV/CO₂ Mauer consultation/execution, Syna follow-up blocker capture, municipal Wiesloch strategy grounding, and EWR data-center execution/consultation placeholder paths.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added EV/CO₂ regression coverage for direct Mauer routing without DSO/VNB detours, wrong-location CO₂ evidence rejection (`Bitburg`/`10117`), concrete forecast presentation, and failed Syna VNB lookup contract handling.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added Wiesloch mayor strategy regression covering municipal receipt execution, autonomous VNB lookup, no forced VDMI execution, and no empty VDMI matrix/table rendering.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added generic active-receipt continuation regressions for municipal strategy receipt ownership, VNB parameter follow-ups, user route correction feedback, and protection against residual-load rerouting.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regressions for prompt-hint location sanitization (`Wiesloch` civic extraction, approval/topic false-positive rejection), natural-language HITL approval resume behavior, and EV CO₂ reply grounding against executed GrünstromIndex evidence.
 
 ## [0.57.5] — Receipt execution visibility fix (#158) (2026-05-29)
