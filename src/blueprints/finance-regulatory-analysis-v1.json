@@ -1,0 +1,73 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "finance-regulatory-analysis-v1",
+  "version": "1.0.0",
+  "meta": {
+    "title": "Finanz- & Wirtschaftlichkeitsprüfung",
+    "description": "Führt eine evidenzbasierte regulatorische Finanzanalyse (CAPEX, OPEX, fNAV) für Investitionsentscheidungen durch.",
+    "targetAudience": "investor"
+  },
+  "routing": {
+    "intentSignals": [
+      "wirtschaftlichkeit",
+      "amortisation",
+      "capex",
+      "opex",
+      "totex",
+      "due-diligence",
+      "investition",
+      "rendite",
+      "wirtschaftliche",
+      "regulierungsperiode"
+    ],
+    "negativeSignals": [
+      "strompreis",
+      "co2-intensität",
+      "grünstrom"
+    ],
+    "priorityBoost": 5
+  },
+  "inputs": {
+    "query": {
+      "type": "string",
+      "required": true,
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Bitte formulieren Sie Ihre regulatorische oder wirtschaftliche Finanzfrage (z. B. Wirtschaftlichkeit von Batteriespeicher Nord)."
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "analyze_finance",
+        "action": "finance-agent.analyze",
+        "params": {
+          "query": "{{inputs.query}}",
+          "mode": "rule_plus_hyde",
+          "allowHypotheticals": true
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {},
+    "mappings": {}
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.analyze_finance.output"
+    ],
+    "templates": {
+      "success": "Regulatorische Finanzanalyse abgeschlossen. Ergebnis der Prüfung für Ihre Anfrage '{{inputs.query}}':\n\n{{steps.analyze_finance.output.synthesis.answer}}\n\nStatus der Synthese: {{steps.analyze_finance.output.synthesis.status}} (Konfidenz: {{steps.analyze_finance.output.confidence}}).",
+      "error": "Die Finanzanalyse konnte aufgrund mangelnder Evidenzgrundlagen oder eines Ausführungsfehlers nicht abgeschlossen werden."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "financeQuery": "inputs.query",
+      "financeAnalysisId": "steps.analyze_finance.output.id",
+      "financeStatus": "steps.analyze_finance.output.status"
+    }
+  }
+}

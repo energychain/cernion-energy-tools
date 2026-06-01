@@ -1,0 +1,80 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "vdmi-compliance-v1",
+  "version": "1.0.0",
+  "meta": {
+    "title": "VDMI Compliance Audit",
+    "description": "Initiiert eine VDMI (Vorgaben, Daten, Modelle, Instanzen) Konformitätsmatrix für einen regulatorischen Soll-Prozess.",
+    "targetAudience": "utility_hq"
+  },
+  "routing": {
+    "intentSignals": [
+      "vdmi",
+      "compliance",
+      "matrix",
+      "governance",
+      "rollenzuweisung",
+      "soll-prozess",
+      "ist-prozess",
+      "snb",
+      "prozessprüfung"
+    ],
+    "negativeSignals": [
+      "strompreis",
+      "co2-intensität",
+      "grünstrom"
+    ],
+    "priorityBoost": 5
+  },
+  "inputs": {
+    "name": {
+      "type": "string",
+      "required": true,
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Bitte nenne einen Namen für die zu erstellende VDMI-Konformitätsmatrix."
+      }
+    },
+    "scope": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "§8 NAV Anschlussprozess",
+        "prompt": "Für welchen Geltungsbereich (Scope) soll die Matrix initiiert werden?"
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "create_vdmi_matrix",
+        "action": "vdmi.create",
+        "params": {
+          "name": "{{inputs.name}}",
+          "scope": "{{inputs.scope}}",
+          "processType": "adhoc"
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {},
+    "mappings": {}
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.create_vdmi_matrix.output"
+    ],
+    "templates": {
+      "success": "VDMI-Compliance-Matrix erfolgreich erstellt: Die Konformitätsmatrix '{{inputs.name}}' (Geltungsbereich: {{inputs.scope}}) wurde mit der ID {{steps.create_vdmi_matrix.output.matrix.id}} im Status {{steps.create_vdmi_matrix.output.matrix.status}} initiiert. Der Promotion-Schwellenwert liegt bei {{steps.create_vdmi_matrix.output.matrix.promotionThreshold}}%.",
+      "error": "Fehler beim Initiieren der VDMI-Matrix. Bitte Name und Geltungsbereich prüfen."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "vdmiMatrixId": "steps.create_vdmi_matrix.output.matrix.id",
+      "vdmiMatrixStatus": "steps.create_vdmi_matrix.output.matrix.status"
+    }
+  }
+}

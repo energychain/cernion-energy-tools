@@ -322,6 +322,52 @@ describe('buildBlueprintPlan', () => {
       expect(plan.missingRequiredInputs).toContain('consumerMaloId');
     });
   });
+
+  describe('vdmi-compliance-v1 Blueprint Plan', () => {
+    test('builds ready plan with correct steps when all required inputs are present', () => {
+      const plan = buildBlueprintPlan('vdmi-compliance-v1', {
+        promptHints: {
+          name: 'Netzanschluss-Genehmigung PV',
+        },
+      });
+      expect(plan.status).toBe('ready');
+      expect(plan.missingRequiredInputs).toEqual([]);
+      const actions = plan.steps.map((s) => s.action);
+      expect(actions).toEqual(['vdmi.create']);
+    });
+
+    test('sets status to missing_inputs when name is absent', () => {
+      const plan = buildBlueprintPlan('vdmi-compliance-v1', {
+        knownContext: {},
+        promptHints: {},
+      });
+      expect(plan.status).toBe('missing_inputs');
+      expect(plan.missingRequiredInputs).toContain('name');
+    });
+  });
+
+  describe('finance-regulatory-analysis-v1 Blueprint Plan', () => {
+    test('builds ready plan with correct steps when all required inputs are present', () => {
+      const plan = buildBlueprintPlan('finance-regulatory-analysis-v1', {
+        promptHints: {
+          query: 'Wirtschaftlichkeit von Batteriespeicher Nord',
+        },
+      });
+      expect(plan.status).toBe('ready');
+      expect(plan.missingRequiredInputs).toEqual([]);
+      const actions = plan.steps.map((s) => s.action);
+      expect(actions).toEqual(['finance-agent.analyze']);
+    });
+
+    test('sets status to missing_inputs when query is absent', () => {
+      const plan = buildBlueprintPlan('finance-regulatory-analysis-v1', {
+        knownContext: {},
+        promptHints: {},
+      });
+      expect(plan.status).toBe('missing_inputs');
+      expect(plan.missingRequiredInputs).toContain('query');
+    });
+  });
 });
 
 // ─── ev-co2-synthesis adapter unit test ──────────────────────────────────────
