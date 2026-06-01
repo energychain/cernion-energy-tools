@@ -37,7 +37,8 @@
     "migrate:jobs": "node scripts/migrate-jobs.js",
     "verify:agent-shapes": "node scripts/verify-agent-shapes.js",
     "verify:agent-shapes:curl": "bash scripts/verify-agent-shapes-curl.sh",
-    "build": "echo 'No build step required'"
+    "build": "echo 'No build step required'",
+    "blueprint:export": "node scripts/export-blueprints.js"
   },
   "repository": {
     "type": "git",

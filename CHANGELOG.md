@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.59.0] — Blueprint Export CLI (2026-06-01)
+
+### Added
+
+- [scripts/export-blueprints.js](scripts/export-blueprints.js): new CLI script that fetches all active blueprints from the Blueprint Management REST API and writes them as deterministic pretty-printed JSON files to `src/blueprints/`. Exported as a Node module for testability; run via `npm run blueprint:export -- --base-url http://127.0.0.1:3900 --out src/blueprints`.
+- `blueprint:export` npm script in `package.json` for convenient CLI invocation.
+- [tests/export-blueprints.test.js](tests/export-blueprints.test.js): full unit-test suite with mocked HTTP and fs, covering active-blueprint listing, per-blueprint GET calls, deterministic JSON output, missing-`blueprint`-field error handling, HTTP failure per-blueprint recovery, and total list-fetch failure.
+- [docs/blueprints/BLUEPRINT_EXPORT.md](docs/blueprints/BLUEPRINT_EXPORT.md): documentation with usage, options, release workflow, and error-handling contract.
+
+### Changed
+
+- Prepares the transition from Runtime-only Blueprints (live only on the Dev Server) to Git-versioned release artefacts. The actual export of current Dev Server blueprints will be committed separately as v0.59.1 after running the CLI against the live server.
+
 ## [0.58.0] — Strict Layering & Technical Hardening (2026-06-01)
 
 ### Fixed
