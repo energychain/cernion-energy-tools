@@ -368,6 +368,61 @@ describe('buildBlueprintPlan', () => {
       expect(plan.missingRequiredInputs).toContain('query');
     });
   });
+
+  describe('messkonzept-conflict-validation-v1 Blueprint Plan', () => {
+    test('detects Messkonzept conflict even when postal code is still missing', () => {
+      const result = detectBlueprintIntent(
+        'Der Installateur hat eine Zusammenlegung der Zähler gemeldet. Die alte PV-Volleinspeiseanlage wurde demontiert. Welches Messkonzept ist korrekt?',
+        {},
+        {}
+      );
+
+      expect(result).not.toBeNull();
+      expect(result.blueprintId).toBe('messkonzept-conflict-validation-v1');
+    });
+
+    test('builds missing-inputs plan until postal code is known', () => {
+      const plan = buildBlueprintPlan('messkonzept-conflict-validation-v1', {
+        message:
+          'Der Installateur hat eine Zusammenlegung der Zähler gemeldet. Die alte PV-Volleinspeiseanlage wurde demontiert.',
+        promptHints: {
+          reportedMeteringConcept: 'MK10',
+          legacyPvStatus: 'DEMOUNTED',
+        },
+      });
+
+      expect(plan.status).toBe('missing_inputs');
+      expect(plan.missingRequiredInputs).toEqual(['postalCode']);
+      expect(plan.steps.map((step) => step.action)).toEqual([
+        'grid-connection.validateMesskonzeptConflict',
+      ]);
+    });
+
+    test('builds ready plan with structured Messkonzept inputs', () => {
+      const plan = buildBlueprintPlan('messkonzept-conflict-validation-v1', {
+        promptHints: {
+          postalCode: '71332',
+          reportedMeteringConcept: 'MK10',
+          legacyPvStatus: 'DEMOUNTED',
+          batteryChargeKW: 5,
+          heatPumpKW: 7.5,
+          newPvKWp: 10,
+        },
+      });
+
+      expect(plan.status).toBe('ready');
+      expect(plan.missingRequiredInputs).toEqual([]);
+      expect(plan.primaryIntent).toBe('messkonzept_conflict_validation');
+      expect(plan.steps[0].paramsTemplate).toMatchObject({
+        postalCode: '71332',
+        reportedMeteringConcept: 'MK10',
+        legacyPvStatus: 'DEMOUNTED',
+        batteryChargeKW: 5,
+        heatPumpKW: 7.5,
+        newPvKWp: 10,
+      });
+    });
+  });
 });
 
 // ─── ev-co2-synthesis adapter unit test ──────────────────────────────────────

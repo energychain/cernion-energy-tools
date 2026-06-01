@@ -6,6 +6,7 @@ const {
   GLOBAL_DO_NOT_USE,
 } = require('./capability-catalog');
 const { planEvidence } = require('./evidence-planner');
+const { detectBlueprintIntent, buildBlueprintPlan } = require('./l3-broker');
 
 const EXECUTION_MODES = Object.freeze({
   AUTO: 'auto',
@@ -243,6 +244,9 @@ const ACTION_REQUIREMENTS = Object.freeze({
   'settlement.calculateRedispatch': { allOf: ['installations', 'period'] },
   'settlement.reconcileA96': { allOf: ['settlementId', 'incomingRows'] },
   'grid-connection.fnavValidate': { allOf: ['fnavProfile'] },
+  'grid-connection.validateMesskonzeptConflict': {
+    allOf: ['postalCode', 'reportedMeteringConcept', 'legacyPvStatus'],
+  },
   'finance-agent.fnavEconomics': { allOf: ['fnavProfile'] },
   'finance-agent.analyze': { allOf: ['query'] },
   'grid-operations.vnbLookup': { anyOf: ['bdew', 'city', 'vnbName', 'query'] },
@@ -301,6 +305,14 @@ const ACTION_PARAM_ALIASES = Object.freeze({
     voltageLevel: ['voltageLevel'],
     ownerContact: ['ownerContact'],
     fnavProfile: ['fnavProfile'],
+  },
+  'grid-connection.validateMesskonzeptConflict': {
+    postalCode: ['postalCode', 'postleitzahl'],
+    reportedMeteringConcept: ['reportedMeteringConcept'],
+    legacyPvStatus: ['legacyPvStatus'],
+    batteryChargeKW: ['batteryChargeKW'],
+    heatPumpKW: ['heatPumpKW'],
+    newPvKWp: ['newPvKWp'],
   },
   'grid-operations.marketPartners': {
     query: ['query', 'vnb1Name', 'gridOperatorName', 'operatorName', 'location'],
@@ -981,86 +993,6 @@ function findMatchingMatrixRoute(domainKeys = []) {
   );
 }
 
-function isDirectEvCo2ChargingRequest(message = '', knownContext = {}, promptHints = {}) {
-  const haystack = [message, knownContext?.intent, knownContext?.domainIntent]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-  const hasChargingIntent =
-    /\b(?:ev|e-?auto|elektroauto|wallbox|laden|ladezeit|ladung|charging)\b/i.test(haystack);
-  const hasCarbonIntent =
-    /(?:\b(?:co2|kohlenstoff|emission|emissions|grünstrom|gruenstrom|gsi|strommix|klima)\b|co₂)/i.test(
-      haystack
-    );
-  const hasKnownLocation = Boolean(
-    promptHints?.postalCode ||
-    promptHints?.city ||
-    knownContext?.postalCode ||
-    knownContext?.postleitzahl ||
-    knownContext?.city ||
-    knownContext?.location
-  );
-  const explicitlyRequestsGridWorkflow =
-    /\b(?:residuallast|residual\s*load|netzbetreiber|vnb|dso|stadtwerk|netzlast|netzauslastung)\b/i.test(
-      haystack
-    );
-  const explicitlyRequestsPriceWorkflow =
-    /\b(?:preis|preise|strompreis|market\s*price|day-ahead|intraday|tarif|beschaffung)\b/i.test(
-      haystack
-    );
-
-  return (
-    hasChargingIntent &&
-    hasCarbonIntent &&
-    hasKnownLocation &&
-    !explicitlyRequestsGridWorkflow &&
-    !explicitlyRequestsPriceWorkflow
-  );
-}
-
-function buildDirectEvCo2ChargingPlan({ message, knownContext = {}, promptHints = {} }) {
-  const plan = {
-    source: 'ev-co2-direct',
-    routeKey: 'ev_charging_co2_direct',
-    routeLabel: 'EV/CO₂ charging optimization',
-    primaryIntent: 'ev_charging_co2_optimization',
-    secondaryIntents: [],
-    requestedDomains: detectRequestedDomains(message),
-    unsupportedDomains: [],
-    steps: [
-      {
-        step: 1,
-        action: 'energy-market.co2Intensity',
-        purpose: 'Direct CO₂ forecast for EV charging optimization at the requested location',
-        paramsTemplate: {
-          city: knownContext?.city || knownContext?.location || promptHints?.city || null,
-          postalCode:
-            knownContext?.postalCode ||
-            knownContext?.postleitzahl ||
-            promptHints?.postalCode ||
-            null,
-        },
-        source: 'ev-co2-direct',
-        hitlRequired: false,
-        criticalityClass: null,
-      },
-    ],
-    status: 'ready',
-    warnings: [],
-    promptHints,
-    capability: {
-      capability: 'ev_charging_co2_optimization',
-      intent: 'ev_charging_co2_optimization',
-      preferredActions: ['energy-market.co2Intensity'],
-    },
-  };
-  plan.evidencePlan = planEvidence(plan, {
-    ...(promptHints || {}),
-    ...(knownContext || {}),
-  });
-  return plan;
-}
-
 function isHitlRequiredForAction(capability, action) {
   const policy = capability?.hitlPolicy;
   if (!policy || policy.criticalFlow !== true) {
@@ -1218,6 +1150,25 @@ function extractPromptHints(message) {
       : capacityKwMatch
         ? Number(capacityKwMatch[1].replace(',', '.'))
         : undefined;
+  const reportedMeteringConcept = /\b(?:mk\s*10|messkonzept\s*10|zusammenlegung(?:\s+der\s+z[aä]hler)?)\b/i.test(
+    text
+  )
+    ? 'MK10'
+    : undefined;
+  const legacyPvStatus =
+    /\b(?:pv|volleinspeis(?:eanlage|ung)?|altanlage)\b/i.test(text) &&
+    /\b(?:demontiert|deinstalliert|abgebaut|zurueckgebaut|zurückgebaut)\b/i.test(text)
+      ? 'DEMOUNTED'
+      : undefined;
+  const batteryMatch =
+    text.match(/\b(?:batterie(?:speicher)?|speicher)[^.!?\n]{0,60}?(\d+(?:[.,]\d+)?)\s*kW\b/i) ||
+    text.match(/\b(\d+(?:[.,]\d+)?)\s*kW\s*(?:ladeleistung|netzladeleistung)\b/i);
+  const heatPumpMatch = text.match(
+    /\b(?:w[aä]rmepumpe|waermepumpe)[^.!?\n]{0,60}?(\d+(?:[.,]\d+)?)\s*kW\b/i
+  );
+  const newPvMatch = text.match(
+    /\b(?:neue\s+)?pv(?:-anlage)?[^.!?\n]{0,60}?(\d+(?:[.,]\d+)?)\s*kWp\b/i
+  );
 
   return {
     projectId,
@@ -1235,6 +1186,11 @@ function extractPromptHints(message) {
     postalCode: postalMatch ? postalMatch[0] : undefined,
     gridCapacityKw: requestedCapacityKW,
     requestedCapacityKW,
+    reportedMeteringConcept,
+    legacyPvStatus,
+    batteryChargeKW: batteryMatch ? Number(batteryMatch[1].replace(',', '.')) : undefined,
+    heatPumpKW: heatPumpMatch ? Number(heatPumpMatch[1].replace(',', '.')) : undefined,
+    newPvKWp: newPvMatch ? Number(newPvMatch[1].replace(',', '.')) : undefined,
     forecastDays: temporalHints.forecastDays,
     timeframeHint: temporalHints.timeframeHint,
   };
@@ -1717,8 +1673,20 @@ function buildExecutionPlan({
   const promptHints = extractPromptHints(message);
   const evidenceSignalKey = detectEvidenceSignalKey(message, knownContext, promptHints);
   const requestedDomains = detectRequestedDomains(message);
-  if (isDirectEvCo2ChargingRequest(message, knownContext, promptHints)) {
-    return buildDirectEvCo2ChargingPlan({ message, knownContext, promptHints });
+
+  // L3 Broker: check blueprint registry for a matching intent (replaces hardcoded EV/CO2 detection)
+  const blueprintMatch = detectBlueprintIntent(message, knownContext, promptHints);
+  if (blueprintMatch) {
+    const bpPlan = buildBlueprintPlan(blueprintMatch.blueprintId, {
+      message,
+      knownContext,
+      promptHints,
+    });
+    bpPlan.evidencePlan = planEvidence(bpPlan, {
+      ...(promptHints || {}),
+      ...(knownContext || {}),
+    });
+    return bpPlan;
   }
   const route = findMatchingMatrixRoute(requestedDomains);
 

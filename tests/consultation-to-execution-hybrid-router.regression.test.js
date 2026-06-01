@@ -121,6 +121,28 @@ describe('consultation-to-execution hybrid router regressions', () => {
     expect(consultationPlan.workflowType).toBe(WORKFLOW_TYPES.PROSUMER_NAP_WALLET_ONBOARDING);
   });
 
+  it('RG-007b: NAP-Wallet DID wird extrahiert und nicht erneut abgefragt', () => {
+    const message = 'NAP Wallet angelegt mit DID did:corrently:asset:Jjq2rt0EvYtjfdDmGxUgzQ';
+    const extractedInputs = extractAvailableInputs(message, {}, {});
+
+    const consultationPlan = buildConsultationExecutionPlan({
+      message,
+      consultation: {},
+      knownContext: {},
+      extractedInputs,
+    });
+
+    expect(extractedInputs).toContainEqual(
+      expect.objectContaining({
+        param: 'did',
+        value: 'did:corrently:asset:Jjq2rt0EvYtjfdDmGxUgzQ',
+      })
+    );
+    expect(consultationPlan.workflowType).toBe(WORKFLOW_TYPES.PROSUMER_NAP_WALLET_ONBOARDING);
+    expect(consultationPlan.missingInputs.find((item) => item.param === 'did')).toBeUndefined();
+    expect(consultationPlan.nextUserQuestion.toLowerCase()).toMatch(/plz|ort|melo|netzanschluss/);
+  });
+
   it('RG-008: Prosumer/NAP-Wallet wird nicht auf MaStR Inventory gekippt', () => {
     const message = 'NAP Wallet Prozess für Prosumer klären';
 

@@ -1,0 +1,120 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "messkonzept-conflict-validation-v1",
+  "version": "1.0.0",
+  "meta": {
+    "title": "Messkonzept-Konflikt MK10/MK40",
+    "description": "Prueft einen PV-/Speicher-/Waermepumpenfall auf fehlerhafte Zaehlerzusammenlegung, MK40-Kaskade, §14a-Anmeldung und Abgrenzung einer demontierten PV-Altanlage.",
+    "targetAudience": "prosumer"
+  },
+  "routing": {
+    "intentSignals": [
+      "messkonzept",
+      "kaskade",
+      "kaskadenmessung",
+      "mk10",
+      "mk 10",
+      "mk40",
+      "mk 40",
+      "zusammenlegung",
+      "heizstrom",
+      "waermepumpe",
+      "wärmepumpe",
+      "volleinspeiseanlage",
+      "volleinspeisung",
+      "demontiert"
+    ],
+    "negativeSignals": [
+      "redispatch",
+      "bilanzkreis",
+      "strompreis"
+    ],
+    "priorityBoost": 8
+  },
+  "inputs": {
+    "postalCode": {
+      "type": "string",
+      "required": true,
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Bitte nenne die Postleitzahl fuer die VNB- und Messkonzept-Pruefung."
+      }
+    },
+    "reportedMeteringConcept": {
+      "type": "string",
+      "required": true,
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Welches Messkonzept wurde gemeldet, z. B. MK10/Zusammenlegung?"
+      }
+    },
+    "legacyPvStatus": {
+      "type": "string",
+      "required": true,
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Ist die PV-Altanlage noch in Betrieb oder wurde sie demontiert?"
+      }
+    },
+    "batteryChargeKW": {
+      "type": "number",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": 5
+      }
+    },
+    "heatPumpKW": {
+      "type": "number",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": 7.5
+      }
+    },
+    "newPvKWp": {
+      "type": "number",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": 10
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "validate_messkonzept_conflict",
+        "action": "grid-connection.validateMesskonzeptConflict",
+        "params": {
+          "postalCode": "{{inputs.postalCode}}",
+          "reportedMeteringConcept": "{{inputs.reportedMeteringConcept}}",
+          "legacyPvStatus": "{{inputs.legacyPvStatus}}",
+          "batteryChargeKW": "{{inputs.batteryChargeKW}}",
+          "heatPumpKW": "{{inputs.heatPumpKW}}",
+          "newPvKWp": "{{inputs.newPvKWp}}"
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "mappings": {}
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.validate_messkonzept_conflict.output"
+    ],
+    "templates": {
+      "success": "Messkonzept-Pruefung fuer PLZ {{inputs.postalCode}}: Soll-Messkonzept {{steps.validate_messkonzept_conflict.output.sollMesskonzept}}. Warnung: {{steps.validate_messkonzept_conflict.output.primaryWarning}}",
+      "error": "Die Messkonzept-Pruefung konnte nicht abgeschlossen werden. Bitte Postleitzahl, gemeldetes Messkonzept und Status der PV-Altanlage pruefen."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "messkonzeptPostalCode": "inputs.postalCode",
+      "reportedMeteringConcept": "inputs.reportedMeteringConcept",
+      "legacyPvStatus": "inputs.legacyPvStatus",
+      "sollMesskonzept": "steps.validate_messkonzept_conflict.output.sollMesskonzept"
+    }
+  }
+}

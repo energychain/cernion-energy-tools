@@ -441,6 +441,45 @@ describe('applyMapping', () => {
       };
       expect(applyMapping(mapping, scope)).toBeNull();
     });
+
+    test('correctly looks up values from dictionary using dictionary_lookup', () => {
+      const scope = { steps: { validate: { output: { decision: 'GO_CONDITIONAL' } } } };
+      const mapping = {
+        strategy: 'dictionary_lookup',
+        source: 'steps.validate.output.decision',
+        dictionary: {
+          GO_CONDITIONAL: 'Genehmigt mit Auflagen',
+          GO_DIRECT: 'Direkt genehmigt',
+        },
+        defaultValue: 'Standard-Fall',
+      };
+      expect(applyMapping(mapping, scope)).toBe('Genehmigt mit Auflagen');
+    });
+
+    test('falls back to defaultValue if key is missing from dictionary', () => {
+      const scope = { steps: { validate: { output: { decision: 'UNKNOWN_DECISION' } } } };
+      const mapping = {
+        strategy: 'dictionary_lookup',
+        source: 'steps.validate.output.decision',
+        dictionary: {
+          GO_CONDITIONAL: 'Genehmigt mit Auflagen',
+        },
+        defaultValue: 'Standard-Fall',
+      };
+      expect(applyMapping(mapping, scope)).toBe('Standard-Fall');
+    });
+
+    test('falls back to sourceData if key is missing and defaultValue is not specified', () => {
+      const scope = { steps: { validate: { output: { decision: 'UNKNOWN_DECISION' } } } };
+      const mapping = {
+        strategy: 'dictionary_lookup',
+        source: 'steps.validate.output.decision',
+        dictionary: {
+          GO_CONDITIONAL: 'Genehmigt mit Auflagen',
+        },
+      };
+      expect(applyMapping(mapping, scope)).toBe('UNKNOWN_DECISION');
+    });
   });
 
   test('throws for unknown strategy', () => {

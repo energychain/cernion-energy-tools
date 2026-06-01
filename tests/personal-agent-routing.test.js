@@ -82,6 +82,24 @@ describe('personal-agent-routing', () => {
     ]);
   });
 
+  it('requires projectId before assessing a ZNP portfolio', () => {
+    const params = pruneUndefinedDeep(
+      fillTemplateWithContext(
+        {
+          projectId: null,
+          kaufmaennischeFreigabeFnav: false,
+        },
+        'znp.assessPortfolio',
+        {},
+        {},
+        { stepResults: {} }
+      )
+    );
+
+    expect(params).toEqual({ kaufmaennischeFreigabeFnav: false });
+    expect(getMissingInputs('znp.assessPortfolio', params)).toEqual(['projectId']);
+  });
+
   it('resolves bdew placeholder from wrapped step result data.data.results path', () => {
     const params = pruneUndefinedDeep(
       fillTemplateWithContext(

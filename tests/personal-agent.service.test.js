@@ -1272,6 +1272,34 @@ describe('personal-agent.service', () => {
     expect(session.l3.onboardingQuestions[0].answeredAt).toBeNull();
   });
 
+  it('asks whether to use an existing or new project before ZNP portfolio assessment', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message:
+          'Bitte bewerte das ZNP-Portfolio und die kaufmännische fNAV-Freigabe.',
+        chatMode: 'execution',
+        executionMode: 'auto',
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.execution.status).toBe('awaiting-onboarding');
+    expect(result.execution.steps).toEqual([]);
+    expect(result.execution.stopPoint).toMatchObject({
+      reasonCode: 'MISSING_INPUTS',
+      blockedStep: 1,
+      blockedAction: 'znp.assessPortfolio',
+      status: 'awaiting-onboarding',
+      missingParams: ['projectId'],
+    });
+    expect(result.execution.stopPoint.onboardingQuestion.paramKey).toBe('projectId');
+    expect(executedActions).not.toContain('znp.assessPortfolio');
+    expect(result.reply).toMatch(/bestehenden ZNP-Projekt|bestehendes ZNP-Projekt/i);
+    expect(result.reply).toMatch(/neues Projekt/i);
+    expect(result.reply).not.toMatch(/Parameters validation error|ACTION_FAILED|MISSING_INPUTS/i);
+  });
+
   it('captures onboarding answer and resumes deterministic execution', async () => {
     const first = await broker.call(
       'personal-agent.chat',

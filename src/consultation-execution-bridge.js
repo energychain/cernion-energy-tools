@@ -538,12 +538,34 @@ const MASTR_REQUIRED = [
   },
 ];
 
+const PROSUMER_NAP_REQUIRED = [
+  {
+    param: 'did',
+    label: 'NAP-Wallet-DID',
+    priority: 'critical',
+    keys: ['did', 'walletDid', 'assetDid', 'didUri'],
+  },
+  {
+    param: 'location_or_melo',
+    label: 'PLZ, Ort oder MeLo-ID des Netzanschlusses',
+    priority: 'critical',
+    keys: ['postalCode', 'municipality', 'location', 'meloId', 'melo', 'marketLocationId'],
+  },
+  {
+    param: 'asset_baseline',
+    label: 'MaStR-Nummer, MeLo-ID oder Asset-Typen (PV, Speicher, Wallbox, Wärmepumpe)',
+    priority: 'high',
+    keys: ['mastrId', 'mastrNumber', 'meloId', 'assetType', 'assets', 'devices'],
+  },
+];
+
 const REQUIRED_BY_WORKFLOW = {
   [WORKFLOW_TYPES.BESS_DEVELOPMENT]: BESS_DEV_REQUIRED,
   [WORKFLOW_TYPES.BESS_SCREENING]: BESS_SCREEN_REQUIRED,
   [WORKFLOW_TYPES.ENERGY_SHARING_READINESS]: ES_REQUIRED,
   [WORKFLOW_TYPES.VNB_IDENTIFICATION]: VNB_REQUIRED,
   [WORKFLOW_TYPES.MASTR_INVENTORY]: MASTR_REQUIRED,
+  [WORKFLOW_TYPES.PROSUMER_NAP_WALLET_ONBOARDING]: PROSUMER_NAP_REQUIRED,
   [WORKFLOW_TYPES.ADVISORY_ONLY]: [],
 };
 
@@ -897,6 +919,135 @@ function buildExecutablePlan({
     }
   }
 
+  if (workflowType === WORKFLOW_TYPES.PROSUMER_NAP_WALLET_ONBOARDING) {
+    const hasDid = hasInput(knownContext, ['did', 'walletDid', 'assetDid', 'didUri']);
+    const hasLocation = hasInput(knownContext, ['municipality', 'location', 'postalCode']);
+    const hasMelo = hasInput(knownContext, ['meloId', 'melo', 'marketLocationId']);
+    const hasMastr = hasInput(knownContext, ['mastrId', 'mastrNumber']);
+    const hasAssets = hasInput(knownContext, ['assetType', 'assets', 'devices']);
+    const hasGridOperator = hasInput(knownContext, ['gridOperatorName', 'gridOperatorId', 'bdewCode', 'bdew']);
+    const query =
+      knownContext.municipality ||
+      knownContext.location ||
+      knownContext.postalCode ||
+      knownContext.meloId ||
+      knownContext.melo ||
+      knownContext.marketLocationId ||
+      '';
+
+    if (hasDid) {
+      assumptions.push({
+        type: 'identity_anchor',
+        statement: 'Die NAP-Wallet-DID wird als technischer Anker verwendet; private Schlüssel werden nie verarbeitet.',
+        basis: 'user_provided_did',
+        status: 'explicit',
+      });
+    } else {
+      evidenceGates.push({
+        id: 'nap_wallet_did_gate',
+        label: 'NAP-Wallet-DID erfassen',
+        blockedBy: 'did_missing',
+        required: true,
+        description: 'DID wird als Anker für spätere Nachweise und DID-linked Resources benötigt.',
+      });
+    }
+
+    if (hasLocation || hasMelo) {
+      executableSteps.push({
+        step: 1,
+        action: 'grid-operations.marketPartners',
+        label: 'Netzanschluss-Kontext und mögliche Marktpartner prüfen',
+        params: { query, limit: 10 },
+        canExecute: true,
+        purpose: 'nap_connection_context',
+        disclaimer: 'Marktpartner-/MaStR-Kontext ist kein Nachweis der Anschluss- oder Steuerbarkeit.',
+      });
+    } else {
+      evidenceGates.push({
+        id: 'nap_connection_context_gate',
+        label: 'Netzanschluss-Kontext prüfen',
+        blockedBy: 'location_or_melo_missing',
+        required: true,
+        description: 'PLZ, Ort oder MeLo-ID benötigt, um Netzanschluss und Zuständigkeit einzuordnen.',
+      });
+    }
+
+    if (hasLocation) {
+      executableSteps.push({
+        step: 2,
+        action: 'osm-geo.infrastructureNearby',
+        label: 'Lokale Netzinfrastruktur und Energy-Sharing-Umfeld prüfen',
+        params: {
+          location: knownContext.municipality || knownContext.location || knownContext.postalCode,
+          radiusMeters: 2000,
+          maxResults: 20,
+        },
+        canExecute: true,
+        purpose: 'nap_local_infrastructure_context',
+      });
+    } else {
+      evidenceGates.push({
+        id: 'nap_geo_context_gate',
+        label: 'Lokale Infrastrukturprüfung',
+        blockedBy: 'location_missing',
+        required: false,
+        description: 'Ort/PLZ oder Koordinaten verbessern die §42c-/Energy-Sharing-Vorprüfung.',
+      });
+    }
+
+    if (hasGridOperator && (hasMastr || hasMelo || hasAssets)) {
+      executableSteps.push({
+        step: 3,
+        action: 'mastr-quality.audit',
+        label: 'Asset-Baseline gegen MaStR/Netzbetreiberkontext prüfen',
+        params: {
+          ...(knownContext.gridOperatorId && { gridOperatorId: knownContext.gridOperatorId }),
+          ...((knownContext.bdewCode || knownContext.bdew) && {
+            gridOperatorBdew: knownContext.bdewCode || knownContext.bdew,
+          }),
+          ...(knownContext.mastrId && { mastrId: knownContext.mastrId }),
+          ...(knownContext.meloId && { meloId: knownContext.meloId }),
+        },
+        canExecute: true,
+        purpose: 'nap_asset_baseline',
+      });
+    } else {
+      evidenceGates.push({
+        id: 'nap_asset_baseline_gate',
+        label: 'Asset-Baseline für Wallet-Nachweis',
+        blockedBy: hasGridOperator ? 'asset_baseline_missing' : 'grid_operator_or_asset_baseline_missing',
+        required: true,
+        description: 'Für belastbare Credentials werden Netzbetreiberbezug plus MaStR-/MeLo-/Asset-Daten benötigt.',
+      });
+    }
+
+    evidenceGates.push({
+      id: 'nap_consent_gate',
+      label: 'Einwilligung und Datenfreigabe',
+      blockedBy: 'consent_required',
+      required: true,
+      description:
+        'Vor DID-linked Resource oder Verifiable Credential muss feststehen, welche Anschluss-/Asset-/HEMS-Daten freigegeben werden dürfen.',
+    });
+
+    evidenceGates.push({
+      id: 'nap_dlr_publication_gate',
+      label: 'DID-linked Resource / Credential veröffentlichen',
+      blockedBy: 'verified_baseline_and_consent_required',
+      required: true,
+      description:
+        'Die DID wird erst nach geprüfter Asset-Baseline und Einwilligung mit einem Nachweis verknüpft.',
+    });
+
+    assumptions.push({
+      type: 'working_assumption',
+      statement:
+        '§14a- oder §42c-Eignung darf nicht aus der Wallet allein abgeleitet werden; sie braucht Netzbetreiber-, Standort- und Asset-Evidenz.',
+      basis: 'domain_guardrail',
+      status: 'explicit',
+    });
+  }
+
   return { executableSteps, evidenceGates, assumptions };
 }
 
@@ -1010,9 +1161,18 @@ function buildConsultationExecutionPlan({
     extractedInputs,
   });
 
+  const effectiveKnownContext = {
+    ...Object.fromEntries(
+      availableInputs
+        .filter((input) => input?.param && input?.value !== undefined && input?.value !== null)
+        .map((input) => [input.param, input.value])
+    ),
+    ...knownContext,
+  };
+
   const { executableSteps, evidenceGates, assumptions } = buildExecutablePlan({
     workflowType,
-    knownContext,
+    knownContext: effectiveKnownContext,
     missingInputs,
   });
 

@@ -19,6 +19,26 @@
 const { extractEnergyIds } = require('./utils/energy-id-extractor');
 
 const INPUT_PATTERNS = Object.freeze({
+  did: {
+    patterns: [
+      /\b(did:[a-z0-9]+:[a-z0-9:_-]+:[A-Za-z0-9._:-]+)\b/i,
+      /\b(did:[a-z0-9]+:[A-Za-z0-9._:-]+)\b/i,
+    ],
+    aliases: ['walletDid', 'assetDid', 'didUri'],
+  },
+  meloId: {
+    patterns: [
+      /\b(?:melo|marktlokation|marktlokations?[-\s]?id)\s*[:=]?\s*([A-Z0-9]{10,35})\b/i,
+    ],
+    aliases: ['melo', 'marketLocationId', 'marktlokation'],
+  },
+  mastrId: {
+    patterns: [
+      /\b(MaStR[-\s]?[A-Z0-9-]{6,30})\b/i,
+      /\b(?:mastr|marktstammdaten(?:register)?)[-\s]*(?:nr|nummer|id)?\s*[:=]?\s*([A-Z0-9-]{6,30})\b/i,
+    ],
+    aliases: ['mastrNumber', 'marketMasterDataId'],
+  },
   bundesland: {
     patterns: [
       /\b(thüringen|thueringen|bayern|nrw|nordrhein-westfalen|baden-württemberg|baden-wuerttemberg|hamburg|bremen|schleswig-holstein|mecklenburg-vorpommern|sachsen-anhalt|sachsen|brandenburg|berlin|hessen|rheinland-pfalz|saarland|niedersachsen)\b/i,
@@ -80,6 +100,42 @@ const INPUT_PATTERNS = Object.freeze({
   },
 });
 
+const GERMAN_STATE_NAMES = new Set([
+  'thueringen',
+  'thuringen',
+  'bayern',
+  'nrw',
+  'nordrhein westfalen',
+  'baden wuerttemberg',
+  'baden wurttemberg',
+  'hamburg',
+  'bremen',
+  'schleswig holstein',
+  'mecklenburg vorpommern',
+  'sachsen anhalt',
+  'sachsen',
+  'brandenburg',
+  'berlin',
+  'hessen',
+  'rheinland pfalz',
+  'saarland',
+  'niedersachsen',
+]);
+
+function normalizeExtractorValue(value = '') {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /**
  * Extract available inputs from message, consultation facts, and known context.
  *
@@ -99,6 +155,7 @@ function extractAvailableInputs(message = '', consultationFacts = {}, knownConte
   const addIfNew = (param, value, source, confidence = 'high') => {
     if (seen.has(param)) return;
     if (!value || String(value).trim() === '') return;
+    if (param === 'municipality' && GERMAN_STATE_NAMES.has(normalizeExtractorValue(value))) return;
     availableInputs.push({ param, value, source, confidence });
     seen.add(param);
   };

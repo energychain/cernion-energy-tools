@@ -427,5 +427,51 @@ describe('consultation-execution-bridge', () => {
         )
       ).toHaveLength(0);
     });
+
+    it('PA-CEB-028: Prosumer NAP wallet with DID asks for connection context before execution', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'NAP Wallet angelegt mit DID did:corrently:asset:Jjq2rt0EvYtjfdDmGxUgzQ',
+        consultation: {},
+        knownContext: {},
+        extractedInputs: [
+          {
+            param: 'did',
+            value: 'did:corrently:asset:Jjq2rt0EvYtjfdDmGxUgzQ',
+            source: 'message',
+            confidence: 'high',
+          },
+        ],
+        executionMode: 'auto',
+      });
+
+      expect(plan.workflowType).toBe(WORKFLOW_TYPES.PROSUMER_NAP_WALLET_ONBOARDING);
+      expect(plan.readiness).toBe(EXECUTION_READINESS.AWAITING_INPUT);
+      expect(plan.canExecuteNow).toBe(false);
+      expect(plan.missingInputs.find((m) => m.param === 'did')).toBeUndefined();
+      expect(plan.missingInputs.find((m) => m.param === 'location_or_melo')).toBeDefined();
+      expect(plan.nextUserQuestion.toLowerCase()).toMatch(/plz|ort|melo|netzanschluss/);
+      expect(plan.assumptions.find((a) => a.type === 'identity_anchor')).toBeDefined();
+    });
+
+    it('PA-CEB-029: Prosumer NAP wallet with DID and PLZ builds executable context steps and consent gates', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'NAP Wallet Onboarding für PV und Wärmepumpe',
+        consultation: {},
+        knownContext: {
+          did: 'did:corrently:asset:Jjq2rt0EvYtjfdDmGxUgzQ',
+          postalCode: '68159',
+          assetType: 'PV, Wärmepumpe',
+        },
+        executionMode: 'auto',
+      });
+
+      expect(plan.workflowType).toBe(WORKFLOW_TYPES.PROSUMER_NAP_WALLET_ONBOARDING);
+      expect(plan.missingInputs.find((m) => m.param === 'did')).toBeUndefined();
+      expect(plan.missingInputs.find((m) => m.param === 'location_or_melo')).toBeUndefined();
+      expect(plan.executableSteps.map((step) => step.action)).toContain('grid-operations.marketPartners');
+      expect(plan.executableSteps.map((step) => step.action)).toContain('osm-geo.infrastructureNearby');
+      expect(plan.evidenceGates.map((gate) => gate.id)).toContain('nap_consent_gate');
+      expect(plan.evidenceGates.map((gate) => gate.id)).toContain('nap_dlr_publication_gate');
+    });
   });
 });

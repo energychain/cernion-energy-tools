@@ -2436,7 +2436,7 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         });
 
         const co2Intensity = await callBroker(ctx, 'energy-market.co2Intensity', {
-          region: region || 'DE',
+          location: region || 'Deutschland',
         });
 
         const operatorAnalysis = await callBroker(ctx, 'grid-operations.operatorAnalysis', {

@@ -1,0 +1,117 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "ev-charging-co2-optimization-v1",
+  "version": "1.0.0",
+  "meta": {
+    "title": "CO2-optimiertes E-Auto-Laden",
+    "description": "Ermittelt das günstigste CO2-Fenster zum Laden eines Elektrofahrzeugs anhand der stündlichen GrünstromIndex-Prognose für einen Standort. Gibt Startzeit, Endzeit und mittlere CO2-Intensität des empfohlenen Fensters aus.",
+    "targetAudience": "end_user"
+  },
+  "routing": {
+    "intentSignals": [
+      "laden",
+      "ladezeit",
+      "ladefenster",
+      "wallbox",
+      "elektroauto",
+      "elektro-auto",
+      "EV",
+      "e-auto",
+      "CO2",
+      "grünstrom",
+      "grünstromindex",
+      "öko",
+      "klimafreundlich"
+    ],
+    "negativeSignals": [
+      "gasheizung",
+      "wärmepumpe",
+      "photovoltaik",
+      "einspeisen",
+      "netzengpass",
+      "redispatch"
+    ],
+    "priorityBoost": 5
+  },
+  "inputs": {
+    "postalCode": {
+      "type": "string",
+      "required": true,
+      "semanticType": "OEO:PostalCode",
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Bitte nenne deine Postleitzahl oder deinen Wohnort, damit ich die CO2-Prognose für deinen Standort abrufen kann."
+      }
+    },
+    "chargingDurationHours": {
+      "type": "number",
+      "required": true,
+      "semanticType": "OEO:Duration",
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": 4,
+        "prompt": "Wie viele Stunden möchtest du laden? (Standard: 4 Stunden)"
+      }
+    },
+    "chargerPowerKW": {
+      "type": "number",
+      "required": false,
+      "semanticType": "OEO:ActivePower",
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": 11,
+        "prompt": "Welche Ladeleistung hat deine Wallbox in kW? (Standard: 11 kW)"
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "fetch_co2_forecast",
+        "action": "energy-market.co2Intensity",
+        "params": {
+          "location": "{{inputs.postalCode}}",
+          "forecast": true
+        }
+      },
+      {
+        "id": "fetch_spot_price",
+        "action": "energy-market.prices",
+        "params": {
+          "market": "day-ahead",
+          "region": "Deutschland"
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {
+      "chargingEnergyKWh": "inputs.chargingDurationHours * inputs.chargerPowerKW",
+      "estimatedCostEUR": "inputs.chargingDurationHours * inputs.chargerPowerKW * 0.30"
+    },
+    "mappings": {
+      "optimalChargingWindow": {
+        "strategy": "find_lowest_contiguous_average",
+        "source": "steps.fetch_co2_forecast.output.data.forecast",
+        "windowSize": "{{inputs.chargingDurationHours}}"
+      }
+    }
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.fetch_co2_forecast.output",
+      "postProcessing.optimalChargingWindow"
+    ],
+    "templates": {
+      "success": "Empfehlung für {{inputs.postalCode}}: Lade dein E-Auto von Stunde {{postProcessing.optimalChargingWindow.startIndex}} bis {{postProcessing.optimalChargingWindow.endIndex}} (⌀ {{postProcessing.optimalChargingWindow.averageValue}} g CO₂/kWh). Geschätzte Lademenge: {{postProcessing.chargingEnergyKWh}} kWh · Geschätzte Kosten: ca. {{postProcessing.estimatedCostEUR}} €.",
+      "error": "CO2-Prognose für {{inputs.postalCode}} konnte nicht abgerufen werden. Bitte Postleitzahl prüfen oder später erneut versuchen."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "evChargingOptimalWindow": "postProcessing.optimalChargingWindow",
+      "evChargingPostalCode": "inputs.postalCode",
+      "evChargingEnergyKWh": "postProcessing.chargingEnergyKWh"
+    }
+  }
+}

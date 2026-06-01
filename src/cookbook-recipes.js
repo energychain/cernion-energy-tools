@@ -1590,6 +1590,57 @@ const COOKBOOK_RECIPES = [
       'A repeatable, low-touch remediation loop that routes data-quality issues into guided customer self-service.',
     prerequisites: ['Grid operator identifier', 'Customer portal integration path'],
   },
+  {
+    id: 'prosumer-nap-wallet-onboarding',
+    title: 'Prosumer NAP Wallet Onboarding & Energy Sharing Check',
+    domain: 'prosumer_onboarding',
+    tags: ['prosumer', 'nap', 'wallet', 'section-14a', 'section-42c'],
+    problem:
+      'A prosumer wants to onboard to a NAP Wallet and share their HEMS data in exchange for grid benefits (e.g. §14a EnWG) or local Energy Sharing (§42c EnWG).',
+    process: [
+      {
+        step: 1,
+        service: 'mastr-quality',
+        action: 'mastr-quality.audit',
+        restPath: 'POST /api/mastr-quality/audit',
+        params: {
+          operatorBdew: null,
+          zipCode: null
+        },
+        description: 'Check MaStR for existing assets at the prosumers location to validate their baseline.',
+        expectedOutput: 'List of registered assets (e.g., PV, Wallbox) for the given Prosumer.',
+      },
+      {
+        step: 2,
+        service: 'osm-geo',
+        action: 'osm-geo.infrastructureNearby',
+        restPath: 'POST /api/osm-geo/infrastructure-nearby',
+        params: {
+          lat: null,
+          lon: null,
+          radiusMeters: 2000
+        },
+        description: 'Look for existing Energy Sharing clusters near the Prosumer location.',
+        expectedOutput: 'GeoJSON showing nearby grid infra and potential sharing partners.',
+      },
+      {
+        step: 3,
+        service: 'energy-sharing',
+        action: 'energy-sharing.validate',
+        restPath: 'POST /api/energy-sharing/validate',
+        params: {
+          operatorId: null,
+          generators: null,
+          consumers: null
+        },
+        description: 'Validate if the Prosumer can legally join the local Energy Sharing community according to §42c EnWG.',
+        expectedOutput: 'Eligibility decision with findings for community setup.',
+      }
+    ],
+    expectedResult:
+      'A validated onboarding package for the Prosumer including a Smart Contract draft for §14a grid fee reduction and a §42c community join link.',
+    prerequisites: ['Prosumer ZipCode / Coordinates', 'Asset Baseline (MeLo/MaStR)'],
+  },
 ];
 
 module.exports = {

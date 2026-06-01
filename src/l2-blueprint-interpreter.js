@@ -4,7 +4,12 @@
 
 const TARGET_AUDIENCES = new Set(['end_user', 'grid_operator', 'internal']);
 const RESOLVE_METHODS = new Set(['llm_extraction', 'static_default', 'context_lookup']);
-const MAPPING_STRATEGIES = new Set(['find_lowest_contiguous_average', 'pluck', 'filter']);
+const MAPPING_STRATEGIES = new Set([
+  'find_lowest_contiguous_average',
+  'pluck',
+  'filter',
+  'dictionary_lookup',
+]);
 
 // ─── Blueprint Validator ──────────────────────────────────────────────────────
 
@@ -405,6 +410,11 @@ function applyMapping(mapping, scope) {
       const filterValue = mapping.value;
       if (!filterField) return sourceData;
       return sourceData.filter((item) => resolvePathInScope(filterField, item) === filterValue);
+    }
+    case 'dictionary_lookup': {
+      if (sourceData == null) return null;
+      const dict = mapping.dictionary || {};
+      return dict[sourceData] ?? mapping.defaultValue ?? sourceData;
     }
     default:
       throw new Error(`Unknown mapping strategy: ${mapping.strategy}`);

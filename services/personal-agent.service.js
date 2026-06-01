@@ -93,6 +93,9 @@ const {
   buildStrategyLead: buildPersonalAgentStrategyLead,
 } = require('../src/personal-agent-response-strategy');
 const {
+  buildGroundedReceiptReply: buildGroundedReceiptReplyAdapter,
+} = require('../src/ev-co2-synthesis');
+const {
   generateText: llmGenerateText,
   generateStructured: llmGenerateStructured,
 } = require('../src/llm-client');
@@ -355,26 +358,24 @@ function sanitizeKnownContextForReflectionPrompt(knownContext = {}) {
 }
 
 function flattenScopeViolations(evaluation = null) {
-  return (
-    Array.isArray(evaluation?.plannedToolCalls) ? evaluation.plannedToolCalls : []
-  ).flatMap((step) =>
-    Array.isArray(step?.scopeViolations)
-      ? step.scopeViolations
-          .filter((violation) => violation && typeof violation === 'object')
-          .map((violation) => ({
-            scope: violation.scope || null,
-            code: violation.code || null,
-            message: sanitizeReflectionContextValue(violation.message || '', 160),
-          }))
-      : []
+  return (Array.isArray(evaluation?.plannedToolCalls) ? evaluation.plannedToolCalls : []).flatMap(
+    (step) =>
+      Array.isArray(step?.scopeViolations)
+        ? step.scopeViolations
+            .filter((violation) => violation && typeof violation === 'object')
+            .map((violation) => ({
+              scope: violation.scope || null,
+              code: violation.code || null,
+              message: sanitizeReflectionContextValue(violation.message || '', 160),
+            }))
+        : []
   );
 }
 
 function buildReceiptReflectionSummary(selection = null) {
   if (!selection || typeof selection !== 'object') return null;
-  const evaluation = selection?.evaluation && typeof selection.evaluation === 'object'
-    ? selection.evaluation
-    : null;
+  const evaluation =
+    selection?.evaluation && typeof selection.evaluation === 'object' ? selection.evaluation : null;
   const receiptIdCandidate =
     selection?.receiptId || selection?.selectedReceipt?.receiptId || selection?.selectedReceipt?.id;
   if (!receiptIdCandidate && !evaluation && selection?.selected !== true) {
@@ -400,8 +401,7 @@ function buildReceiptReflectionSummary(selection = null) {
       fallbackReason: selection?.execution?.fallbackReason || null,
     },
     evaluation: {
-      executable:
-        typeof evaluation?.executable === 'boolean' ? evaluation.executable : null,
+      executable: typeof evaluation?.executable === 'boolean' ? evaluation.executable : null,
       missingRequiredInputsCount: missingRequiredInputs.length,
       scopeViolationsCount: scopeViolations.length,
       blockedStepsCount: blockedSteps,
@@ -413,9 +413,8 @@ function buildReceiptReflectionAuditSeed(selection = null) {
   if (!selection || typeof selection !== 'object') return null;
   const receiptSummary = buildReceiptReflectionSummary(selection);
   if (!receiptSummary) return null;
-  const evaluation = selection?.evaluation && typeof selection.evaluation === 'object'
-    ? selection.evaluation
-    : null;
+  const evaluation =
+    selection?.evaluation && typeof selection.evaluation === 'object' ? selection.evaluation : null;
   const missingRequiredInputs = Array.isArray(evaluation?.missingRequiredInputs)
     ? evaluation.missingRequiredInputs.filter((item) => typeof item === 'string' && item.trim())
     : [];
@@ -424,8 +423,7 @@ function buildReceiptReflectionAuditSeed(selection = null) {
   return {
     attempted: false,
     outcome: 'unavailable',
-    initialExecutable:
-      typeof evaluation?.executable === 'boolean' ? evaluation.executable : null,
+    initialExecutable: typeof evaluation?.executable === 'boolean' ? evaluation.executable : null,
     initialBlocked:
       typeof evaluation?.executable === 'boolean' ? evaluation.executable === false : null,
     initialMissingRequiredInputs: missingRequiredInputs,
@@ -459,7 +457,9 @@ function isParametersValidationError(error) {
 }
 
 function normalizeHitlStatus(status) {
-  return String(status || '').trim().toLowerCase();
+  return String(status || '')
+    .trim()
+    .toLowerCase();
 }
 
 function isHitlApprovedStatus(status) {
@@ -1416,7 +1416,9 @@ module.exports = {
         // If incoming knownContext changes a decisive parameter (location,
         // operator, project), replace the stored resolvedParams to prevent
         // old-scenario context bleeding into the new turn.
-        const previousBootstrapContext = sanitizeBootstrapContext(session?.l3?.bootstrapContext || null);
+        const previousBootstrapContext = sanitizeBootstrapContext(
+          session?.l3?.bootstrapContext || null
+        );
         const previousSessionKnowledgeScopeDataPoints = sanitizeScopedDatapoints(
           session?.l3?.knowledgeScopeDataPoints || []
         );
@@ -1447,9 +1449,8 @@ module.exports = {
 
         // v0.57.3 — workLog callsite 2: onboarding gap detected
         if (bootstrapContext?.status === 'unknown' || bootstrapContext?.status === 'partial') {
-          const _wlMissingField = bootstrapContext.organizationType === 'unknown'
-            ? 'organizationType'
-            : 'knowledgeScope';
+          const _wlMissingField =
+            bootstrapContext.organizationType === 'unknown' ? 'organizationType' : 'knowledgeScope';
           turnWorkLog.addEntry({
             action: WORK_LOG_ACTIONS.ONBOARDING_GAP_DETECTED,
             label: `Missing: ${_wlMissingField}`,
@@ -1499,8 +1500,9 @@ module.exports = {
           const isDiagnosticMissingPlan = sessionHitlGate?.mode === 'approved-missing-plan';
           const isBlockedHitl = sessionHitlGate?.mode === 'blocked';
           const forcedChatMode =
-            normalizeChatMode(ctx.params.chatMode || ctx.meta?.chatMode || ctx.meta?.$params?.chatMode) ||
-            CHAT_MODES.EXECUTION;
+            normalizeChatMode(
+              ctx.params.chatMode || ctx.meta?.chatMode || ctx.meta?.$params?.chatMode
+            ) || CHAT_MODES.EXECUTION;
 
           stateMachine = transitionStateMachine(
             stateMachine,
@@ -1543,10 +1545,9 @@ module.exports = {
                 ? PERSONAL_AGENT_STATES.HITL_BLOCKED
                 : PERSONAL_AGENT_STATES.COMPLETED,
             {
-              reasonCode:
-                isDiagnosticMissingPlan
-                  ? 'approved_hitl_resume_missing_plan'
-                  : isBlockedHitl
+              reasonCode: isDiagnosticMissingPlan
+                ? 'approved_hitl_resume_missing_plan'
+                : isBlockedHitl
                   ? 'MANDATORY_HITL_APPROVAL'
                   : 'HITL_TERMINAL_DECISION',
               blockedAction: sessionHitlGate?.stopPoint?.blockedAction || null,
@@ -1591,7 +1592,9 @@ module.exports = {
             execution,
             knownContext,
             missingParams: [],
-            existingAssumptions: Array.isArray(session.l3?.assumptions) ? session.l3.assumptions : [],
+            existingAssumptions: Array.isArray(session.l3?.assumptions)
+              ? session.l3.assumptions
+              : [],
           });
 
           turnGraph = addNode(turnGraph, {
@@ -1924,7 +1927,9 @@ module.exports = {
             }
           );
           routing = {
-            primaryIntent: hasApprovedHitlResumePlan ? approvedHitlResumePlan?.primaryIntent || 'approved_hitl_resume' : null,
+            primaryIntent: hasApprovedHitlResumePlan
+              ? approvedHitlResumePlan?.primaryIntent || 'approved_hitl_resume'
+              : null,
             requestedDomains: Array.isArray(approvedHitlResumePlan?.requestedDomains)
               ? approvedHitlResumePlan.requestedDomains
               : [],
@@ -2158,27 +2163,24 @@ module.exports = {
           disableReceiptSelection: ctx.params.disableReceiptSelection === true,
         });
 
-        let receiptSelectionMetadata = this.buildReceiptSelectionMetadata(
-          receiptSelectionResult,
-          {
-            includeDiagnostics: receiptSelectionDiagnosticsRequested,
-          }
-        );
+        let receiptSelectionMetadata = this.buildReceiptSelectionMetadata(receiptSelectionResult, {
+          includeDiagnostics: receiptSelectionDiagnosticsRequested,
+        });
 
-          if (
-            Array.isArray(receiptSelectionResult?.evaluation?.plannedToolCalls) &&
-            receiptSelectionResult.execution &&
-            typeof receiptSelectionResult.execution === 'object'
-          ) {
-            receiptSelectionResult.execution.plannedToolCalls =
-              receiptSelectionResult.evaluation.plannedToolCalls.map((step) => ({
-                step: Number(step?.step || 0) || null,
-                action: step?.selectedAction || step?.action || null,
-                requestedAction: step?.action || null,
-                params: step?.params || {},
-                status: step?.status || null,
-              }));
-          }
+        if (
+          Array.isArray(receiptSelectionResult?.evaluation?.plannedToolCalls) &&
+          receiptSelectionResult.execution &&
+          typeof receiptSelectionResult.execution === 'object'
+        ) {
+          receiptSelectionResult.execution.plannedToolCalls =
+            receiptSelectionResult.evaluation.plannedToolCalls.map((step) => ({
+              step: Number(step?.step || 0) || null,
+              action: step?.selectedAction || step?.action || null,
+              requestedAction: step?.action || null,
+              params: step?.params || {},
+              status: step?.status || null,
+            }));
+        }
 
         if (forceReceiptRequested && receiptSelectionResult?.selected !== true) {
           throw new MoleculerClientError(
@@ -2238,9 +2240,10 @@ module.exports = {
           metadata: {
             targetDomain: brokerRecommendation?.domain || null,
             primaryIntent: brokerRecommendation?.intent || null,
-            reasonCode: routingDecision.target && routingDecision.target !== 'mark_unknown_execution_gap'
-              ? 'INTENT_SIGNAL_DETECTED'
-              : 'DEFAULT_ROUTE',
+            reasonCode:
+              routingDecision.target && routingDecision.target !== 'mark_unknown_execution_gap'
+                ? 'INTENT_SIGNAL_DETECTED'
+                : 'DEFAULT_ROUTE',
           },
         });
 
@@ -2542,7 +2545,10 @@ module.exports = {
           }
           stateMachine = transitionStateMachine(
             stateMachine,
-            deriveTerminalState({ consultation: consultationResult, status: consultationExecution.status }),
+            deriveTerminalState({
+              consultation: consultationResult,
+              status: consultationExecution.status,
+            }),
             {
               status: consultationExecution.status,
               openQuestions: Array.isArray(consultationResult.openQuestions)
@@ -2691,9 +2697,12 @@ module.exports = {
                 sourceCategory: (() => {
                   const d = String(brokerRecommendation?.domain || '').toLowerCase();
                   if (d.includes('grid') || d.includes('netz')) return 'grid_data';
-                  if (d.includes('market') || d.includes('markt') || d.includes('price')) return 'market_data';
-                  if (d.includes('geo') || d.includes('location') || d.includes('osm')) return 'geo_data';
-                  if (d.includes('regulat') || d.includes('recht') || d.includes('compliance')) return 'regulatory_data';
+                  if (d.includes('market') || d.includes('markt') || d.includes('price'))
+                    return 'market_data';
+                  if (d.includes('geo') || d.includes('location') || d.includes('osm'))
+                    return 'geo_data';
+                  if (d.includes('regulat') || d.includes('recht') || d.includes('compliance'))
+                    return 'regulatory_data';
                   return 'other';
                 })(),
                 phase: 'synthesis',
@@ -2756,9 +2765,7 @@ module.exports = {
           // ═══ Consultation-to-Execution Bridge ═══
           let executionReadiness = null;
           let consultationPlanResults = null;
-          let receiptReflectionResult = buildReceiptReflectionAuditSeed(
-            receiptSelectionResult
-          ); // v0.57.5 #158
+          let receiptReflectionResult = buildReceiptReflectionAuditSeed(receiptSelectionResult); // v0.57.5 #158
           // effectiveReceiptContext carries the hydrated context into executeWithReceipt.
           // Starts as brokerKnownContext; upgraded to patchedContext after a successful reflection.
           let effectiveReceiptContext = brokerKnownContext || {}; // v0.57.5 #158
@@ -2807,9 +2814,7 @@ module.exports = {
                 const { system: reflSystem, user: reflUser } = buildReflectionPrompt({
                   userMessage: ctx.params.message,
                   consultationHistory: recentHistory,
-                  knownContext: sanitizeKnownContextForReflectionPrompt(
-                    brokerKnownContext || {}
-                  ),
+                  knownContext: sanitizeKnownContextForReflectionPrompt(brokerKnownContext || {}),
                   missingRequiredInputs,
                   scopeViolations,
                   receiptId: receiptSelectionResult.receiptId || null,
@@ -2833,14 +2838,12 @@ module.exports = {
                     : reflectionResponse || {};
 
                 const rawPatch =
-                  reflData.resolvedContextPatch &&
-                  typeof reflData.resolvedContextPatch === 'object'
+                  reflData.resolvedContextPatch && typeof reflData.resolvedContextPatch === 'object'
                     ? reflData.resolvedContextPatch
                     : {};
                 const rawConfidence =
                   typeof reflData.confidence === 'string' ? reflData.confidence : 'low';
-                const rawEvidence =
-                  typeof reflData.evidence === 'string' ? reflData.evidence : '';
+                const rawEvidence = typeof reflData.evidence === 'string' ? reflData.evidence : '';
                 const rawUnresolvedScopes = Array.isArray(reflData.unresolvedScopes)
                   ? reflData.unresolvedScopes
                   : [];
@@ -2886,17 +2889,14 @@ module.exports = {
                     disableReceiptSelection: false,
                   });
 
-                  const reflectionResolved =
-                    reflectedResult?.evaluation?.executable === true;
+                  const reflectionResolved = reflectedResult?.evaluation?.executable === true;
 
                   if (reflectionResolved) {
                     // Promote the reflected result into the live receipt selection state
-                    selectedReceipt =
-                      reflectedResult?.selectedReceipt || selectedReceipt;
+                    selectedReceipt = reflectedResult?.selectedReceipt || selectedReceipt;
                     receiptSelectionResult.evaluation = reflectedResult.evaluation;
                     receiptSelectionResult.selectedReceipt =
-                      reflectedResult.selectedReceipt ||
-                      receiptSelectionResult.selectedReceipt;
+                      reflectedResult.selectedReceipt || receiptSelectionResult.selectedReceipt;
                     // Ensure execution uses the hydrated context, not the original brokerKnownContext
                     effectiveReceiptContext = patchedContext; // v0.57.5 #158
                   }
@@ -2937,9 +2937,7 @@ module.exports = {
                   };
                 }
               } catch (reflectionError) {
-                this.logger?.warn(
-                  `Receipt reflection attempt failed: ${reflectionError.message}`
-                );
+                this.logger?.warn(`Receipt reflection attempt failed: ${reflectionError.message}`);
                 const reflectionOutcome =
                   isActionUnavailable(reflectionError) || isNotFound(reflectionError)
                     ? 'unavailable'
@@ -2964,9 +2962,8 @@ module.exports = {
             }
 
             if (receiptReflectionResult && receiptSelectionResult) {
-              receiptReflectionResult.receipt = buildReceiptReflectionSummary(
-                receiptSelectionResult
-              );
+              receiptReflectionResult.receipt =
+                buildReceiptReflectionSummary(receiptSelectionResult);
             }
             // ─────────────────────────────────────────────────
 
@@ -2985,7 +2982,9 @@ module.exports = {
                       status: result?.success === false ? 'failed' : 'completed',
                       result,
                       error:
-                        result?.success === false ? result?.error?.message || result?.message : null,
+                        result?.success === false
+                          ? result?.error?.message || result?.message
+                          : null,
                     };
                   },
                 };
@@ -3018,9 +3017,8 @@ module.exports = {
                     : [],
                 };
                 if (receiptReflectionResult && receiptSelectionResult) {
-                  receiptReflectionResult.receipt = buildReceiptReflectionSummary(
-                    receiptSelectionResult
-                  );
+                  receiptReflectionResult.receipt =
+                    buildReceiptReflectionSummary(receiptSelectionResult);
                 }
               } catch (receiptExecError) {
                 this.logger?.warn(
@@ -3266,9 +3264,14 @@ module.exports = {
                 routing = {
                   ...(resumed.parentFrame.routing || {}),
                   primaryIntent:
-                    resumed.parentFrame.intent || resumed.parentFrame.routing?.primaryIntent || null,
+                    resumed.parentFrame.intent ||
+                    resumed.parentFrame.routing?.primaryIntent ||
+                    null,
                 };
-                plan = mergeResolvedParamsIntoPlan(resumed.parentFrame.plan, session.resolvedParams);
+                plan = mergeResolvedParamsIntoPlan(
+                  resumed.parentFrame.plan,
+                  session.resolvedParams
+                );
               }
             }
           }
@@ -3336,7 +3339,9 @@ module.exports = {
         const canRunReceiptExecution =
           Boolean(selectedReceiptForExecution) &&
           ctx.params.disableReceiptSelection !== true &&
-          (executionMode === EXECUTION_MODES.AUTO || forceReceiptRequested || shouldPreferReceiptExecution);
+          (executionMode === EXECUTION_MODES.AUTO ||
+            forceReceiptRequested ||
+            shouldPreferReceiptExecution);
 
         if (canRunReceiptExecution) {
           try {
@@ -3562,7 +3567,9 @@ module.exports = {
                       action: execution.stopPoint?.blockedAction || null,
                       step: execution.stopPoint?.blockedStep || null,
                       responsibleRole: execution.stopPoint?.responsibleRole || null,
-                      requiredResolverRoles: Array.isArray(execution.stopPoint?.requiredResolverRoles)
+                      requiredResolverRoles: Array.isArray(
+                        execution.stopPoint?.requiredResolverRoles
+                      )
                         ? execution.stopPoint.requiredResolverRoles
                         : [],
                       personaId: execution.stopPoint?.personaId || null,
@@ -3889,10 +3896,9 @@ module.exports = {
               presentation: {
                 type: 'conversational_onboarding',
                 title: 'Fehlende Eingaben',
-                summary:
-                  isMandatoryHitlApproval
-                    ? 'Für den nächsten Schritt ist eine Freigabe erforderlich.'
-                    : 'Bitte ergänzen Sie die fehlenden Angaben, damit die Ausführung fortgesetzt werden kann.',
+                summary: isMandatoryHitlApproval
+                  ? 'Für den nächsten Schritt ist eine Freigabe erforderlich.'
+                  : 'Bitte ergänzen Sie die fehlenden Angaben, damit die Ausführung fortgesetzt werden kann.',
                 markdown: replyMarkdown,
                 warnings: missingParams.map((param) => `missing_context:${param}`),
                 sections: [
@@ -3910,13 +3916,12 @@ module.exports = {
                   missingParams,
                   onboardingQuestion:
                     (isMandatoryHitlApproval ? hitlOnboardingQuestion : onboardingQuestion) || null,
-                  hitlItem:
-                    isMandatoryHitlApproval
-                      ? hitlOnboardingQuestion?.hitlItem ||
-                        (execution?.stopPoint?.hitlItemId
-                          ? { id: execution.stopPoint.hitlItemId, status: 'pending' }
-                          : null)
-                      : null,
+                  hitlItem: isMandatoryHitlApproval
+                    ? hitlOnboardingQuestion?.hitlItem ||
+                      (execution?.stopPoint?.hitlItemId
+                        ? { id: execution.stopPoint.hitlItemId, status: 'pending' }
+                        : null)
+                    : null,
                   nextActions: onboardingNextActions,
                 },
               },
@@ -4074,7 +4079,9 @@ module.exports = {
             ? session.l3.lastCompletedPlan
             : null;
         persisted.l3.stopPoint =
-          execution?.stopPoint && typeof execution.stopPoint === 'object' ? execution.stopPoint : null;
+          execution?.stopPoint && typeof execution.stopPoint === 'object'
+            ? execution.stopPoint
+            : null;
         persisted.l3.criticalStepCheckpoints =
           session.l3?.criticalStepCheckpoints &&
           typeof session.l3.criticalStepCheckpoints === 'object'
@@ -4313,7 +4320,15 @@ module.exports = {
       params: {
         sessionId: { type: 'string', min: 1, trim: true, max: 120 },
         personaId: { type: 'string', optional: true, trim: true, max: 180 },
-        limit: { type: 'number', optional: true, convert: true, integer: true, min: 1, max: 100, default: 20 },
+        limit: {
+          type: 'number',
+          optional: true,
+          convert: true,
+          integer: true,
+          min: 1,
+          max: 100,
+          default: 20,
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -5521,7 +5536,9 @@ module.exports = {
 
       const sanitizedEntries = history
         .map((entry) => ({
-          role: String(entry?.role || '').trim().toLowerCase(),
+          role: String(entry?.role || '')
+            .trim()
+            .toLowerCase(),
           text: this.sanitizeConsultationRecentHistoryText(entry?.text || entry?.content || ''),
         }))
         .filter(
@@ -5628,7 +5645,8 @@ module.exports = {
         openQuestions: normalizedMessage
           ? [
               {
-                question: 'Soll ich direkt in den Ausführungs-Modus wechseln oder zuerst fehlende Evidenz sammeln?',
+                question:
+                  'Soll ich direkt in den Ausführungs-Modus wechseln oder zuerst fehlende Evidenz sammeln?',
                 whyRelevant:
                   'So bleibt das weitere Vorgehen transparent, obwohl die Synthese derzeit degradiert ist.',
               },
@@ -5637,8 +5655,7 @@ module.exports = {
         nextActions: [
           {
             action: 'Ausführungs-Modus verwenden',
-            description:
-              'Starte konkrete Prüfschritte statt einer rein sprachlichen Einordnung.',
+            description: 'Starte konkrete Prüfschritte statt einer rein sprachlichen Einordnung.',
           },
           {
             action: 'Fehlende Evidenz klären',
@@ -8571,316 +8588,7 @@ module.exports = {
     },
 
     buildGroundedReceiptReply(_message = '', receiptSelection = null, executionResult = null) {
-      const steps = Array.isArray(executionResult?.steps) ? executionResult.steps : [];
-      const co2Step = steps.find((step) => step?.action === 'energy-market.co2Intensity');
-      if (!co2Step) {
-        return null;
-      }
-
-      const rawResult = co2Step?.outcome?.result || co2Step?.result || null;
-      const findCo2Payload = (value, depth = 0) => {
-        if (!value || typeof value !== 'object' || depth > 6) {
-          return null;
-        }
-        if (
-          value.recommendation ||
-          value.bestWindow ||
-          value.window ||
-          value.avgCo2gPerKWh ||
-          value.co2gPerKWh ||
-          value.co2_intensity_gco2eq_kwh ||
-          value.forecast_next_24h_gco2eq_kwh ||
-          value.forecast
-        ) {
-          return value;
-        }
-        return (
-          findCo2Payload(value.data, depth + 1) ||
-          findCo2Payload(value.result, depth + 1) ||
-          findCo2Payload(value.outcome, depth + 1)
-        );
-      };
-      const data = findCo2Payload(rawResult);
-      if (!data || typeof data !== 'object') {
-        return null;
-      }
-
-      const normalizeComparableLocation = (value) =>
-        String(value || '')
-          .toLowerCase()
-          .replace(/[^a-z0-9äöüß]+/gi, ' ')
-          .trim();
-      const promptLocationMatch = String(_message || '').match(
-        /\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2})\b/
-      );
-      const expectedPostalCode =
-        co2Step?.params?.postalCode ||
-        co2Step?.params?.postleitzahl ||
-        promptLocationMatch?.[1] ||
-        null;
-      const expectedCity =
-        co2Step?.params?.city || co2Step?.params?.location || promptLocationMatch?.[2] || null;
-      const evidencePostalCode =
-        data.postalCode || data.postleitzahl || data.zip || rawResult?.data?.postalCode || null;
-      const evidenceCity =
-        data.city ||
-        data.gemeinde ||
-        data.location ||
-        rawResult?.data?.city ||
-        rawResult?.data?.location ||
-        null;
-      const postalMismatch = Boolean(
-        expectedPostalCode &&
-          evidencePostalCode &&
-          String(expectedPostalCode) !== String(evidencePostalCode)
-      );
-      const cityMismatch = Boolean(
-        expectedCity &&
-          evidenceCity &&
-          normalizeComparableLocation(expectedCity) !== normalizeComparableLocation(evidenceCity)
-      );
-
-      if (postalMismatch || cityMismatch) {
-        const expectedLocation = [expectedPostalCode, expectedCity].filter(Boolean).join(' ').trim();
-        const evidenceLocation = [evidencePostalCode, evidenceCity].filter(Boolean).join(' ').trim();
-        return [
-          `Ich kann daraus keine Ladeempfehlung für ${expectedLocation || 'den angefragten Standort'} ableiten, weil die CO₂-Evidenz einen anderen Standort betrifft (${evidenceLocation || 'abweichender Standort'}).`,
-          `Bitte die CO₂-/Grünstrom-Prognose für ${expectedLocation || 'den angefragten Standort'} erneut abrufen; Evidenz aus einem anderen Ort verwende ich nicht für diese Empfehlung.`,
-        ].join(' ');
-      }
-
-      const parseIsoDate = (value) => {
-        if (!value) return null;
-        const parsed = new Date(value);
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
-      };
-
-      const extractNumeric = (item) => {
-        if (typeof item === 'number' && Number.isFinite(item)) return item;
-        if (!item || typeof item !== 'object') return null;
-        const value =
-          item.gCO2eqPerKWh ??
-          item.gco2eqPerKWh ??
-          item.gco2eq_kwh ??
-          item.gCO2eq_kWh ??
-          item.co2_intensity_gco2eq_kwh ??
-          item.co2gPerKWh ??
-          item.avgCo2gPerKWh ??
-          item.value ??
-          null;
-        const numeric = Number(value);
-        return Number.isFinite(numeric) ? numeric : null;
-      };
-
-      const buildForecastPoints = (payload) => {
-        const baseTimestamp =
-          payload?.timestamp ||
-          payload?.generatedAt ||
-          payload?.data?.timestamp ||
-          rawResult?.timestamp ||
-          rawResult?.data?.timestamp ||
-          null;
-        const baseDate = parseIsoDate(baseTimestamp);
-        const forecastCandidates = [
-          payload?.forecast,
-          payload?.data?.forecast,
-          payload?.forecast_next_24h_gco2eq_kwh,
-          payload?.data?.forecast_next_24h_gco2eq_kwh,
-          payload?.forecastNext24h,
-          payload?.data?.forecastNext24h,
-        ].filter(Array.isArray);
-        const points = [];
-
-        forecastCandidates.forEach((forecast) => {
-          forecast.forEach((item, index) => {
-            const value = extractNumeric(item);
-            if (value === null) return;
-            const timestamp =
-              typeof item === 'object'
-                ? item.timestamp || item.time || item.validFrom || item.from || item.start || null
-                : null;
-            const date =
-              parseIsoDate(timestamp) ||
-              (baseDate ? new Date(baseDate.getTime() + index * 60 * 60 * 1000) : null);
-            if (!date) return;
-            points.push({
-              start: date,
-              end: parseIsoDate(
-                typeof item === 'object' ? item.end || item.to || item.validTo || null : null
-              ),
-              value,
-            });
-          });
-        });
-
-        return points.sort((left, right) => left.start.getTime() - right.start.getTime());
-      };
-
-      const inferStepMs = (points) => {
-        const deltas = [];
-        for (let index = 1; index < points.length; index += 1) {
-          const delta = points[index].start.getTime() - points[index - 1].start.getTime();
-          if (delta > 0) deltas.push(delta);
-        }
-        if (deltas.length === 0) return 60 * 60 * 1000;
-        deltas.sort((left, right) => left - right);
-        return deltas[Math.floor(deltas.length / 2)] || 60 * 60 * 1000;
-      };
-
-      const deriveBestForecastWindow = (points) => {
-        if (!Array.isArray(points) || points.length === 0) return null;
-        const stepMs = inferStepMs(points);
-        const minValue = Math.min(...points.map((point) => point.value));
-        const minPoints = points.filter((point) => point.value === minValue);
-        const runs = [];
-        let currentRun = [];
-
-        minPoints.forEach((point) => {
-          const previous = currentRun[currentRun.length - 1];
-          const contiguous =
-            previous && point.start.getTime() - previous.start.getTime() <= stepMs * 1.5;
-          if (!previous || contiguous) {
-            currentRun.push(point);
-          } else {
-            runs.push(currentRun);
-            currentRun = [point];
-          }
-        });
-        if (currentRun.length > 0) runs.push(currentRun);
-
-        const bestRun = runs.reduce((best, run) => {
-          if (!best) return run;
-          return run.length > best.length ? run : best;
-        }, null);
-        if (!bestRun || bestRun.length === 0) return null;
-
-        const startPoint = bestRun[0];
-        const lastPoint = bestRun[bestRun.length - 1];
-        const end = lastPoint.end || new Date(lastPoint.start.getTime() + stepMs);
-        const allValues = points.map((point) => point.value);
-        return {
-          start: startPoint.start,
-          end,
-          minValue,
-          rangeMin: Math.min(...allValues),
-          rangeMax: Math.max(...allValues),
-        };
-      };
-
-      const berlinParts = (date) => {
-        if (!date) return null;
-        const parts = new Intl.DateTimeFormat('de-DE', {
-          timeZone: 'Europe/Berlin',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hourCycle: 'h23',
-        })
-          .formatToParts(date)
-          .reduce((acc, part) => ({ ...acc, [part.type]: part.value }), {});
-        const localAsUtc = Date.UTC(
-          Number(parts.year),
-          Number(parts.month) - 1,
-          Number(parts.day),
-          Number(parts.hour),
-          Number(parts.minute)
-        );
-        const offsetMinutes = Math.round((localAsUtc - date.getTime()) / 60000);
-        return {
-          date: `${parts.day}.${parts.month}.${parts.year}`,
-          time: `${parts.hour}:${parts.minute}`,
-          zone: offsetMinutes === 120 ? 'CEST' : offsetMinutes === 60 ? 'CET' : 'Europe/Berlin',
-        };
-      };
-
-      const formatBerlinWindow = (startDate, endDate) => {
-        const startParts = berlinParts(startDate);
-        const endParts = berlinParts(endDate);
-        if (!startParts || !endParts) return null;
-        const dateSuffix =
-          startParts.date === endParts.date
-            ? ` (${startParts.date})`
-            : ` (${startParts.date}–${endParts.date})`;
-        return `${startParts.time}–${endParts.time} ${endParts.zone}${dateSuffix}`;
-      };
-
-      const formatUtcWindow = (startDate, endDate) => {
-        if (!startDate || !endDate) return null;
-        const formatTime = (date) => date.toISOString().slice(11, 16);
-        return `${formatTime(startDate)}–${formatTime(endDate)} UTC`;
-      };
-
-      const parseRequestedKwh = (message) => {
-        const match = String(message || '').match(/(\d+(?:[.,]\d+)?)\s*k\s*wh\b/i);
-        if (!match) return null;
-        const value = Number(match[1].replace(',', '.'));
-        return Number.isFinite(value) && value > 0 ? value : null;
-      };
-
-      const recommendation =
-        data.recommendation && typeof data.recommendation === 'object' ? data.recommendation : data;
-      const bestWindow =
-        recommendation.bestWindow && typeof recommendation.bestWindow === 'object'
-          ? recommendation.bestWindow
-          : recommendation.window && typeof recommendation.window === 'object'
-            ? recommendation.window
-            : null;
-      const source = data.source || data.provider || data.dataset || 'GrünstromIndex/CO₂-Prognose';
-      const start = bestWindow?.start || bestWindow?.from || bestWindow?.dateFrom || null;
-      const end = bestWindow?.end || bestWindow?.to || bestWindow?.dateTo || null;
-      const intensity =
-        bestWindow?.avgCo2gPerKWh ??
-        bestWindow?.co2gPerKWh ??
-        bestWindow?.co2Intensity ??
-        recommendation?.avgCo2gPerKWh ??
-        recommendation?.co2gPerKWh ??
-        null;
-      const forecastWindow = deriveBestForecastWindow(buildForecastPoints(data));
-      const concreteWindow = forecastWindow
-        ? formatBerlinWindow(forecastWindow.start, forecastWindow.end)
-        : null;
-      const utcWindow = forecastWindow
-        ? formatUtcWindow(forecastWindow.start, forecastWindow.end)
-        : null;
-      const concreteIntensity = forecastWindow?.minValue ?? intensity;
-      const requestedKwh = parseRequestedKwh(_message);
-      const postalCode = co2Step?.params?.postalCode || data.postalCode || null;
-      const city = co2Step?.params?.city || data.city || data.location || null;
-      const location = [postalCode, city].filter(Boolean).join(' ').trim();
-
-      const evidenceBits = [];
-      if (location) {
-        evidenceBits.push(`Standort ${location}`);
-      }
-      if (concreteWindow) {
-        evidenceBits.push(`bestes Ladefenster ${concreteWindow}`);
-      } else if (start || end) {
-        evidenceBits.push(`bestes Ladefenster ${[start, end].filter(Boolean).join('–')}`);
-      }
-      if (concreteIntensity !== null && concreteIntensity !== undefined) {
-        evidenceBits.push(`${concreteIntensity} g CO₂/kWh im Minimum`);
-      }
-      if (forecastWindow && forecastWindow.rangeMax !== forecastWindow.rangeMin) {
-        evidenceBits.push(
-          `Forecast-Spanne ${forecastWindow.rangeMin}–${forecastWindow.rangeMax} g CO₂/kWh`
-        );
-      }
-      if (utcWindow) {
-        evidenceBits.push(`entspricht ${utcWindow}`);
-      }
-      if (requestedKwh && concreteIntensity !== null && concreteIntensity !== undefined) {
-        const emissionsKg = (requestedKwh * Number(concreteIntensity)) / 1000;
-        if (Number.isFinite(emissionsKg)) {
-          evidenceBits.push(`bei ${requestedKwh} kWh etwa ${emissionsKg.toFixed(2)} kg CO₂e`);
-        }
-      }
-
-      const receiptLabel = receiptSelection?.receiptId || 'EV/CO₂-Optimierung';
-      const summary =
-        evidenceBits.length > 0 ? evidenceBits.join(', ') : 'Forecast erfolgreich ausgewertet';
-      return `Auf Basis der Tool-Evidenz (${source}, Receipt ${receiptLabel}) empfehle ich: ${summary}. Handlungsempfehlung: Lade bevorzugt im genannten Fenster und verschiebe flexible Ladevorgänge außerhalb dieses Zeitraums nur, wenn Komfort- oder Netzrestriktionen das erzwingen. Ich stütze diese Aussage auf die ausgeführte CO₂-/Grünstrom-Prognose und nicht auf eine ungestützte Annahme.`;
+      return buildGroundedReceiptReplyAdapter(_message, receiptSelection, executionResult);
     },
 
     buildEvidenceGapUserMessage(evidencePlan = {}) {
@@ -8984,8 +8692,7 @@ module.exports = {
         baseContext.location ||
         baseContext.promptHints?.city ||
         null;
-      const rawBdew =
-        baseContext.bdewCode || baseContext.bdew || baseContext.promptHints?.bdew;
+      const rawBdew = baseContext.bdewCode || baseContext.bdew || baseContext.promptHints?.bdew;
       const bdewCode = isPlausibleBdewCode(rawBdew) ? rawBdew : undefined;
       const vnbName =
         baseContext.vnbName ||
@@ -9122,7 +8829,10 @@ module.exports = {
               { meta: { ...ctx.meta, $gateway: false } }
             );
             const fetchedData =
-              fetched && typeof fetched === 'object' && fetched.data && typeof fetched.data === 'object'
+              fetched &&
+              typeof fetched === 'object' &&
+              fetched.data &&
+              typeof fetched.data === 'object'
                 ? fetched.data
                 : fetched;
             if (fetchedData && typeof fetchedData === 'object') {
@@ -9382,11 +9092,10 @@ module.exports = {
         return { resolved: false, reason: 'no_tenant' };
       }
       try {
-        const result = await ctx.call(
-          'agent-persona.resolvePersona',
-          snapshot,
-          { meta: { ...ctx.meta, $gateway: false }, timeout: 1500 }
-        );
+        const result = await ctx.call('agent-persona.resolvePersona', snapshot, {
+          meta: { ...ctx.meta, $gateway: false },
+          timeout: 1500,
+        });
         if (result?.success && result?.resolvedPersona) {
           const handoffApplied = result.resolvedPersona.resolutionMode === 'handoff';
           return {
@@ -9409,8 +9118,7 @@ module.exports = {
           err?.type === 'SERVICE_NOT_FOUND' ||
           err?.type === 'SERVICE_NOT_AVAILABLE' ||
           err?.code === 'SERVICE_NOT_FOUND';
-        const isTimeout =
-          err?.type === 'REQUEST_TIMEOUT' || /timeout/i.test(err?.message || '');
+        const isTimeout = err?.type === 'REQUEST_TIMEOUT' || /timeout/i.test(err?.message || '');
         if (isTimeout) return { resolved: false, reason: 'timeout' };
         if (isUnavailable) return { resolved: false, reason: 'service_unavailable' };
         return { resolved: false, reason: 'error' };
@@ -9447,7 +9155,9 @@ module.exports = {
       if (hasExplicitOrganizationType) {
         // established ONLY if explicitly set to 'established' in knownContext.bootstrapContext.status
         // and it passes sanitization — never derived from organizationType alone
-        const rawExplicitStatus = String(explicitBootstrap?.status || '').trim().toLowerCase();
+        const rawExplicitStatus = String(explicitBootstrap?.status || '')
+          .trim()
+          .toLowerCase();
         const status = rawExplicitStatus === 'established' ? 'established' : 'partial';
 
         return sanitizeBootstrapContext({
@@ -9489,7 +9199,11 @@ module.exports = {
 
     emitBootstrapWorkOutLoudIfChanged(
       ctx,
-      { previousBootstrapContext = null, nextBootstrapContext = null, contextMutationMode = 'append' } = {}
+      {
+        previousBootstrapContext = null,
+        nextBootstrapContext = null,
+        contextMutationMode = 'append',
+      } = {}
     ) {
       const before = sanitizeBootstrapContext(previousBootstrapContext);
       const after = sanitizeBootstrapContext(nextBootstrapContext);
@@ -9764,8 +9478,7 @@ module.exports = {
         bootstrapContext: this.buildBootstrapTraceContext(bootstrapContext),
         knowledgeScope: this.buildKnowledgeScopeTraceSummary(knowledgeScope || []),
         workLog: Array.isArray(workLog) ? workLog : [], // v0.57.3
-        reflection:
-          reflection && typeof reflection === 'object' ? reflection : undefined, // v0.57.5 #158
+        reflection: reflection && typeof reflection === 'object' ? reflection : undefined, // v0.57.5 #158
       };
     },
 
@@ -9839,11 +9552,16 @@ module.exports = {
 
     findSessionPendingHitlReference(session = {}, knownContext = {}) {
       const sessionStopPoint =
-        session?.l3?.stopPoint && typeof session.l3.stopPoint === 'object' ? session.l3.stopPoint : null;
+        session?.l3?.stopPoint && typeof session.l3.stopPoint === 'object'
+          ? session.l3.stopPoint
+          : null;
       const stateMachineState = String(session?.l3?.stateMachine?.currentState || '').trim();
 
       const knownContextHitlItemId =
-        knownContext?.hitlItemId || knownContext?.hitl?.itemId || knownContext?.hitlItem?.id || null;
+        knownContext?.hitlItemId ||
+        knownContext?.hitl?.itemId ||
+        knownContext?.hitlItem?.id ||
+        null;
 
       const stopPointHitlItemId =
         sessionStopPoint?.hitlItemId ||
@@ -9854,7 +9572,8 @@ module.exports = {
       const stopPointIndicatesMandatoryHitl =
         sessionStopPoint?.reasonCode === 'MANDATORY_HITL_APPROVAL' && Boolean(stopPointHitlItemId);
       const stateIndicatesHitlBlocked =
-        stateMachineState === PERSONAL_AGENT_STATES.HITL_BLOCKED || stateMachineState === 'hitl_blocked';
+        stateMachineState === PERSONAL_AGENT_STATES.HITL_BLOCKED ||
+        stateMachineState === 'hitl_blocked';
 
       const checkpointContext = this.findCriticalStepCheckpointContext(session, {
         hitlItemId: knownContextHitlItemId || stopPointHitlItemId || null,
@@ -9863,7 +9582,8 @@ module.exports = {
       });
       const checkpointHitlItemId = checkpointContext?.hitlItemId || null;
 
-      const hitlItemId = knownContextHitlItemId || stopPointHitlItemId || checkpointHitlItemId || null;
+      const hitlItemId =
+        knownContextHitlItemId || stopPointHitlItemId || checkpointHitlItemId || null;
 
       const shouldGateBySession =
         Boolean(hitlItemId) &&
@@ -9894,7 +9614,10 @@ module.exports = {
       return `Die HITL-Freigabe${suffix} befindet sich nicht mehr in einem ausführbaren Zustand.`;
     },
 
-    async resolveSessionHitlResumeGate(ctx, { session = {}, knownContext = {}, message = '' } = {}) {
+    async resolveSessionHitlResumeGate(
+      ctx,
+      { session = {}, knownContext = {}, message = '' } = {}
+    ) {
       const hitlRef = this.findSessionPendingHitlReference(session, knownContext);
 
       if (!hitlRef?.shouldGateBySession || !hitlRef?.hitlItemId) {
@@ -9910,7 +9633,11 @@ module.exports = {
           'pending'
       );
 
-      this.updateCriticalStepCheckpointStatus(session, hitlRef.hitlItemId, resolvedStatus || 'pending');
+      this.updateCriticalStepCheckpointStatus(
+        session,
+        hitlRef.hitlItemId,
+        resolvedStatus || 'pending'
+      );
 
       if (isHitlApprovedStatus(resolvedStatus)) {
         const savedStopPoint =
@@ -9926,7 +9653,8 @@ module.exports = {
           const diagnosticStopPoint = this.buildStopPoint({
             reasonCode: 'approved_hitl_resume_missing_plan',
             message: diagnosticMessage,
-            blockedStep: Number(savedStopPoint?.blockedStep || hitlRef?.checkpointContext?.step || 1) || 1,
+            blockedStep:
+              Number(savedStopPoint?.blockedStep || hitlRef?.checkpointContext?.step || 1) || 1,
             status: 'failed',
             placeholder: {
               blockedAction:
@@ -9937,7 +9665,9 @@ module.exports = {
                   ? { id: hitlRef.hitlItemId, status: resolvedStatus || 'approved' }
                   : null,
               responsibleRole:
-                savedStopPoint?.responsibleRole || hitlRef?.checkpointContext?.responsibleRole || null,
+                savedStopPoint?.responsibleRole ||
+                hitlRef?.checkpointContext?.responsibleRole ||
+                null,
               requiredResolverRoles: Array.isArray(savedStopPoint?.requiredResolverRoles)
                 ? savedStopPoint.requiredResolverRoles
                 : Array.isArray(hitlRef?.checkpointContext?.requiredResolverRoles)
@@ -9949,7 +9679,9 @@ module.exports = {
               personaType:
                 savedStopPoint?.personaType || hitlRef?.checkpointContext?.personaType || null,
               personaResolution:
-                savedStopPoint?.personaResolution || hitlRef?.checkpointContext?.personaResolution || null,
+                savedStopPoint?.personaResolution ||
+                hitlRef?.checkpointContext?.personaResolution ||
+                null,
               routingContext:
                 this.normalizeRoutingContext(savedStopPoint?.routingContext) ||
                 this.normalizeRoutingContext(hitlRef?.checkpointContext?.routingContext) ||
@@ -10001,7 +9733,8 @@ module.exports = {
           ? {
               id: hitlRef.hitlItemId,
               status: resolvedStatus || 'pending',
-              responsibleRole: baseStopPoint?.responsibleRole || basePlaceholder?.responsibleRole || null,
+              responsibleRole:
+                baseStopPoint?.responsibleRole || basePlaceholder?.responsibleRole || null,
               requiredResolverRoles: Array.isArray(baseStopPoint?.requiredResolverRoles)
                 ? baseStopPoint.requiredResolverRoles
                 : Array.isArray(basePlaceholder?.requiredResolverRoles)
@@ -10020,9 +9753,17 @@ module.exports = {
           : null);
 
       const blockedAction =
-        baseStopPoint?.blockedAction || basePlaceholder?.blockedAction || hitlRef?.checkpointContext?.action || null;
+        baseStopPoint?.blockedAction ||
+        basePlaceholder?.blockedAction ||
+        hitlRef?.checkpointContext?.action ||
+        null;
       const blockedStep =
-        Number(baseStopPoint?.blockedStep || basePlaceholder?.blockedStep || hitlRef?.checkpointContext?.step || 1) || 1;
+        Number(
+          baseStopPoint?.blockedStep ||
+            basePlaceholder?.blockedStep ||
+            hitlRef?.checkpointContext?.step ||
+            1
+        ) || 1;
 
       const placeholder = {
         ...basePlaceholder,
@@ -10040,11 +9781,21 @@ module.exports = {
             : Array.isArray(publicHitlItem?.requiredResolverRoles)
               ? publicHitlItem.requiredResolverRoles
               : [],
-        personaId: baseStopPoint?.personaId || basePlaceholder?.personaId || publicHitlItem?.personaId || null,
+        personaId:
+          baseStopPoint?.personaId ||
+          basePlaceholder?.personaId ||
+          publicHitlItem?.personaId ||
+          null,
         personaName:
-          baseStopPoint?.personaName || basePlaceholder?.personaName || publicHitlItem?.personaName || null,
+          baseStopPoint?.personaName ||
+          basePlaceholder?.personaName ||
+          publicHitlItem?.personaName ||
+          null,
         personaType:
-          baseStopPoint?.personaType || basePlaceholder?.personaType || publicHitlItem?.personaType || null,
+          baseStopPoint?.personaType ||
+          basePlaceholder?.personaType ||
+          publicHitlItem?.personaType ||
+          null,
         personaResolution:
           baseStopPoint?.personaResolution ||
           basePlaceholder?.personaResolution ||
@@ -10168,13 +9919,25 @@ module.exports = {
     buildStopPoint({ reasonCode, message, blockedStep, status, placeholder }) {
       const hitlItem = this.toPublicStopPointHitlItem(placeholder?.hitlItem || null);
       const personaId =
-        placeholder?.personaId || hitlItem?.personaId || placeholder?.personaResolution?.personaId || null;
+        placeholder?.personaId ||
+        hitlItem?.personaId ||
+        placeholder?.personaResolution?.personaId ||
+        null;
       const personaName =
-        placeholder?.personaName || hitlItem?.personaName || placeholder?.personaResolution?.personaName || null;
+        placeholder?.personaName ||
+        hitlItem?.personaName ||
+        placeholder?.personaResolution?.personaName ||
+        null;
       const personaType =
-        placeholder?.personaType || hitlItem?.personaType || placeholder?.personaResolution?.personaType || null;
+        placeholder?.personaType ||
+        hitlItem?.personaType ||
+        placeholder?.personaResolution?.personaType ||
+        null;
       const responsibleRole =
-        placeholder?.responsibleRole || hitlItem?.responsibleRole || placeholder?.personaResolution?.responsibleRole || null;
+        placeholder?.responsibleRole ||
+        hitlItem?.responsibleRole ||
+        placeholder?.personaResolution?.responsibleRole ||
+        null;
       const requiredResolverRoles = Array.isArray(placeholder?.requiredResolverRoles)
         ? placeholder.requiredResolverRoles
         : Array.isArray(hitlItem?.requiredResolverRoles)
@@ -10395,9 +10158,15 @@ module.exports = {
       const personaId =
         stopPoint?.personaId || placeholder?.personaId || placeholderHitlItem?.personaId || null;
       const personaName =
-        stopPoint?.personaName || placeholder?.personaName || placeholderHitlItem?.personaName || null;
+        stopPoint?.personaName ||
+        placeholder?.personaName ||
+        placeholderHitlItem?.personaName ||
+        null;
       const personaType =
-        stopPoint?.personaType || placeholder?.personaType || placeholderHitlItem?.personaType || null;
+        stopPoint?.personaType ||
+        placeholder?.personaType ||
+        placeholderHitlItem?.personaType ||
+        null;
       const responsibleRole =
         stopPoint?.responsibleRole ||
         placeholder?.responsibleRole ||
@@ -10411,7 +10180,10 @@ module.exports = {
             ? placeholderHitlItem.requiredResolverRoles
             : [];
       const routingContext =
-        stopPoint?.routingContext || placeholder?.routingContext || placeholderHitlItem?.routingContext || null;
+        stopPoint?.routingContext ||
+        placeholder?.routingContext ||
+        placeholderHitlItem?.routingContext ||
+        null;
 
       const hitlItem =
         placeholderHitlItem ||
@@ -10451,10 +10223,15 @@ module.exports = {
         personaId,
         personaName,
         personaType,
-        personaResolution: stopPoint?.personaResolution || placeholder?.personaResolution || hitlItem?.personaResolution || null,
+        personaResolution:
+          stopPoint?.personaResolution ||
+          placeholder?.personaResolution ||
+          hitlItem?.personaResolution ||
+          null,
         routingContext,
         placeholderId: stopPoint?.placeholderId || placeholder?.placeholder?.placeholderId || null,
-        placeholderMetadata: stopPoint?.placeholderMetadata || placeholder?.placeholderMetadata || null,
+        placeholderMetadata:
+          stopPoint?.placeholderMetadata || placeholder?.placeholderMetadata || null,
         planSnapshot:
           plan && typeof plan === 'object'
             ? this.buildCriticalStepResumeSnapshot(plan, {
@@ -10465,7 +10242,8 @@ module.exports = {
                 personaId,
                 personaName,
                 personaType,
-                personaResolution: stopPoint?.personaResolution || placeholder?.personaResolution || null,
+                personaResolution:
+                  stopPoint?.personaResolution || placeholder?.personaResolution || null,
                 routingContext,
               })
             : null,
@@ -10654,7 +10432,10 @@ module.exports = {
       });
 
       if (execution?.stopPoint?.reasonCode === 'MANDATORY_HITL_APPROVAL') {
-        const onboardingQuestion = this.buildHitlOnboardingQuestion(execution.stopPoint, effectivePlan);
+        const onboardingQuestion = this.buildHitlOnboardingQuestion(
+          execution.stopPoint,
+          effectivePlan
+        );
         const stopPoint = {
           ...execution.stopPoint,
           onboardingQuestion,
@@ -10767,7 +10548,9 @@ module.exports = {
             criticalityClass: step?.criticalityClass || null,
             required: Boolean(step?.required),
             paramsTemplate:
-              step?.paramsTemplate && typeof step.paramsTemplate === 'object' ? step.paramsTemplate : {},
+              step?.paramsTemplate && typeof step.paramsTemplate === 'object'
+                ? step.paramsTemplate
+                : {},
             params: step?.params && typeof step.params === 'object' ? step.params : {},
             requiredScopes: Array.isArray(step?.requiredScopes) ? step.requiredScopes : [],
             hitlRequired: Boolean(step?.hitlRequired),
@@ -10795,7 +10578,8 @@ module.exports = {
         requestedDomains: Array.isArray(plan?.requestedDomains) ? plan.requestedDomains : [],
         unsupportedDomains: Array.isArray(plan?.unsupportedDomains) ? plan.unsupportedDomains : [],
         warnings: Array.isArray(plan?.warnings) ? plan.warnings : [],
-        promptHints: plan?.promptHints && typeof plan.promptHints === 'object' ? plan.promptHints : {},
+        promptHints:
+          plan?.promptHints && typeof plan.promptHints === 'object' ? plan.promptHints : {},
         status: plan?.status || 'ready',
         steps: safeSteps,
         blockedAction: plannedStep?.action || null,
@@ -10810,8 +10594,7 @@ module.exports = {
         personaId: plannedStep?.personaId || plan?.personaId || null,
         personaName: plannedStep?.personaName || plan?.personaName || null,
         personaType: plannedStep?.personaType || plan?.personaType || null,
-        personaResolution:
-          plannedStep?.personaResolution || plan?.personaResolution || null,
+        personaResolution: plannedStep?.personaResolution || plan?.personaResolution || null,
         routingContext:
           this.normalizeRoutingContext(plannedStep?.routingContext) ||
           this.normalizeRoutingContext(plan?.routingContext) ||
@@ -10868,7 +10651,9 @@ module.exports = {
       }
 
       const exactHitlMatches = hitlItemId
-        ? stack.filter((frame) => frame && typeof frame === 'object' && frame.hitlItemId === hitlItemId)
+        ? stack.filter(
+            (frame) => frame && typeof frame === 'object' && frame.hitlItemId === hitlItemId
+          )
         : [];
       const exactStepMatches =
         exactHitlMatches.length === 0 && blockedAction
@@ -10887,7 +10672,9 @@ module.exports = {
 
     resolveCriticalStepResumePlan(session = {}, hitlRef = {}) {
       const sessionStopPoint =
-        session?.l3?.stopPoint && typeof session.l3.stopPoint === 'object' ? session.l3.stopPoint : null;
+        session?.l3?.stopPoint && typeof session.l3.stopPoint === 'object'
+          ? session.l3.stopPoint
+          : null;
       const blockedAction = sessionStopPoint?.blockedAction || null;
       const blockedStep = Number(sessionStopPoint?.blockedStep || 0) || null;
       const checkpointContext = this.findCriticalStepCheckpointContext(session, {
@@ -10909,7 +10696,11 @@ module.exports = {
           ? checkpointContext.planSnapshot
           : null;
       const planStackFrame = this.findCriticalStepPlanStackFrame(session?.planStack || [], {
-        hitlItemId: hitlRef?.hitlItemId || sessionStopPoint?.hitlItemId || checkpointContext?.hitlItemId || null,
+        hitlItemId:
+          hitlRef?.hitlItemId ||
+          sessionStopPoint?.hitlItemId ||
+          checkpointContext?.hitlItemId ||
+          null,
         blockedAction,
         blockedStep,
       });
@@ -10921,7 +10712,8 @@ module.exports = {
           : null;
 
       return {
-        planSnapshot: stopPointPlanSnapshot || checkpointPlanSnapshot || planStackPlanSnapshot || null,
+        planSnapshot:
+          stopPointPlanSnapshot || checkpointPlanSnapshot || planStackPlanSnapshot || null,
         checkpointContext,
         planStackFrame,
         stopPointPlanSnapshot,
@@ -11046,9 +10838,14 @@ module.exports = {
             checkpointKey,
             planSnapshot: this.buildCriticalStepResumeSnapshot(plan, plannedStep),
             blockedAction: plannedStep?.action || null,
-            blockedStep: Number.isFinite(Number(plannedStep?.step)) ? Number(plannedStep.step) : null,
+            blockedStep: Number.isFinite(Number(plannedStep?.step))
+              ? Number(plannedStep.step)
+              : null,
             responsibleRole:
-              plannedStep?.responsibleRole || plannedStep?.ownerRole || plan?.responsibleRole || null,
+              plannedStep?.responsibleRole ||
+              plannedStep?.ownerRole ||
+              plan?.responsibleRole ||
+              null,
             requiredResolverRoles: Array.isArray(plannedStep?.requiredResolverRoles)
               ? plannedStep.requiredResolverRoles
               : Array.isArray(plan?.requiredResolverRoles)
@@ -11067,11 +10864,10 @@ module.exports = {
             approved: true,
             hitlItemId: providedHitlItemId,
             status: providedStatus,
-            hitlItem:
-              this.toPublicStopPointHitlItem(providedItem) || {
-                id: providedHitlItemId,
-                status: providedStatus,
-              },
+            hitlItem: this.toPublicStopPointHitlItem(providedItem) || {
+              id: providedHitlItemId,
+              status: providedStatus,
+            },
           };
         }
 
@@ -11105,11 +10901,10 @@ module.exports = {
           approved: false,
           hitlItemId: providedHitlItemId,
           status: providedStatus || 'pending',
-          hitlItem:
-            this.toPublicStopPointHitlItem(providedItem) || {
-              id: providedHitlItemId,
-              status: providedStatus || 'pending',
-            },
+          hitlItem: this.toPublicStopPointHitlItem(providedItem) || {
+            id: providedHitlItemId,
+            status: providedStatus || 'pending',
+          },
         };
       }
 
@@ -11131,11 +10926,10 @@ module.exports = {
             approved: true,
             hitlItemId: storedHitlItemId,
             status,
-            hitlItem:
-              this.toPublicStopPointHitlItem(storedItem) || {
-                id: storedHitlItemId,
-                status,
-              },
+            hitlItem: this.toPublicStopPointHitlItem(storedItem) || {
+              id: storedHitlItemId,
+              status,
+            },
           };
         }
 
@@ -11152,11 +10946,10 @@ module.exports = {
           approved: false,
           hitlItemId: storedHitlItemId,
           status: status || 'pending',
-          hitlItem:
-            this.toPublicStopPointHitlItem(storedItem) || {
-              id: storedHitlItemId,
-              status: status || 'pending',
-            },
+          hitlItem: this.toPublicStopPointHitlItem(storedItem) || {
+            id: storedHitlItemId,
+            status: status || 'pending',
+          },
         };
       }
 
@@ -11498,7 +11291,8 @@ module.exports = {
                 ...placeholder,
                 blockedAction: plannedStep.action,
                 missingParams: [],
-                responsibleRole: hitlItem?.responsibleRole || routingMetadata.responsibleRole || null,
+                responsibleRole:
+                  hitlItem?.responsibleRole || routingMetadata.responsibleRole || null,
                 requiredResolverRoles: Array.isArray(hitlItem?.requiredResolverRoles)
                   ? hitlItem.requiredResolverRoles
                   : routingMetadata.requiredResolverRoles,
@@ -11574,7 +11368,9 @@ module.exports = {
         // Uses runExecutionPreflight for stricter checks (null, empty string, empty array/object)
         // beyond what the legacy getMissingInputs covers.
         const preflight = runExecutionPreflight(plannedStep.action, params, {
-          requiredScopes: Array.isArray(plannedStep.requiredScopes) ? plannedStep.requiredScopes : [],
+          requiredScopes: Array.isArray(plannedStep.requiredScopes)
+            ? plannedStep.requiredScopes
+            : [],
           contextScopes: knownContext?._scopes || null,
         });
         const missingInputs = preflight.missingParams;
@@ -12399,11 +12195,9 @@ module.exports = {
           l2: {
             ...(payload?.l2 && typeof payload.l2 === 'object' ? payload.l2 : {}),
             userProfile: {
-              ...(
-                payload?.l2?.userProfile && typeof payload.l2.userProfile === 'object'
-                  ? payload.l2.userProfile
-                  : userProfile
-              ),
+              ...(payload?.l2?.userProfile && typeof payload.l2.userProfile === 'object'
+                ? payload.l2.userProfile
+                : userProfile),
               knowledgeScopeDataPoints: sanitizeScopedDatapoints(
                 payload?.l2?.userProfile?.knowledgeScopeDataPoints ||
                   userProfile?.knowledgeScopeDataPoints ||
