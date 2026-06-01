@@ -96,6 +96,8 @@ function _buildParamsTemplate(blueprint, knownContext, promptHints) {
       inputDef.resolveStrategy?.defaultValue !== undefined
     ) {
       params[key] = inputDef.resolveStrategy.defaultValue;
+    } else {
+      params[key] = knownContext?.[key] ?? promptHints?.[key] ?? null;
     }
 
     if (inputDef.required === true) {

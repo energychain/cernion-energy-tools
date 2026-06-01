@@ -1,0 +1,112 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "grid-connection-validation-v1",
+  "version": "1.0.0",
+  "meta": {
+    "title": "Netzanschlussprüfung",
+    "description": "Führt eine automatisierte Netzanschlussprüfung (§14a / §14d EnWG) für ein neues Erzeugungs- oder Verbrauchsobjekt durch.",
+    "targetAudience": "commercial_supply"
+  },
+  "routing": {
+    "intentSignals": [
+      "netzanschluss",
+      "netzanschlussprüfung",
+      "netzanschlusskapazität",
+      "einspeisekapazität",
+      "netzanschlussbegehren",
+      "anschließen",
+      "malo",
+      "melo",
+      "mastr",
+      "anschluss"
+    ],
+    "negativeSignals": [
+      "strompreis",
+      "co2-intensität",
+      "grünstrom",
+      "laden",
+      "ladefenster"
+    ],
+    "priorityBoost": 5
+  },
+  "inputs": {
+    "postalCode": {
+      "type": "string",
+      "required": true,
+      "semanticType": "OEO:PostalCode",
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Bitte nenne die Postleitzahl oder den Wohnort für die Netzanschlussprüfung."
+      }
+    },
+    "capacityKW": {
+      "type": "number",
+      "required": true,
+      "semanticType": "OEO:ActivePower",
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Welche Anschlussleistung in kW ist gewünscht?"
+      }
+    },
+    "energyType": {
+      "type": "string",
+      "required": false,
+      "semanticType": "OEO:EnergySource",
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "pv-open-field",
+        "prompt": "Welcher Anlagentyp soll angeschlossen werden? (z. B. pv-open-field, battery-storage, wallbox)"
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "fetch_vnb_bdew",
+        "action": "grid-operations.vnbLookup",
+        "params": {
+          "query": "{{inputs.postalCode}}"
+        }
+      },
+      {
+        "id": "validate_connection",
+        "action": "grid-connection.validate",
+        "params": {
+          "gridOperatorBdew": "{{steps.fetch_vnb_bdew.output.data.bdew}}",
+          "gridOperatorId": "{{steps.fetch_vnb_bdew.output.data.mastrId}}",
+          "includeCapacityCheck": true,
+          "scenarioAdditions": [
+            {
+              "type": "{{inputs.energyType}}",
+              "capacityKW": "{{inputs.capacityKW}}"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {
+      "estimatedGridCostEUR": "inputs.capacityKW * 45"
+    },
+    "mappings": {}
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.fetch_vnb_bdew.output",
+      "steps.validate_connection.output"
+    ],
+    "templates": {
+      "success": "Ergebnis der Netzanschlussprüfung für {{inputs.postalCode}}: Der zuständige Netzbetreiber ist {{steps.fetch_vnb_bdew.output.data.companyName}} (BDEW: {{steps.fetch_vnb_bdew.output.data.bdew}}). Die Prüfung über {{inputs.capacityKW}} kW ({{inputs.energyType}}) ergab die Entscheidung: {{steps.validate_connection.output.decision}}. Geschätzte Anschlusskosten: ca. {{postProcessing.estimatedGridCostEUR}} €.",
+      "error": "Die Netzanschlussprüfung für {{inputs.postalCode}} konnte nicht durchgeführt werden. Bitte Postleitzahl und Anschlussleistung prüfen."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "gridConnectionPostalCode": "inputs.postalCode",
+      "gridConnectionCapacityKW": "inputs.capacityKW",
+      "gridConnectionOperatorName": "steps.fetch_vnb_bdew.output.data.companyName",
+      "gridConnectionFindingClass": "steps.validate_connection.output.decision"
+    }
+  }
+}
