@@ -32,7 +32,7 @@ Der Client initiiert die Konversation und übergibt eine eindeutige `sessionId`,
 ```bash
 curl -X POST http://localhost:3000/api/personal-agent/chat \
   -H "Content-Type: application/json" \
-  -H "x-cernion-tenant: tenant_twl" \
+  -H "x-cernion-tenant: agentic-hackathon" \
   -d '{
     "sessionId": "session-grid-check-2026",
     "message": "Ich möchte eine Netzanschlussprüfung für ein neues Solar-Lager-Projekt in der Postleitzahl 76131 machen."
@@ -72,7 +72,7 @@ Der Client antwortet in derselben Session mit der gewünschten Leistung:
 ```bash
 curl -X POST http://localhost:3000/api/personal-agent/chat \
   -H "Content-Type: application/json" \
-  -H "x-cernion-tenant: tenant_twl" \
+  -H "x-cernion-tenant: agentic-hackathon" \
   -d '{
     "sessionId": "session-grid-check-2026",
     "message": "Die geplante Leistung beträgt 250 kW."

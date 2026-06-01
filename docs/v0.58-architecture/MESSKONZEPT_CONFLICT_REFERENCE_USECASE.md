@@ -51,7 +51,7 @@ Der Nutzer schildert das Problem im Freitext:
 ```bash
 curl -X POST http://localhost:3000/api/personal-agent/chat \
   -H "Content-Type: application/json" \
-  -H "x-cernion-tenant: tenant_twl" \
+  -H "x-cernion-tenant: agentic-hackathon" \
   -d '{
     "sessionId": "session-messkonzept-conflict-2026",
     "message": "Ich habe eine neue PV mit Speicher installiert bekommen. Der Installateur hat den separaten Zähler meiner Wärmepumpe deinstalliert und einfach nur eine Zusammenlegung gemeldet. Jetzt habe ich meinen günstigen Wärmepumpen-Tarif verloren und der Netzbetreiber sagt, der Speicher sei nicht nach §14a angemeldet. Außerdem habe ich noch eine 20 Jahre alte PV-Altanlage mit Volleinspeisung. Wie sieht das optimale Messkonzept aus?"
@@ -92,7 +92,7 @@ Der Nutzer liefert die fehlenden Leistungswerte und die Postleitzahl (z. B. 7133
 ```bash
 curl -X POST http://localhost:3000/api/personal-agent/chat \
   -H "Content-Type: application/json" \
-  -H "x-cernion-tenant: tenant_twl" \
+  -H "x-cernion-tenant: agentic-hackathon" \
   -d '{
     "sessionId": "session-messkonzept-conflict-2026",
     "message": "Meine Postleitzahl ist 71332. Die Wärmepumpe hat eine thermische Leistung von 7,5 kW, die neue PV-Anlage hat 10 kWp und der Batteriespeicher hat 5 kW Ladeleistung."
