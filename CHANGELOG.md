@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.58.0] — Strict Layering & Technical Hardening (2026-06-01)
+
+### Fixed
+
+- [services/energy-market.service.js](services/energy-market.service.js): Resolved critical range-error/crash pathway in `co2Intensity` handler by explicitly validating date strings before generating ISO strings.
+- [src/l2-blueprint-interpreter.js](src/l2-blueprint-interpreter.js): Expression parser now throws explicit errors for missing paths (`Missing value at path '<key>'`) during post-processing calculation steps instead of substituting them with `0`, ensuring mathematical accuracy and correct error propagation.
+- [src/l3-broker.js](src/l3-broker.js): Hardened parameter template creation with a generic required-input validation check. When any required blueprint input is absent, the plan is marked with `status: 'missing_inputs'`, warnings are populated, and the specific fields are returned in `missingRequiredInputs`.
+
+### Tests
+
+- [tests/l2-blueprint-interpreter.test.js](tests/l2-blueprint-interpreter.test.js): Updated expression parser tests to verify correct error-throwing behavior on missing scope values.
+- [tests/l3-broker.test.js](tests/l3-broker.test.js): Added dedicated test case verifying generic required-input tracking and the `'missing_inputs'` plan status when postalCode or other mandatory parameters are absent.
+
 ## [0.57.6] — Runtime receipt grounding & routing hardening (2026-05-31)
 
 ### Fixed

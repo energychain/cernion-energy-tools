@@ -390,7 +390,7 @@ module.exports = {
     co2Intensity: {
       rest: 'POST /co2-intensity',
       params: {
-        location: { type: 'string', optional: true, min: 1 },
+        location: { type: 'string', min: 1 },
         timestamp: { type: 'string', optional: true },
         forecast: { type: 'boolean', optional: true, default: false },
         format: {
@@ -408,12 +408,12 @@ module.exports = {
           'https://openenergyplatform.org/ontology/oeo/OEO_00260007',
           'https://openenergyplatform.org/ontology/oeo/OEO_00010411',
         ],
-        description: `Query CO2 intensity for any location in Germany from GrünstromIndex.
+        description: `Query CO2 intensity for a specific location in Germany from GrünstromIndex.
 
-**Only 'location' is required.**
+**'location' is required** — provide a German city name or 5-digit postal code.
 
 **Parameter Details:**
-- **location**: German city name or postal code (e.g., "Heidelberg", "69115", "München", "10115")
+- **location**: German city name or postal code (required, e.g. a city name or 5-digit postal code)
 - **timestamp**: Specific timestamp (ISO 8601 or natural language like "now", "tomorrow 14:00")
 - **forecast**: Get 36-hour forecast instead of current value (default: false)
 - **format**: Output format — "json" (default), "csv", "xlsx"/"xls". CSV includes \`# Location\`, \`# Current CO2 Intensity\`, \`# Average Today\` header comments followed by the hourly forecast rows.
@@ -533,8 +533,9 @@ module.exports = {
         if (Array.isArray(forecastValues)) {
           const baseTimestamp = result?.data?.timestamp || result?.timestamp;
           const baseDate = baseTimestamp ? new Date(baseTimestamp) : null;
+          const isValidBaseDate = baseDate && !isNaN(baseDate.getTime());
           const forecast = forecastValues.map((value, index) => {
-            const timestamp = baseDate
+            const timestamp = isValidBaseDate
               ? new Date(baseDate.getTime() + index * 60 * 60 * 1000).toISOString()
               : null;
             return {
