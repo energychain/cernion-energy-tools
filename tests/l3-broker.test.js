@@ -257,6 +257,42 @@ describe('buildBlueprintPlan', () => {
       expect(plan.missingRequiredInputs).toContain('requestedCapacityKW');
     });
   });
+
+  describe('edm-melo-timeseries-v1 Blueprint Plan', () => {
+    test('builds ready plan with correct steps when meloId is present', () => {
+      const plan = buildBlueprintPlan('edm-melo-timeseries-v1', {
+        promptHints: {
+          meloId: 'DE0001112223334445556667778889990',
+        },
+      });
+      expect(plan.status).toBe('ready');
+      expect(plan.missingRequiredInputs).toEqual([]);
+      const actions = plan.steps.map((s) => s.action);
+      expect(actions).toEqual(['edm.getMelo', 'edm.getTimeseries']);
+    });
+
+    test('sets status to missing_inputs when meloId is absent', () => {
+      const plan = buildBlueprintPlan('edm-melo-timeseries-v1', {
+        knownContext: {},
+        promptHints: {},
+      });
+      expect(plan.status).toBe('missing_inputs');
+      expect(plan.missingRequiredInputs).toContain('meloId');
+    });
+  });
+
+  describe('flex-device-management-v1 Blueprint Plan', () => {
+    test('builds ready plan even without optional inputs', () => {
+      const plan = buildBlueprintPlan('flex-device-management-v1', {
+        knownContext: {},
+        promptHints: {},
+      });
+      expect(plan.status).toBe('ready');
+      expect(plan.missingRequiredInputs).toEqual([]);
+      const actions = plan.steps.map((s) => s.action);
+      expect(actions).toEqual(['flex.listDevices']);
+    });
+  });
 });
 
 // ─── ev-co2-synthesis adapter unit test ──────────────────────────────────────

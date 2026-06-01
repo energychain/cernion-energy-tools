@@ -1,0 +1,111 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "edm-melo-timeseries-v1",
+  "version": "1.0.0",
+  "meta": {
+    "title": "Messlokation Zeitreihe",
+    "description": "Ruft Stammdaten und historische Zeitreihendaten für eine spezifische Messlokation (MeLo) ab.",
+    "targetAudience": "commercial_supply"
+  },
+  "routing": {
+    "intentSignals": [
+      "melo",
+      "messlokation",
+      "messlokationen",
+      "zeitreihe",
+      "lastgang",
+      "stromverbrauch",
+      "einspeisung",
+      "verbrauch",
+      "zeitreihendaten"
+    ],
+    "negativeSignals": [
+      "strompreis",
+      "co2-intensität",
+      "grünstrom"
+    ],
+    "priorityBoost": 5
+  },
+  "inputs": {
+    "meloId": {
+      "type": "string",
+      "required": true,
+      "semanticType": "OEO:MeteringPoint",
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Bitte nenne die ID der gewünschten Messlokation (MeLo)."
+      }
+    },
+    "from": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "2026-05-01T00:00:00Z",
+        "prompt": "Von welchem Startzeitpunkt sollen die Daten abgerufen werden?"
+      }
+    },
+    "to": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "2026-05-31T23:59:59Z",
+        "prompt": "Bis zu welchem Endzeitpunkt sollen die Daten abgerufen werden?"
+      }
+    },
+    "obis": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "1-0:1.8.0",
+        "prompt": "Welcher OBIS-Register (z. B. 1-0:1.8.0 für Bezug, 1-0:2.8.0 für Einspeisung) wird gewünscht?"
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "get_melo_details",
+        "action": "edm.getMelo",
+        "params": {
+          "meloId": "{{inputs.meloId}}"
+        }
+      },
+      {
+        "id": "get_timeseries",
+        "action": "edm.getTimeseries",
+        "params": {
+          "meloId": "{{inputs.meloId}}",
+          "from": "{{inputs.from}}",
+          "to": "{{inputs.to}}",
+          "obis": "{{inputs.obis}}"
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {
+      "averageHourlyConsumption": "steps.get_timeseries.output.summary.sum / steps.get_timeseries.output.summary.count"
+    },
+    "mappings": {}
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.get_melo_details.output",
+      "steps.get_timeseries.output"
+    ],
+    "templates": {
+      "success": "Zeitreihenanalyse für MeLo {{inputs.meloId}} ({{steps.get_melo_details.output.data.name}}): Für den Zeitraum {{inputs.from}} bis {{inputs.to}} (OBIS: {{inputs.obis}}) wurden {{steps.get_timeseries.output.summary.count}} Messwerte geladen. Gesamtmenge: {{steps.get_timeseries.output.summary.sum}} kWh, Peak-Leistung: {{steps.get_timeseries.output.summary.max}} kW, durchschnittlicher Stundenverbrauch: {{postProcessing.averageHourlyConsumption}} kWh. Spannungsebene: {{steps.get_melo_details.output.data.spannungsebene}}.",
+      "error": "Die Zeitreihendaten für die Messlokation {{inputs.meloId}} konnten nicht abgerufen werden. Bitte Prüfen Sie die MeLo-ID und den Zeitraum."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "meloIdAnalyzed": "inputs.meloId",
+      "meloTotalSumKWh": "steps.get_timeseries.output.summary.sum",
+      "meloAverageHourKWh": "postProcessing.averageHourlyConsumption"
+    }
+  }
+}

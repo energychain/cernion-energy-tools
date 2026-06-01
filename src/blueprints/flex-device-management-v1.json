@@ -1,0 +1,86 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "flex-device-management-v1",
+  "version": "1.0.0",
+  "meta": {
+    "title": "Steuerbare Geräte §14a EnWG",
+    "description": "Auflistung und Inventarisierung aller steuerbaren Verbrauchseinrichtungen (z. B. Wallboxen, Wärmepumpen) in einem PLZ-Gebiet.",
+    "targetAudience": "commercial_supply"
+  },
+  "routing": {
+    "intentSignals": [
+      "flex",
+      "steuerung",
+      "steuerbox",
+      "gedimmt",
+      "dimmen",
+      "dimmung",
+      "abschalten",
+      "abregelung",
+      "§14a",
+      "14a",
+      "wallbox",
+      "wärmepumpe",
+      "speicher",
+      "ladestation",
+      "geräte",
+      "flexibilität"
+    ],
+    "negativeSignals": [
+      "strompreis",
+      "co2-intensität",
+      "grünstrom"
+    ],
+    "priorityBoost": 5
+  },
+  "inputs": {
+    "postalCode": {
+      "type": "string",
+      "required": false,
+      "semanticType": "OEO:PostalCode",
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Für welche Postleitzahl sollen die steuerbaren Geräte gelistet werden?"
+      }
+    },
+    "type": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Welcher Typ von Geräten interessiert Sie? (z. B. wallbox, heat_pump, storage)"
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "list_devices",
+        "action": "flex.listDevices",
+        "params": {
+          "postalCode": "{{inputs.postalCode}}",
+          "type": "{{inputs.type}}"
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {},
+    "mappings": {}
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.list_devices.output"
+    ],
+    "templates": {
+      "success": "Inventar steuerbarer Geräte (§14a EnWG) für PLZ {{inputs.postalCode}} (Typ: {{inputs.type}}): Es wurden insgesamt {{steps.list_devices.output.count}} aktive Geräte registriert. Die Gesamtkapazität steht zur netzdienlichen Steuerung zur Verfügung.",
+      "error": "Das Geräte-Inventar konnte nicht geladen werden. Bitte die Filter-Eingaben prüfen."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "flexPostalCode": "inputs.postalCode",
+      "flexDeviceCount": "steps.list_devices.output.count"
+    }
+  }
+}
