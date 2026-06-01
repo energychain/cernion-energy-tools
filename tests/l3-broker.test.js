@@ -293,6 +293,35 @@ describe('buildBlueprintPlan', () => {
       expect(actions).toEqual(['flex.listDevices']);
     });
   });
+
+  describe('energy-sharing-validation-v1 Blueprint Plan', () => {
+    test('builds ready plan with correct steps when all required inputs are present', () => {
+      const plan = buildBlueprintPlan('energy-sharing-validation-v1', {
+        promptHints: {
+          postalCode: '67227',
+          communityName: 'Solargemeinschaft Rheinallee',
+          generatorMastrNummer: 'SEE904837264953',
+          consumerMaloId: 'DE0001234567890123456789012345678',
+        },
+      });
+      expect(plan.status).toBe('ready');
+      expect(plan.missingRequiredInputs).toEqual([]);
+      const actions = plan.steps.map((s) => s.action);
+      expect(actions).toEqual(['grid-operations.vnbLookup', 'energy-sharing.validate']);
+    });
+
+    test('sets status to missing_inputs when required inputs are absent', () => {
+      const plan = buildBlueprintPlan('energy-sharing-validation-v1', {
+        knownContext: {},
+        promptHints: {},
+      });
+      expect(plan.status).toBe('missing_inputs');
+      expect(plan.missingRequiredInputs).toContain('postalCode');
+      expect(plan.missingRequiredInputs).toContain('communityName');
+      expect(plan.missingRequiredInputs).toContain('generatorMastrNummer');
+      expect(plan.missingRequiredInputs).toContain('consumerMaloId');
+    });
+  });
 });
 
 // ─── ev-co2-synthesis adapter unit test ──────────────────────────────────────

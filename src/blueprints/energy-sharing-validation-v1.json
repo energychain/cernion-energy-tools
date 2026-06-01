@@ -1,0 +1,120 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "energy-sharing-validation-v1",
+  "version": "1.0.0",
+  "meta": {
+    "title": "Energy-Sharing Validierung",
+    "description": "Validiert eine geplante oder bestehende Energy-Sharing-Gemeinschaft (§42c EnWG) mitsamt Erzeugern und Verbrauchern.",
+    "targetAudience": "commercial_supply"
+  },
+  "routing": {
+    "intentSignals": [
+      "sharing",
+      "energy-sharing",
+      "mieterstrom",
+      "gemeinschaft",
+      "community",
+      "solargemeinschaft",
+      "eeg",
+      "42c",
+      "enwg",
+      "verbrauchergemeinschaft"
+    ],
+    "negativeSignals": [
+      "strompreis",
+      "co2-intensität",
+      "grünstrom",
+      "laden",
+      "ladefenster"
+    ],
+    "priorityBoost": 5
+  },
+  "inputs": {
+    "postalCode": {
+      "type": "string",
+      "required": true,
+      "semanticType": "OEO:PostalCode",
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Bitte nenne die Postleitzahl oder den Wohnort für die Energy-Sharing-Gemeinschaft."
+      }
+    },
+    "communityName": {
+      "type": "string",
+      "required": true,
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Wie lautet der Name der geplanten Energy-Sharing-Gemeinschaft?"
+      }
+    },
+    "generatorMastrNummer": {
+      "type": "string",
+      "required": true,
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Bitte nenne die MaStR-Nummer des Erzeugers (z. B. SEE123456789012)."
+      }
+    },
+    "consumerMaloId": {
+      "type": "string",
+      "required": true,
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Bitte nenne die 11-stellige Marktlokations-ID (MaLo) des Hauptverbrauchers."
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "fetch_vnb_bdew",
+        "action": "grid-operations.vnbLookup",
+        "params": {
+          "query": "{{inputs.postalCode}}"
+        }
+      },
+      {
+        "id": "validate_sharing",
+        "action": "energy-sharing.validate",
+        "params": {
+          "gridOperatorBdew": "{{steps.fetch_vnb_bdew.output.data.bdew}}",
+          "gridOperatorId": "{{steps.fetch_vnb_bdew.output.data.mastrId}}",
+          "communityName": "{{inputs.communityName}}",
+          "generators": [
+            {
+              "mastrNummer": "{{inputs.generatorMastrNummer}}",
+              "sharePercent": 100
+            }
+          ],
+          "consumers": [
+            {
+              "maloId": "{{inputs.consumerMaloId}}",
+              "sharePercent": 100
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {},
+    "mappings": {}
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.fetch_vnb_bdew.output",
+      "steps.validate_sharing.output"
+    ],
+    "templates": {
+      "success": "Energy-Sharing Validierung für PLZ {{inputs.postalCode}}: Die Gemeinschaft '{{inputs.communityName}}' im Netzgebiet von {{steps.fetch_vnb_bdew.output.data.companyName}} (BDEW: {{steps.fetch_vnb_bdew.output.data.bdew}}) wurde geprüft. Entscheidung der Pipeline: {{steps.validate_sharing.output.decision}}.",
+      "error": "Die Validierung der Energy-Sharing-Gemeinschaft für {{inputs.postalCode}} konnte nicht durchgeführt werden. Bitte prüfen Sie die MaStR-Nummer des Erzeugers und die MaLo-ID des Verbrauchers."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "sharingPostalCode": "inputs.postalCode",
+      "sharingCommunityName": "inputs.communityName",
+      "sharingDecision": "steps.validate_sharing.output.decision"
+    }
+  }
+}
