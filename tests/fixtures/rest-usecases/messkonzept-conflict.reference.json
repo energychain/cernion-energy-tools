@@ -1,0 +1,57 @@
+{
+  "scenarioId": "REST-V1-MESSKONZEPT-001",
+  "title": "Messkonzept-Konflikt MK10/MK40 mit demontierter PV-Altanlage",
+  "tenantId": "agentic-hackathon",
+  "sessionId": "rest-v1-messkonzept-conflict-reference",
+  "baseline": {
+    "version": "v0.58",
+    "status": "simulation",
+    "gap": "Der Markdown-Usecase enthielt fachlich plausible Zielantworten, aber keinen unabhaengig reproduzierbaren REST-Nachweis mit strukturierten Findings/Facts."
+  },
+  "v1": {
+    "status": "verified",
+    "verifiedBy": "tests/rest-usecases/messkonzept-conflict.reference.test.js",
+    "command": "REST_USECASE_BASE_URL=http://127.0.0.1:3000 npm run test:rest-usecases"
+  },
+  "turns": [
+    {
+      "turn": 1,
+      "message": "Ich habe eine neue PV mit Speicher installiert bekommen. Der Installateur hat den separaten Zähler meiner Wärmepumpe deinstalliert und einfach nur eine Zusammenlegung gemeldet. Jetzt habe ich meinen günstigen Wärmepumpen-Tarif verloren und der Netzbetreiber sagt, der Speicher sei nicht nach §14a angemeldet. Die alte PV-Volleinspeiseanlage wurde beim Aufbau der neuen, leistungsfähigeren PV-Anlage demontiert. Wie sieht das optimale Messkonzept aus?",
+      "knownContext": {},
+      "expected": {
+        "primaryIntent": "messkonzept_conflict_validation",
+        "status": ["awaiting-onboarding", "partial"],
+        "missingInputs": ["postalCode"]
+      }
+    },
+    {
+      "turn": 2,
+      "message": "Meine Postleitzahl ist 71332. Die Wärmepumpe hat 7,5 kW, die neue PV-Anlage hat 10 kWp und der Batteriespeicher hat 5 kW Ladeleistung. Gemeldet wurde MK10 beziehungsweise Zusammenlegung; die alte PV-Volleinspeiseanlage wurde demontiert.",
+      "knownContext": {
+        "postalCode": "71332",
+        "city": "Waiblingen",
+        "reportedMeteringConcept": "MK10",
+        "legacyPvStatus": "DEMOUNTED",
+        "batteryChargeKW": 5,
+        "heatPumpKW": 7.5,
+        "newPvKWp": 10
+      },
+      "expected": {
+        "primaryIntent": "messkonzept_conflict_validation",
+        "status": ["completed"],
+        "action": "grid-connection.validateMesskonzeptConflict",
+        "findings": [
+          "FA_MESSKONZEPT_ERROR_MK10",
+          "FA_14A_REGISTRATION_REQUIRED",
+          "FA_LEGACY_PV_DEMOUNTED_NOT_PART_OF_CASCADE",
+          "MK40_KASKADE_REQUIRED"
+        ],
+        "facts": {
+          "sollMesskonzept": "MK40_KASKADE",
+          "legacyPvStatus": "DEMOUNTED"
+        },
+        "replyFragments": ["Kaskadenmessung", "MK 40", "steuerbare", "demontiert"]
+      }
+    }
+  ]
+}

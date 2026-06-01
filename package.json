@@ -21,6 +21,7 @@
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --coverage=false --testMatch=\"**/tests/**/*.integration.test.js\"",
     "test:live": "jest --no-coverage tests/assets.integration.test.js",
+    "test:rest-usecases": "NODE_OPTIONS=--experimental-vm-modules jest --coverage=false --runInBand tests/rest-usecases",
     "test:tdd-matrix": "NODE_OPTIONS=--experimental-vm-modules jest --coverage=false --runInBand tests/personal-agent-tdd-matrix-parser.test.js tests/personal-agent-tdd-matrix-normalizer.test.js tests/personal-agent-tdd-matrix.generated.test.js tests/personal-agent-tdd-matrix-multiturn.generated.test.js",
     "check:tdd-matrix-coverage": "node scripts/check-tdd-matrix-coverage.js",
     "audit:openapi": "node scripts/audit-openapi.js",

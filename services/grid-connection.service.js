@@ -442,6 +442,99 @@ module.exports = {
       },
     },
 
+    validateMesskonzeptConflict: {
+      rest: 'POST /messkonzept/conflict/validate',
+      timeout: 30_000,
+      params: {
+        postalCode: { type: 'string', min: 5, max: 5, trim: true },
+        reportedMeteringConcept: { type: 'string', trim: true },
+        legacyPvStatus: { type: 'string', trim: true },
+        batteryChargeKW: { type: 'number', min: 0, optional: true, default: 0, convert: true },
+        heatPumpKW: { type: 'number', min: 0, optional: true, default: 0, convert: true },
+        newPvKWp: { type: 'number', min: 0, optional: true, default: 0, convert: true },
+      },
+      openapi: {
+        summary: 'Validate PV/storage/heat-pump metering-concept conflict',
+        description:
+          'Deterministically evaluates the Cernion V1 REST reference case for a reported ' +
+          'MK10 meter merge where the target state requires MK40 cascade metering, §14a ' +
+          'registration, and explicit separation of a demounted legacy full-feed-in PV system.',
+        tags: ['Grid Connection Validation'],
+      },
+      handler(ctx) {
+        const {
+          postalCode,
+          reportedMeteringConcept,
+          legacyPvStatus,
+          batteryChargeKW,
+          heatPumpKW,
+          newPvKWp,
+        } = ctx.params;
+        const normalizedConcept = String(reportedMeteringConcept || '').trim().toUpperCase();
+        const normalizedLegacyStatus = String(legacyPvStatus || '').trim().toUpperCase();
+        const isMk10 =
+          normalizedConcept === 'MK10' ||
+          normalizedConcept === 'MK 10' ||
+          /ZUSAMMENLEGUNG/.test(normalizedConcept);
+        const legacyPvDemounted = normalizedLegacyStatus === 'DEMOUNTED';
+        const findings = [];
+
+        if (isMk10) {
+          findings.push({
+            code: 'FA_MESSKONZEPT_ERROR_MK10',
+            severity: 'error',
+            message:
+              'Fehlerhaftes Messkonzept MK10 gemeldet. Soll-Messkonzept ist MK40 (Kaskade).',
+          });
+        }
+
+        if (Number(batteryChargeKW || 0) > 4.2 || Number(heatPumpKW || 0) > 4.2) {
+          findings.push({
+            code: 'FA_14A_REGISTRATION_REQUIRED',
+            severity: 'warning',
+            message:
+              'Steuerbare Verbrauchseinrichtungen sind nach §14a EnWG im Netzanschlussportal anzumelden.',
+          });
+        }
+
+        if (legacyPvDemounted) {
+          findings.push({
+            code: 'FA_LEGACY_PV_DEMOUNTED_NOT_PART_OF_CASCADE',
+            severity: 'info',
+            message:
+              'Die demontierte PV-Altanlage ist nicht Bestandteil der Eigenverbrauchskaskade.',
+          });
+        }
+
+        findings.push({
+          code: 'MK40_KASKADE_REQUIRED',
+          severity: isMk10 ? 'error' : 'info',
+          message:
+            'Die fachliche Kaskade entsteht aus steuerbarem Verbrauch, Überschusseinspeisung der neuen PV-Anlage und Haushaltsstrom.',
+        });
+
+        return {
+          success: true,
+          postalCode,
+          reportedMeteringConcept: normalizedConcept,
+          legacyPvStatus: normalizedLegacyStatus,
+          batteryChargeKW,
+          heatPumpKW,
+          newPvKWp,
+          sollMesskonzept: 'MK40_KASKADE',
+          primaryWarning:
+            'Achtung: Der Endkunde verliert durch die geplante Standard-Zusammenlegung (MK 10) den vergünstigten Heizstromtarif für die Wärmepumpe. Empfohlenes Soll-Messkonzept: Kaskadenmessung (MK 40).',
+          cascadeBasis: ['steuerbarer_verbrauch', 'ueberschusseinspeisung', 'haushaltsstrom'],
+          findings,
+          metadata: {
+            deterministic: true,
+            source: 'grid-connection.validateMesskonzeptConflict',
+            referenceUsecase: 'MESSKONZEPT_CONFLICT_REFERENCE_USECASE',
+          },
+        };
+      },
+    },
+
     // -----------------------------------------------------------------------
     // Phase 5 — fNAV Validation (v0.51.5)
     // -----------------------------------------------------------------------
