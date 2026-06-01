@@ -232,6 +232,31 @@ describe('buildBlueprintPlan', () => {
       expect(plan.missingRequiredInputs).toContain('capacityKW');
     });
   });
+
+  describe('grid-fnav-validation-v1 Blueprint Plan', () => {
+    test('builds ready plan with correct steps when all required inputs are present', () => {
+      const plan = buildBlueprintPlan('grid-fnav-validation-v1', {
+        promptHints: {
+          postalCode: '67227',
+          requestedCapacityKW: 2000,
+        },
+      });
+      expect(plan.status).toBe('ready');
+      expect(plan.missingRequiredInputs).toEqual([]);
+      const actions = plan.steps.map((s) => s.action);
+      expect(actions).toEqual(['grid-operations.vnbLookup', 'grid-connection.fnavValidate']);
+    });
+
+    test('sets status to missing_inputs when required inputs are absent', () => {
+      const plan = buildBlueprintPlan('grid-fnav-validation-v1', {
+        knownContext: {},
+        promptHints: {},
+      });
+      expect(plan.status).toBe('missing_inputs');
+      expect(plan.missingRequiredInputs).toContain('postalCode');
+      expect(plan.missingRequiredInputs).toContain('requestedCapacityKW');
+    });
+  });
 });
 
 // ─── ev-co2-synthesis adapter unit test ──────────────────────────────────────

@@ -1,0 +1,128 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "grid-fnav-validation-v1",
+  "version": "1.0.0",
+  "meta": {
+    "title": "fNAV-Wirtschaftlichkeit",
+    "description": "Prüft die fNAV-Kapazitätsauslastung (§14a EnWG) und führt eine N-1-Fehlertoleranzbewertung für eine geplante Anschlussleistung durch.",
+    "targetAudience": "commercial_supply"
+  },
+  "routing": {
+    "intentSignals": [
+      "fnav",
+      "netzfahrplan",
+      "fahrplan",
+      "curtailment",
+      "flexibles-laden",
+      "steuerbar",
+      "spitzenkappung",
+      "kapazitätsauslastung",
+      "fehltoleranz"
+    ],
+    "negativeSignals": [
+      "strompreis",
+      "co2-intensität",
+      "grünstrom",
+      "laden",
+      "ladefenster"
+    ],
+    "priorityBoost": 5
+  },
+  "inputs": {
+    "postalCode": {
+      "type": "string",
+      "required": true,
+      "semanticType": "OEO:PostalCode",
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Bitte nenne die Postleitzahl oder den Wohnort für die fNAV-Prüfung."
+      }
+    },
+    "requestedCapacityKW": {
+      "type": "number",
+      "required": true,
+      "semanticType": "OEO:ActivePower",
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Welche Anschlussleistung in kW soll angefragt werden?"
+      }
+    },
+    "firmCapacityKW": {
+      "type": "number",
+      "required": false,
+      "semanticType": "OEO:ActivePower",
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": 0,
+        "prompt": "Welche feste (nicht steuerbare) Leistung in kW wird benötigt? (Standard: 0 kW)"
+      }
+    },
+    "curtailmentWindow": {
+      "type": "number",
+      "required": false,
+      "semanticType": "OEO:Duration",
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": 4,
+        "prompt": "Wie viele Stunden Spitzenkappung pro Tag sind zulässig? (Standard: 4 Stunden)"
+      }
+    },
+    "voltageLevel": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "MS",
+        "prompt": "Auf welcher Spannungsebene wird angeschlossen? (Standard: MS)"
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "fetch_vnb_bdew",
+        "action": "grid-operations.vnbLookup",
+        "params": {
+          "query": "{{inputs.postalCode}}"
+        }
+      },
+      {
+        "id": "validate_fnav",
+        "action": "grid-connection.fnavValidate",
+        "params": {
+          "gridOperatorBdew": "{{steps.fetch_vnb_bdew.output.data.bdew}}",
+          "gridOperatorId": "{{steps.fetch_vnb_bdew.output.data.mastrId}}",
+          "voltageLevel": "{{inputs.voltageLevel}}",
+          "fnavProfile": {
+            "requestedCapacity": "{{inputs.requestedCapacityKW}}",
+            "firmCapacity": "{{inputs.firmCapacityKW}}",
+            "curtailmentWindow": "{{inputs.curtailmentWindow}}"
+          }
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {
+      "calculatedFlexibleCapacityKW": "inputs.requestedCapacityKW - inputs.firmCapacityKW"
+    },
+    "mappings": {}
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.fetch_vnb_bdew.output",
+      "steps.validate_fnav.output"
+    ],
+    "templates": {
+      "success": "fNAV-Wirtschaftlichkeit für {{inputs.postalCode}}: Die technische Machbarkeit wurde bewertet als {{steps.validate_fnav.output.feasibility}} (Governance-Status: {{steps.validate_fnav.output.governanceStatus}}). Angefragte Gesamtleistung: {{inputs.requestedCapacityKW}} kW, davon fest: {{inputs.firmCapacityKW}} kW. Flexibles Potenzial: ca. {{postProcessing.calculatedFlexibleCapacityKW}} kW.",
+      "error": "Die fNAV-Wirtschaftlichkeitsanalyse für {{inputs.postalCode}} konnte nicht durchgeführt werden. Bitte Postleitzahl und Leistungsdaten prüfen."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "fnavPostalCode": "inputs.postalCode",
+      "fnavRequestedCapacityKW": "inputs.requestedCapacityKW",
+      "fnavFeasibility": "steps.validate_fnav.output.feasibility"
+    }
+  }
+}
