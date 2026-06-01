@@ -1,0 +1,74 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "v1-redispatch-readiness-map-145",
+  "version": "1.0.1",
+  "meta": {
+    "title": "Redispatch Readiness Map",
+    "description": "V1.0 Blueprint fuer Redispatch-Reifegrad je Organisationseinheit.",
+    "targetAudience": "internal"
+  },
+  "routing": {
+    "intentSignals": [
+      "redispatch readiness map",
+      "redispatch reifegrad",
+      "stammdaten rollen prozessschritte"
+    ],
+    "negativeSignals": [
+      "strompreis",
+      "co2-intensitaet",
+      "gruenstrom"
+    ],
+    "priorityBoost": 4
+  },
+  "inputs": {
+    "scenarioName": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "Redispatch Readiness Map"
+      }
+    },
+    "evidenceScope": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "GitHub Issue 145"
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "create_redispatch_readiness_matrix",
+        "action": "vdmi.create",
+        "params": {
+          "name": "V1 Redispatch Readiness Map",
+          "scope": "Redispatch Organisationseinheit / Rollen / Stammdaten / Schulung",
+          "processType": "readiness-map"
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {},
+    "mappings": {}
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.create_redispatch_readiness_matrix.output"
+    ],
+    "templates": {
+      "success": "Redispatch-Readiness-Map erstellt. Stammdatenstatus, Rollenverantwortung, Prozessschritte, Abbruchkriterien, Schulungsbedarf und offene Evidenz werden als pruefbarer Reifegrad gefuehrt. Nachweisanker: {{steps.create_redispatch_readiness_matrix.output}}",
+      "error": "Bitte Eingaben und Evidenz pruefen."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "v1Issue": "inputs.evidenceScope",
+      "v1Scenario": "inputs.scenarioName",
+      "evidenceAnchor": "steps.create_redispatch_readiness_matrix.output"
+    }
+  }
+}

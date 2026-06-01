@@ -1,0 +1,81 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "v1-municipal-transformation-evidence-168",
+  "version": "1.0.1",
+  "meta": {
+    "title": "Kommunale Transformations Evidence Synthesis",
+    "description": "V1.0 Blueprint fuer kommunale 90-Tage-Entscheidungsgrundlage mit Evidenzluecken.",
+    "targetAudience": "grid_operator"
+  },
+  "routing": {
+    "intentSignals": [
+      "kommunale transformation",
+      "pv ladeinfrastruktur waermewende",
+      "90 tage entscheidungsgrundlage"
+    ],
+    "negativeSignals": [
+      "strompreis",
+      "co2-intensitaet",
+      "gruenstrom"
+    ],
+    "priorityBoost": 4
+  },
+  "inputs": {
+    "scenarioName": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "Kommunale Transformations Evidence Synthesis"
+      }
+    },
+    "evidenceScope": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "GitHub Issue 168"
+      }
+    },
+    "postalCode": {
+      "type": "string",
+      "required": false,
+      "semanticType": "OEO:PostalCode",
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "69168"
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "resolve_grid_operator",
+        "action": "grid-operations.vnbLookup",
+        "params": {
+          "query": "{{inputs.postalCode}}"
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {},
+    "mappings": {}
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.resolve_grid_operator.output"
+    ],
+    "templates": {
+      "success": "Kommunales Evidence Pack erstellt. PV-Ausbau, Ladeinfrastruktur, Waermewende und Netzanschlusskapazitaeten werden als belegbare Sofortmassnahmen, offene Datenluecken und 90-Tage-Entscheidungen strukturiert. Nachweisanker: {{steps.resolve_grid_operator.output}}",
+      "error": "Bitte Eingaben und Evidenz pruefen."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "v1Issue": "inputs.evidenceScope",
+      "v1Scenario": "inputs.scenarioName",
+      "evidenceAnchor": "steps.resolve_grid_operator.output"
+    }
+  }
+}

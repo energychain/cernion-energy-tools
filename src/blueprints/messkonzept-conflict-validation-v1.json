@@ -1,11 +1,11 @@
 {
   "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
   "id": "messkonzept-conflict-validation-v1",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "meta": {
     "title": "Messkonzept-Konflikt MK10/MK40",
     "description": "Prueft einen PV-/Speicher-/Waermepumpenfall auf fehlerhafte Zaehlerzusammenlegung, MK40-Kaskade, §14a-Anmeldung und Abgrenzung einer demontierten PV-Altanlage.",
-    "targetAudience": "prosumer"
+    "targetAudience": "end_user"
   },
   "routing": {
     "intentSignals": [
@@ -106,7 +106,7 @@
     ],
     "templates": {
       "success": "Messkonzept-Pruefung fuer PLZ {{inputs.postalCode}}: Soll-Messkonzept {{steps.validate_messkonzept_conflict.output.sollMesskonzept}}. Warnung: {{steps.validate_messkonzept_conflict.output.primaryWarning}}",
-      "error": "Die Messkonzept-Pruefung konnte nicht abgeschlossen werden. Bitte Postleitzahl, gemeldetes Messkonzept und Status der PV-Altanlage pruefen."
+      "error": "Bitte Eingaben und Evidenz pruefen."
     }
   },
   "persistence": {

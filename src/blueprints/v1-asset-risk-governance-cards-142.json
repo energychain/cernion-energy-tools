@@ -1,0 +1,75 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "v1-asset-risk-governance-cards-142",
+  "version": "1.0.1",
+  "meta": {
+    "title": "Asset-Risiko-Konferenz Governance Cards",
+    "description": "V1.0 Blueprint fuer strukturierte Governance Cards in Asset-Risiko-Konferenzen.",
+    "targetAudience": "internal"
+  },
+  "routing": {
+    "intentSignals": [
+      "asset risiko governance cards",
+      "iso 55001",
+      "asset risiko konferenz",
+      "investitionsplanung"
+    ],
+    "negativeSignals": [
+      "strompreis",
+      "co2-intensitaet",
+      "gruenstrom"
+    ],
+    "priorityBoost": 4
+  },
+  "inputs": {
+    "scenarioName": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "Asset-Risiko-Konferenz Governance Cards"
+      }
+    },
+    "evidenceScope": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "GitHub Issue 142"
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "create_asset_risk_cards",
+        "action": "vdmi.create",
+        "params": {
+          "name": "V1 Asset Risiko Governance Cards",
+          "scope": "ISO 55001 / Asset-Risiko / CAPEX OPEX / Owner / Folgetermin",
+          "processType": "asset-risk-governance"
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {},
+    "mappings": {}
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.create_asset_risk_cards.output"
+    ],
+    "templates": {
+      "success": "Asset-Risiko-Governance-Cards erstellt. Risikoindikator, betroffene Assets, Szenarien, Datenqualitaet, CAPEX-OPEX-Wirkung, regulatorische Unsicherheit, Entscheidungsvorschlag, Owner und Folgetermin werden vergleichbar. Nachweisanker: {{steps.create_asset_risk_cards.output}}",
+      "error": "Bitte Eingaben und Evidenz pruefen."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "v1Issue": "inputs.evidenceScope",
+      "v1Scenario": "inputs.scenarioName",
+      "evidenceAnchor": "steps.create_asset_risk_cards.output"
+    }
+  }
+}

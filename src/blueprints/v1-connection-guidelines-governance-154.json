@@ -1,0 +1,105 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "v1-connection-guidelines-governance-154",
+  "version": "1.0.1",
+  "meta": {
+    "title": "Anschlussleitplanken Textbaustein Governance",
+    "description": "V1.0 Blueprint fuer versionierte Anschlussleitplanken, Textbausteine und Freigaberegeln.",
+    "targetAudience": "grid_operator"
+  },
+  "routing": {
+    "intentSignals": [
+      "anschlussleitplanken",
+      "textbaustein governance",
+      "bedingte zusage",
+      "anschlussablehnung"
+    ],
+    "negativeSignals": [
+      "strompreis",
+      "co2-intensitaet",
+      "gruenstrom"
+    ],
+    "priorityBoost": 4
+  },
+  "inputs": {
+    "scenarioName": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "Anschlussleitplanken Textbaustein Governance"
+      }
+    },
+    "evidenceScope": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "GitHub Issue 154"
+      }
+    },
+    "gridOperatorId": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "DEMO-VNB"
+      }
+    },
+    "connectionType": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "commercial-load"
+      }
+    },
+    "capacityKW": {
+      "type": "number",
+      "required": false,
+      "semanticType": "OEO:ActivePower",
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": 1200
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "validate_connection_governance",
+        "action": "grid-connection.validate",
+        "params": {
+          "gridOperatorId": "{{inputs.gridOperatorId}}",
+          "includeCapacityCheck": true,
+          "scenarioAdditions": [
+            {
+              "type": "{{inputs.connectionType}}",
+              "capacityKW": "{{inputs.capacityKW}}"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {},
+    "mappings": {}
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.validate_connection_governance.output"
+    ],
+    "templates": {
+      "success": "Anschlussleitplanken-Workflow erstellt. Evidenzanforderungen, Mitwirkungspflichten, Textbaustein-Version, Freigabegrenze und Eskalationspfad werden fuer Ablehnung oder bedingte Zusage pruefbar gefuehrt. Nachweisanker: {{steps.validate_connection_governance.output}}",
+      "error": "Bitte Eingaben und Evidenz pruefen."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "v1Issue": "inputs.evidenceScope",
+      "v1Scenario": "inputs.scenarioName",
+      "evidenceAnchor": "steps.validate_connection_governance.output"
+    }
+  }
+}

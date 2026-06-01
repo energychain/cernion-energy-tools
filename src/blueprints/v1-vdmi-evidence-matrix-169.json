@@ -1,0 +1,75 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "v1-vdmi-evidence-matrix-169",
+  "version": "1.0.1",
+  "meta": {
+    "title": "Steuerbarkeitscheck VDMI Evidenzmatrix",
+    "description": "V1.0 Blueprint fuer eine pruefbare VDMI-Evidenzmatrix je Steuerbarkeitsfall.",
+    "targetAudience": "grid_operator"
+  },
+  "routing": {
+    "intentSignals": [
+      "vdmi evidenzmatrix",
+      "steuerbarkeitscheck",
+      "14a waermepumpe speicher ladepunkt",
+      "steuerbare verbrauchseinrichtung"
+    ],
+    "negativeSignals": [
+      "strompreis",
+      "co2-intensitaet",
+      "gruenstrom"
+    ],
+    "priorityBoost": 4
+  },
+  "inputs": {
+    "scenarioName": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "Steuerbarkeitscheck VDMI Evidenzmatrix"
+      }
+    },
+    "evidenceScope": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "GitHub Issue 169"
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "create_vdmi_matrix",
+        "action": "vdmi.create",
+        "params": {
+          "name": "V1 VDMI Evidenzmatrix Steuerbarkeit",
+          "scope": "14a Steuerbarkeitsfall / Speicher / Ladepunkt / Waermepumpe",
+          "processType": "governance-evidence"
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {},
+    "mappings": {}
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.create_vdmi_matrix.output"
+    ],
+    "templates": {
+      "success": "VDMI-Evidenzmatrix fuer Steuerbarkeitsfall erstellt. Gefuehrt werden Datenquelle, technische Steuerbarkeit, regulatorischer Nachweis, kaufmaennische Wirkung, Owner, offene Evidenz und naechster Entscheidungsschritt. Nachweisanker: {{steps.create_vdmi_matrix.output}}",
+      "error": "Bitte Eingaben und Evidenz pruefen."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "v1Issue": "inputs.evidenceScope",
+      "v1Scenario": "inputs.scenarioName",
+      "evidenceAnchor": "steps.create_vdmi_matrix.output"
+    }
+  }
+}

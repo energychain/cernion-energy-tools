@@ -1,0 +1,75 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "v1-regulatory-evidence-map-164",
+  "version": "1.0.1",
+  "meta": {
+    "title": "Regulatorik Nachweislandkarte",
+    "description": "V1.0 Blueprint fuer regulatorische Impulse, Prozesspflichten, Nachweise, Rollen und Managementrisiken.",
+    "targetAudience": "internal"
+  },
+  "routing": {
+    "intentSignals": [
+      "regulatorik nachweislandkarte",
+      "regulatorischer impuls",
+      "compliance evidenz",
+      "festlegung anschlussablehnung"
+    ],
+    "negativeSignals": [
+      "strompreis",
+      "co2-intensitaet",
+      "gruenstrom"
+    ],
+    "priorityBoost": 4
+  },
+  "inputs": {
+    "scenarioName": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "Regulatorik Nachweislandkarte"
+      }
+    },
+    "evidenceScope": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "GitHub Issue 164"
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "create_regulatory_evidence_matrix",
+        "action": "vdmi.create",
+        "params": {
+          "name": "V1 Regulatorik Nachweislandkarte",
+          "scope": "Regulatorischer Impuls / Prozesspflicht / Nachweisdokument / Rolle",
+          "processType": "regulatory-evidence-map"
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {},
+    "mappings": {}
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.create_regulatory_evidence_matrix.output"
+    ],
+    "templates": {
+      "success": "Regulatorik-Nachweislandkarte erstellt. Regulatorischer Impuls, betroffene Prozesse, benoetigte Dokumente, Datenluecken, Rollen und Managementrisiken werden in konkrete Arbeitsauftraege uebersetzt. Nachweisanker: {{steps.create_regulatory_evidence_matrix.output}}",
+      "error": "Bitte Eingaben und Evidenz pruefen."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "v1Issue": "inputs.evidenceScope",
+      "v1Scenario": "inputs.scenarioName",
+      "evidenceAnchor": "steps.create_regulatory_evidence_matrix.output"
+    }
+  }
+}

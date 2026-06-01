@@ -1,0 +1,106 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "v1-capacity-allocation-future-demand-140",
+  "version": "1.0.1",
+  "meta": {
+    "title": "Kapazitaetsvergabemodell Zukunftsbedarfe",
+    "description": "V1.0 Blueprint fuer Kapazitaetsentscheidungen mit gesichertem Bedarf, Zukunftsbedarf und Engpasskontext.",
+    "targetAudience": "grid_operator"
+  },
+  "routing": {
+    "intentSignals": [
+      "kapazitaetsvergabe",
+      "zukunftsbedarf",
+      "grossanschluss",
+      "mittelspannung",
+      "engpasskontext"
+    ],
+    "negativeSignals": [
+      "strompreis",
+      "co2-intensitaet",
+      "gruenstrom"
+    ],
+    "priorityBoost": 4
+  },
+  "inputs": {
+    "scenarioName": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "Kapazitaetsvergabemodell Zukunftsbedarfe"
+      }
+    },
+    "evidenceScope": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "GitHub Issue 140"
+      }
+    },
+    "gridOperatorId": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "DEMO-VNB"
+      }
+    },
+    "connectionType": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "commercial-load"
+      }
+    },
+    "capacityKW": {
+      "type": "number",
+      "required": false,
+      "semanticType": "OEO:ActivePower",
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": 1200
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "validate_capacity_case",
+        "action": "grid-connection.validate",
+        "params": {
+          "gridOperatorId": "{{inputs.gridOperatorId}}",
+          "includeCapacityCheck": true,
+          "scenarioAdditions": [
+            {
+              "type": "{{inputs.connectionType}}",
+              "capacityKW": "{{inputs.capacityKW}}"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {},
+    "mappings": {}
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.validate_capacity_case.output"
+    ],
+    "templates": {
+      "success": "Kapazitaetsvergabe-Entscheidungsbaum erstellt. Gesicherter Bedarf, abgeleiteter Zukunftsbedarf, Netzebene, Engpasskontext, Regulatorikstatus, offene Evidenz und Eskalationspfad sind getrennt dokumentiert. Nachweisanker: {{steps.validate_capacity_case.output}}",
+      "error": "Bitte Eingaben und Evidenz pruefen."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "v1Issue": "inputs.evidenceScope",
+      "v1Scenario": "inputs.scenarioName",
+      "evidenceAnchor": "steps.validate_capacity_case.output"
+    }
+  }
+}
