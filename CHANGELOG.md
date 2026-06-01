@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.59.1] — Blueprint Export API compatibility fix (2026-06-01)
+
+### Fixed
+
+- [scripts/export-blueprints.js](scripts/export-blueprints.js): `fetchActiveBlueprintIds` now correctly handles the `{ success, data, total }` response envelope returned by the current Blueprint Management API. Previously only plain arrays and `{ blueprints }` / `{ items }` shapes were recognised, causing 0 blueprints to be exported against the live Dev Server.
+- [tests/export-blueprints.test.js](tests/export-blueprints.test.js): added regression test for the `{ success, data, total }` envelope shape.
+
 ## [0.59.0] — Blueprint Export CLI (2026-06-01)
 
 ### Added
