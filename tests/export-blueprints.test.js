@@ -51,6 +51,14 @@ describe('fetchActiveBlueprintIds', () => {
     );
   });
 
+  it('extracts IDs from a { success, data, total } envelope (current API)', async () => {
+    axios.get.mockResolvedValueOnce({
+      data: { success: true, total: 2, data: [{ blueprintId: 'bp-alpha-v1' }, { blueprintId: 'bp-beta-v1' }] },
+    });
+    const ids = await fetchActiveBlueprintIds('http://127.0.0.1:3900');
+    expect(ids).toEqual(['bp-alpha-v1', 'bp-beta-v1']);
+  });
+
   it('extracts IDs from a { blueprints: [...] } envelope', async () => {
     axios.get.mockResolvedValueOnce({
       data: { blueprints: [{ blueprintId: 'bp-gamma-v1' }] },

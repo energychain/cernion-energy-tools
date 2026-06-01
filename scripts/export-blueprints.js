@@ -44,8 +44,8 @@ async function fetchActiveBlueprintIds(baseUrl) {
   const response = await axios.get(url, { timeout: 15000 });
   const data = response.data;
 
-  // Accept both array and { blueprints: [...] } envelope shapes
-  const list = Array.isArray(data) ? data : data.blueprints ?? data.items ?? [];
+  // Accept plain array, { data: [...] } (current API), { blueprints: [...] }, { items: [...] }
+  const list = Array.isArray(data) ? data : data.data ?? data.blueprints ?? data.items ?? [];
   return list.map((b) => b.blueprintId ?? b.id).filter(Boolean);
 }
 
