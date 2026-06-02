@@ -8217,9 +8217,13 @@ describe('personal-agent.service', () => {
       expect(locTrace).toBeTruthy();
       expect(locTrace.postalCode).toBe('74889');
       expect(locTrace.municipality).toMatch(/Sinsheim/i);
+      expect(locTrace.state).toBe('Baden-Württemberg');  // PLZ 74xxx → BW
+      expect(locTrace.state).not.toBe('Schleswig-Holstein');  // regression guard
       expect(locTrace.municipalityResolved).toBe(true);
       expect(locTrace.precision).toBe('municipality_resolved');
       expect(locTrace.siteCoordinatesMissing).toBe(true);
+      // nextVerificationSteps must be present for DevOps/OSM consumers
+      expect(Array.isArray(locTrace.nextVerificationSteps)).toBe(true);
     });
 
     it('AT2: brokerKnownContext is hydrated with postalCode before consultation bridge runs', async () => {

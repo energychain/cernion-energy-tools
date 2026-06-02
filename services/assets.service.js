@@ -3251,5 +3251,140 @@ module.exports = {
         return mappedItems;
       },
     },
+
+    /**
+     * inferGridOperators
+     *
+     * Queries MaStR assets for a given location (PLZ / municipality / state)
+     * and aggregates the grid operator (Netzbetreiber) from those assets to
+     * produce a list of operator candidates.
+     *
+     * Domain rule: this fallback is NOT authoritative. It derives candidates
+     * from existing installations — the actual grid area boundary requires a
+     * formal Netzanschlussanfrage.
+     *
+     * Reuses: assets.all (existing action, no duplication)
+     *
+     * @param {string} [postalCode]   German PLZ (5 digits)
+     * @param {string} [municipality] Gemeinde / city name
+     * @param {string} [state]        Bundesland (optional additional filter)
+     * @param {number} [limit=60]     Max assets to sample
+     * @returns {object} { operatorCandidates[], sampleSize, ambiguous, authoritative: false, source, notes }
+     */
+    inferGridOperators: {
+      rest: 'GET /infer-grid-operators',
+      params: {
+        postalCode: { type: 'string', optional: true, min: 1 },
+        municipality: { type: 'string', optional: true, min: 1 },
+        state: { type: 'string', optional: true, min: 1 },
+        limit: { type: 'number', optional: true, default: 60, min: 1, max: 200, convert: true },
+      },
+      openapi: {
+        summary: 'Infer grid operator candidates from MaStR assets at a location',
+        description:
+          'Queries MaStR installations for the given PLZ / municipality and aggregates ' +
+          'the Netzbetreiber (grid operator) from those assets. ' +
+          '⚠️ NOT authoritative: derives candidates only — does not confirm the grid area ' +
+          'boundary. A formal Netzanschlussanfrage is required for binding VNB attribution.',
+        tags: ['Assets'],
+      },
+      async handler(ctx) {
+        const { postalCode, municipality, state, limit = 60 } = ctx.params;
+
+        if (!postalCode && !municipality && !state) {
+          return {
+            success: false,
+            error: 'At least one of postalCode, municipality, or state is required',
+            operatorCandidates: [],
+            sampleSize: 0,
+            ambiguous: false,
+            authoritative: false,
+            source: 'mastr_asset_fallback',
+          };
+        }
+
+        const locationQuery = postalCode || municipality || state;
+
+        let assets = [];
+        try {
+          assets = await ctx.call('assets.all', {
+            location: locationQuery,
+            limit,
+            operationalStatus: '35',
+          });
+        } catch (err) {
+          this.logger?.warn(`[inferGridOperators] MaStR query failed for ${locationQuery}: ${err.message}`);
+          return {
+            success: true,
+            operatorCandidates: [],
+            sampleSize: 0,
+            ambiguous: false,
+            authoritative: false,
+            source: 'mastr_asset_fallback',
+            notes: `MaStR asset query failed (${err.message}). No candidates available.`,
+            queryFailed: true,
+          };
+        }
+
+        if (!Array.isArray(assets) || assets.length === 0) {
+          return {
+            success: true,
+            operatorCandidates: [],
+            sampleSize: 0,
+            ambiguous: false,
+            authoritative: false,
+            source: 'mastr_asset_fallback',
+            notes: `No MaStR assets found for location "${locationQuery}".`,
+          };
+        }
+
+        // Aggregate by Netzbetreiber MaStR ID or name
+        const vnbMap = new Map();
+        for (const asset of assets) {
+          const mastrId = asset['Netzbetreiber MaStR'] || null;
+          const name = asset['Netzbetreiber Name'] || asset['Netzbetreiber'] || null;
+          if (!mastrId && !name) continue;
+
+          const key = mastrId || name;
+          if (!vnbMap.has(key)) {
+            vnbMap.set(key, { name, mastrNetzbetreiberId: mastrId, assetCount: 0, assetTypes: new Set(), totalCapacityKW: 0 });
+          }
+          const entry = vnbMap.get(key);
+          entry.assetCount += 1;
+          if (asset.Anlagentyp) entry.assetTypes.add(String(asset.Anlagentyp));
+          entry.totalCapacityKW += Number(asset['Leistung kW'] || 0);
+        }
+
+        const sorted = [...vnbMap.values()].sort((a, b) => b.assetCount - a.assetCount);
+        const operatorCandidates = sorted.map((entry, idx) => ({
+          name: entry.name,
+          mastrNetzbetreiberId: entry.mastrNetzbetreiberId,
+          bdewCode: null,
+          assetCount: entry.assetCount,
+          assetTypes: [...entry.assetTypes],
+          totalCapacityKW: Math.round(entry.totalCapacityKW * 10) / 10,
+          source: 'mastr_asset_fallback',
+          confidence: parseFloat((entry.assetCount / assets.length).toFixed(2)),
+          evidence: `${entry.assetCount} von ${assets.length} MaStR-Anlagen bei "${locationQuery}" zeigen diesen Netzbetreiber`,
+          rank: idx + 1,
+        }));
+
+        const topShare = operatorCandidates[0]?.confidence ?? 0;
+        const secondShare = operatorCandidates[1]?.confidence ?? 0;
+        const ambiguous = operatorCandidates.length > 1 && (topShare < 0.7 || secondShare > 0.3);
+
+        return {
+          success: true,
+          operatorCandidates,
+          sampleSize: assets.length,
+          ambiguous,
+          authoritative: false,
+          source: 'mastr_asset_fallback',
+          notes: ambiguous
+            ? 'Mehrere Netzbetreiber im MaStR-Bestand. Exakte Netzgebietsgrenze erfordert formellen Netzanschlussantrag.'
+            : 'Netzbetreiber-Kandidat aus MaStR-Bestand — nicht authoritative. Formellen Netzanschlussantrag stellen.',
+        };
+      },
+    },
   },
 };

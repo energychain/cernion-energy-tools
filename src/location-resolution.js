@@ -66,28 +66,116 @@ const GEWERBEGEBIET_PATTERN =
   /\b(gewerbegebiet|industriegebiet|industriepark|logistikpark|technologiepark|gewerbepark|gewerbehof|campus)\b/i;
 const AUTOBAHN_PROXIMITY_PATTERN = /\bnahe\s+(?:der\s+)?(?:A|BAB)\s*\d{1,3}\b/i;
 
-// German state name → canonical form
-const STATE_MAP = new Map([
-  ['thüringen', 'Thüringen'], ['thueringen', 'Thüringen'], ['thuringen', 'Thüringen'],
-  ['bayern', 'Bayern'], ['bavaria', 'Bayern'],
-  ['nrw', 'Nordrhein-Westfalen'], ['nordrhein-westfalen', 'Nordrhein-Westfalen'],
+// Captures city BEFORE a state reference: "Sinsheim in Baden-Württemberg", "Heidelberg in BW".
+// This runs before the general keyword pattern to prevent the state name from being
+// mistakenly extracted as municipality.
+const CITY_BEFORE_STATE_KEYWORD_PATTERN =
+  /\b([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+)?)\s+(?:in|im)\s+(?:Baden-Württemberg|Bayern|Nordrhein-Westfalen|Hessen|Thüringen|Sachsen-Anhalt|Sachsen|Brandenburg|Mecklenburg-Vorpommern|Schleswig-Holstein|Niedersachsen|Rheinland-Pfalz|Saarland|BW|NRW|SH|MV|ST|SN|BB|HE|RP|SL|NI)\b/i;
+
+// German state full names → canonical form (ordered longest/most-specific first).
+// Substring matching is safe for these because they are long enough to be unambiguous.
+const STATE_FULL_NAME_MAP = [
+  ['nordrhein-westfalen', 'Nordrhein-Westfalen'],
   ['nordrhein westfalen', 'Nordrhein-Westfalen'],
-  ['bw', 'Baden-Württemberg'], ['bawü', 'Baden-Württemberg'],
-  ['bad.-württ.', 'Baden-Württemberg'], ['bad.-wuertt.', 'Baden-Württemberg'],
-  ['baden-württemberg', 'Baden-Württemberg'], ['baden-wuerttemberg', 'Baden-Württemberg'],
-  // City-states are excluded here: "Berlin", "Hamburg", "Bremen" are also city names.
-  // Use keyword-qualified forms like "Bundesland Hamburg" if state detection is needed.
-  ['schleswig-holstein', 'Schleswig-Holstein'], ['sh', 'Schleswig-Holstein'],
-  ['mecklenburg-vorpommern', 'Mecklenburg-Vorpommern'], ['mv', 'Mecklenburg-Vorpommern'],
-  ['sachsen-anhalt', 'Sachsen-Anhalt'], ['st', 'Sachsen-Anhalt'],
-  ['sachsen', 'Sachsen'], ['sn', 'Sachsen'],
-  ['brandenb', 'Brandenburg'], ['bb', 'Brandenburg'], ['brandenburg', 'Brandenburg'],
-  ['hessen', 'Hessen'], ['he', 'Hessen'],
-  ['rheinland-pfalz', 'Rheinland-Pfalz'], ['rp', 'Rheinland-Pfalz'],
-  ['saarland', 'Saarland'], ['sl', 'Saarland'],
-  ['niedersachsen', 'Niedersachsen'], ['ni', 'Niedersachsen'],
+  ['schleswig-holstein', 'Schleswig-Holstein'],
+  ['mecklenburg-vorpommern', 'Mecklenburg-Vorpommern'],
   ['sachsen-anhalt', 'Sachsen-Anhalt'],
+  ['rheinland-pfalz', 'Rheinland-Pfalz'],
+  ['niedersachsen', 'Niedersachsen'],
+  ['bad.-württ.', 'Baden-Württemberg'],
+  ['bad.-wuertt.', 'Baden-Württemberg'],
+  ['bawü', 'Baden-Württemberg'],
+  ['bawue', 'Baden-Württemberg'],
+  ['baden-württemberg', 'Baden-Württemberg'],
+  ['baden-wuerttemberg', 'Baden-Württemberg'],
+  ['brandenb', 'Brandenburg'],
+  ['saarland', 'Saarland'],
+  ['thüringen', 'Thüringen'],
+  ['thueringen', 'Thüringen'],
+  ['thuringen', 'Thüringen'],
+  ['hessen', 'Hessen'],
+  ['sachsen', 'Sachsen'],  // AFTER sachsen-anhalt to prevent partial match
+  ['bavaria', 'Bayern'],
+  ['bayern', 'Bayern'],
+];
+
+// Short abbreviations (2–3 chars) — MUST use word-boundary regex.
+// Substring matching would cause false positives: "sh" matches "sinsheim",
+// "st" matches "stadt/standort/straße", "ni" matches "nicht", etc.
+const STATE_ABBREV_PATTERNS = [
+  [/\bnrw\b/i, 'Nordrhein-Westfalen'],
+  [/\bbw\b/i, 'Baden-Württemberg'],
+  [/\bsh\b/i, 'Schleswig-Holstein'],
+  [/\bmv\b/i, 'Mecklenburg-Vorpommern'],
+  [/\bst\b/i, 'Sachsen-Anhalt'],
+  [/\bsn\b/i, 'Sachsen'],
+  [/\bbb\b/i, 'Brandenburg'],
+  [/\bhe\b/i, 'Hessen'],
+  [/\brp\b/i, 'Rheinland-Pfalz'],
+  [/\bsl\b/i, 'Saarland'],
+  [/\bni\b/i, 'Niedersachsen'],
+];
+
+// Lowercase canonical state names — used to prevent extracting a Bundesland name
+// as a municipality/city candidate (e.g. "in Baden-Württemberg" must not set municipality).
+const CANONICAL_STATE_NAMES_LOWER = new Set([
+  'thüringen', 'thueringen', 'thuringen', 'bayern', 'bavaria',
+  'nordrhein-westfalen', 'nordrhein westfalen',
+  'bad.-württ.', 'bawü', 'bawue', 'bad.-wuertt.',
+  'baden-württemberg', 'baden-wuerttemberg',
+  'schleswig-holstein', 'mecklenburg-vorpommern',
+  'sachsen-anhalt', 'sachsen', 'brandenb', 'bb', 'brandenburg',
+  'hessen', 'rheinland-pfalz', 'saarland', 'niedersachsen',
+  // City-states: ambiguous as city names, but guard them in municipality extraction
+  'berlin', 'hamburg', 'bremen',
 ]);
+
+function isCanonicalStateName(text = '') {
+  return CANONICAL_STATE_NAMES_LOWER.has(String(text || '').toLowerCase().trim());
+}
+
+// German PLZ prefix (first 2 digits) → Bundesland hint.
+// Disambiguation only — not authoritative without full PLZ validation.
+// When PLZ + municipality are both present, use this to derive state and prevent
+// false positives from single-letter abbreviations in city names.
+const PLZ_PREFIX_TO_STATE = {
+  '01': 'Sachsen', '02': 'Sachsen', '04': 'Sachsen', '08': 'Sachsen', '09': 'Sachsen',
+  '03': 'Brandenburg', '14': 'Brandenburg', '15': 'Brandenburg', '16': 'Brandenburg',
+  '06': 'Sachsen-Anhalt', '39': 'Sachsen-Anhalt',
+  '07': 'Thüringen', '98': 'Thüringen', '99': 'Thüringen',
+  '17': 'Mecklenburg-Vorpommern', '18': 'Mecklenburg-Vorpommern', '19': 'Mecklenburg-Vorpommern',
+  '23': 'Schleswig-Holstein', '24': 'Schleswig-Holstein', '25': 'Schleswig-Holstein',
+  '26': 'Niedersachsen', '27': 'Niedersachsen', '29': 'Niedersachsen',
+  '30': 'Niedersachsen', '31': 'Niedersachsen', '38': 'Niedersachsen', '49': 'Niedersachsen',
+  '34': 'Hessen', '35': 'Hessen', '36': 'Hessen',
+  '40': 'Nordrhein-Westfalen', '41': 'Nordrhein-Westfalen', '42': 'Nordrhein-Westfalen',
+  '44': 'Nordrhein-Westfalen', '45': 'Nordrhein-Westfalen', '46': 'Nordrhein-Westfalen',
+  '47': 'Nordrhein-Westfalen', '48': 'Nordrhein-Westfalen', '50': 'Nordrhein-Westfalen',
+  '51': 'Nordrhein-Westfalen', '52': 'Nordrhein-Westfalen', '53': 'Nordrhein-Westfalen',
+  '57': 'Nordrhein-Westfalen', '58': 'Nordrhein-Westfalen', '59': 'Nordrhein-Westfalen',
+  '33': 'Nordrhein-Westfalen',
+  '54': 'Rheinland-Pfalz', '55': 'Rheinland-Pfalz', '56': 'Rheinland-Pfalz',
+  '60': 'Hessen', '61': 'Hessen', '63': 'Hessen', '64': 'Hessen', '65': 'Hessen',
+  '66': 'Saarland', '67': 'Rheinland-Pfalz',
+  '68': 'Baden-Württemberg', '69': 'Baden-Württemberg',
+  '70': 'Baden-Württemberg', '71': 'Baden-Württemberg', '72': 'Baden-Württemberg',
+  '73': 'Baden-Württemberg', '74': 'Baden-Württemberg', '75': 'Baden-Württemberg',
+  '76': 'Baden-Württemberg', '77': 'Baden-Württemberg', '78': 'Baden-Württemberg',
+  '79': 'Baden-Württemberg', '88': 'Baden-Württemberg',
+  '80': 'Bayern', '81': 'Bayern', '82': 'Bayern', '83': 'Bayern', '84': 'Bayern',
+  '85': 'Bayern', '86': 'Bayern', '87': 'Bayern', '90': 'Bayern', '91': 'Bayern',
+  '92': 'Bayern', '93': 'Bayern', '94': 'Bayern', '95': 'Bayern', '96': 'Bayern',
+  '97': 'Bayern',
+};
+
+/**
+ * Derive a Bundesland hint from the first 2 digits of a German postal code.
+ * Returns null when the prefix covers multiple states (border zones) or is unknown.
+ */
+function inferStateFromPostalCode(postalCode = '') {
+  const prefix = String(postalCode || '').trim().slice(0, 2);
+  return PLZ_PREFIX_TO_STATE[prefix] || null;
+}
 
 // ─── Market-Partner Role Signals ─────────────────────────────────────────────
 
@@ -104,10 +192,20 @@ const DV_PATTERN = /\b(direktvermarkter|direktvermarktung|direktvermarktungsunte
 // ─── Pure Helpers ─────────────────────────────────────────────────────────────
 
 function extractState(text = '') {
-  const lower = String(text || '').toLowerCase();
-  for (const [pattern, canonical] of STATE_MAP) {
+  if (!text) return null;
+  const lower = String(text).toLowerCase();
+
+  // Full/compound names: safe for substring matching (long enough to be unambiguous)
+  for (const [pattern, canonical] of STATE_FULL_NAME_MAP) {
     if (lower.includes(pattern)) return canonical;
   }
+
+  // 2–3 char abbreviations: word-boundary regex ONLY.
+  // This prevents "sh" from matching inside "sinsheim", "st" inside "stadtwerke", etc.
+  for (const [pattern, canonical] of STATE_ABBREV_PATTERNS) {
+    if (pattern.test(text)) return canonical;
+  }
+
   return null;
 }
 
@@ -271,17 +369,31 @@ function resolveLocationFromText(text = '', ctx = {}) {
     candidates.push({ postalCode, municipality, source: 'text_plz_city' });
   }
 
-  // ── City from keyword context ──
+  // ── City before state keyword (e.g., "Sinsheim in Baden-Württemberg") ──
+  // Run BEFORE the general keyword pattern so we get the city, not the state name as city.
+  if (!municipality) {
+    const cityBeforeStateMatch = CITY_BEFORE_STATE_KEYWORD_PATTERN.exec(haystack);
+    if (cityBeforeStateMatch) {
+      const raw = cityBeforeStateMatch[1].trim();
+      if (/^[A-ZÄÖÜ]/.test(raw) && raw.length >= 3 && !isCanonicalStateName(raw)) {
+        municipality = raw;
+        evidence.push({ field: 'municipality', value: municipality, source: 'text_city_before_state_pattern', confidence: 0.88 });
+        candidates.push({ municipality, source: 'text_city_before_state' });
+      }
+    }
+  }
+
+  // ── City from keyword context (general pattern) ──
   if (!municipality) {
     const kwMatch = CITY_WITH_KEYWORD_PATTERN.exec(haystack);
     if (kwMatch) {
       const raw = kwMatch[1].trim();
-      // Reject common stop words, short strings, or values that don't start with an uppercase letter.
-      // The uppercase check prevents common German words ("genannt", "gemeint", "hier") from
-      // being accepted as city names when the keyword pattern over-matches.
+      // Reject common stop words, overly short strings, lowercase starts, and state names.
+      // The uppercase and isCanonicalStateName checks prevent "genannt", "gemeint",
+      // "Baden-Württemberg" etc. from being accepted as city names.
       const isStopWord = /^(ein|die|der|das|ich|wir|sie|ihr|uns|und|auf|bei|von|dem|den|des|mit|aus)\b/i.test(raw);
       const startsUppercase = /^[A-ZÄÖÜ]/.test(raw);
-      if (!isStopWord && startsUppercase && raw.length >= 3) {
+      if (!isStopWord && startsUppercase && raw.length >= 3 && !isCanonicalStateName(raw)) {
         municipality = raw;
         evidence.push({ field: 'municipality', value: municipality, source: 'text_keyword_pattern', confidence: 0.78 });
         candidates.push({ municipality, source: 'text_keyword' });
@@ -290,9 +402,44 @@ function resolveLocationFromText(text = '', ctx = {}) {
   }
 
   // ── State ──
-  const state = extractState(haystack);
-  if (state) {
-    evidence.push({ field: 'state', value: state, source: 'text_state_pattern', confidence: 0.9 });
+  const textState = extractState(haystack);
+
+  // PLZ-derived state: when PLZ + municipality are both known, prefer the PLZ prefix table
+  // over free-text state guessing to avoid false positives from abbreviations in city names.
+  const plzDerivedState = postalCode ? inferStateFromPostalCode(postalCode) : null;
+
+  let state;
+  if (plzDerivedState && postalCode && municipality) {
+    // High-confidence: PLZ and city both present → use PLZ-derived state as primary.
+    // Text-extracted state is recorded as corroboration if it agrees.
+    state = plzDerivedState;
+    const plzStateConf = textState === plzDerivedState ? 0.97 : 0.85;
+    evidence.push({
+      field: 'state',
+      value: state,
+      source: 'plz_prefix_lookup',
+      confidence: plzStateConf,
+      corroborated: textState === plzDerivedState,
+    });
+    if (textState && textState !== plzDerivedState) {
+      // Record the discrepancy without replacing the PLZ-derived state
+      evidence.push({ field: 'state_text_conflict', value: textState, source: 'text_state_pattern', confidence: 0.4 });
+    }
+  } else if (textState) {
+    state = textState;
+    const corroborated = Boolean(plzDerivedState && plzDerivedState === textState);
+    evidence.push({
+      field: 'state',
+      value: state,
+      source: 'text_state_pattern',
+      confidence: corroborated ? 0.95 : 0.9,
+      corroborated,
+    });
+  } else if (plzDerivedState) {
+    state = plzDerivedState;
+    evidence.push({ field: 'state', value: state, source: 'plz_prefix_lookup', confidence: 0.8 });
+  } else {
+    state = null;
   }
 
   // ── Approximate location hints ──
@@ -408,11 +555,18 @@ function isSufficientForMunicipalPrecheck(resolved = {}) {
 /**
  * Build a structured trace record for agentTrace / dataLineage.
  *
- * @param {object} resolved        From resolveLocationFromText()
- * @param {object|null} [roleHint] From classifyMarketPartnerRole(), optional
+ * Includes optional operator resolution fields so DevOps and downstream
+ * OSM/MaStR consumers can see exactly what location + operator state is known.
+ *
+ * @param {object} resolved             From resolveLocationFromText()
+ * @param {object|null} [roleHint]      From classifyMarketPartnerRole(), optional
+ * @param {object|null} [operatorInfo]  Optional operator resolution result
+ * @param {object} [operatorInfo.lookupStatus] e.g. 'direct_grid_area_lookup', 'market_partner_lookup', 'mastr_asset_fallback', 'unresolved'
+ * @param {object[]} [operatorInfo.candidates] From assets.inferGridOperators or grid-operations.marketPartners
+ * @param {boolean} [operatorInfo.fallbackUsed] True when mastr_asset_fallback was triggered
  * @returns {object}
  */
-function buildLocationResolutionTrace(resolved = {}, roleHint = null) {
+function buildLocationResolutionTrace(resolved = {}, roleHint = null, operatorInfo = null) {
   return {
     type: 'location_resolution',
     precision: resolved.precision || LOCATION_PRECISION.UNKNOWN,
@@ -437,6 +591,15 @@ function buildLocationResolutionTrace(resolved = {}, roleHint = null) {
       confidence: e.confidence,
     })),
     source: resolved.source || 'unknown',
+    // Operator resolution fields (populated when operator lookup has been attempted)
+    operatorLookupStatus: operatorInfo?.lookupStatus || null,
+    operatorCandidates: Array.isArray(operatorInfo?.candidates) ? operatorInfo.candidates : null,
+    operatorAmbiguous: operatorInfo != null ? Boolean(operatorInfo.ambiguous) : null,
+    fallbackUsed: operatorInfo != null ? Boolean(operatorInfo.fallbackUsed) : null,
+    nextVerificationSteps: operatorInfo?.nextVerificationSteps || [
+      'Formelle Netzanschlussanfrage beim zuständigen Netzbetreiber stellen',
+      'Konkrete Fläche oder GPS-Koordinaten für flächenscharfe Netzplanung bereitstellen',
+    ],
   };
 }
 
@@ -450,4 +613,6 @@ module.exports = {
   classifyMarketPartnerRole,
   classifyLocationPrecision,
   extractState,
+  inferStateFromPostalCode,
+  isCanonicalStateName,
 };

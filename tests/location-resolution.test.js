@@ -10,6 +10,8 @@ const {
   classifyMarketPartnerRole,
   classifyLocationPrecision,
   extractState,
+  inferStateFromPostalCode,
+  isCanonicalStateName,
 } = require('../src/location-resolution');
 
 // ─── Acceptance Test 1: "74889 Sinsheim" is recognised ───────────────────────
@@ -282,5 +284,112 @@ describe('Location Resolution — Integration: context patch is consultation-bri
     const bessScreenKeys = ['state', 'bundesland', 'region', 'municipality', 'location', 'postalCode'];
     const hasSomeKey = bessScreenKeys.some((key) => Object.prototype.hasOwnProperty.call(patch, key));
     expect(hasSomeKey).toBe(true);
+  });
+});
+
+// ─── Bug-regression: Sinsheim state + Schleswig-Holstein false positive ───────
+
+describe('Location Resolution — Bug regression: Sinsheim / Schleswig-Holstein', () => {
+
+  // Acceptance Test 1 (spec): 74889 Sinsheim → correct state
+  it('AT1: resolveLocationFromText("74889 Sinsheim") gives state = Baden-Württemberg, NOT Schleswig-Holstein', () => {
+    const result = resolveLocationFromText('74889 Sinsheim');
+    expect(result.postalCode).toBe('74889');
+    expect(result.municipality).toBe('Sinsheim');
+    expect(result.state).toBe('Baden-Württemberg');
+    expect(result.state).not.toBe('Schleswig-Holstein');
+  });
+
+  // Acceptance Test 2 (spec): explicit state + PLZ
+  it('AT2: "Sinsheim in Baden-Württemberg, PLZ 74889" gives municipality=Sinsheim, state=Baden-Württemberg', () => {
+    const result = resolveLocationFromText('Sinsheim in Baden-Württemberg, PLZ 74889');
+    expect(result.municipality).toBe('Sinsheim');
+    expect(result.postalCode).toBe('74889');
+    expect(result.state).toBe('Baden-Württemberg');
+    expect(result.municipality).not.toBe('Baden-Württemberg');
+  });
+
+  // Acceptance Test 3 (spec): precision without site coordinates
+  it('AT3: mayor phrase gives precision=municipality_resolved, siteCoordinatesMissing=true', () => {
+    const result = resolveLocationFromText(
+      'Ich bin Bürgermeister von 74889 Sinsheim und soll einschätzen, ob Rechenzentrum, PV, BESS und Ladepark angesiedelt werden können.'
+    );
+    expect(result.postalCode).toBe('74889');
+    expect(result.municipality).toBe('Sinsheim');
+    expect(result.state).toBe('Baden-Württemberg');
+    expect(result.precision).toBe(LOCATION_PRECISION.MUNICIPALITY);
+    expect(result.siteCoordinatesMissing).toBe(true);
+    expect(result.municipalityResolved).toBe(true);
+  });
+
+  it('extractState does not false-positive on "sinsheim" (regression: sh → Schleswig-Holstein)', () => {
+    expect(extractState('sinsheim')).toBeNull();
+    expect(extractState('74889 Sinsheim')).toBeNull(); // no text state; PLZ→state via inferStateFromPostalCode
+    expect(extractState('Standort Sinsheim')).toBeNull();
+  });
+
+  it('extractState does not false-positive on city names containing abbreviations', () => {
+    // "ni" in "Nidderau", "he" in "Herne", "st" in "Stadtallendorf", "sl" in "Soltau", "sn" in "Sinsheim"
+    expect(extractState('Nidderau')).toBeNull();
+    expect(extractState('Herne')).toBeNull();
+    expect(extractState('Stadtallendorf')).toBeNull();
+  });
+
+  it('extractState correctly identifies state from explicit mention', () => {
+    expect(extractState('Standort in Baden-Württemberg')).toBe('Baden-Württemberg');
+    expect(extractState('Gebiet NRW')).toBe('Nordrhein-Westfalen');
+    expect(extractState('Bundesland SH')).toBe('Schleswig-Holstein');
+  });
+
+  it('inferStateFromPostalCode: PLZ 74xxx → Baden-Württemberg', () => {
+    expect(inferStateFromPostalCode('74889')).toBe('Baden-Württemberg');
+    expect(inferStateFromPostalCode('74072')).toBe('Baden-Württemberg');
+  });
+
+  it('inferStateFromPostalCode: PLZ 80xxx → Bayern', () => {
+    expect(inferStateFromPostalCode('80331')).toBe('Bayern');
+    expect(inferStateFromPostalCode('85049')).toBe('Bayern');
+  });
+
+  it('inferStateFromPostalCode: PLZ 99xxx → Thüringen', () => {
+    expect(inferStateFromPostalCode('99084')).toBe('Thüringen');
+  });
+
+  it('isCanonicalStateName: identifies state names correctly', () => {
+    expect(isCanonicalStateName('Bayern')).toBe(true);
+    expect(isCanonicalStateName('Baden-Württemberg')).toBe(true);
+    expect(isCanonicalStateName('Sachsen')).toBe(true);
+    expect(isCanonicalStateName('Sinsheim')).toBe(false);
+    expect(isCanonicalStateName('Heidelberg')).toBe(false);
+    expect(isCanonicalStateName('')).toBe(false);
+  });
+
+  it('municipality is never set to a canonical state name from keyword extraction', () => {
+    const result = resolveLocationFromText('Anlage in Baden-Württemberg');
+    // "Baden-Württemberg" must NOT be extracted as municipality
+    expect(result.municipality).not.toBe('Baden-Württemberg');
+  });
+
+  it('buildLocationResolutionTrace: includes nextVerificationSteps', () => {
+    const resolved = resolveLocationFromText('74889 Sinsheim');
+    const trace = buildLocationResolutionTrace(resolved);
+    expect(Array.isArray(trace.nextVerificationSteps)).toBe(true);
+    expect(trace.nextVerificationSteps.length).toBeGreaterThan(0);
+  });
+
+  it('buildLocationResolutionTrace: includes operator fields when operatorInfo provided', () => {
+    const resolved = resolveLocationFromText('74889 Sinsheim');
+    const operatorInfo = {
+      lookupStatus: 'mastr_asset_fallback',
+      candidates: [{ name: 'Netze BW GmbH', confidence: 0.8, source: 'mastr_asset_fallback' }],
+      ambiguous: false,
+      fallbackUsed: true,
+      nextVerificationSteps: ['Formelle Netzanschlussanfrage stellen'],
+    };
+    const trace = buildLocationResolutionTrace(resolved, null, operatorInfo);
+    expect(trace.operatorLookupStatus).toBe('mastr_asset_fallback');
+    expect(trace.operatorCandidates).toHaveLength(1);
+    expect(trace.fallbackUsed).toBe(true);
+    expect(trace.operatorAmbiguous).toBe(false);
   });
 });

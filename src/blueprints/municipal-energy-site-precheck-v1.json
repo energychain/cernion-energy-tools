@@ -1,0 +1,102 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "municipal-energy-site-precheck-v1",
+  "version": "1.0.0",
+  "meta": {
+    "title": "Kommunaler Energie-Standort-Precheck",
+    "description": "Prüfkaskade für kommunale Energiestandorte: Location Resolution → VNB-Kandidaten-Lookup → MaStR-Asset-Fallback → Site-Readiness-Klassifikation. Geeignet für Bürgermeister, Gemeinderäte und kommunale Planer, die einschätzen möchten, ob Rechenzentren, PV, BESS und Ladeparks angesiedelt werden können.",
+    "targetAudience": "municipal_official"
+  },
+  "routing": {
+    "intentSignals": [
+      "bürgermeister", "buergermeister", "gemeinde", "kommunal",
+      "rechenzentrum", "data center", "ladepark", "ladeparks",
+      "gewerbegebiet", "ansiedelung", "ansiedeln", "standortprüfung",
+      "bess", "batteriespeicher", "photovoltaik", "ladeinfrastruktur"
+    ],
+    "negativeSignals": [
+      "redispatch", "settlement", "messkonzept", "fnav", "mieterstrom",
+      "co2 laden", "ev laden"
+    ],
+    "priorityBoost": 4
+  },
+  "inputs": {
+    "postalCode": {
+      "type": "string",
+      "required": true,
+      "semanticType": "OEO:PostalCode",
+      "resolveStrategy": {
+        "method": "location_resolution",
+        "prompt": "Bitte nenne die Postleitzahl des geplanten Standorts (z. B. 74889 für Sinsheim)."
+      }
+    },
+    "municipality": {
+      "type": "string",
+      "required": false,
+      "semanticType": "OEO:Municipality",
+      "resolveStrategy": {
+        "method": "location_resolution",
+        "prompt": "Bitte nenne den Gemeindenamen (z. B. Sinsheim)."
+      }
+    },
+    "chargingDurationHours": {
+      "type": "number",
+      "required": false,
+      "semanticType": "OEO:Duration",
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": 0
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "vnb_market_lookup",
+        "action": "grid-operations.marketPartners",
+        "params": {
+          "query": "{{inputs.postalCode}}",
+          "limit": 5
+        },
+        "note": "Direkter VNB-/Marktpartner-Lookup über Cernion-API. Ergebnis ist kein Netzgebietsnachweis."
+      },
+      {
+        "id": "mastr_operator_fallback",
+        "action": "assets.inferGridOperators",
+        "params": {
+          "postalCode": "{{inputs.postalCode}}",
+          "municipality": "{{inputs.municipality}}",
+          "limit": 60
+        },
+        "note": "Fallback: Netzbetreiber-Kandidaten aus MaStR-Anlagen im Gebiet ableiten. Nicht authoritative."
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {},
+    "mappings": {
+      "operatorLookupStatus": {
+        "strategy": "derive_operator_status",
+        "sources": ["steps.vnb_market_lookup.output", "steps.mastr_operator_fallback.output"]
+      }
+    }
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.mastr_operator_fallback.output"
+    ],
+    "templates": {
+      "success_with_candidate": "Kommunaler Precheck für {{inputs.municipality}} (PLZ {{inputs.postalCode}}): Netzbetreiber-Kandidat aus MaStR-Bestand: {{steps.mastr_operator_fallback.output.operatorCandidates[0].name}} ({{steps.mastr_operator_fallback.output.operatorCandidates[0].assetCount}} Anlagen). Hinweis: Nicht authoritative — für Rechenzentrum, BESS oder Ladepark ist eine formelle Netzanschlussanfrage beim zuständigen Netzbetreiber erforderlich. Flächenscharfe Netzplanung benötigt GPS-Koordinaten oder Adresse.",
+      "ambiguous_candidates": "Kommunaler Precheck für {{inputs.municipality}} (PLZ {{inputs.postalCode}}): Mehrere Netzbetreiber im MaStR-Bestand gefunden ({{steps.mastr_operator_fallback.output.operatorCandidates.length}} Kandidaten). Keine eindeutige VNB-Zuordnung möglich. Nächster Schritt: Konkrete Fläche oder Adresse angeben und formellen Netzanschlussantrag stellen.",
+      "no_data": "Für {{inputs.municipality}} (PLZ {{inputs.postalCode}}) konnten keine MaStR-Anlagen gefunden werden. VNB-Zuordnung erfordert formellen Netzanschlussantrag. Empfehlung: Direkt bei Netze BW oder dem regionalen Netzbetreiber anfragen."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "municipalPrecheckPostalCode": "inputs.postalCode",
+      "municipalPrecheckMunicipality": "inputs.municipality",
+      "municipalPrecheckOperatorCandidate": "steps.mastr_operator_fallback.output.operatorCandidates[0].name",
+      "municipalPrecheckOperatorAuthoritative": "false"
+    }
+  }
+}

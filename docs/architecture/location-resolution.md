@@ -85,17 +85,44 @@ const resolved = resolveLocationFromText(msg);
 // → {
 //   postalCode: '74889',
 //   municipality: 'Sinsheim',
+//   state: 'Baden-Württemberg',   ← via PLZ prefix "74" (not text guessing)
 //   precision: 'municipality_resolved',
 //   municipalityResolved: true,
 //   siteCoordinatesMissing: true,
 //   locationConfidence: 0.98,
-//   ...
+//   nextVerificationSteps: ['Formelle Netzanschlussanfrage...', ...]
 // }
 
 const patch = buildLocationContextPatch(resolved);
 // → { postalCode: '74889', postleitzahl: '74889', municipality: 'Sinsheim',
-//     city: 'Sinsheim', location: 'Sinsheim' }
+//     city: 'Sinsheim', location: 'Sinsheim',
+//     state: 'Baden-Württemberg', bundesland: 'Baden-Württemberg' }
 ```
+
+## Known Bugs Fixed (v0.60.x)
+
+| Bug | Root cause | Fix |
+|-----|-----------|-----|
+| "sinsheim" → Schleswig-Holstein | `STATE_MAP` used `lower.includes('sh')` → matched "sin**sh**eim" | `STATE_ABBREV_PATTERNS` uses `/\bsh\b/i` (word boundary) |
+| "Sinsheim in BW" → municipality = null | `CITY_WITH_KEYWORD_PATTERN` matched "in Baden-Württemberg" → state name as city | Added `CITY_BEFORE_STATE_KEYWORD_PATTERN` + `isCanonicalStateName()` guard |
+| No Bundesland from PLZ alone | No PLZ→Bundesland table | Added `PLZ_PREFIX_TO_STATE` + `inferStateFromPostalCode()` |
+
+## MaStR Operator Fallback
+
+`assets.inferGridOperators` (new action on the `assets` Moleculer service) accepts:
+- `postalCode`, `municipality`, `state` (at least one required)
+- `limit` (default 60, max 200)
+
+Returns `operatorCandidates[]` with `source: 'mastr_asset_fallback'` and `authoritative: false`.
+This action is called by the `municipal-energy-site-precheck-v1` blueprint as fallback
+when direct VNB lookup fails or returns low-confidence results.
+
+## Blueprint
+
+`src/blueprints/municipal-energy-site-precheck-v1.json` orchestrates:
+1. `grid-operations.marketPartners` — direct VNB candidate lookup
+2. `assets.inferGridOperators` — MaStR asset fallback
+3. Synthesis with appropriate uncertainty wording
 
 ## Limitations
 
