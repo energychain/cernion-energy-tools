@@ -2134,10 +2134,21 @@ module.exports = {
           );
         }
 
+        // Hydrate brokerKnownContext with postal code / location extracted from recent session history
+        // so that blueprint receipts can be matched and evaluated in multi-turn consultation sessions
+        // (e.g. postalCode mentioned in turn 2 is still available for receipt selection in turn 3).
+        const multiTurnHints = this.extractMultiTurnContextHints(session);
+        for (const [key, value] of Object.entries(multiTurnHints)) {
+          if (brokerKnownContext[key] == null && value != null) {
+            brokerKnownContext[key] = value;
+          }
+        }
+
         const preferredReceiptsForTurn = this.buildPreferredReceiptsForTurn(
           ctx.params.message,
           brokerKnownContext,
-          ctx.params.preferredReceipts
+          ctx.params.preferredReceipts,
+          session
         );
 
         const receiptSelectionResult = await this.selectRuntimeReceipt(ctx, {
@@ -8540,12 +8551,23 @@ module.exports = {
       }
     },
 
-    isEvCo2ChargingRequest(message = '', knownContext = {}) {
+    isEvCo2ChargingRequest(message = '', knownContext = {}, session = null) {
+      const historyTexts = [];
+      if (session?.l3?.history && Array.isArray(session.l3.history)) {
+        // Include last 6 history entries (~3 prior turns) to detect multi-turn EV+CO2 intent
+        session.l3.history.slice(-6).forEach((turn) => {
+          if (turn?.role === 'user' && turn?.text) {
+            historyTexts.push(turn.text);
+          }
+        });
+      }
+
       const haystack = [
         message,
         knownContext?.message,
         knownContext?.intent,
         knownContext?.domainIntent,
+        ...historyTexts,
       ]
         .filter(Boolean)
         .join(' ')
@@ -8561,10 +8583,42 @@ module.exports = {
       return hasChargingIntent && hasCarbonIntent;
     },
 
-    buildPreferredReceiptsForTurn(message = '', knownContext = {}, explicitPreferred = []) {
+    // Extracts postal code, city, and other location hints from recent session history turns.
+    // Used for multi-turn blueprint receipt selection in consultation mode so that a postal code
+    // mentioned in turn N is still available for receipt evaluation in turn N+2.
+    extractMultiTurnContextHints(session = null) {
+      if (!session?.l3?.history || !Array.isArray(session.l3.history)) {
+        return {};
+      }
+      const hints = {};
+      const recentUserTurns = session.l3.history
+        .slice(-8)
+        .filter((turn) => turn?.role === 'user' && turn?.text);
+
+      for (const turn of recentUserTurns) {
+        const text = String(turn.text);
+        if (!hints.postalCode) {
+          const plzMatch = text.match(/\b(\d{5})\b/);
+          if (plzMatch) {
+            hints.postalCode = plzMatch[1];
+            hints.postleitzahl = plzMatch[1];
+            const cityMatch = text.match(
+              new RegExp(`\\b${plzMatch[1]}\\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+)`)
+            );
+            if (cityMatch) {
+              hints.city = cityMatch[1];
+              hints.location = cityMatch[1];
+            }
+          }
+        }
+      }
+      return hints;
+    },
+
+    buildPreferredReceiptsForTurn(message = '', knownContext = {}, explicitPreferred = [], session = null) {
       const preferred = Array.isArray(explicitPreferred) ? [...explicitPreferred] : [];
       if (
-        this.isEvCo2ChargingRequest(message, knownContext) &&
+        this.isEvCo2ChargingRequest(message, knownContext, session) &&
         !preferred.includes('ev-charging-co2-optimization-v1')
       ) {
         preferred.unshift('ev-charging-co2-optimization-v1');

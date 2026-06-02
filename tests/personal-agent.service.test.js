@@ -7871,4 +7871,318 @@ describe('personal-agent.service', () => {
       }
     });
   });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // EV CO2 Consultation-to-Execution Bridge (multi-turn evidence hydration)
+  // Tests for: isEvCo2ChargingRequest, buildPreferredReceiptsForTurn,
+  // extractMultiTurnContextHints, and consultation→receipt execution path.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  describe('EV CO2 consultation-to-execution bridge (multi-turn)', () => {
+    function getService() {
+      return broker.getLocalService('personal-agent');
+    }
+
+    // ── Test A: Multi-turn EV CO2 consultation yields data-based answer ───────
+
+    it('TestA: 3-turn EV CO2 consultation triggers receipt execution on turn 3', async () => {
+      const sessionId = `ev-co2-multiturn-${Date.now()}`;
+      const meta = { tenantId: 'tenant-ev-co2-mt', authUser: { userId: 'user-ev-mt' } };
+
+      // Turn 1: EV charging intent, no postal code yet
+      const turn1 = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Wann soll ich morgen mein E-Auto laden?',
+          sessionId,
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          knownContext: {},
+        },
+        { meta }
+      );
+      expect(turn1.success).toBe(true);
+
+      // Turn 2: user provides postal code
+      const turn2 = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Mein Netzanschluss ist in 69256 Mauer',
+          sessionId,
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          knownContext: {},
+        },
+        { meta }
+      );
+      expect(turn2.success).toBe(true);
+
+      // Turn 3: CO2 goal + duration — the blueprint should now fire.
+      // explainReceiptSelection: true is required so metadata.receiptSelection is populated.
+      const turn3 = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Ich möchte möglichst wenig CO2 Emission haben und brauche 4 Stunden Strom.',
+          sessionId,
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          explainReceiptSelection: true,
+          knownContext: {},
+        },
+        { meta }
+      );
+
+      expect(turn3.success).toBe(true);
+
+      // The receipt must have been preferred and selected
+      const receiptId = turn3.metadata?.receiptSelection?.receiptId;
+      expect(receiptId).toBe('ev-charging-co2-optimization-v1');
+
+      // The receipt execution must have run and used CO2 intensity data
+      const receiptUsed = turn3.metadata?.receiptSelection?.execution?.used;
+      expect(receiptUsed).toBe(true);
+
+      // energy-market.co2Intensity must have been executed
+      const co2Called = executedCallDetails.some(
+        (e) => e.action === 'energy-market.co2Intensity'
+      );
+      expect(co2Called).toBe(true);
+
+      // Reply must be concrete (reference CO2/Grünstrom data), not generic
+      expect(turn3.reply).toMatch(/CO₂|GrünstromIndex|Ladefenster|Stunde/i);
+      expect(turn3.reply).not.toMatch(/typischerweise mittags|in der Regel nachts/i);
+    });
+
+    // ── Test B: Optional evidence (VNB) does not block EV CO2 answer ─────────
+
+    it('TestB: missing VNB identity does not block EV CO2 core answer (unit level)', () => {
+      const svc = getService();
+
+      const sessionWithHistory = {
+        l3: {
+          history: [
+            { role: 'user', text: 'Wann soll ich mein E-Auto laden?' },
+            { role: 'assistant', text: 'Bitte nenne deinen Standort.' },
+            { role: 'user', text: 'Ich bin in 69256 Mauer.' },
+            { role: 'assistant', text: 'Danke, ich notiere 69256 Mauer.' },
+          ],
+          resolvedParams: {},
+        },
+      };
+
+      // Multi-turn EV+CO2 intent must be detected on turn 3's message
+      const detected = svc.isEvCo2ChargingRequest(
+        'Ich möchte möglichst wenig CO2 Emission haben und brauche 4 Stunden Strom.',
+        {},
+        sessionWithHistory
+      );
+      expect(detected).toBe(true);
+
+      // Postal code is extractable from history
+      const hints = svc.extractMultiTurnContextHints(sessionWithHistory);
+      expect(hints.postalCode).toBe('69256');
+      expect(hints.city).toBe('Mauer');
+
+      // Receipt is injected as preferred even without VNB
+      const preferred = svc.buildPreferredReceiptsForTurn(
+        'Ich möchte möglichst wenig CO2 Emission haben und brauche 4 Stunden Strom.',
+        { postalCode: '69256', city: 'Mauer' },
+        [],
+        sessionWithHistory
+      );
+      expect(preferred[0]).toBe('ev-charging-co2-optimization-v1');
+
+      // Evidence registry: VNB must be optional for ev_charging_co2_optimization
+      const { getEvidenceRequirements } = require('../src/evidence-registry');
+      const evidenceReqs = getEvidenceRequirements('ev_charging_co2_optimization');
+      expect(evidenceReqs).not.toBeNull();
+
+      const vnbSource = evidenceReqs.sources.find((s) => s.id === 'vnb_identity');
+      expect(vnbSource).toBeDefined();
+      expect(vnbSource.optional).toBe(true);
+
+      const pricesSource = evidenceReqs.sources.find((s) => s.id === 'day_ahead_prices');
+      expect(pricesSource).toBeDefined();
+      expect(pricesSource.optional).toBe(true);
+
+      const co2Source = evidenceReqs.sources.find((s) => s.id === 'co2_forecast');
+      expect(co2Source).toBeDefined();
+      expect(co2Source.optional).toBe(false);
+    });
+
+    // ── Test C: Messkonzept blueprint regression ───────────────────────────────
+
+    it('TestC: Messkonzept conflict detection still routes correctly and is not confused with EV CO2', async () => {
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message:
+            'Ich habe Messkonzept 10 (MK10) gemeldet. Die alte PV-Anlage wurde demontiert. PLZ 69256. Liegt ein Konflikt vor?',
+          sessionId: `messkonzept-c-${Date.now()}`,
+          chatMode: 'execution',
+          executionMode: 'auto',
+          knownContext: {
+            postalCode: '69256',
+            reportedMeteringConcept: 'MK10',
+            legacyPvStatus: 'DEMOUNTED',
+          },
+        },
+        { meta: { tenantId: 'tenant-mk-c', authUser: { userId: 'user-mk-c' } } }
+      );
+
+      expect(result.success).toBe(true);
+      // Must NOT have selected the EV CO2 receipt (different domain entirely)
+      const receiptId = result.metadata?.receiptSelection?.receiptId;
+      expect(receiptId).not.toBe('ev-charging-co2-optimization-v1');
+    });
+
+    // ── Test D: Strategic governance queries remain advisory ──────────────────
+
+    it('TestD: strategic Redispatch Readiness discussion stays advisory without auto-executing tools', async () => {
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message:
+            'Wir diskutieren strategisch, ob wir eine Redispatch-Readiness-Map für unsere Region erstellen sollen. Was wären die Vorteile?',
+          sessionId: `governance-d-${Date.now()}`,
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          knownContext: {},
+        },
+        { meta: { tenantId: 'tenant-gov-d', authUser: { userId: 'user-gov-d' } } }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.chatMode).toBe('consultation');
+      expect(result.reply).toBeTruthy();
+      // Strategic governance queries must NOT trigger EV CO2 receipt
+      const receiptUsed = result.metadata?.receiptSelection?.execution?.used;
+      expect(receiptUsed).not.toBe(true);
+      const receiptId = result.metadata?.receiptSelection?.receiptId;
+      expect(receiptId).not.toBe('ev-charging-co2-optimization-v1');
+    });
+
+    // ── Unit tests for service helper methods ─────────────────────────────────
+
+    it('isEvCo2ChargingRequest: detects combined charging+CO2 from single message', () => {
+      const svc = getService();
+      expect(svc.isEvCo2ChargingRequest('Wann laden CO2 mein E-Auto?', {}, null)).toBe(true);
+      expect(svc.isEvCo2ChargingRequest('wallbox laden grünstrom', {}, null)).toBe(true);
+    });
+
+    it('isEvCo2ChargingRequest: returns false when only charging signal present', () => {
+      const svc = getService();
+      expect(svc.isEvCo2ChargingRequest('Wann soll ich mein E-Auto laden?', {}, null)).toBe(false);
+    });
+
+    it('isEvCo2ChargingRequest: returns false when only CO2 signal present', () => {
+      const svc = getService();
+      expect(svc.isEvCo2ChargingRequest('Möglichst wenig CO2 Emission.', {}, null)).toBe(false);
+    });
+
+    it('isEvCo2ChargingRequest: detects combined intent across session history', () => {
+      const svc = getService();
+      const session = {
+        l3: {
+          history: [
+            { role: 'user', text: 'Wann soll ich mein E-Auto laden?' },
+            { role: 'assistant', text: 'Bitte nenne deinen Standort.' },
+          ],
+        },
+      };
+      // Turn 3 message has CO2 only — charging intent is in history
+      expect(
+        svc.isEvCo2ChargingRequest(
+          'Ich möchte möglichst wenig CO2 Emission haben und brauche 4 Stunden Strom.',
+          {},
+          session
+        )
+      ).toBe(true);
+    });
+
+    it('extractMultiTurnContextHints: returns empty object for null/empty session', () => {
+      const svc = getService();
+      expect(svc.extractMultiTurnContextHints(null)).toEqual({});
+      expect(svc.extractMultiTurnContextHints({ l3: {} })).toEqual({});
+      expect(svc.extractMultiTurnContextHints({ l3: { history: [] } })).toEqual({});
+    });
+
+    it('extractMultiTurnContextHints: extracts postal code and city from user turns', () => {
+      const svc = getService();
+      const session = {
+        l3: {
+          history: [
+            { role: 'assistant', text: 'Bitte Standort nennen.' },
+            { role: 'user', text: 'Mein Netzanschluss ist in 69256 Mauer.' },
+          ],
+        },
+      };
+      const hints = svc.extractMultiTurnContextHints(session);
+      expect(hints.postalCode).toBe('69256');
+      expect(hints.postleitzahl).toBe('69256');
+      expect(hints.city).toBe('Mauer');
+      expect(hints.location).toBe('Mauer');
+    });
+
+    it('extractMultiTurnContextHints: does not extract postal codes from assistant turns', () => {
+      const svc = getService();
+      const session = {
+        l3: {
+          history: [
+            { role: 'assistant', text: 'Für Standort 12345 Berlin empfehle ich folgendes.' },
+            { role: 'user', text: 'Danke, aber ich habe keine PLZ genannt.' },
+          ],
+        },
+      };
+      const hints = svc.extractMultiTurnContextHints(session);
+      expect(hints.postalCode).toBeUndefined();
+    });
+
+    it('buildPreferredReceiptsForTurn: injects EV CO2 receipt from multi-turn history signals', () => {
+      const svc = getService();
+      const session = {
+        l3: {
+          history: [{ role: 'user', text: 'Wann soll ich mein E-Auto laden?' }],
+        },
+      };
+      const preferred = svc.buildPreferredReceiptsForTurn(
+        'Ich möchte möglichst wenig CO2 Emission.',
+        {},
+        [],
+        session
+      );
+      expect(preferred[0]).toBe('ev-charging-co2-optimization-v1');
+    });
+
+    it('buildPreferredReceiptsForTurn: does not inject EV CO2 for unrelated strategic query', () => {
+      const svc = getService();
+      const session = {
+        l3: {
+          history: [{ role: 'user', text: 'Was sind die Vorteile einer KI-Governance?' }],
+        },
+      };
+      const preferred = svc.buildPreferredReceiptsForTurn(
+        'Welche Risiken gibt es bei Redispatch-Auktionen?',
+        {},
+        [],
+        session
+      );
+      expect(preferred).not.toContain('ev-charging-co2-optimization-v1');
+    });
+
+    it('ev_charging_co2_optimization evidence registry entry exists with correct optionality', () => {
+      const { getEvidenceRequirements } = require('../src/evidence-registry');
+      const reqs = getEvidenceRequirements('ev_charging_co2_optimization');
+      expect(reqs).not.toBeNull();
+      expect(Array.isArray(reqs.sources)).toBe(true);
+
+      const requiredIds = reqs.sources.filter((s) => !s.optional).map((s) => s.id);
+      const optionalIds = reqs.sources.filter((s) => s.optional).map((s) => s.id);
+
+      expect(requiredIds).toContain('co2_forecast');
+      expect(requiredIds).toContain('location');
+      expect(optionalIds).toContain('vnb_identity');
+      expect(optionalIds).toContain('day_ahead_prices');
+    });
+  });
 });

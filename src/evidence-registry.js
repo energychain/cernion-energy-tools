@@ -66,6 +66,49 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  // EV charging CO2 optimization — read-only blueprint, consultation mode allowed.
+  // required: location + CO2 forecast; optional: spot prices, VNB identity.
+  // Missing optional evidence must never block the answer — only appear as caveats.
+  ev_charging_co2_optimization: {
+    sources: [
+      {
+        id: 'location',
+        label: 'Standort / PLZ (für CO₂-Prognose)',
+        resolvedBy: [],
+        contextKeys: ['postalCode', 'postleitzahl', 'city', 'location'],
+        optional: false,
+      },
+      {
+        id: 'charging_duration',
+        label: 'Ladedauer (Stunden)',
+        resolvedBy: [],
+        contextKeys: ['chargingDurationHours', 'chargingDuration', 'duration'],
+        optional: false,
+      },
+      {
+        id: 'co2_forecast',
+        label: 'CO₂-Intensitätsprognose (GrünstromIndex)',
+        resolvedBy: ['energy-market.co2Intensity'],
+        contextKeys: ['co2IntensityForecast', 'gruenstromindex'],
+        optional: false,
+      },
+      {
+        id: 'day_ahead_prices',
+        label: 'Day-Ahead-Preise (optional, nur für Kostenvergleich)',
+        resolvedBy: ['energy-market.prices'],
+        contextKeys: ['dayAheadPrices'],
+        optional: true,
+      },
+      {
+        id: 'vnb_identity',
+        label: 'VNB-Identität (optional, für §14a-Hinweise)',
+        resolvedBy: ['grid-operations.marketPartners', 'grid-operations.vnbLookup'],
+        contextKeys: ['gridOperatorId', 'bdewCode', 'vnbName'],
+        optional: true,
+      },
+    ],
+  },
+
   // Phase 5: semantic evidence bundle for near-term Redispatch probability
   // prompts (e.g. "nächste Tage", "morgen", "kommende Woche").
   redispatch_probability_forecast: {
