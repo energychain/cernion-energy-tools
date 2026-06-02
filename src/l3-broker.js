@@ -17,6 +17,57 @@ const { loadBlueprint, listBlueprints } = require('./blueprint-registry');
 // Minimum positive signal hits required to trigger a blueprint match
 const MATCH_THRESHOLD = 2;
 
+// Common semantic prefixes that should be treated as aliases for the base key name.
+// e.g. "gridCapacityKW" and "requestedCapacityKW" both normalise to "capacitykw".
+const KEY_NORMALIZE_PREFIXES = ['grid', 'requested'];
+
+/**
+ * Strips one leading semantic prefix (camelCase boundary) and lowercases.
+ * "gridCapacityKW" → "capacitykw", "requestedCapacityKW" → "capacitykw"
+ */
+function _normalizeKey(key) {
+  for (const prefix of KEY_NORMALIZE_PREFIXES) {
+    if (
+      key.length > prefix.length &&
+      key.slice(0, prefix.length).toLowerCase() === prefix &&
+      key[prefix.length] === key[prefix.length].toUpperCase()
+    ) {
+      return key.slice(prefix.length).toLowerCase();
+    }
+  }
+  return key.toLowerCase();
+}
+
+/**
+ * Resolves a value for `key` across one or more source objects.
+ * First tries an exact key match, then falls back to normalised-key comparison
+ * so aliases like "gridCapacityKW" / "requestedCapacityKw" all resolve "capacityKW".
+ */
+function _resolveAliasedKey(key, ...sources) {
+  const normalizedTarget = _normalizeKey(key);
+  for (const src of sources) {
+    if (!src) continue;
+    if (src[key] != null) return src[key];
+    for (const [k, v] of Object.entries(src)) {
+      if (v != null && _normalizeKey(k) === normalizedTarget) return v;
+    }
+  }
+  return null;
+}
+
+/**
+ * Coerces a value to number.
+ * Handles numeric strings like "250" or "250 kW" (parseFloat stops at first non-numeric char).
+ */
+function _coerceToNumber(value) {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const n = parseFloat(value);
+    return isNaN(n) ? null : n;
+  }
+  return null;
+}
+
 function _buildHaystack(message, knownContext) {
   return [message, knownContext?.intent, knownContext?.domainIntent, knownContext?.topic]
     .filter(Boolean)
@@ -97,7 +148,11 @@ function _buildParamsTemplate(blueprint, knownContext, promptHints) {
     ) {
       params[key] = inputDef.resolveStrategy.defaultValue;
     } else {
-      params[key] = knownContext?.[key] ?? promptHints?.[key] ?? null;
+      let value = _resolveAliasedKey(key, knownContext, promptHints);
+      if (inputDef.type === 'number' && value !== null) {
+        value = _coerceToNumber(value);
+      }
+      params[key] = value;
     }
 
     if (inputDef.required === true) {
@@ -233,5 +288,8 @@ module.exports = {
   _derivePrimaryIntent,
   _scoreBlueprintMatch,
   _requiredStepIds,
+  _normalizeKey,
+  _resolveAliasedKey,
+  _coerceToNumber,
   MATCH_THRESHOLD,
 };

@@ -6,6 +6,9 @@ const {
   _derivePrimaryIntent,
   _scoreBlueprintMatch,
   _requiredStepIds,
+  _normalizeKey,
+  _resolveAliasedKey,
+  _coerceToNumber,
   MATCH_THRESHOLD,
 } = require('../src/l3-broker');
 const { _resetCache } = require('../src/blueprint-registry');
@@ -230,6 +233,39 @@ describe('buildBlueprintPlan', () => {
       expect(plan.status).toBe('missing_inputs');
       expect(plan.missingRequiredInputs).toContain('postalCode');
       expect(plan.missingRequiredInputs).toContain('capacityKW');
+    });
+
+    test('capacityKW is resolved from requestedCapacityKW hint', () => {
+      const plan = buildBlueprintPlan('grid-connection-validation-v1', {
+        promptHints: { postalCode: '76131', requestedCapacityKW: 250 },
+      });
+      expect(plan.status).toBe('ready');
+      expect(plan.steps[0].paramsTemplate.capacityKW).toBe(250);
+    });
+
+    test('capacityKW is resolved from gridCapacityKw hint', () => {
+      const plan = buildBlueprintPlan('grid-connection-validation-v1', {
+        promptHints: { postalCode: '76131', gridCapacityKw: 250 },
+      });
+      expect(plan.status).toBe('ready');
+      expect(plan.steps[0].paramsTemplate.capacityKW).toBe(250);
+    });
+
+    test('capacityKW string "250 kW" is coerced to number 250', () => {
+      const plan = buildBlueprintPlan('grid-connection-validation-v1', {
+        promptHints: { postalCode: '76131', capacityKW: '250 kW' },
+      });
+      expect(plan.status).toBe('ready');
+      expect(plan.steps[0].paramsTemplate.capacityKW).toBe(250);
+    });
+
+    test('missing capacityKW with no aliases produces missing_inputs', () => {
+      const plan = buildBlueprintPlan('grid-connection-validation-v1', {
+        promptHints: { postalCode: '76131' },
+      });
+      expect(plan.status).toBe('missing_inputs');
+      expect(plan.missingRequiredInputs).toContain('capacityKW');
+      expect(plan.missingRequiredInputs).not.toContain('postalCode');
     });
   });
 
