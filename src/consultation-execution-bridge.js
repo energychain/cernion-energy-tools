@@ -21,6 +21,11 @@ const {
   hasLocationScope,
 } = require('./query-scope-classifier');
 
+const {
+  isSufficientForMunicipalPrecheck,
+  LOCATION_PRECISION,
+} = require('./location-resolution');
+
 const WORKFLOW_TYPES = Object.freeze({
   BESS_SCREENING: 'bess_screening',
   BESS_DEVELOPMENT: 'bess_development',
@@ -739,6 +744,10 @@ function buildExecutablePlan({
       'location',
       'postalCode',
     ]);
+    // "municipality_resolved": PLZ or Gemeinde present → sufficient for communal precheck
+    const hasMunicipality = hasInput(knownContext, ['municipality', 'location', 'postalCode']);
+    const hasSiteCoordinates = hasInput(knownContext, ['latitude', 'longitude', 'address']);
+
     if (hasState) {
       executableSteps.push({
         step: 1,
@@ -759,13 +768,32 @@ function buildExecutablePlan({
       });
     }
 
-    evidenceGates.push({
-      id: 'site_analysis_gate',
-      label: 'Standortanalyse (Gemeinde/Koordinaten)',
-      blockedBy: 'location_missing',
-      required: true,
-      description: 'Konkrete Gemeinde oder GPS-Koordinaten für Standortprüfung benötigt.',
-    });
+    if (hasMunicipality && !hasSiteCoordinates) {
+      // Gemeinde/PLZ vorhanden → kommunaler Precheck möglich.
+      // Exakte Koordinaten/Adresse fehlen noch für flächenscharfe Netzplanung.
+      // This is NOT a blocking gate — the communal precheck can proceed.
+      evidenceGates.push({
+        id: 'site_coordinates_gate',
+        label: 'Flächenscharfe Standortangabe (Koordinaten oder Adresse)',
+        blockedBy: 'site_coordinates_missing',
+        required: false,
+        locationStatus: LOCATION_PRECISION.MUNICIPALITY,
+        description:
+          'Gemeinde/PLZ vorhanden — kommunaler Precheck möglich. ' +
+          'Für präzise Netzplanung oder OSM-Analyse werden GPS-Koordinaten oder eine Adresse benötigt.',
+      });
+    } else if (!hasState) {
+      // No location at all → block with the original gate
+      evidenceGates.push({
+        id: 'site_analysis_gate',
+        label: 'Standortanalyse (Gemeinde/Koordinaten)',
+        blockedBy: 'location_missing',
+        required: true,
+        locationStatus: LOCATION_PRECISION.UNKNOWN,
+        description: 'Konkrete Gemeinde oder GPS-Koordinaten für Standortprüfung benötigt.',
+      });
+    }
+    // hasSiteCoordinates && hasMunicipality → no location gate needed at all
   }
 
   if (workflowType === WORKFLOW_TYPES.ENERGY_SHARING_READINESS) {

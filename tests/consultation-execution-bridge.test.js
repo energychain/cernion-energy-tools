@@ -473,5 +473,76 @@ describe('consultation-execution-bridge', () => {
       expect(plan.evidenceGates.map((gate) => gate.id)).toContain('nap_consent_gate');
       expect(plan.evidenceGates.map((gate) => gate.id)).toContain('nap_dlr_publication_gate');
     });
+
+    // ── Location-Resolution Gate Acceptance Tests (AT2 — Sinsheim scenario) ──
+
+    it('PA-CEB-030: BESS_SCREENING with postalCode does NOT produce location_missing gate', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'Rechenzentrum, PV, BESS und Ladepark bei 74889 Sinsheim',
+        consultation: {},
+        knownContext: { postalCode: '74889', municipality: 'Sinsheim' },
+        executionMode: 'auto',
+      });
+      expect(plan.workflowType).toBe(WORKFLOW_TYPES.BESS_SCREENING);
+
+      const locationMissingGate = plan.evidenceGates.find(
+        (g) => g.blockedBy === 'location_missing' && g.required === true
+      );
+      expect(locationMissingGate).toBeUndefined();
+    });
+
+    it('PA-CEB-031: BESS_SCREENING with postalCode produces non-blocking site_coordinates_missing gate', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'Rechenzentrum, PV, BESS bei PLZ 74889',
+        consultation: {},
+        knownContext: { postalCode: '74889' },
+        executionMode: 'auto',
+      });
+      expect(plan.workflowType).toBe(WORKFLOW_TYPES.BESS_SCREENING);
+
+      const coordsGate = plan.evidenceGates.find((g) => g.blockedBy === 'site_coordinates_missing');
+      expect(coordsGate).toBeDefined();
+      expect(coordsGate.required).toBe(false); // non-blocking
+    });
+
+    it('PA-CEB-032: BESS_SCREENING without any location still produces required location_missing gate', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'Batteriespeicher 10 MW',
+        consultation: {},
+        knownContext: { powerMW: 10 },
+        executionMode: 'auto',
+      });
+      expect(plan.workflowType).toBe(WORKFLOW_TYPES.BESS_SCREENING);
+
+      const locationMissingGate = plan.evidenceGates.find(
+        (g) => g.blockedBy === 'location_missing' && g.required === true
+      );
+      expect(locationMissingGate).toBeDefined();
+    });
+
+    it('PA-CEB-033: BESS_SCREENING with exact coordinates produces no location gate at all', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'BESS Projekt',
+        consultation: {},
+        knownContext: {
+          postalCode: '74889',
+          municipality: 'Sinsheim',
+          latitude: 49.2456,
+          longitude: 8.9734,
+        },
+        executionMode: 'auto',
+      });
+      expect(plan.workflowType).toBe(WORKFLOW_TYPES.BESS_SCREENING);
+
+      // Neither gate should appear when site coordinates are present
+      const locationMissingGate = plan.evidenceGates.find(
+        (g) => g.blockedBy === 'location_missing'
+      );
+      const coordsMissingGate = plan.evidenceGates.find(
+        (g) => g.blockedBy === 'site_coordinates_missing'
+      );
+      expect(locationMissingGate).toBeUndefined();
+      expect(coordsMissingGate).toBeUndefined();
+    });
   });
 });

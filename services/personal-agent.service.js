@@ -96,6 +96,12 @@ const {
   buildGroundedReceiptReply: buildGroundedReceiptReplyAdapter,
 } = require('../src/ev-co2-synthesis');
 const {
+  resolveLocationFromText,
+  buildLocationContextPatch,
+  buildLocationResolutionTrace,
+  classifyMarketPartnerRole,
+} = require('../src/location-resolution');
+const {
   generateText: llmGenerateText,
   generateStructured: llmGenerateStructured,
 } = require('../src/llm-client');
@@ -2134,14 +2140,33 @@ module.exports = {
           );
         }
 
-        // Hydrate brokerKnownContext with postal code / location extracted from recent session history
-        // so that blueprint receipts can be matched and evaluated in multi-turn consultation sessions
-        // (e.g. postalCode mentioned in turn 2 is still available for receipt selection in turn 3).
+        // ── Location Resolution: hydrate brokerKnownContext from current message + history ──
+        // This ensures that "74889 Sinsheim" mentioned inline in the user message reaches
+        // the consultation bridge as structured postalCode/municipality fields, even when the
+        // client does not send a pre-populated knownContext object.
+
+        // 1. Extract location from the current turn message
+        const currentMsgLocation = resolveLocationFromText(ctx.params.message, brokerKnownContext);
+        const currentMsgLocationPatch = buildLocationContextPatch(currentMsgLocation);
+        for (const [key, value] of Object.entries(currentMsgLocationPatch)) {
+          if (brokerKnownContext[key] == null && value != null) {
+            brokerKnownContext[key] = value;
+          }
+        }
+
+        // 2. Hydrate from session history (multi-turn: postalCode from a prior turn)
         const multiTurnHints = this.extractMultiTurnContextHints(session);
         for (const [key, value] of Object.entries(multiTurnHints)) {
           if (brokerKnownContext[key] == null && value != null) {
             brokerKnownContext[key] = value;
           }
+        }
+
+        // 3. Store resolution trace for agentTrace / dataLineage (best-effort, non-blocking)
+        if (currentMsgLocation.evidence.length > 0 || currentMsgLocation.municipalityResolved) {
+          brokerKnownContext._locationResolutionTrace = buildLocationResolutionTrace(
+            currentMsgLocation
+          );
         }
 
         const preferredReceiptsForTurn = this.buildPreferredReceiptsForTurn(
@@ -3177,6 +3202,7 @@ module.exports = {
             ],
             workLog: turnWorkLog.toArray(),
             reflection: receiptReflectionResult, // v0.57.5 #158
+            locationResolution: brokerKnownContext._locationResolutionTrace || null, // v0.60
           });
 
           persisted.l3.turnGraph = summarizeTurnGraph(turnGraph);
@@ -4176,6 +4202,7 @@ module.exports = {
             ...(session.l2?.userProfile?.knowledgeScopeDataPoints || []),
           ],
           workLog: turnWorkLog.toArray(),
+          locationResolution: brokerKnownContext._locationResolutionTrace || null, // v0.60
         });
 
         // Log completion
@@ -9445,6 +9472,7 @@ module.exports = {
       knowledgeScope = null,
       workLog = null, // v0.57.3
       reflection = null, // v0.57.5 #158
+      locationResolution = null, // v0.60: location resolution trace
     } = {}) {
       const toolAttempts = Array.isArray(consultation?.attemptsSummary)
         ? consultation.attemptsSummary.map((attempt) => ({
@@ -9533,6 +9561,10 @@ module.exports = {
         knowledgeScope: this.buildKnowledgeScopeTraceSummary(knowledgeScope || []),
         workLog: Array.isArray(workLog) ? workLog : [], // v0.57.3
         reflection: reflection && typeof reflection === 'object' ? reflection : undefined, // v0.57.5 #158
+        locationResolution: // v0.60: location extraction trace for DevOps/OSM/MaStR consumers
+          locationResolution && typeof locationResolution === 'object'
+            ? locationResolution
+            : undefined,
       };
     },
 

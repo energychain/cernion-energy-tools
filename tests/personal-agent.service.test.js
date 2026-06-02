@@ -7224,7 +7224,10 @@ describe('personal-agent.service', () => {
         const result = await broker.call(
           'personal-agent.chat',
           {
-            message: 'Bitte optimiere EV-Laden. Ich bin in 69256 Mauer.',
+            // No PLZ or city in message text — the reflection loop must provide the location
+            // via LLM patch. (A message with "69256 Mauer" would be auto-extracted by the
+            // location resolution layer, bypassing the reflection loop entirely.)
+            message: 'Bitte optimiere mein EV-Laden nach CO₂. Kein Standort angegeben.',
             chatMode: 'consultation',
             executionMode: 'auto',
             sessionId,
@@ -8183,6 +8186,64 @@ describe('personal-agent.service', () => {
       expect(requiredIds).toContain('location');
       expect(optionalIds).toContain('vnb_identity');
       expect(optionalIds).toContain('day_ahead_prices');
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Location Resolution Integration (Acceptance Test 2 + 6: Sinsheim scenario)
+  // Verifies that "74889 Sinsheim" in the user message is extracted into
+  // structured context and reaches the agentTrace.locationResolution field.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  describe('Location Resolution — Personal Agent integration', () => {
+    it('AT2/AT6: Bürgermeister Sinsheim query resolves location in agentTrace', async () => {
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message:
+            'Ich bin Bürgermeister von 74889 Sinsheim und soll einschätzen, ob Rechenzentrum, PV, BESS und Ladepark angesiedelt werden können.',
+          sessionId: `sinsheim-at2-${Date.now()}`,
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          knownContext: {},
+        },
+        { meta: { tenantId: 'tenant-sinsheim-at2', authUser: { userId: 'user-bgm' } } }
+      );
+
+      expect(result.success).toBe(true);
+
+      // agentTrace must contain location resolution
+      const locTrace = result.agentTrace?.locationResolution;
+      expect(locTrace).toBeTruthy();
+      expect(locTrace.postalCode).toBe('74889');
+      expect(locTrace.municipality).toMatch(/Sinsheim/i);
+      expect(locTrace.municipalityResolved).toBe(true);
+      expect(locTrace.precision).toBe('municipality_resolved');
+      expect(locTrace.siteCoordinatesMissing).toBe(true);
+    });
+
+    it('AT2: brokerKnownContext is hydrated with postalCode before consultation bridge runs', async () => {
+      // Use the service method directly to verify context hydration
+      const {
+        resolveLocationFromText,
+        buildLocationContextPatch,
+      } = require('../src/location-resolution');
+
+      const msg = 'Ich bin Bürgermeister von 74889 Sinsheim und soll einschätzen, ob Rechenzentrum möglich ist.';
+      const resolved = resolveLocationFromText(msg, {});
+      const patch = buildLocationContextPatch(resolved);
+
+      expect(patch.postalCode).toBe('74889');
+      expect(patch.municipality).toBe('Sinsheim');
+      expect(patch.city).toBe('Sinsheim');
+    });
+
+    it('AT6: locationResolution trace has source = text_extraction when extracted from message', () => {
+      const { resolveLocationFromText, buildLocationResolutionTrace } = require('../src/location-resolution');
+      const resolved = resolveLocationFromText('Standort: 74889 Sinsheim, Gewerbegebiet Nord');
+      const trace = buildLocationResolutionTrace(resolved);
+      expect(trace.source).toBe('text_extraction');
+      expect(trace.evidenceFields.length).toBeGreaterThan(0);
     });
   });
 });

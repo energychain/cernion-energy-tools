@@ -1,0 +1,19 @@
+{
+  "scenarioId": "pa-mayor-sinsheim-location-precheck",
+  "title": "Bürgermeister Sinsheim — kommunaler Energie-Vorprüfungs-Precheck",
+  "description": "Tests that a mayor asking about energy infrastructure in 74889 Sinsheim triggers structured location resolution. Evidence gate must NOT report location_missing for the Gemeinde/PLZ. VNB candidate lookup may fail without losing location context.",
+  "turns": [
+    {
+      "turnId": 1,
+      "message": "Ich bin Bürgermeister von 74889 Sinsheim und soll einschätzen, ob Rechenzentrum, PV, BESS und Ladepark angesiedelt werden können.",
+      "expected": {
+        "status": ["consulting", "partial", "awaiting_input"],
+        "locationMustBeResolved": true,
+        "locationGateNotMissing": true,
+        "postalCode": "74889",
+        "municipality": "Sinsheim",
+        "locationPrecision": "municipality_resolved"
+      }
+    }
+  ]
+}
