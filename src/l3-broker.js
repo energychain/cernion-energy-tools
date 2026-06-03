@@ -282,8 +282,30 @@ function buildBlueprintPlan(blueprintId, { knownContext = {}, promptHints = {} }
   };
 }
 
+/**
+ * Finds a blueprint by its derived primary intent string.
+ * Does NOT use signal scoring — matches exactly by ID-derived intent.
+ * Used as a fallback when detectBlueprintIntent score is below MATCH_THRESHOLD
+ * but the broker or semantic classifier already identified the intent.
+ *
+ * @param {string|null} intent - e.g. "municipal_energy_site_precheck"
+ * @returns {object|null} full blueprint document or null
+ */
+function findBlueprintByPrimaryIntent(intent) {
+  if (!intent || typeof intent !== 'string') return null;
+  const norm = intent.toLowerCase().replace(/-/g, '_');
+  const blueprints = listBlueprints();
+  for (const summary of blueprints) {
+    if (_derivePrimaryIntent(summary.id) === norm) {
+      return loadBlueprint(summary.id);
+    }
+  }
+  return null;
+}
+
 module.exports = {
   detectBlueprintIntent,
+  findBlueprintByPrimaryIntent,
   buildBlueprintPlan,
   _derivePrimaryIntent,
   _scoreBlueprintMatch,

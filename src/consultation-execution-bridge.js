@@ -1343,6 +1343,8 @@ function buildConsultationExecutionPlan({
     appliedPolicy: routingPolicy
       ? {
           sessionIntent: routingPolicy.sessionIntent || null,
+          blueprintId: routingPolicy._blueprintId || null,
+          blueprintVersion: routingPolicy._blueprintVersion || null,
           source: 'blueprint-policy',
           avoidWorkflowTypes,
         }

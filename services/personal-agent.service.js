@@ -100,7 +100,7 @@ const {
   checkStickinessRetain,
   buildSynthesisPolicyDirectives,
 } = require('../src/blueprint-policy-interpreter');
-const { detectBlueprintIntent } = require('../src/l3-broker');
+const { detectBlueprintIntent, findBlueprintByPrimaryIntent } = require('../src/l3-broker');
 const { loadBlueprint } = require('../src/blueprint-registry');
 const {
   resolveLocationFromText,
@@ -2521,18 +2521,46 @@ module.exports = {
           let _activeConsultationSynthesisPolicy = null;
           let _activeConsultationStickinessStart = null;
 
-          const _bpMatch = detectBlueprintIntent(ctx.params.message, brokerKnownContext, {});
-          if (_bpMatch) {
-            const _bpDoc = loadBlueprint(_bpMatch.blueprintId);
-            const _bpPolicy = extractBlueprintPolicy(_bpDoc);
-            _activeConsultationRoutingPolicy = _bpPolicy.routingPolicy;
+          // Enrich detection context with broker/semantic signals so that
+          // single-signal messages (e.g. "Bürgermeister von 74889 Sinsheim")
+          // reach MATCH_THRESHOLD when the broker already knows the intent.
+          const _bpDetectContext = {
+            ...brokerKnownContext,
+            intent: brokerRecommendation?.intent || brokerKnownContext?.intent || null,
+            domainIntent:
+              semanticClassification?.domainIntent ||
+              brokerKnownContext?.domainIntent ||
+              null,
+          };
+          const _bpSignalMatch = detectBlueprintIntent(ctx.params.message, _bpDetectContext, {});
+
+          // Fallback: if signal scoring misses, resolve blueprint directly by primary intent.
+          // This covers cases where the broker or semantic classifier already identified the
+          // blueprint intent but the message alone had < MATCH_THRESHOLD signal hits.
+          const _bpDocForPolicy = _bpSignalMatch
+            ? loadBlueprint(_bpSignalMatch.blueprintId)
+            : findBlueprintByPrimaryIntent(brokerRecommendation?.intent) ||
+              findBlueprintByPrimaryIntent(semanticClassification?.domainIntent) ||
+              null;
+
+          if (_bpDocForPolicy) {
+            const _bpPolicy = extractBlueprintPolicy(_bpDocForPolicy);
+            // Embed blueprint identity so appliedPolicy exposes blueprintId/version to callers.
+            _activeConsultationRoutingPolicy = _bpPolicy.routingPolicy
+              ? {
+                  ..._bpPolicy.routingPolicy,
+                  _blueprintId: _bpDocForPolicy.id,
+                  _blueprintVersion: _bpDocForPolicy.version || null,
+                }
+              : null;
             _activeConsultationSynthesisPolicy = _bpPolicy.synthesisPolicy;
             _activeConsultationStickinessStart = _consultationTurnIndex;
           } else {
             const _sessionRp = session?.l3?.activeRoutingPolicy || null;
-            const _sessionStart = typeof session?.l3?.activeStickinessStartTurn === 'number'
-              ? session.l3.activeStickinessStartTurn
-              : null;
+            const _sessionStart =
+              typeof session?.l3?.activeStickinessStartTurn === 'number'
+                ? session.l3.activeStickinessStartTurn
+                : null;
             if (_sessionRp && _sessionStart !== null) {
               const _elapsed = _consultationTurnIndex - _sessionStart;
               const _sticky = checkStickinessRetain(_sessionRp, ctx.params.message, _elapsed);
