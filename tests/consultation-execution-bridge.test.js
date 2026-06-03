@@ -489,6 +489,15 @@ describe('consultation-execution-bridge', () => {
         (g) => g.blockedBy === 'location_missing' && g.required === true
       );
       expect(locationMissingGate).toBeUndefined();
+
+      const spatialStep = plan.executableSteps.find(
+        (step) => step.action === 'osm-geo.infrastructureNearby'
+      );
+      expect(spatialStep).toBeDefined();
+      expect(spatialStep.purpose).toBe('municipal_spatial_context');
+      expect(spatialStep.params.location).toMatch(/74889/);
+      expect(spatialStep.params.location).toMatch(/Sinsheim/);
+      expect(spatialStep.disclaimer).toMatch(/kein Nachweis freier Netzkapazität/i);
     });
 
     it('PA-CEB-031: BESS_SCREENING with postalCode produces non-blocking site_coordinates_missing gate', () => {

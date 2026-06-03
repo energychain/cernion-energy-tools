@@ -52,6 +52,18 @@
   "execution": {
     "steps": [
       {
+        "id": "osm_spatial_context",
+        "action": "osm-geo.infrastructureNearby",
+        "params": {
+          "location": "{{inputs.postalCode}} {{inputs.municipality}}",
+          "radiusMeters": 5000,
+          "infraTypes": ["substation", "transformer", "line", "cable"],
+          "maxResults": 25,
+          "include_geometry": false
+        },
+        "note": "Öffentlicher OSM-Raum- und Infrastrukturkontext als Vertrauensanker für die kommunale Erstberatung. Kein Netzkapazitäts- oder Netzgebietsnachweis."
+      },
+      {
         "id": "vnb_market_lookup",
         "action": "grid-operations.marketPartners",
         "params": {
@@ -85,10 +97,16 @@
     "evidenceRequired": [
       "steps.mastr_operator_fallback.output"
     ],
+    "guidance": [
+      "Beginne mit der expliziten Standortauflösung: PLZ, Gemeinde, Bundesland und Genauigkeit.",
+      "Spiegele OSM-Kontext als öffentlichen Spatial-Context-Layer, wenn steps.osm_spatial_context.output vorliegt.",
+      "Formuliere OSM-Funde als Plausibilitäts- und Vertrauensanker, nicht als Netzkapazitäts- oder Netzgebietsnachweis.",
+      "Nutze den OSM-Kontext für bessere Rückfragen zu konkreter Fläche, Verkehrslage, Gewerbekontext, PV/BESS/Ladepark-Kombination und Abwärmeoptionen."
+    ],
     "templates": {
-      "success_with_candidate": "Kommunaler Precheck für {{inputs.municipality}} (PLZ {{inputs.postalCode}}): Netzbetreiber-Kandidat aus MaStR-Bestand: {{steps.mastr_operator_fallback.output.operatorCandidates[0].name}} ({{steps.mastr_operator_fallback.output.operatorCandidates[0].assetCount}} Anlagen). Hinweis: Nicht authoritative — für Rechenzentrum, BESS oder Ladepark ist eine formelle Netzanschlussanfrage beim zuständigen Netzbetreiber erforderlich. Flächenscharfe Netzplanung benötigt GPS-Koordinaten oder Adresse.",
-      "ambiguous_candidates": "Kommunaler Precheck für {{inputs.municipality}} (PLZ {{inputs.postalCode}}): Mehrere Netzbetreiber im MaStR-Bestand gefunden ({{steps.mastr_operator_fallback.output.operatorCandidates.length}} Kandidaten). Keine eindeutige VNB-Zuordnung möglich. Nächster Schritt: Konkrete Fläche oder Adresse angeben und formellen Netzanschlussantrag stellen.",
-      "no_data": "Für {{inputs.municipality}} (PLZ {{inputs.postalCode}}) konnten keine MaStR-Anlagen gefunden werden. VNB-Zuordnung erfordert formellen Netzanschlussantrag. Empfehlung: Direkt bei Netze BW oder dem regionalen Netzbetreiber anfragen."
+      "success_with_candidate": "Kommunaler Precheck für {{inputs.municipality}} (PLZ {{inputs.postalCode}}): Standort auf Gemeindeebene erkannt. OSM-Kontext wird als öffentlicher Spatial-Context-Layer gespiegelt, soweit verfügbar; er schafft Orientierung, ist aber kein Netzkapazitäts- oder Netzgebietsnachweis. Netzbetreiber-Kandidat aus MaStR-Bestand: {{steps.mastr_operator_fallback.output.operatorCandidates[0].name}} ({{steps.mastr_operator_fallback.output.operatorCandidates[0].assetCount}} Anlagen). Hinweis: Nicht authoritative — für Rechenzentrum, BESS oder Ladepark ist eine formelle Netzanschlussanfrage beim zuständigen Netzbetreiber erforderlich. Flächenscharfe Netzplanung benötigt GPS-Koordinaten oder Adresse.",
+      "ambiguous_candidates": "Kommunaler Precheck für {{inputs.municipality}} (PLZ {{inputs.postalCode}}): Standort auf Gemeindeebene erkannt. OSM-Kontext wird als öffentlicher Spatial-Context-Layer gespiegelt, soweit verfügbar; er schafft Orientierung, ist aber kein Netzkapazitäts- oder Netzgebietsnachweis. Mehrere Netzbetreiber im MaStR-Bestand gefunden ({{steps.mastr_operator_fallback.output.operatorCandidates.length}} Kandidaten). Keine eindeutige VNB-Zuordnung möglich. Nächster Schritt: Konkrete Fläche oder Adresse angeben und formellen Netzanschlussantrag stellen.",
+      "no_data": "Für {{inputs.municipality}} (PLZ {{inputs.postalCode}}) ist eine kommunale Standortorientierung möglich. OSM-Kontext kann als öffentlicher Spatial-Context-Layer gespiegelt werden, ist aber kein Netzkapazitäts- oder Netzgebietsnachweis. Es konnten keine MaStR-Anlagen gefunden werden. VNB-Zuordnung erfordert formellen Netzanschlussantrag. Empfehlung: regionalen Netzbetreiber belastbar über Netzanschlussprozess klären."
     }
   },
   "persistence": {
@@ -96,7 +114,8 @@
       "municipalPrecheckPostalCode": "inputs.postalCode",
       "municipalPrecheckMunicipality": "inputs.municipality",
       "municipalPrecheckOperatorCandidate": "steps.mastr_operator_fallback.output.operatorCandidates[0].name",
-      "municipalPrecheckOperatorAuthoritative": "false"
+      "municipalPrecheckOperatorAuthoritative": "false",
+      "municipalPrecheckOsmContextAvailable": "steps.osm_spatial_context.output.success"
     }
   }
 }

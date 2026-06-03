@@ -768,6 +768,39 @@ function buildExecutablePlan({
       });
     }
 
+    if (hasMunicipality) {
+      const spatialQuery = [knownContext.postalCode, knownContext.municipality || knownContext.location]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+
+      executableSteps.push({
+        step: executableSteps.length + 1,
+        action: 'osm-geo.infrastructureNearby',
+        label: 'OSM-Raum- und Infrastrukturkontext spiegeln',
+        params: {
+          location: spatialQuery || knownContext.municipality || knownContext.location || knownContext.postalCode,
+          radiusMeters: 5000,
+          infraTypes: ['substation', 'transformer', 'line', 'cable'],
+          maxResults: 25,
+          include_geometry: false,
+        },
+        canExecute: true,
+        purpose: 'municipal_spatial_context',
+        disclaimer:
+          'OSM-Kontext ist ein öffentlicher Plausibilitäts- und Vertrauensanker; er ist kein Nachweis freier Netzkapazität oder zuständiger Netzbetreiber.',
+      });
+    } else {
+      evidenceGates.push({
+        id: 'municipal_spatial_context_gate',
+        label: 'OSM-Raumkontext für kommunalen Precheck',
+        blockedBy: 'location_missing',
+        required: false,
+        description:
+          'Gemeinde oder PLZ benötigt, um öffentlichen OSM-Kontext sichtbar in die Beratung einzubeziehen.',
+      });
+    }
+
     if (hasMunicipality && !hasSiteCoordinates) {
       // Gemeinde/PLZ vorhanden → kommunaler Precheck möglich.
       // Exakte Koordinaten/Adresse fehlen noch für flächenscharfe Netzplanung.
@@ -780,7 +813,7 @@ function buildExecutablePlan({
         locationStatus: LOCATION_PRECISION.MUNICIPALITY,
         description:
           'Gemeinde/PLZ vorhanden — kommunaler Precheck möglich. ' +
-          'Für präzise Netzplanung oder OSM-Analyse werden GPS-Koordinaten oder eine Adresse benötigt.',
+          'Für präzise Netzplanung, Grundstücksbezug oder punktgenaue OSM-Analyse werden GPS-Koordinaten oder eine Adresse benötigt.',
       });
     } else if (!hasState) {
       // No location at all → block with the original gate
@@ -794,6 +827,14 @@ function buildExecutablePlan({
       });
     }
     // hasSiteCoordinates && hasMunicipality → no location gate needed at all
+
+    assumptions.push({
+      type: 'working_assumption',
+      statement:
+        'OSM wird im kommunalen Precheck als öffentlicher Spatial-Context-Layer gespiegelt, nicht als Netzkapazitäts- oder Netzgebietsnachweis.',
+      basis: 'domain_guardrail',
+      status: 'explicit',
+    });
   }
 
   if (workflowType === WORKFLOW_TYPES.ENERGY_SHARING_READINESS) {
