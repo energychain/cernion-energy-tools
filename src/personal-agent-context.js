@@ -486,6 +486,18 @@ function buildPersistableSessionState(input = {}) {
           timestamp: input.l3.lastClassification.timestamp || null,
         }
       : null;
+  const activeRoutingPolicy =
+    input?.l3?.activeRoutingPolicy && typeof input.l3.activeRoutingPolicy === 'object'
+      ? input.l3.activeRoutingPolicy
+      : null;
+  const activeSynthesisPolicy =
+    input?.l3?.activeSynthesisPolicy && typeof input.l3.activeSynthesisPolicy === 'object'
+      ? input.l3.activeSynthesisPolicy
+      : null;
+  const activeStickinessStartTurn =
+    typeof input?.l3?.activeStickinessStartTurn === 'number'
+      ? input.l3.activeStickinessStartTurn
+      : null;
 
   const payload = {
     id: String(input.id || ''),
@@ -532,6 +544,9 @@ function buildPersistableSessionState(input = {}) {
           : null,
       turnGraph:
         input?.l3?.turnGraph && typeof input.l3.turnGraph === 'object' ? input.l3.turnGraph : null,
+      activeRoutingPolicy,
+      activeSynthesisPolicy,
+      activeStickinessStartTurn,
       criticalStepCheckpoints,
     },
     createdAt: input.createdAt || new Date().toISOString(),

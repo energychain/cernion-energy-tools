@@ -122,6 +122,57 @@ describe('personal-agent-context', () => {
     expect(persisted.l3.stateMachine.currentState).toBe('completed');
   });
 
+  it('keeps active blueprint policy stickiness in persisted L3 state', () => {
+    const persisted = buildPersistableSessionState({
+      id: 'session-policy',
+      tenantId: 'default',
+      userId: 'u-1',
+      l1: { tenantFacts: [] },
+      l2: { userProfile: {} },
+      l3: {
+        history: [],
+        activeRoutingPolicy: {
+          sessionIntent: 'municipal_energy_site_precheck',
+          stickiness: {
+            retainForTurns: 6,
+            unlessNegativeSignals: ['nap wallet', 'prosumer onboarding'],
+          },
+          avoidWorkflowTypes: ['prosumer_nap_wallet_onboarding'],
+        },
+        activeSynthesisPolicy: {
+          audience: 'municipal_official',
+          responseFrame: 'meeting_preparation',
+          doNotAskFor: ['nap_wallet_did', 'did'],
+        },
+        activeStickinessStartTurn: 0,
+      },
+    });
+
+    expect(persisted.l3.activeRoutingPolicy.sessionIntent).toBe(
+      'municipal_energy_site_precheck'
+    );
+    expect(persisted.l3.activeRoutingPolicy.avoidWorkflowTypes).toContain(
+      'prosumer_nap_wallet_onboarding'
+    );
+    expect(persisted.l3.activeSynthesisPolicy.doNotAskFor).toContain('did');
+    expect(persisted.l3.activeStickinessStartTurn).toBe(0);
+  });
+
+  it('defaults active blueprint policy fields to null when absent', () => {
+    const persisted = buildPersistableSessionState({
+      id: 'session-no-policy',
+      tenantId: 'default',
+      userId: 'u-1',
+      l1: { tenantFacts: [] },
+      l2: { userProfile: {} },
+      l3: { history: [] },
+    });
+
+    expect(persisted.l3.activeRoutingPolicy).toBeNull();
+    expect(persisted.l3.activeSynthesisPolicy).toBeNull();
+    expect(persisted.l3.activeStickinessStartTurn).toBeNull();
+  });
+
   it('keeps turnGraph snapshots in persisted payload', () => {
     const persisted = buildPersistableSessionState({
       id: 'session-graph',
