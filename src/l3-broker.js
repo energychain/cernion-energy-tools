@@ -88,14 +88,16 @@ function _hasKnownLocation(knownContext, promptHints) {
   );
 }
 
-function _scoreBlueprintMatch(haystack, blueprint) {
+function _scoreBlueprintMatch(haystack, blueprint, opts = {}) {
   const signals = blueprint.routing?.intentSignals;
   const negativeSignals = blueprint.routing?.negativeSignals;
+  const negativeHaystack =
+    typeof opts.negativeHaystack === 'string' ? opts.negativeHaystack : haystack;
   if (!Array.isArray(signals)) return 0;
 
   if (Array.isArray(negativeSignals)) {
     for (const neg of negativeSignals) {
-      if (haystack.includes(String(neg).toLowerCase())) return 0;
+      if (negativeHaystack.includes(String(neg).toLowerCase())) return 0;
     }
   }
 
@@ -182,6 +184,7 @@ function _buildParamsTemplate(blueprint, knownContext, promptHints) {
  */
 function detectBlueprintIntent(message, knownContext = {}, promptHints = {}) {
   const haystack = _buildHaystack(message, knownContext);
+  const negativeHaystack = String(message || '').toLowerCase();
   const blueprints = listBlueprints();
 
   let best = null;
@@ -194,7 +197,7 @@ function detectBlueprintIntent(message, knownContext = {}, promptHints = {}) {
       continue;
     }
 
-    const score = _scoreBlueprintMatch(haystack, blueprint);
+    const score = _scoreBlueprintMatch(haystack, blueprint, { negativeHaystack });
     if (score >= MATCH_THRESHOLD) {
       if (!best || score > best.score) {
         best = { blueprintId: blueprint.id, score };

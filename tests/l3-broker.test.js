@@ -65,6 +65,13 @@ describe('_scoreBlueprintMatch', () => {
     expect(score).toBe(0);
   });
 
+  test('can scope negative signals to user text only', () => {
+    const score = _scoreBlueprintMatch('ev laden grid-connection.redispatch', blueprint, {
+      negativeHaystack: 'ev laden',
+    });
+    expect(score).toBeGreaterThanOrEqual(MATCH_THRESHOLD);
+  });
+
   test('applies priorityBoost', () => {
     const boosted = _scoreBlueprintMatch('laden co2', blueprint);
     const baseline = _scoreBlueprintMatch('laden co2', {
@@ -116,6 +123,23 @@ describe('detectBlueprintIntent', () => {
     // Only one blueprint exists currently, so this verifies selection logic
     const result = detectBlueprintIntent(evMessage, evContext, evPromptHints);
     expect(result).not.toBeNull();
+  });
+
+  test('does not let broker intent text trigger blueprint negative signals', () => {
+    const message =
+      'Ich bin Bürgermeister von 74889 Sinsheim und bereite ein Treffen zu Rechenzentrum, PV, Batteriespeicher und Ladeparks vor.';
+    const result = detectBlueprintIntent(
+      message,
+      {
+        postalCode: '74889',
+        municipality: 'Sinsheim',
+        intent: 'grid-connection.fnav',
+      },
+      {}
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.blueprintId).toBe('municipal-energy-site-precheck-v1');
   });
 });
 
