@@ -109,6 +109,34 @@
       "no_data": "Für {{inputs.municipality}} (PLZ {{inputs.postalCode}}) ist eine kommunale Standortorientierung möglich. OSM-Kontext kann als öffentlicher Spatial-Context-Layer gespiegelt werden, ist aber kein Netzkapazitäts- oder Netzgebietsnachweis. Es konnten keine MaStR-Anlagen gefunden werden. VNB-Zuordnung erfordert formellen Netzanschlussantrag. Empfehlung: regionalen Netzbetreiber belastbar über Netzanschlussprozess klären."
     }
   },
+  "routingPolicy": {
+    "sessionIntent": "municipal_energy_site_precheck",
+    "priority": 90,
+    "stickiness": {
+      "retainForTurns": 6,
+      "unlessNegativeSignals": ["nap wallet", "prosumer onboarding", "mieterstrom"]
+    },
+    "llmSelectable": true
+  },
+  "synthesisPolicy": {
+    "audience": "municipal_official",
+    "responseFrame": "meeting_preparation",
+    "leadWith": ["location_resolution", "known_context", "limitations"],
+    "deprioritize": ["tool_failure_as_main_answer"],
+    "mustMention": [
+      "municipality_level_only",
+      "site_coordinates_missing",
+      "vnb_not_authoritative",
+      "grid_capacity_not_verified"
+    ],
+    "askFor": [
+      "concrete_site_or_coordinates",
+      "connection_power_mw",
+      "timeline",
+      "flexibility_requirements",
+      "waste_heat_use"
+    ]
+  },
   "persistence": {
     "l3_facts": {
       "municipalPrecheckPostalCode": "inputs.postalCode",

@@ -69,6 +69,8 @@ function validateInjection(blueprint) {
   _checkInjection(blueprint.execution, 'execution', errors);
   _checkInjection(blueprint.postProcessing, 'postProcessing', errors);
   _checkInjection(blueprint.synthesis, 'synthesis', errors);
+  _checkInjection(blueprint.routingPolicy, 'routingPolicy', errors);
+  _checkInjection(blueprint.synthesisPolicy, 'synthesisPolicy', errors);
   return errors;
 }
 

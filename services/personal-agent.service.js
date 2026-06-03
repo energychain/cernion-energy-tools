@@ -96,6 +96,13 @@ const {
   buildGroundedReceiptReply: buildGroundedReceiptReplyAdapter,
 } = require('../src/ev-co2-synthesis');
 const {
+  extractBlueprintPolicy,
+  checkStickinessRetain,
+  buildSynthesisPolicyDirectives,
+} = require('../src/blueprint-policy-interpreter');
+const { detectBlueprintIntent } = require('../src/l3-broker');
+const { loadBlueprint } = require('../src/blueprint-registry');
+const {
   resolveLocationFromText,
   buildLocationContextPatch,
   buildLocationResolutionTrace,
@@ -2506,6 +2513,37 @@ module.exports = {
           });
           const recentHistoryWindow = this.buildConsultationRecentHistoryWindow(session);
 
+          // Resolve blueprint policy for this consultation turn (stickiness + synthesis framing)
+          const _consultationTurnIndex = Array.isArray(session.l3?.history)
+            ? session.l3.history.length
+            : 0;
+          let _activeConsultationRoutingPolicy = null;
+          let _activeConsultationSynthesisPolicy = null;
+          let _activeConsultationStickinessStart = null;
+
+          const _bpMatch = detectBlueprintIntent(ctx.params.message, brokerKnownContext, {});
+          if (_bpMatch) {
+            const _bpDoc = loadBlueprint(_bpMatch.blueprintId);
+            const _bpPolicy = extractBlueprintPolicy(_bpDoc);
+            _activeConsultationRoutingPolicy = _bpPolicy.routingPolicy;
+            _activeConsultationSynthesisPolicy = _bpPolicy.synthesisPolicy;
+            _activeConsultationStickinessStart = _consultationTurnIndex;
+          } else {
+            const _sessionRp = session?.l3?.activeRoutingPolicy || null;
+            const _sessionStart = typeof session?.l3?.activeStickinessStartTurn === 'number'
+              ? session.l3.activeStickinessStartTurn
+              : null;
+            if (_sessionRp && _sessionStart !== null) {
+              const _elapsed = _consultationTurnIndex - _sessionStart;
+              const _sticky = checkStickinessRetain(_sessionRp, ctx.params.message, _elapsed);
+              if (_sticky.retain) {
+                _activeConsultationRoutingPolicy = _sessionRp;
+                _activeConsultationSynthesisPolicy = session?.l3?.activeSynthesisPolicy || null;
+                _activeConsultationStickinessStart = _sessionStart;
+              }
+            }
+          }
+
           const consultationResult = await this.handleConsultationTurn(ctx, {
             message: ctx.params.message,
             brokerRecommendation,
@@ -2521,6 +2559,8 @@ module.exports = {
             executionTrace,
             toolCallTracker,
             recentHistoryWindow,
+            synthesisPolicy: _activeConsultationSynthesisPolicy,
+            routingPolicy: _activeConsultationRoutingPolicy,
           });
 
           const consultationExecution = {
@@ -2645,6 +2685,12 @@ module.exports = {
               stateMachine: summarizeStateMachine(stateMachine),
               executionStateGraph: summarizeExecutionStateGraph(executionStateGraph),
               responseStrategy,
+              activeRoutingPolicy: _activeConsultationRoutingPolicy || null,
+              activeSynthesisPolicy: _activeConsultationSynthesisPolicy || null,
+              activeStickinessStartTurn:
+                _activeConsultationStickinessStart !== null
+                  ? _activeConsultationStickinessStart
+                  : null,
             },
             createdAt: session.createdAt,
           });
@@ -5421,6 +5467,8 @@ module.exports = {
       recentHistoryWindow = [],
       observations = [],
       toolRegistry = [],
+      synthesisPolicy = null,
+      routingPolicy = null,
     }) {
       const facts = [];
       const knownFacts = resolvedParams && typeof resolvedParams === 'object' ? resolvedParams : {};
@@ -5509,6 +5557,15 @@ module.exports = {
           facts.push(
             `- ${tool.action}: ${tool.description}${tool.guidance ? ` | ${tool.guidance}` : ''}`
           );
+        }
+      }
+
+      const synthPolicyDirectives = buildSynthesisPolicyDirectives(synthesisPolicy, routingPolicy);
+      if (synthPolicyDirectives.length > 0) {
+        facts.push('');
+        facts.push('Blueprint-Syntheserichtlinien:');
+        for (const directive of synthPolicyDirectives) {
+          facts.push(directive);
         }
       }
 
@@ -6132,6 +6189,8 @@ module.exports = {
       const knowledgeContext = input.knowledgeContext || null;
       const responseStrategy = input.responseStrategy || null;
       const knownContext = input.knownContext || {};
+      const synthesisPolicy = input.synthesisPolicy || null;
+      const routingPolicy = input.routingPolicy || null;
       const recentHistoryWindow = Array.isArray(input.recentHistoryWindow)
         ? input.recentHistoryWindow
         : [];
@@ -6377,6 +6436,8 @@ module.exports = {
               recentHistoryWindow,
               observations,
               toolRegistry,
+              synthesisPolicy,
+              routingPolicy,
             }),
           ].join('\n');
 
@@ -6907,6 +6968,8 @@ module.exports = {
           recentHistoryWindow,
           observations,
           toolRegistry,
+          synthesisPolicy,
+          routingPolicy,
         });
         const synthesisTimeoutMs = this.resolveConsultationSynthesisTimeoutMs();
 
@@ -7289,6 +7352,8 @@ module.exports = {
           : {};
       const knowledgeContext = input.knowledgeContext || null;
       const responseStrategy = input.responseStrategy || null;
+      const synthesisPolicy = input.synthesisPolicy || null;
+      const routingPolicy = input.routingPolicy || null;
       const recentHistoryWindow = Array.isArray(input.recentHistoryWindow)
         ? input.recentHistoryWindow
         : this.buildConsultationRecentHistoryWindow(input.session || null);
@@ -7345,6 +7410,8 @@ module.exports = {
         responseStrategy,
         recentHistoryWindow,
         consultationDebugSink,
+        synthesisPolicy,
+        routingPolicy,
       });
       if (agenticConsultation) {
         const debugTrace = Array.isArray(agenticConsultation.debugTrace)
