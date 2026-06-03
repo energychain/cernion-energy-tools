@@ -1185,6 +1185,49 @@ function assessExecutionReadiness({
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
+ * Resolves a permitted workflow type when the classified type is blocked by avoidWorkflowTypes.
+ * Falls back to semanticWorkflowType if valid, otherwise advisory_only.
+ *
+ * @param {string|null} semanticWorkflowType - workflowType from semanticClassification
+ * @param {string[]} avoidWorkflowTypes      - types that must not be used
+ * @returns {string}
+ */
+function _resolvePermittedWorkflowType(semanticWorkflowType, avoidWorkflowTypes) {
+  if (
+    semanticWorkflowType &&
+    !avoidWorkflowTypes.includes(semanticWorkflowType) &&
+    Object.values(WORKFLOW_TYPES).includes(semanticWorkflowType)
+  ) {
+    return semanticWorkflowType;
+  }
+  return WORKFLOW_TYPES.ADVISORY_ONLY;
+}
+
+/**
+ * Filters missingInputs by removing any entries whose param matches a doNotAskFor entry.
+ * Matching is case-insensitive and normalises underscores/hyphens/spaces.
+ *
+ * @param {object[]} missingInputs
+ * @param {string[]} doNotAskFor
+ * @returns {object[]}
+ */
+function _filterSuppressedInputs(missingInputs, doNotAskFor) {
+  if (!Array.isArray(doNotAskFor) || doNotAskFor.length === 0) return missingInputs;
+  const norm = (s) => String(s || '').toLowerCase().replace(/[_\s-]+/g, '');
+  return (Array.isArray(missingInputs) ? missingInputs : []).filter((missing) => {
+    const normParam = norm(missing.param);
+    return !doNotAskFor.some((excluded) => {
+      const normExcluded = norm(excluded);
+      return (
+        normParam === normExcluded ||
+        normExcluded.includes(normParam) ||
+        normParam.includes(normExcluded)
+      );
+    });
+  });
+}
+
+/**
  * Builds the complete consultation execution plan artifact.
  *
  * @param {object} input
@@ -1195,6 +1238,8 @@ function assessExecutionReadiness({
  * @param {array} input.extractedInputs     - Pre-extracted inputs [{param, value, source, confidence}, ...]
  * @param {object} input.responseStrategy   - Response strategy (for audience/abstractionLevel)
  * @param {string} input.executionMode      - 'auto' | 'hitl'
+ * @param {object|null} input.routingPolicy - Blueprint routing policy (avoidWorkflowTypes, stickiness)
+ * @param {object|null} input.synthesisPolicy - Blueprint synthesis policy (doNotAskFor, deprioritize)
  * @returns {object} executionReadiness artifact
  */
 function buildConsultationExecutionPlan({
@@ -1206,6 +1251,8 @@ function buildConsultationExecutionPlan({
   extractedInputs = [],
   responseStrategy = {},
   executionMode = 'auto',
+  routingPolicy = null,
+  synthesisPolicy = null,
 } = {}) {
   const consultationEnvelope = {
     ...(consultation || {}),
@@ -1223,12 +1270,30 @@ function buildConsultationExecutionPlan({
     extractedInputs,
   });
 
+  // Apply avoidWorkflowTypes policy: redirect blocked workflow types
+  const avoidWorkflowTypes = Array.isArray(routingPolicy?.avoidWorkflowTypes)
+    ? routingPolicy.avoidWorkflowTypes
+    : [];
+  const effectiveWorkflowType =
+    avoidWorkflowTypes.length > 0 && avoidWorkflowTypes.includes(workflowType)
+      ? _resolvePermittedWorkflowType(
+          consultationEnvelope?.semanticClassification?.workflowType,
+          avoidWorkflowTypes
+        )
+      : workflowType;
+
   const { availableInputs, missingInputs } = analyzeInputReadiness({
-    workflowType,
+    workflowType: effectiveWorkflowType,
     knownContext,
     consultation: consultationEnvelope,
     extractedInputs,
   });
+
+  // Apply doNotAskFor policy: suppress specified inputs from being asked
+  const doNotAskFor = Array.isArray(synthesisPolicy?.doNotAskFor)
+    ? synthesisPolicy.doNotAskFor
+    : [];
+  const filteredMissingInputs = _filterSuppressedInputs(missingInputs, doNotAskFor);
 
   const effectiveKnownContext = {
     ...Object.fromEntries(
@@ -1240,21 +1305,21 @@ function buildConsultationExecutionPlan({
   };
 
   const { executableSteps, evidenceGates, assumptions } = buildExecutablePlan({
-    workflowType,
+    workflowType: effectiveWorkflowType,
     knownContext: effectiveKnownContext,
-    missingInputs,
+    missingInputs: filteredMissingInputs,
   });
 
   // Only allow auto-execution when: mode is auto, no critical missing inputs, steps available
-  const criticalMissing = missingInputs.filter((m) => m.priority === 'critical');
+  const criticalMissing = filteredMissingInputs.filter((m) => m.priority === 'critical');
   const canAutoExecute =
     executionMode === 'auto' &&
     criticalMissing.length === 0 &&
     executableSteps.some((s) => s.canExecute);
 
   const { readiness, canExecuteNow, nextUserQuestion } = assessExecutionReadiness({
-    workflowType,
-    missingInputs,
+    workflowType: effectiveWorkflowType,
+    missingInputs: filteredMissingInputs,
     executableSteps,
     canAutoExecute,
   });
@@ -1263,10 +1328,10 @@ function buildConsultationExecutionPlan({
   const scopeClassification = classifyQueryScope(message, knownContext);
 
   return {
-    workflowType,
+    workflowType: effectiveWorkflowType,
     readiness,
     availableInputs,
-    missingInputs,
+    missingInputs: filteredMissingInputs,
     assumptions,
     executableSteps,
     evidenceGates,
@@ -1275,6 +1340,13 @@ function buildConsultationExecutionPlan({
     audience: responseStrategy?.audience || 'general',
     abstractionLevel: responseStrategy?.abstractionLevel || 'balanced',
     scopeClassification,
+    appliedPolicy: routingPolicy
+      ? {
+          sessionIntent: routingPolicy.sessionIntent || null,
+          source: 'blueprint-policy',
+          avoidWorkflowTypes,
+        }
+      : null,
   };
 }
 
@@ -1287,6 +1359,8 @@ module.exports = {
   assessExecutionReadiness,
   buildConsultationExecutionPlan,
   executeWithReceipt,
+  _resolvePermittedWorkflowType,
+  _filterSuppressedInputs,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

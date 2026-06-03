@@ -553,5 +553,51 @@ describe('consultation-execution-bridge', () => {
       expect(locationMissingGate).toBeUndefined();
       expect(coordsMissingGate).toBeUndefined();
     });
+
+    // ── blueprint-policy constraints ───────────────────────────────────────
+
+    describe('blueprint-policy constraints', () => {
+      it('PA-CEB-034: routingPolicy.avoidWorkflowTypes overrides prosumer classification', () => {
+        // Message corpus with prosumer signals — without policy this would drift to prosumer
+        const plan = buildConsultationExecutionPlan({
+          message: 'Haushaltskunde mit PV, Speicher, Wärmepumpe und Wallbox am Netzanschlusspunkt',
+          consultation: {
+            factsUsed: [{ source: 'message', value: 'Haushaltskunde PV Speicher Wallbox' }],
+            semanticClassification: {
+              workflowType: WORKFLOW_TYPES.BESS_SCREENING,
+            },
+          },
+          knownContext: {},
+          routingPolicy: {
+            sessionIntent: 'municipal_energy_site_precheck',
+            avoidWorkflowTypes: ['prosumer_nap_wallet_onboarding'],
+            stickiness: { retainForTurns: 6, unlessNegativeSignals: [] },
+          },
+          executionMode: 'auto',
+        });
+
+        expect(plan.workflowType).not.toBe(WORKFLOW_TYPES.PROSUMER_NAP_WALLET_ONBOARDING);
+        expect(plan.appliedPolicy).not.toBeNull();
+      });
+
+      it('PA-CEB-035: synthesisPolicy.doNotAskFor suppresses "did" from missingInputs', () => {
+        const plan = buildConsultationExecutionPlan({
+          message: 'Prosumer Onboarding ohne DID',
+          consultation: {
+            semanticClassification: {
+              workflowType: WORKFLOW_TYPES.PROSUMER_NAP_WALLET_ONBOARDING,
+            },
+          },
+          knownContext: {},
+          synthesisPolicy: {
+            doNotAskFor: ['did'],
+          },
+          executionMode: 'auto',
+        });
+
+        const didMissing = plan.missingInputs.find((m) => m.param === 'did');
+        expect(didMissing).toBeUndefined();
+      });
+    });
   });
 });

@@ -156,9 +156,35 @@ function resolveActivePolicy(matchedBlueprint, session) {
   return { routingPolicy: null, synthesisPolicy: null };
 }
 
+/**
+ * Filters missingInputs by removing entries whose param matches a doNotAskFor entry.
+ * Matching is case-insensitive and normalises underscores/hyphens/spaces.
+ * Exported for reuse in tests and other modules.
+ *
+ * @param {object[]} missingInputs
+ * @param {string[]} doNotAskFor
+ * @returns {object[]}
+ */
+function filterSuppressedInputs(missingInputs, doNotAskFor) {
+  if (!Array.isArray(doNotAskFor) || doNotAskFor.length === 0) return missingInputs;
+  const norm = (s) => String(s || '').toLowerCase().replace(/[_\s-]+/g, '');
+  return (Array.isArray(missingInputs) ? missingInputs : []).filter((missing) => {
+    const normParam = norm(missing.param);
+    return !doNotAskFor.some((excluded) => {
+      const normExcluded = norm(excluded);
+      return (
+        normParam === normExcluded ||
+        normExcluded.includes(normParam) ||
+        normParam.includes(normExcluded)
+      );
+    });
+  });
+}
+
 module.exports = {
   extractBlueprintPolicy,
   checkStickinessRetain,
   buildSynthesisPolicyDirectives,
   resolveActivePolicy,
+  filterSuppressedInputs,
 };

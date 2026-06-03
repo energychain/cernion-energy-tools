@@ -2861,6 +2861,8 @@ module.exports = {
               semanticClassification,
               responseStrategy: consultationResponseStrategy,
               executionMode,
+              routingPolicy: _activeConsultationRoutingPolicy || null,
+              synthesisPolicy: _activeConsultationSynthesisPolicy || null,
             });
 
             turnGraph = addWorkflowPlanNode(turnGraph, executionReadiness);
@@ -3303,6 +3305,7 @@ module.exports = {
             fileProcessing,
             routing: consultationRouting,
             responseStrategy,
+            policy: executionReadiness?.appliedPolicy || null,
             executionReadiness: executionReadiness || null,
             consultationPlanResults: consultationPlanResults || null,
             plan: {
@@ -5868,6 +5871,11 @@ module.exports = {
       collectedFacts = [],
       options = {}
     ) {
+      const synthesisPolicy = options.synthesisPolicy || null;
+      const deprioritizeToolFailure =
+        Array.isArray(synthesisPolicy?.deprioritize) &&
+        synthesisPolicy.deprioritize.includes('tool_failure_as_main_answer');
+
       const observationList = Array.isArray(observations) ? observations : [];
       const topFacts = observationList
         .slice(0, 3)
@@ -5882,13 +5890,19 @@ module.exports = {
       const uncertaintyNote = this.buildConsultationVnbUncertaintyNote(message, observationList);
       const hasUnverifiedVnbContext = Boolean(uncertaintyNote);
 
-      return {
-        reply:
-          'Kurzfazit auf Basis der erhobenen Tool-Evidenz: ' +
+      const replyText = deprioritizeToolFailure
+        ? 'Auf Basis der bisherigen Recherche liegen folgende Hinweise vor: ' +
+          (topFacts.length > 0
+            ? topFacts.map((f) => `${f.label} (noch nicht abschließend verifiziert)`).join('; ')
+            : `Zur Anfrage "${String(message || '').slice(0, 120)}" laufen noch Prüfungen.`)
+        : 'Kurzfazit auf Basis der erhobenen Tool-Evidenz: ' +
           (topFacts.length > 0
             ? topFacts.map((f) => `${f.label}: ${f.summary}`).join('; ')
             : `Zur Anfrage "${String(message || '').slice(0, 120)}" liegt bereits belastbare Evidenz vor.`) +
-          uncertaintyNote,
+          uncertaintyNote;
+
+      return {
+        reply: replyText,
         hypotheses: hasUnverifiedVnbContext
           ? [
               {
@@ -6937,6 +6951,7 @@ module.exports = {
             collectedFacts,
             {
               debugTrace: consultationDebugEnabled ? consultationDebugTrace : null,
+              synthesisPolicy,
             }
           );
         }
@@ -7025,6 +7040,7 @@ module.exports = {
               collectedFacts,
               {
                 debugTrace: consultationDebugEnabled ? consultationDebugTrace : null,
+                synthesisPolicy,
               }
             );
           }
@@ -7102,6 +7118,7 @@ module.exports = {
             collectedFacts,
             {
               debugTrace: consultationDebugEnabled ? consultationDebugTrace : null,
+              synthesisPolicy,
             }
           );
         }
