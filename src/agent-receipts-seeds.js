@@ -289,7 +289,6 @@ const RECEIPT_SEEDS = Object.freeze([
           step: 1,
           action: 'grid-operations.vnbLookup',
           description: 'Resolve or confirm grid operator identity before numeric conclusions',
-          requiredScopes: ['operatorScope'],
           paramMapping: {
             vnbName: {
               source: 'context',
@@ -303,8 +302,9 @@ const RECEIPT_SEEDS = Object.freeze([
             },
             query: {
               source: 'context',
-              contextField: 'city',
-              derivationHint: 'Use city/municipality only as a fallback search term',
+              contextField: 'message',
+              derivationHint:
+                'Use the full user message as fallback search term when operatorScope is not resolved yet',
             },
             limit: {
               source: 'default',
