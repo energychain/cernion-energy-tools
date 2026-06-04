@@ -121,6 +121,14 @@
         "prompt": "Welcher Netzbetreiber soll bewertet werden?"
       }
     },
+    "query": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "Stadtwerke Tübingen"
+      }
+    },
     "gridOperatorId": {
       "type": "string",
       "required": false,
@@ -158,10 +166,9 @@
     "steps": [
       {
         "id": "resolve_operator_identity",
-        "action": "grid-operations.vnbLookup",
+        "action": "grid-operations.marketPartners",
         "params": {
-          "vnbName": "{{inputs.gridOperator}}",
-          "query": "{{inputs.gridOperator}}",
+          "query": "{{inputs.query}}",
           "limit": 5
         }
       },
@@ -210,10 +217,7 @@
   "synthesis": {
     "evidenceRequired": [
       "steps.resolve_operator_identity.output",
-      "steps.operator_asset_analysis.output",
-      "steps.redispatch_asset_count.output",
-      "steps.redispatch_metering_readiness.output",
-      "steps.section14a_control_measures.output"
+      "steps.redispatch_metering_readiness.output"
     ],
     "templates": {
       "success": "Executive Flexibilitätsbriefing für {{inputs.gridOperator}} / {{inputs.municipality}}: Stelle die belegten Kennzahlen zuerst als Tabelle dar, nenne je Zahl die Quelle und leite danach eine vorsichtige Empfehlung zu Speicher, Rechenzentrum, Ladepark, Industrie und weiterem EE-Zubau ab. Keine MW-Zusage ohne Topologie-, Lastfluss- und Gleichzeitigkeitsnachweis.",
