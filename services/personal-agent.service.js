@@ -2545,17 +2545,22 @@ module.exports = {
 
           if (_bpDocForPolicy) {
             const _bpPolicy = extractBlueprintPolicy(_bpDocForPolicy);
-            // Embed blueprint identity so appliedPolicy exposes blueprintId/version to callers.
-            _activeConsultationRoutingPolicy = _bpPolicy.routingPolicy
-              ? {
-                  ..._bpPolicy.routingPolicy,
-                  _blueprintId: _bpDocForPolicy.id,
-                  _blueprintVersion: _bpDocForPolicy.version || null,
-                }
-              : null;
-            _activeConsultationSynthesisPolicy = _bpPolicy.synthesisPolicy;
-            _activeConsultationStickinessStart = _consultationTurnIndex;
-          } else {
+            const _bpHasPolicy = Boolean(_bpPolicy.routingPolicy || _bpPolicy.synthesisPolicy);
+            if (_bpHasPolicy) {
+              // Embed blueprint identity so appliedPolicy exposes blueprintId/version to callers.
+              _activeConsultationRoutingPolicy = _bpPolicy.routingPolicy
+                ? {
+                    ..._bpPolicy.routingPolicy,
+                    _blueprintId: _bpDocForPolicy.id,
+                    _blueprintVersion: _bpDocForPolicy.version || null,
+                  }
+                : null;
+              _activeConsultationSynthesisPolicy = _bpPolicy.synthesisPolicy;
+              _activeConsultationStickinessStart = _consultationTurnIndex;
+            }
+          }
+
+          if (!_activeConsultationRoutingPolicy && !_activeConsultationSynthesisPolicy) {
             const _sessionRp = session?.l3?.activeRoutingPolicy || null;
             const _sessionStart =
               typeof session?.l3?.activeStickinessStartTurn === 'number'
