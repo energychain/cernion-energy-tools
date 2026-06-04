@@ -245,7 +245,7 @@ const RECEIPT_SEEDS = Object.freeze([
 
   {
     receiptId: 'netzbetreiber-flexibility-potential-v1',
-    version: 1,
+    version: 2,
     status: 'active',
     title: 'Netzbetreiber-Flexibilitätspotenzial Executive Briefing',
     description:
