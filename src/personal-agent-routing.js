@@ -1849,6 +1849,7 @@ module.exports = {
   isMissingRequired,
   runExecutionPreflight,
   detectEvidenceSignalKey,
+  extractPromptHints,
   fuzzyClassifyConsultationIntent,
   planEvidence,
 };

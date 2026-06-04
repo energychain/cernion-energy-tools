@@ -63,6 +63,7 @@ const {
   pruneUndefinedDeep,
   getMissingInputs,
   runExecutionPreflight,
+  extractPromptHints,
   fuzzyClassifyConsultationIntent,
 } = require('../src/personal-agent-routing');
 const {
@@ -2532,7 +2533,12 @@ module.exports = {
               brokerKnownContext?.domainIntent ||
               null,
           };
-          const _bpSignalMatch = detectBlueprintIntent(ctx.params.message, _bpDetectContext, {});
+          const _bpPromptHints = extractPromptHints(ctx.params.message);
+          const _bpSignalMatch = detectBlueprintIntent(
+            ctx.params.message,
+            _bpDetectContext,
+            _bpPromptHints
+          );
 
           // Fallback: if signal scoring misses, resolve blueprint directly by primary intent.
           // This covers cases where the broker or semantic classifier already identified the

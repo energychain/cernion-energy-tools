@@ -11,6 +11,7 @@ const {
   MATCH_THRESHOLD,
   _derivePrimaryIntent,
 } = require('../src/l3-broker');
+const { extractPromptHints } = require('../src/personal-agent-routing');
 const { loadBlueprint, listBlueprints, setRuntimeBlueprint, _resetCache } = require('../src/blueprint-registry');
 const {
   extractBlueprintPolicy,
@@ -27,7 +28,7 @@ const {
 // ─── Runtime blueprint fixture ────────────────────────────────────────────────
 
 const RUNTIME_BP_ID = 'municipal-energy-site-precheck-v1';
-const RUNTIME_BP_VERSION = '1.0.2-runtime-routing-synthesis-policy';
+const RUNTIME_BP_VERSION = '1.0.3-runtime-sales-routing-synthesis-policy';
 
 function makeRuntimeBlueprint(overrides = {}) {
   return {
@@ -45,6 +46,9 @@ function makeRuntimeBlueprint(overrides = {}) {
         'rechenzentrum', 'data center', 'ladepark', 'ladeparks',
         'gewerbegebiet', 'ansiedelung', 'ansiedeln', 'standortprüfung',
         'bess', 'batteriespeicher', 'photovoltaik', 'ladeinfrastruktur',
+        'vertriebler', 'vertrieb', 'stadtwerk vertrieb', 'energievertrieb',
+        'kundenberater', 'vertriebsberater', 'account manager', 'key account',
+        'gewerbekunden', 'kommunalvertrieb', 'vertriebsgespraech', 'vertriebsgespräch',
       ],
       negativeSignals: ['redispatch', 'settlement', 'messkonzept', 'fnav', 'mieterstrom'],
       priorityBoost: 4,
@@ -80,6 +84,7 @@ function makeRuntimeBlueprint(overrides = {}) {
     },
     synthesisPolicy: {
       audience: 'municipal_official',
+      secondaryAudiences: ['stadtwerk_sales_advisor', 'municipal_account_manager'],
       responseFrame: 'meeting_preparation',
       leadWith: ['location_resolution', 'known_context', 'limitations'],
       deprioritize: ['tool_failure_as_main_answer'],
@@ -169,6 +174,18 @@ describe('AC-1: Runtime blueprint policy selection', () => {
     };
     const match = detectBlueprintIntent('bürgermeister von 74889 sinsheim', brokerEnrichedContext, {});
     // "bürgermeister" + "bess" (from domainIntent) = 2 hits = score 2.4 ≥ threshold
+    expect(match).not.toBeNull();
+    expect(match.blueprintId).toBe(RUNTIME_BP_ID);
+  });
+
+  it('BPS-006b: Vertriebler prompt with inline PLZ resolves runtime blueprint policy', () => {
+    const message =
+      'Ich bin Vertriebler bei einem Stadtwerk und bereite einen Termin mit der Gemeinde 74889 Sinsheim vor. Der Bürgermeister fragt nach Rechenzentrum, PV, Batteriespeicher und Ladepark.';
+    const promptHints = extractPromptHints(message);
+
+    const match = detectBlueprintIntent(message, {}, promptHints);
+
+    expect(promptHints.postalCode).toBe('74889');
     expect(match).not.toBeNull();
     expect(match.blueprintId).toBe(RUNTIME_BP_ID);
   });
