@@ -973,6 +973,48 @@ describe('personal-agent.service', () => {
     expect(session.l3.history.some((entry) => entry.role === 'assistant')).toBe(true);
   });
 
+  it('returns persisted active blueprint policy via getSession', async () => {
+    await broker.call('object-store.put', {
+      namespace: 'tenant:tenant-a:personal_agent_sessions',
+      key: 'session-policy-load',
+      payload: {
+        id: 'session-policy-load',
+        tenantId: 'tenant-a',
+        userId: 'user-1',
+        l1: { tenantFacts: [] },
+        l2: { userProfile: {} },
+        l3: {
+          history: [],
+          activeRoutingPolicy: {
+            sessionIntent: 'municipal_energy_site_precheck',
+            stickiness: { retainForTurns: 6 },
+            avoidWorkflowTypes: ['prosumer_nap_wallet_onboarding'],
+          },
+          activeSynthesisPolicy: {
+            audience: 'municipal_official',
+            doNotAskFor: ['nap_wallet_did', 'did'],
+          },
+          activeStickinessStartTurn: 0,
+        },
+      },
+    });
+
+    const session = await broker.call(
+      'personal-agent.getSession',
+      { sessionId: 'session-policy-load' },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(session.l3.activeRoutingPolicy.sessionIntent).toBe(
+      'municipal_energy_site_precheck'
+    );
+    expect(session.l3.activeRoutingPolicy.avoidWorkflowTypes).toContain(
+      'prosumer_nap_wallet_onboarding'
+    );
+    expect(session.l3.activeSynthesisPolicy.doNotAskFor).toContain('did');
+    expect(session.l3.activeStickinessStartTurn).toBe(0);
+  });
+
   it('getSession returns OBJECT_NOT_FOUND for unknown sessionId', async () => {
     await expect(
       broker.call(

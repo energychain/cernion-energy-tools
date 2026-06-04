@@ -12453,6 +12453,19 @@ module.exports = {
               payload?.l3?.turnGraph && typeof payload.l3.turnGraph === 'object'
                 ? payload.l3.turnGraph
                 : null,
+            activeRoutingPolicy:
+              payload?.l3?.activeRoutingPolicy && typeof payload.l3.activeRoutingPolicy === 'object'
+                ? payload.l3.activeRoutingPolicy
+                : null,
+            activeSynthesisPolicy:
+              payload?.l3?.activeSynthesisPolicy &&
+              typeof payload.l3.activeSynthesisPolicy === 'object'
+                ? payload.l3.activeSynthesisPolicy
+                : null,
+            activeStickinessStartTurn:
+              typeof payload?.l3?.activeStickinessStartTurn === 'number'
+                ? payload.l3.activeStickinessStartTurn
+                : null,
             criticalStepCheckpoints:
               payload?.l3?.criticalStepCheckpoints &&
               typeof payload.l3.criticalStepCheckpoints === 'object'
@@ -12510,6 +12523,9 @@ module.exports = {
             stateMachine: null,
             executionStateGraph: null,
             turnGraph: null,
+            activeRoutingPolicy: null,
+            activeSynthesisPolicy: null,
+            activeStickinessStartTurn: null,
             criticalStepCheckpoints: {},
           },
           createdAt: new Date().toISOString(),
