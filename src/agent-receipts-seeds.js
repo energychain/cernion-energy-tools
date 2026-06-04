@@ -245,7 +245,7 @@ const RECEIPT_SEEDS = Object.freeze([
 
   {
     receiptId: 'netzbetreiber-flexibility-potential-v1',
-    version: 2,
+    version: 3,
     status: 'active',
     title: 'Netzbetreiber-Flexibilitätspotenzial Executive Briefing',
     description:
@@ -287,19 +287,10 @@ const RECEIPT_SEEDS = Object.freeze([
       steps: [
         {
           step: 1,
-          action: 'grid-operations.vnbLookup',
-          description: 'Resolve or confirm grid operator identity before numeric conclusions',
+          action: 'grid-operations.marketPartners',
+          description:
+            'Resolve operator/market partner candidates before numeric conclusions',
           paramMapping: {
-            vnbName: {
-              source: 'context',
-              contextField: 'vnbName',
-              derivationHint: 'Use operator name, e.g. Stadtwerke Tübingen',
-            },
-            bdew: {
-              source: 'context',
-              contextField: 'bdewCode',
-              derivationHint: 'Use BDEW code if available',
-            },
             query: {
               source: 'context',
               contextField: 'message',
@@ -314,111 +305,16 @@ const RECEIPT_SEEDS = Object.freeze([
           },
           required: true,
           evidence: {
-            requiredOutputFields: ['vnbName', 'bdew', 'mastrId'],
+            requiredOutputFields: ['results'],
           },
-          fallbackActions: ['grid-operations.marketPartners'],
         },
         {
           step: 2,
-          action: 'grid-operations.operatorAnalysis',
-          description:
-            'Collect operator-level installation, feed-in pattern, capacity-map and Redispatch analysis',
-          paramMapping: {
-            gridOperator: {
-              source: 'context',
-              contextField: 'vnbName',
-              derivationHint: 'Operator name when MaStR/BDEW identity is not yet available',
-            },
-            gridOperatorId: {
-              source: 'fixed',
-              value: '__step_1.data.mastrId',
-              derivationHint: 'Use confirmed MaStR grid operator ID from identity lookup',
-            },
-            gridOperatorBdewCode: {
-              source: 'fixed',
-              value: '__step_1.data.bdew',
-              derivationHint: 'Use confirmed BDEW code from identity lookup',
-            },
-            includeRedispatch: {
-              source: 'fixed',
-              value: true,
-            },
-            includeFeedInPatterns: {
-              source: 'fixed',
-              value: true,
-            },
-            includeCapacityMap: {
-              source: 'fixed',
-              value: true,
-            },
-          },
-          required: true,
-          evidence: {
-            requiredOutputFields: ['installations', 'redispatch', 'feedInPatterns'],
-          },
-        },
-        {
-          step: 3,
-          action: 'assets.redispatchCount',
-          description:
-            'Fast numeric aggregation of Redispatch 2.0 eligible assets (>=100 kW) with capacity by type',
-          paramMapping: {
-            gridOperatorId: {
-              source: 'fixed',
-              value: '__step_1.data.mastrId',
-              derivationHint: 'Use confirmed MaStR grid operator ID when available',
-            },
-            bdewCode: {
-              source: 'fixed',
-              value: '__step_1.data.bdew',
-              derivationHint: 'Fallback to confirmed BDEW code',
-            },
-          },
-          required: true,
-          evidence: {
-            requiredOutputFields: ['count', 'totalCapacityMW', 'byType'],
-          },
-        },
-        {
-          step: 4,
           action: 'dashboard-api.redispatchMeteringCockpit',
           description:
-            'Readiness cockpit for Redispatch, metering, master data and governance blockers',
-          paramMapping: {
-            gridOperatorId: {
-              source: 'fixed',
-              value: '__step_1.data.mastrId',
-              derivationHint: 'Use confirmed MaStR grid operator ID when available',
-            },
-            bdewCode: {
-              source: 'fixed',
-              value: '__step_1.data.bdew',
-              derivationHint: 'Fallback to confirmed BDEW code',
-            },
-          },
-          required: false,
+            'Readiness cockpit for Redispatch, metering, master data and governance blockers; may return explicit operator-context gaps',
           evidence: {
             requiredOutputFields: ['decisionReadiness', 'evidence', 'blockingEvidenceGaps'],
-          },
-        },
-        {
-          step: 5,
-          action: 'grid-operations.controlMeasures',
-          description: 'Query §14a control measures for controllable load flexibility',
-          paramMapping: {
-            searchType: {
-              source: 'fixed',
-              value: 'vnb',
-            },
-            vnbId: {
-              source: 'fixed',
-              value: '__step_1.data.mastrId',
-              derivationHint: 'Use confirmed VNB/MaStR ID for §14a control measures',
-            },
-          },
-          required: false,
-          evidence: {
-            requiredOutputFields: ['result', 'measures'],
           },
         },
       ],
@@ -443,14 +339,14 @@ const RECEIPT_SEEDS = Object.freeze([
     evidencePolicy: {
       verifyingObservations: [
         {
-          action: 'assets.redispatchCount',
+          action: 'grid-operations.marketPartners',
           requiredStatus: 'completed',
-          requiredFields: ['count', 'totalCapacityMW'],
+          requiredFields: ['results'],
         },
         {
-          action: 'grid-operations.operatorAnalysis',
+          action: 'dashboard-api.redispatchMeteringCockpit',
           requiredStatus: 'completed',
-          requiredFields: ['installations', 'redispatch'],
+          requiredFields: ['decisionReadiness', 'evidence'],
         },
       ],
       partialAcceptance: {

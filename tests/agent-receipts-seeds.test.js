@@ -22,10 +22,10 @@ describe('agent receipt seeds', () => {
     expect(receipt.forbiddenInferences).toContain('unverified_mw_capacity_claim');
     expect(receipt.toolPlan.steps.map((step) => step.action)).toEqual(
       expect.arrayContaining([
-        'grid-operations.operatorAnalysis',
-        'assets.redispatchCount',
-        'grid-operations.controlMeasures',
+        'grid-operations.marketPartners',
+        'dashboard-api.redispatchMeteringCockpit',
       ])
     );
+    expect(receipt.version).toBe(3);
   });
 });
