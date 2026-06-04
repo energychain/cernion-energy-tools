@@ -3270,6 +3270,17 @@ module.exports = {
             });
           }
 
+          const activeConsultationPolicy =
+            executionReadiness?.appliedPolicy ||
+            (_activeConsultationRoutingPolicy
+              ? {
+                  sessionIntent: _activeConsultationRoutingPolicy.sessionIntent || null,
+                  blueprintId: _activeConsultationRoutingPolicy._blueprintId || null,
+                  blueprintVersion: _activeConsultationRoutingPolicy._blueprintVersion || null,
+                  source: 'blueprint-policy',
+                }
+              : null);
+
           const agentTrace = this.buildAgentTrace({
             routing: consultationRouting,
             plan: null,
@@ -3290,6 +3301,7 @@ module.exports = {
             workLog: turnWorkLog.toArray(),
             reflection: receiptReflectionResult, // v0.57.5 #158
             locationResolution: brokerKnownContext._locationResolutionTrace || null, // v0.60
+            policy: activeConsultationPolicy,
           });
 
           persisted.l3.turnGraph = summarizeTurnGraph(turnGraph);
@@ -3344,7 +3356,7 @@ module.exports = {
             fileProcessing,
             routing: consultationRouting,
             responseStrategy,
-            policy: executionReadiness?.appliedPolicy || null,
+            policy: activeConsultationPolicy,
             executionReadiness: executionReadiness || null,
             consultationPlanResults: consultationPlanResults || null,
             plan: {
@@ -9660,6 +9672,7 @@ module.exports = {
       workLog = null, // v0.57.3
       reflection = null, // v0.57.5 #158
       locationResolution = null, // v0.60: location resolution trace
+      policy = null,
     } = {}) {
       const toolAttempts = Array.isArray(consultation?.attemptsSummary)
         ? consultation.attemptsSummary.map((attempt) => ({
@@ -9752,6 +9765,7 @@ module.exports = {
           locationResolution && typeof locationResolution === 'object'
             ? locationResolution
             : undefined,
+        policy: policy && typeof policy === 'object' ? policy : null,
       };
     },
 

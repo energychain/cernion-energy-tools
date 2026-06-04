@@ -3963,6 +3963,36 @@ describe('personal-agent.service', () => {
     }
   });
 
+  it('includes active blueprint policy metadata in agentTrace', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const policy = {
+      sessionIntent: 'municipal_energy_site_precheck',
+      blueprintId: 'municipal-energy-site-precheck-v1',
+      blueprintVersion: '1.0.3-runtime-sales-routing-synthesis-policy',
+      source: 'blueprint-policy',
+    };
+
+    const agentTrace = svc.buildAgentTrace({
+      routing: null,
+      plan: null,
+      execution: null,
+      evidencePlan: null,
+      consultation: null,
+      responseStrategy: null,
+      stateMachine: null,
+      executionStateGraph: null,
+      turnGraph: null,
+      routingDecision: null,
+      personaResolution: null,
+      bootstrapContext: null,
+      knowledgeScope: [],
+      workLog: [],
+      policy,
+    });
+
+    expect(agentTrace.policy).toEqual(policy);
+  });
+
   it('uses 90000ms as default consultation synthesis timeout', () => {
     const svc = broker.getLocalService('personal-agent');
     const previous = process.env.PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS;
