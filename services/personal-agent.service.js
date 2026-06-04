@@ -5905,9 +5905,13 @@ module.exports = {
       options = {}
     ) {
       const synthesisPolicy = options.synthesisPolicy || null;
+      const routingPolicy = options.routingPolicy || null;
       const deprioritizeToolFailure =
         Array.isArray(synthesisPolicy?.deprioritize) &&
         synthesisPolicy.deprioritize.includes('tool_failure_as_main_answer');
+      const isMunicipalSitePrecheck =
+        routingPolicy?.sessionIntent === 'municipal_energy_site_precheck' ||
+        synthesisPolicy?.audience === 'municipal_official';
 
       const observationList = Array.isArray(observations) ? observations : [];
       const topFacts = observationList
@@ -5923,16 +5927,52 @@ module.exports = {
       const uncertaintyNote = this.buildConsultationVnbUncertaintyNote(message, observationList);
       const hasUnverifiedVnbContext = Boolean(uncertaintyNote);
 
-      const replyText = deprioritizeToolFailure
-        ? 'Auf Basis der bisherigen Recherche liegen folgende Hinweise vor: ' +
+      const knownContext =
+        options.knownContext && typeof options.knownContext === 'object' ? options.knownContext : {};
+      const resolvedParams =
+        options.resolvedParams && typeof options.resolvedParams === 'object'
+          ? options.resolvedParams
+          : {};
+      const knowledgeContext =
+        options.knowledgeContext && typeof options.knowledgeContext === 'object'
+          ? options.knowledgeContext
+          : {};
+      const locationContext = {
+        ...knownContext,
+        ...resolvedParams,
+        ...knowledgeContext,
+      };
+      const location = resolveLocationFromText(message, locationContext);
+      const municipality =
+        location?.municipality || locationContext.municipality || locationContext.city;
+      const postalCode =
+        location?.postalCode || locationContext.postalCode || locationContext.postleitzahl;
+      const locationLabel = [postalCode, municipality].filter(Boolean).join(' ').trim();
+      const asksAboutOsm = /\bOSM\b|openstreetmap|topolog/i.test(String(message || ''));
+
+      let replyText;
+      if (deprioritizeToolFailure && isMunicipalSitePrecheck) {
+        replyText =
+          `Für ${locationLabel || 'den kommunalen Standort'} bleibt die Einordnung ein kommunaler Standort-Precheck auf Gemeindeebene. ` +
+          'Tool-Lücken sind hier keine Hauptaussage: VNB-Zuständigkeit und Netzkapazität sind noch nicht belastbar verifiziert. ' +
+          (asksAboutOsm
+            ? 'OSM kann als öffentlicher Spatial-Context-Layer helfen, Lage, Verkehrsanbindung, Gewerbekontext und mögliche Flächenbezüge zu strukturieren; es ersetzt aber keine Netzanschlussprüfung. '
+            : 'Öffentliche Spatial-Daten wie OSM können die Lage- und Flächenhypothese plausibilisieren; sie ersetzen aber keine Netzanschlussprüfung. ') +
+          'Nächster sinnvoller Schritt: konkrete Fläche oder Koordinaten, gewünschte Anschlussleistung in MW und Zeithorizont ergänzen.';
+      } else if (deprioritizeToolFailure) {
+        replyText =
+          'Die bisherige Tool-Prüfung liefert noch keine belastbare Hauptaussage. ' +
           (topFacts.length > 0
-            ? topFacts.map((f) => `${f.label} (noch nicht abschließend verifiziert)`).join('; ')
-            : `Zur Anfrage "${String(message || '').slice(0, 120)}" laufen noch Prüfungen.`)
-        : 'Kurzfazit auf Basis der erhobenen Tool-Evidenz: ' +
+            ? topFacts.map((f) => `${f.label} ist noch nicht abschließend verifiziert`).join('; ')
+            : `Zur Anfrage "${String(message || '').slice(0, 120)}" laufen noch Prüfungen.`);
+      } else {
+        replyText =
+          'Kurzfazit auf Basis der erhobenen Tool-Evidenz: ' +
           (topFacts.length > 0
             ? topFacts.map((f) => `${f.label}: ${f.summary}`).join('; ')
             : `Zur Anfrage "${String(message || '').slice(0, 120)}" liegt bereits belastbare Evidenz vor.`) +
           uncertaintyNote;
+      }
 
       return {
         reply: replyText,
@@ -6985,6 +7025,10 @@ module.exports = {
             {
               debugTrace: consultationDebugEnabled ? consultationDebugTrace : null,
               synthesisPolicy,
+              routingPolicy,
+              knownContext,
+              resolvedParams,
+              knowledgeContext,
             }
           );
         }
@@ -7074,6 +7118,10 @@ module.exports = {
               {
                 debugTrace: consultationDebugEnabled ? consultationDebugTrace : null,
                 synthesisPolicy,
+                routingPolicy,
+                knownContext,
+                resolvedParams,
+                knowledgeContext,
               }
             );
           }
@@ -7152,6 +7200,10 @@ module.exports = {
             {
               debugTrace: consultationDebugEnabled ? consultationDebugTrace : null,
               synthesisPolicy,
+              routingPolicy,
+              knownContext,
+              resolvedParams,
+              knowledgeContext,
             }
           );
         }

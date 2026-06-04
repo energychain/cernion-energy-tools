@@ -3602,6 +3602,49 @@ describe('personal-agent.service', () => {
     }
   });
 
+  it('keeps municipal synthesis policy framing in observation fallback', async () => {
+    const svc = broker.getLocalService('personal-agent');
+
+    const result = svc.buildConsultationObservationSummaryReply(
+      'Was bedeutet OSM in diesem Kontext?',
+      [
+        {
+          action: 'grid-operations.marketPartners',
+          status: 'completed',
+          summary: 'candidate lookup completed',
+        },
+      ],
+      [{ iteration: 1, tool: 'grid-operations.marketPartners', status: 'completed' }],
+      {
+        routingPolicy: {
+          sessionIntent: 'municipal_energy_site_precheck',
+          stickiness: { retainForTurns: 6 },
+        },
+        synthesisPolicy: {
+          audience: 'municipal_official',
+          deprioritize: ['tool_failure_as_main_answer'],
+          mustMention: [
+            'municipality_level_only',
+            'site_coordinates_missing',
+            'vnb_not_authoritative',
+            'grid_capacity_not_verified',
+          ],
+        },
+        knownContext: {
+          postalCode: '74889',
+          municipality: 'Sinsheim',
+        },
+      }
+    );
+
+    expect(result.reply).toContain('74889 Sinsheim');
+    expect(result.reply).toContain('OSM');
+    expect(result.reply).toContain('Netzkapazität');
+    expect(result.reply).toContain('nicht belastbar verifiziert');
+    expect(result.reply).not.toContain('grid-operations.marketPartners');
+    expect(result.reply).not.toContain('Auf Basis der bisherigen Recherche');
+  });
+
   it('keeps observation-based recovery when agentic synthesis returns null payload', async () => {
     const svc = broker.getLocalService('personal-agent');
     const plannerResponses = [
