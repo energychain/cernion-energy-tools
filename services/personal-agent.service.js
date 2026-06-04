@@ -8097,6 +8097,13 @@ module.exports = {
         });
       }
       if (execution?.status === 'completed') {
+        if (plan?.primaryIntent === 'netzbetreiber_flexibility_potential') {
+          return this.buildGridOperatorFlexibilityCompletedReply({
+            execution,
+            message,
+            fileIntro,
+          });
+        }
         return prefixed(
           `${fileIntro}Plan abgeschlossen: ${execution.steps.length} Schritte deterministisch ausgeführt. Kontext: ${promptExcerpt}`
         );
@@ -8115,6 +8122,102 @@ module.exports = {
       return prefixed(
         `${fileIntro}Verstanden. Nächster Schritt für: ${String(message).trim().slice(0, 240)}`
       );
+    },
+
+    buildGridOperatorFlexibilityCompletedReply({ execution = {}, message = '', fileIntro = '' } = {}) {
+      const steps = Array.isArray(execution?.steps) ? execution.steps : [];
+      const marketStep = steps.find((step) => step?.action === 'grid-operations.marketPartners');
+      const cockpitStep = steps.find(
+        (step) => step?.action === 'dashboard-api.redispatchMeteringCockpit'
+      );
+      const cockpit = cockpitStep?.result && typeof cockpitStep.result === 'object' ? cockpitStep.result : {};
+      const evidence = cockpit.evidence && typeof cockpit.evidence === 'object' ? cockpit.evidence : {};
+      const readiness = cockpit.decisionReadiness || {};
+      const operator = cockpit.operator || {};
+      const marketResult =
+        marketStep?.result && typeof marketStep.result === 'object' ? marketStep.result : {};
+      const marketCandidates =
+        marketResult?.data?.results ||
+        marketResult?.results ||
+        marketResult?.result?.results ||
+        marketResult?.result?.vnbs ||
+        [];
+      const candidate = Array.isArray(marketCandidates) ? marketCandidates[0] || null : null;
+      const operatorLabel =
+        operator.name ||
+        candidate?.name ||
+        candidate?.companyName ||
+        candidate?.vnbName ||
+        'Stadtwerke Tübingen / Netzbetreiber-Kontext';
+
+      const valueOrOpen = (value, suffix = '') =>
+        value === 0 || value ? `${value}${suffix}` : 'Offen';
+      const gapCodes = Array.isArray(cockpit.blockingEvidenceGaps)
+        ? cockpit.blockingEvidenceGaps.map((gap) => gap?.code || gap?.message).filter(Boolean)
+        : [];
+      const blockers = gapCodes.length > 0 ? gapCodes.join(', ') : 'Keine Cockpit-Blocker gemeldet';
+
+      const rows = [
+        [
+          'Operator-Kandidat',
+          operatorLabel,
+          'grid-operations.marketPartners',
+          candidate ? 'Mittel' : 'Offen',
+          'Basis fuer BDEW/MaStR-Aufloesung vor Detailinventar',
+        ],
+        [
+          'Redispatch/Metering Readiness',
+          readiness.signal ? `${readiness.signal}${readiness.score ? ` (${readiness.score})` : ''}` : 'Offen',
+          'dashboard-api.redispatchMeteringCockpit',
+          readiness.signal ? 'Mittel' : 'Offen',
+          'Zeigt, ob RD2.0/Messdaten als Entscheidungsbasis nutzbar sind',
+        ],
+        [
+          'Redispatch Settlement Readiness',
+          valueOrOpen(evidence.redispatch?.settlementReadinessPercent, ' %'),
+          'dashboard-api.redispatchMeteringCockpit',
+          evidence.redispatch?.settlementReadinessPercent == null ? 'Offen' : 'Mittel',
+          'Indikator fuer Prozessreife, nicht fuer freies MW-Potenzial',
+        ],
+        [
+          'Messdaten gesund / stale / fehlerhaft',
+          `${valueOrOpen(evidence.metering?.datapointsHealthy)} / ${valueOrOpen(
+            evidence.metering?.datapointsStale
+          )} / ${valueOrOpen(evidence.metering?.datapointsErrored)}`,
+          'dashboard-api.redispatchMeteringCockpit',
+          evidence.metering ? 'Mittel' : 'Offen',
+          'Grundlage fuer Lastgang- und Gleichzeitigkeitsbewertung',
+        ],
+        [
+          'Masterdata Quality',
+          valueOrOpen(evidence.masterData?.qualityScore),
+          'dashboard-api.redispatchMeteringCockpit',
+          evidence.masterData?.qualityScore == null ? 'Offen' : 'Mittel',
+          'Qualitaetsanker fuer Anlagen-/Netzbetreiber-Zuordnung',
+        ],
+        [
+          '§14a / RD2.0 MW-Inventar',
+          'Offen',
+          'VNBdigital §14a, MaStR/Assets, Topologie/Lastfluss noch nachziehen',
+          'Offen',
+          'Keine MW-Zusage ohne BDEW/MaStR, Topologie und Lastfluss',
+        ],
+      ];
+
+      const table = [
+        '| Kennzahl | Wert | Quelle | Belastbarkeit | Bedeutung fuer Entscheidung |',
+        '| --- | --- | --- | --- | --- |',
+        ...rows.map((row) => `| ${row.join(' | ')} |`),
+      ].join('\n');
+
+      return [
+        `${fileIntro}${table}`,
+        '',
+        `Kurzfazit: Der Dialog ist als Executive Erstlagebild nutzbar. Die aktuellen Zahlen sind Prozess- und Evidenzkennzahlen, noch kein belastbares MW-Flexibilitaetspotenzial.`,
+        `Offene Evidenz: ${blockers}. Fuer MW-Potenzial muessen §14a-Anlagen, Redispatch-2.0-Anlagen, Topologie, Lastfluss und Gleichzeitigkeitsannahmen nachgezogen werden.`,
+        'Empfehlung: Speicher zuerst pruefen, weil sie Rueckspeisespitzen direkt verschieben koennen; danach flexible Industrie und Ladeparks mit netzdienlichem Fahrplan; Rechenzentren nur mit Standort-, Abwaerme- und Netzanschlussnachweis priorisieren.',
+        `Kontext: ${String(message || '').trim().slice(0, 220)}`,
+      ].join('\n');
     },
 
     buildSynthesisStyleLead(synthesisStyle) {
