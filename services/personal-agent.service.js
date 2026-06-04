@@ -5949,16 +5949,28 @@ module.exports = {
         location?.postalCode || locationContext.postalCode || locationContext.postleitzahl;
       const locationLabel = [postalCode, municipality].filter(Boolean).join(' ').trim();
       const asksAboutOsm = /\bOSM\b|openstreetmap|topolog/i.test(String(message || ''));
+      const asksAboutDecisionClarity =
+        /(?:klarheit|belastbar|tatsächlich|tatsaechlich|heute|möglich|moeglich|spekulativ|annehmen|woher)/i.test(
+          String(message || '')
+        );
 
       let replyText;
       if (deprioritizeToolFailure && isMunicipalSitePrecheck) {
-        replyText =
-          `Für ${locationLabel || 'den kommunalen Standort'} bleibt die Einordnung ein kommunaler Standort-Precheck auf Gemeindeebene. ` +
-          'Tool-Lücken sind hier keine Hauptaussage: VNB-Zuständigkeit und Netzkapazität sind noch nicht belastbar verifiziert. ' +
-          (asksAboutOsm
-            ? 'OSM kann als öffentlicher Spatial-Context-Layer helfen, Lage, Verkehrsanbindung, Gewerbekontext und mögliche Flächenbezüge zu strukturieren; es ersetzt aber keine Netzanschlussprüfung. '
-            : 'Öffentliche Spatial-Daten wie OSM können die Lage- und Flächenhypothese plausibilisieren; sie ersetzen aber keine Netzanschlussprüfung. ') +
-          'Nächster sinnvoller Schritt: konkrete Fläche oder Koordinaten, gewünschte Anschlussleistung in MW und Zeithorizont ergänzen.';
+        if (asksAboutDecisionClarity && !asksAboutOsm) {
+          replyText =
+            `Für ${locationLabel || 'den kommunalen Standort'} bekommen Sie belastbare Klarheit erst über eine konkrete Fläche oder Koordinaten, die gewünschte Anschlussleistung in MW und die formelle Vorprüfung beim zuständigen Netzbetreiber. ` +
+            'Heute seriös möglich ist eine Gemeindeebenen-Einordnung: Standortkontext, grobe Flächenlogik, Nähe zu Infrastruktur und erkennbare Ausschluss- oder Risikothemen. ' +
+            'Noch spekulativ bleiben VNB-Zuständigkeit, verfügbare Netzkapazität, Netzanschlusspunkt, Kosten und Zeithorizont, solange keine flächenscharfe Netzanschlussprüfung vorliegt. ' +
+            'Öffentliche Spatial-Daten wie OSM können diese Hypothese plausibilisieren, ersetzen aber keine Netzanschlussprüfung.';
+        } else {
+          replyText =
+            `Für ${locationLabel || 'den kommunalen Standort'} bleibt die Einordnung ein kommunaler Standort-Precheck auf Gemeindeebene. ` +
+            'Tool-Lücken sind hier keine Hauptaussage: VNB-Zuständigkeit und Netzkapazität sind noch nicht belastbar verifiziert. ' +
+            (asksAboutOsm
+              ? 'OSM kann als öffentlicher Spatial-Context-Layer helfen, Lage, Verkehrsanbindung, Gewerbekontext und mögliche Flächenbezüge zu strukturieren; es ersetzt aber keine Netzanschlussprüfung. '
+              : 'Öffentliche Spatial-Daten wie OSM können die Lage- und Flächenhypothese plausibilisieren; sie ersetzen aber keine Netzanschlussprüfung. ') +
+            'Nächster sinnvoller Schritt: konkrete Fläche oder Koordinaten, gewünschte Anschlussleistung in MW und Zeithorizont ergänzen.';
+        }
       } else if (deprioritizeToolFailure) {
         replyText =
           'Die bisherige Tool-Prüfung liefert noch keine belastbare Hauptaussage. ' +

@@ -3602,11 +3602,11 @@ describe('personal-agent.service', () => {
     }
   });
 
-  it('keeps municipal synthesis policy framing in observation fallback', async () => {
+  it('keeps municipal decision-clarity framing in observation fallback', async () => {
     const svc = broker.getLocalService('personal-agent');
 
     const result = svc.buildConsultationObservationSummaryReply(
-      'Was bedeutet OSM in diesem Kontext?',
+      'Woher bekomme ich mehr Klarheit, was tatsächlich heute möglich ist und was man spekulativ annehmen kann?',
       [
         {
           action: 'grid-operations.marketPartners',
@@ -3638,9 +3638,11 @@ describe('personal-agent.service', () => {
     );
 
     expect(result.reply).toContain('74889 Sinsheim');
-    expect(result.reply).toContain('OSM');
+    expect(result.reply).toContain('belastbare Klarheit');
+    expect(result.reply).toContain('konkrete Fläche oder Koordinaten');
     expect(result.reply).toContain('Netzkapazität');
-    expect(result.reply).toContain('nicht belastbar verifiziert');
+    expect(result.reply).toContain('spekulativ');
+    expect(result.reply).toContain('Netzanschlussprüfung');
     expect(result.reply).not.toContain('grid-operations.marketPartners');
     expect(result.reply).not.toContain('Auf Basis der bisherigen Recherche');
   });
