@@ -1,0 +1,231 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "netzbetreiber-flexibility-potential-v1",
+  "version": "1.0.0",
+  "meta": {
+    "title": "Netzbetreiber-Flexibilitätspotenzial",
+    "description": "Executive Briefing für Netzbetreiber zur Ist-Situation aus §14a, Redispatch 2.0, Rückspeisespitzen und standortbezogener Ansiedlungslogik.",
+    "targetAudience": "grid_operator"
+  },
+  "routing": {
+    "intentSignals": [
+      "netzbetreiber",
+      "geschäftsführer",
+      "geschaeftsfuehrer",
+      "leiter netz",
+      "stadtwerke tübingen",
+      "stadtwerke tuebingen",
+      "flexibilitätspotenzial",
+      "flexibilitaetspotenzial",
+      "flex potential",
+      "§14a",
+      "14a",
+      "redispatch 2.0",
+      "redispatch",
+      "rückspeisespitzen",
+      "rueckspeisespitzen",
+      "netzausbaukosten",
+      "großverbraucher",
+      "grossverbraucher",
+      "rechenzentrum",
+      "ladepark",
+      "speicher",
+      "industrieansiedlung",
+      "gleichzeitigkeitsfaktor",
+      "unschädlicher ee-zubau",
+      "unschaedlicher ee-zubau"
+    ],
+    "negativeSignals": [
+      "strompreis",
+      "co2-intensität",
+      "prosumer onboarding",
+      "nap wallet",
+      "mieterstrom"
+    ],
+    "priorityBoost": 6
+  },
+  "routingPolicy": {
+    "sessionIntent": "netzbetreiber_flexibility_potential",
+    "priority": 92,
+    "stickiness": {
+      "retainForTurns": 7,
+      "unlessNegativeSignals": [
+        "nap wallet",
+        "prosumer onboarding",
+        "mieterstrom",
+        "haushaltsstrompreis"
+      ]
+    },
+    "preferredWorkflowTypes": [
+      "grid_operator_executive_briefing",
+      "flexibility_potential_assessment",
+      "network_planning_preparation"
+    ],
+    "avoidWorkflowTypes": [
+      "prosumer_nap_wallet_onboarding",
+      "municipal_sales_advisory"
+    ],
+    "llmSelectable": true
+  },
+  "synthesisPolicy": {
+    "audience": "grid_operator_executive",
+    "secondaryAudiences": [
+      "netzplanung",
+      "netzbetrieb",
+      "assetmanagement"
+    ],
+    "responseFrame": "executive_decision_briefing",
+    "leadWith": [
+      "numeric_snapshot_with_sources",
+      "verified_asset_inventory",
+      "data_gaps_before_recommendations"
+    ],
+    "numericFirst": true,
+    "outputFormat": "markdown_table_first",
+    "tableColumns": [
+      "Kennzahl",
+      "Wert",
+      "Quelle",
+      "Belastbarkeit",
+      "Bedeutung fuer Entscheidung"
+    ],
+    "sourceCitationPolicy": "Jede konkrete Zahl braucht eine sichtbare Quelle wie MaStR/Assets, Redispatch-Cockpit, VNBdigital §14a oder Tool-Evidenz. Wenn keine Quelle vorliegt, Wert als offen markieren und keine MW-Zusage ableiten.",
+    "deprioritize": [
+      "tool_failure_as_main_answer",
+      "generic_energy_transition_explainer",
+      "municipal_sales_pitch"
+    ],
+    "mustMention": [
+      "mw_values_only_with_source",
+      "separate_14a_load_flex_from_redispatch_generation_assets",
+      "simultaneity_factor_assumption_required",
+      "no_capacity_commitment_without_topology_and_load_flow",
+      "rank_storage_data_center_charging_industry_by_grid_relief_effect",
+      "ee_growth_harmless_only_with_congestion_and_voltage_evidence"
+    ],
+    "askFor": [
+      "grid_operator_bdew_or_mastr_id_if_not_resolved",
+      "target_voltage_level",
+      "existing_transformer_or_feeder_constraints",
+      "planning_horizon_and_capex_target"
+    ]
+  },
+  "inputs": {
+    "gridOperator": {
+      "type": "string",
+      "required": false,
+      "semanticType": "OEO:DistributionSystemOperator",
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "Stadtwerke Tübingen",
+        "prompt": "Welcher Netzbetreiber soll bewertet werden?"
+      }
+    },
+    "gridOperatorId": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Falls bekannt: MaStR-Netzbetreiber-ID (SNB.../GNB...)."
+      }
+    },
+    "gridOperatorBdewCode": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Falls bekannt: BDEW-Code des Netzbetreibers."
+      }
+    },
+    "municipality": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "Tübingen"
+      }
+    },
+    "planningHorizon": {
+      "type": "string",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "Ist-Situation vor Abstimmung mit Netzbetrieb, Planung und Assetmanagement"
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "resolve_operator_identity",
+        "action": "grid-operations.vnbLookup",
+        "params": {
+          "vnbName": "{{inputs.gridOperator}}",
+          "query": "{{inputs.gridOperator}}",
+          "limit": 5
+        }
+      },
+      {
+        "id": "operator_asset_analysis",
+        "action": "grid-operations.operatorAnalysis",
+        "params": {
+          "gridOperator": "{{inputs.gridOperator}}",
+          "gridOperatorId": "{{inputs.gridOperatorId}}",
+          "gridOperatorBdewCode": "{{inputs.gridOperatorBdewCode}}",
+          "includeRedispatch": true,
+          "includeFeedInPatterns": true,
+          "includeCapacityMap": true
+        }
+      },
+      {
+        "id": "redispatch_asset_count",
+        "action": "assets.redispatchCount",
+        "params": {
+          "gridOperatorId": "{{inputs.gridOperatorId}}",
+          "bdewCode": "{{inputs.gridOperatorBdewCode}}"
+        }
+      },
+      {
+        "id": "redispatch_metering_readiness",
+        "action": "dashboard-api.redispatchMeteringCockpit",
+        "params": {
+          "gridOperatorId": "{{inputs.gridOperatorId}}",
+          "bdewCode": "{{inputs.gridOperatorBdewCode}}"
+        }
+      },
+      {
+        "id": "section14a_control_measures",
+        "action": "grid-operations.controlMeasures",
+        "params": {
+          "searchType": "vnb",
+          "vnbId": "{{inputs.gridOperatorId}}"
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {},
+    "mappings": {}
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.resolve_operator_identity.output",
+      "steps.operator_asset_analysis.output",
+      "steps.redispatch_asset_count.output",
+      "steps.redispatch_metering_readiness.output",
+      "steps.section14a_control_measures.output"
+    ],
+    "templates": {
+      "success": "Executive Flexibilitätsbriefing für {{inputs.gridOperator}} / {{inputs.municipality}}: Stelle die belegten Kennzahlen zuerst als Tabelle dar, nenne je Zahl die Quelle und leite danach eine vorsichtige Empfehlung zu Speicher, Rechenzentrum, Ladepark, Industrie und weiterem EE-Zubau ab. Keine MW-Zusage ohne Topologie-, Lastfluss- und Gleichzeitigkeitsnachweis.",
+      "error": "Das Flexibilitätspotenzial kann noch nicht belastbar quantifiziert werden. Liste zuerst die fehlenden Quellen für §14a, Redispatch 2.0, MaStR/Assets, Topologie und Gleichzeitigkeitsannahmen."
+    }
+  },
+  "persistence": {
+    "l3_facts": {
+      "gridOperator": "inputs.gridOperator",
+      "municipality": "inputs.municipality",
+      "flexibilityBriefingIntent": "netzbetreiber_flexibility_potential",
+      "planningHorizon": "inputs.planningHorizon"
+    }
+  }
+}

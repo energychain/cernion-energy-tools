@@ -105,6 +105,29 @@ function buildSynthesisPolicyDirectives(synthesisPolicy, routingPolicy) {
     lines.push(`- Beginne mit: ${leadWith.join(', ')}`);
   }
 
+  if (synthesisPolicy.numericFirst === true) {
+    lines.push(
+      '- Zahlen zuerst: Beginne die Antwort mit den belastbaren Kennzahlen, bevor du einordnest oder empfiehlst.'
+    );
+  }
+
+  if (synthesisPolicy.outputFormat === 'markdown_table_first') {
+    lines.push(
+      '- Ausgabeformat: Starte mit einer kompakten Markdown-Tabelle; danach kurze Einordnung und Empfehlung.'
+    );
+  }
+
+  const tableColumns = Array.isArray(synthesisPolicy.tableColumns)
+    ? synthesisPolicy.tableColumns
+    : [];
+  if (tableColumns.length > 0) {
+    lines.push(`- Tabellen-Spalten: ${tableColumns.join(' | ')}`);
+  }
+
+  if (synthesisPolicy.sourceCitationPolicy) {
+    lines.push(`- Quellenregel: ${synthesisPolicy.sourceCitationPolicy}`);
+  }
+
   const deprioritize = Array.isArray(synthesisPolicy.deprioritize)
     ? synthesisPolicy.deprioritize
     : [];

@@ -189,6 +189,21 @@ describe('AC-1: Runtime blueprint policy selection', () => {
     expect(match).not.toBeNull();
     expect(match.blueprintId).toBe(RUNTIME_BP_ID);
   });
+
+  it('BPS-006c: Netzbetreiber Tübingen executive prompt resolves flexibility blueprint policy', () => {
+    const message =
+      'Ich bin Geschäftsführer beim Netzbetreiber der Stadtwerke Tübingen. Ich brauche das Flexibilitätspotenzial aus §14a und Redispatch 2.0, um Rückspeisespitzen zu begrenzen und Netzausbaukosten zu senken.';
+
+    const match = detectBlueprintIntent(message, {}, {});
+    const bp = findBlueprintByPrimaryIntent('netzbetreiber_flexibility_potential');
+    const { routingPolicy, synthesisPolicy } = extractBlueprintPolicy(bp);
+
+    expect(match).not.toBeNull();
+    expect(match.blueprintId).toBe('netzbetreiber-flexibility-potential-v1');
+    expect(bp).not.toBeNull();
+    expect(routingPolicy.sessionIntent).toBe('netzbetreiber_flexibility_potential');
+    expect(synthesisPolicy.outputFormat).toBe('markdown_table_first');
+  });
 });
 
 // ─── AC-2: Stickiness across follow-up turns ─────────────────────────────────

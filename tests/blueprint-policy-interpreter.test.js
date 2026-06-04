@@ -168,6 +168,22 @@ describe('buildSynthesisPolicyDirectives', () => {
     const joined = directives.join('\n');
     expect(joined).not.toMatch(/Evidenzlücken/);
   });
+
+  it('BPI-014b: table-first numeric policies add format and source directives', () => {
+    const sp = {
+      numericFirst: true,
+      outputFormat: 'markdown_table_first',
+      tableColumns: ['Kennzahl', 'Wert', 'Quelle'],
+      sourceCitationPolicy: 'Jede konkrete Zahl braucht eine sichtbare Quelle.',
+    };
+    const directives = buildSynthesisPolicyDirectives(sp, null);
+    const joined = directives.join('\n');
+
+    expect(joined).toMatch(/Zahlen zuerst/);
+    expect(joined).toMatch(/Markdown-Tabelle/);
+    expect(joined).toContain('Kennzahl | Wert | Quelle');
+    expect(joined).toMatch(/Quellenregel/);
+  });
 });
 
 // ─── 5. Regression: no NAP-Wallet-DID ask in municipal follow-up ──────────────
