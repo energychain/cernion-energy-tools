@@ -1,8 +1,12 @@
 # Evidence Carry-Forward: Origin Session Signal Scenario
 
-Status: scenario implemented end-to-end — transport proof (notification
-dispatch type `evidence_revalidated`) plus the persistence/correlation layer
-(`evidence-revalidation` service, see Implementation below)
+Status: scenario implemented end-to-end and wired to fire automatically —
+transport proof (notification dispatch type `evidence_revalidated`), the
+persistence/correlation layer (`evidence-revalidation` service, see
+Implementation below), and the automatic Work-Out-Loud trigger (see
+Automatic Trigger below) that calls the correlation layer as soon as a later
+turn learns the missing fact — no manual
+`POST /api/evidence-revalidation/correlateFact` call required.
 
 ## Goal
 
@@ -31,10 +35,17 @@ Dialog 2: Grid planning employee provides the missing operator fact.
 - Persona: `tenant-a/grid-planning`
 - Session: `pa-grid-planning-followup`
 - Fact learned: `gridOperatorBdew=9907473000008`
-- Work-Out-Loud emits a scoped fact signal.
+- Work-Out-Loud emits a `scoped_fact_learned` signal with
+  `evidence.contextField: 'gridOperatorBdew'` (never the learned value).
+- `services/personal-agent-work-out-loud-listener.service.js` validates the
+  event and — because it is a fact-learning signal with a safe
+  `contextField` — automatically calls `evidence-revalidation.correlateFact`
+  (see Automatic Trigger below). No further action by Dialog 2 is required.
 
 Dialog 3: Evidence revalidation correlates the new fact to the old requirement.
 
+- Triggered automatically by the Work-Out-Loud listener from Dialog 2 — there
+  is no manual `POST /api/evidence-revalidation/correlateFact` step.
 - Revalidation status changes from `missing` to `updated`.
 - Cernion dispatches a safe proactive message to the original persona/session:
   - `dispatchType`: `evidence_revalidated`
@@ -127,10 +138,14 @@ answer text, or chat transcripts:
    `evreq-sinsheim-grid-operator` (`requestedFact: gridOperatorBdew`,
    `scope: tenant_candidate`, `status: missing`, recipient
    `tenant-a/mayor` / origin session `pa-origin-mayor-sinsheim`).
-2. Dialog 2 learns `gridOperatorBdew` and (via the scoped-fact-learned path)
-   triggers `evidence-revalidation.correlateFact` with
-   `{ requestedFact: 'gridOperatorBdew' }`, scoped to `tenant-a` — the fact
-   *value* and the later session id are deliberately not part of this call.
+2. Dialog 2 learns `gridOperatorBdew`. Personal Agent emits a
+   `personal-agent.work-out-loud` event with signal type
+   `scoped_fact_learned` and `evidence.contextField: 'gridOperatorBdew'`.
+   `personal-agent-work-out-loud-listener` validates it and automatically
+   calls `evidence-revalidation.correlateFact` with
+   `{ tenantId: 'tenant-a', requestedFact: 'gridOperatorBdew' }` (see
+   Automatic Trigger below) — the fact *value* and the later session id are
+   deliberately not part of this call.
 3. The matching requirement is found, `notification.dispatch` fires
    (`evidence_revalidated`), and the requirement flips to `status: updated`.
 4. The origin persona receives a generic `evidence-revalidated` Persona Inbox
@@ -144,3 +159,78 @@ correlation, cross-tenant non-correlation, absence of raw-prompt/chat-text
 leakage in the persisted record (and downstream dispatch/inbox), the
 `originPersonaId`-or-`responsibleRole` recipient requirement, and dispatch
 idempotency on repeated fact correlation.
+
+## Automatic Trigger: `personal-agent-work-out-loud-listener`
+
+`services/personal-agent-work-out-loud-listener.service.js` subscribes to
+`personal-agent.work-out-loud` (see `src/personal-agent-work-out-loud.js`)
+purely to validate signal/evidence payloads. It now additionally closes the
+loop end-to-end: a later turn that *learns* a safe structured fact
+automatically triggers correlation against open evidence requirements — the
+manual `POST /api/evidence-revalidation/correlateFact` step described in
+earlier iterations of this scenario is no longer needed.
+
+### Trigger conditions
+
+After the existing strict validation (`validateWorkOutLoudPayload` — rejects
+any payload with raw, additional, or unexpected fields exactly as before),
+the listener calls `evidence-revalidation.correlateFact` only when **all** of
+the following hold:
+
+1. **Signal type is fact-learning.** Only `scoped_fact_learned` and
+   `onboarding_fact_learned` represent a newly learned structured fact that
+   could resolve an evidence gap; `bootstrap_context_updated` (an
+   organization-level classification signal, not a learned fact) never
+   triggers correlation.
+2. **`evidence.contextField` is present and safe.** It must be one of the
+   declared `SAFE_CONTEXT_FIELDS` (already enforced by
+   `validateWorkOutLoudPayload`/`sanitizeEvidence` — e.g. `gridOperatorBdew`,
+   `roleId`, `postalCode`).
+
+### What is forwarded — and what never is
+
+```js
+ctx.call(
+  'evidence-revalidation.correlateFact',
+  { tenantId, requestedFact },             // requestedFact = payload.evidence.contextField
+  { meta: { tenantId, $gateway: false } }  // same-tenant only, internal call
+)
+```
+
+- `requestedFact` is the safe structured **field name**
+  (`payload.evidence.contextField`, e.g. `'gridOperatorBdew'`) — never
+  `payload.signal.value` (the learned value itself, e.g. `'9907473000008'`),
+  and never prompt text, answer text, or session text.
+- `tenantId` is the **validated event tenantId** — the same tenant the
+  Work-Out-Loud payload was validated for. The call is always scoped to that
+  tenant (`meta: { tenantId, $gateway: false }`); cross-tenant correlation is
+  impossible by construction (and additionally guarded inside
+  `evidence-revalidation.correlateFact` itself, see Implementation above).
+
+### Fail-open
+
+The correlation call is a side channel — it must never affect the original
+chat turn. If `evidence-revalidation` is unavailable (`SERVICE_NOT_FOUND` /
+`SERVICE_NOT_AVAILABLE` / 404) or the call otherwise fails, the listener logs
+a warning (`this.logger.warn(...)`) and continues; it never throws out of the
+event handler. Work-Out-Loud event handling and validation behave exactly as
+before regardless of whether correlation succeeds, fails, or is unavailable.
+
+### Tests
+
+- `tests/personal-agent-work-out-loud-listener.service.test.js` —
+  `describe('evidence revalidation auto-trigger', ...)` covers: triggering
+  `correlateFact` for a valid `scoped_fact_learned` event with a safe
+  `contextField`; *not* triggering it for `bootstrap_context_updated`;
+  deriving `requestedFact` from `evidence.contextField` and never forwarding
+  `signal.value`; preserving strict rejection (and no trigger) for
+  raw/additional fields; fail-open behaviour (logged warning, no throw) when
+  correlation fails; and that the forwarded `tenantId` is the validated event
+  `tenantId`.
+- `tests/personal-agent-work-out-loud-evidence-revalidation.integration.test.js`
+  — end-to-end proof: records an evidence requirement, emits a real
+  `personal-agent.work-out-loud` `scoped_fact_learned` event with a matching
+  `contextField` through the actual listener/`evidence-revalidation`/
+  `notification`/persona-inbox chain, and asserts the origin-session inbox
+  message appears — with no raw learned-fact value anywhere in the chain —
+  without any manual `correlateFact` call.
