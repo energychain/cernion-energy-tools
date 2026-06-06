@@ -1,0 +1,32 @@
+{
+  "internal": {
+    "requiresHitlItem": true,
+    "requiresEvidenceRequirement": false,
+    "inbox": {
+      "type": "hitl-approval",
+      "targetSession": "personaDefault",
+      "title": "Freigabe erforderlich",
+      "summary": "Fuer HITL-Item {{hitlItemId}} ist eine menschliche Freigabe erforderlich."
+    }
+  },
+  "hitl_approval": {
+    "requiresHitlItem": true,
+    "requiresEvidenceRequirement": false,
+    "inbox": {
+      "type": "hitl-approval",
+      "targetSession": "personaDefault",
+      "title": "Freigabe erforderlich",
+      "summary": "Fuer HITL-Item {{hitlItemId}} ist eine menschliche Freigabe erforderlich."
+    }
+  },
+  "evidence_revalidated": {
+    "requiresHitlItem": false,
+    "requiresEvidenceRequirement": true,
+    "inbox": {
+      "type": "evidence-revalidated",
+      "targetSession": "originSession",
+      "title": "Evidenzstatus aktualisiert",
+      "summary": "Eine fruehere Antwort kann mit neuer Evidenz erneut bewertet werden ({{evidenceRequirementId}})."
+    }
+  }
+}

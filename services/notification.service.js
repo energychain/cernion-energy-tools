@@ -5,6 +5,7 @@ const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId, validateTenantId } = require('../src/tenant-context');
+const DISPATCH_TYPE_DEFINITIONS = require('../src/notification-dispatch-types.json');
 
 const DOC_PREFIX = 'nd:';
 const DISPATCH_STATUSES = Object.freeze([
@@ -29,13 +30,24 @@ function sanitizeError(error) {
   return message.replace(/\s+/g, ' ').slice(0, 240);
 }
 
-function buildInboxSummary(hitlItemId) {
-  const item = trimString(hitlItemId);
+function getDispatchTypeDefinition(dispatchType) {
+  const normalized = trimString(dispatchType) || 'internal';
+  return DISPATCH_TYPE_DEFINITIONS[normalized] || DISPATCH_TYPE_DEFINITIONS.internal;
+}
+
+function renderTemplate(template, payload = {}) {
+  const text = trimString(template);
+  if (!text) return '';
+  return text.replace(/\{\{([a-zA-Z0-9_]+)\}\}/g, (_match, key) => trimString(payload[key]));
+}
+
+function buildInboxSummary(payload = {}, definition = getDispatchTypeDefinition(payload?.dispatchType)) {
+  const inbox = definition?.inbox || {};
+  const title = trimString(inbox.title) || 'Freigabe erforderlich';
+  const summary = renderTemplate(inbox.summary, payload);
   return {
-    title: 'Freigabe erforderlich',
-    summary: item
-      ? `Für HITL-Item ${item} ist eine menschliche Freigabe erforderlich.`
-      : 'Es liegt eine neue proaktive Aufgabe vor.',
+    title,
+    summary: summary || 'Es liegt eine neue proaktive Aufgabe vor.',
   };
 }
 
@@ -91,7 +103,10 @@ module.exports = {
       params: {
         dispatchType: { type: 'string', optional: true, default: 'internal' },
         tenantId: { type: 'string', optional: true },
-        hitlItemId: { type: 'string', min: 1 },
+        hitlItemId: { type: 'string', min: 1, optional: true },
+        evidenceRequirementId: { type: 'string', min: 1, optional: true },
+        originSessionId: { type: 'string', min: 1, optional: true },
+        revalidationStatus: { type: 'string', optional: true },
         personaId: { type: 'string', optional: true },
         responsibleRole: { type: 'string', optional: true },
         routingContext: { type: 'object', optional: true, default: {} },
@@ -230,18 +245,41 @@ module.exports = {
     },
 
     buildPayload(tenantId, params = {}) {
-      const hitlItemId = trimString(params.hitlItemId);
-      if (!hitlItemId) {
+      const dispatchType = trimString(params.dispatchType) || 'internal';
+      const definition = getDispatchTypeDefinition(dispatchType);
+      const hitlItemId = trimString(params.hitlItemId) || null;
+      const evidenceRequirementId = trimString(params.evidenceRequirementId) || null;
+      const originSessionId = trimString(params.originSessionId) || null;
+
+      if (definition.requiresHitlItem && !hitlItemId) {
         throw new MoleculerClientError('hitlItemId is required', 422, 'VALIDATION_ERROR');
+      }
+
+      if (definition.requiresEvidenceRequirement && !evidenceRequirementId) {
+        throw new MoleculerClientError(
+          'evidenceRequirementId is required',
+          422,
+          'VALIDATION_ERROR'
+        );
       }
 
       const personaId = trimString(params.personaId) || null;
       const responsibleRole = trimString(params.responsibleRole) || null;
-      const embedRef = trimString(params.embedRef) || `hitl_item_${hitlItemId}`;
+      const embedRef =
+        trimString(params.embedRef) ||
+        (hitlItemId
+          ? `hitl_item_${hitlItemId}`
+          : evidenceRequirementId
+            ? `evidence_requirement_${toHash(evidenceRequirementId)}`
+            : null);
 
       return {
         tenantId,
+        dispatchType,
         hitlItemId,
+        evidenceRequirementId,
+        originSessionId,
+        revalidationStatus: trimString(params.revalidationStatus) || null,
         personaId,
         responsibleRole,
         routingContext:
@@ -256,7 +294,13 @@ module.exports = {
       const explicit = trimString(providedKey);
       if (explicit) return explicit;
       const recipientPart = payload.personaId || payload.responsibleRole || 'unknown';
-      return `${payload.tenantId}:${payload.hitlItemId}:${recipientPart}`;
+      const subjectPart =
+        payload.hitlItemId ||
+        payload.evidenceRequirementId ||
+        payload.originSessionId ||
+        payload.dispatchType ||
+        'unknown';
+      return `${payload.tenantId}:${payload.dispatchType}:${subjectPart}:${recipientPart}`;
     },
 
     async getTenantDispatches(tenantId) {
@@ -553,15 +597,22 @@ module.exports = {
         };
       }
 
-      const inboxPayload = buildInboxSummary(payload?.hitlItemId);
+      const definition = getDispatchTypeDefinition(payload?.dispatchType);
+      const inboxPayload = buildInboxSummary(payload, definition);
+      const inboxConfig = definition?.inbox || {};
+      const sessionId =
+        inboxConfig.targetSession === 'originSession'
+          ? trimString(payload?.originSessionId) || trimString(persona?.defaultPersonalAgentSessionId) || null
+          : trimString(persona?.defaultPersonalAgentSessionId) || null;
+
       try {
         const response = await ctx.call(
           'persona-inbox.enqueue',
           {
             tenantId,
             personaId: persona.id,
-            sessionId: trimString(persona?.defaultPersonalAgentSessionId) || null,
-            type: 'hitl-approval',
+            sessionId,
+            type: trimString(inboxConfig.type) || 'hitl-approval',
             hitlItemId: payload?.hitlItemId || null,
             embedRef: payload?.embedRef || null,
             title: inboxPayload.title,

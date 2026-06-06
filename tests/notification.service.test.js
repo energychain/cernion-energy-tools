@@ -6,6 +6,7 @@ const path = require('path');
 const { ServiceBroker } = require('moleculer');
 
 const NotificationService = require('../services/notification.service');
+const dispatchTypeDefinitions = require('../src/notification-dispatch-types.json');
 
 describe('notification service', () => {
   let broker;
@@ -292,5 +293,106 @@ describe('notification service', () => {
     );
     expect(list.total).toBe(1);
     expect(inboxEntries).toHaveLength(1);
+  });
+
+  test('evidence revalidation dispatch signals the origin session without HITL item', async () => {
+    inboxEntries.length = 0;
+
+    const first = await broker.call(
+      'notification.dispatch',
+      {
+        dispatchType: 'evidence_revalidated',
+        evidenceRequirementId: 'evreq-sinsheim-grid-operator',
+        originSessionId: 'pa-origin-mayor-sinsheim',
+        revalidationStatus: 'updated',
+        personaId: 'tenant-a/persona-active',
+        sourceService: 'evidence-revalidation',
+        sourceAction: 'fact-linked',
+      },
+      tenantMeta('tenant-a')
+    );
+
+    const second = await broker.call(
+      'notification.dispatch',
+      {
+        dispatchType: 'evidence_revalidated',
+        evidenceRequirementId: 'evreq-sinsheim-grid-operator',
+        originSessionId: 'pa-origin-mayor-sinsheim',
+        revalidationStatus: 'updated',
+        personaId: 'tenant-a/persona-active',
+        sourceService: 'evidence-revalidation',
+        sourceAction: 'fact-linked',
+      },
+      tenantMeta('tenant-a')
+    );
+
+    expect(first.success).toBe(true);
+    expect(first.dispatch.status).toBe('queued');
+    expect(first.dispatch.payload).toMatchObject({
+      tenantId: 'tenant-a',
+      dispatchType: 'evidence_revalidated',
+      hitlItemId: null,
+      evidenceRequirementId: 'evreq-sinsheim-grid-operator',
+      originSessionId: 'pa-origin-mayor-sinsheim',
+      revalidationStatus: 'updated',
+      personaId: 'tenant-a/persona-active',
+    });
+    expect(first.dispatch.payload.embedRef).toMatch(/^evidence_requirement_/);
+    expect(first.dispatch.inboxHandoff).toMatchObject({
+      status: 'queued',
+      messageId: 'inbox-1',
+    });
+    expect(second.dispatch.id).toBe(first.dispatch.id);
+    expect(second.deduplicated).toBe(true);
+
+    expect(inboxEntries).toHaveLength(1);
+    expect(inboxEntries[0]).toMatchObject({
+      tenantId: 'tenant-a',
+      personaId: 'tenant-a/persona-active',
+      sessionId: 'pa-origin-mayor-sinsheim',
+      type: dispatchTypeDefinitions.evidence_revalidated.inbox.type,
+      hitlItemId: null,
+      title: dispatchTypeDefinitions.evidence_revalidated.inbox.title,
+    });
+    expect(inboxEntries[0].summary).toBe(
+      dispatchTypeDefinitions.evidence_revalidated.inbox.summary.replace(
+        '{{evidenceRequirementId}}',
+        'evreq-sinsheim-grid-operator'
+      )
+    );
+    expect(inboxEntries[0].summary).toContain('evreq-sinsheim-grid-operator');
+    expect(JSON.stringify(inboxEntries[0])).not.toContain('gridOperatorBdew=9907473000008');
+    expect(JSON.stringify(inboxEntries[0])).not.toContain('pa-grid-planning-followup');
+  });
+
+  test('non-evidence dispatch still requires a HITL item', async () => {
+    await expect(
+      broker.call(
+        'notification.dispatch',
+        {
+          dispatchType: 'internal',
+          personaId: 'tenant-a/persona-active',
+        },
+        tenantMeta('tenant-a')
+      )
+    ).rejects.toMatchObject({
+      type: 'VALIDATION_ERROR',
+    });
+  });
+
+  test('evidence revalidation dispatch requires declarative evidence requirement key', async () => {
+    await expect(
+      broker.call(
+        'notification.dispatch',
+        {
+          dispatchType: 'evidence_revalidated',
+          originSessionId: 'pa-origin-mayor-sinsheim',
+          personaId: 'tenant-a/persona-active',
+        },
+        tenantMeta('tenant-a')
+      )
+    ).rejects.toMatchObject({
+      type: 'VALIDATION_ERROR',
+    });
   });
 });
