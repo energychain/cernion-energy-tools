@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.60.1] — Auto Evidence Requirement + Root KnownContext Knowledge Scope (2026-06-06)
+
+### Added
+
+- **Part A — Root `knownContext` to `knowledgeScopeDataPoints`**: `resolveScopedKnowledgeState` in `services/personal-agent.service.js` now automatically promotes eight safe scalar `knownContext` fields to scoped knowledge datapoints without requiring an explicit `knowledgeScopeDataPoints` array — `gridOperatorBdew`, `gridOperatorId`, `gridOperatorName`, `bdew`, `vnbName` → `tenant_candidate`; `postalCode`, `city`, `voltageLevel` → `session`. These fields are already in `SAFE_CONTEXT_FIELDS`, so the Work-Out-Loud emission path automatically emits `scoped_fact_learned` events with the correct `contextField` as soon as any of them are first supplied via `knownContext`.
+
+- **Part B — Auto Evidence Requirement Registration**: `personal-agent.chat` now calls `evidence-revalidation.recordRequirement` when `buildResponsePolicyContract` returns structured missing evidence for a recognised grid-operator fact (`vnb_lookup_required`, `gridOperatorBdew`, `bdew`, `bdewCode`, `operatorEvidence`) AND `knownContext.responsibleRole` or `knownContext.personaId` is present. The call is fire-and-forget and fail-open — unavailability of `evidence-revalidation` never affects the chat response. Evidence requirement IDs are deterministic (`evreq:{sessionId}:{requestedFact}`), making repeated registration idempotent.
+
+- **Part C — Full End-to-End Integration Test**: `tests/personal-agent-auto-evidence-requirement.integration.test.js` proves the complete chain — chat (Turn 1) auto-registers a `gridOperatorBdew` requirement → later chat (Turn 2) supplies `knownContext.gridOperatorBdew` → `resolveScopedKnowledgeState` derives scoped datapoint → WoL `scoped_fact_learned` emitted → listener calls `correlateFact` → origin session receives `evidence_revalidated` proactive inbox message — no raw fact values or prompt text anywhere in the chain.
+
+- New methods in `personal-agent` service: `buildEvidenceRequirementsForRevalidation` (pure helper, narrow structured mapping) and `recordEvidenceRequirementsForRevalidation` (async, fail-open call to `evidence-revalidation.recordRequirement`).
+
+### Tests
+
+- `tests/personal-agent.service.test.js` — new tests in `describe('v0.57.2 — knowledgeScope summary baseline', ...)` (Part A, 3 new) and `describe('Part B — auto evidence requirement registration...', ...)` (4 new); mock `evidence-revalidation` service added to `beforeEach`.
+- `tests/personal-agent-auto-evidence-requirement.integration.test.js` — new file, Part C integration proof (2 tests).
+
 ## [0.59.1] — Blueprint Export API compatibility fix (2026-06-01)
 
 ### Fixed

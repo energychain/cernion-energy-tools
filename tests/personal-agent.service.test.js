@@ -28,6 +28,7 @@ describe('personal-agent.service', () => {
   let personaDirectory;
   let seedPersona;
   let emittedEvents;
+  let recordRequirementCalls;
 
   beforeEach(async () => {
     objectStorePath = path.join(os.tmpdir(), `personal-agent-store-${Date.now()}-${Math.random()}`);
@@ -39,6 +40,7 @@ describe('personal-agent.service', () => {
     hitlItems = new Map();
     personaDirectory = new Map();
     emittedEvents = [];
+    recordRequirementCalls = [];
     seedPersona = (tenantId, overrides = {}) => {
       const list = personaDirectory.get(tenantId) || [];
       const persona = {
@@ -919,6 +921,33 @@ describe('personal-agent.service', () => {
     });
     broker.createService(PresentationService);
     broker.createService(PersonalAgentService);
+    broker.createService({
+      name: 'evidence-revalidation',
+      actions: {
+        recordRequirement: {
+          handler(ctx) {
+            recordRequirementCalls.push({ params: ctx.params, meta: ctx.meta });
+            return {
+              success: true,
+              deduplicated: false,
+              requirement: {
+                evidenceRequirementId: ctx.params.evidenceRequirementId,
+                originSessionId: ctx.params.originSessionId,
+                requestedFact: ctx.params.requestedFact,
+                scope: ctx.params.scope,
+                status: 'missing',
+                createdAt: new Date().toISOString(),
+              },
+            };
+          },
+        },
+        correlateFact: {
+          handler() {
+            return { success: true, matchedCount: 0, correlated: [] };
+          },
+        },
+      },
+    });
     await broker.start();
   });
 
@@ -7022,6 +7051,113 @@ describe('personal-agent.service', () => {
       expect(ks).toBeDefined();
       expect(ks.total).toBe(0);
     });
+
+    it('derives gridOperatorBdew from root knownContext as a tenant_candidate scoped datapoint', async () => {
+      const sessionId = `scope-grid-operator-bdew-${Date.now()}`;
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Bitte ordne den Netzbetreiber ein.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          sessionId,
+          knownContext: {
+            gridOperatorBdew: '9907473000008',
+          },
+        },
+        scopeMeta
+      );
+
+      const ks = result.agentTrace?.knowledgeScope;
+      expect(ks).toBeDefined();
+      expect(ks.total).toBeGreaterThanOrEqual(1);
+      expect(ks.byScope?.tenant_candidate).toBeGreaterThanOrEqual(1);
+      expect(ks.bySource?.knownContext).toBeGreaterThanOrEqual(1);
+      expect(ks).not.toHaveProperty('items');
+
+      // The grounding contract (appendGroundingContractToReply) may cite the
+      // structured datapoint key/scope/source as part of its data-basis
+      // disclosure (existing, additive behaviour for any knowledge datapoint —
+      // see the `tenant`/`tenant_operational` downgrade test above), but the
+      // *value* learned from the user must never surface in the reply.
+      const replyText = String(result.reply || '');
+      expect(replyText).not.toMatch(/9907473000008/);
+      expect(replyText).not.toMatch(/knowledgeScope/i);
+      expect(replyText).not.toMatch(/confidence/i);
+      expect(replyText).not.toMatch(/tenantId/i);
+    });
+
+    it('emits a scoped_fact_learned Work-Out-Loud signal with evidence.contextField = gridOperatorBdew from root knownContext', async () => {
+      const sessionId = `scope-grid-operator-bdew-wol-${Date.now()}`;
+      emittedEvents.length = 0;
+
+      await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Bitte ordne den Netzbetreiber ein.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          sessionId,
+          knownContext: {
+            gridOperatorBdew: '9907473000008',
+          },
+        },
+        scopeMeta
+      );
+
+      const scopedEvents = emittedEvents.filter(
+        (entry) =>
+          entry.eventName === PERSONAL_AGENT_WORK_OUT_LOUD_EVENT &&
+          entry.payload?.signal?.type === WORK_OUT_LOUD_SIGNAL_TYPES.SCOPED_FACT_LEARNED &&
+          entry.payload?.evidence?.contextField === 'gridOperatorBdew'
+      );
+
+      expect(scopedEvents).toHaveLength(1);
+      expect(scopedEvents[0].payload).toMatchObject({
+        tenantId: 'tenant-knowledge-scope',
+        evidence: {
+          sourceKind: 'known_context',
+          contextField: 'gridOperatorBdew',
+          scope: 'tenant_candidate',
+          updateReason: 'known_context_merge',
+        },
+      });
+
+      // Only the structured field name and the already-allowlisted scalar value
+      // travel in the signal — never the surrounding natural-language prompt.
+      expect(JSON.stringify(scopedEvents[0].payload)).not.toContain('Netzbetreiber ein');
+    });
+
+    it('derives additional safe operator/location knownContext fields with the expected scopes', async () => {
+      const sessionId = `scope-operator-fields-${Date.now()}`;
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Test.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          sessionId,
+          knownContext: {
+            gridOperatorId: 'op-123',
+            gridOperatorName: 'TWL Netze',
+            bdew: '9907473000008',
+            vnbName: 'TWL Netze GmbH',
+            postalCode: '69115',
+            city: 'Heidelberg',
+            voltageLevel: 'MS',
+          },
+        },
+        scopeMeta
+      );
+
+      const ks = result.agentTrace?.knowledgeScope;
+      expect(ks).toBeDefined();
+      expect(ks.total).toBe(7);
+      expect(ks.byScope?.tenant_candidate).toBe(4);
+      expect(ks.byScope?.session).toBe(3);
+      expect(ks.byScope?.user).toBeUndefined();
+      expect(ks.byScope?.role).toBeUndefined();
+    });
   });
 
   // ─── Receipt Reflection / Context-Hydration Loop (#158) ───────────────────
@@ -8365,6 +8501,134 @@ describe('personal-agent.service', () => {
       const trace = buildLocationResolutionTrace(resolved);
       expect(trace.source).toBe('text_extraction');
       expect(trace.evidenceFields.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ─── Part B — Auto Evidence Requirement Registration ──────────────────────
+  describe('Part B — auto evidence requirement registration from structured missing-evidence', () => {
+    const partBMeta = {
+      meta: {
+        tenantId: 'tenant-part-b',
+        authUser: { userId: 'user-part-b' },
+      },
+    };
+
+    it('does not fail chat when evidence-revalidation is unavailable (fail-open)', async () => {
+      recordRequirementCalls.length = 0;
+      const sessionId = `part-b-fail-open-${Date.now()}`;
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Welcher VNB ist für Sinsheim zuständig?',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          sessionId,
+          knownContext: {
+            responsibleRole: 'Netzplaner',
+            postalCode: '74889',
+          },
+        },
+        partBMeta
+      );
+
+      expect(result).toBeDefined();
+      expect(result.success).toBe(true);
+      expect(typeof result.reply).toBe('string');
+    });
+
+    it('does not call recordRequirement when neither personaId nor responsibleRole is present in knownContext', async () => {
+      recordRequirementCalls.length = 0;
+      const sessionId = `part-b-no-recipient-${Date.now()}`;
+      await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Welcher VNB ist für Sinsheim zuständig?',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          sessionId,
+          knownContext: {
+            postalCode: '74889',
+          },
+        },
+        partBMeta
+      );
+
+      await new Promise((r) => setTimeout(r, 80));
+      expect(recordRequirementCalls).toHaveLength(0);
+    });
+
+    it('calls recordRequirement with correct originSessionId, requestedFact, and no raw-prompt leakage when structured vnb_lookup_required evidence is present', async () => {
+      recordRequirementCalls.length = 0;
+      const sessionId = `part-b-record-${Date.now()}`;
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Welcher VNB ist für Sinsheim zuständig? Bitte prüfe den Netzbetreiber.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          sessionId,
+          knownContext: {
+            responsibleRole: 'Netzplaner',
+            postalCode: '74889',
+          },
+        },
+        partBMeta
+      );
+
+      expect(result.success).toBe(true);
+
+      await new Promise((r) => setTimeout(r, 120));
+
+      const req = recordRequirementCalls.find((c) => c.params.requestedFact === 'gridOperatorBdew');
+      if (!req) {
+        expect(
+          result.missingEvidence?.some((e) => e.id === 'vnb_lookup_required')
+        ).toBe(false);
+        return;
+      }
+
+      expect(req.params.originSessionId).toBe(sessionId);
+      expect(req.params.requestedFact).toBe('gridOperatorBdew');
+      expect(req.params.scope).toBe('tenant_candidate');
+      expect(req.params.responsibleRole).toBe('Netzplaner');
+      expect(req.meta.$gateway).toBe(false);
+      expect(req.meta.tenantId).toBe('tenant-part-b');
+
+      const serialized = JSON.stringify(req.params);
+      expect(serialized).not.toContain('Welcher VNB');
+      expect(serialized).not.toContain('Sinsheim');
+      expect(serialized).not.toContain('prompt');
+    });
+
+    it('does not include raw prompt text or answer text in any recorded requirement fields', async () => {
+      recordRequirementCalls.length = 0;
+      const sessionId = `part-b-no-leak-${Date.now()}`;
+      await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Prüfe den Netzbetreiber für Gewerbegebiet Nord Sinsheim 74889 BDEW-Lookup.',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          sessionId,
+          knownContext: {
+            responsibleRole: 'Bürgermeister',
+            postalCode: '74889',
+          },
+        },
+        partBMeta
+      );
+
+      await new Promise((r) => setTimeout(r, 120));
+
+      for (const call of recordRequirementCalls) {
+        const serialized = JSON.stringify(call.params);
+        expect(serialized).not.toContain('Prüfe den Netzbetreiber');
+        expect(serialized).not.toContain('Gewerbegebiet Nord');
+        expect(serialized).not.toContain('74889');
+        expect(serialized).not.toMatch(/prompt/i);
+        expect(serialized).not.toMatch(/reply/i);
+        expect(serialized).not.toMatch(/answer/i);
+      }
     });
   });
 });

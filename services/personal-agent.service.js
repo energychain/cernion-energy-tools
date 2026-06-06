@@ -2804,6 +2804,22 @@ module.exports = {
               ? { debugTrace: consultationResult.debugTrace }
               : {}),
           };
+
+          const _consultationEvidenceCandidates = this.buildEvidenceRequirementsForRevalidation({
+            tenantId,
+            sessionId,
+            personaId: rawKnownContext?.personaId || null,
+            responsibleRole: rawKnownContext?.responsibleRole || null,
+            missingEvidence: consultationPayload.missingEvidence,
+            evidencePlan: null,
+            execution: consultationExecution,
+          });
+          if (_consultationEvidenceCandidates.length > 0) {
+            this.recordEvidenceRequirementsForRevalidation(ctx, _consultationEvidenceCandidates).catch(
+              (err) => this.logger?.warn(`evidence requirement recording failed: ${err.message}`)
+            );
+          }
+
           const consultationAttempts = Array.isArray(consultationPayload.attemptsSummary)
             ? consultationPayload.attemptsSummary
             : [];
@@ -4132,6 +4148,22 @@ module.exports = {
           execution,
           evidencePlan: receiptExecutionUsed ? null : responsePlan?.evidencePlan || null,
         });
+
+        const _executionEvidenceCandidates = this.buildEvidenceRequirementsForRevalidation({
+          tenantId,
+          sessionId,
+          personaId: rawKnownContext?.personaId || null,
+          responsibleRole: rawKnownContext?.responsibleRole || null,
+          missingEvidence: executionResponsePolicyContract.missingEvidence,
+          evidencePlan: receiptExecutionUsed ? null : responsePlan?.evidencePlan || null,
+          execution,
+        });
+        if (_executionEvidenceCandidates.length > 0) {
+          this.recordEvidenceRequirementsForRevalidation(ctx, _executionEvidenceCandidates).catch(
+            (err) => this.logger?.warn(`evidence requirement recording failed: ${err.message}`)
+          );
+        }
+
         const executionTimeoutFallback =
           execution?.status === 'partial' ||
           execution?.status === 'timeout' ||
@@ -5262,6 +5294,96 @@ module.exports = {
         .filter(Boolean)
         .join(' ')
         .trim();
+    },
+
+    buildEvidenceRequirementsForRevalidation({
+      tenantId,
+      sessionId,
+      personaId,
+      responsibleRole,
+      missingEvidence = [],
+      evidencePlan = null,
+      execution = null,
+    } = {}) {
+      if (!personaId && !responsibleRole) return [];
+
+      const candidates = [];
+      const seen = new Set();
+
+      const addCandidate = (requestedFact, scope) => {
+        if (seen.has(requestedFact)) return;
+        seen.add(requestedFact);
+        const candidate = {
+          evidenceRequirementId: `evreq:${sessionId}:${requestedFact}`,
+          originSessionId: sessionId,
+          requestedFact,
+          scope,
+        };
+        if (personaId) candidate.originPersonaId = personaId;
+        if (responsibleRole) candidate.responsibleRole = responsibleRole;
+        candidates.push(candidate);
+      };
+
+      const GRID_OPERATOR_MISSING_IDS = new Set([
+        'vnb_lookup_required',
+        'gridOperatorBdew',
+        'bdew',
+        'bdewCode',
+        'operatorEvidence',
+      ]);
+      const GRID_OPERATOR_PARAMS = new Set([
+        'gridOperatorBdew',
+        'bdew',
+        'bdewCode',
+        'gridOperatorId',
+        'gridOperatorName',
+        'vnbName',
+      ]);
+
+      const safeMissingEvidence = Array.isArray(missingEvidence) ? missingEvidence : [];
+      if (safeMissingEvidence.some((e) => GRID_OPERATOR_MISSING_IDS.has(e?.id))) {
+        addCandidate('gridOperatorBdew', 'tenant_candidate');
+      }
+
+      const stopMissingParams = Array.isArray(execution?.stopPoint?.missingParams)
+        ? execution.stopPoint.missingParams
+        : [];
+      if (stopMissingParams.some((p) => GRID_OPERATOR_PARAMS.has(p))) {
+        addCandidate('gridOperatorBdew', 'tenant_candidate');
+      }
+
+      const gaps = Array.isArray(evidencePlan?.gaps) ? evidencePlan.gaps : [];
+      if (gaps.some((g) => GRID_OPERATOR_MISSING_IDS.has(g?.id || g?.requirementId))) {
+        addCandidate('gridOperatorBdew', 'tenant_candidate');
+      }
+
+      return candidates;
+    },
+
+    async recordEvidenceRequirementsForRevalidation(ctx, candidates) {
+      if (!Array.isArray(candidates) || candidates.length === 0) return;
+      const tenantId = getTenantId(ctx);
+      for (const candidate of candidates) {
+        try {
+          await ctx.call(
+            'evidence-revalidation.recordRequirement',
+            {
+              tenantId,
+              evidenceRequirementId: candidate.evidenceRequirementId,
+              originSessionId: candidate.originSessionId,
+              ...(candidate.originPersonaId ? { originPersonaId: candidate.originPersonaId } : {}),
+              ...(candidate.responsibleRole ? { responsibleRole: candidate.responsibleRole } : {}),
+              requestedFact: candidate.requestedFact,
+              scope: candidate.scope,
+            },
+            { meta: { tenantId, $gateway: false } }
+          );
+        } catch (error) {
+          this.logger?.warn(
+            `evidence-revalidation.recordRequirement failed (non-blocking): ${error.message}`
+          );
+        }
+      }
     },
 
     applyResponsePolicyGuardrails({ reply = '', contract = {}, timeoutFallback = false } = {}) {
@@ -9688,6 +9810,14 @@ module.exports = {
         organizationType: 'user',
         responsibleRole: 'role',
         roleId: 'role',
+        gridOperatorBdew: 'tenant_candidate',
+        gridOperatorId: 'tenant_candidate',
+        gridOperatorName: 'tenant_candidate',
+        bdew: 'tenant_candidate',
+        vnbName: 'tenant_candidate',
+        postalCode: 'session',
+        city: 'session',
+        voltageLevel: 'session',
       };
 
       const derivedFromKnownContext = Object.entries(KNOWN_CONTEXT_ALLOWLIST).reduce(

@@ -234,3 +234,101 @@ before regardless of whether correlation succeeds, fails, or is unavailable.
   `notification`/persona-inbox chain, and asserts the origin-session inbox
   message appears — with no raw learned-fact value anywhere in the chain —
   without any manual `correlateFact` call.
+
+## Auto Evidence Requirement + Root KnownContext Knowledge Scope
+
+Two additional subsystems were added in the follow-on iteration (Task 2) to
+remove remaining manual steps from the standard scenario.
+
+### Part A — Root `knownContext` → `knowledgeScopeDataPoints`
+
+`resolveScopedKnowledgeState` in `services/personal-agent.service.js` now
+promotes safe scalar `knownContext` fields directly to scoped knowledge
+datapoints without any explicit `knowledgeScopeDataPoints` payload. Fields
+added to `KNOWN_CONTEXT_ALLOWLIST`:
+
+| Field | Scope |
+|-------|-------|
+| `gridOperatorBdew` | `tenant_candidate` |
+| `gridOperatorId` | `tenant_candidate` |
+| `gridOperatorName` | `tenant_candidate` |
+| `bdew` | `tenant_candidate` |
+| `vnbName` | `tenant_candidate` |
+| `postalCode` | `session` |
+| `city` | `session` |
+| `voltageLevel` | `session` |
+
+These fields are already in `SAFE_CONTEXT_FIELDS` / `SAFE_CONTEXT_FIELD_SET`
+(see `src/personal-agent-work-out-loud.js`). Promoting them to
+`KNOWN_CONTEXT_ALLOWLIST` means: once a later chat turn supplies, for example,
+`knownContext.gridOperatorBdew = '9907473000008'`, `resolveScopedKnowledgeState`
+derives a `tenant_candidate`-scoped datapoint, and
+`emitScopedKnowledgeWorkOutLoud` automatically emits a `scoped_fact_learned`
+Work-Out-Loud signal with `evidence.contextField: 'gridOperatorBdew'` — the
+same signal that `personal-agent-work-out-loud-listener` uses to call
+`evidence-revalidation.correlateFact`. No explicit `knowledgeScopeDataPoints`
+entry is required.
+
+Tests (in `tests/personal-agent.service.test.js`,
+`describe('v0.57.2 — knowledgeScope summary baseline', ...)`):
+- derives `gridOperatorBdew` from root `knownContext` as a `tenant_candidate`
+  scoped datapoint;
+- emits a `scoped_fact_learned` Work-Out-Loud signal with
+  `evidence.contextField = 'gridOperatorBdew'` from root `knownContext`;
+- derives all eight newly added fields with expected scopes (4 ×
+  `tenant_candidate`, 3 × `session`);
+- no raw fact value leaks into the reply; no raw prompt text leaks into the
+  WoL payload.
+
+### Part B — Auto Evidence Requirement Registration from Structured Missing Evidence
+
+`personal-agent.chat` now calls
+`evidence-revalidation.recordRequirement` when two conditions hold:
+
+1. The structured `missingEvidence` array (from `buildResponsePolicyContract`)
+   contains an entry with a recognised grid-operator ID
+   (`vnb_lookup_required`, `gridOperatorBdew`, `bdew`, `bdewCode`,
+   `operatorEvidence`), OR `execution.stopPoint.missingParams` includes a
+   grid-operator parameter, OR an `evidencePlan.gap` matches.
+2. Either `knownContext.personaId` or `knownContext.responsibleRole` is
+   present — providing the recipient for the eventual revalidation signal.
+
+The mapping is narrow and deterministic: only the structured `id` field of
+`missingEvidence` entries is inspected — never the message text. If neither
+recipient field is set, `buildEvidenceRequirementsForRevalidation` returns an
+empty list and no recording happens (logged at debug level). The call is
+fire-and-forget and fail-open: failure or unavailability of
+`evidence-revalidation` never affects the chat response.
+
+Evidence requirement IDs are deterministic: `evreq:{sessionId}:{requestedFact}`,
+making the registration idempotent across turns.
+
+Tests (in `tests/personal-agent.service.test.js`,
+`describe('Part B — auto evidence requirement registration...', ...)`):
+- does not fail chat when `evidence-revalidation` is unavailable (fail-open);
+- does not call `recordRequirement` when neither `personaId` nor
+  `responsibleRole` is present in `knownContext`;
+- calls `recordRequirement` with correct `originSessionId`, `requestedFact`,
+  `scope`, `responsibleRole`, and `$gateway: false` when structured
+  `vnb_lookup_required` evidence is present;
+- no raw prompt text or answer text in any recorded requirement field.
+
+### Part C — Full End-to-End Chain (Integration Test)
+
+`tests/personal-agent-auto-evidence-requirement.integration.test.js` proves
+the complete chain without any manual `recordRequirement` or `correlateFact`
+call:
+
+1. `personal-agent.chat` (Turn 1) auto-registers a `gridOperatorBdew`
+   evidence requirement because `consultationPayload.missingEvidence` contains
+   `vnb_lookup_required` and `knownContext.responsibleRole` is set.
+2. A later `personal-agent.chat` (Turn 2, different session) supplies
+   `knownContext.gridOperatorBdew`.
+3. `resolveScopedKnowledgeState` derives a new `tenant_candidate` scoped
+   datapoint for `gridOperatorBdew`.
+4. `emitScopedKnowledgeWorkOutLoud` emits a `scoped_fact_learned` WoL event
+   with `evidence.contextField: 'gridOperatorBdew'`.
+5. `personal-agent-work-out-loud-listener` calls
+   `evidence-revalidation.correlateFact`.
+6. The origin session receives an `evidence_revalidated` proactive persona-inbox
+   message with no raw fact values or prompt text in the chain.
