@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.59.2] — Clarification-Policy-Engine & EEG 2027 Claw-Back Simulator (2026-06-07)
+
+### Added
+
+- **Generische Clarification-Policy-Engine** — data-driven Rückfrage-Mechanismus für den Personal Agent, der vor Receipt-Selektion und Consultation-Loop eingreift, wenn das Optimierungsziel aus der Anfrage nicht eindeutig ableitbar ist.
+  - [`src/clarification-policy-registry.js`](src/clarification-policy-registry.js): File-Registry mit Runtime-Overlay (`setRuntimeClarificationPolicy`/`clearRuntimeClarificationPolicy`), term-basiertem Scoring (`anyTerms`, `requiredAnyTerms`, `absentAnyTerms`, `intentSignals`, `priority`), ChatMode-Filter und Policy-Validierung.
+  - [`src/clarification-policies/ev-charging-objective-disambiguation-v1.json`](src/clarification-policies/ev-charging-objective-disambiguation-v1.json): Erste Policy — matched generische E-Auto-Ladefragen ohne Zielsignal; blockiert, sobald CO₂, Grünstrom, Strompreis, Börsenpreis, Day-Ahead, EPEX, Kosten, günstig oder dynamischer Tarif explizit genannt werden.
+  - [`services/clarification-policy.service.js`](services/clarification-policy.service.js): Moleculer REST-Service mit PouchDB-Persistenz: `POST /api/clarification-policy/drafts`, `GET /api/clarification-policy`, `GET /api/clarification-policy/:id`, `POST /api/clarification-policy/:id/validate`, `POST /api/clarification-policy/:id/test`, `POST /api/clarification-policy/:id/promote` (archiviert Previous, setzt Runtime-Overlay).
+  - [`services/personal-agent.service.js`](services/personal-agent.service.js): `findClarificationPolicyMatch` wird nach Location-Hydration und vor Receipt-Selektion ausgewertet; bei Match: kein Tool-Aufruf, kein Blueprint, sofortige Rückfrage mit `status: awaiting_input`, strukturierte `clarification`-Metadaten (`policyId`, `version`, `options`, `requiredContext`), saubere History-Persistenz.
+  - [`tests/clarification-policy-registry.test.js`](tests/clarification-policy-registry.test.js): 4 Unit-Tests (Policy lädt/validiert, generic EV matched, CO₂-explizit matched nicht, Börsenpreis-explizit matched nicht).
+
+- **EEG 2027 Claw-Back & Refinanzierungs-Simulator (RCS)** — deterministischer Layer-1-Calculator und deklarativer Layer-2-Blueprint für anlagenscharfe Simulation des EEG-2027-Refinanzierungsbeitrags vs. klassische §51-Regelung.
+  - [`src/eeg-clawback-calculator.js`](src/eeg-clawback-calculator.js): Reines Mathematikmodul ohne I/O. Viertelstunden-Interpolation (flat-hold stündlicher Preise), §51-Curtailment (konfigurierbarer Schwellenwert via `EEG_S51_CONSECUTIVE_NEG_HOURS`, Default 6h), EEG-2027-Clawback mit drei Armen (Negativpreis-Burden, Sub-Floor-Adjustment, Excess-Profit), Liquiditätsrisikoindex (low/medium/high). Technologietypische Floor-Werte konfigurierbar via Env-Vars (`EEG_FLOOR_SOLAR_EUR_MWH`, `EEG_FLOOR_WIND_ONSHORE_EUR_MWH`, …).
+  - [`services/eeg-clawback-calculator.service.js`](services/eeg-clawback-calculator.service.js): Moleculer-Service mit `calculate`-Action (L1-Direktaufruf) und `simulate`-Action (orchestriert `assets.effective` + `energy-market.prices` + `edm.getTimeseries`, delegiert an `calculate`).
+  - [`src/blueprints/regulatory-change-eeg2027-v1.json`](src/blueprints/regulatory-change-eeg2027-v1.json): L2-Blueprint `rcs-eeg2027-clawback-v1` mit 4-Schritte-Execution-Chain, Slot-Filling (`assetId` via context_lookup, `timeframe` via llm_extraction mit Default 2025), `postProcessing.deltaPercentage`-Berechnung, deutschen Synthesis-Templates.
+  - [`services/api.service.js`](services/api.service.js): `POST /api/vnb/rcs/simulate` → `eeg-clawback-calculator.simulate`; `POST /api/vnb/rcs/calculate` → `eeg-clawback-calculator.calculate`; `requiresFullAccess`-Guard für das simulate-Endpoint.
+  - [`tests/eeg-clawback-calculator.test.js`](tests/eeg-clawback-calculator.test.js): 18 Unit-Tests — Szenario 1 (konstante positive Preise, RB=0), Szenario 2 (8 aufeinanderfolgende Negativpreisintervalle, exakter Erwartungswert), Szenario 3 (Dynamic-Floor-Boundary knapp über/auf/unter Mindesterlös, Excess-Profit-Clawback), Interpolations-Smoke-Tests.
+  - [`tests/vnb-rcs.test.js`](tests/vnb-rcs.test.js): 20 Integrationstests — gemockter Broker verifiziert Orchestrierungs-Call-Sequenz (`assets.effective`, `energy-market.prices`, `edm.getTimeseries`), Result-Shape, Negativpreis-Clawback-Aktivierung, Blueprint-JSON-Syntaxvalidierung, L1-Direktaufruf.
+
+### Tests
+
+- `tests/clarification-policy-registry.test.js` — 4 neue Unit-Tests.
+- `tests/personal-agent.service.test.js` — neuer Integrationstest `clarifies generic EV charging question before selecting an optimization path`; bestehende EV-CO₂-Multi-Turn-Regression bleibt grün.
+- `tests/eeg-clawback-calculator.test.js` — 18 neue Unit-Tests (neu).
+- `tests/vnb-rcs.test.js` — 20 neue Integrationstests (neu).
+
 ## [0.60.1] — Auto Evidence Requirement + Root KnownContext Knowledge Scope (2026-06-06)
 
 ### Added
