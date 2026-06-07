@@ -7,6 +7,20 @@ const { runAsync } = require('../src/async-job-runner');
 const jobStore = require('../src/job-store');
 const { MoleculerClientError } = require('moleculer').Errors;
 
+// ── Thresholds (env-configurable) ────────────────────────────────────────────
+
+// Above this estimated interval count, gateway+auto calls go async.
+const SYNC_THRESHOLD_INTERVALS = parseInt(
+  process.env.RCS_SYNC_THRESHOLD_INTERVALS || '9600',
+  10
+);
+
+// Above this estimated interval count, traceMode 'full' without traceAssetIds is rejected.
+const MAX_FULL_TRACE_INTERVALS = parseInt(
+  process.env.RCS_MAX_FULL_TRACE_INTERVALS || '500000',
+  10
+);
+
 // ── Normalise raw upstream responses ─────────────────────────────────────────
 
 function normaliseAsset(raw) {
@@ -21,6 +35,63 @@ function normaliseAsset(raw) {
 
 function normaliseSeries(raw) {
   return Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+}
+
+// ── TraceMode resolution ──────────────────────────────────────────────────────
+
+function resolveTraceMode(opts) {
+  if (opts.traceMode) return opts.traceMode;
+  if (opts.includeIntervalTrace === false) return 'none';
+  if (opts.includeIntervalTrace === true) return 'full';
+  return 'summary'; // default: arm summary without raw intervals
+}
+
+// ── Workload estimation (WP2) ─────────────────────────────────────────────────
+
+function estimateWorkload(assetIds, timeframe, opts) {
+  const assetCount = assetIds.length;
+  const startMs = new Date(timeframe.start).getTime();
+  const endMs = new Date(timeframe.end).getTime();
+  const durationMs = Math.max(0, endMs - startMs);
+  const timeframeDays = Math.round((durationMs / (24 * 3600 * 1000)) * 10) / 10;
+  const expectedIntervalsPerAsset = Math.round(durationMs / (15 * 60 * 1000));
+  const effectiveIntervals = opts.maxIntervalsPerAsset
+    ? Math.min(expectedIntervalsPerAsset, opts.maxIntervalsPerAsset)
+    : expectedIntervalsPerAsset;
+  const estimatedTotalIntervals = assetCount * effectiveIntervals;
+  const chunkSize = Math.max(1, opts.chunkSize ?? 20);
+  const traceMode = resolveTraceMode(opts);
+  const executionMode = opts.executionMode ?? 'auto';
+
+  let estimatedRisk = 'low';
+  if (estimatedTotalIntervals > 10_000_000) estimatedRisk = 'high';
+  else if (estimatedTotalIntervals > 1_000_000) estimatedRisk = 'medium';
+
+  const warnings = [];
+  if (traceMode === 'full' && !opts.traceAssetIds) {
+    if (estimatedTotalIntervals > MAX_FULL_TRACE_INTERVALS) {
+      warnings.push(
+        `traceMode 'full' will produce ~${estimatedTotalIntervals.toLocaleString()} intervals. Consider traceMode 'summary' or specify traceAssetIds.`
+      );
+    }
+    if (assetCount > 50) {
+      warnings.push(
+        `traceMode 'full' with ${assetCount} assets may produce a very large payload.`
+      );
+    }
+  }
+
+  return {
+    assetCount,
+    timeframeDays,
+    expectedIntervalsPerAsset: effectiveIntervals,
+    estimatedTotalIntervals,
+    chunkSize,
+    traceMode,
+    executionMode,
+    estimatedRisk,
+    warnings,
+  };
 }
 
 // ── Rule-arm summary ─────────────────────────────────────────────────────────
@@ -53,15 +124,6 @@ function aggregatePortfolioRuleArmSummary(assetResults) {
     }
   }
   return summary;
-}
-
-// ── TraceMode resolution ──────────────────────────────────────────────────────
-
-function resolveTraceMode(opts) {
-  if (opts.traceMode) return opts.traceMode;
-  if (opts.includeIntervalTrace === false) return 'none';
-  if (opts.includeIntervalTrace === true) return 'full';
-  return 'none'; // safe default for portfolio — bandwidth-heavy payloads must be opt-in
 }
 
 // ── Portfolio aggregation helpers ─────────────────────────────────────────────
@@ -185,26 +247,29 @@ function topAssetsByDataRisk(assetResults, n = 5) {
     }));
 }
 
-// ── Core portfolio simulation (shared between sync and async paths) ────────────
+// ── Best-effort run persistence helper ───────────────────────────────────────
 
-async function runPortfolioSimulationCore(ctx, { assetIds, timeframe, opts, ruleSet }, jobId) {
+async function safeRunCall(ctx, action, params) {
+  try {
+    return await ctx.call(action, params);
+  } catch (_e) {
+    return null; // run persistence never aborts portfolio calculation
+  }
+}
+
+// ── Core portfolio simulation ─────────────────────────────────────────────────
+
+async function runPortfolioSimulationCore(
+  ctx,
+  { assetIds, timeframe, opts, ruleSet, workload, runId },
+  jobId
+) {
   const continueOnError = opts.continueOnAssetError !== false;
-  const chunkSize = Math.max(1, opts.chunkSize ?? 20);
+  const { chunkSize, traceMode } = workload;
   const maxIntervalsPerAsset = opts.maxIntervalsPerAsset ?? null;
-  const traceMode = resolveTraceMode(opts);
   const traceAssetIds = opts.traceAssetIds ? new Set(opts.traceAssetIds) : null;
   const topNTrace = opts.topNTraceByDelta ?? null;
   const traceSampleSize = opts.traceSampleSize ?? 10;
-
-  if (traceMode === 'full' && !traceAssetIds && assetIds.length > 50) {
-    throw new MoleculerClientError(
-      `traceMode 'full' is not allowed for portfolios larger than 50 assets without traceAssetIds. ` +
-        `Use traceMode 'summary' or specify traceAssetIds to limit scope.`,
-      400,
-      'RCS_TRACE_PAYLOAD_TOO_LARGE',
-      { assetCount: assetIds.length, maxForFullTrace: 50 }
-    );
-  }
 
   jobStore.appendLog(jobId, 'price_fetch', 10, 'Fetching shared price series', { timeframe });
   const pricesRaw = await ctx
@@ -219,6 +284,7 @@ async function runPortfolioSimulationCore(ctx, { assetIds, timeframe, opts, rule
 
   const allAssetResults = [];
   const totalChunks = Math.ceil(assetIds.length / chunkSize);
+  const progressUpdateInterval = Math.max(1, Math.floor(totalChunks / 10));
 
   for (let chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
     const chunkStart = chunkIdx * chunkSize;
@@ -255,8 +321,6 @@ async function runPortfolioSimulationCore(ctx, { assetIds, timeframe, opts, rule
             readinessStatus = readiness.overallStatus;
           }
 
-          // Always compute intervals internally for ruleArmSummary derivation.
-          // maxIntervals caps the aligned price+injection grid inside runCalculation.
           const calc = runCalculation(asset, prices, injection, {
             ruleSet,
             includeIntervalTrace: true,
@@ -273,7 +337,7 @@ async function runPortfolioSimulationCore(ctx, { assetIds, timeframe, opts, rule
             readinessStatus,
             summary: calc.summary,
             ruleArmSummary,
-            _rawIntervals: calc.intervals, // stripped from response in final mapping
+            _rawIntervals: calc.intervals,
           };
         } catch (err) {
           if (!continueOnError) throw err;
@@ -289,13 +353,44 @@ async function runPortfolioSimulationCore(ctx, { assetIds, timeframe, opts, rule
       })
     );
     allAssetResults.push(...chunkResults);
+
+    // Persist per-asset results (best-effort, fire-and-forget)
+    if (runId) {
+      safeRunCall(ctx, 'rcs-simulation-run.saveAssetResults', {
+        runId,
+        results: chunkResults.map((r) => ({
+          assetId: r.assetId,
+          assetName: r.assetName ?? r.assetId,
+          technology: r.technology ?? null,
+          status: r.status,
+          readinessStatus: r.readinessStatus ?? null,
+          summary: r.summary ?? null,
+          ruleArmSummary: r.ruleArmSummary ?? null,
+          errorCode: r.errorCode ?? null,
+          message: r.message ?? null,
+        })),
+      });
+
+      // Update progress periodically (every ~10% or on last chunk)
+      if (chunkIdx % progressUpdateInterval === 0 || chunkIdx === totalChunks - 1) {
+        safeRunCall(ctx, 'rcs-simulation-run.updateRun', {
+          runId,
+          status: 'running',
+          progress: {
+            processedAssets: allAssetResults.length,
+            totalAssets: assetIds.length,
+            percent: Math.round((allAssetResults.length / assetIds.length) * 100),
+          },
+        });
+      }
+    }
   }
 
   jobStore.appendLog(jobId, 'aggregation', 90, 'Computing portfolio summary and rankings', {
     assetCount: allAssetResults.length,
   });
 
-  // Determine which assets receive trace data in the response (post-run ranking)
+  // Determine trace-eligible asset IDs (post-run ranking for topNTraceByDelta)
   let traceEligibleIds;
   if (topNTrace !== null) {
     const sortedByDelta = allAssetResults
@@ -332,6 +427,7 @@ async function runPortfolioSimulationCore(ctx, { assetIds, timeframe, opts, rule
     ruleSetVersion: ruleSet?.version ?? null,
     legalStatus: ruleSet?.legalStatus ?? null,
     timeframe,
+    workloadEstimate: workload,
     portfolioSummary,
     ruleArmSummary,
     byTechnology: groupByTechnology(allAssetResults),
@@ -367,9 +463,9 @@ async function runPortfolioSimulationCore(ctx, { assetIds, timeframe, opts, rule
   };
 }
 
-// ── Core portfolio readiness assessment (shared between sync and async paths) ──
+// ── Core portfolio readiness assessment ───────────────────────────────────────
 
-async function runPortfolioReadinessCore(ctx, { assetIds, timeframe }, jobId) {
+async function runPortfolioReadinessCore(ctx, { assetIds, timeframe, workload }, jobId) {
   jobStore.appendLog(jobId, 'price_series', 10, 'Fetching shared price series', { timeframe });
   const pricesRaw = await ctx
     .call('energy-market.prices', {
@@ -459,6 +555,7 @@ async function runPortfolioReadinessCore(ctx, { assetIds, timeframe }, jobId) {
     criticalFindings: allIssues.slice(0, 20),
     commonRecommendations,
     assetReports,
+    workloadEstimate: workload,
   };
 }
 
@@ -501,10 +598,6 @@ module.exports = {
       },
     },
 
-    /**
-     * Data readiness pre-check for a single asset.
-     * Maps to: POST /api/vnb/rcs/assess-readiness
-     */
     assessReadiness: {
       rest: 'POST /assess-readiness',
       params: {
@@ -542,10 +635,6 @@ module.exports = {
       },
     },
 
-    /**
-     * Single-asset simulation — fetches asset / prices / injection, delegates to runCalculation.
-     * Maps to: POST /api/vnb/rcs/simulate
-     */
     simulate: {
       rest: 'POST /simulate',
       params: {
@@ -597,8 +686,11 @@ module.exports = {
     },
 
     /**
-     * Portfolio simulation — simulates multiple assets in one call.
-     * Shared price fetch; chunked parallel asset processing; async-capable.
+     * Portfolio simulation — simulates multiple assets sharing a single price fetch.
+     * WP1: No default asset limit (maxAssets null by default).
+     * WP2: workloadEstimate included in every result.
+     * WP3: Sync threshold — gateway+auto goes async only for large workloads.
+     * WP4: Async jobs create and update an RCS Run doc for lifecycle tracking.
      * Maps to: POST /api/vnb/rcs/portfolio/simulate
      */
     simulatePortfolio: {
@@ -623,8 +715,12 @@ module.exports = {
         const executionMode = ctx.params.executionMode ?? opts.executionMode ?? 'auto';
         const ruleSet = resolveRuleSet(opts.ruleSetId ?? 'latest');
 
-        const maxAssets = opts.maxAssets ?? 500;
-        if (assetIds.length > maxAssets) {
+        // WP1: maxAssets — only applies when explicitly set or env-configured
+        const envLimit = process.env.RCS_MAX_ASSETS_PER_RUN
+          ? parseInt(process.env.RCS_MAX_ASSETS_PER_RUN, 10)
+          : null;
+        const maxAssets = opts.maxAssets ?? envLimit; // null = unlimited
+        if (maxAssets !== null && assetIds.length > maxAssets) {
           throw new MoleculerClientError(
             `Portfolio exceeds maxAssets limit (${maxAssets}). Got ${assetIds.length} assets.`,
             400,
@@ -633,29 +729,114 @@ module.exports = {
           );
         }
 
-        const coreArgs = { assetIds, timeframe, opts, ruleSet };
-        const coreWorker = (jobId) => runPortfolioSimulationCore(ctx, coreArgs, jobId);
+        // WP2: Workload estimation
+        const workload = estimateWorkload(assetIds, timeframe, { ...opts, executionMode });
 
-        if (executionMode === 'sync') {
-          return coreWorker(null);
+        // WP6: Trace governance — interval-based + asset-count safety net
+        const traceMode = workload.traceMode;
+        const hasTraceAssetIds = Boolean(opts.traceAssetIds);
+        if (traceMode === 'full' && !hasTraceAssetIds) {
+          if (
+            workload.estimatedTotalIntervals > MAX_FULL_TRACE_INTERVALS ||
+            assetIds.length > 50
+          ) {
+            throw new MoleculerClientError(
+              `traceMode 'full' rejected: ${
+                assetIds.length > 50
+                  ? `portfolio has ${assetIds.length} assets (limit 50 without traceAssetIds)`
+                  : `estimated ${workload.estimatedTotalIntervals.toLocaleString()} intervals exceeds limit`
+              }. Use traceMode 'summary' or specify traceAssetIds.`,
+              400,
+              'RCS_TRACE_PAYLOAD_TOO_LARGE',
+              {
+                assetCount: assetIds.length,
+                estimatedTotalIntervals: workload.estimatedTotalIntervals,
+                maxForFullTrace: 50,
+                maxFullTraceIntervals: MAX_FULL_TRACE_INTERVALS,
+              }
+            );
+          }
         }
 
-        if (executionMode === 'async') {
-          ctx.meta.$gateway = true;
-        }
+        // WP3: Sync threshold for auto-mode
+        const aboveThreshold =
+          workload.estimatedTotalIntervals > SYNC_THRESHOLD_INTERVALS;
+        const shouldRunAsync =
+          executionMode === 'async' ||
+          (executionMode !== 'sync' && ctx.meta.$gateway && aboveThreshold);
+
+        if (executionMode === 'async') ctx.meta.$gateway = true;
+
+        const coreArgs = { assetIds, timeframe, opts, ruleSet, workload };
+
+        // WP4: Portfolio worker with run lifecycle (createRun/updateRun best-effort)
+        const portfolioWorker = async (jobId) => {
+          let runId = null;
+
+          if (jobId) {
+            const created = await safeRunCall(ctx, 'rcs-simulation-run.createRun', {
+              assetIds,
+              assetCount: assetIds.length,
+              timeframe,
+              scope: 'portfolio',
+              jobId,
+              executionMode: 'async',
+              ruleSetId: ruleSet?.id ?? null,
+              ruleSetVersion: ruleSet?.version ?? null,
+              legalStatus: ruleSet?.legalStatus ?? null,
+              workloadEstimate: workload,
+              resultLocation: {
+                statusUrl: `/api/jobs/${jobId}/status`,
+                progressUrl: `/api/jobs/${jobId}/progress`,
+                resultUrl: `/api/jobs/${jobId}/result`,
+              },
+            });
+            runId = created?.runId ?? null;
+          }
+
+          try {
+            const result = await runPortfolioSimulationCore(
+              ctx,
+              { ...coreArgs, runId },
+              jobId
+            );
+
+            if (runId) {
+              safeRunCall(ctx, 'rcs-simulation-run.updateRun', {
+                runId,
+                status: 'completed',
+                portfolioSummary: result.portfolioSummary,
+                ruleArmSummary: result.ruleArmSummary,
+                errorCount: result.errorCount,
+                completedAt: new Date().toISOString(),
+              });
+            }
+
+            return { ...result, rcsRunId: runId };
+          } catch (err) {
+            safeRunCall(ctx, 'rcs-simulation-run.updateRun', {
+              runId,
+              status: 'failed',
+              errorMessage: String(err.message ?? err),
+            });
+            throw err;
+          }
+        };
+
+        if (!shouldRunAsync) return portfolioWorker(null);
 
         return runAsync(ctx, {
           service: 'eeg-clawback-calculator',
           action: 'simulatePortfolio',
           params: ctx.params,
-          worker: coreWorker,
+          worker: portfolioWorker,
         });
       },
     },
 
     /**
-     * Portfolio readiness aggregation — checks multiple assets in parallel.
-     * Async-capable. Maps to: POST /api/vnb/rcs/portfolio/assess-readiness
+     * Portfolio readiness aggregation — async-capable.
+     * Maps to: POST /api/vnb/rcs/portfolio/assess-readiness
      */
     assessPortfolioReadiness: {
       rest: 'POST /portfolio/assess-readiness',
@@ -676,16 +857,19 @@ module.exports = {
         const { assetIds, timeframe } = ctx.params;
         const executionMode = ctx.params.executionMode ?? 'auto';
 
-        const coreArgs = { assetIds, timeframe };
+        const workload = estimateWorkload(assetIds, timeframe, { executionMode });
+        const aboveThreshold =
+          workload.estimatedTotalIntervals > SYNC_THRESHOLD_INTERVALS;
+        const shouldRunAsync =
+          executionMode === 'async' ||
+          (executionMode !== 'sync' && ctx.meta.$gateway && aboveThreshold);
+
+        if (executionMode === 'async') ctx.meta.$gateway = true;
+
+        const coreArgs = { assetIds, timeframe, workload };
         const coreWorker = (jobId) => runPortfolioReadinessCore(ctx, coreArgs, jobId);
 
-        if (executionMode === 'sync') {
-          return coreWorker(null);
-        }
-
-        if (executionMode === 'async') {
-          ctx.meta.$gateway = true;
-        }
+        if (!shouldRunAsync) return coreWorker(null);
 
         return runAsync(ctx, {
           service: 'eeg-clawback-calculator',

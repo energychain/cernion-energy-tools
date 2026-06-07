@@ -1141,6 +1141,10 @@ module.exports = {
           'GET /vnb/rcs/runs': 'rcs-simulation-run.listRuns',
           'GET /vnb/rcs/runs/:runId': 'rcs-simulation-run.getRun',
           'DELETE /vnb/rcs/runs/:runId': 'rcs-simulation-run.deleteRun',
+          // RCS Pagination endpoints (v0.60.6 WP5)
+          'GET /vnb/rcs/runs/:runId/assets': 'rcs-simulation-run.listRunAssets',
+          'GET /vnb/rcs/runs/:runId/assets/:assetId': 'rcs-simulation-run.getRunAsset',
+          'GET /vnb/rcs/runs/:runId/errors': 'rcs-simulation-run.listRunErrors',
           // EOG Calculator (Revenue Cap Calculation)
           'POST /eog-calculator/input-status': 'eog-calculator.inputStatus',
           'POST /eog-calculator/validate-datapoints': 'eog-calculator.validateDatapoints',

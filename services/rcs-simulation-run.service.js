@@ -16,6 +16,10 @@ function docId(runId) {
   return `rcs:run:${runId}`;
 }
 
+function assetDocId(runId, assetId) {
+  return `rcs:asset:${runId}:${assetId}`;
+}
+
 function hashData(data) {
   if (data == null) return null;
   const str = typeof data === 'string' ? data : JSON.stringify(data);
@@ -27,9 +31,10 @@ function toPublic(doc, { includeDeleted = false } = {}) {
   if (isDeleted && !includeDeleted) return null;
   return {
     runId: doc.runId,
-    assetId: doc.assetId,
-    assetName: doc.assetName ?? doc.assetId,
+    assetId: doc.assetId ?? null,
+    assetName: doc.assetName ?? doc.assetId ?? null,
     assetIds: doc.assetIds ?? [doc.assetId],
+    assetCount: doc.assetCount ?? null,
     timeframe: doc.timeframe,
     scope: doc.scope ?? 'asset',
     ruleSetId: doc.ruleSetId ?? null,
@@ -39,7 +44,13 @@ function toPublic(doc, { includeDeleted = false } = {}) {
     jobId: doc.jobId ?? null,
     executionMode: doc.executionMode ?? 'sync',
     status: doc.status,
+    progress: doc.progress ?? null,
+    workloadEstimate: doc.workloadEstimate ?? null,
+    resultLocation: doc.resultLocation ?? null,
     summary: doc.summary ?? null,
+    portfolioSummary: doc.portfolioSummary ?? null,
+    ruleArmSummary: doc.ruleArmSummary ?? null,
+    errorCount: doc.errorCount ?? null,
     options: doc.options ?? null,
     ruleSetSnapshot: doc.ruleSetSnapshot ?? null,
     assetSnapshot: doc.assetSnapshot ?? null,
@@ -56,6 +67,36 @@ function toPublic(doc, { includeDeleted = false } = {}) {
     deletedBy: doc.deletedBy ?? null,
     deleteReason: doc.deleteReason ?? null,
   };
+}
+
+function toPublicAsset(doc) {
+  return {
+    assetId: doc.assetId,
+    runId: doc.runId,
+    assetName: doc.assetName ?? doc.assetId,
+    technology: doc.technology ?? null,
+    status: doc.status,
+    readinessStatus: doc.readinessStatus ?? null,
+    summary: doc.summary ?? null,
+    ruleArmSummary: doc.ruleArmSummary ?? null,
+    errorCode: doc.errorCode ?? null,
+    message: doc.message ?? null,
+    savedAt: doc.savedAt,
+  };
+}
+
+// PouchDB read-modify-write with conflict retry
+async function updateRunDoc(db, runId, updates, maxAttempts = 3) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const doc = await db.get(docId(runId));
+    try {
+      await db.put({ ...doc, ...updates });
+      return;
+    } catch (err) {
+      if (err.status === 409 && attempt < maxAttempts - 1) continue;
+      throw err;
+    }
+  }
 }
 
 module.exports = {
@@ -90,15 +131,12 @@ module.exports = {
         ruleSetSnapshot: { type: 'object', optional: true },
         assetSnapshot: { type: 'object', optional: true },
         readinessSnapshot: { type: 'object', optional: true },
-        // Pre-computed hashes may be passed in, or raw series for hashing here
         inputHash: { type: 'string', optional: true },
         priceSeriesHash: { type: 'string', optional: true },
         injectionSeriesHash: { type: 'string', optional: true },
-        // Raw series for on-save hashing (not persisted)
         priceSeries: { type: 'array', optional: true },
         injectionSeries: { type: 'array', optional: true },
         warnings: { type: 'array', optional: true },
-        // WP F: async job linkage
         jobId: { type: 'string', optional: true },
         executionMode: {
           type: 'enum',
@@ -112,7 +150,6 @@ module.exports = {
         const now = new Date().toISOString();
         const p = ctx.params;
 
-        // Resolve hashes: caller may supply pre-computed hashes or raw series
         const priceSeriesHash = p.priceSeriesHash ?? (p.priceSeries ? hashData(p.priceSeries) : null);
         const injectionSeriesHash = p.injectionSeriesHash ?? (p.injectionSeries ? hashData(p.injectionSeries) : null);
         const inputHash =
@@ -163,6 +200,119 @@ module.exports = {
     },
 
     /**
+     * Create a run in 'running' state at the start of an async portfolio job.
+     * Internal only — called from the portfolio worker, not exposed via REST.
+     * WP4
+     */
+    createRun: {
+      params: {
+        assetIds: { type: 'array', min: 1 },
+        assetCount: { type: 'number', integer: true, positive: true },
+        timeframe: {
+          type: 'object',
+          props: { start: { type: 'string' }, end: { type: 'string' } },
+        },
+        scope: { type: 'string', optional: true, default: 'portfolio' },
+        jobId: { type: 'string', min: 1 },
+        executionMode: { type: 'string', optional: true, default: 'async' },
+        ruleSetId: { type: 'string', optional: true },
+        ruleSetVersion: { type: 'string', optional: true },
+        legalStatus: { type: 'string', optional: true },
+        workloadEstimate: { type: 'object', optional: true },
+        resultLocation: { type: 'object', optional: true },
+      },
+      async handler(ctx) {
+        const runId = makeRunId();
+        const now = new Date().toISOString();
+        const p = ctx.params;
+
+        const doc = {
+          _id: docId(runId),
+          runId,
+          assetId: null,
+          assetName: null,
+          assetIds: p.assetIds,
+          assetCount: p.assetCount,
+          scope: p.scope ?? 'portfolio',
+          timeframe: p.timeframe,
+          ruleSetId: p.ruleSetId ?? null,
+          ruleSetVersion: p.ruleSetVersion ?? null,
+          legalStatus: p.legalStatus ?? null,
+          blueprintId: null,
+          jobId: p.jobId,
+          executionMode: p.executionMode ?? 'async',
+          status: 'running',
+          progress: { processedAssets: 0, totalAssets: p.assetCount, percent: 0 },
+          workloadEstimate: p.workloadEstimate ?? null,
+          resultLocation: p.resultLocation ?? null,
+          summary: null,
+          portfolioSummary: null,
+          ruleArmSummary: null,
+          errorCount: null,
+          options: null,
+          ruleSetSnapshot: null,
+          assetSnapshot: null,
+          readinessSnapshot: null,
+          inputHash: null,
+          priceSeriesHash: null,
+          injectionSeriesHash: null,
+          warnings: [],
+          createdAt: now,
+          completedAt: null,
+          errorMessage: null,
+          deletedAt: null,
+          deletedBy: null,
+          deleteReason: null,
+        };
+
+        await this._db.put(doc);
+        return { runId };
+      },
+    },
+
+    /**
+     * Update run status and/or fields during/after execution.
+     * Internal only — not exposed via REST. Uses conflict-safe read-modify-write.
+     * WP4
+     */
+    updateRun: {
+      params: {
+        runId: { type: 'string', min: 1 },
+        status: {
+          type: 'enum',
+          values: ['running', 'completed', 'failed'],
+          optional: true,
+        },
+        progress: { type: 'object', optional: true },
+        portfolioSummary: { type: 'object', optional: true },
+        ruleArmSummary: { type: 'object', optional: true },
+        errorCount: { type: 'number', integer: true, min: 0, optional: true },
+        completedAt: { type: 'string', optional: true },
+        errorMessage: { type: 'string', optional: true },
+      },
+      async handler(ctx) {
+        const { runId, ...updates } = ctx.params;
+        const cleanUpdates = Object.fromEntries(
+          Object.entries(updates).filter(([, v]) => v !== undefined)
+        );
+
+        try {
+          await updateRunDoc(this._db, runId, cleanUpdates);
+          return { updated: true, runId };
+        } catch (err) {
+          if (err.status === 404) {
+            throw new MoleculerClientError(
+              `Simulation run '${runId}' not found.`,
+              404,
+              'RCS_RUN_NOT_FOUND'
+            );
+          }
+          throw err;
+        }
+      },
+    },
+
+    /**
      * Retrieve a single run by runId (returns deleted runs with isDeleted flag).
      * Maps to: GET /api/vnb/rcs/runs/:runId
      */
@@ -188,7 +338,6 @@ module.exports = {
 
     /**
      * List runs. By default excludes soft-deleted records.
-     * Supports filter by assetId, ruleSetId, status, and date range.
      * Maps to: GET /api/vnb/rcs/runs
      */
     listRuns: {
@@ -214,10 +363,7 @@ module.exports = {
         });
         let docs = result.rows.map((r) => r.doc).filter(Boolean);
 
-        // Filter soft-deleted
         if (!includeDeleted) docs = docs.filter((d) => !d.deletedAt);
-
-        // Apply filters
         if (assetId) docs = docs.filter((d) => d.assetId === assetId);
         if (ruleSetId) docs = docs.filter((d) => d.ruleSetId === ruleSetId);
         if (jobId) docs = docs.filter((d) => d.jobId === jobId);
@@ -226,7 +372,6 @@ module.exports = {
         if (from) docs = docs.filter((d) => d.createdAt >= from);
         if (to) docs = docs.filter((d) => d.createdAt <= to);
 
-        // Newest first
         docs.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
         return docs
@@ -262,7 +407,6 @@ module.exports = {
           throw err;
         }
         if (doc.deletedAt) {
-          // Already soft-deleted — idempotent
           return { deleted: true, runId: ctx.params.runId, alreadyDeleted: true };
         }
         const updated = {
@@ -273,6 +417,150 @@ module.exports = {
         };
         await this._db.put(updated);
         return { deleted: true, runId: ctx.params.runId, alreadyDeleted: false };
+      },
+    },
+
+    /**
+     * Bulk-persist per-asset simulation results as separate PouchDB docs.
+     * Internal only — called from runPortfolioSimulationCore per chunk.
+     * WP5
+     */
+    saveAssetResults: {
+      params: {
+        runId: { type: 'string', min: 1 },
+        results: { type: 'array', min: 1 },
+      },
+      async handler(ctx) {
+        const { runId, results } = ctx.params;
+        const now = new Date().toISOString();
+
+        const docs = results.map((r) => ({
+          _id: assetDocId(runId, r.assetId),
+          runId,
+          assetId: r.assetId,
+          assetName: r.assetName ?? r.assetId,
+          technology: r.technology ?? null,
+          status: r.status,
+          readinessStatus: r.readinessStatus ?? null,
+          summary: r.summary ?? null,
+          ruleArmSummary: r.ruleArmSummary ?? null,
+          errorCode: r.errorCode ?? null,
+          message: r.message ?? null,
+          savedAt: now,
+        }));
+
+        // Best-effort bulk write; ignore 409 conflicts (idempotent retry safety)
+        const bulkResult = await this._db.bulkDocs(docs);
+        const errors = bulkResult.filter(
+          (r) => r.error && r.status !== 409
+        );
+
+        return {
+          saved: bulkResult.length - errors.length,
+          errors: errors.length,
+          runId,
+        };
+      },
+    },
+
+    /**
+     * List per-asset results for a given run.
+     * Maps to: GET /api/vnb/rcs/runs/:runId/assets
+     * WP5
+     */
+    listRunAssets: {
+      rest: 'GET /runs/:runId/assets',
+      params: {
+        runId: { type: 'string', min: 1 },
+        status: { type: 'string', optional: true },
+        limit: { type: 'number', integer: true, positive: true, optional: true, default: 100 },
+        offset: { type: 'number', integer: true, min: 0, optional: true, default: 0 },
+      },
+      async handler(ctx) {
+        const { runId, status, limit, offset } = ctx.params;
+
+        const result = await this._db.allDocs({
+          include_docs: true,
+          startkey: `rcs:asset:${runId}:`,
+          endkey: `rcs:asset:${runId}:￿`,
+        });
+
+        let docs = result.rows.map((r) => r.doc).filter(Boolean);
+        if (status) docs = docs.filter((d) => d.status === status);
+
+        const total = docs.length;
+        const page = docs.slice(offset, offset + limit);
+        const hasMore = offset + limit < total;
+
+        return {
+          runId,
+          total,
+          offset,
+          hasMore,
+          assetResults: page.map(toPublicAsset),
+        };
+      },
+    },
+
+    /**
+     * Get a single per-asset result for a run.
+     * Maps to: GET /api/vnb/rcs/runs/:runId/assets/:assetId
+     * WP5
+     */
+    getRunAsset: {
+      rest: 'GET /runs/:runId/assets/:assetId',
+      params: {
+        runId: { type: 'string', min: 1 },
+        assetId: { type: 'string', min: 1 },
+      },
+      async handler(ctx) {
+        const { runId, assetId } = ctx.params;
+        try {
+          const doc = await this._db.get(assetDocId(runId, assetId));
+          return toPublicAsset(doc);
+        } catch (err) {
+          if (err.status === 404) {
+            throw new MoleculerClientError(
+              `Asset result '${assetId}' not found for run '${runId}'.`,
+              404,
+              'RCS_ASSET_RESULT_NOT_FOUND'
+            );
+          }
+          throw err;
+        }
+      },
+    },
+
+    /**
+     * List only failed/error asset results for a run.
+     * Maps to: GET /api/vnb/rcs/runs/:runId/errors
+     * WP5
+     */
+    listRunErrors: {
+      rest: 'GET /runs/:runId/errors',
+      params: {
+        runId: { type: 'string', min: 1 },
+        limit: { type: 'number', integer: true, positive: true, optional: true, default: 50 },
+      },
+      async handler(ctx) {
+        const { runId, limit } = ctx.params;
+
+        const result = await this._db.allDocs({
+          include_docs: true,
+          startkey: `rcs:asset:${runId}:`,
+          endkey: `rcs:asset:${runId}:￿`,
+        });
+
+        const errorDocs = result.rows
+          .map((r) => r.doc)
+          .filter((d) => d && d.status === 'error')
+          .slice(0, limit);
+
+        return {
+          runId,
+          errorCount: errorDocs.length,
+          errors: errorDocs.map(toPublicAsset),
+        };
       },
     },
   },

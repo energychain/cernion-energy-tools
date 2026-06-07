@@ -183,8 +183,11 @@ function runCalculation(asset, prices, injection, options = {}) {
     totalRetainedCentsB += retainedCentsBInterval;
     if (clawbackActive) clawbackTriggeredIntervalsCount += 1;
 
-    // Data quality: flag zero injection so summation traces remain unambiguous.
-    const dataQualityFlags = volumeKwh === 0 ? ['zero_injection'] : [];
+    // Data quality: flag anomalous injection values so traces remain unambiguous.
+    const dataQualityFlags = [];
+    if (volumeKwh === 0) dataQualityFlags.push('zero_injection');
+    // Negative injection is metering data that inverts the expected energy flow direction.
+    if (volumeKwh < 0) dataQualityFlags.push('negative_injection');
 
     intervals.push({
       timestamp,

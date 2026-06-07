@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.60.6] — RCS Pre-UI Hardening: Unlimited Portfolio Scale, Workload Estimation & Contract Freeze (2026-06-07)
+
+### Added
+
+- **WP1 — Unlimited Portfolio Scale**: Removed the default 500-asset limit. `options.maxAssets` defaults to `null` (no limit). An explicit env-based ceiling can be set via `RCS_MAX_ASSETS_PER_RUN`. The guard only fires when the caller explicitly provides `options.maxAssets` or the env var is set. Error `RCS_MAX_ASSETS_EXCEEDED` (HTTP 400) still thrown when the limit is breached.
+
+- **WP2 — Workload Estimation**: `estimateWorkload(assetIds, timeframe, opts)` is computed before every `simulatePortfolio` and `assessPortfolioReadiness` call and included as `workloadEstimate` in every response (sync and async). Fields: `assetCount`, `timeframeDays`, `expectedIntervalsPerAsset`, `estimatedTotalIntervals`, `chunkSize`, `traceMode`, `executionMode`, `estimatedRisk` (`low`/`medium`/`high`), `warnings`.
+
+- **WP3 — Sync Threshold for Auto-Mode**: New constant `SYNC_THRESHOLD_INTERVALS` (default: 9600 ≈ 100 assets × 96 intervals/day, configurable via env `RCS_SYNC_THRESHOLD_INTERVALS`). In `executionMode: 'auto'`, gateway calls only go async when `estimatedTotalIntervals > SYNC_THRESHOLD_INTERVALS`. Small portfolios run synchronously even from the REST gateway.
+
+- **WP4 — RCS Run Status Synchronization**: `rcs-simulation-run` service gains `createRun` (internal, called at async job start) and `updateRun` (internal, conflict-safe PouchDB read-modify-write, 3-attempt retry). Portfolio async worker creates a run doc with `status: 'running'` at job start, updates it to `completed`/`failed` at job end. `rcsRunId` included in job result. `toPublic` extended with `progress`, `workloadEstimate`, `resultLocation`, `portfolioSummary`, `ruleArmSummary`, `errorCount`, `assetCount`.
+
+- **WP5 — Per-Asset Pagination Endpoints**: `rcs-simulation-run` service gains three new actions and REST routes:
+  - `saveAssetResults` (internal): bulk-persists per-chunk asset results as PouchDB docs with `_id: rcs:asset:{runId}:{assetId}`. Best-effort (ignores 409 conflicts).
+  - `GET /api/vnb/rcs/runs/:runId/assets` → `listRunAssets`: paginated asset results with `total`, `offset`, `hasMore`. Filterable by `status`.
+  - `GET /api/vnb/rcs/runs/:runId/assets/:assetId` → `getRunAsset`: single asset result. Error: `RCS_ASSET_RESULT_NOT_FOUND` (404).
+  - `GET /api/vnb/rcs/runs/:runId/errors` → `listRunErrors`: only failed assets, bounded to `limit` (default 50).
+
+- **WP6 — TraceMode Default Change**: `resolveTraceMode` now defaults to `'summary'` (was `'none'`). Trace guard extended: `traceMode: 'full'` without `traceAssetIds` is rejected when **either** `estimatedTotalIntervals > MAX_FULL_TRACE_INTERVALS` (default 500K, env `RCS_MAX_FULL_TRACE_INTERVALS`) **or** `assetIds.length > 50`. Old boolean `includeIntervalTrace` still accepted for backward compat.
+
+- **WP7 — Load Tests**: New `tests/rcs-massload.test.js` with automated Jest tests: 1K-asset portfolio (60s timeout), 5K-asset portfolio (120s timeout), pagination correctness at scale, `workloadEstimate` field validation, WP1 no-default-limit verification.
+
+- **WP8 — Negative Injection Flag**: `src/eeg-clawback-calculator.js` now flags `negative_injection` in `dataQualityFlags` when `volumeKwh < 0`, complementing the existing `zero_injection` flag. Metering data with inverted energy flow is marked for downstream quality reporting.
+
+- **WP9 — API Contract Freeze**: Three new REST aliases added to `api.service.js` for WP5 pagination endpoints. Existing `startsWith('/api/vnb/rcs/runs/')` access-control rule covers all three without additional `requiresFullAccess` entries.
+
+### Changed
+
+- **`resolveTraceMode` default**: `'none'` → `'summary'` (WP6). Backward-compat: `includeIntervalTrace: false` → `'none'`, `includeIntervalTrace: true` → `'full'`.
+- **`maxAssets` default**: `500` → `null` (WP1). No implicit ceiling; portfolios of any size are accepted unless `options.maxAssets` or `RCS_MAX_ASSETS_PER_RUN` is set.
+- **`simulatePortfolio` auto-async logic**: Previously any gateway call went async; now only gateway calls where `estimatedTotalIntervals > SYNC_THRESHOLD_INTERVALS` go async in `auto` mode (WP3).
+
 ## [0.60.5] — RCS Massendatenfähigkeit: Async Portfolio Runs, Chunking & Time-Series Hardening (2026-06-07)
 
 ### Added

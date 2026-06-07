@@ -258,17 +258,6 @@ describe('chunked processing', () => {
     expect(r.assetResults).toHaveLength(5);
   });
 
-  test('maxAssets guard rejects oversized portfolios', async () => {
-    const assetIds = Array.from({ length: 5 }, (_, i) => `asset-dyn-${i}`);
-    await expect(
-      broker.call('eeg-clawback-calculator.simulatePortfolio', {
-        assetIds,
-        timeframe: TIMEFRAME,
-        options: { maxAssets: 3 },
-      })
-    ).rejects.toMatchObject({ type: 'RCS_MAX_ASSETS_EXCEEDED' });
-  });
-
   test('maxIntervalsPerAsset truncates injection series', async () => {
     const r = await broker.call('eeg-clawback-calculator.simulatePortfolio', {
       assetIds: ['asset-solar-01'],
@@ -483,6 +472,62 @@ describe('DST hardening — normaliseTimestamp', () => {
     const expanded = interpolatePricesToQuarterHour(prices);
     // All treated as UTC → 3 hours × 4 = 12 intervals, deduplicated
     expect(expanded).toHaveLength(12);
+  });
+});
+
+// ── v0.60.6 WP1: No default maxAssets limit ───────────────────────────────────
+
+describe('WP1: No default maxAssets limit', () => {
+  test('portfolios of >500 assets are not blocked without explicit maxAssets', async () => {
+    // Previously the default was 500. WP1 removes the default — only explicit guard fires.
+    const assetIds = Array.from({ length: 501 }, (_, i) => `asset-dyn-${i}`);
+    const r = await broker.call('eeg-clawback-calculator.simulatePortfolio', {
+      assetIds,
+      timeframe: TIMEFRAME,
+      options: { chunkSize: 50, traceMode: 'none' },
+      executionMode: 'sync',
+    });
+    expect(r.portfolioSummary.assetCount).toBe(501);
+    expect(r.portfolioSummary.successfulAssets).toBe(501);
+  }, 30000);
+
+  test('explicit maxAssets still enforced when provided', async () => {
+    const assetIds = Array.from({ length: 5 }, (_, i) => `asset-dyn-${i}`);
+    await expect(
+      broker.call('eeg-clawback-calculator.simulatePortfolio', {
+        assetIds,
+        timeframe: TIMEFRAME,
+        options: { maxAssets: 3 },
+      })
+    ).rejects.toMatchObject({ type: 'RCS_MAX_ASSETS_EXCEEDED' });
+  });
+});
+
+// ── v0.60.6 WP2: workloadEstimate in every result ─────────────────────────────
+
+describe('WP2: workloadEstimate', () => {
+  test('workloadEstimate is present in sync portfolio result', async () => {
+    const r = await broker.call('eeg-clawback-calculator.simulatePortfolio', {
+      assetIds: ['asset-solar-01', 'asset-wind-01'],
+      timeframe: TIMEFRAME,
+      options: { traceMode: 'none' },
+      executionMode: 'sync',
+    });
+    expect(r.workloadEstimate).toBeDefined();
+    expect(r.workloadEstimate.assetCount).toBe(2);
+    expect(typeof r.workloadEstimate.estimatedTotalIntervals).toBe('number');
+    expect(r.workloadEstimate.estimatedTotalIntervals).toBeGreaterThan(0);
+    expect(['low', 'medium', 'high']).toContain(r.workloadEstimate.estimatedRisk);
+  });
+
+  test('workloadEstimate is present in readiness assessment result', async () => {
+    const r = await broker.call('eeg-clawback-calculator.assessPortfolioReadiness', {
+      assetIds: ['asset-solar-01'],
+      timeframe: TIMEFRAME,
+      executionMode: 'sync',
+    });
+    expect(r.workloadEstimate).toBeDefined();
+    expect(r.workloadEstimate.assetCount).toBe(1);
   });
 });
 
