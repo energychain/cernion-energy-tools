@@ -32,6 +32,11 @@ const DOC_PREFIX = 'evr:';
 const REQUIREMENT_STATUS_MISSING = 'missing';
 const REQUIREMENT_STATUS_UPDATED = 'updated';
 
+// Identifiers that uniquely distinguish a metering-point / contract within a tenant.
+// Used for object-scope correlation to prevent cross-contract false-positive matches
+// (e.g. two moveOut flows for different meters sharing the same requestedFact).
+const STRONG_SCOPE_IDENTIFIERS = ['meteringPointId', 'meterNumber', 'contractAccount', 'customerId'];
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -43,6 +48,47 @@ function trimString(value) {
 function sanitizeError(error) {
   const message = trimString(error?.message || 'evidence_revalidation_failed');
   return message.replace(/\s+/g, ' ').slice(0, 240);
+}
+
+/**
+ * Normalize a scope value into a canonical form.
+ *
+ * - null / undefined / empty string → null
+ * - string → trimmed string (or null if blank)
+ * - plain object → sorted keys, trimmed string values, empty/null entries removed
+ *   (arrays and other non-plain-object types are rejected → null)
+ */
+function normalizeScope(scope) {
+  if (scope === null || scope === undefined) return null;
+
+  if (typeof scope === 'string') {
+    const trimmed = scope.trim();
+    return trimmed || null;
+  }
+
+  if (typeof scope === 'object' && !Array.isArray(scope)) {
+    const normalized = {};
+    for (const key of Object.keys(scope).sort()) {
+      const val = scope[key];
+      if (val === null || val === undefined) continue;
+      const coerced = typeof val === 'string' ? val.trim() : val;
+      if (typeof coerced === 'string' && coerced === '') continue;
+      normalized[key] = coerced;
+    }
+    return Object.keys(normalized).length > 0 ? normalized : null;
+  }
+
+  return null;
+}
+
+/**
+ * A stable hash for fast equality checks.  String scopes are their own hash;
+ * object scopes serialise to JSON (keys are already sorted by normalizeScope).
+ */
+function computeScopeHash(normalizedScope) {
+  if (normalizedScope === null || normalizedScope === undefined) return null;
+  if (typeof normalizedScope === 'string') return normalizedScope;
+  return JSON.stringify(normalizedScope);
 }
 
 module.exports = {
@@ -86,7 +132,7 @@ module.exports = {
         originPersonaId: { type: 'string', optional: true },
         responsibleRole: { type: 'string', optional: true },
         requestedFact: { type: 'string', min: 1 },
-        scope: { type: 'string', optional: true },
+        scope: { type: 'any', optional: true },
       },
       async handler(ctx) {
         const tenantId = this.resolveTenantId(ctx, ctx.params.tenantId);
@@ -111,11 +157,14 @@ module.exports = {
       params: {
         tenantId: { type: 'string', optional: true },
         requestedFact: { type: 'string', min: 1 },
+        scope: { type: 'any', optional: true },
       },
       async handler(ctx) {
         const tenantId = this.resolveTenantId(ctx, ctx.params.tenantId);
         const requestedFact = trimString(ctx.params.requestedFact);
-        const correlated = await this.correlateLearnedFact(ctx, tenantId, requestedFact);
+        // Normalize to null when not provided so scopeMatchesForCorrelation uses legacy path.
+        const incomingScope = 'scope' in ctx.params ? normalizeScope(ctx.params.scope) : null;
+        const correlated = await this.correlateLearnedFact(ctx, tenantId, requestedFact, incomingScope);
         return {
           success: true,
           tenantId,
@@ -146,6 +195,7 @@ module.exports = {
       const copy = { ...doc };
       delete copy._id;
       delete copy._rev;
+      delete copy.scopeHash;
       return copy;
     },
 
@@ -177,7 +227,8 @@ module.exports = {
       const originPersonaId = trimString(params.originPersonaId) || null;
       const responsibleRole = trimString(params.responsibleRole) || null;
       const requestedFact = trimString(params.requestedFact);
-      const scope = trimString(params.scope) || null;
+      const scope = normalizeScope(params.scope);
+      const scopeHash = computeScopeHash(scope);
 
       if (!originPersonaId && !responsibleRole) {
         throw new MoleculerClientError(
@@ -204,6 +255,7 @@ module.exports = {
         responsibleRole,
         requestedFact,
         scope,
+        scopeHash,
         status: REQUIREMENT_STATUS_MISSING,
         createdAt: timestamp,
         updatedAt: timestamp,
@@ -226,10 +278,46 @@ module.exports = {
       }
     },
 
-    async correlateLearnedFact(ctx, tenantId, requestedFact) {
+    /**
+     * Returns true when the requirement's stored scope is compatible with the
+     * scope provided by the incoming correlateFact call.
+     *
+     * - incomingScope === null  → legacy mode: always match (old behaviour)
+     * - incomingScope is string → must equal the requirement's scope exactly
+     * - incomingScope is object → all STRONG_SCOPE_IDENTIFIERS present in
+     *   incomingScope must be present AND equal in the requirement's scope;
+     *   at least one strong identifier must be checked (prevents vacuous match)
+     */
+    scopeMatchesForCorrelation(requirementScope, incomingScope) {
+      if (incomingScope === null || incomingScope === undefined) return true;
+
+      if (typeof incomingScope === 'string') {
+        return requirementScope === incomingScope;
+      }
+
+      if (typeof incomingScope === 'object') {
+        if (!requirementScope || typeof requirementScope !== 'object') return false;
+        let checkedAny = false;
+        for (const key of STRONG_SCOPE_IDENTIFIERS) {
+          const inVal = incomingScope[key];
+          if (inVal !== undefined && inVal !== null) {
+            checkedAny = true;
+            if (requirementScope[key] !== inVal) return false;
+          }
+        }
+        return checkedAny;
+      }
+
+      return false;
+    },
+
+    async correlateLearnedFact(ctx, tenantId, requestedFact, incomingScope) {
       const docs = await this.getTenantRequirements(tenantId);
       const candidates = docs.filter(
-        (doc) => doc.status === REQUIREMENT_STATUS_MISSING && doc.requestedFact === requestedFact
+        (doc) =>
+          doc.status === REQUIREMENT_STATUS_MISSING &&
+          doc.requestedFact === requestedFact &&
+          this.scopeMatchesForCorrelation(doc.scope, incomingScope)
       );
 
       const correlated = [];

@@ -346,6 +346,184 @@ describe('evidence revalidation service', () => {
     expect(inboxEntry.personaId).toBe('tenant-a/mayor');
   });
 
+  test('object scope is accepted, normalized, and scopeHash is not exposed in public output', async () => {
+    const result = await broker.call(
+      'evidence-revalidation.recordRequirement',
+      {
+        evidenceRequirementId: 'evreq-scope-obj-norm',
+        originSessionId: 'pa-session-scope-obj-norm',
+        originPersonaId: 'tenant-a/mayor',
+        requestedFact: 'scopeNormalizationTestFact',
+        scope: {
+          contractAccount: '  CA456  ',
+          meterNumber: 'M123',
+          nullField: null,
+          emptyField: '',
+          meteringPointId: 'MP99',
+        },
+      },
+      tenantMeta('tenant-a')
+    );
+
+    expect(result.success).toBe(true);
+    // Keys are sorted, values trimmed, null/empty entries removed
+    expect(result.requirement.scope).toEqual({
+      contractAccount: 'CA456',
+      meteringPointId: 'MP99',
+      meterNumber: 'M123',
+    });
+    // scopeHash is an internal implementation detail — must not leak
+    expect(result.requirement).not.toHaveProperty('scopeHash');
+    expect(result.requirement.status).toBe('missing');
+  });
+
+  test('scoped correlateFact for moveOut matches only the correct meter/contract — same identifiers matched 1, different matched 0', async () => {
+    inboxEntries.length = 0;
+
+    await broker.call(
+      'evidence-revalidation.recordRequirement',
+      {
+        evidenceRequirementId: 'evreq-moveout-M123',
+        originSessionId: 'pa-session-moveout-M123',
+        originPersonaId: 'tenant-a/mayor',
+        requestedFact: 'moveOutFinalReadingStatus',
+        scope: { meterNumber: 'M123', contractAccount: 'CA456' },
+      },
+      tenantMeta('tenant-a')
+    );
+
+    await broker.call(
+      'evidence-revalidation.recordRequirement',
+      {
+        evidenceRequirementId: 'evreq-moveout-M789',
+        originSessionId: 'pa-session-moveout-M789',
+        originPersonaId: 'tenant-a/mayor',
+        requestedFact: 'moveOutFinalReadingStatus',
+        scope: { meterNumber: 'M789', contractAccount: 'CA999' },
+      },
+      tenantMeta('tenant-a')
+    );
+
+    // Correlate with M123's identifiers — must match exactly 1
+    const result = await broker.call(
+      'evidence-revalidation.correlateFact',
+      {
+        requestedFact: 'moveOutFinalReadingStatus',
+        scope: { meterNumber: 'M123', contractAccount: 'CA456' },
+      },
+      tenantMeta('tenant-a')
+    );
+
+    expect(result.matchedCount).toBe(1);
+    expect(result.correlated[0].evidenceRequirementId).toBe('evreq-moveout-M123');
+
+    // M789 requirement must still be 'missing' — not touched by M123's correlation
+    const refetchM789 = await broker.call(
+      'evidence-revalidation.recordRequirement',
+      {
+        evidenceRequirementId: 'evreq-moveout-M789',
+        originSessionId: 'pa-session-moveout-M789',
+        originPersonaId: 'tenant-a/mayor',
+        requestedFact: 'moveOutFinalReadingStatus',
+        scope: { meterNumber: 'M789', contractAccount: 'CA999' },
+      },
+      tenantMeta('tenant-a')
+    );
+    expect(refetchM789.requirement.status).toBe('missing');
+    expect(inboxEntries.filter((e) => e.sessionId === 'pa-session-moveout-M789')).toHaveLength(0);
+  });
+
+  test('correlateFact without scope uses legacy behaviour — matches regardless of stored object scope', async () => {
+    inboxEntries.length = 0;
+
+    await broker.call(
+      'evidence-revalidation.recordRequirement',
+      {
+        evidenceRequirementId: 'evreq-legacy-unscoped',
+        originSessionId: 'pa-session-legacy-unscoped',
+        originPersonaId: 'tenant-a/mayor',
+        requestedFact: 'unscoped-compat-fact',
+        scope: { meterNumber: 'X999' },
+      },
+      tenantMeta('tenant-a')
+    );
+
+    // No scope in correlateFact → old path, should match on requestedFact alone
+    const result = await broker.call(
+      'evidence-revalidation.correlateFact',
+      { requestedFact: 'unscoped-compat-fact' },
+      tenantMeta('tenant-a')
+    );
+
+    expect(result.matchedCount).toBe(1);
+    expect(result.correlated[0].evidenceRequirementId).toBe('evreq-legacy-unscoped');
+  });
+
+  test('cross-tenant scoped correlateFact does not match — even with identical scope identifiers', async () => {
+    inboxEntries.length = 0;
+
+    await broker.call(
+      'evidence-revalidation.recordRequirement',
+      {
+        evidenceRequirementId: 'evreq-xtenant-scoped',
+        originSessionId: 'pa-session-xtenant-scoped',
+        originPersonaId: 'tenant-a/mayor',
+        requestedFact: 'moveOutFinalReadingStatus',
+        scope: { meterNumber: 'XMATCH', contractAccount: 'CA_SHARED' },
+      },
+      tenantMeta('tenant-a')
+    );
+
+    const result = await broker.call(
+      'evidence-revalidation.correlateFact',
+      {
+        requestedFact: 'moveOutFinalReadingStatus',
+        scope: { meterNumber: 'XMATCH', contractAccount: 'CA_SHARED' },
+      },
+      tenantMeta('tenant-b')
+    );
+
+    expect(result.matchedCount).toBe(0);
+    expect(inboxEntries).toHaveLength(0);
+  });
+
+  test('repeated scoped correlation is idempotent — updated requirement is not re-matched', async () => {
+    inboxEntries.length = 0;
+
+    await broker.call(
+      'evidence-revalidation.recordRequirement',
+      {
+        evidenceRequirementId: 'evreq-scoped-idempotent',
+        originSessionId: 'pa-session-scoped-idempotent',
+        originPersonaId: 'tenant-a/mayor',
+        requestedFact: 'moveOutFinalReadingStatus',
+        scope: { meterNumber: 'MIDEM', contractAccount: 'CAIDEM' },
+      },
+      tenantMeta('tenant-a')
+    );
+
+    const first = await broker.call(
+      'evidence-revalidation.correlateFact',
+      {
+        requestedFact: 'moveOutFinalReadingStatus',
+        scope: { meterNumber: 'MIDEM', contractAccount: 'CAIDEM' },
+      },
+      tenantMeta('tenant-a')
+    );
+    const second = await broker.call(
+      'evidence-revalidation.correlateFact',
+      {
+        requestedFact: 'moveOutFinalReadingStatus',
+        scope: { meterNumber: 'MIDEM', contractAccount: 'CAIDEM' },
+      },
+      tenantMeta('tenant-a')
+    );
+
+    expect(first.matchedCount).toBe(1);
+    expect(second.matchedCount).toBe(0);
+    expect(second.correlated).toHaveLength(0);
+  });
+
   test('repeated fact correlation is idempotent — single dispatch and origin-session signal', async () => {
     inboxEntries.length = 0;
 
