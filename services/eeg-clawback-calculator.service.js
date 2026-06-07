@@ -6,16 +6,15 @@ const { computeReadiness } = require('../src/rcs-readiness');
 const { runAsync } = require('../src/async-job-runner');
 const jobStore = require('../src/job-store');
 const { MoleculerClientError } = require('moleculer').Errors;
+const { rcsError } = require('../src/rcs-errors');
 
 // ── Thresholds (env-configurable) ────────────────────────────────────────────
 
-// Above this estimated interval count, gateway+auto calls go async.
 const SYNC_THRESHOLD_INTERVALS = parseInt(
   process.env.RCS_SYNC_THRESHOLD_INTERVALS || '9600',
   10
 );
 
-// Above this estimated interval count, traceMode 'full' without traceAssetIds is rejected.
 const MAX_FULL_TRACE_INTERVALS = parseInt(
   process.env.RCS_MAX_FULL_TRACE_INTERVALS || '500000',
   10
@@ -43,10 +42,10 @@ function resolveTraceMode(opts) {
   if (opts.traceMode) return opts.traceMode;
   if (opts.includeIntervalTrace === false) return 'none';
   if (opts.includeIntervalTrace === true) return 'full';
-  return 'summary'; // default: arm summary without raw intervals
+  return 'summary';
 }
 
-// ── Workload estimation (WP2) ─────────────────────────────────────────────────
+// ── Workload estimation ───────────────────────────────────────────────────────
 
 function estimateWorkload(assetIds, timeframe, opts) {
   const assetCount = assetIds.length;
@@ -75,9 +74,7 @@ function estimateWorkload(assetIds, timeframe, opts) {
       );
     }
     if (assetCount > 50) {
-      warnings.push(
-        `traceMode 'full' with ${assetCount} assets may produce a very large payload.`
-      );
+      warnings.push(`traceMode 'full' with ${assetCount} assets may produce a very large payload.`);
     }
   }
 
@@ -126,6 +123,18 @@ function aggregatePortfolioRuleArmSummary(assetResults) {
   return summary;
 }
 
+// ── Data quality summary ──────────────────────────────────────────────────────
+
+function computeDataQualitySummary(intervals) {
+  const summary = {};
+  for (const iv of intervals ?? []) {
+    for (const flag of iv.dataQualityFlags ?? []) {
+      summary[flag] = (summary[flag] ?? 0) + 1;
+    }
+  }
+  return Object.keys(summary).length > 0 ? summary : null;
+}
+
 // ── Portfolio aggregation helpers ─────────────────────────────────────────────
 
 function aggregatePortfolioSummary(assetResults) {
@@ -168,20 +177,12 @@ function groupByTechnology(assetResults) {
   for (const r of assetResults.filter((r) => r.status === 'success')) {
     const tech = r.technology ?? 'unknown';
     if (!byTech[tech]) {
-      byTech[tech] = {
-        technology: tech,
-        assetCount: 0,
-        totalBaselineAmountEur: 0,
-        totalClawbackAmountEur: 0,
-        totalDeltaEur: 0,
-      };
+      byTech[tech] = { technology: tech, assetCount: 0, totalBaselineAmountEur: 0, totalClawbackAmountEur: 0, totalDeltaEur: 0 };
     }
     const g = byTech[tech];
     g.assetCount += 1;
-    g.totalBaselineAmountEur +=
-      (r.summary.calculatedUnderOldLaw.totalRevenueCents ?? 0) / 100;
-    g.totalClawbackAmountEur +=
-      (r.summary.calculatedUnderNewLaw.totalRefinancingContributionCents ?? 0) / 100;
+    g.totalBaselineAmountEur += (r.summary.calculatedUnderOldLaw.totalRevenueCents ?? 0) / 100;
+    g.totalClawbackAmountEur += (r.summary.calculatedUnderNewLaw.totalRefinancingContributionCents ?? 0) / 100;
     g.totalDeltaEur += (r.summary.deltaCents ?? 0) / 100;
   }
   return Object.values(byTech).sort((a, b) => b.assetCount - a.assetCount);
@@ -190,8 +191,8 @@ function groupByTechnology(assetResults) {
 function groupByReadiness(assetResults) {
   const counts = { ready: 0, partial: 0, not_ready: 0, unknown: 0 };
   for (const r of assetResults) {
-    const status = r.readinessStatus ?? 'unknown';
-    counts[status] = (counts[status] ?? 0) + 1;
+    const s = r.readinessStatus ?? 'unknown';
+    counts[s] = (counts[s] ?? 0) + 1;
   }
   return Object.entries(counts)
     .filter(([, count]) => count > 0)
@@ -215,29 +216,22 @@ function topAssetsByDelta(assetResults, n = 5) {
 function topAssetsByClawback(assetResults, n = 5) {
   return assetResults
     .filter((r) => r.status === 'success')
-    .sort(
-      (a, b) =>
-        (b.summary?.calculatedUnderNewLaw?.totalRefinancingContributionCents ?? 0) -
-        (a.summary?.calculatedUnderNewLaw?.totalRefinancingContributionCents ?? 0)
+    .sort((a, b) =>
+      (b.summary?.calculatedUnderNewLaw?.totalRefinancingContributionCents ?? 0) -
+      (a.summary?.calculatedUnderNewLaw?.totalRefinancingContributionCents ?? 0)
     )
     .slice(0, n)
     .map((r) => ({
       assetId: r.assetId,
       assetName: r.assetName,
       technology: r.technology,
-      clawbackAmountEur:
-        (r.summary.calculatedUnderNewLaw.totalRefinancingContributionCents ?? 0) / 100,
+      clawbackAmountEur: (r.summary.calculatedUnderNewLaw.totalRefinancingContributionCents ?? 0) / 100,
     }));
 }
 
 function topAssetsByDataRisk(assetResults, n = 5) {
   return assetResults
-    .filter(
-      (r) =>
-        r.status === 'error' ||
-        r.readinessStatus === 'not_ready' ||
-        r.readinessStatus === 'partial'
-    )
+    .filter((r) => r.status === 'error' || r.readinessStatus === 'not_ready' || r.readinessStatus === 'partial')
     .slice(0, n)
     .map((r) => ({
       assetId: r.assetId,
@@ -253,7 +247,7 @@ async function safeRunCall(ctx, action, params) {
   try {
     return await ctx.call(action, params);
   } catch (_e) {
-    return null; // run persistence never aborts portfolio calculation
+    return null;
   }
 }
 
@@ -328,6 +322,7 @@ async function runPortfolioSimulationCore(
           });
 
           const ruleArmSummary = computeRuleArmSummary(calc.intervals);
+          const dataQualitySummary = computeDataQualitySummary(calc.intervals);
 
           return {
             assetId,
@@ -337,6 +332,7 @@ async function runPortfolioSimulationCore(
             readinessStatus,
             summary: calc.summary,
             ruleArmSummary,
+            dataQualitySummary,
             _rawIntervals: calc.intervals,
           };
         } catch (err) {
@@ -354,7 +350,6 @@ async function runPortfolioSimulationCore(
     );
     allAssetResults.push(...chunkResults);
 
-    // Persist per-asset results (best-effort, fire-and-forget)
     if (runId) {
       safeRunCall(ctx, 'rcs-simulation-run.saveAssetResults', {
         runId,
@@ -366,12 +361,12 @@ async function runPortfolioSimulationCore(
           readinessStatus: r.readinessStatus ?? null,
           summary: r.summary ?? null,
           ruleArmSummary: r.ruleArmSummary ?? null,
+          dataQualitySummary: r.dataQualitySummary ?? null,
           errorCode: r.errorCode ?? null,
           message: r.message ?? null,
         })),
       });
 
-      // Update progress periodically (every ~10% or on last chunk)
       if (chunkIdx % progressUpdateInterval === 0 || chunkIdx === totalChunks - 1) {
         safeRunCall(ctx, 'rcs-simulation-run.updateRun', {
           runId,
@@ -390,7 +385,6 @@ async function runPortfolioSimulationCore(
     assetCount: allAssetResults.length,
   });
 
-  // Determine trace-eligible asset IDs (post-run ranking for topNTraceByDelta)
   let traceEligibleIds;
   if (topNTrace !== null) {
     const sortedByDelta = allAssetResults
@@ -450,6 +444,7 @@ async function runPortfolioSimulationCore(
         readinessStatus: r.readinessStatus ?? null,
         summary: r.summary ?? null,
         ruleArmSummary: r.ruleArmSummary ?? null,
+        dataQualitySummary: r.dataQualitySummary ?? null,
         errorCode: r.errorCode ?? null,
         message: r.message ?? null,
         ...(intervals !== undefined ? { intervals } : {}),
@@ -481,23 +476,10 @@ async function runPortfolioReadinessCore(ctx, { assetIds, timeframe, workload },
   const assetReports = await Promise.all(
     assetIds.map(async (assetId, idx) => {
       const percent = 20 + Math.round(((idx + 1) / total) * 50);
-      jobStore.appendLog(
-        jobId,
-        'timeseries_check',
-        percent,
-        `Checking asset ${idx + 1}/${total}: ${assetId}`,
-        { assetId }
-      );
+      jobStore.appendLog(jobId, 'timeseries_check', percent, `Checking asset ${idx + 1}/${total}`, { assetId });
       const [assetRaw, injectionRaw] = await Promise.all([
         ctx.call('assets.effective', { assetId }).catch(() => null),
-        ctx
-          .call('edm.getTimeseries', {
-            meloId: assetId,
-            from: timeframe.start,
-            to: timeframe.end,
-            resolution: '15min',
-          })
-          .catch(() => []),
+        ctx.call('edm.getTimeseries', { meloId: assetId, from: timeframe.start, to: timeframe.end, resolution: '15min' }).catch(() => []),
       ]);
       const injection = normaliseSeries(injectionRaw);
       const report = computeReadiness(assetRaw, prices, injection, timeframe);
@@ -520,7 +502,6 @@ async function runPortfolioReadinessCore(ctx, { assetIds, timeframe, workload },
 
   const assetCount = assetIds.length;
   const readinessRatio = assetCount > 0 ? counts.ready / assetCount : 0;
-
   const recMap = {};
   for (const r of assetReports) {
     for (const rec of r.recommendations ?? []) {
@@ -532,13 +513,8 @@ async function runPortfolioReadinessCore(ctx, { assetIds, timeframe, workload },
     .slice(0, 5)
     .map(([rec, count]) => ({ recommendation: rec, affectedAssets: count }));
 
-  let portfolioStatus;
-  if (counts.not_ready > 0 || counts.partial > 0) {
-    portfolioStatus =
-      counts.ready === assetCount ? 'ready' : counts.not_ready > 0 ? 'not_ready' : 'partial';
-  } else {
-    portfolioStatus = 'ready';
-  }
+  const portfolioStatus =
+    counts.not_ready > 0 ? 'not_ready' : counts.partial > 0 ? 'partial' : 'ready';
 
   jobStore.appendLog(jobId, 'persist', 100, 'Portfolio readiness assessment complete', {
     portfolioStatus,
@@ -565,20 +541,13 @@ module.exports = {
   name: 'eeg-clawback-calculator',
 
   actions: {
-    /**
-     * Layer 1 — pure mathematical core.
-     * Accepts pre-fetched timeseries directly; performs no I/O.
-     */
     calculate: {
       rest: 'POST /calculate',
       params: {
         asset: {
           type: 'object',
           props: {
-            technology: {
-              type: 'enum',
-              values: ['solar', 'wind_onshore', 'wind_offshore', 'biomass'],
-            },
+            technology: { type: 'enum', values: ['solar', 'wind_onshore', 'wind_offshore', 'biomass'] },
             capacityKw: { type: 'number', positive: true },
             awCentsPerKwh: { type: 'number', positive: true },
             commissioningDate: { type: 'string' },
@@ -611,22 +580,8 @@ module.exports = {
         const { assetId, timeframe } = ctx.params;
         const [assetRaw, pricesRaw, injectionRaw] = await Promise.all([
           ctx.call('assets.effective', { assetId }).catch(() => null),
-          ctx
-            .call('energy-market.prices', {
-              start: timeframe.start,
-              end: timeframe.end,
-              market: 'day-ahead',
-              resolution: 'hourly',
-            })
-            .catch(() => []),
-          ctx
-            .call('edm.getTimeseries', {
-              meloId: assetId,
-              from: timeframe.start,
-              to: timeframe.end,
-              resolution: '15min',
-            })
-            .catch(() => []),
+          ctx.call('energy-market.prices', { start: timeframe.start, end: timeframe.end, market: 'day-ahead', resolution: 'hourly' }).catch(() => []),
+          ctx.call('edm.getTimeseries', { meloId: assetId, from: timeframe.start, to: timeframe.end, resolution: '15min' }).catch(() => []),
         ]);
         const prices = normaliseSeries(pricesRaw);
         const injection = normaliseSeries(injectionRaw);
@@ -649,24 +604,13 @@ module.exports = {
         const { assetId, timeframe, options } = ctx.params;
         const [assetRaw, pricesRaw, injectionRaw] = await Promise.all([
           ctx.call('assets.effective', { assetId }),
-          ctx.call('energy-market.prices', {
-            start: timeframe.start,
-            end: timeframe.end,
-            market: 'day-ahead',
-            resolution: 'hourly',
-          }),
-          ctx.call('edm.getTimeseries', {
-            meloId: assetId,
-            from: timeframe.start,
-            to: timeframe.end,
-            resolution: '15min',
-          }),
+          ctx.call('energy-market.prices', { start: timeframe.start, end: timeframe.end, market: 'day-ahead', resolution: 'hourly' }),
+          ctx.call('edm.getTimeseries', { meloId: assetId, from: timeframe.start, to: timeframe.end, resolution: '15min' }),
         ]);
 
         const asset = normaliseAsset(assetRaw);
         const prices = normaliseSeries(pricesRaw);
         const injection = normaliseSeries(injectionRaw);
-
         const opts = options ?? {};
         const ruleSet = resolveRuleSet(opts.ruleSetId ?? 'latest');
         const result = runCalculation(asset, prices, injection, {
@@ -685,14 +629,6 @@ module.exports = {
       },
     },
 
-    /**
-     * Portfolio simulation — simulates multiple assets sharing a single price fetch.
-     * WP1: No default asset limit (maxAssets null by default).
-     * WP2: workloadEstimate included in every result.
-     * WP3: Sync threshold — gateway+auto goes async only for large workloads.
-     * WP4: Async jobs create and update an RCS Run doc for lifecycle tracking.
-     * Maps to: POST /api/vnb/rcs/portfolio/simulate
-     */
     simulatePortfolio: {
       rest: 'POST /portfolio/simulate',
       params: {
@@ -702,12 +638,7 @@ module.exports = {
           props: { start: { type: 'string' }, end: { type: 'string' } },
         },
         options: { type: 'object', optional: true },
-        executionMode: {
-          type: 'enum',
-          values: ['auto', 'sync', 'async'],
-          optional: true,
-          default: 'auto',
-        },
+        executionMode: { type: 'enum', values: ['auto', 'sync', 'async'], optional: true, default: 'auto' },
       },
       async handler(ctx) {
         const { assetIds, timeframe, options } = ctx.params;
@@ -715,11 +646,10 @@ module.exports = {
         const executionMode = ctx.params.executionMode ?? opts.executionMode ?? 'auto';
         const ruleSet = resolveRuleSet(opts.ruleSetId ?? 'latest');
 
-        // WP1: maxAssets — only applies when explicitly set or env-configured
         const envLimit = process.env.RCS_MAX_ASSETS_PER_RUN
           ? parseInt(process.env.RCS_MAX_ASSETS_PER_RUN, 10)
           : null;
-        const maxAssets = opts.maxAssets ?? envLimit; // null = unlimited
+        const maxAssets = opts.maxAssets ?? envLimit;
         if (maxAssets !== null && assetIds.length > maxAssets) {
           throw new MoleculerClientError(
             `Portfolio exceeds maxAssets limit (${maxAssets}). Got ${assetIds.length} assets.`,
@@ -729,17 +659,12 @@ module.exports = {
           );
         }
 
-        // WP2: Workload estimation
         const workload = estimateWorkload(assetIds, timeframe, { ...opts, executionMode });
 
-        // WP6: Trace governance — interval-based + asset-count safety net
         const traceMode = workload.traceMode;
         const hasTraceAssetIds = Boolean(opts.traceAssetIds);
         if (traceMode === 'full' && !hasTraceAssetIds) {
-          if (
-            workload.estimatedTotalIntervals > MAX_FULL_TRACE_INTERVALS ||
-            assetIds.length > 50
-          ) {
+          if (workload.estimatedTotalIntervals > MAX_FULL_TRACE_INTERVALS || assetIds.length > 50) {
             throw new MoleculerClientError(
               `traceMode 'full' rejected: ${
                 assetIds.length > 50
@@ -748,19 +673,12 @@ module.exports = {
               }. Use traceMode 'summary' or specify traceAssetIds.`,
               400,
               'RCS_TRACE_PAYLOAD_TOO_LARGE',
-              {
-                assetCount: assetIds.length,
-                estimatedTotalIntervals: workload.estimatedTotalIntervals,
-                maxForFullTrace: 50,
-                maxFullTraceIntervals: MAX_FULL_TRACE_INTERVALS,
-              }
+              { assetCount: assetIds.length, estimatedTotalIntervals: workload.estimatedTotalIntervals }
             );
           }
         }
 
-        // WP3: Sync threshold for auto-mode
-        const aboveThreshold =
-          workload.estimatedTotalIntervals > SYNC_THRESHOLD_INTERVALS;
+        const aboveThreshold = workload.estimatedTotalIntervals > SYNC_THRESHOLD_INTERVALS;
         const shouldRunAsync =
           executionMode === 'async' ||
           (executionMode !== 'sync' && ctx.meta.$gateway && aboveThreshold);
@@ -769,10 +687,8 @@ module.exports = {
 
         const coreArgs = { assetIds, timeframe, opts, ruleSet, workload };
 
-        // WP4: Portfolio worker with run lifecycle (createRun/updateRun best-effort)
         const portfolioWorker = async (jobId) => {
           let runId = null;
-
           if (jobId) {
             const created = await safeRunCall(ctx, 'rcs-simulation-run.createRun', {
               assetIds,
@@ -795,12 +711,7 @@ module.exports = {
           }
 
           try {
-            const result = await runPortfolioSimulationCore(
-              ctx,
-              { ...coreArgs, runId },
-              jobId
-            );
-
+            const result = await runPortfolioSimulationCore(ctx, { ...coreArgs, runId }, jobId);
             if (runId) {
               safeRunCall(ctx, 'rcs-simulation-run.updateRun', {
                 runId,
@@ -811,20 +722,20 @@ module.exports = {
                 completedAt: new Date().toISOString(),
               });
             }
-
             return { ...result, rcsRunId: runId };
           } catch (err) {
-            safeRunCall(ctx, 'rcs-simulation-run.updateRun', {
-              runId,
-              status: 'failed',
-              errorMessage: String(err.message ?? err),
-            });
+            if (runId) {
+              safeRunCall(ctx, 'rcs-simulation-run.updateRun', {
+                runId,
+                status: 'failed',
+                errorMessage: String(err.message ?? err),
+              });
+            }
             throw err;
           }
         };
 
         if (!shouldRunAsync) return portfolioWorker(null);
-
         return runAsync(ctx, {
           service: 'eeg-clawback-calculator',
           action: 'simulatePortfolio',
@@ -834,10 +745,6 @@ module.exports = {
       },
     },
 
-    /**
-     * Portfolio readiness aggregation — async-capable.
-     * Maps to: POST /api/vnb/rcs/portfolio/assess-readiness
-     */
     assessPortfolioReadiness: {
       rest: 'POST /portfolio/assess-readiness',
       params: {
@@ -846,20 +753,13 @@ module.exports = {
           type: 'object',
           props: { start: { type: 'string' }, end: { type: 'string' } },
         },
-        executionMode: {
-          type: 'enum',
-          values: ['auto', 'sync', 'async'],
-          optional: true,
-          default: 'auto',
-        },
+        executionMode: { type: 'enum', values: ['auto', 'sync', 'async'], optional: true, default: 'auto' },
       },
       async handler(ctx) {
         const { assetIds, timeframe } = ctx.params;
         const executionMode = ctx.params.executionMode ?? 'auto';
-
         const workload = estimateWorkload(assetIds, timeframe, { executionMode });
-        const aboveThreshold =
-          workload.estimatedTotalIntervals > SYNC_THRESHOLD_INTERVALS;
+        const aboveThreshold = workload.estimatedTotalIntervals > SYNC_THRESHOLD_INTERVALS;
         const shouldRunAsync =
           executionMode === 'async' ||
           (executionMode !== 'sync' && ctx.meta.$gateway && aboveThreshold);
@@ -870,12 +770,130 @@ module.exports = {
         const coreWorker = (jobId) => runPortfolioReadinessCore(ctx, coreArgs, jobId);
 
         if (!shouldRunAsync) return coreWorker(null);
-
         return runAsync(ctx, {
           service: 'eeg-clawback-calculator',
           action: 'assessPortfolioReadiness',
           params: ctx.params,
           worker: coreWorker,
+        });
+      },
+    },
+
+    /**
+     * On-demand full-trace drilldown for a single asset within a portfolio run.
+     * Loads run context (timeframe, ruleSetId) from rcs-simulation-run and re-simulates
+     * with traceMode: full, using the same rule set as the original run.
+     * Persists trace via rcs-simulation-run.saveTrace for later retrieval (GET .../trace).
+     * Maps to: POST /api/vnb/rcs/runs/:runId/assets/:assetId/drilldown
+     * WP4 (v0.60.7)
+     */
+    drilldownAsset: {
+      rest: 'POST /runs/:runId/assets/:assetId/drilldown',
+      params: {
+        runId: { type: 'string', min: 1 },
+        assetId: { type: 'string', min: 1 },
+        persistTrace: { type: 'boolean', optional: true, default: true },
+        executionMode: { type: 'enum', values: ['auto', 'sync', 'async'], optional: true, default: 'auto' },
+      },
+      async handler(ctx) {
+        const { runId, assetId } = ctx.params;
+        const persistTrace = ctx.params.persistTrace !== false;
+        const executionMode = ctx.params.executionMode ?? 'auto';
+
+        let run;
+        try {
+          run = await ctx.call('rcs-simulation-run.getRun', { runId });
+        } catch (err) {
+          if (err.type === 'RCS_RUN_NOT_FOUND') throw err;
+          throw rcsError('RCS_DRILLDOWN_FAILED', `Failed to load run context for '${runId}': ${err.message}`, { runId, assetId });
+        }
+
+        if (Array.isArray(run.assetIds) && run.assetIds.length > 0 && !run.assetIds.includes(assetId)) {
+          throw rcsError('RCS_ASSET_NOT_IN_RUN', `Asset '${assetId}' was not part of run '${runId}'.`, { runId, assetId });
+        }
+
+        const { timeframe, ruleSetId } = run;
+        const ruleSet = resolveRuleSet(ruleSetId ?? 'latest');
+
+        const workload = estimateWorkload([assetId], timeframe, { executionMode });
+        const aboveThreshold = workload.estimatedTotalIntervals > SYNC_THRESHOLD_INTERVALS;
+        const shouldRunAsync =
+          executionMode === 'async' ||
+          (executionMode !== 'sync' && ctx.meta.$gateway && aboveThreshold);
+
+        if (executionMode === 'async') ctx.meta.$gateway = true;
+
+        const drilldownWorker = async () => {
+          try {
+            const [assetRaw, pricesRaw, injectionRaw] = await Promise.all([
+              ctx.call('assets.effective', { assetId }),
+              ctx.call('energy-market.prices', {
+                start: timeframe.start,
+                end: timeframe.end,
+                market: 'day-ahead',
+                resolution: 'hourly',
+              }),
+              ctx.call('edm.getTimeseries', {
+                meloId: assetId,
+                from: timeframe.start,
+                to: timeframe.end,
+                resolution: '15min',
+              }),
+            ]);
+
+            const asset = normaliseAsset(assetRaw);
+            const prices = normaliseSeries(pricesRaw);
+            const injection = normaliseSeries(injectionRaw);
+
+            const calc = runCalculation(asset, prices, injection, { ruleSet, includeIntervalTrace: true });
+
+            const result = {
+              runId,
+              assetId,
+              assetName: assetRaw.name ?? assetRaw.bezeichnung ?? assetId,
+              technology: asset.technology,
+              ruleSetId: ruleSet?.id ?? null,
+              ruleSetVersion: ruleSet?.version ?? null,
+              traceMode: 'full',
+              timeframe,
+              summary: calc.summary,
+              ruleArmSummary: computeRuleArmSummary(calc.intervals),
+              dataQualitySummary: computeDataQualitySummary(calc.intervals),
+              intervals: calc.intervals,
+              links: {
+                self: `/api/vnb/rcs/runs/${runId}/assets/${assetId}/drilldown`,
+                trace: `/api/vnb/rcs/runs/${runId}/assets/${assetId}/trace`,
+                asset: `/api/vnb/rcs/runs/${runId}/assets/${assetId}`,
+                run: `/api/vnb/rcs/runs/${runId}`,
+              },
+            };
+
+            if (persistTrace) {
+              safeRunCall(ctx, 'rcs-simulation-run.saveTrace', {
+                runId,
+                assetId,
+                assetName: result.assetName,
+                technology: asset.technology,
+                ruleSetId: ruleSet?.id ?? null,
+                ruleSetVersion: ruleSet?.version ?? null,
+                summary: calc.summary,
+                intervals: calc.intervals,
+              });
+            }
+
+            return result;
+          } catch (err) {
+            if (err.type && err.type.startsWith('RCS_')) throw err;
+            throw rcsError('RCS_DRILLDOWN_FAILED', `Drilldown failed for asset '${assetId}': ${err.message}`, { runId, assetId, cause: err.message });
+          }
+        };
+
+        if (!shouldRunAsync) return drilldownWorker();
+        return runAsync(ctx, {
+          service: 'eeg-clawback-calculator',
+          action: 'drilldownAsset',
+          params: ctx.params,
+          worker: drilldownWorker,
         });
       },
     },

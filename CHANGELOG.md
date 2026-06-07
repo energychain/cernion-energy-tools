@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.60.7] — RCS UI Enablement: Rule Discovery, On-Demand Drilldown & Stable Product Contracts (2026-06-07)
+
+### Added
+
+- **WP1 — Rule Discovery API**: New `rcs-rule-catalog` service (stateless wrapper over `src/rcs-rule-registry.js`). `GET /api/vnb/rcs/rules` → `listRuleSets` with filters (`status`, `legalStatus`, `calculationMode`, `includeSuperseded`). `GET /api/vnb/rcs/rules/:ruleSetId` → `getRuleSet` with full parameters. Superseded rules hidden by default. Latest rule marked `isLatest: true`. Unknown ID returns `RCS_RULE_SET_NOT_FOUND` (404).
+
+- **WP2 — Run Overview API**: `listRuns` now returns a pagination envelope `{ total, offset, limit, hasMore, items }` instead of a plain array. Added `offset` parameter. Each run item includes `links` with `self`, `assets`, `errors`, `readiness`, and (when applicable) `jobStatus`, `jobProgress`, `jobResult` URL fields. `toPublic` updated to always include `links`.
+
+- **WP3 — Run Detail API**: `getRun` returns the same enriched structure with navigation links. `toPublic` extended with `progress`, `workloadEstimate`, `resultLocation`, `portfolioSummary`, `ruleArmSummary`, `errorCount`, `assetCount`.
+
+- **WP4 — On-Demand Asset Drilldown**: New `drilldownAsset` action on `eeg-clawback-calculator` (internal URL: `POST /runs/:runId/assets/:assetId/drilldown`). Loads run context (timeframe, ruleSetId), verifies asset was in `run.assetIds`, fetches fresh timeseries, runs `runCalculation` with `traceMode: full` using the original run's rule set. Supports `executionMode: auto|sync|async`. Large drilldowns (> `SYNC_THRESHOLD_INTERVALS`) go async via existing CET job pattern. `persistTrace: true` (default) saves result via `rcs-simulation-run.saveTrace`. Returns `links` including `trace`, `asset`, `run`. Error codes: `RCS_ASSET_NOT_IN_RUN`, `RCS_RUN_NOT_FOUND`, `RCS_DRILLDOWN_FAILED`.
+
+- **WP5 — Persisted Asset Traces**: New `saveTrace` action (internal) persists drilldown results as `rcs:trace:{runId}:{assetId}` docs. Conflict-safe: overwrites on 409. New `getTrace` action → `GET /api/vnb/rcs/runs/:runId/assets/:assetId/trace`. Returns `traceHash`, `summary`, `intervals`, `links`. Returns `RCS_TRACE_NOT_FOUND` (404) when no trace exists. `getRunAsset` now performs a secondary DB lookup and includes `hasTrace: true/false`.
+
+- **WP6 — Asset Result Detail API**: `toPublicAsset` extended with `dataQualitySummary` (aggregated per-flag interval counts), `hasTrace` (boolean), and `links` (`self`, `drilldown`, `trace`, `run`). `computeDataQualitySummary(intervals)` helper computes flag counts from `dataQualityFlags` per interval. Included in both in-response asset results and persisted asset docs.
+
+- **WP7 — Readiness Product API**: New `getRunReadiness` action → `GET /api/vnb/rcs/runs/:runId/readiness`. Aggregates `readinessStatus` from per-asset docs stored via `saveAssetResults`. Returns `portfolioStatus`, `readyCount`, `partialCount`, `notReadyCount`, `readinessRatio`, affected asset IDs, and pagination links. Returns `dataAvailable: false` with guidance message when no readiness data was collected (re-run with `options.includeReadiness=true`).
+
+- **WP8 — Stable Error Taxonomy**: New `src/rcs-errors.js` with `RCS_ERROR_CODES` catalogue and `rcsError(code, message, details)` factory. Covers all 10 standardized error codes: `RCS_RULE_SET_NOT_FOUND`, `RCS_MAX_ASSETS_EXCEEDED`, `RCS_TRACE_PAYLOAD_TOO_LARGE`, `RCS_ASSET_RESULT_NOT_FOUND`, `RCS_RUN_NOT_FOUND`, `RCS_TRACE_NOT_FOUND`, `RCS_DRILLDOWN_FAILED`, `RCS_TIMEFRAME_INVALID`, `RCS_ASSET_NOT_IN_RUN`, `RCS_READINESS_FAILED`. Used consistently across `eeg-clawback-calculator.service.js` and `rcs-simulation-run.service.js`.
+
+- **WP9 — API Contract**: Five new REST aliases in `api.service.js`: `GET /vnb/rcs/rules`, `GET /vnb/rcs/rules/:ruleSetId`, `POST /vnb/rcs/runs/:runId/assets/:assetId/drilldown`, `GET /vnb/rcs/runs/:runId/assets/:assetId/trace`, `GET /vnb/rcs/runs/:runId/readiness`. `requiresFullAccess` updated: `runs/` sub-paths now include `POST` method; `rules/` paths added.
+
+- **WP10 — Tests**: Four new test files (52 new tests total): `tests/rcs-error-taxonomy.test.js` (stable error codes, factory shape, HTTP status mapping); `tests/rcs-rules-api.test.js` (list/filter/sort/isLatest/unknownId); `tests/rcs-run-overview-api.test.js` (pagination envelope, links, filters, soft-delete, getRun detail); `tests/rcs-asset-drilldown.test.js` (sync drilldown, async, asset-not-in-run, run-not-found, persistTrace, getTrace, hasTrace).
+
+### Changed
+
+- `listRuns` response format: was plain array, now `{ total, offset, limit, hasMore, items }`. Breaking change for direct callers; all test files updated.
+- `toPublic` (run) and `toPublicAsset` (asset): both now include `links` and extended lifecycle fields.
+- `eeg-clawback-calculator.service.js` now imports `rcsError` from `src/rcs-errors.js`; error construction for `RCS_MAX_ASSETS_EXCEEDED` and `RCS_TRACE_PAYLOAD_TOO_LARGE` aligned with the taxonomy (still uses `MoleculerClientError` directly for backward-compat, not wrapped via `rcsError` factory, to preserve identical `.type` strings).
+
 ## [0.60.6] — RCS Pre-UI Hardening: Unlimited Portfolio Scale, Workload Estimation & Contract Freeze (2026-06-07)
 
 ### Added

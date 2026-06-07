@@ -381,13 +381,19 @@ function requiresFullAccess(method, requestPath) {
   if (pathOnly === '/api/vnb/rcs/runs' && (m === 'POST' || m === 'GET')) {
     return true;
   }
-  if (pathOnly.startsWith('/api/vnb/rcs/runs/') && (m === 'GET' || m === 'DELETE')) {
+  if (pathOnly.startsWith('/api/vnb/rcs/runs/') && (m === 'GET' || m === 'DELETE' || m === 'POST')) {
     return true;
   }
   if (pathOnly === '/api/vnb/rcs/portfolio/simulate' && m === 'POST') {
     return true;
   }
   if (pathOnly === '/api/vnb/rcs/portfolio/assess-readiness' && m === 'POST') {
+    return true;
+  }
+  if (pathOnly === '/api/vnb/rcs/rules' && m === 'GET') {
+    return true;
+  }
+  if (pathOnly.startsWith('/api/vnb/rcs/rules/') && m === 'GET') {
     return true;
   }
   if (pathOnly === '/api/knowledge-rag/collections' && m === 'POST') {
@@ -1145,6 +1151,12 @@ module.exports = {
           'GET /vnb/rcs/runs/:runId/assets': 'rcs-simulation-run.listRunAssets',
           'GET /vnb/rcs/runs/:runId/assets/:assetId': 'rcs-simulation-run.getRunAsset',
           'GET /vnb/rcs/runs/:runId/errors': 'rcs-simulation-run.listRunErrors',
+          // RCS UI Enablement (v0.60.7)
+          'GET /vnb/rcs/rules': 'rcs-rule-catalog.listRuleSets',
+          'GET /vnb/rcs/rules/:ruleSetId': 'rcs-rule-catalog.getRuleSet',
+          'POST /vnb/rcs/runs/:runId/assets/:assetId/drilldown': 'eeg-clawback-calculator.drilldownAsset',
+          'GET /vnb/rcs/runs/:runId/assets/:assetId/trace': 'rcs-simulation-run.getTrace',
+          'GET /vnb/rcs/runs/:runId/readiness': 'rcs-simulation-run.getRunReadiness',
           // EOG Calculator (Revenue Cap Calculation)
           'POST /eog-calculator/input-status': 'eog-calculator.inputStatus',
           'POST /eog-calculator/validate-datapoints': 'eog-calculator.validateDatapoints',

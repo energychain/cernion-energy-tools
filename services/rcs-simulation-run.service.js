@@ -4,9 +4,11 @@ const crypto = require('crypto');
 const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
 
-const { MoleculerClientError } = require('moleculer').Errors;
+const { rcsError } = require('../src/rcs-errors');
 
 const DB_NAME = process.env.RCS_SIM_RUN_DB ?? 'rcs-simulation-runs';
+
+// ── ID helpers ────────────────────────────────────────────────────────────────
 
 function makeRunId() {
   return `run-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
@@ -20,11 +22,43 @@ function assetDocId(runId, assetId) {
   return `rcs:asset:${runId}:${assetId}`;
 }
 
+function traceDocId(runId, assetId) {
+  return `rcs:trace:${runId}:${assetId}`;
+}
+
 function hashData(data) {
   if (data == null) return null;
   const str = typeof data === 'string' ? data : JSON.stringify(data);
   return `sha256:${crypto.createHash('sha256').update(str).digest('hex')}`;
 }
+
+// ── Link builders ─────────────────────────────────────────────────────────────
+
+function buildRunLinks(run) {
+  const links = {
+    self: `/api/vnb/rcs/runs/${run.runId}`,
+    assets: `/api/vnb/rcs/runs/${run.runId}/assets`,
+    errors: `/api/vnb/rcs/runs/${run.runId}/errors`,
+    readiness: `/api/vnb/rcs/runs/${run.runId}/readiness`,
+  };
+  if (run.jobId) {
+    links.jobStatus = `/api/jobs/${run.jobId}/status`;
+    links.jobProgress = `/api/jobs/${run.jobId}/progress`;
+    links.jobResult = `/api/jobs/${run.jobId}/result`;
+  }
+  return links;
+}
+
+function buildAssetLinks(runId, assetId) {
+  return {
+    self: `/api/vnb/rcs/runs/${runId}/assets/${assetId}`,
+    drilldown: `/api/vnb/rcs/runs/${runId}/assets/${assetId}/drilldown`,
+    trace: `/api/vnb/rcs/runs/${runId}/assets/${assetId}/trace`,
+    run: `/api/vnb/rcs/runs/${runId}`,
+  };
+}
+
+// ── Serialization ─────────────────────────────────────────────────────────────
 
 function toPublic(doc, { includeDeleted = false } = {}) {
   const isDeleted = Boolean(doc.deletedAt);
@@ -66,10 +100,11 @@ function toPublic(doc, { includeDeleted = false } = {}) {
     deletedAt: doc.deletedAt ?? null,
     deletedBy: doc.deletedBy ?? null,
     deleteReason: doc.deleteReason ?? null,
+    links: buildRunLinks(doc),
   };
 }
 
-function toPublicAsset(doc) {
+function toPublicAsset(doc, { hasTrace = false } = {}) {
   return {
     assetId: doc.assetId,
     runId: doc.runId,
@@ -79,13 +114,17 @@ function toPublicAsset(doc) {
     readinessStatus: doc.readinessStatus ?? null,
     summary: doc.summary ?? null,
     ruleArmSummary: doc.ruleArmSummary ?? null,
+    dataQualitySummary: doc.dataQualitySummary ?? null,
     errorCode: doc.errorCode ?? null,
     message: doc.message ?? null,
+    hasTrace,
     savedAt: doc.savedAt,
+    links: buildAssetLinks(doc.runId, doc.assetId),
   };
 }
 
-// PouchDB read-modify-write with conflict retry
+// ── Conflict-safe PouchDB update ──────────────────────────────────────────────
+
 async function updateRunDoc(db, runId, updates, maxAttempts = 3) {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const doc = await db.get(docId(runId));
@@ -98,6 +137,8 @@ async function updateRunDoc(db, runId, updates, maxAttempts = 3) {
     }
   }
 }
+
+// ── Service ───────────────────────────────────────────────────────────────────
 
 module.exports = {
   name: 'rcs-simulation-run',
@@ -201,7 +242,7 @@ module.exports = {
 
     /**
      * Create a run in 'running' state at the start of an async portfolio job.
-     * Internal only — called from the portfolio worker, not exposed via REST.
+     * Internal only — called from the portfolio worker.
      * WP4
      */
     createRun: {
@@ -271,18 +312,14 @@ module.exports = {
     },
 
     /**
-     * Update run status and/or fields during/after execution.
-     * Internal only — not exposed via REST. Uses conflict-safe read-modify-write.
+     * Update run status and/or summary fields during/after execution.
+     * Conflict-safe: 3-attempt read-modify-write. Internal only.
      * WP4
      */
     updateRun: {
       params: {
         runId: { type: 'string', min: 1 },
-        status: {
-          type: 'enum',
-          values: ['running', 'completed', 'failed'],
-          optional: true,
-        },
+        status: { type: 'enum', values: ['running', 'completed', 'failed'], optional: true },
         progress: { type: 'object', optional: true },
         portfolioSummary: { type: 'object', optional: true },
         ruleArmSummary: { type: 'object', optional: true },
@@ -295,25 +332,18 @@ module.exports = {
         const cleanUpdates = Object.fromEntries(
           Object.entries(updates).filter(([, v]) => v !== undefined)
         );
-
         try {
           await updateRunDoc(this._db, runId, cleanUpdates);
           return { updated: true, runId };
         } catch (err) {
-          if (err.status === 404) {
-            throw new MoleculerClientError(
-              `Simulation run '${runId}' not found.`,
-              404,
-              'RCS_RUN_NOT_FOUND'
-            );
-          }
+          if (err.status === 404) throw rcsError('RCS_RUN_NOT_FOUND', `Run '${runId}' not found.`, { runId });
           throw err;
         }
       },
     },
 
     /**
-     * Retrieve a single run by runId (returns deleted runs with isDeleted flag).
+     * Retrieve a single run with enriched detail and navigation links.
      * Maps to: GET /api/vnb/rcs/runs/:runId
      */
     getRun: {
@@ -325,11 +355,9 @@ module.exports = {
           return toPublic(doc, { includeDeleted: true });
         } catch (err) {
           if (err.status === 404) {
-            throw new MoleculerClientError(
-              `Simulation run '${ctx.params.runId}' not found.`,
-              404,
-              'RCS_RUN_NOT_FOUND'
-            );
+            throw rcsError('RCS_RUN_NOT_FOUND', `Simulation run '${ctx.params.runId}' not found.`, {
+              runId: ctx.params.runId,
+            });
           }
           throw err;
         }
@@ -337,8 +365,9 @@ module.exports = {
     },
 
     /**
-     * List runs. By default excludes soft-deleted records.
+     * List runs with pagination, filters, and navigation links per item.
      * Maps to: GET /api/vnb/rcs/runs
+     * WP2: adds offset, total, hasMore, links
      */
     listRuns: {
       rest: 'GET /runs',
@@ -352,10 +381,14 @@ module.exports = {
         to: { type: 'string', optional: true },
         includeDeleted: { type: 'boolean', optional: true, default: false },
         limit: { type: 'number', integer: true, positive: true, optional: true, default: 50 },
+        offset: { type: 'number', integer: true, min: 0, optional: true, default: 0 },
       },
       async handler(ctx) {
-        const { assetId, ruleSetId, jobId, executionMode, status, from, to, includeDeleted, limit } =
-          ctx.params;
+        const {
+          assetId, ruleSetId, jobId, executionMode, status,
+          from, to, includeDeleted, limit, offset,
+        } = ctx.params;
+
         const result = await this._db.allDocs({
           include_docs: true,
           startkey: 'rcs:run:',
@@ -374,15 +407,24 @@ module.exports = {
 
         docs.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
-        return docs
-          .slice(0, limit)
-          .map((d) => toPublic(d, { includeDeleted: true }))
-          .filter(Boolean);
+        const total = docs.length;
+        const page = docs.slice(offset, offset + limit);
+        const hasMore = offset + limit < total;
+
+        return {
+          total,
+          offset,
+          limit,
+          hasMore,
+          items: page
+            .map((d) => toPublic(d, { includeDeleted: true }))
+            .filter(Boolean),
+        };
       },
     },
 
     /**
-     * Soft-delete a run: sets deletedAt/deletedBy/deleteReason, never removes the document.
+     * Soft-delete a run (never removes the document).
      * Maps to: DELETE /api/vnb/rcs/runs/:runId
      */
     deleteRun: {
@@ -397,18 +439,10 @@ module.exports = {
         try {
           doc = await this._db.get(docId(ctx.params.runId));
         } catch (err) {
-          if (err.status === 404) {
-            throw new MoleculerClientError(
-              `Simulation run '${ctx.params.runId}' not found.`,
-              404,
-              'RCS_RUN_NOT_FOUND'
-            );
-          }
+          if (err.status === 404) throw rcsError('RCS_RUN_NOT_FOUND', `Run '${ctx.params.runId}' not found.`, { runId: ctx.params.runId });
           throw err;
         }
-        if (doc.deletedAt) {
-          return { deleted: true, runId: ctx.params.runId, alreadyDeleted: true };
-        }
+        if (doc.deletedAt) return { deleted: true, runId: ctx.params.runId, alreadyDeleted: true };
         const updated = {
           ...doc,
           deletedAt: new Date().toISOString(),
@@ -421,8 +455,7 @@ module.exports = {
     },
 
     /**
-     * Bulk-persist per-asset simulation results as separate PouchDB docs.
-     * Internal only — called from runPortfolioSimulationCore per chunk.
+     * Bulk-persist per-chunk asset results. Internal only.
      * WP5
      */
     saveAssetResults: {
@@ -444,27 +477,20 @@ module.exports = {
           readinessStatus: r.readinessStatus ?? null,
           summary: r.summary ?? null,
           ruleArmSummary: r.ruleArmSummary ?? null,
+          dataQualitySummary: r.dataQualitySummary ?? null,
           errorCode: r.errorCode ?? null,
           message: r.message ?? null,
           savedAt: now,
         }));
 
-        // Best-effort bulk write; ignore 409 conflicts (idempotent retry safety)
         const bulkResult = await this._db.bulkDocs(docs);
-        const errors = bulkResult.filter(
-          (r) => r.error && r.status !== 409
-        );
-
-        return {
-          saved: bulkResult.length - errors.length,
-          errors: errors.length,
-          runId,
-        };
+        const errors = bulkResult.filter((r) => r.error && r.status !== 409);
+        return { saved: bulkResult.length - errors.length, errors: errors.length, runId };
       },
     },
 
     /**
-     * List per-asset results for a given run.
+     * List paginated per-asset results for a run.
      * Maps to: GET /api/vnb/rcs/runs/:runId/assets
      * WP5
      */
@@ -497,15 +523,15 @@ module.exports = {
           total,
           offset,
           hasMore,
-          assetResults: page.map(toPublicAsset),
+          assetResults: page.map((d) => toPublicAsset(d, { hasTrace: false })),
         };
       },
     },
 
     /**
-     * Get a single per-asset result for a run.
+     * Get a single per-asset result with trace availability check.
      * Maps to: GET /api/vnb/rcs/runs/:runId/assets/:assetId
-     * WP5
+     * WP5 + WP6
      */
     getRunAsset: {
       rest: 'GET /runs/:runId/assets/:assetId',
@@ -515,19 +541,25 @@ module.exports = {
       },
       async handler(ctx) {
         const { runId, assetId } = ctx.params;
+        let doc;
         try {
-          const doc = await this._db.get(assetDocId(runId, assetId));
-          return toPublicAsset(doc);
+          doc = await this._db.get(assetDocId(runId, assetId));
         } catch (err) {
           if (err.status === 404) {
-            throw new MoleculerClientError(
-              `Asset result '${assetId}' not found for run '${runId}'.`,
-              404,
-              'RCS_ASSET_RESULT_NOT_FOUND'
-            );
+            throw rcsError('RCS_ASSET_RESULT_NOT_FOUND', `Asset result '${assetId}' not found for run '${runId}'.`, { runId, assetId });
           }
           throw err;
         }
+
+        let hasTrace = false;
+        try {
+          await this._db.get(traceDocId(runId, assetId));
+          hasTrace = true;
+        } catch (_e) {
+          // no trace exists
+        }
+
+        return toPublicAsset(doc, { hasTrace });
       },
     },
 
@@ -559,7 +591,189 @@ module.exports = {
         return {
           runId,
           errorCount: errorDocs.length,
-          errors: errorDocs.map(toPublicAsset),
+          errors: errorDocs.map((d) => toPublicAsset(d, { hasTrace: false })),
+        };
+      },
+    },
+
+    /**
+     * Persist a full-trace drilldown result for later retrieval.
+     * Internal only — called from drilldownAsset action.
+     * WP5
+     */
+    saveTrace: {
+      params: {
+        runId: { type: 'string', min: 1 },
+        assetId: { type: 'string', min: 1 },
+        assetName: { type: 'string', optional: true },
+        technology: { type: 'string', optional: true },
+        ruleSetId: { type: 'string', optional: true },
+        ruleSetVersion: { type: 'string', optional: true },
+        summary: { type: 'object' },
+        intervals: { type: 'array' },
+      },
+      async handler(ctx) {
+        const { runId, assetId } = ctx.params;
+        const now = new Date().toISOString();
+        const traceHash = hashData(ctx.params.intervals);
+
+        const doc = {
+          _id: traceDocId(runId, assetId),
+          runId,
+          assetId,
+          assetName: ctx.params.assetName ?? assetId,
+          technology: ctx.params.technology ?? null,
+          createdAt: now,
+          ruleSetId: ctx.params.ruleSetId ?? null,
+          ruleSetVersion: ctx.params.ruleSetVersion ?? null,
+          traceHash,
+          summary: ctx.params.summary,
+          intervals: ctx.params.intervals,
+        };
+
+        try {
+          await this._db.put(doc);
+        } catch (err) {
+          if (err.status === 409) {
+            const existing = await this._db.get(traceDocId(runId, assetId));
+            await this._db.put({ ...doc, _rev: existing._rev });
+          } else {
+            throw err;
+          }
+        }
+
+        return { saved: true, runId, assetId, traceHash };
+      },
+    },
+
+    /**
+     * Retrieve a previously computed and persisted asset trace.
+     * Maps to: GET /api/vnb/rcs/runs/:runId/assets/:assetId/trace
+     * WP5
+     */
+    getTrace: {
+      rest: 'GET /runs/:runId/assets/:assetId/trace',
+      params: {
+        runId: { type: 'string', min: 1 },
+        assetId: { type: 'string', min: 1 },
+      },
+      async handler(ctx) {
+        const { runId, assetId } = ctx.params;
+        try {
+          const doc = await this._db.get(traceDocId(runId, assetId));
+          return {
+            runId: doc.runId,
+            assetId: doc.assetId,
+            assetName: doc.assetName,
+            technology: doc.technology ?? null,
+            createdAt: doc.createdAt,
+            ruleSetId: doc.ruleSetId ?? null,
+            ruleSetVersion: doc.ruleSetVersion ?? null,
+            traceHash: doc.traceHash,
+            summary: doc.summary,
+            intervals: doc.intervals,
+            links: buildAssetLinks(runId, assetId),
+          };
+        } catch (err) {
+          if (err.status === 404) {
+            throw rcsError(
+              'RCS_TRACE_NOT_FOUND',
+              `No trace found for asset '${assetId}' in run '${runId}'. Use POST .../drilldown to compute one.`,
+              { runId, assetId, drilldownUrl: `/api/vnb/rcs/runs/${runId}/assets/${assetId}/drilldown` }
+            );
+          }
+          throw err;
+        }
+      },
+    },
+
+    /**
+     * Aggregate readiness data from per-asset docs stored during portfolio run.
+     * Maps to: GET /api/vnb/rcs/runs/:runId/readiness
+     * WP7
+     */
+    getRunReadiness: {
+      rest: 'GET /runs/:runId/readiness',
+      params: { runId: { type: 'string', min: 1 } },
+      async handler(ctx) {
+        const { runId } = ctx.params;
+
+        // Verify run exists
+        try {
+          await this._db.get(docId(runId));
+        } catch (err) {
+          if (err.status === 404) throw rcsError('RCS_RUN_NOT_FOUND', `Run '${runId}' not found.`, { runId });
+          throw err;
+        }
+
+        const result = await this._db.allDocs({
+          include_docs: true,
+          startkey: `rcs:asset:${runId}:`,
+          endkey: `rcs:asset:${runId}:￿`,
+        });
+
+        const docs = result.rows.map((r) => r.doc).filter(Boolean);
+        const baseLinks = {
+          run: `/api/vnb/rcs/runs/${runId}`,
+          assets: `/api/vnb/rcs/runs/${runId}/assets`,
+        };
+
+        if (docs.length === 0) {
+          return {
+            runId,
+            dataAvailable: false,
+            message: 'No per-asset results found. Run may have used sync mode without per-asset persistence.',
+            links: baseLinks,
+          };
+        }
+
+        const withReadiness = docs.filter((d) => d.readinessStatus !== null);
+        if (withReadiness.length === 0) {
+          return {
+            runId,
+            dataAvailable: false,
+            totalAssets: docs.length,
+            message: 'Readiness data not collected for this run. Re-run with options.includeReadiness=true.',
+            links: baseLinks,
+          };
+        }
+
+        const counts = { ready: 0, partial: 0, not_ready: 0, unknown: 0 };
+        for (const d of docs) {
+          const s = d.readinessStatus ?? 'unknown';
+          counts[s] = (counts[s] ?? 0) + 1;
+        }
+
+        const portfolioStatus =
+          counts.not_ready > 0 ? 'not_ready' : counts.partial > 0 ? 'partial' : 'ready';
+        const readinessRatio =
+          docs.length > 0 ? Math.round((counts.ready / docs.length) * 1000) / 1000 : 0;
+
+        return {
+          runId,
+          dataAvailable: true,
+          portfolioStatus,
+          totalAssets: docs.length,
+          readyCount: counts.ready,
+          partialCount: counts.partial,
+          notReadyCount: counts.not_ready,
+          unknownCount: counts.unknown,
+          readinessRatio,
+          affectedAssets: {
+            notReady: docs
+              .filter((d) => d.readinessStatus === 'not_ready')
+              .slice(0, 20)
+              .map((d) => d.assetId),
+            partial: docs
+              .filter((d) => d.readinessStatus === 'partial')
+              .slice(0, 20)
+              .map((d) => d.assetId),
+          },
+          links: {
+            ...baseLinks,
+            notReadyAssets: `/api/vnb/rcs/runs/${runId}/assets?status=not_ready`,
+            partialAssets: `/api/vnb/rcs/runs/${runId}/assets?status=partial`,
+          },
         };
       },
     },
