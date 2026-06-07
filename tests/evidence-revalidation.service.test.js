@@ -131,6 +131,52 @@ describe('evidence revalidation service', () => {
         ],
       ])
     );
+
+    // Heidelberg — operative EVU-Personas (simulates seedOperationalDefaults result)
+    personasByTenant.set(
+      'heidelberg',
+      new Map([
+        [
+          'evu-customer-service',
+          {
+            id: 'evu-customer-service',
+            tenantId: 'heidelberg',
+            personaName: 'Kundendienst',
+            personaType: 'specialized-agent',
+            assignedRoles: ['customer-service'],
+            communicationChannels: [{ type: 'openclaw-chat', address: 'ops-customer-service' }],
+            defaultPersonalAgentSessionId: 'pa-default-customer-service',
+            status: 'active',
+          },
+        ],
+        [
+          'evu-edm',
+          {
+            id: 'evu-edm',
+            tenantId: 'heidelberg',
+            personaName: 'Energiedatenmanagement (EDM)',
+            personaType: 'specialized-agent',
+            assignedRoles: ['edm'],
+            communicationChannels: [{ type: 'openclaw-chat', address: 'ops-edm' }],
+            defaultPersonalAgentSessionId: 'pa-default-edm',
+            status: 'active',
+          },
+        ],
+        [
+          'evu-billing',
+          {
+            id: 'evu-billing',
+            tenantId: 'heidelberg',
+            personaName: 'Abrechnung',
+            personaType: 'specialized-agent',
+            assignedRoles: ['billing'],
+            communicationChannels: [{ type: 'openclaw-chat', address: 'ops-billing' }],
+            defaultPersonalAgentSessionId: 'pa-default-billing',
+            status: 'active',
+          },
+        ],
+      ])
+    );
   });
 
   afterAll(async () => {
@@ -565,5 +611,54 @@ describe('evidence revalidation service', () => {
       (item) => item.payload?.evidenceRequirementId === 'evreq-idempotency-check'
     );
     expect(matchingDispatches).toHaveLength(1);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Heidelberg Move-Out integration — EVU customer-service seed → evidence_revalidated
+  // ---------------------------------------------------------------------------
+
+  test('Heidelberg: seeded customer-service → scoped moveOut requirement → correlateFact → evidence_revalidated inbox (no unresolved_recipient)', async () => {
+    inboxEntries.length = 0;
+
+    // Record a moveOut evidence requirement with responsibleRole (no originPersonaId).
+    // The heidelberg tenant has evu-customer-service seeded in the mock persona registry.
+    await broker.call(
+      'evidence-revalidation.recordRequirement',
+      {
+        evidenceRequirementId: 'evreq-hd-moveout-cs-001',
+        originSessionId: 'pa-origin-hd-customer-service-test',
+        responsibleRole: 'customer-service',
+        requestedFact: 'moveOutFinalReadingStatus',
+        scope: { meterNumber: 'HD-M-001', meteringPointId: 'DE001HD0001', contractAccount: 'HD-CA-001' },
+      },
+      { meta: { tenantId: 'heidelberg' } }
+    );
+
+    // Scoped correlateFact — must resolve exactly this requirement
+    const result = await broker.call(
+      'evidence-revalidation.correlateFact',
+      {
+        requestedFact: 'moveOutFinalReadingStatus',
+        scope: { meterNumber: 'HD-M-001', meteringPointId: 'DE001HD0001', contractAccount: 'HD-CA-001' },
+      },
+      { meta: { tenantId: 'heidelberg' } }
+    );
+
+    expect(result.matchedCount).toBe(1);
+    expect(result.correlated[0].evidenceRequirementId).toBe('evreq-hd-moveout-cs-001');
+    expect(result.correlated[0].status).toBe('updated');
+
+    // Dispatch must not be unresolved_recipient — customer-service is resolvable
+    expect(result.correlated[0].dispatch.status).not.toBe('unresolved_recipient');
+    expect(result.correlated[0].dispatch.status).toBe('queued');
+
+    // Persona-inbox entry must exist for the origin session
+    const inboxEntry = inboxEntries.find(
+      (entry) => entry.sessionId === 'pa-origin-hd-customer-service-test'
+    );
+    expect(inboxEntry).toBeDefined();
+    expect(inboxEntry.personaId).toBe('evu-customer-service');
+    expect(inboxEntry.tenantId).toBe('heidelberg');
+    expect(inboxEntry.type).toBe('evidence-revalidated');
   });
 });

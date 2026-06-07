@@ -1185,4 +1185,139 @@ describe('agent-persona service', () => {
       }
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // seedOperationalDefaults — EVU operative persona catalog
+  // ---------------------------------------------------------------------------
+
+  describe('seedOperationalDefaults', () => {
+    test('seeds customer-service, edm, billing — resolveByRole finds each active', async () => {
+      const result = await broker.call(
+        'agent-persona.seedOperationalDefaults',
+        { tenantId: 'tenant-seed-basic', roles: ['customer-service', 'edm', 'billing'] },
+        tenantMeta('tenant-seed-basic')
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.created).toEqual(['customer-service', 'edm', 'billing']);
+      expect(result.skipped).toEqual([]);
+
+      for (const role of ['customer-service', 'edm', 'billing']) {
+        const resolved = await broker.call(
+          'agent-persona.resolveByRole',
+          { tenantId: 'tenant-seed-basic', role },
+          tenantMeta('tenant-seed-basic')
+        );
+        expect(resolved.count).toBe(1);
+        expect(resolved.items[0].status).toBe('active');
+        expect(resolved.items[0].assignedRoles).toContain(role);
+        expect(resolved.items[0].defaultPersonalAgentSessionId).toBe(`pa-default-${role}`);
+      }
+    });
+
+    test('idempotent — second seed with overwrite:false skips existing, no duplicates', async () => {
+      await broker.call(
+        'agent-persona.seedOperationalDefaults',
+        { tenantId: 'tenant-seed-idem', roles: ['customer-service'] },
+        tenantMeta('tenant-seed-idem')
+      );
+
+      const second = await broker.call(
+        'agent-persona.seedOperationalDefaults',
+        { tenantId: 'tenant-seed-idem', roles: ['customer-service'] },
+        tenantMeta('tenant-seed-idem')
+      );
+
+      expect(second.created).toEqual([]);
+      expect(second.skipped).toEqual(['customer-service']);
+
+      const resolved = await broker.call(
+        'agent-persona.resolveByRole',
+        { tenantId: 'tenant-seed-idem', role: 'customer-service' },
+        tenantMeta('tenant-seed-idem')
+      );
+      expect(resolved.count).toBe(1);
+    });
+
+    test('overwrite:true restores catalog defaults for existing personas', async () => {
+      await broker.call(
+        'agent-persona.seedOperationalDefaults',
+        { tenantId: 'tenant-seed-overwrite', roles: ['customer-service'] },
+        tenantMeta('tenant-seed-overwrite')
+      );
+
+      await broker.call(
+        'agent-persona.update',
+        { tenantId: 'tenant-seed-overwrite', id: 'evu-customer-service', personaName: 'Modified' },
+        tenantMeta('tenant-seed-overwrite')
+      );
+
+      const reseeded = await broker.call(
+        'agent-persona.seedOperationalDefaults',
+        { tenantId: 'tenant-seed-overwrite', roles: ['customer-service'], overwrite: true },
+        tenantMeta('tenant-seed-overwrite')
+      );
+
+      expect(reseeded.created).toEqual(['customer-service']);
+      expect(reseeded.skipped).toEqual([]);
+
+      const persona = await broker.call(
+        'agent-persona.get',
+        { tenantId: 'tenant-seed-overwrite', id: 'evu-customer-service' },
+        tenantMeta('tenant-seed-overwrite')
+      );
+      expect(persona.item.personaName).toBe('Kundendienst');
+    });
+
+    test('unknown role is rejected with VALIDATION_ERROR before any DB write', async () => {
+      await expect(
+        broker.call(
+          'agent-persona.seedOperationalDefaults',
+          { tenantId: 'tenant-seed-badrol', roles: ['not-a-real-role'] },
+          tenantMeta('tenant-seed-badrol')
+        )
+      ).rejects.toMatchObject({ code: 422, type: 'VALIDATION_ERROR' });
+    });
+
+    test('cross-tenant seed is forbidden', async () => {
+      await expect(
+        broker.call(
+          'agent-persona.seedOperationalDefaults',
+          { tenantId: 'tenant-seed-xt', roles: ['customer-service'] },
+          tenantMeta('tenant-seed-other')
+        )
+      ).rejects.toMatchObject({ code: 403, type: 'PERSONA_TENANT_FORBIDDEN' });
+    });
+
+    test('no roles param seeds all 16 EVU operational roles', async () => {
+      const result = await broker.call(
+        'agent-persona.seedOperationalDefaults',
+        { tenantId: 'tenant-seed-all' },
+        tenantMeta('tenant-seed-all')
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.created.length).toBe(16);
+      expect(result.created).toContain('customer-service');
+      expect(result.created).toContain('edm');
+      expect(result.created).toContain('billing');
+      expect(result.created).toContain('management');
+      expect(result.skipped).toEqual([]);
+    });
+
+    test('seeded specialized-agent personas are excluded from resolveByRole for other roles', async () => {
+      await broker.call(
+        'agent-persona.seedOperationalDefaults',
+        { tenantId: 'tenant-seed-iso', roles: ['customer-service', 'edm'] },
+        tenantMeta('tenant-seed-iso')
+      );
+
+      const mako = await broker.call(
+        'agent-persona.resolveByRole',
+        { tenantId: 'tenant-seed-iso', role: 'mako' },
+        tenantMeta('tenant-seed-iso')
+      );
+      expect(mako.count).toBe(0);
+    });
+  });
 });

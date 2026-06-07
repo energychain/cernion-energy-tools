@@ -12,6 +12,10 @@ const {
   normalizePlanningScenario,
   normalizeZnpAssetContext,
 } = require('../src/znp-context-snapshot');  // v0.56.3
+const {
+  CATALOG_BY_ROLE,
+  ALL_ROLE_KEYS,
+} = require('../src/evu-operational-persona-catalog');
 
 const DB_PATH = process.env.AGENT_PERSONA_DB_PATH || './data/agent-personas';
 const AUDIT_DB_PATH = process.env.AGENT_PERSONA_AUDIT_DB_PATH || './data/agent-persona-audit';
@@ -741,6 +745,31 @@ module.exports = {
           tenantId,
           summary: this.buildResolutionAuditSummary(items),
         };
+      },
+    },
+
+    /**
+     * Idempotent seed of EVU-standard operational personas for a tenant.
+     * Only creates missing entries; with overwrite:true replaces them from the catalog.
+     * Never touches personas outside the EVU catalog. No notifications or webhooks.
+     */
+    seedOperationalDefaults: {
+      params: {
+        tenantId: { type: 'string', trim: true, min: 1 },
+        roles: {
+          type: 'array',
+          optional: true,
+          items: { type: 'string', trim: true, min: 1 },
+        },
+        overwrite: { type: 'boolean', optional: true, default: false },
+      },
+      async handler(ctx) {
+        const tenantId = this.assertTenantAccess(ctx, ctx.params.tenantId);
+        const result = await this.seedEvuOperationalPersonas(tenantId, {
+          roles: ctx.params.roles,
+          overwrite: ctx.params.overwrite === true,
+        });
+        return result;
       },
     },
 
@@ -1518,6 +1547,75 @@ module.exports = {
         handoffShare: total > 0 ? handoffCount / total : 0,
         fallbackShare: total > 0 ? fallbackCount / total : 0,
       };
+    },
+
+    async seedEvuOperationalPersonas(tenantId, options = {}) {
+      const { roles, overwrite } = options;
+      const requestedRoles =
+        Array.isArray(roles) && roles.length > 0 ? roles.map((r) => trimString(r)).filter(Boolean) : ALL_ROLE_KEYS;
+
+      const unknownRoles = requestedRoles.filter((r) => !CATALOG_BY_ROLE.has(r));
+      if (unknownRoles.length > 0) {
+        throw validationError(
+          `Unknown EVU operational role(s): ${unknownRoles.join(', ')}. Allowed: ${ALL_ROLE_KEYS.join(', ')}`,
+          { field: 'roles', unknownRoles }
+        );
+      }
+
+      const created = [];
+      const skipped = [];
+
+      for (const roleKey of requestedRoles) {
+        const entry = CATALOG_BY_ROLE.get(roleKey);
+        const docId = toDocId(tenantId, entry.defaultId);
+
+        let existing = null;
+        try {
+          existing = await this.db.get(docId);
+        } catch (e) {
+          if (e?.status !== 404) throw e;
+        }
+
+        if (existing && !overwrite) {
+          skipped.push(roleKey);
+          continue;
+        }
+
+        const now = nowIso();
+        const persona = {
+          _id: docId,
+          docType: 'agent-persona',
+          tenantId,
+          id: entry.defaultId,
+          personaName: entry.personaName,
+          personaType: entry.personaType,
+          openclawUserId: null,
+          assignedRoles: [roleKey],
+          communicationChannels: [
+            { type: entry.communicationChannel.type, address: entry.communicationChannel.address },
+          ],
+          defaultPersonalAgentSessionId: `pa-default-${roleKey}`,
+          status: 'active',
+          available: true,
+          lastSeenAt: now,
+          availabilityWindow: { startHour: 0, endHour: 24, timezone: 'UTC' },
+          roleIds: [],
+          contextAffinities: {},
+          handoffTargets: [],
+          resolutionPolicy: null,
+          createdAt: existing?.createdAt || now,
+          updatedAt: now,
+        };
+
+        if (existing) {
+          persona._rev = existing._rev;
+        }
+
+        await this.db.put(persona);
+        created.push(roleKey);
+      }
+
+      return { success: true, tenantId, created, skipped };
     },
 
     async pruneResolutionAuditsForTenant(tenantId, olderThanDays) {
