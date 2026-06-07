@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.59.2] — Clarification-Policy-Engine & EEG 2027 Claw-Back Simulator (2026-06-07)
+## [0.60.2] — Clarification-Policy-Engine & EEG 2027 Claw-Back Simulator (2026-06-07)
 
 ### Added
 
