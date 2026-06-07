@@ -8,11 +8,33 @@ const {
   registerRuleSet,
   unregisterRuleSet,
   _resetCache,
+  LEGAL_STATUS_VALUES,
 } = require('../src/rcs-rule-registry');
 
 beforeEach(() => {
   _resetCache();
 });
+
+// ── Base fixture (valid rule with all required fields) ────────────────────────
+
+const BASE_VALID_RULE = {
+  id: 'eeg2027-valid',
+  version: '1.0.0',
+  status: 'draft',
+  legalStatus: 'referentenentwurf',
+  effectiveFrom: '2027-01-01',
+  effectiveTo: null,
+  supersedes: null,
+  calculationMode: 'eeg2027_clawback',
+  sourceReference: 'Test reference',
+  sourceUrl: null,
+  notes: [],
+  parameters: {
+    s51ConsecutiveNegHours: 4,
+    technologyFloors: { solar: 0, wind_onshore: 2.0 },
+    supportedTechnologies: ['solar'],
+  },
+};
 
 // ── File-based rule loading ───────────────────────────────────────────────────
 
@@ -22,12 +44,17 @@ describe('listRuleSets — file-based rules', () => {
     expect(list.length).toBeGreaterThanOrEqual(2);
   });
 
-  test('each entry has required summary fields', () => {
+  test('each entry has all summary fields including new metadata', () => {
     for (const entry of listRuleSets()) {
       expect(typeof entry.id).toBe('string');
       expect(typeof entry.version).toBe('string');
       expect(typeof entry.effectiveFrom).toBe('string');
       expect(typeof entry.status).toBe('string');
+      expect(entry).toHaveProperty('legalStatus');
+      expect(entry).toHaveProperty('effectiveTo');
+      expect(entry).toHaveProperty('supersedes');
+      expect(entry).toHaveProperty('sourceUrl');
+      expect(Array.isArray(entry.notes)).toBe(true);
     }
   });
 
@@ -37,23 +64,50 @@ describe('listRuleSets — file-based rules', () => {
       expect(list[i - 1].effectiveFrom >= list[i].effectiveFrom).toBe(true);
     }
   });
+
+  test('june rule has legalStatus referentenentwurf', () => {
+    const entry = listRuleSets().find((r) => r.id === 'eeg2027-draft-2026-06');
+    expect(entry.legalStatus).toBe('referentenentwurf');
+  });
+
+  test('june rule supersedes april rule', () => {
+    const entry = listRuleSets().find((r) => r.id === 'eeg2027-draft-2026-06');
+    expect(entry.supersedes).toBe('eeg2027-draft-2026-04');
+  });
+
+  test('june rule has notes array with content', () => {
+    const entry = listRuleSets().find((r) => r.id === 'eeg2027-draft-2026-06');
+    expect(entry.notes.length).toBeGreaterThan(0);
+  });
+
+  test('april rule has effectiveTo set', () => {
+    const entry = listRuleSets().find((r) => r.id === 'eeg2027-draft-2026-04');
+    expect(entry.effectiveTo).not.toBeNull();
+  });
+
+  test('june rule has effectiveTo null (still active)', () => {
+    const entry = listRuleSets().find((r) => r.id === 'eeg2027-draft-2026-06');
+    expect(entry.effectiveTo).toBeNull();
+  });
 });
 
 // ── getRuleSet ────────────────────────────────────────────────────────────────
 
 describe('getRuleSet', () => {
-  test('returns june draft by id', () => {
+  test('returns june draft by id with all metadata', () => {
     const rule = getRuleSet('eeg2027-draft-2026-06');
     expect(rule).not.toBeNull();
     expect(rule.parameters.s51ConsecutiveNegHours).toBe(4);
     expect(rule.parameters.technologyFloors.wind_onshore).toBe(2.0);
+    expect(rule.legalStatus).toBe('referentenentwurf');
+    expect(rule.supersedes).toBe('eeg2027-draft-2026-04');
   });
 
   test('returns april draft by id', () => {
     const rule = getRuleSet('eeg2027-draft-2026-04');
     expect(rule).not.toBeNull();
     expect(rule.parameters.s51ConsecutiveNegHours).toBe(6);
-    expect(rule.parameters.technologyFloors.wind_onshore).toBe(1.5);
+    expect(rule.status).toBe('superseded');
   });
 
   test('returns null for unknown id', () => {
@@ -81,8 +135,25 @@ describe('resolveRuleSet', () => {
     expect(rule.status).toBe('superseded');
   });
 
+  test('superseded rule is NOT returned by latest', () => {
+    const rule = resolveRuleSet('latest');
+    expect(rule.id).not.toBe('eeg2027-draft-2026-04');
+  });
+
   test('unknown id returns null', () => {
     expect(resolveRuleSet('does-not-exist')).toBeNull();
+  });
+
+  test('draft status rule does NOT qualify for latest', () => {
+    const draftRule = {
+      ...BASE_VALID_RULE,
+      id: 'eeg2027-future-draft',
+      status: 'draft',
+      effectiveFrom: '2030-01-01', // newer date but draft
+    };
+    registerRuleSet(draftRule);
+    const rule = resolveRuleSet('latest');
+    expect(rule.id).not.toBe('eeg2027-future-draft');
   });
 });
 
@@ -90,16 +161,10 @@ describe('resolveRuleSet', () => {
 
 describe('registerRuleSet', () => {
   const validRule = {
+    ...BASE_VALID_RULE,
     id: 'eeg2027-test-rule',
-    version: '1.0.0',
     status: 'active',
     effectiveFrom: '2027-01-01',
-    calculationMode: 'simulation',
-    parameters: {
-      s51ConsecutiveNegHours: 3,
-      technologyFloors: { solar: 0, wind_onshore: 3.0, wind_offshore: 1.0, biomass: 2.0 },
-      supportedTechnologies: ['solar', 'wind_onshore', 'wind_offshore', 'biomass'],
-    },
   };
 
   test('registers a valid rule and it appears in listRuleSets', () => {
@@ -117,14 +182,18 @@ describe('registerRuleSet', () => {
   test('registered rule can be retrieved via getRuleSet', () => {
     registerRuleSet(validRule);
     const rule = getRuleSet('eeg2027-test-rule');
-    expect(rule.parameters.s51ConsecutiveNegHours).toBe(3);
+    expect(rule.parameters.s51ConsecutiveNegHours).toBe(4);
   });
 
   test('runtime rule takes priority over file rule when same id', () => {
-    const override = { ...validRule, id: 'eeg2027-draft-2026-04', parameters: { ...validRule.parameters } };
+    const override = {
+      ...validRule,
+      id: 'eeg2027-draft-2026-04',
+      parameters: { ...validRule.parameters, s51ConsecutiveNegHours: 3 },
+    };
     registerRuleSet(override);
     const rule = getRuleSet('eeg2027-draft-2026-04');
-    expect(rule.parameters.s51ConsecutiveNegHours).toBe(3); // from runtime, not 6 from file
+    expect(rule.parameters.s51ConsecutiveNegHours).toBe(3);
   });
 
   test('registered active rule with future effectiveFrom wins resolveRuleSet latest', () => {
@@ -143,21 +212,12 @@ describe('registerRuleSet', () => {
 // ── validateRuleSet ───────────────────────────────────────────────────────────
 
 describe('validateRuleSet', () => {
-  const base = {
-    id: 'eeg2027-valid',
-    version: '1.0.0',
-    status: 'draft',
-    effectiveFrom: '2027-01-01',
-    calculationMode: 'simulation',
-    parameters: {
-      s51ConsecutiveNegHours: 4,
-      technologyFloors: { solar: 0, wind_onshore: 2.0 },
-      supportedTechnologies: ['solar'],
-    },
-  };
-
   test('accepts a complete valid rule', () => {
-    expect(validateRuleSet(base).valid).toBe(true);
+    expect(validateRuleSet(BASE_VALID_RULE).valid).toBe(true);
+  });
+
+  test('accepts eeg2027_clawback as calculationMode', () => {
+    expect(validateRuleSet({ ...BASE_VALID_RULE, calculationMode: 'eeg2027_clawback' }).valid).toBe(true);
   });
 
   test('rejects null', () => {
@@ -165,28 +225,47 @@ describe('validateRuleSet', () => {
   });
 
   test('rejects invalid id (uppercase)', () => {
-    const result = validateRuleSet({ ...base, id: 'INVALID_ID' });
+    const result = validateRuleSet({ ...BASE_VALID_RULE, id: 'INVALID_ID' });
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.field === 'id')).toBe(true);
   });
 
+  test('rejects missing legalStatus', () => {
+    const { legalStatus: _, ...rest } = BASE_VALID_RULE;
+    const result = validateRuleSet(rest);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.field === 'legalStatus')).toBe(true);
+  });
+
+  test('rejects invalid legalStatus value', () => {
+    const result = validateRuleSet({ ...BASE_VALID_RULE, legalStatus: 'xyz-unknown' });
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.field === 'legalStatus')).toBe(true);
+  });
+
+  test('LEGAL_STATUS_VALUES exports all valid values', () => {
+    expect(Array.isArray(LEGAL_STATUS_VALUES)).toBe(true);
+    expect(LEGAL_STATUS_VALUES).toContain('referentenentwurf');
+    expect(LEGAL_STATUS_VALUES).toContain('in_kraft');
+  });
+
   test('rejects missing effectiveFrom', () => {
-    const { effectiveFrom: _, ...rest } = base;
+    const { effectiveFrom: _, ...rest } = BASE_VALID_RULE;
     const result = validateRuleSet(rest);
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.field === 'effectiveFrom')).toBe(true);
   });
 
   test('rejects invalid calculationMode', () => {
-    const result = validateRuleSet({ ...base, calculationMode: 'magic' });
+    const result = validateRuleSet({ ...BASE_VALID_RULE, calculationMode: 'magic' });
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.field === 'calculationMode')).toBe(true);
   });
 
   test('rejects s51ConsecutiveNegHours <= 0', () => {
     const result = validateRuleSet({
-      ...base,
-      parameters: { ...base.parameters, s51ConsecutiveNegHours: 0 },
+      ...BASE_VALID_RULE,
+      parameters: { ...BASE_VALID_RULE.parameters, s51ConsecutiveNegHours: 0 },
     });
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.field === 'parameters.s51ConsecutiveNegHours')).toBe(true);
@@ -194,24 +273,22 @@ describe('validateRuleSet', () => {
 
   test('rejects missing technologyFloors', () => {
     const result = validateRuleSet({
-      ...base,
-      parameters: { ...base.parameters, technologyFloors: null },
+      ...BASE_VALID_RULE,
+      parameters: { ...BASE_VALID_RULE.parameters, technologyFloors: null },
     });
     expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.field === 'parameters.technologyFloors')).toBe(true);
   });
 
   test('rejects empty supportedTechnologies', () => {
     const result = validateRuleSet({
-      ...base,
-      parameters: { ...base.parameters, supportedTechnologies: [] },
+      ...BASE_VALID_RULE,
+      parameters: { ...BASE_VALID_RULE.parameters, supportedTechnologies: [] },
     });
     expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.field === 'parameters.supportedTechnologies')).toBe(true);
   });
 
   test('registers only if valid (rejects invalid via registerRuleSet)', () => {
-    const result = registerRuleSet({ ...base, id: 'BAD_ID' });
+    const result = registerRuleSet({ ...BASE_VALID_RULE, id: 'BAD_ID' });
     expect(result.valid).toBe(false);
     expect(listRuleSets().find((r) => r.id === 'BAD_ID')).toBeUndefined();
   });

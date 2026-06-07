@@ -12,11 +12,24 @@ const SAMPLE_SUMMARY = {
   liquidityRiskIndex: 'low',
 };
 
-const SAMPLE_TIMEFRAME = { start: '2027-04-01T00:00:00Z', end: '2027-04-02T00:00:00Z' };
+const TIMEFRAME = { start: '2027-04-01T00:00:00Z', end: '2027-04-02T00:00:00Z' };
+
+const SAMPLE_RULE_SNAPSHOT = {
+  id: 'eeg2027-draft-2026-06',
+  version: '1.0.0',
+  status: 'active',
+  legalStatus: 'referentenentwurf',
+  parameters: { s51ConsecutiveNegHours: 4, technologyFloors: { solar: 0, wind_onshore: 2.0 } },
+};
+
+const SAMPLE_ASSET_SNAPSHOT = {
+  technology: 'solar',
+  awCentsPerKwh: 7.5,
+  capacityKw: 100,
+};
 
 beforeAll(async () => {
   broker = new ServiceBroker({ logger: false, transporter: null });
-  // Use in-memory PouchDB for tests
   process.env.RCS_SIM_RUN_DB = `rcs-test-runs-${Date.now()}`;
   broker.loadService('./services/rcs-simulation-run.service.js');
   await broker.start();
@@ -28,112 +41,250 @@ afterAll(async () => {
 
 // ── saveRun + getRun ──────────────────────────────────────────────────────────
 
-describe('rcs-simulation-run — saveRun and getRun', () => {
-  let savedRun;
+describe('saveRun — base fields', () => {
+  let saved;
 
   beforeAll(async () => {
-    savedRun = await broker.call('rcs-simulation-run.saveRun', {
+    saved = await broker.call('rcs-simulation-run.saveRun', {
       assetId: 'test-asset-001',
       assetName: 'Test PV Anlage',
-      timeframe: SAMPLE_TIMEFRAME,
+      timeframe: TIMEFRAME,
       summary: SAMPLE_SUMMARY,
       ruleSetId: 'eeg2027-draft-2026-06',
+      ruleSetVersion: '1.0.0',
+      legalStatus: 'referentenentwurf',
       blueprintId: 'rcs-eeg2027-clawback-v1',
       options: { includeIntervalTrace: false },
     });
   });
 
-  test('saveRun returns a runId', () => {
-    expect(typeof savedRun.runId).toBe('string');
-    expect(savedRun.runId.startsWith('run-')).toBe(true);
+  test('returns a runId starting with "run-"', () => {
+    expect(saved.runId.startsWith('run-')).toBe(true);
   });
 
-  test('saveRun returns correct assetId', () => {
-    expect(savedRun.assetId).toBe('test-asset-001');
+  test('status is completed', () => {
+    expect(saved.status).toBe('completed');
   });
 
-  test('saveRun returns status=completed', () => {
-    expect(savedRun.status).toBe('completed');
+  test('stores ruleSetId and ruleSetVersion', () => {
+    expect(saved.ruleSetId).toBe('eeg2027-draft-2026-06');
+    expect(saved.ruleSetVersion).toBe('1.0.0');
   });
 
-  test('saveRun stores ruleSetId', () => {
-    expect(savedRun.ruleSetId).toBe('eeg2027-draft-2026-06');
+  test('stores legalStatus', () => {
+    expect(saved.legalStatus).toBe('referentenentwurf');
   });
 
-  test('getRun retrieves the same record', async () => {
-    const fetched = await broker.call('rcs-simulation-run.getRun', { runId: savedRun.runId });
-    expect(fetched.runId).toBe(savedRun.runId);
-    expect(fetched.assetId).toBe('test-asset-001');
+  test('isDeleted is false on fresh run', () => {
+    expect(saved.isDeleted).toBe(false);
+  });
+});
+
+// ── Snapshots and Hashes ──────────────────────────────────────────────────────
+
+describe('saveRun — snapshots and hashes', () => {
+  const priceSeries = [{ timestamp: '2027-04-01T00:00:00Z', priceEurMwh: 50 }];
+  const injectionSeries = [{ timestamp: '2027-04-01T00:00:00Z', volumeKwh: 10 }];
+
+  let saved;
+
+  beforeAll(async () => {
+    saved = await broker.call('rcs-simulation-run.saveRun', {
+      assetId: 'asset-hash-test',
+      timeframe: TIMEFRAME,
+      summary: SAMPLE_SUMMARY,
+      ruleSetSnapshot: SAMPLE_RULE_SNAPSHOT,
+      assetSnapshot: SAMPLE_ASSET_SNAPSHOT,
+      priceSeries,
+      injectionSeries,
+    });
   });
 
-  test('getRun includes summary', async () => {
-    const fetched = await broker.call('rcs-simulation-run.getRun', { runId: savedRun.runId });
-    expect(fetched.summary.totalVolumeKwh).toBe(960);
+  test('inputHash is set and starts with sha256:', () => {
+    expect(typeof saved.inputHash).toBe('string');
+    expect(saved.inputHash.startsWith('sha256:')).toBe(true);
   });
 
-  test('getRun throws 404 for unknown runId', async () => {
+  test('priceSeriesHash is computed from priceSeries', () => {
+    expect(typeof saved.priceSeriesHash).toBe('string');
+    expect(saved.priceSeriesHash.startsWith('sha256:')).toBe(true);
+  });
+
+  test('injectionSeriesHash is computed from injectionSeries', () => {
+    expect(typeof saved.injectionSeriesHash).toBe('string');
+    expect(saved.injectionSeriesHash.startsWith('sha256:')).toBe(true);
+  });
+
+  test('ruleSetSnapshot is persisted', () => {
+    expect(saved.ruleSetSnapshot?.id).toBe('eeg2027-draft-2026-06');
+  });
+
+  test('assetSnapshot is persisted', () => {
+    expect(saved.assetSnapshot?.technology).toBe('solar');
+  });
+
+  test('pre-supplied inputHash is preserved', async () => {
+    const custom = await broker.call('rcs-simulation-run.saveRun', {
+      assetId: 'asset-custom-hash',
+      timeframe: TIMEFRAME,
+      summary: SAMPLE_SUMMARY,
+      inputHash: 'sha256:custom-deterministic-hash',
+    });
+    expect(custom.inputHash).toBe('sha256:custom-deterministic-hash');
+  });
+
+  test('same inputs produce same hash deterministically', async () => {
+    const run1 = await broker.call('rcs-simulation-run.saveRun', {
+      assetId: 'asset-determ',
+      timeframe: TIMEFRAME,
+      summary: SAMPLE_SUMMARY,
+      assetSnapshot: SAMPLE_ASSET_SNAPSHOT,
+      priceSeries,
+      injectionSeries,
+    });
+    const run2 = await broker.call('rcs-simulation-run.saveRun', {
+      assetId: 'asset-determ',
+      timeframe: TIMEFRAME,
+      summary: SAMPLE_SUMMARY,
+      assetSnapshot: SAMPLE_ASSET_SNAPSHOT,
+      priceSeries,
+      injectionSeries,
+    });
+    expect(run1.priceSeriesHash).toBe(run2.priceSeriesHash);
+    expect(run1.injectionSeriesHash).toBe(run2.injectionSeriesHash);
+  });
+});
+
+// ── getRun ────────────────────────────────────────────────────────────────────
+
+describe('getRun', () => {
+  let runId;
+
+  beforeAll(async () => {
+    const run = await broker.call('rcs-simulation-run.saveRun', {
+      assetId: 'asset-get-test',
+      timeframe: TIMEFRAME,
+      summary: SAMPLE_SUMMARY,
+    });
+    runId = run.runId;
+  });
+
+  test('retrieves by runId', async () => {
+    const fetched = await broker.call('rcs-simulation-run.getRun', { runId });
+    expect(fetched.runId).toBe(runId);
+  });
+
+  test('throws 404 for unknown runId', async () => {
     await expect(
       broker.call('rcs-simulation-run.getRun', { runId: 'run-does-not-exist-xyz' })
     ).rejects.toMatchObject({ code: 404 });
   });
 });
 
-// ── listRuns ──────────────────────────────────────────────────────────────────
+// ── listRuns + filters ────────────────────────────────────────────────────────
 
-describe('rcs-simulation-run — listRuns', () => {
+describe('listRuns — filters', () => {
+  const UNIQUE_PREFIX = `filter-test-${Date.now()}`;
+
   beforeAll(async () => {
-    // Save two more runs with different assetIds
-    await broker.call('rcs-simulation-run.saveRun', {
-      assetId: 'asset-alpha',
-      timeframe: SAMPLE_TIMEFRAME,
-      summary: SAMPLE_SUMMARY,
-    });
-    await broker.call('rcs-simulation-run.saveRun', {
-      assetId: 'asset-beta',
-      timeframe: SAMPLE_TIMEFRAME,
-      summary: SAMPLE_SUMMARY,
-    });
+    await Promise.all([
+      broker.call('rcs-simulation-run.saveRun', {
+        assetId: `${UNIQUE_PREFIX}-alpha`,
+        timeframe: TIMEFRAME,
+        summary: SAMPLE_SUMMARY,
+        ruleSetId: 'eeg2027-draft-2026-06',
+      }),
+      broker.call('rcs-simulation-run.saveRun', {
+        assetId: `${UNIQUE_PREFIX}-alpha`,
+        timeframe: TIMEFRAME,
+        summary: SAMPLE_SUMMARY,
+        ruleSetId: 'eeg2027-draft-2026-04',
+      }),
+      broker.call('rcs-simulation-run.saveRun', {
+        assetId: `${UNIQUE_PREFIX}-beta`,
+        timeframe: TIMEFRAME,
+        summary: SAMPLE_SUMMARY,
+        ruleSetId: 'eeg2027-draft-2026-06',
+      }),
+    ]);
   });
 
-  test('listRuns returns all saved runs', async () => {
+  test('filter by assetId returns only matching runs', async () => {
+    const list = await broker.call('rcs-simulation-run.listRuns', {
+      assetId: `${UNIQUE_PREFIX}-alpha`,
+    });
+    expect(list.every((r) => r.assetId === `${UNIQUE_PREFIX}-alpha`)).toBe(true);
+    expect(list.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test('filter by ruleSetId returns only matching runs', async () => {
+    const list = await broker.call('rcs-simulation-run.listRuns', {
+      ruleSetId: 'eeg2027-draft-2026-06',
+    });
+    expect(list.every((r) => r.ruleSetId === 'eeg2027-draft-2026-06')).toBe(true);
+  });
+
+  test('limit is respected', async () => {
+    const list = await broker.call('rcs-simulation-run.listRuns', { limit: 1 });
+    expect(list.length).toBeLessThanOrEqual(1);
+  });
+
+  test('list is sorted newest first', async () => {
     const list = await broker.call('rcs-simulation-run.listRuns', {});
-    expect(list.length).toBeGreaterThanOrEqual(3);
-  });
-
-  test('listRuns filters by assetId', async () => {
-    const list = await broker.call('rcs-simulation-run.listRuns', { assetId: 'asset-alpha' });
-    expect(list.every((r) => r.assetId === 'asset-alpha')).toBe(true);
-    expect(list.length).toBeGreaterThanOrEqual(1);
-  });
-
-  test('listRuns respects limit', async () => {
-    const list = await broker.call('rcs-simulation-run.listRuns', { limit: 2 });
-    expect(list.length).toBeLessThanOrEqual(2);
+    for (let i = 1; i < list.length; i++) {
+      expect(list[i - 1].createdAt >= list[i].createdAt).toBe(true);
+    }
   });
 });
 
-// ── deleteRun ─────────────────────────────────────────────────────────────────
+// ── Soft Delete ───────────────────────────────────────────────────────────────
 
-describe('rcs-simulation-run — deleteRun', () => {
+describe('Soft Delete', () => {
   let runToDelete;
 
   beforeAll(async () => {
     runToDelete = await broker.call('rcs-simulation-run.saveRun', {
-      assetId: 'delete-me-asset',
-      timeframe: SAMPLE_TIMEFRAME,
+      assetId: 'soft-delete-asset',
+      timeframe: TIMEFRAME,
       summary: SAMPLE_SUMMARY,
     });
   });
 
-  test('deleteRun removes the record', async () => {
-    const result = await broker.call('rcs-simulation-run.deleteRun', { runId: runToDelete.runId });
+  test('deleteRun returns deleted: true', async () => {
+    const result = await broker.call('rcs-simulation-run.deleteRun', {
+      runId: runToDelete.runId,
+      deletedBy: 'test-user',
+      deleteReason: 'Unit test cleanup',
+    });
     expect(result.deleted).toBe(true);
   });
 
-  test('getRun returns 404 after deletion', async () => {
-    await expect(
-      broker.call('rcs-simulation-run.getRun', { runId: runToDelete.runId })
-    ).rejects.toMatchObject({ code: 404 });
+  test('deleted run is NOT visible in default listRuns', async () => {
+    const list = await broker.call('rcs-simulation-run.listRuns', {});
+    const found = list.find((r) => r.runId === runToDelete.runId);
+    expect(found).toBeUndefined();
+  });
+
+  test('deleted run IS visible with includeDeleted: true', async () => {
+    const list = await broker.call('rcs-simulation-run.listRuns', { includeDeleted: true });
+    const found = list.find((r) => r.runId === runToDelete.runId);
+    expect(found).toBeDefined();
+    expect(found.isDeleted).toBe(true);
+  });
+
+  test('getRun returns deleted run with isDeleted: true', async () => {
+    const run = await broker.call('rcs-simulation-run.getRun', { runId: runToDelete.runId });
+    expect(run.isDeleted).toBe(true);
+    expect(run.deletedBy).toBe('test-user');
+    expect(run.deleteReason).toBe('Unit test cleanup');
+    expect(typeof run.deletedAt).toBe('string');
+  });
+
+  test('deleteRun is idempotent (second call returns alreadyDeleted: true)', async () => {
+    const result = await broker.call('rcs-simulation-run.deleteRun', {
+      runId: runToDelete.runId,
+    });
+    expect(result.alreadyDeleted).toBe(true);
   });
 
   test('deleteRun throws 404 for nonexistent runId', async () => {

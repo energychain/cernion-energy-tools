@@ -7,8 +7,16 @@ const RULES_DIR = path.join(__dirname, 'rcs-rules');
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const SUPPORTED_TECHNOLOGIES = ['solar', 'wind_onshore', 'wind_offshore', 'biomass'];
-const CALCULATION_MODES = ['simulation', 'validation', 'audit'];
-const STATUS_VALUES = ['active', 'superseded', 'draft', 'deprecated'];
+const CALCULATION_MODES = ['simulation', 'validation', 'audit', 'eeg2027_clawback'];
+const STATUS_VALUES = ['active', 'superseded', 'draft', 'deprecated', 'final'];
+const LEGAL_STATUS_VALUES = [
+  'referentenentwurf',
+  'regierungsentwurf',
+  'gesetz',
+  'in_kraft',
+  'auslaufend',
+  'entwurf',
+];
 
 let _cache = null;
 const _runtimeOverlay = new Map();
@@ -25,6 +33,15 @@ function validateRuleSet(rule) {
   }
   if (typeof rule.version !== 'string' || !rule.version.trim()) {
     errors.push({ field: 'version', message: 'version is required.' });
+  }
+  if (!STATUS_VALUES.includes(rule.status)) {
+    errors.push({ field: 'status', message: `status must be one of: ${STATUS_VALUES.join(', ')}.` });
+  }
+  if (!LEGAL_STATUS_VALUES.includes(rule.legalStatus)) {
+    errors.push({
+      field: 'legalStatus',
+      message: `legalStatus is required and must be one of: ${LEGAL_STATUS_VALUES.join(', ')}.`,
+    });
   }
   if (typeof rule.effectiveFrom !== 'string' || !rule.effectiveFrom.trim()) {
     errors.push({ field: 'effectiveFrom', message: 'effectiveFrom (ISO date) is required.' });
@@ -93,9 +110,14 @@ function listRuleSets() {
       id: r.id,
       version: r.version,
       status: r.status || 'active',
+      legalStatus: r.legalStatus ?? null,
       effectiveFrom: r.effectiveFrom,
+      effectiveTo: r.effectiveTo ?? null,
+      supersedes: r.supersedes ?? null,
       calculationMode: r.calculationMode,
-      sourceReference: r.sourceReference || '',
+      sourceReference: r.sourceReference ?? '',
+      sourceUrl: r.sourceUrl ?? null,
+      notes: Array.isArray(r.notes) ? r.notes : [],
       source: _runtimeOverlay.has(r.id) ? 'runtime' : 'repo',
     }))
     .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom));
@@ -107,14 +129,16 @@ function getRuleSet(id) {
 }
 
 /**
- * Resolves a rule set by explicit id, 'latest' (most recent effectiveFrom among active),
- * or falls back to 'latest' when id is falsy.
+ * Resolve by explicit id, 'latest' (newest active by effectiveFrom), or falsy → 'latest'.
+ * Only rules with status 'active' or 'in_kraft' are considered for 'latest'.
  */
 function resolveRuleSet(idOrLatest) {
   if (!idOrLatest || idOrLatest === 'latest') {
-    const active = listRuleSets().filter((r) => r.status === 'active');
+    const active = listRuleSets().filter(
+      (r) => r.status === 'active' || r.status === 'in_kraft'
+    );
     if (active.length === 0) return null;
-    return getRuleSet(active[0].id); // already sorted desc by effectiveFrom
+    return getRuleSet(active[0].id);
   }
   return getRuleSet(idOrLatest);
 }
@@ -138,6 +162,9 @@ function _resetCache() {
 module.exports = {
   RULES_DIR,
   SUPPORTED_TECHNOLOGIES,
+  CALCULATION_MODES,
+  STATUS_VALUES,
+  LEGAL_STATUS_VALUES,
   validateRuleSet,
   listRuleSets,
   getRuleSet,

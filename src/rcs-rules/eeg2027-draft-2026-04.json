@@ -2,9 +2,13 @@
   "id": "eeg2027-draft-2026-04",
   "version": "1.0.0",
   "status": "superseded",
+  "legalStatus": "referentenentwurf",
   "effectiveFrom": "2026-04-01",
+  "effectiveTo": "2026-05-31",
+  "supersedes": null,
   "sourceReference": "Referentenentwurf EEG 2027, BMWK, April 2026",
-  "calculationMode": "simulation",
+  "sourceUrl": null,
+  "calculationMode": "eeg2027_clawback",
   "parameters": {
     "s51ConsecutiveNegHours": 6,
     "technologyFloors": {
@@ -16,5 +20,9 @@
     "supportedTechnologies": ["solar", "wind_onshore", "wind_offshore", "biomass"],
     "priceIndexDefault": "DA",
     "calculationBasis": "quarterly"
-  }
+  },
+  "notes": [
+    "Erster Referentenentwurf; wind_offshore und biomass floor noch nicht gesetzt.",
+    "Abgelöst durch überarbeiteten Entwurf vom Juni 2026."
+  ]
 }

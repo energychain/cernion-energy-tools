@@ -71,6 +71,13 @@ function computeLiquidityRiskIndex(retainedCents, oldLawCents) {
   return 'high';
 }
 
+const RULE_ARM_REASONS = {
+  none: 'No clawback applies — market price is positive, above floor, and below AW.',
+  negative_price: 'Market price is negative; full absolute-price burden is clawed back.',
+  sub_floor: 'Market price is positive but below the technology-specific dynamic floor.',
+  excess_profit: 'Market price exceeds the anzulegender Wert (AW); excess profit is clawed back.',
+};
+
 /**
  * Core EEG Claw-Back calculation.
  *
@@ -78,16 +85,16 @@ function computeLiquidityRiskIndex(retainedCents, oldLawCents) {
  * @param {Array}  prices  - [{ timestamp, priceEurMwh }]
  * @param {Array}  injection - [{ timestamp, volumeKwh }]
  * @param {object} [options]
- * @param {object} [options.ruleSet]           - Versioned rule set from rcs-rule-registry; overrides env defaults.
- * @param {boolean} [options.includeIntervalTrace=true] - When false, omit `intervals` from result.
- * @returns {{ summary, intervals?, ruleSetId? }}
+ * @param {object} [options.ruleSet]                    - Versioned rule set; overrides env defaults.
+ * @param {boolean} [options.includeIntervalTrace=true] - Set false to omit intervals (smaller payload).
+ * @returns {{ summary, intervals?, ruleSetId?, ruleSetVersion? }}
  */
 function runCalculation(asset, prices, injection, options = {}) {
   const { ruleSet, includeIntervalTrace = true } = options;
 
   const awCentsPerKwh = Number(asset.awCentsPerKwh);
 
-  // Resolve floors: rule set parameters take priority over env-var constants.
+  // Resolve floors + threshold: rule set parameters take priority over env-var constants.
   const floors = ruleSet?.parameters?.technologyFloors ?? TECHNOLOGY_FLOORS_EUR_MWH;
   const s51Threshold = ruleSet?.parameters?.s51ConsecutiveNegHours ?? S51_NEG_HOURS_THRESHOLD;
 
@@ -99,10 +106,10 @@ function runCalculation(asset, prices, injection, options = {}) {
 
   // Running accumulators
   let totalVolumeKwh = 0;
-  // §51 Scenario A
+  // §51 Scenario A (old law)
   let totalRevenueCentsA = 0;
   let curtailedIntervalsCount = 0;
-  // EEG 2027 Scenario B
+  // EEG 2027 Scenario B (new law)
   let totalRbCents = 0;
   let totalRetainedCentsB = 0;
   let clawbackTriggeredIntervalsCount = 0;
@@ -112,56 +119,71 @@ function runCalculation(asset, prices, injection, options = {}) {
 
   for (const entry of aligned) {
     const { timestamp, priceEurMwh, volumeKwh } = entry;
-    const priceCentsKwh = priceEurMwh / 10;
+    const priceCentsPerKwh = priceEurMwh / 10;
     totalVolumeKwh += volumeKwh;
 
     // ── Scenario A: §51 consecutive-negative-price curtailment ──────────
-    if (priceCentsKwh < 0) {
+    if (priceCentsPerKwh < 0) {
       negativeHoursAccum += 0.25; // each 15-min interval = 0.25 h
     } else {
       negativeHoursAccum = 0;
     }
-    const isCurtailedA = priceCentsKwh < 0 && negativeHoursAccum >= s51Threshold;
-    const payableVolumeA = isCurtailedA ? 0 : volumeKwh;
-    const revenueA = payableVolumeA * awCentsPerKwh;
-    totalRevenueCentsA += revenueA;
-    if (isCurtailedA) curtailedIntervalsCount += 1;
+    const s51Active = priceCentsPerKwh < 0 && negativeHoursAccum >= s51Threshold;
+    const payableVolumeA = s51Active ? 0 : volumeKwh;
+    const revenueACents = payableVolumeA * awCentsPerKwh;
+    totalRevenueCentsA += revenueACents;
+    if (s51Active) curtailedIntervalsCount += 1;
 
     // ── Scenario B: EEG 2027 dynamic claw-back ──────────────────────────
     // RB_t = max(JW_t − AW_t, 0) × Q_t  (Anlage 4.2 interpretation):
-    //   • price < 0              → negative-price burden clawback
-    //   • floor > price ≥ 0     → sub-floor adjustment clawback
-    //   • price > AW             → excess-profit clawback
+    //   • price < 0              → negative-price burden
+    //   • floor > price ≥ 0     → sub-floor adjustment
+    //   • price > AW             → excess-profit
     let rbCents = 0;
-    let isClawbackActive = false;
+    let clawbackActive = false;
     let ruleArm = 'none';
 
-    if (priceCentsKwh < 0) {
-      rbCents = Math.abs(priceCentsKwh) * volumeKwh;
-      isClawbackActive = true;
+    if (priceCentsPerKwh < 0) {
+      rbCents = Math.abs(priceCentsPerKwh) * volumeKwh;
+      clawbackActive = true;
       ruleArm = 'negative_price';
-    } else if (floorCentsKwh > 0 && priceCentsKwh < floorCentsKwh) {
-      rbCents = (floorCentsKwh - priceCentsKwh) * volumeKwh;
-      isClawbackActive = true;
+    } else if (floorCentsKwh > 0 && priceCentsPerKwh < floorCentsKwh) {
+      rbCents = (floorCentsKwh - priceCentsPerKwh) * volumeKwh;
+      clawbackActive = true;
       ruleArm = 'sub_floor';
-    } else if (priceCentsKwh > awCentsPerKwh) {
-      rbCents = (priceCentsKwh - awCentsPerKwh) * volumeKwh;
-      isClawbackActive = true;
+    } else if (priceCentsPerKwh > awCentsPerKwh) {
+      rbCents = (priceCentsPerKwh - awCentsPerKwh) * volumeKwh;
+      clawbackActive = true;
       ruleArm = 'excess_profit';
     }
 
-    const retainedCentsB = awCentsPerKwh * volumeKwh - rbCents;
+    const retainedCentsBInterval = awCentsPerKwh * volumeKwh - rbCents;
     totalRbCents += rbCents;
-    totalRetainedCentsB += retainedCentsB;
-    if (isClawbackActive) clawbackTriggeredIntervalsCount += 1;
+    totalRetainedCentsB += retainedCentsBInterval;
+    if (clawbackActive) clawbackTriggeredIntervalsCount += 1;
+
+    // Data quality: flag zero injection so summation traces remain unambiguous.
+    const dataQualityFlags = volumeKwh === 0 ? ['zero_injection'] : [];
 
     intervals.push({
       timestamp,
-      volumeKwh: round4(volumeKwh),
-      priceCentsKwh: round4(priceCentsKwh),
-      isClawbackActive,
+      injectionKwh: round4(volumeKwh),
+      priceEurMwh: round4(priceEurMwh),
+      priceCentsPerKwh: round4(priceCentsPerKwh),
+      technology: asset.technology,
+      technologyFloorEurMwh: round4(floorEurMwh),
+      technologyFloorCentsPerKwh: round4(floorCentsKwh),
+      awCentsPerKwh: round4(awCentsPerKwh),
+      s51Active,
+      clawbackActive,
       ruleArm,
-      calculatedRbCents: round4(rbCents),
+      ruleArmReason: RULE_ARM_REASONS[ruleArm],
+      // EUR amounts: baseline = what old law would pay; clawback = RB burden; delta = retained − baseline
+      baselineAmountEur: round4(revenueACents / 100),
+      clawbackAmountEur: round4(rbCents / 100),
+      retainedAmountEur: round4(retainedCentsBInterval / 100),
+      deltaEur: round4((retainedCentsBInterval - revenueACents) / 100),
+      dataQualityFlags,
     });
   }
 
@@ -170,7 +192,7 @@ function runCalculation(asset, prices, injection, options = {}) {
     calculatedUnderOldLaw: {
       totalRevenueCents: round2(totalRevenueCentsA),
       marketPremiumCents: 0, // derived from monthly Marktwert — not computed here
-      curtailedHoursCount: curtailedIntervalsCount * 0.25, // convert back to hours
+      curtailedHoursCount: curtailedIntervalsCount * 0.25,
     },
     calculatedUnderNewLaw: {
       totalRefinancingContributionCents: round2(totalRbCents),
@@ -184,6 +206,7 @@ function runCalculation(asset, prices, injection, options = {}) {
   const result = { summary };
   if (includeIntervalTrace) result.intervals = intervals;
   if (ruleSet?.id) result.ruleSetId = ruleSet.id;
+  if (ruleSet?.version) result.ruleSetVersion = ruleSet.version;
   return result;
 }
 
@@ -194,4 +217,5 @@ module.exports = {
   computeLiquidityRiskIndex,
   TECHNOLOGY_FLOORS_EUR_MWH,
   S51_NEG_HOURS_THRESHOLD,
+  RULE_ARM_REASONS,
 };

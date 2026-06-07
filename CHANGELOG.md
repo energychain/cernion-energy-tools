@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.60.4] — RCS P0 Hardening + P1 Portfolio Foundation (2026-06-07)
+
+### Added
+
+- **Arbeitspaket A — Audit-Grade Interval Trace**: `runCalculation` intervals now contain a fully self-describing, audit-ready data model per quarter-hour slot: `injectionKwh`, `priceEurMwh`, `priceCentsPerKwh`, `technology`, `technologyFloorEurMwh`, `technologyFloorCentsPerKwh`, `awCentsPerKwh`, `s51Active`, `clawbackActive`, `ruleArm`, `ruleArmReason` (human-readable), `baselineAmountEur`, `clawbackAmountEur`, `retainedAmountEur`, `deltaEur`, `dataQualityFlags`. Old short-hand field names removed. Aggregate sums are exactly reconstructible from the trace. `dataQualityFlags` carries `zero_injection` for missing metering slots. `RULE_ARM_REASONS` map exported for consumer use.
+
+- **Arbeitspaket B — Rule Registry Metadata Hardening**: Rule set schema extended with `legalStatus` (required; values: `referentenentwurf`, `regierungsentwurf`, `gesetz`, `in_kraft`, `auslaufend`, `entwurf`), `effectiveTo`, `supersedes`, `sourceUrl`, `notes`. `validateRuleSet` enforces `legalStatus`. `listRuleSets()` returns all new fields. `resolveRuleSet('latest')` considers only `active` and `in_kraft` status; `draft` rules are explicitly excluded. `eeg2027_clawback` added as valid `calculationMode`. Bundled rule JSON files updated with all new fields; `eeg2027-draft-2026-06` sets `"supersedes": "eeg2027-draft-2026-04"` and `"effectiveTo": null`; `eeg2027-draft-2026-04` sets `"effectiveTo": "2026-05-31"`.
+
+- **Arbeitspaket C — Simulation Run Snapshots & Hashes**: `saveRun` persists `ruleSetSnapshot`, `assetSnapshot`, `readinessSnapshot`, `ruleSetVersion`, `legalStatus`. SHA-256 hashes computed on save: `inputHash` (asset/rule/timeframe/option fingerprint), `priceSeriesHash`, `injectionSeriesHash`. Pre-computed hashes accepted from caller for reproducibility. `listRuns` gains filters: `ruleSetId`, `status`, `from`/`to` date range, `includeDeleted`. Run documents now include `assetIds`, `scope`, `warnings`.
+
+- **Arbeitspaket D — Soft Delete**: `deleteRun` no longer physically removes documents; instead sets `deletedAt`, `deletedBy`, `deleteReason`. Default `listRuns` hides soft-deleted runs; pass `includeDeleted: true` to include them. `getRun` always returns deleted runs with `isDeleted: true`. Second `deleteRun` call is idempotent (`alreadyDeleted: true`).
+
+- **Arbeitspaket E — Portfolio Simulation** (`eeg-clawback-calculator.simulatePortfolio`, `POST /api/vnb/rcs/portfolio/simulate`): Simulates multiple assets sharing a single price fetch. Options: `ruleSetId`, `includeIntervalTrace`, `includeReadiness`, `continueOnAssetError` (default `true`). Per-asset failure is captured without aborting the portfolio run. Response: `portfolioSummary` (total baseline/clawback/retained/delta EUR, liquidityRiskIndex), `byTechnology` grouping, `byReadinessStatus` grouping, `topAssetsByDelta`, per-asset `assetResults`, `errors`.
+
+- **Arbeitspaket F — Portfolio Readiness Aggregation** (`eeg-clawback-calculator.assessPortfolioReadiness`, `POST /api/vnb/rcs/portfolio/assess-readiness`): Assesses multiple assets in parallel with shared price fetch. Returns `portfolioStatus`, `readyCount`/`partialCount`/`notReadyCount`, `readinessRatio`, `criticalFindings` (up to 20 cross-asset error issues), `commonRecommendations` (frequency-ranked), full `assetReports`.
+
+- **Arbeitspaket G — API Routes & Guards**: Portfolio endpoints wired in `api.service.js` with `requiresFullAccess` guards: `POST /api/vnb/rcs/portfolio/simulate`, `POST /api/vnb/rcs/portfolio/assess-readiness`.
+
+### Changed
+
+- `eeg-clawback-calculator.simulate` and `calculate` now also return `ruleSetVersion` in the result when a rule set is resolved.
+- `eeg-clawback-calculator.service.js`: extracted `normaliseAsset` and `normaliseSeries` helpers used by single-asset and portfolio actions.
+
+### Tests
+
+- `tests/eeg-clawback-calculator.test.js` — fully rewritten (38 tests): new interval field assertions, summen-Rekonstruktion, `dataQualityFlags`, `RULE_ARM_REASONS`, `ruleSetVersion` in result.
+- `tests/rcs-rule-registry.test.js` — fully rewritten (36 tests): `legalStatus` required validation, `supersedes`/`effectiveTo`/`notes` in listRuleSets, draft-status exclusion from `resolveRuleSet('latest')`.
+- `tests/rcs-simulation-run.service.test.js` — rewritten (24 tests): snapshot persistence, hash computation, hash determinism, soft-delete behaviour, `includeDeleted` filter, `ruleSetId` filter, `deleteRun` idempotence.
+- `tests/rcs-portfolio.test.js` — new (31 tests): 10-asset portfolio, aggregate math verification against individual simulations, partial failure with `continueOnAssetError`, `includeReadiness`, `byTechnology` grouping, portfolio readiness aggregation.
+- `tests/vnb-rcs.test.js` — updated interval field names to new data model.
+
 ## [0.60.3] — RCS P0 Backend: Rule Registry, Readiness Audit, Interval Trace, Simulation Run Persistence (2026-06-07)
 
 ### Added

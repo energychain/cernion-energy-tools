@@ -173,10 +173,10 @@ describe('vnb-rcs: eeg-clawback-calculator.simulate', () => {
   });
 
   test('Negativpreis-Intervall (12 Uhr) triggert Clawback', () => {
-    const negIv = result.intervals.find((iv) => iv.priceCentsKwh < 0);
+    const negIv = result.intervals.find((iv) => iv.priceCentsPerKwh < 0);
     expect(negIv).toBeDefined();
-    expect(negIv.isClawbackActive).toBe(true);
-    expect(negIv.calculatedRbCents).toBeGreaterThan(0);
+    expect(negIv.clawbackActive).toBe(true);
+    expect(negIv.clawbackAmountEur).toBeGreaterThan(0);
   });
 
   test('blueprintId referenziert rcs-eeg2027-clawback-v1', () => {

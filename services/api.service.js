@@ -384,6 +384,12 @@ function requiresFullAccess(method, requestPath) {
   if (pathOnly.startsWith('/api/vnb/rcs/runs/') && (m === 'GET' || m === 'DELETE')) {
     return true;
   }
+  if (pathOnly === '/api/vnb/rcs/portfolio/simulate' && m === 'POST') {
+    return true;
+  }
+  if (pathOnly === '/api/vnb/rcs/portfolio/assess-readiness' && m === 'POST') {
+    return true;
+  }
   if (pathOnly === '/api/knowledge-rag/collections' && m === 'POST') {
     return true;
   }
@@ -1127,6 +1133,9 @@ module.exports = {
           'POST /vnb/rcs/simulate': 'eeg-clawback-calculator.simulate',
           'POST /vnb/rcs/calculate': 'eeg-clawback-calculator.calculate',
           'POST /vnb/rcs/assess-readiness': 'eeg-clawback-calculator.assessReadiness',
+          // RCS Portfolio (P1)
+          'POST /vnb/rcs/portfolio/simulate': 'eeg-clawback-calculator.simulatePortfolio',
+          'POST /vnb/rcs/portfolio/assess-readiness': 'eeg-clawback-calculator.assessPortfolioReadiness',
           // RCS Simulation Run persistence (P0.4)
           'POST /vnb/rcs/runs': 'rcs-simulation-run.saveRun',
           'GET /vnb/rcs/runs': 'rcs-simulation-run.listRuns',

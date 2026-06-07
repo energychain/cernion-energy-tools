@@ -2,9 +2,13 @@
   "id": "eeg2027-draft-2026-06",
   "version": "1.0.0",
   "status": "active",
+  "legalStatus": "referentenentwurf",
   "effectiveFrom": "2026-06-01",
+  "effectiveTo": null,
+  "supersedes": "eeg2027-draft-2026-04",
   "sourceReference": "Referentenentwurf EEG 2027 (revidiert), BMWK, Juni 2026",
-  "calculationMode": "simulation",
+  "sourceUrl": null,
+  "calculationMode": "eeg2027_clawback",
   "parameters": {
     "s51ConsecutiveNegHours": 4,
     "technologyFloors": {
@@ -16,5 +20,9 @@
     "supportedTechnologies": ["solar", "wind_onshore", "wind_offshore", "biomass"],
     "priceIndexDefault": "DA",
     "calculationBasis": "quarterly"
-  }
+  },
+  "notes": [
+    "Revidierter Referentenentwurf; verschärfte Floors für Wind Onshore (2.0 EUR/MWh) und neue Floors für Wind Offshore und Biomasse.",
+    "S51-Schwellenwert von 6h auf 4h reduziert."
+  ]
 }
