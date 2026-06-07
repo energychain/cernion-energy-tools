@@ -1,0 +1,105 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "rcs-eeg2027-clawback-v1",
+  "version": "1.0.0",
+  "meta": {
+    "title": "EEG 2027 Claw-Back & Refinanzierungs-Simulator",
+    "description": "Simuliert anlagenscharf die finanziellen Auswirkungen des EEG 2027 dynamic claw-back im Vergleich zur §51-Uraltregelung.",
+    "targetAudience": "grid_operator"
+  },
+  "routing": {
+    "intentSignals": [
+      "eeg 2027",
+      "claw back",
+      "clawback",
+      "refinanzierungsbeitrag",
+      "abschöpfung",
+      "eeg 2027 simulation",
+      "clawback simulator",
+      "dynamischer refinanzierungsbeitrag"
+    ],
+    "negativeSignals": [
+      "strompreisbremse",
+      "gaskrise"
+    ],
+    "priorityBoost": 5
+  },
+  "inputs": {
+    "assetId": {
+      "type": "string",
+      "required": true,
+      "semanticType": "OEO:AssetIdentifier",
+      "resolveStrategy": {
+        "method": "context_lookup",
+        "prompt": "Für welche Anlage (E-Kennung oder MaStR-Nummer) möchtest du den Simulator starten?"
+      }
+    },
+    "timeframe": {
+      "type": "object",
+      "required": true,
+      "semanticType": "OEO:TimeInterval",
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "defaultValue": {
+          "start": "2025-01-01T00:00:00Z",
+          "end": "2025-12-31T23:45:00Z"
+        },
+        "prompt": "Welchen historischen Zeitraum (z. B. das Jahr 2025) soll ich als Messbasis für die Simulation nutzen?"
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "get_asset_details",
+        "action": "assets.effective",
+        "params": {
+          "assetId": "{{inputs.assetId}}"
+        }
+      },
+      {
+        "id": "get_market_prices",
+        "action": "energy-market.prices",
+        "params": {
+          "start": "{{inputs.timeframe.start}}",
+          "end": "{{inputs.timeframe.end}}",
+          "market": "day-ahead",
+          "resolution": "hourly"
+        }
+      },
+      {
+        "id": "get_injection_profile",
+        "action": "edm.getTimeseries",
+        "params": {
+          "meloId": "{{inputs.assetId}}",
+          "from": "{{inputs.timeframe.start}}",
+          "to": "{{inputs.timeframe.end}}",
+          "resolution": "15min"
+        }
+      },
+      {
+        "id": "run_mathematical_simulator",
+        "action": "eeg-clawback-calculator.calculate",
+        "params": {
+          "asset": "{{steps.get_asset_details.output}}",
+          "prices": "{{steps.get_market_prices.output.data}}",
+          "injection": "{{steps.get_injection_profile.output.data}}"
+        }
+      }
+    ]
+  },
+  "postProcessing": {
+    "calculations": {
+      "deltaPercentage": "((steps.run_mathematical_simulator.output.summary.calculatedUnderNewLaw.retainedRevenueCents - steps.run_mathematical_simulator.output.summary.calculatedUnderOldLaw.totalRevenueCents) / steps.run_mathematical_simulator.output.summary.calculatedUnderOldLaw.totalRevenueCents) * 100"
+    }
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.run_mathematical_simulator.output.summary"
+    ],
+    "templates": {
+      "success": "Simulation erfolgreich abgeschlossen. Hier ist die Auswertung für die Anlage ({{steps.get_asset_details.output.name}}):\n\n* **Einspeise-Datenbasis:** {{steps.run_mathematical_simulator.output.summary.totalVolumeKwh}} kWh\n* **Erlös nach altem Recht (§51):** {{steps.run_mathematical_simulator.output.summary.calculatedUnderOldLaw.totalRevenueCents}} Cents\n* **Verbleibender Erlös nach neuem Recht (EEG2027):** {{steps.run_mathematical_simulator.output.summary.calculatedUnderNewLaw.retainedRevenueCents}} Cents\n* **Abgeschöpfter Betrag:** {{steps.run_mathematical_simulator.output.summary.calculatedUnderNewLaw.totalRefinancingContributionCents}} Cents ({{postProcessing.calculations.deltaPercentage}} % Erlösveränderung)\n\nEs wurden insgesamt {{steps.run_mathematical_simulator.output.summary.calculatedUnderNewLaw.clawbackTriggeredIntervalsCount}} Intervalle identifiziert, in denen der dynamische Clawback aktiv war.",
+      "error": "Die Simulation konnte nicht durchgeführt werden. Grund: {{error.message}}"
+    }
+  }
+}

@@ -372,6 +372,9 @@ function requiresFullAccess(method, requestPath) {
   if (pathOnly.startsWith('/api/eog-calculator') && m === 'POST') {
     return true;
   }
+  if (pathOnly === '/api/vnb/rcs/simulate' && m === 'POST') {
+    return true;
+  }
   if (pathOnly === '/api/knowledge-rag/collections' && m === 'POST') {
     return true;
   }
@@ -1111,6 +1114,9 @@ module.exports = {
           'POST /in-memory-join/metering-spot-cost': 'in-memory-join.meteringSpotCost',
           'POST /in-memory-join/benchmark-compare': 'in-memory-join.benchmarkCompare',
           'POST /in-memory-join/compare-forecast-actual': 'in-memory-join.compareForecastActual',
+          // EEG Claw-Back Simulator (RCS, v0.58)
+          'POST /vnb/rcs/simulate': 'eeg-clawback-calculator.simulate',
+          'POST /vnb/rcs/calculate': 'eeg-clawback-calculator.calculate',
           // EOG Calculator (Revenue Cap Calculation)
           'POST /eog-calculator/input-status': 'eog-calculator.inputStatus',
           'POST /eog-calculator/validate-datapoints': 'eog-calculator.validateDatapoints',
