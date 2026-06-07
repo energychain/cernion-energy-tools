@@ -847,6 +847,16 @@ module.exports = {
 
             const calc = runCalculation(asset, prices, injection, { ruleSet, includeIntervalTrace: true });
 
+            const drilldownSemantics = {
+              mode: 'recomputed_from_current_source_data',
+              baseRunId: runId,
+              ruleSetId: ruleSet?.id ?? ruleSetId ?? null,
+              usesOriginalRuleSet: true,
+              usesOriginalAssetSnapshot: false,
+              usesOriginalTimeseriesSnapshot: false,
+              computedAt: new Date().toISOString(),
+            };
+
             const result = {
               runId,
               assetId,
@@ -856,6 +866,7 @@ module.exports = {
               ruleSetVersion: ruleSet?.version ?? null,
               traceMode: 'full',
               timeframe,
+              drilldownSemantics,
               summary: calc.summary,
               ruleArmSummary: computeRuleArmSummary(calc.intervals),
               dataQualitySummary: computeDataQualitySummary(calc.intervals),
@@ -876,6 +887,7 @@ module.exports = {
                 technology: asset.technology,
                 ruleSetId: ruleSet?.id ?? null,
                 ruleSetVersion: ruleSet?.version ?? null,
+                drilldownSemantics,
                 summary: calc.summary,
                 intervals: calc.intervals,
               });

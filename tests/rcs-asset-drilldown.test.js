@@ -140,6 +140,23 @@ describe('drilldownAsset — sync', () => {
     expect(r.intervals[0]).toHaveProperty('ruleArm');
     expect(r.intervals[0]).toHaveProperty('dataQualityFlags');
   });
+
+  test('result includes drilldownSemantics with correct fields', async () => {
+    const r = await broker.call('eeg-clawback-calculator.drilldownAsset', {
+      runId: testRun.runId,
+      assetId: 'asset-solar-01',
+      persistTrace: false,
+      executionMode: 'sync',
+    });
+    expect(r.drilldownSemantics).toBeDefined();
+    expect(r.drilldownSemantics.mode).toBe('recomputed_from_current_source_data');
+    expect(r.drilldownSemantics.baseRunId).toBe(testRun.runId);
+    expect(r.drilldownSemantics.ruleSetId).toBe('eeg2027-draft-2026-06');
+    expect(r.drilldownSemantics.usesOriginalRuleSet).toBe(true);
+    expect(r.drilldownSemantics.usesOriginalAssetSnapshot).toBe(false);
+    expect(r.drilldownSemantics.usesOriginalTimeseriesSnapshot).toBe(false);
+    expect(typeof r.drilldownSemantics.computedAt).toBe('string');
+  });
 });
 
 // ── Asset not in run ──────────────────────────────────────────────────────────
@@ -209,6 +226,18 @@ describe('trace persistence', () => {
     expect(Array.isArray(trace.intervals)).toBe(true);
     expect(trace.traceHash).toBeDefined();
     expect(trace.links.drilldown).toContain('drilldown');
+  });
+
+  test('persisted trace includes drilldownSemantics', async () => {
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const trace = await broker.call('rcs-simulation-run.getTrace', {
+      runId: testRun.runId,
+      assetId: 'asset-wind-01',
+    });
+    expect(trace.drilldownSemantics).toBeDefined();
+    expect(trace.drilldownSemantics.mode).toBe('recomputed_from_current_source_data');
+    expect(trace.drilldownSemantics.baseRunId).toBe(testRun.runId);
+    expect(trace.drilldownSemantics.usesOriginalRuleSet).toBe(true);
   });
 
   test('getTrace throws RCS_TRACE_NOT_FOUND when no trace exists', async () => {

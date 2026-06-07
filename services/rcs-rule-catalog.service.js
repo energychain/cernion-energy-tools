@@ -29,7 +29,7 @@ module.exports = {
         status: { type: 'string', optional: true },
         legalStatus: { type: 'string', optional: true },
         calculationMode: { type: 'string', optional: true },
-        includeSuperseded: { type: 'boolean', optional: true, default: false },
+        includeSuperseded: { type: 'boolean', optional: true, default: false, convert: true },
       },
       handler(ctx) {
         const { status, legalStatus, calculationMode, includeSuperseded } = ctx.params;

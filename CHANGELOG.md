@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.60.8] — RCS Technical Gate: API Contracts, E2E Smoke & Drilldown Semantics (2026-06-07)
+
+### Added
+
+- **WP3 — HTTP E2E Smoke Test**: New `tests/rcs-e2e-smoke.test.js` (25 tests). Starts a real Moleculer-web HTTP listener (port 47321) with all RCS services and mocked `token-manager`, `assets`, `energy-market`, `edm`. Tests the full UI flow via real HTTP: rule discovery, run listing (pagination envelope), run detail, asset listing, asset detail, on-demand drilldown, persisted trace retrieval, readiness aggregation, errors listing, link following (self/assets links → correct data), structured error shape, access control (invalid `ck_` token → 401).
+
+- **WP4 — Drilldown Semantics Field**: `drilldownAsset` response now includes a `drilldownSemantics` object: `{ mode: "recomputed_from_current_source_data", baseRunId, ruleSetId, usesOriginalRuleSet: true, usesOriginalAssetSnapshot: false, usesOriginalTimeseriesSnapshot: false, computedAt }`. Semantics are also persisted in trace docs (via `saveTrace`) and returned by `getTrace`. Two new tests added to `tests/rcs-asset-drilldown.test.js` asserting the shape in both the drilldown response and the retrieved trace.
+
+- **WP5 — Error Response Contract**: The API gateway's `onError` handler serializes all `MoleculerClientError` (including RCS errors) as `{ success: false, message, code, type }` — `type` carries the stable RCS error code (`RCS_RUN_NOT_FOUND`, `RCS_TRACE_NOT_FOUND`, etc.), `code` is the HTTP status integer. Verified end-to-end via smoke test.
+
+### Changed
+
+- **HTTP param coercion**: Numeric (`limit`, `offset`) and boolean (`includeDeleted`, `includeSuperseded`) query params in `listRuns`, `listRunAssets`, `listRunErrors`, and `listRuleSets` now use `convert: true` in the Moleculer validator. Callers sending URL query strings (as browsers do) no longer receive HTTP 422 validation errors for numeric pagination params.
+
 ## [0.60.7] — RCS UI Enablement: Rule Discovery, On-Demand Drilldown & Stable Product Contracts (2026-06-07)
 
 ### Added

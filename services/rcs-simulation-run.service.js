@@ -379,9 +379,9 @@ module.exports = {
         status: { type: 'string', optional: true },
         from: { type: 'string', optional: true },
         to: { type: 'string', optional: true },
-        includeDeleted: { type: 'boolean', optional: true, default: false },
-        limit: { type: 'number', integer: true, positive: true, optional: true, default: 50 },
-        offset: { type: 'number', integer: true, min: 0, optional: true, default: 0 },
+        includeDeleted: { type: 'boolean', optional: true, default: false, convert: true },
+        limit: { type: 'number', integer: true, positive: true, optional: true, default: 50, convert: true },
+        offset: { type: 'number', integer: true, min: 0, optional: true, default: 0, convert: true },
       },
       async handler(ctx) {
         const {
@@ -499,8 +499,8 @@ module.exports = {
       params: {
         runId: { type: 'string', min: 1 },
         status: { type: 'string', optional: true },
-        limit: { type: 'number', integer: true, positive: true, optional: true, default: 100 },
-        offset: { type: 'number', integer: true, min: 0, optional: true, default: 0 },
+        limit: { type: 'number', integer: true, positive: true, optional: true, default: 100, convert: true },
+        offset: { type: 'number', integer: true, min: 0, optional: true, default: 0, convert: true },
       },
       async handler(ctx) {
         const { runId, status, limit, offset } = ctx.params;
@@ -572,7 +572,7 @@ module.exports = {
       rest: 'GET /runs/:runId/errors',
       params: {
         runId: { type: 'string', min: 1 },
-        limit: { type: 'number', integer: true, positive: true, optional: true, default: 50 },
+        limit: { type: 'number', integer: true, positive: true, optional: true, default: 50, convert: true },
       },
       async handler(ctx) {
         const { runId, limit } = ctx.params;
@@ -609,6 +609,7 @@ module.exports = {
         technology: { type: 'string', optional: true },
         ruleSetId: { type: 'string', optional: true },
         ruleSetVersion: { type: 'string', optional: true },
+        drilldownSemantics: { type: 'object', optional: true },
         summary: { type: 'object' },
         intervals: { type: 'array' },
       },
@@ -626,6 +627,7 @@ module.exports = {
           createdAt: now,
           ruleSetId: ctx.params.ruleSetId ?? null,
           ruleSetVersion: ctx.params.ruleSetVersion ?? null,
+          drilldownSemantics: ctx.params.drilldownSemantics ?? null,
           traceHash,
           summary: ctx.params.summary,
           intervals: ctx.params.intervals,
@@ -669,6 +671,7 @@ module.exports = {
             createdAt: doc.createdAt,
             ruleSetId: doc.ruleSetId ?? null,
             ruleSetVersion: doc.ruleSetVersion ?? null,
+            drilldownSemantics: doc.drilldownSemantics ?? null,
             traceHash: doc.traceHash,
             summary: doc.summary,
             intervals: doc.intervals,
