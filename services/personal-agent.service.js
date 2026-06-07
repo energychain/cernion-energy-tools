@@ -103,6 +103,7 @@ const {
 } = require('../src/blueprint-policy-interpreter');
 const { detectBlueprintIntent, findBlueprintByPrimaryIntent } = require('../src/l3-broker');
 const { loadBlueprint } = require('../src/blueprint-registry');
+const { findClarificationPolicyMatch } = require('../src/clarification-policy-registry');
 const {
   resolveLocationFromText,
   buildLocationContextPatch,
@@ -2172,9 +2173,203 @@ module.exports = {
 
         // 3. Store resolution trace for agentTrace / dataLineage (best-effort, non-blocking)
         if (currentMsgLocation.evidence.length > 0 || currentMsgLocation.municipalityResolved) {
-          brokerKnownContext._locationResolutionTrace = buildLocationResolutionTrace(
-            currentMsgLocation
+          brokerKnownContext._locationResolutionTrace =
+            buildLocationResolutionTrace(currentMsgLocation);
+        }
+
+        const clarificationMatch = forceReceiptRequested
+          ? null
+          : findClarificationPolicyMatch({
+              message: ctx.params.message,
+              knownContext: brokerKnownContext,
+              chatMode: effectiveChatMode,
+            });
+
+        if (clarificationMatch?.policy) {
+          const clarificationPolicy = clarificationMatch.policy;
+          const clarification = clarificationPolicy.clarification || {};
+          const clarificationReply = this.buildClarificationPolicyReply(clarificationPolicy);
+          const assistantMessage = {
+            role: 'assistant',
+            text: clarificationReply,
+            ts: new Date().toISOString(),
+          };
+          const clarificationHistory = [
+            ...(Array.isArray(session.l3?.history) ? session.l3.history : []),
+            userMessage,
+            assistantMessage,
+          ];
+          const stackResult = buildContextStack({
+            systemPrompt: this.settings.systemPrompt,
+            tenantFacts: session.l1?.tenantFacts || [],
+            userProfile: session.l2?.userProfile || {},
+            sessionHistory: clarificationHistory,
+            fileAttachments: session.l3?.fileAttachments || [],
+            bootstrapContext,
+            knowledgeScopeDataPoints: session.l3?.knowledgeScopeDataPoints || [],
+            toolContext: ctx.params.toolContext || null,
+            maxContextTokens: this.settings.maxContextTokens,
+          });
+          const finalized = synthesizeAndPurgeLayer4(stackResult.stack, clarificationReply);
+          const clarificationExecution = {
+            status: 'awaiting_input',
+            plan: null,
+            steps: [],
+            stopPoint: {
+              reasonCode: 'CLARIFICATION_REQUIRED',
+              policyId: clarificationPolicy.id,
+              question: clarification.question || clarificationReply,
+              options: Array.isArray(clarification.options) ? clarification.options : [],
+              requiredContext: Array.isArray(clarification.requiredContext)
+                ? clarification.requiredContext
+                : [],
+            },
+            meta: executionTrace.summarize({
+              toolCalls: toolCallTracker.summarize().calls,
+              chatModeSource,
+            }),
+          };
+          const clarificationRouting = {
+            source: 'clarification-policy',
+            routeKey: clarificationPolicy.id,
+            routeLabel: clarificationPolicy.title || clarificationPolicy.id,
+            primaryIntent: clarificationPolicy.id,
+            secondaryIntents: [],
+            requestedDomains: detectRequestedDomains(ctx.params.message),
+            unsupportedDomains: [],
+            warnings: [],
+            chatMode: effectiveChatMode,
+          };
+          const clarificationConsultation = {
+            workflowType: semanticClassification?.workflowType || null,
+            domainIntent:
+              semanticClassification?.domainIntent || brokerRecommendation?.intent || null,
+            evidenceStatus: 'unverified',
+            hypotheses: [],
+            openQuestions: [
+              {
+                question: clarification.question || clarificationReply,
+                whyRelevant:
+                  'Das Optimierungsziel ist erforderlich, bevor Cernion einen passenden Ausführungspfad wählt.',
+              },
+            ],
+            nextActions: Array.isArray(clarification.options)
+              ? clarification.options.map((option) => ({
+                  action: option.label || option.id,
+                  description: option.intent || 'Optimierungsziel auswählen',
+                }))
+              : [],
+            factsUsed: [],
+            missingEvidence: [],
+            nextVerificationSteps: [],
+            guardrailCorrections: [],
+          };
+          const responseStrategy = this.buildResponseStrategy({
+            message: ctx.params.message,
+            execution: clarificationExecution,
+            knownContext: brokerKnownContext,
+            missingParams: [],
+            existingAssumptions: Array.isArray(session.l3?.assumptions)
+              ? session.l3.assumptions
+              : [],
+          });
+          turnGraph = finalizeTurnGraph(turnGraph, { status: 'awaiting_clarification' });
+          stateMachine = transitionStateMachine(
+            stateMachine,
+            PERSONAL_AGENT_STATES.CONSULTATION_ACTIVE,
+            {
+              policyId: clarificationPolicy.id,
+            }
           );
+          stateMachine = transitionStateMachine(
+            stateMachine,
+            PERSONAL_AGENT_STATES.AWAITING_USER_INPUT,
+            {
+              reasonCode: 'CLARIFICATION_REQUIRED',
+              policyId: clarificationPolicy.id,
+            }
+          );
+          const persisted = buildPersistableSessionState({
+            id: sessionId,
+            tenantId,
+            userId,
+            l1: finalized.stack.l1,
+            l2: finalized.stack.l2,
+            l3: {
+              ...finalized.stack.l3,
+              chatMode: effectiveChatMode,
+              chatModeSource,
+              executionStateGraph: summarizeExecutionStateGraph(executionStateGraph),
+              stateMachine: summarizeStateMachine(stateMachine),
+              turnGraph: summarizeTurnGraph(turnGraph),
+              responseStrategy,
+              planStack: Array.isArray(session.planStack) ? session.planStack : [],
+              resolvedParams:
+                session.resolvedParams && typeof session.resolvedParams === 'object'
+                  ? session.resolvedParams
+                  : {},
+              resolvedCapabilities: Array.isArray(session.resolvedCapabilities)
+                ? session.resolvedCapabilities
+                : [],
+              consultationContext: clarificationConsultation,
+              stopPoint: clarificationExecution.stopPoint,
+            },
+            createdAt: session.createdAt,
+          });
+          assertNoL4RawInPersistedState(persisted);
+          await this.persistSession(ctx, tenantId, sessionId, persisted);
+
+          const agentTrace = this.buildAgentTrace({
+            routing: clarificationRouting,
+            plan: null,
+            execution: clarificationExecution,
+            evidencePlan: null,
+            consultation: clarificationConsultation,
+            responseStrategy,
+            stateMachine,
+            executionStateGraph,
+            turnGraph,
+            routingDecision: {
+              target: 'clarification_node',
+              label: 'clarification-policy',
+              confidence: Math.min(1, Number(clarificationMatch.score || 0) / 3),
+              determinism: 'high',
+            },
+            personaResolution: null,
+            bootstrapContext,
+            knowledgeScope: session.l3?.knowledgeScopeDataPoints || [],
+            workLog: turnWorkLog.toArray(),
+          });
+
+          return {
+            success: true,
+            sessionId,
+            chatMode: effectiveChatMode,
+            executionMode,
+            status: 'awaiting_input',
+            reply: clarificationReply,
+            workflowType: clarificationConsultation.workflowType,
+            domainIntent: clarificationConsultation.domainIntent,
+            clarification: {
+              policyId: clarificationPolicy.id,
+              version: clarificationPolicy.version,
+              question: clarification.question || clarificationReply,
+              options: Array.isArray(clarification.options) ? clarification.options : [],
+              requiredContext: Array.isArray(clarification.requiredContext)
+                ? clarification.requiredContext
+                : [],
+            },
+            consultation: clarificationConsultation,
+            execution: clarificationExecution,
+            agentTrace,
+            metadata: {
+              clarificationPolicy: {
+                id: clarificationPolicy.id,
+                version: clarificationPolicy.version,
+                score: clarificationMatch.score,
+              },
+            },
+          };
         }
 
         const preferredReceiptsForTurn = this.buildPreferredReceiptsForTurn(
@@ -2529,9 +2724,7 @@ module.exports = {
             ...brokerKnownContext,
             intent: brokerRecommendation?.intent || brokerKnownContext?.intent || null,
             domainIntent:
-              semanticClassification?.domainIntent ||
-              brokerKnownContext?.domainIntent ||
-              null,
+              semanticClassification?.domainIntent || brokerKnownContext?.domainIntent || null,
           };
           const _bpPromptHints = extractPromptHints(ctx.params.message);
           const _bpSignalMatch = detectBlueprintIntent(
@@ -2815,8 +3008,11 @@ module.exports = {
             execution: consultationExecution,
           });
           if (_consultationEvidenceCandidates.length > 0) {
-            this.recordEvidenceRequirementsForRevalidation(ctx, _consultationEvidenceCandidates).catch(
-              (err) => this.logger?.warn(`evidence requirement recording failed: ${err.message}`)
+            this.recordEvidenceRequirementsForRevalidation(
+              ctx,
+              _consultationEvidenceCandidates
+            ).catch((err) =>
+              this.logger?.warn(`evidence requirement recording failed: ${err.message}`)
             );
           }
 
@@ -5296,6 +5492,29 @@ module.exports = {
         .trim();
     },
 
+    buildClarificationPolicyReply(policy = {}) {
+      const clarification =
+        policy?.clarification && typeof policy.clarification === 'object'
+          ? policy.clarification
+          : {};
+      const question = String(clarification.question || '').trim();
+      const details = String(clarification.details || '').trim();
+      const options = Array.isArray(clarification.options) ? clarification.options : [];
+      const optionText = options
+        .map((option) => String(option?.label || option?.id || '').trim())
+        .filter(Boolean)
+        .join(' oder ');
+
+      return [
+        question || 'Welche Variante soll ich prüfen?',
+        optionText ? `Optionen: ${optionText}.` : '',
+        details,
+      ]
+        .filter(Boolean)
+        .join('\n\n')
+        .trim();
+    },
+
     buildEvidenceRequirementsForRevalidation({
       tenantId,
       sessionId,
@@ -6068,7 +6287,9 @@ module.exports = {
       const hasUnverifiedVnbContext = Boolean(uncertaintyNote);
 
       const knownContext =
-        options.knownContext && typeof options.knownContext === 'object' ? options.knownContext : {};
+        options.knownContext && typeof options.knownContext === 'object'
+          ? options.knownContext
+          : {};
       const resolvedParams =
         options.resolvedParams && typeof options.resolvedParams === 'object'
           ? options.resolvedParams
@@ -8246,14 +8467,20 @@ module.exports = {
       );
     },
 
-    buildGridOperatorFlexibilityCompletedReply({ execution = {}, message = '', fileIntro = '' } = {}) {
+    buildGridOperatorFlexibilityCompletedReply({
+      execution = {},
+      message = '',
+      fileIntro = '',
+    } = {}) {
       const steps = Array.isArray(execution?.steps) ? execution.steps : [];
       const marketStep = steps.find((step) => step?.action === 'grid-operations.marketPartners');
       const cockpitStep = steps.find(
         (step) => step?.action === 'dashboard-api.redispatchMeteringCockpit'
       );
-      const cockpit = cockpitStep?.result && typeof cockpitStep.result === 'object' ? cockpitStep.result : {};
-      const evidence = cockpit.evidence && typeof cockpit.evidence === 'object' ? cockpit.evidence : {};
+      const cockpit =
+        cockpitStep?.result && typeof cockpitStep.result === 'object' ? cockpitStep.result : {};
+      const evidence =
+        cockpit.evidence && typeof cockpit.evidence === 'object' ? cockpit.evidence : {};
       const readiness = cockpit.decisionReadiness || {};
       const operator = cockpit.operator || {};
       const marketResult =
@@ -8289,7 +8516,9 @@ module.exports = {
         ],
         [
           'Redispatch/Metering Readiness',
-          readiness.signal ? `${readiness.signal}${readiness.score ? ` (${readiness.score})` : ''}` : 'Offen',
+          readiness.signal
+            ? `${readiness.signal}${readiness.score ? ` (${readiness.score})` : ''}`
+            : 'Offen',
           'dashboard-api.redispatchMeteringCockpit',
           readiness.signal ? 'Mittel' : 'Offen',
           'Zeigt, ob RD2.0/Messdaten als Entscheidungsbasis nutzbar sind',
@@ -8338,7 +8567,9 @@ module.exports = {
         `Kurzfazit: Der Dialog ist als Executive Erstlagebild nutzbar. Die aktuellen Zahlen sind Prozess- und Evidenzkennzahlen, noch kein belastbares MW-Flexibilitaetspotenzial.`,
         `Offene Evidenz: ${blockers}. Fuer MW-Potenzial muessen §14a-Anlagen, Redispatch-2.0-Anlagen, Topologie, Lastfluss und Gleichzeitigkeitsannahmen nachgezogen werden.`,
         'Empfehlung: Speicher zuerst pruefen, weil sie Rueckspeisespitzen direkt verschieben koennen; danach flexible Industrie und Ladeparks mit netzdienlichem Fahrplan; Rechenzentren nur mit Standort-, Abwaerme- und Netzanschlussnachweis priorisieren.',
-        `Kontext: ${String(message || '').trim().slice(0, 220)}`,
+        `Kontext: ${String(message || '')
+          .trim()
+          .slice(0, 220)}`,
       ].join('\n');
     },
 
@@ -9066,7 +9297,12 @@ module.exports = {
       return hints;
     },
 
-    buildPreferredReceiptsForTurn(message = '', knownContext = {}, explicitPreferred = [], session = null) {
+    buildPreferredReceiptsForTurn(
+      message = '',
+      knownContext = {},
+      explicitPreferred = [],
+      session = null
+    ) {
       const preferred = Array.isArray(explicitPreferred) ? [...explicitPreferred] : [];
       if (
         this.isEvCo2ChargingRequest(message, knownContext, session) &&
@@ -9994,7 +10230,8 @@ module.exports = {
         knowledgeScope: this.buildKnowledgeScopeTraceSummary(knowledgeScope || []),
         workLog: Array.isArray(workLog) ? workLog : [], // v0.57.3
         reflection: reflection && typeof reflection === 'object' ? reflection : undefined, // v0.57.5 #158
-        locationResolution: // v0.60: location extraction trace for DevOps/OSM/MaStR consumers
+        // v0.60: location extraction trace for DevOps/OSM/MaStR consumers
+        locationResolution:
           locationResolution && typeof locationResolution === 'object'
             ? locationResolution
             : undefined,

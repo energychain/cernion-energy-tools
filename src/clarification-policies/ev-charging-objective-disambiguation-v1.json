@@ -1,0 +1,54 @@
+{
+  "id": "ev-charging-objective-disambiguation-v1",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "E-Auto-Laden Optimierungsziel klären",
+  "description": "Fragt bei unspezifischen E-Auto-Ladefragen nach Preis- oder CO2-/GrünstromIndex-Optimierung, bevor ein Ausführungs-Blueprint gewählt wird.",
+  "routing": {
+    "intentSignals": [
+      "auto laden",
+      "e-auto laden",
+      "elektroauto laden",
+      "wallbox",
+      "ladezeit",
+      "ladefenster"
+    ],
+    "anyTerms": ["auto", "e-auto", "elektroauto", "wallbox"],
+    "requiredAnyTerms": ["laden", "ladezeit", "ladefenster"],
+    "absentAnyTerms": [
+      "co2",
+      "co₂",
+      "emission",
+      "grünstrom",
+      "gruenstrom",
+      "grünstromindex",
+      "strompreis",
+      "börsenpreis",
+      "boersenpreis",
+      "day-ahead",
+      "epex",
+      "kosten",
+      "günstig",
+      "guenstig",
+      "dynamischer tarif"
+    ],
+    "priority": 80
+  },
+  "clarification": {
+    "question": "Soll ich das Laden nach Strompreis/Börsenpreis oder nach CO2/GrünstromIndex optimieren?",
+    "details": "Dafür brauche ich außerdem Standort oder PLZ, gewünschte Ladedauer oder kWh und spätestens gewünschte Abfahrtszeit.",
+    "options": [
+      {
+        "id": "price",
+        "label": "Strompreis/Börsenpreis",
+        "intent": "ev_charging_price_optimization"
+      },
+      {
+        "id": "co2",
+        "label": "CO2/GrünstromIndex",
+        "intent": "ev_charging_co2_optimization"
+      }
+    ],
+    "requiredContext": ["postalCode", "chargingDurationHours|chargingEnergyKWh", "departureTime"]
+  }
+}

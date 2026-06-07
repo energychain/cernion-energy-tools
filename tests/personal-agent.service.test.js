@@ -200,11 +200,13 @@ describe('personal-agent.service', () => {
 
             const message = String(ctx.params.message || '').toLowerCase();
             const knownContext =
-              ctx.params?.context?.knownContext && typeof ctx.params.context.knownContext === 'object'
+              ctx.params?.context?.knownContext &&
+              typeof ctx.params.context.knownContext === 'object'
                 ? ctx.params.context.knownContext
                 : {};
             const hasHeidelbergSignal =
-              /heidelberg/.test(message) || String(knownContext.city || '').toLowerCase() === 'heidelberg';
+              /heidelberg/.test(message) ||
+              String(knownContext.city || '').toLowerCase() === 'heidelberg';
             const hasVnbSignal =
               /wiesloch/.test(message) ||
               String(knownContext.city || '').toLowerCase() === 'wiesloch';
@@ -219,7 +221,10 @@ describe('personal-agent.service', () => {
                   mode: 'matched',
                   score: 95,
                   warnings: [],
-                  selectedReceipt: buildHeidelbergChainReceipt('vnb-lookup-heidelberg-v1', 'active'),
+                  selectedReceipt: buildHeidelbergChainReceipt(
+                    'vnb-lookup-heidelberg-v1',
+                    'active'
+                  ),
                   diagnostics: ctx.params.explainReceiptSelection
                     ? {
                         matched: true,
@@ -422,9 +427,7 @@ describe('personal-agent.service', () => {
               };
             }
             const handoffPersonaId =
-              typeof ctx.params?.handoffPersonaId === 'string'
-                ? ctx.params.handoffPersonaId
-                : null;
+              typeof ctx.params?.handoffPersonaId === 'string' ? ctx.params.handoffPersonaId : null;
             const handoffTarget = handoffPersonaId
               ? active.find((persona) => persona.id === handoffPersonaId)
               : null;
@@ -599,7 +602,9 @@ describe('personal-agent.service', () => {
               success: true,
               settlementId: ctx.params.settlementId,
               matchingKey: 'anlageId/timeSlice',
-              summary: { total: Array.isArray(ctx.params.incomingRows) ? ctx.params.incomingRows.length : 0 },
+              summary: {
+                total: Array.isArray(ctx.params.incomingRows) ? ctx.params.incomingRows.length : 0,
+              },
             };
           },
         },
@@ -1034,9 +1039,7 @@ describe('personal-agent.service', () => {
       { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
     );
 
-    expect(session.l3.activeRoutingPolicy.sessionIntent).toBe(
-      'municipal_energy_site_precheck'
-    );
+    expect(session.l3.activeRoutingPolicy.sessionIntent).toBe('municipal_energy_site_precheck');
     expect(session.l3.activeRoutingPolicy.avoidWorkflowTypes).toContain(
       'prosumer_nap_wallet_onboarding'
     );
@@ -1347,8 +1350,7 @@ describe('personal-agent.service', () => {
     const result = await broker.call(
       'personal-agent.chat',
       {
-        message:
-          'Bitte bewerte das ZNP-Portfolio und die kaufmännische fNAV-Freigabe.',
+        message: 'Bitte bewerte das ZNP-Portfolio und die kaufmännische fNAV-Freigabe.',
         chatMode: 'execution',
         executionMode: 'auto',
       },
@@ -3034,7 +3036,12 @@ describe('personal-agent.service', () => {
     expect(result.success).toBe(true);
     expect(result.status).toBe('consulting');
     expect(result.chatMode).toBe('consultation');
-    expect(result.execution).toEqual({ status: 'consulting', plan: null, steps: [], stopPoint: null });
+    expect(result.execution).toEqual({
+      status: 'consulting',
+      plan: null,
+      steps: [],
+      stopPoint: null,
+    });
     expect(result.consultation).toBeTruthy();
     expect(Array.isArray(result.consultation.hypotheses)).toBe(true);
     expect(Array.isArray(result.consultation.openQuestions)).toBe(true);
@@ -3885,7 +3892,9 @@ describe('personal-agent.service', () => {
       });
 
       expect(result.reply).toContain('Beratungsmodus ist aktuell nur eingeschränkt verfügbar');
-      expect(result.reply).toContain('sprachliche Synthese konnte nicht zuverlässig abgeschlossen werden');
+      expect(result.reply).toContain(
+        'sprachliche Synthese konnte nicht zuverlässig abgeschlossen werden'
+      );
       expect(result.reply).not.toContain('Eine Abregelung hängt typischerweise');
       expect(result.degradation).toEqual(
         expect.objectContaining({
@@ -3924,7 +3933,9 @@ describe('personal-agent.service', () => {
   it('preserves degradation metadata in agentTrace when legacy non-agentic consultation throws', async () => {
     const svc = broker.getLocalService('personal-agent');
     const agenticSpy = jest.spyOn(svc, 'handleConsultationTurnAgentic').mockResolvedValue(null);
-    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockRejectedValue(new Error('LLM offline'));
+    const callLlmSpy = jest
+      .spyOn(svc, 'callLlmGenerate')
+      .mockRejectedValue(new Error('LLM offline'));
 
     const mockCtx = {
       broker,
@@ -4206,7 +4217,12 @@ describe('personal-agent.service', () => {
     expect(result.success).toBe(true);
     expect(result.status).toBe('consulting');
     expect(result.chatMode).toBe('consultation');
-    expect(result.execution).toEqual({ status: 'consulting', plan: null, steps: [], stopPoint: null });
+    expect(result.execution).toEqual({
+      status: 'consulting',
+      plan: null,
+      steps: [],
+      stopPoint: null,
+    });
   });
 
   it('reconciles wrong semantic consultation workflow on the real personal-agent.chat path', async () => {
@@ -4514,7 +4530,10 @@ describe('personal-agent.service', () => {
     };
 
     const recentHistory = svc.buildConsultationRecentHistoryWindow(session);
-    const totalChars = recentHistory.reduce((sum, entry) => sum + String(entry.text || '').length, 0);
+    const totalChars = recentHistory.reduce(
+      (sum, entry) => sum + String(entry.text || '').length,
+      0
+    );
 
     expect(recentHistory.length).toBeLessThanOrEqual(6);
     expect(totalChars).toBeLessThanOrEqual(1200);
@@ -4553,21 +4572,23 @@ describe('personal-agent.service', () => {
     const svc = broker.getLocalService('personal-agent');
     const capturedPrompts = [];
     const agenticSpy = jest.spyOn(svc, 'handleConsultationTurnAgentic').mockResolvedValue(null);
-    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
-      if (payload?.trace?.phase === 'consultation_non_agentic') {
-        capturedPrompts.push(String(payload.system || ''));
-      }
+    const callLlmSpy = jest
+      .spyOn(svc, 'callLlmGenerate')
+      .mockImplementation(async (_ctx, payload) => {
+        if (payload?.trace?.phase === 'consultation_non_agentic') {
+          capturedPrompts.push(String(payload.system || ''));
+        }
 
-      return {
-        data: {
-          reply: 'Verstanden.',
-          hypotheses: [],
-          openQuestions: [],
-          nextActions: [],
-          factsUsed: [],
-        },
-      };
-    });
+        return {
+          data: {
+            reply: 'Verstanden.',
+            hypotheses: [],
+            openQuestions: [],
+            nextActions: [],
+            factsUsed: [],
+          },
+        };
+      });
 
     try {
       const first = await broker.call(
@@ -4607,21 +4628,23 @@ describe('personal-agent.service', () => {
     const svc = broker.getLocalService('personal-agent');
     const capturedPrompts = [];
     const agenticSpy = jest.spyOn(svc, 'handleConsultationTurnAgentic').mockResolvedValue(null);
-    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
-      if (payload?.trace?.phase === 'consultation_non_agentic') {
-        capturedPrompts.push(String(payload.system || ''));
-      }
+    const callLlmSpy = jest
+      .spyOn(svc, 'callLlmGenerate')
+      .mockImplementation(async (_ctx, payload) => {
+        if (payload?.trace?.phase === 'consultation_non_agentic') {
+          capturedPrompts.push(String(payload.system || ''));
+        }
 
-      return {
-        data: {
-          reply: 'Ich fasse den Session-Kontext zusammen.',
-          hypotheses: [],
-          openQuestions: [],
-          nextActions: [],
-          factsUsed: [],
-        },
-      };
-    });
+        return {
+          data: {
+            reply: 'Ich fasse den Session-Kontext zusammen.',
+            hypotheses: [],
+            openQuestions: [],
+            nextActions: [],
+            factsUsed: [],
+          },
+        };
+      });
 
     try {
       const alpha = await broker.call(
@@ -4680,21 +4703,23 @@ describe('personal-agent.service', () => {
     const svc = broker.getLocalService('personal-agent');
     const capturedPrompts = [];
     const agenticSpy = jest.spyOn(svc, 'handleConsultationTurnAgentic').mockResolvedValue(null);
-    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
-      if (payload?.trace?.phase === 'consultation_non_agentic') {
-        capturedPrompts.push(String(payload.system || ''));
-      }
+    const callLlmSpy = jest
+      .spyOn(svc, 'callLlmGenerate')
+      .mockImplementation(async (_ctx, payload) => {
+        if (payload?.trace?.phase === 'consultation_non_agentic') {
+          capturedPrompts.push(String(payload.system || ''));
+        }
 
-      return {
-        data: {
-          reply: 'OK',
-          hypotheses: [],
-          openQuestions: [],
-          nextActions: [],
-          factsUsed: [],
-        },
-      };
-    });
+        return {
+          data: {
+            reply: 'OK',
+            hypotheses: [],
+            openQuestions: [],
+            nextActions: [],
+            factsUsed: [],
+          },
+        };
+      });
 
     try {
       const first = await broker.call(
@@ -4734,21 +4759,23 @@ describe('personal-agent.service', () => {
     const svc = broker.getLocalService('personal-agent');
     const capturedPrompts = [];
     const agenticSpy = jest.spyOn(svc, 'handleConsultationTurnAgentic').mockResolvedValue(null);
-    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
-      if (payload?.trace?.phase === 'consultation_non_agentic') {
-        capturedPrompts.push(String(payload.system || ''));
-      }
+    const callLlmSpy = jest
+      .spyOn(svc, 'callLlmGenerate')
+      .mockImplementation(async (_ctx, payload) => {
+        if (payload?.trace?.phase === 'consultation_non_agentic') {
+          capturedPrompts.push(String(payload.system || ''));
+        }
 
-      return {
-        data: {
-          reply: 'Normale Antwort ohne Verlauf.',
-          hypotheses: [],
-          openQuestions: [],
-          nextActions: [],
-          factsUsed: [],
-        },
-      };
-    });
+        return {
+          data: {
+            reply: 'Normale Antwort ohne Verlauf.',
+            hypotheses: [],
+            openQuestions: [],
+            nextActions: [],
+            factsUsed: [],
+          },
+        };
+      });
 
     const mockCtx = {
       broker,
@@ -4796,7 +4823,12 @@ describe('personal-agent.service', () => {
     expect(result.success).toBe(true);
     expect(result.status).toBe('consulting');
     expect(result.chatMode).toBe('consultation');
-    expect(result.execution).toEqual({ status: 'consulting', plan: null, steps: [], stopPoint: null });
+    expect(result.execution).toEqual({
+      status: 'consulting',
+      plan: null,
+      steps: [],
+      stopPoint: null,
+    });
   });
 
   // ── T-EV-003 ───────────────────────────────────────────────────────────────
@@ -4906,7 +4938,9 @@ describe('personal-agent.service', () => {
     expect(result.execution.stopPoint.blockedAction).toBe('finance-agent.analyze');
     expect(result.execution.stopPoint.hitlItemId).toMatch(/^hitl-/);
     expect(result.execution.stopPoint.responsibleRole).toBe('ROLE_NETZPLANUNG');
-    expect(result.execution.stopPoint.personaId).toBe('tenant-critical-hitl-routing/thorsten-human');
+    expect(result.execution.stopPoint.personaId).toBe(
+      'tenant-critical-hitl-routing/thorsten-human'
+    );
     expect(result.execution.stopPoint.personaName).toBe('Thorsten Zoerner');
     expect(result.execution.stopPoint.personaType).toBe('human');
     expect(result.execution.stopPoint.routingContext).toMatchObject({
@@ -5109,11 +5143,15 @@ describe('personal-agent.service', () => {
       { sessionId },
       { meta }
     );
-    const checkpointEntries = Object.values(persistedBeforeApproval.l3?.criticalStepCheckpoints || {});
+    const checkpointEntries = Object.values(
+      persistedBeforeApproval.l3?.criticalStepCheckpoints || {}
+    );
     const persistedCheckpoint = checkpointEntries.find((entry) => entry.hitlItemId === hitlItemId);
     expect(persistedCheckpoint).toBeTruthy();
     expect(persistedCheckpoint.planSnapshot).toBeTruthy();
-    expect(persistedCheckpoint.planSnapshot.steps.some((step) => step.action === 'finance-agent.analyze')).toBe(true);
+    expect(
+      persistedCheckpoint.planSnapshot.steps.some((step) => step.action === 'finance-agent.analyze')
+    ).toBe(true);
     const persistedPlanFrame = (persistedBeforeApproval.l3?.planStack || []).find(
       (frame) => frame.hitlItemId === hitlItemId
     );
@@ -5147,12 +5185,14 @@ describe('personal-agent.service', () => {
     expect(resumed.execution.plan?.steps?.[0]?.action).toBe('finance-agent.analyze');
     expect(resumed.execution.stopPoint?.reasonCode).not.toBe('PREFLIGHT_MISS');
     expect(resumed.execution.stopPoint?.reasonCode).not.toBe('approved_hitl_resume_missing_plan');
-    const hasMarkGapStep = Array.isArray(resumed.execution.steps) &&
+    const hasMarkGapStep =
+      Array.isArray(resumed.execution.steps) &&
       resumed.execution.steps.some((s) => s.action === 'interface-placeholder.markGap');
     expect(hasMarkGapStep).toBe(false);
 
     // Must not create a new pending HITL for the same approved item
-    const newHitlStop = resumed.execution.stopPoint?.reasonCode === 'MANDATORY_HITL_APPROVAL' &&
+    const newHitlStop =
+      resumed.execution.stopPoint?.reasonCode === 'MANDATORY_HITL_APPROVAL' &&
       resumed.execution.stopPoint?.hitlItemId !== hitlItemId;
     expect(newHitlStop).toBe(false);
 
@@ -5160,7 +5200,8 @@ describe('personal-agent.service', () => {
     expect(resumed.agentTrace?.stateMachine?.currentState).not.toBe('failed');
 
     // Option A: finance-agent.analyze was executed successfully
-    const analyzeDone = Array.isArray(resumed.execution.steps) &&
+    const analyzeDone =
+      Array.isArray(resumed.execution.steps) &&
       resumed.execution.steps.some(
         (s) => s.action === 'finance-agent.analyze' && s.status === 'completed'
       );
@@ -5200,7 +5241,8 @@ describe('personal-agent.service', () => {
     const persisted = await broker.call(
       'object-store.get',
       {
-        namespace: 'tenant:tenant-critical-hitl-approved-resume-missing-plan:personal_agent_sessions',
+        namespace:
+          'tenant:tenant-critical-hitl-approved-resume-missing-plan:personal_agent_sessions',
         key: sessionId,
       },
       { meta }
@@ -5236,7 +5278,8 @@ describe('personal-agent.service', () => {
     await broker.call(
       'object-store.put',
       {
-        namespace: 'tenant:tenant-critical-hitl-approved-resume-missing-plan:personal_agent_sessions',
+        namespace:
+          'tenant:tenant-critical-hitl-approved-resume-missing-plan:personal_agent_sessions',
         key: sessionId,
         payload,
       },
@@ -5246,11 +5289,7 @@ describe('personal-agent.service', () => {
     const approval = await broker.call('hitl.approve', { id: hitlItemId }, { meta });
     expect(approval.item.status).toBe('approved');
 
-    const reloaded = await broker.call(
-      'personal-agent.getSession',
-      { sessionId },
-      { meta }
-    );
+    const reloaded = await broker.call('personal-agent.getSession', { sessionId }, { meta });
 
     const personalAgent = broker.getLocalService('personal-agent');
     const gate = await personalAgent.resolveSessionHitlResumeGate(
@@ -5262,13 +5301,15 @@ describe('personal-agent.service', () => {
             ...reloaded.l3,
             stopPoint: null,
             criticalStepCheckpoints: Object.fromEntries(
-              Object.entries(reloaded.l3?.criticalStepCheckpoints || {}).map(([checkpointKey, checkpoint]) => [
-                checkpointKey,
-                {
-                  ...checkpoint,
-                  planSnapshot: null,
-                },
-              ])
+              Object.entries(reloaded.l3?.criticalStepCheckpoints || {}).map(
+                ([checkpointKey, checkpoint]) => [
+                  checkpointKey,
+                  {
+                    ...checkpoint,
+                    planSnapshot: null,
+                  },
+                ]
+              )
             ),
             planStack: [],
           },
@@ -5431,9 +5472,9 @@ describe('personal-agent.service', () => {
 
     expect(result.success).toBe(true);
     expect(Array.isArray(result.execution?.steps)).toBe(true);
-    expect(
-      result.execution.steps.some((step) => step.action === 'grid-operations.vnbLookup')
-    ).toBe(true);
+    expect(result.execution.steps.some((step) => step.action === 'grid-operations.vnbLookup')).toBe(
+      true
+    );
     expect(
       result.execution.steps.some((step) => step.action === 'grid-operations.marketPartners')
     ).toBe(false);
@@ -5539,7 +5580,9 @@ describe('personal-agent.service', () => {
     );
 
     const executedToolNames = executedCallDetails.map((entry) => entry.action);
-    const co2Call = executedCallDetails.find((entry) => entry.action === 'energy-market.co2Intensity');
+    const co2Call = executedCallDetails.find(
+      (entry) => entry.action === 'energy-market.co2Intensity'
+    );
 
     expect(result.success).toBe(true);
     expect(result.routing.primaryIntent).toMatch(/ev.*co2|ev.*co₂|co2.*optimization/i);
@@ -5633,7 +5676,9 @@ describe('personal-agent.service', () => {
       { meta: { tenantId: 'tenant-syna-vnb-contract', authUser: { userId: 'user-syna-vnb' } } }
     );
 
-    const vnbStep = result.execution.steps.find((step) => step.action === 'grid-operations.vnbLookup');
+    const vnbStep = result.execution.steps.find(
+      (step) => step.action === 'grid-operations.vnbLookup'
+    );
 
     expect(result.success).toBe(true);
     expect(result.execution.status).toBe('partial');
@@ -5740,7 +5785,8 @@ describe('personal-agent.service', () => {
     const result = await broker.call(
       'personal-agent.chat',
       {
-        message: 'Als Bürgermeister von Wiesloch brauche ich eine Strategie für PV-Ausbau und Bestandskunden.',
+        message:
+          'Als Bürgermeister von Wiesloch brauche ich eine Strategie für PV-Ausbau und Bestandskunden.',
         sessionId: `wiesloch-municipal-${Date.now()}`,
         chatMode: 'consultation',
         executionMode: 'auto',
@@ -5938,9 +5984,9 @@ describe('personal-agent.service', () => {
         executor: 'executeWithReceipt',
       })
     );
-    expect(
-      result.execution.steps.some((step) => step.action === 'grid-operations.vnbLookup')
-    ).toBe(true);
+    expect(result.execution.steps.some((step) => step.action === 'grid-operations.vnbLookup')).toBe(
+      true
+    );
   });
 
   it('enforces forced receipt priority and does not silently fall back to unrelated capability actions', async () => {
@@ -5970,9 +6016,9 @@ describe('personal-agent.service', () => {
         executor: 'executeWithReceipt',
       })
     );
-    expect(
-      result.execution.steps.some((step) => step.action === 'grid-operations.vnbLookup')
-    ).toBe(true);
+    expect(result.execution.steps.some((step) => step.action === 'grid-operations.vnbLookup')).toBe(
+      true
+    );
     expect(
       result.execution.steps.some((step) => step.action === 'residual_load_forecast_for_dso')
     ).toBe(false);
@@ -6114,7 +6160,10 @@ describe('personal-agent.service', () => {
     const fn = PersonalAgentService.methods.buildReceiptExecutionContext;
     const invalidTokens = ['KANNST', 'WER', 'F\u00dcR', 'IST', 'DER', 'die', 'in Wiesloch', 'abc'];
     for (const token of invalidTokens) {
-      const ctx = fn({ message: 'Wer ist der Netzbetreiber?', knownContext: { promptHints: { bdew: token } } });
+      const ctx = fn({
+        message: 'Wer ist der Netzbetreiber?',
+        knownContext: { promptHints: { bdew: token } },
+      });
       expect(ctx.bdewCode).toBeUndefined();
       expect(ctx.bdew).toBeUndefined();
     }
@@ -6131,7 +6180,10 @@ describe('personal-agent.service', () => {
 
   it('T-PA-RE-006: buildReceiptExecutionContext does not add bdew when only city is known', () => {
     const fn = PersonalAgentService.methods.buildReceiptExecutionContext;
-    const ctx = fn({ message: 'Wer ist der Netzbetreiber in Wiesloch?', knownContext: { city: 'Wiesloch' } });
+    const ctx = fn({
+      message: 'Wer ist der Netzbetreiber in Wiesloch?',
+      knownContext: { city: 'Wiesloch' },
+    });
     expect(ctx.city).toBe('Wiesloch');
     expect(ctx.bdewCode).toBeUndefined();
     expect(ctx.bdew).toBeUndefined();
@@ -6180,8 +6232,7 @@ describe('personal-agent.service', () => {
       vnbResult?.data?.verification?.verifiedIdentity === true ||
       vnbResult?.verification?.verifiedIdentity === true;
     const hasMastrId =
-      vnbResult?.data?.mastrId === 'SNB938476571321' ||
-      vnbResult?.mastrId === 'SNB938476571321';
+      vnbResult?.data?.mastrId === 'SNB938476571321' || vnbResult?.mastrId === 'SNB938476571321';
 
     expect(hasMastrId || verifiedIdentity).toBe(true);
   });
@@ -6203,7 +6254,9 @@ describe('personal-agent.service', () => {
     expect(chatResult.success).toBe(true);
 
     // Verify that vnb-lookup action was called with city parameter
-    const vnbLookupCalls = executedCallDetails.filter((c) => c.action === 'grid-operations.vnbLookup');
+    const vnbLookupCalls = executedCallDetails.filter(
+      (c) => c.action === 'grid-operations.vnbLookup'
+    );
     expect(vnbLookupCalls.length).toBeGreaterThan(0);
 
     // The first (and likely only) vnbLookup call should have city='Wiesloch' in params
@@ -6214,7 +6267,9 @@ describe('personal-agent.service', () => {
 
     // Verify that the chat response does not contain generic MCP-Auth errors
     expect(chatResult.reply).toBeDefined();
-    expect(chatResult.reply.toLowerCase()).not.toMatch(/mcp[\s-]*auth|authentication.*error|token.*invalid/i);
+    expect(chatResult.reply.toLowerCase()).not.toMatch(
+      /mcp[\s-]*auth|authentication.*error|token.*invalid/i
+    );
   });
 
   it('v0.54.5 REGRESSION: city=null is preserved (not pruned as undefined)', () => {
@@ -6641,8 +6696,8 @@ describe('personal-agent.service', () => {
             assetContext: {
               assetType: 'storage',
               capacityClass: 'large',
-              mastrId: 'SEE9001',      // must be excluded
-              privateKey: 'secret',    // must be excluded
+              mastrId: 'SEE9001', // must be excluded
+              privateKey: 'secret', // must be excluded
             },
           },
         },
@@ -6668,9 +6723,14 @@ describe('personal-agent.service', () => {
           return {
             success: true,
             resolvedPersona: {
-              personaId: null, roleId: 'system_agent', confidence: 0.05,
-              resolutionMode: 'system_agent_fallback', availability: true,
-              matchedSignals: [], fallbackPersonaIds: [], policy: null,
+              personaId: null,
+              roleId: 'system_agent',
+              confidence: 0.05,
+              resolutionMode: 'system_agent_fallback',
+              availability: true,
+              matchedSignals: [],
+              fallbackPersonaIds: [],
+              policy: null,
             },
           };
         },
@@ -7232,10 +7292,7 @@ describe('personal-agent.service', () => {
         .spyOn(svc, 'selectRuntimeReceipt')
         .mockImplementation(async (ctx, payload) => {
           selectCallCount += 1;
-          const knownContext =
-            payload?.context?.knownContext ||
-            payload?.input?.knownContext ||
-            {};
+          const knownContext = payload?.context?.knownContext || payload?.input?.knownContext || {};
           const locationFields = ['city', 'postalCode', 'location', 'municipality'];
           const hasLocation = locationFields.some(
             (field) =>
@@ -7365,7 +7422,8 @@ describe('personal-agent.service', () => {
           const hasCity =
             typeof knownContext.city === 'string' && knownContext.city.trim().length > 0;
           const hasPostalCode =
-            typeof knownContext.postalCode === 'string' && knownContext.postalCode.trim().length > 0;
+            typeof knownContext.postalCode === 'string' &&
+            knownContext.postalCode.trim().length > 0;
 
           return {
             selected: true,
@@ -7468,7 +7526,6 @@ describe('personal-agent.service', () => {
             text: JSON.stringify({ mode: 'final', thought: 'done', reply: 'ok' }),
           };
         });
-
 
       const sessionId = `reflection-visibility-${Date.now()}`;
       const meta = { tenantId: 'tenant-reflection-visibility', authUser: { userId: 'u-vis' } };
@@ -8139,6 +8196,37 @@ describe('personal-agent.service', () => {
       return broker.getLocalService('personal-agent');
     }
 
+    it('clarifies generic EV charging question before selecting an optimization path', async () => {
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Wann soll ich mein Auto laden?',
+          sessionId: `ev-clarification-${Date.now()}`,
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          knownContext: {},
+          explainReceiptSelection: true,
+        },
+        {
+          meta: {
+            tenantId: 'tenant-ev-clarification',
+            authUser: { userId: 'user-ev-clarification' },
+          },
+        }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.status).toBe('awaiting_input');
+      expect(result.clarification?.policyId).toBe('ev-charging-objective-disambiguation-v1');
+      expect(result.reply).toMatch(/Strompreis|Börsenpreis/i);
+      expect(result.reply).toMatch(/CO2|CO₂|GrünstromIndex/i);
+      expect(result.reply).toMatch(/Standort|PLZ|Ladedauer|Abfahrtszeit/i);
+      expect(result.metadata?.clarificationPolicy?.id).toBe(
+        'ev-charging-objective-disambiguation-v1'
+      );
+      expect(result.metadata?.receiptSelection).toBeUndefined();
+    });
+
     // ── Test A: Multi-turn EV CO2 consultation yields data-based answer ───────
 
     it('TestA: 3-turn EV CO2 consultation triggers receipt execution on turn 3', async () => {
@@ -8199,9 +8287,7 @@ describe('personal-agent.service', () => {
       expect(receiptUsed).toBe(true);
 
       // energy-market.co2Intensity must have been executed
-      const co2Called = executedCallDetails.some(
-        (e) => e.action === 'energy-market.co2Intensity'
-      );
+      const co2Called = executedCallDetails.some((e) => e.action === 'energy-market.co2Intensity');
       expect(co2Called).toBe(true);
 
       // Reply must be concrete (reference CO2/Grünstrom data), not generic
@@ -8470,13 +8556,46 @@ describe('personal-agent.service', () => {
       expect(locTrace).toBeTruthy();
       expect(locTrace.postalCode).toBe('74889');
       expect(locTrace.municipality).toMatch(/Sinsheim/i);
-      expect(locTrace.state).toBe('Baden-Württemberg');  // PLZ 74xxx → BW
-      expect(locTrace.state).not.toBe('Schleswig-Holstein');  // regression guard
+      expect(locTrace.state).toBe('Baden-Württemberg'); // PLZ 74xxx → BW
+      expect(locTrace.state).not.toBe('Schleswig-Holstein'); // regression guard
       expect(locTrace.municipalityResolved).toBe(true);
       expect(locTrace.precision).toBe('municipality_resolved');
       expect(locTrace.siteCoordinatesMissing).toBe(true);
       // nextVerificationSteps must be present for DevOps/OSM consumers
       expect(Array.isArray(locTrace.nextVerificationSteps)).toBe(true);
+    });
+
+    it('missing user role does not block Sinsheim precheck or invent a concrete role', async () => {
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message:
+            'Ich brauche eine Einschätzung, ob in 74889 Sinsheim Rechenzentrum, PV, Batteriespeicher und Ladepark sinnvoll angesiedelt werden können.',
+          sessionId: `sinsheim-missing-role-${Date.now()}`,
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          knownContext: {},
+        },
+        {
+          meta: {
+            tenantId: 'tenant-sinsheim-missing-role',
+            authUser: { userId: 'user-unknown-role' },
+          },
+        }
+      );
+
+      expect(result.success).toBe(true);
+
+      const locTrace = result.agentTrace?.locationResolution;
+      expect(locTrace).toBeTruthy();
+      expect(locTrace.postalCode).toBe('74889');
+      expect(locTrace.municipality).toMatch(/Sinsheim/i);
+      expect(locTrace.municipalityResolved).toBe(true);
+      expect(locTrace.precision).toBe('municipality_resolved');
+
+      const reply = String(result.reply || '');
+      expect(reply).not.toMatch(/\b(Bürgermeister|Geschäftsführer|Vertriebler|Netzbetreiber)\b/i);
+      expect(result.agentTrace?.personaResolution?.roleId).toBe('system_agent');
     });
 
     it('AT2: brokerKnownContext is hydrated with postalCode before consultation bridge runs', async () => {
@@ -8486,7 +8605,8 @@ describe('personal-agent.service', () => {
         buildLocationContextPatch,
       } = require('../src/location-resolution');
 
-      const msg = 'Ich bin Bürgermeister von 74889 Sinsheim und soll einschätzen, ob Rechenzentrum möglich ist.';
+      const msg =
+        'Ich bin Bürgermeister von 74889 Sinsheim und soll einschätzen, ob Rechenzentrum möglich ist.';
       const resolved = resolveLocationFromText(msg, {});
       const patch = buildLocationContextPatch(resolved);
 
@@ -8496,7 +8616,10 @@ describe('personal-agent.service', () => {
     });
 
     it('AT6: locationResolution trace has source = text_extraction when extracted from message', () => {
-      const { resolveLocationFromText, buildLocationResolutionTrace } = require('../src/location-resolution');
+      const {
+        resolveLocationFromText,
+        buildLocationResolutionTrace,
+      } = require('../src/location-resolution');
       const resolved = resolveLocationFromText('Standort: 74889 Sinsheim, Gewerbegebiet Nord');
       const trace = buildLocationResolutionTrace(resolved);
       expect(trace.source).toBe('text_extraction');
@@ -8581,9 +8704,7 @@ describe('personal-agent.service', () => {
 
       const req = recordRequirementCalls.find((c) => c.params.requestedFact === 'gridOperatorBdew');
       if (!req) {
-        expect(
-          result.missingEvidence?.some((e) => e.id === 'vnb_lookup_required')
-        ).toBe(false);
+        expect(result.missingEvidence?.some((e) => e.id === 'vnb_lookup_required')).toBe(false);
         return;
       }
 

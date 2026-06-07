@@ -5,7 +5,7 @@
   "meta": {
     "title": "Energy-Sharing Validierung",
     "description": "Validiert eine geplante oder bestehende Energy-Sharing-Gemeinschaft (§42c EnWG) mitsamt Erzeugern und Verbrauchern.",
-    "targetAudience": "commercial_supply"
+    "targetAudience": "end_user"
   },
   "routing": {
     "intentSignals": [
@@ -20,13 +20,7 @@
       "enwg",
       "verbrauchergemeinschaft"
     ],
-    "negativeSignals": [
-      "strompreis",
-      "co2-intensität",
-      "grünstrom",
-      "laden",
-      "ladefenster"
-    ],
+    "negativeSignals": ["strompreis", "co2-intensität", "grünstrom", "laden", "ladefenster"],
     "priorityBoost": 5
   },
   "inputs": {
@@ -101,10 +95,7 @@
     "mappings": {}
   },
   "synthesis": {
-    "evidenceRequired": [
-      "steps.fetch_vnb_bdew.output",
-      "steps.validate_sharing.output"
-    ],
+    "evidenceRequired": ["steps.fetch_vnb_bdew.output", "steps.validate_sharing.output"],
     "templates": {
       "success": "Energy-Sharing Validierung für PLZ {{inputs.postalCode}}: Die Gemeinschaft '{{inputs.communityName}}' im Netzgebiet von {{steps.fetch_vnb_bdew.output.data.companyName}} (BDEW: {{steps.fetch_vnb_bdew.output.data.bdew}}) wurde geprüft. Entscheidung der Pipeline: {{steps.validate_sharing.output.decision}}.",
       "error": "Die Validierung der Energy-Sharing-Gemeinschaft für {{inputs.postalCode}} konnte nicht durchgeführt werden. Bitte prüfen Sie die MaStR-Nummer des Erzeugers und die MaLo-ID des Verbrauchers."
