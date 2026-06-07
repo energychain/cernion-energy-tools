@@ -36,6 +36,8 @@ function toPublic(doc, { includeDeleted = false } = {}) {
     ruleSetVersion: doc.ruleSetVersion ?? null,
     legalStatus: doc.legalStatus ?? null,
     blueprintId: doc.blueprintId ?? null,
+    jobId: doc.jobId ?? null,
+    executionMode: doc.executionMode ?? 'sync',
     status: doc.status,
     summary: doc.summary ?? null,
     options: doc.options ?? null,
@@ -96,6 +98,14 @@ module.exports = {
         priceSeries: { type: 'array', optional: true },
         injectionSeries: { type: 'array', optional: true },
         warnings: { type: 'array', optional: true },
+        // WP F: async job linkage
+        jobId: { type: 'string', optional: true },
+        executionMode: {
+          type: 'enum',
+          values: ['sync', 'async', 'auto'],
+          optional: true,
+          default: 'sync',
+        },
       },
       async handler(ctx) {
         const runId = makeRunId();
@@ -128,6 +138,8 @@ module.exports = {
           ruleSetVersion: p.ruleSetVersion ?? null,
           legalStatus: p.legalStatus ?? null,
           blueprintId: p.blueprintId ?? null,
+          jobId: p.jobId ?? null,
+          executionMode: p.executionMode ?? 'sync',
           summary: p.summary,
           options: p.options ?? null,
           ruleSetSnapshot: p.ruleSetSnapshot ?? null,
@@ -184,6 +196,8 @@ module.exports = {
       params: {
         assetId: { type: 'string', optional: true },
         ruleSetId: { type: 'string', optional: true },
+        jobId: { type: 'string', optional: true },
+        executionMode: { type: 'string', optional: true },
         status: { type: 'string', optional: true },
         from: { type: 'string', optional: true },
         to: { type: 'string', optional: true },
@@ -191,7 +205,8 @@ module.exports = {
         limit: { type: 'number', integer: true, positive: true, optional: true, default: 50 },
       },
       async handler(ctx) {
-        const { assetId, ruleSetId, status, from, to, includeDeleted, limit } = ctx.params;
+        const { assetId, ruleSetId, jobId, executionMode, status, from, to, includeDeleted, limit } =
+          ctx.params;
         const result = await this._db.allDocs({
           include_docs: true,
           startkey: 'rcs:run:',
@@ -205,6 +220,8 @@ module.exports = {
         // Apply filters
         if (assetId) docs = docs.filter((d) => d.assetId === assetId);
         if (ruleSetId) docs = docs.filter((d) => d.ruleSetId === ruleSetId);
+        if (jobId) docs = docs.filter((d) => d.jobId === jobId);
+        if (executionMode) docs = docs.filter((d) => d.executionMode === executionMode);
         if (status) docs = docs.filter((d) => d.status === status);
         if (from) docs = docs.filter((d) => d.createdAt >= from);
         if (to) docs = docs.filter((d) => d.createdAt <= to);

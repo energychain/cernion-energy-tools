@@ -20,23 +20,42 @@ function round2(n) {
 }
 
 /**
+ * Normalize a timestamp string to UTC ISO-8601.
+ * Strings without a timezone indicator are treated as UTC (not local time),
+ * preventing DST ambiguity when providers omit the timezone offset.
+ */
+function normaliseTimestamp(ts) {
+  if (typeof ts !== 'string') return new Date(Number(ts)).toISOString();
+  // Already has timezone info (Z or ±HH:MM or ±HHmm)
+  if (/Z$|[+-]\d{2}:?\d{2}$/.test(ts.trim())) return new Date(ts).toISOString();
+  // No timezone: treat as UTC to avoid DST-ambiguous local-time parsing
+  return new Date(ts + 'Z').toISOString();
+}
+
+/**
  * Expand hourly price entries to 15-minute resolution by flat-holding the hour value
  * across all four quarter-hour slots. Already-quarterly entries pass through unchanged.
  * Deduplication ensures no double-counting when both granularities are mixed.
+ * DST-safe: all arithmetic is UTC-based; timestamps without timezone are treated as UTC.
  */
 function interpolatePricesToQuarterHour(prices) {
   const expanded = [];
   for (const entry of prices) {
-    const ts = new Date(entry.timestamp);
-    if (ts.getMinutes() === 0 && ts.getSeconds() === 0) {
+    const normTs = normaliseTimestamp(entry.timestamp);
+    const ts = new Date(normTs);
+    const ms = ts.getTime();
+    // Detect hourly entries: minute and second are zero in UTC
+    const minuteUtc = Math.floor((ms % 3600000) / 60000);
+    const secondUtc = Math.floor((ms % 60000) / 1000);
+    if (minuteUtc === 0 && secondUtc === 0) {
       for (let q = 0; q < 4; q++) {
         expanded.push({
-          timestamp: new Date(ts.getTime() + q * 15 * 60000).toISOString(),
+          timestamp: new Date(ms + q * 15 * 60000).toISOString(),
           priceEurMwh: entry.priceEurMwh,
         });
       }
     } else {
-      expanded.push({ timestamp: new Date(ts).toISOString(), priceEurMwh: entry.priceEurMwh });
+      expanded.push({ timestamp: normTs, priceEurMwh: entry.priceEurMwh });
     }
   }
   // Deduplicate: keep first occurrence per timestamp (quarterly entry wins over expansion).
@@ -54,7 +73,7 @@ function interpolatePricesToQuarterHour(prices) {
 function alignInjectionToPrices(priceIntervals, injection) {
   const injMap = new Map();
   for (const entry of injection) {
-    injMap.set(new Date(entry.timestamp).toISOString(), Number(entry.volumeKwh ?? 0));
+    injMap.set(normaliseTimestamp(entry.timestamp), Number(entry.volumeKwh ?? 0));
   }
   return priceIntervals.map((p) => ({
     timestamp: p.timestamp,
@@ -90,7 +109,7 @@ const RULE_ARM_REASONS = {
  * @returns {{ summary, intervals?, ruleSetId?, ruleSetVersion? }}
  */
 function runCalculation(asset, prices, injection, options = {}) {
-  const { ruleSet, includeIntervalTrace = true } = options;
+  const { ruleSet, includeIntervalTrace = true, maxIntervals } = options;
 
   const awCentsPerKwh = Number(asset.awCentsPerKwh);
 
@@ -102,7 +121,9 @@ function runCalculation(asset, prices, injection, options = {}) {
   const floorCentsKwh = floorEurMwh / 10;
 
   const priceIntervals = interpolatePricesToQuarterHour(prices);
-  const aligned = alignInjectionToPrices(priceIntervals, injection);
+  const fullAligned = alignInjectionToPrices(priceIntervals, injection);
+  // maxIntervals caps both the price grid and injection in one place (used for large-portfolio chunking)
+  const aligned = maxIntervals ? fullAligned.slice(0, maxIntervals) : fullAligned;
 
   // Running accumulators
   let totalVolumeKwh = 0;
@@ -214,6 +235,7 @@ module.exports = {
   runCalculation,
   interpolatePricesToQuarterHour,
   alignInjectionToPrices,
+  normaliseTimestamp,
   computeLiquidityRiskIndex,
   TECHNOLOGY_FLOORS_EUR_MWH,
   S51_NEG_HOURS_THRESHOLD,

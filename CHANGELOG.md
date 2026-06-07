@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.60.5] — RCS Massendatenfähigkeit: Async Portfolio Runs, Chunking & Time-Series Hardening (2026-06-07)
+
+### Added
+
+- **WP A — Async Portfolio Simulation**: `simulatePortfolio` accepts `executionMode: 'auto' | 'sync' | 'async'`. `auto` (default) lets the existing gateway flag decide; `sync` always runs inline; `async` forces the CET job system regardless of call origin. Async response: `{ success, jobId, status: 'queued', statusUrl, resultUrl, progressUrl }`. Idempotency key derived from payload hash via `runAsync`. Internal Moleculer calls remain synchronous in `auto` mode (zero backward-compat breakage).
+
+- **WP B — Async Portfolio Readiness**: `assessPortfolioReadiness` gains the same `executionMode` param. Progress phases logged via `jobStore.appendLog`: `price_series` (10%), `timeseries_check` (20%–70% per-asset), `aggregation` (80%), `persist` (100%).
+
+- **WP C — Chunked Portfolio Processing**: `options.chunkSize` (default: 20) splits the asset list into sequential Promise.all batches, limiting memory pressure for large portfolios. `options.maxAssets` (default: 500) guards against portfolio overload — throws `RCS_MAX_ASSETS_EXCEEDED`. `options.maxIntervalsPerAsset` caps the aligned price+injection grid inside `runCalculation` via the new `maxIntervals` option, limiting per-asset compute to a time window. Progress logged per chunk.
+
+- **WP D — Trace Payload Governance**: `options.traceMode: 'none' | 'summary' | 'sample' | 'full'` replaces the old boolean `includeIntervalTrace` (old option still accepted for backward compat). `none`: no intervals; `summary`: ruleArmSummary only; `sample`: first `traceSampleSize` (default: 10) intervals; `full`: all intervals (blocked for portfolios > 50 assets without `traceAssetIds`). `options.traceAssetIds` restricts trace to listed assets. `options.topNTraceByDelta` selects the N assets with worst delta (post-run ranking) for trace inclusion. `ruleArmSummary` always computed and included in both per-asset results and at portfolio level. Error code `RCS_TRACE_PAYLOAD_TOO_LARGE` (HTTP 400) returned for dangerously large trace requests.
+
+- **WP E — Massendaten-sichere Ergebnisstruktur**: Portfolio result now includes `assetResultsTotal`, `assetResultsOffset`, `hasMoreAssetResults` for pagination (`options.assetResultsLimit`, `options.assetResultsOffset`). `topAssetsByClawback`: top-N by clawback amount. `topAssetsByDataRisk`: assets with errors or `not_ready`/`partial` readiness status. `errorCount`: total error count (error list bounded to 50 entries).
+
+- **WP F — RCS Run Persistenz für Async Jobs**: `saveRun` now accepts `jobId` and `executionMode` params. Both fields are persisted in the run document, exposed via `getRun`/`listRuns`. `listRuns` filterable by `jobId` and `executionMode`.
+
+- **WP G — Zeitreihen-Normalisierung / DST-Hardening**: New `normaliseTimestamp(ts)` function in `src/eeg-clawback-calculator.js` ensures timestamps without an explicit timezone offset are treated as UTC (not local time), preventing DST-ambiguous wall-clock parsing when providers omit the timezone. Applied in both `interpolatePricesToQuarterHour` and `alignInjectionToPrices`. Hourly detection now uses pure UTC modulo arithmetic (avoids `Date.getMinutes()` local-time trap). `normaliseTimestamp` exported for testing.
+
+- **WP H — Preiszeitreihen-Wiederverwendung**: The shared price fetch across all assets in a portfolio run (introduced in v0.60.4) is maintained and documented as the canonical pattern. Chunked processing reuses the same price array across all chunks with no redundant fetches.
+
+### Changed
+
+- `runCalculation` accepts `options.maxIntervals` to cap the aligned price+injection grid before the accumulation loop, enabling time-window limiting without altering the public API of the L1 calculator.
+- `aggregatePortfolioRuleArmSummary` aggregates per-arm clawback and volume totals across all successful assets in the portfolio.
+- `services/eeg-clawback-calculator.service.js`: portfolio core logic extracted to `runPortfolioSimulationCore` and `runPortfolioReadinessCore` private functions, enabling clean reuse across sync and async execution paths.
+
+### Tests
+
+- `tests/rcs-portfolio-async.test.js` — new (33 tests): traceMode governance (none/summary/sample/full), full-trace size guard, traceAssetIds filtering, topNTraceByDelta, ruleArmSummary structure, chunked processing with chunkSize=2, maxAssets guard, maxIntervalsPerAsset truncation, large portfolio (50/100 assets), pagination, topAssetsByClawback/DataRisk, errorCount, executionMode (sync/auto/async), assessPortfolioReadiness executionMode, DST normaliseTimestamp (5 cases), DST-safe interpolation.
+
 ## [0.60.4] — RCS P0 Hardening + P1 Portfolio Foundation (2026-06-07)
 
 ### Added
