@@ -74,14 +74,24 @@ function computeLiquidityRiskIndex(retainedCents, oldLawCents) {
 /**
  * Core EEG Claw-Back calculation.
  *
- * @param {object} asset  - { technology, capacityKw, awCentsPerKwh, commissioningDate }
- * @param {Array}  prices - [{ timestamp, priceEurMwh }]
+ * @param {object} asset   - { technology, capacityKw, awCentsPerKwh, commissioningDate }
+ * @param {Array}  prices  - [{ timestamp, priceEurMwh }]
  * @param {Array}  injection - [{ timestamp, volumeKwh }]
- * @returns {{ summary, intervals }}
+ * @param {object} [options]
+ * @param {object} [options.ruleSet]           - Versioned rule set from rcs-rule-registry; overrides env defaults.
+ * @param {boolean} [options.includeIntervalTrace=true] - When false, omit `intervals` from result.
+ * @returns {{ summary, intervals?, ruleSetId? }}
  */
-function runCalculation(asset, prices, injection) {
+function runCalculation(asset, prices, injection, options = {}) {
+  const { ruleSet, includeIntervalTrace = true } = options;
+
   const awCentsPerKwh = Number(asset.awCentsPerKwh);
-  const floorEurMwh = TECHNOLOGY_FLOORS_EUR_MWH[asset.technology] ?? 0;
+
+  // Resolve floors: rule set parameters take priority over env-var constants.
+  const floors = ruleSet?.parameters?.technologyFloors ?? TECHNOLOGY_FLOORS_EUR_MWH;
+  const s51Threshold = ruleSet?.parameters?.s51ConsecutiveNegHours ?? S51_NEG_HOURS_THRESHOLD;
+
+  const floorEurMwh = floors[asset.technology] ?? 0;
   const floorCentsKwh = floorEurMwh / 10;
 
   const priceIntervals = interpolatePricesToQuarterHour(prices);
@@ -111,7 +121,7 @@ function runCalculation(asset, prices, injection) {
     } else {
       negativeHoursAccum = 0;
     }
-    const isCurtailedA = priceCentsKwh < 0 && negativeHoursAccum >= S51_NEG_HOURS_THRESHOLD;
+    const isCurtailedA = priceCentsKwh < 0 && negativeHoursAccum >= s51Threshold;
     const payableVolumeA = isCurtailedA ? 0 : volumeKwh;
     const revenueA = payableVolumeA * awCentsPerKwh;
     totalRevenueCentsA += revenueA;
@@ -124,16 +134,20 @@ function runCalculation(asset, prices, injection) {
     //   • price > AW             → excess-profit clawback
     let rbCents = 0;
     let isClawbackActive = false;
+    let ruleArm = 'none';
 
     if (priceCentsKwh < 0) {
       rbCents = Math.abs(priceCentsKwh) * volumeKwh;
       isClawbackActive = true;
+      ruleArm = 'negative_price';
     } else if (floorCentsKwh > 0 && priceCentsKwh < floorCentsKwh) {
       rbCents = (floorCentsKwh - priceCentsKwh) * volumeKwh;
       isClawbackActive = true;
+      ruleArm = 'sub_floor';
     } else if (priceCentsKwh > awCentsPerKwh) {
       rbCents = (priceCentsKwh - awCentsPerKwh) * volumeKwh;
       isClawbackActive = true;
+      ruleArm = 'excess_profit';
     }
 
     const retainedCentsB = awCentsPerKwh * volumeKwh - rbCents;
@@ -146,6 +160,7 @@ function runCalculation(asset, prices, injection) {
       volumeKwh: round4(volumeKwh),
       priceCentsKwh: round4(priceCentsKwh),
       isClawbackActive,
+      ruleArm,
       calculatedRbCents: round4(rbCents),
     });
   }
@@ -166,7 +181,10 @@ function runCalculation(asset, prices, injection) {
     liquidityRiskIndex: computeLiquidityRiskIndex(totalRetainedCentsB, totalRevenueCentsA),
   };
 
-  return { summary, intervals };
+  const result = { summary };
+  if (includeIntervalTrace) result.intervals = intervals;
+  if (ruleSet?.id) result.ruleSetId = ruleSet.id;
+  return result;
 }
 
 module.exports = {

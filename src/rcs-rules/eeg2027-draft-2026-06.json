@@ -1,0 +1,20 @@
+{
+  "id": "eeg2027-draft-2026-06",
+  "version": "1.0.0",
+  "status": "active",
+  "effectiveFrom": "2026-06-01",
+  "sourceReference": "Referentenentwurf EEG 2027 (revidiert), BMWK, Juni 2026",
+  "calculationMode": "simulation",
+  "parameters": {
+    "s51ConsecutiveNegHours": 4,
+    "technologyFloors": {
+      "solar": 0.0,
+      "wind_onshore": 2.0,
+      "wind_offshore": 0.5,
+      "biomass": 1.0
+    },
+    "supportedTechnologies": ["solar", "wind_onshore", "wind_offshore", "biomass"],
+    "priceIndexDefault": "DA",
+    "calculationBasis": "quarterly"
+  }
+}

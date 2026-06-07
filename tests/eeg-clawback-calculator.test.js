@@ -200,3 +200,138 @@ describe('interpolatePricesToQuarterHour', () => {
     expect(result[0].priceEurMwh).toBe(55);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// P0.1 — ruleSet parameter overrides env-var defaults
+// ─────────────────────────────────────────────────────────────────────────────
+describe('runCalculation — options.ruleSet overrides', () => {
+  const asset = {
+    technology: 'wind_onshore',
+    capacityKw: 1000,
+    awCentsPerKwh: 9.0,
+    commissioningDate: '2022-01-01',
+  };
+
+  // AW-loser Preis zwischen altem Floor (1.5 EUR/MWh) und neuem Floor (2.0 EUR/MWh)
+  // With floor=1.5: 1.7 EUR/MWh is ABOVE floor → no sub_floor clawback
+  // With floor=2.0: 1.7 EUR/MWh is BELOW floor → sub_floor clawback
+  const prices = [{ timestamp: '2027-04-01T08:00:00Z', priceEurMwh: 1.7 }];
+  const injection = [{ timestamp: '2027-04-01T08:00:00Z', volumeKwh: 100 }];
+
+  test('without ruleSet: uses env-var floor (1.5) → price 1.7 is above floor, no clawback', () => {
+    const result = runCalculation(asset, prices, injection);
+    // env default wind_onshore floor = 1.5 EUR/MWh; 1.7 > 1.5 → no sub_floor arm
+    expect(result.intervals[0].isClawbackActive).toBe(false);
+  });
+
+  test('with june ruleSet (floor=2.0): price 1.7 triggers sub_floor clawback', () => {
+    const juneRuleSet = {
+      id: 'eeg2027-draft-2026-06',
+      parameters: {
+        s51ConsecutiveNegHours: 4,
+        technologyFloors: { solar: 0, wind_onshore: 2.0, wind_offshore: 0.5, biomass: 1.0 },
+      },
+    };
+    const result = runCalculation(asset, prices, injection, { ruleSet: juneRuleSet });
+    expect(result.intervals[0].isClawbackActive).toBe(true);
+    expect(result.intervals[0].ruleArm).toBe('sub_floor');
+  });
+
+  test('ruleSetId is included in result when ruleSet has an id', () => {
+    const ruleSet = {
+      id: 'eeg2027-draft-2026-06',
+      parameters: { s51ConsecutiveNegHours: 4, technologyFloors: { wind_onshore: 2.0 } },
+    };
+    const result = runCalculation(asset, prices, injection, { ruleSet });
+    expect(result.ruleSetId).toBe('eeg2027-draft-2026-06');
+  });
+
+  test('s51 threshold from ruleSet is used (4h vs. 6h env default)', () => {
+    // Build 16 × 15-min negative-price intervals (= 4 hours) at the 4h threshold boundary
+    const base = new Date('2027-04-01T08:00:00Z').getTime();
+    const negPrices = Array.from({ length: 16 }, (_, i) => ({
+      timestamp: new Date(base + i * 15 * 60000).toISOString(),
+      priceEurMwh: -5,
+    }));
+    const negInjection = negPrices.map((p) => ({ timestamp: p.timestamp, volumeKwh: 10 }));
+
+    // With env default (6h threshold): at 4h accumulated, curtailment NOT yet active for §51
+    // (§51 Scenario A), but Scenario B clawback is always active for negative prices.
+    // The s51 threshold affects Scenario A curtailment, not Scenario B clawback.
+    // Let's verify: last interval is the 16th = exactly 4h. With 6h threshold → NOT curtailed.
+    const defaultResult = runCalculation(asset, negPrices, negInjection);
+    const lastDefaultIv = defaultResult.intervals[15];
+    expect(lastDefaultIv.isClawbackActive).toBe(true); // B is always active for neg prices
+
+    // With 4h ruleSet threshold → same behavior for Scenario B
+    const ruleSet4h = {
+      id: 'eeg2027-4h-test',
+      parameters: { s51ConsecutiveNegHours: 4, technologyFloors: { wind_onshore: 0.0 } },
+    };
+    const result4h = runCalculation(asset, negPrices, negInjection, { ruleSet: ruleSet4h });
+    expect(result4h.intervals[15].isClawbackActive).toBe(true);
+    // Scenario A: old law curtailed hours — with 4h threshold, at the 16th slot (4h) curtailed
+    // With env default (6h threshold), at 4h NOT curtailed
+    // curtailedHoursCount changes based on threshold
+    expect(result4h.summary.calculatedUnderOldLaw.curtailedHoursCount).toBeGreaterThan(
+      defaultResult.summary.calculatedUnderOldLaw.curtailedHoursCount
+    );
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// P0.3 — ruleArm enum + includeIntervalTrace
+// ─────────────────────────────────────────────────────────────────────────────
+describe('runCalculation — P0.3 interval trace options', () => {
+  const asset = {
+    technology: 'solar',
+    capacityKw: 100,
+    awCentsPerKwh: 7.5,
+    commissioningDate: '2024-01-01',
+  };
+
+  function makeQhPrices(count, priceEurMwh, start = '2027-04-15T00:00:00Z') {
+    const base = new Date(start).getTime();
+    return Array.from({ length: count }, (_, i) => ({
+      timestamp: new Date(base + i * 15 * 60000).toISOString(),
+      priceEurMwh,
+    }));
+  }
+
+  test('ruleArm is "none" when price is between 0 and AW', () => {
+    const prices = makeQhPrices(1, 50); // 50 EUR/MWh = 5 cents/kWh < AW 7.5 → no arm
+    const injection = [{ timestamp: prices[0].timestamp, volumeKwh: 10 }];
+    const result = runCalculation(asset, prices, injection);
+    expect(result.intervals[0].ruleArm).toBe('none');
+  });
+
+  test('ruleArm is "negative_price" when price < 0', () => {
+    const prices = makeQhPrices(1, -10);
+    const injection = [{ timestamp: prices[0].timestamp, volumeKwh: 10 }];
+    const result = runCalculation(asset, prices, injection);
+    expect(result.intervals[0].ruleArm).toBe('negative_price');
+  });
+
+  test('ruleArm is "excess_profit" when price > AW', () => {
+    const prices = makeQhPrices(1, 80); // 80 EUR/MWh = 8 cents/kWh > AW 7.5
+    const injection = [{ timestamp: prices[0].timestamp, volumeKwh: 10 }];
+    const result = runCalculation(asset, prices, injection);
+    expect(result.intervals[0].ruleArm).toBe('excess_profit');
+  });
+
+  test('includeIntervalTrace: false omits intervals from result', () => {
+    const prices = makeQhPrices(4, 50);
+    const injection = prices.map((p) => ({ timestamp: p.timestamp, volumeKwh: 10 }));
+    const result = runCalculation(asset, prices, injection, { includeIntervalTrace: false });
+    expect(result.intervals).toBeUndefined();
+    expect(result.summary).toBeDefined();
+  });
+
+  test('includeIntervalTrace: true (default) includes intervals', () => {
+    const prices = makeQhPrices(4, 50);
+    const injection = prices.map((p) => ({ timestamp: p.timestamp, volumeKwh: 10 }));
+    const result = runCalculation(asset, prices, injection, { includeIntervalTrace: true });
+    expect(Array.isArray(result.intervals)).toBe(true);
+    expect(result.intervals).toHaveLength(4);
+  });
+});

@@ -375,6 +375,15 @@ function requiresFullAccess(method, requestPath) {
   if (pathOnly === '/api/vnb/rcs/simulate' && m === 'POST') {
     return true;
   }
+  if (pathOnly === '/api/vnb/rcs/assess-readiness' && m === 'POST') {
+    return true;
+  }
+  if (pathOnly === '/api/vnb/rcs/runs' && (m === 'POST' || m === 'GET')) {
+    return true;
+  }
+  if (pathOnly.startsWith('/api/vnb/rcs/runs/') && (m === 'GET' || m === 'DELETE')) {
+    return true;
+  }
   if (pathOnly === '/api/knowledge-rag/collections' && m === 'POST') {
     return true;
   }
@@ -1114,9 +1123,15 @@ module.exports = {
           'POST /in-memory-join/metering-spot-cost': 'in-memory-join.meteringSpotCost',
           'POST /in-memory-join/benchmark-compare': 'in-memory-join.benchmarkCompare',
           'POST /in-memory-join/compare-forecast-actual': 'in-memory-join.compareForecastActual',
-          // EEG Claw-Back Simulator (RCS, v0.58)
+          // EEG Claw-Back Simulator (RCS, v0.58+)
           'POST /vnb/rcs/simulate': 'eeg-clawback-calculator.simulate',
           'POST /vnb/rcs/calculate': 'eeg-clawback-calculator.calculate',
+          'POST /vnb/rcs/assess-readiness': 'eeg-clawback-calculator.assessReadiness',
+          // RCS Simulation Run persistence (P0.4)
+          'POST /vnb/rcs/runs': 'rcs-simulation-run.saveRun',
+          'GET /vnb/rcs/runs': 'rcs-simulation-run.listRuns',
+          'GET /vnb/rcs/runs/:runId': 'rcs-simulation-run.getRun',
+          'DELETE /vnb/rcs/runs/:runId': 'rcs-simulation-run.deleteRun',
           // EOG Calculator (Revenue Cap Calculation)
           'POST /eog-calculator/input-status': 'eog-calculator.inputStatus',
           'POST /eog-calculator/validate-datapoints': 'eog-calculator.validateDatapoints',

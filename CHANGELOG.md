@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.60.3] — RCS P0 Backend: Rule Registry, Readiness Audit, Interval Trace, Simulation Run Persistence (2026-06-07)
+
+### Added
+
+- **P0.1 Rule-Versioning / Rule Registry** (`src/rcs-rule-registry.js`): File-based registry that loads all JSON rule sets from `src/rcs-rules/`, supports runtime overlay via `registerRuleSet`, resolves `'latest'` to the newest active rule by `effectiveFrom`, and validates rule shape (`id`, `version`, `effectiveFrom`, `calculationMode`, `parameters.s51ConsecutiveNegHours`, `technologyFloors`, `supportedTechnologies`).
+  - [`src/rcs-rules/eeg2027-draft-2026-04.json`](src/rcs-rules/eeg2027-draft-2026-04.json): April-2026 Referentenentwurf — s51 threshold 6h, wind_onshore floor 1.5 EUR/MWh (status: superseded).
+  - [`src/rcs-rules/eeg2027-draft-2026-06.json`](src/rcs-rules/eeg2027-draft-2026-06.json): Juni-2026 Referentenentwurf (revidiert) — s51 threshold 4h, wind_onshore 2.0, wind_offshore 0.5, biomass 1.0 EUR/MWh (status: active).
+  - `services/eeg-clawback-calculator.service.js`: both `calculate` and `simulate` actions now accept `options.ruleSetId`; if omitted, `resolveRuleSet('latest')` is used. Rule set parameters override env-var constants inside `runCalculation` for full backward compatibility.
+
+- **P0.2 Data Readiness Audit** (`src/rcs-readiness.js`): Pure module — `assessAsset`, `assessTimeseries`, `computeReadiness` — that checks asset field completeness, timeseries slot coverage (expected vs. actual quarter-hour counts, gap detection), and emits an `overallStatus` (`ready` / `partial` / `not_ready`) with per-source detail and actionable recommendations.
+  - `services/eeg-clawback-calculator.service.js` — new `assessReadiness` action: orchestrates `assets.effective`, `energy-market.prices`, `edm.getTimeseries` in parallel (each fail-safe), delegates to `computeReadiness`, returns full report.
+  - `services/api.service.js`: `POST /api/vnb/rcs/assess-readiness` → `eeg-clawback-calculator.assessReadiness`.
+
+- **P0.3 Explainable Interval Trace** — `src/eeg-clawback-calculator.js` extended:
+  - `runCalculation(asset, prices, injection, options = {})`: accepts `options.ruleSet` (merged floors + s51 threshold, env-vars as fallback) and `options.includeIntervalTrace` (default `true`; set `false` to omit the `intervals` array and reduce payload size).
+  - Each interval now includes a `ruleArm` enum (`'none'` | `'negative_price'` | `'sub_floor'` | `'excess_profit'`) identifying which claw-back arm fired for that slot.
+  - Result includes `ruleSetId` when a rule set with an `id` field was supplied.
+
+- **P0.4 Simulation Run Persistence** (`services/rcs-simulation-run.service.js`): Moleculer service backed by PouchDB. Actions:
+  - `saveRun` — `POST /api/vnb/rcs/runs`: persist a completed simulation result with runId, assetId, timeframe, summary, ruleSetId, blueprintId, options, timestamps.
+  - `getRun` — `GET /api/vnb/rcs/runs/:runId`: retrieve by runId (404 if not found).
+  - `listRuns` — `GET /api/vnb/rcs/runs`: list all runs newest-first; optional `assetId` filter and `limit` (default 50).
+  - `deleteRun` — `DELETE /api/vnb/rcs/runs/:runId`: remove a run record (404 if not found).
+  - `services/api.service.js`: all four routes wired and guarded under `requiresFullAccess`.
+
+### Tests
+
+- `tests/rcs-rule-registry.test.js` — 29 new tests: file loading, listing, `resolveRuleSet('latest')`, explicit id lookup, runtime overlay priority, `unregisterRuleSet`, `validateRuleSet` with field-level error coverage.
+- `tests/eeg-clawback-calculator.test.js` — 14 new tests (P0.1 + P0.3): ruleSet parameter overrides env-var floor and s51 threshold, `ruleSetId` in result, `ruleArm` enum for all three arms, `includeIntervalTrace: false` omits intervals.
+- `tests/rcs-readiness.test.js` — 20 new tests: `assessAsset` complete/missing/invalid, `assessTimeseries` ready/partial/not_ready coverage bands, `computeReadiness` overall status logic and recommendations.
+- `tests/rcs-simulation-run.service.test.js` — 13 new tests: saveRun, getRun, listRuns (filter + limit), deleteRun, 404 behaviour.
+
 ## [0.60.2] — Clarification-Policy-Engine & EEG 2027 Claw-Back Simulator (2026-06-07)
 
 ### Added
