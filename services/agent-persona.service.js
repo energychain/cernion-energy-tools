@@ -763,6 +763,56 @@ module.exports = {
         },
         overwrite: { type: 'boolean', optional: true, default: false },
       },
+      openapi: {
+        summary: 'Seed EVU operational default personas',
+        description:
+          'Idempotently creates default specialized-agent personas for the given EVU operational roles ' +
+          '(customer-service, edm, billing, …). Existing personas are skipped unless overwrite:true is set. ' +
+          'Returns lists of created and skipped role keys.',
+        tags: [OPENAPI_TAG],
+        parameters: [tenantHeaderParameter()],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  roles: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Subset of EVU role keys to seed. Omit to seed all 16 roles.',
+                    example: ['customer-service', 'edm', 'billing'],
+                  },
+                  overwrite: {
+                    type: 'boolean',
+                    default: false,
+                    description: 'Replace existing personas from catalog defaults when true.',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Seed result',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    tenantId: { type: 'string', example: 'tenant-heidelberg' },
+                    created: { type: 'array', items: { type: 'string' }, example: ['customer-service', 'edm'] },
+                    skipped: { type: 'array', items: { type: 'string' }, example: ['billing'] },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       async handler(ctx) {
         const tenantId = this.assertTenantAccess(ctx, ctx.params.tenantId);
         const result = await this.seedEvuOperationalPersonas(tenantId, {

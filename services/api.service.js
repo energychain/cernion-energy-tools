@@ -1342,6 +1342,7 @@ module.exports = {
           'POST /agent-personas': 'agent-persona.create',
           'GET /agent-personas/by-role/:role': 'agent-persona.listByRole',
           'GET /agent-personas/resolve-by-role/:role': 'agent-persona.resolveByRole',
+          'POST /agent-personas/seed-operational-defaults': 'agent-persona.seedOperationalDefaults',
           'GET /agent-personas/:id': 'agent-persona.get',
           'PUT /agent-personas/:id': 'agent-persona.update',
           'DELETE /agent-personas/:id': 'agent-persona.remove',
