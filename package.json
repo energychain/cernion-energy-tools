@@ -35,6 +35,7 @@
     "sync:oeo": "node scripts/sync-oeo.js",
     "sync:oemetadata": "node scripts/sync-oemetadata.js",
     "migrate:jobs": "node scripts/migrate-jobs.js",
+    "seed:rcs-demo": "node scripts/seed-rcs-demo-tenant.js",
     "verify:agent-shapes": "node scripts/verify-agent-shapes.js",
     "verify:agent-shapes:curl": "bash scripts/verify-agent-shapes-curl.sh",
     "build": "echo 'No build step required'",
