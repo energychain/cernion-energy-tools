@@ -376,7 +376,7 @@ async function runPortfolioSimulationCore(
     allAssetResults.push(...chunkResults);
 
     if (runId) {
-      safeRunCall(ctx, 'rcs-simulation-run.saveAssetResults', {
+      await safeRunCall(ctx, 'rcs-simulation-run.saveAssetResults', {
         runId,
         results: chunkResults.map((r) => ({
           assetId: r.assetId,
@@ -393,7 +393,7 @@ async function runPortfolioSimulationCore(
       });
 
       if (chunkIdx % progressUpdateInterval === 0 || chunkIdx === totalChunks - 1) {
-        safeRunCall(ctx, 'rcs-simulation-run.updateRun', {
+        await safeRunCall(ctx, 'rcs-simulation-run.updateRun', {
           runId,
           status: 'running',
           progress: {
@@ -728,9 +728,14 @@ module.exports = {
           try {
             const result = await runPortfolioSimulationCore(ctx, { ...coreArgs, runId }, jobId);
             if (runId) {
-              safeRunCall(ctx, 'rcs-simulation-run.updateRun', {
+              await safeRunCall(ctx, 'rcs-simulation-run.updateRun', {
                 runId,
                 status: 'completed',
+                progress: {
+                  processedAssets: assetIds.length,
+                  totalAssets: assetIds.length,
+                  percent: 100,
+                },
                 portfolioSummary: result.portfolioSummary,
                 ruleArmSummary: result.ruleArmSummary,
                 errorCount: result.errorCount,
@@ -740,7 +745,7 @@ module.exports = {
             return { ...result, rcsRunId: runId };
           } catch (err) {
             if (runId) {
-              safeRunCall(ctx, 'rcs-simulation-run.updateRun', {
+              await safeRunCall(ctx, 'rcs-simulation-run.updateRun', {
                 runId,
                 status: 'failed',
                 errorMessage: String(err.message ?? err),
