@@ -65,6 +65,9 @@ function toPublic(doc, { includeDeleted = false } = {}) {
   if (isDeleted && !includeDeleted) return null;
   return {
     runId: doc.runId,
+    tenantId: doc.tenantId ?? null,
+    tenantName: doc.tenantName ?? null,
+    demo: Boolean(doc.demo),
     assetId: doc.assetId ?? null,
     assetName: doc.assetName ?? doc.assetId ?? null,
     assetIds: doc.assetIds ?? [doc.assetId],
@@ -499,11 +502,14 @@ module.exports = {
       params: {
         runId: { type: 'string', min: 1 },
         status: { type: 'string', optional: true },
+        readinessStatus: { type: 'string', optional: true },
+        technology: { type: 'string', optional: true },
+        q: { type: 'string', optional: true },
         limit: { type: 'number', integer: true, positive: true, optional: true, default: 100, convert: true },
         offset: { type: 'number', integer: true, min: 0, optional: true, default: 0, convert: true },
       },
       async handler(ctx) {
-        const { runId, status, limit, offset } = ctx.params;
+        const { runId, status, readinessStatus, technology, q, limit, offset } = ctx.params;
 
         const result = await this._db.allDocs({
           include_docs: true,
@@ -513,17 +519,30 @@ module.exports = {
 
         let docs = result.rows.map((r) => r.doc).filter(Boolean);
         if (status) docs = docs.filter((d) => d.status === status);
+        if (readinessStatus) docs = docs.filter((d) => d.readinessStatus === readinessStatus);
+        if (technology) docs = docs.filter((d) => d.technology === technology);
+        if (q) {
+          const needle = q.toLowerCase();
+          docs = docs.filter((d) =>
+            String(d.assetId ?? '').toLowerCase().includes(needle) ||
+            String(d.assetName ?? '').toLowerCase().includes(needle)
+          );
+        }
 
         const total = docs.length;
         const page = docs.slice(offset, offset + limit);
         const hasMore = offset + limit < total;
 
+        const items = page.map((d) => toPublicAsset(d, { hasTrace: false }));
+
         return {
           runId,
           total,
+          limit,
           offset,
           hasMore,
-          assetResults: page.map((d) => toPublicAsset(d, { hasTrace: false })),
+          items,
+          assetResults: items,
         };
       },
     },
@@ -583,14 +602,16 @@ module.exports = {
           endkey: `rcs:asset:${runId}:￿`,
         });
 
-        const errorDocs = result.rows
+        const allErrorDocs = result.rows
           .map((r) => r.doc)
-          .filter((d) => d && d.status === 'error')
-          .slice(0, limit);
+          .filter((d) => d && d.status === 'error');
+        const errorDocs = allErrorDocs.slice(0, limit);
 
         return {
           runId,
-          errorCount: errorDocs.length,
+          total: allErrorDocs.length,
+          errorCount: allErrorDocs.length,
+          limit,
           errors: errorDocs.map((d) => toPublicAsset(d, { hasTrace: false })),
         };
       },
