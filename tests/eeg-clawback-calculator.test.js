@@ -107,12 +107,17 @@ describe('eeg-clawback-calculator — Szenario 2: 8 aufeinanderfolgende Negativp
     expect(result.summary.calculatedUnderNewLaw.totalRefinancingContributionCents).toBeGreaterThan(0);
   });
 
-  test('mathematischer Erwartungswert: ∑RB = 8 × |−2 cents/kWh| × 50 kWh = 800 cents', () => {
-    const expectedRbCents = 8 * Math.abs(-20 / 10) * 50;
+  test('mathematischer Erwartungswert: negative Preise setzen Zahlung im MVP auf null', () => {
+    const expectedRbCents = 8 * asset.awCentsPerKwh * 50;
     expect(result.summary.calculatedUnderNewLaw.totalRefinancingContributionCents).toBeCloseTo(
       expectedRbCents,
       2
     );
+  });
+
+  test('Retained Revenue ist in Negativpreisintervallen null', () => {
+    const negIntervals = result.intervals.filter((iv) => iv.priceCentsPerKwh < 0);
+    expect(negIntervals.every((iv) => iv.retainedAmountEur === 0)).toBe(true);
   });
 
   test('clawbackActive für alle 8 Negativpreisintervalle', () => {
@@ -205,6 +210,39 @@ describe('eeg-clawback-calculator — Szenario 3: dynamic floor (Wind Onshore)',
     expect(iv.ruleArm).toBe('excess_profit');
     const expectedRbCents = (9.5 - asset.awCentsPerKwh) * volumeKwh;
     expect(iv.clawbackAmountEur * 100).toBeCloseTo(expectedRbCents, 4);
+  });
+
+  test('Biomasse ist vom Refinanzierungsbeitrag ausgenommen', () => {
+    const biomassAsset = {
+      technology: 'biomass',
+      capacityKw: 500,
+      awCentsPerKwh: 9.0,
+      commissioningDate: '2022-03-15',
+    };
+    const result = runCalculation(
+      biomassAsset,
+      [{ timestamp: '2027-04-01T08:00:00Z', priceEurMwh: 120 }],
+      [{ timestamp: '2027-04-01T08:00:00Z', volumeKwh }]
+    );
+    expect(result.intervals[0].refinancingEligible).toBe(false);
+    expect(result.intervals[0].clawbackActive).toBe(false);
+    expect(result.summary.calculatedUnderNewLaw.totalRefinancingContributionCents).toBe(0);
+  });
+
+  test('Anlagen unter 100 kW sind im MVP nicht refinanzierungsbeitragspflichtig', () => {
+    const smallAsset = {
+      technology: 'solar',
+      capacityKw: 99,
+      awCentsPerKwh: 9.0,
+      commissioningDate: '2022-03-15',
+    };
+    const result = runCalculation(
+      smallAsset,
+      [{ timestamp: '2027-04-01T08:00:00Z', priceEurMwh: 120 }],
+      [{ timestamp: '2027-04-01T08:00:00Z', volumeKwh }]
+    );
+    expect(result.intervals[0].refinancingEligible).toBe(false);
+    expect(result.intervals[0].clawbackActive).toBe(false);
   });
 
   test('technologyFloorEurMwh und technologyFloorCentsPerKwh werden übergeben', () => {
@@ -347,6 +385,35 @@ describe('runCalculation — options.ruleSet overrides', () => {
     expect(result.ruleSetVersion).toBe('1.0.0');
   });
 
+  test('ruleSet can override refinancing contribution threshold and exclusions', () => {
+    const biomassAsset = {
+      technology: 'biomass',
+      capacityKw: 50,
+      awCentsPerKwh: 9.0,
+      commissioningDate: '2022-01-01',
+    };
+    const ruleSet = {
+      id: 'eeg2027-test',
+      version: '1.0.0',
+      parameters: {
+        s51ConsecutiveNegHours: 4,
+        technologyFloors: { biomass: 0 },
+        refinancingContribution: {
+          minCapacityKw: 10,
+          excludedTechnologies: [],
+        },
+      },
+    };
+    const result = runCalculation(
+      biomassAsset,
+      [{ timestamp: '2027-04-01T08:00:00Z', priceEurMwh: 120 }],
+      [{ timestamp: '2027-04-01T08:00:00Z', volumeKwh: 100 }],
+      { ruleSet }
+    );
+    expect(result.intervals[0].refinancingEligible).toBe(true);
+    expect(result.intervals[0].ruleArm).toBe('excess_profit');
+  });
+
   test('s51 threshold from ruleSet changes curtailed interval count', () => {
     const base = new Date('2027-04-01T08:00:00Z').getTime();
     const negPrices = Array.from({ length: 16 }, (_, i) => ({
@@ -396,6 +463,8 @@ describe('runCalculation — includeIntervalTrace option', () => {
     expect(iv).toHaveProperty('technologyFloorEurMwh');
     expect(iv).toHaveProperty('technologyFloorCentsPerKwh');
     expect(iv).toHaveProperty('awCentsPerKwh');
+    expect(iv).toHaveProperty('marketValueProxyCentsPerKwh');
+    expect(iv).toHaveProperty('refinancingEligible');
     expect(iv).toHaveProperty('s51Active');
     expect(iv).toHaveProperty('clawbackActive');
     expect(iv).toHaveProperty('ruleArm');

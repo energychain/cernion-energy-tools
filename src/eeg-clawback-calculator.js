@@ -91,10 +91,16 @@ function computeLiquidityRiskIndex(retainedCents, oldLawCents) {
 }
 
 const RULE_ARM_REASONS = {
-  none: 'No clawback applies — market price is positive, above floor, and below AW.',
-  negative_price: 'Market price is negative; full absolute-price burden is clawed back.',
+  none: 'No refinancing contribution applies for this interval under the current scenario assumptions.',
+  negative_price: 'Market price is negative; EEG payment claim/payment obligation is modelled as zero for this interval.',
   sub_floor: 'Market price is positive but below the technology-specific dynamic floor.',
-  excess_profit: 'Market price exceeds the anzulegender Wert (AW); excess profit is clawed back.',
+  excess_profit: 'Market value proxy exceeds the anzulegender Wert (AW); excess value is modelled as refinancing contribution.',
+};
+
+const DEFAULT_REFINANCING_CONFIG = {
+  minCapacityKw: 100,
+  excludedTechnologies: ['biomass'],
+  marketValueMode: 'timeframe_weighted_average',
 };
 
 /**
@@ -116,14 +122,35 @@ function runCalculation(asset, prices, injection, options = {}) {
   // Resolve floors + threshold: rule set parameters take priority over env-var constants.
   const floors = ruleSet?.parameters?.technologyFloors ?? TECHNOLOGY_FLOORS_EUR_MWH;
   const s51Threshold = ruleSet?.parameters?.s51ConsecutiveNegHours ?? S51_NEG_HOURS_THRESHOLD;
+  const refinancingConfig = {
+    ...DEFAULT_REFINANCING_CONFIG,
+    ...(ruleSet?.parameters?.refinancingContribution ?? {}),
+  };
 
   const floorEurMwh = floors[asset.technology] ?? 0;
   const floorCentsKwh = floorEurMwh / 10;
+  const excludedTechnologies = new Set(refinancingConfig.excludedTechnologies ?? []);
+  const refinancingEligible =
+    Number(asset.capacityKw ?? 0) >= Number(refinancingConfig.minCapacityKw ?? 100) &&
+    !excludedTechnologies.has(asset.technology);
 
   const priceIntervals = interpolatePricesToQuarterHour(prices);
   const fullAligned = alignInjectionToPrices(priceIntervals, injection);
   // maxIntervals caps both the price grid and injection in one place (used for large-portfolio chunking)
   const aligned = maxIntervals ? fullAligned.slice(0, maxIntervals) : fullAligned;
+
+  const marketValueNumerator = aligned.reduce(
+    (sum, entry) => sum + (entry.priceEurMwh / 10) * Math.max(0, Number(entry.volumeKwh ?? 0)),
+    0
+  );
+  const marketValueDenominator = aligned.reduce(
+    (sum, entry) => sum + Math.max(0, Number(entry.volumeKwh ?? 0)),
+    0
+  );
+  const marketValueProxyCentsPerKwh =
+    marketValueDenominator > 0 ? marketValueNumerator / marketValueDenominator : 0;
+  const marketValueExcessCentsPerKwh =
+    refinancingEligible ? Math.max(marketValueProxyCentsPerKwh - awCentsPerKwh, 0) : 0;
 
   // Running accumulators
   let totalVolumeKwh = 0;
@@ -155,30 +182,34 @@ function runCalculation(asset, prices, injection, options = {}) {
     totalRevenueCentsA += revenueACents;
     if (s51Active) curtailedIntervalsCount += 1;
 
-    // ── Scenario B: EEG 2027 dynamic claw-back ──────────────────────────
-    // RB_t = max(JW_t − AW_t, 0) × Q_t  (Anlage 4.2 interpretation):
-    //   • price < 0              → negative-price burden
-    //   • floor > price ≥ 0     → sub-floor adjustment
-    //   • price > AW             → excess-profit
+    // ── Scenario B: EEG 2027 scenario model ─────────────────────────────
+    // MVP assumptions:
+    //   • negative spot prices reduce the payment claim/payment obligation to zero
+    //   • refinancing contribution applies from 100 kW unless the technology is excluded
+    //   • annual market value is approximated by the weighted market value over the
+    //     requested simulation timeframe (not a paragraph-exact legal calculation)
     let rbCents = 0;
     let clawbackActive = false;
     let ruleArm = 'none';
+    let retainedCentsBInterval = awCentsPerKwh * volumeKwh;
 
     if (priceCentsPerKwh < 0) {
-      rbCents = Math.abs(priceCentsPerKwh) * volumeKwh;
+      rbCents = awCentsPerKwh * volumeKwh;
+      retainedCentsBInterval = 0;
       clawbackActive = true;
       ruleArm = 'negative_price';
-    } else if (floorCentsKwh > 0 && priceCentsPerKwh < floorCentsKwh) {
+    } else if (refinancingEligible && floorCentsKwh > 0 && priceCentsPerKwh < floorCentsKwh) {
       rbCents = (floorCentsKwh - priceCentsPerKwh) * volumeKwh;
+      retainedCentsBInterval = awCentsPerKwh * volumeKwh - rbCents;
       clawbackActive = true;
       ruleArm = 'sub_floor';
-    } else if (priceCentsPerKwh > awCentsPerKwh) {
-      rbCents = (priceCentsPerKwh - awCentsPerKwh) * volumeKwh;
+    } else if (marketValueExcessCentsPerKwh > 0) {
+      rbCents = marketValueExcessCentsPerKwh * volumeKwh;
+      retainedCentsBInterval = awCentsPerKwh * volumeKwh - rbCents;
       clawbackActive = true;
       ruleArm = 'excess_profit';
     }
 
-    const retainedCentsBInterval = awCentsPerKwh * volumeKwh - rbCents;
     totalRbCents += rbCents;
     totalRetainedCentsB += retainedCentsBInterval;
     if (clawbackActive) clawbackTriggeredIntervalsCount += 1;
@@ -198,6 +229,8 @@ function runCalculation(asset, prices, injection, options = {}) {
       technologyFloorEurMwh: round4(floorEurMwh),
       technologyFloorCentsPerKwh: round4(floorCentsKwh),
       awCentsPerKwh: round4(awCentsPerKwh),
+      marketValueProxyCentsPerKwh: round4(marketValueProxyCentsPerKwh),
+      refinancingEligible,
       s51Active,
       clawbackActive,
       ruleArm,
@@ -225,6 +258,14 @@ function runCalculation(asset, prices, injection, options = {}) {
     },
     deltaCents: round2(totalRetainedCentsB - totalRevenueCentsA),
     liquidityRiskIndex: computeLiquidityRiskIndex(totalRetainedCentsB, totalRevenueCentsA),
+    assumptions: {
+      calculationBasis: 'mvp_scenario_model',
+      marketValueMode: refinancingConfig.marketValueMode,
+      marketValueProxyCentsPerKwh: round4(marketValueProxyCentsPerKwh),
+      minCapacityKw: Number(refinancingConfig.minCapacityKw ?? 100),
+      excludedTechnologies: [...excludedTechnologies],
+      note: 'Approximates EEG-2027 draft effects for demo purposes; not a paragraph-exact legal calculation.',
+    },
   };
 
   const result = { summary };

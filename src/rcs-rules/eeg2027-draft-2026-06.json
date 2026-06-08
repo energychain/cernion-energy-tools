@@ -6,8 +6,8 @@
   "effectiveFrom": "2026-06-01",
   "effectiveTo": null,
   "supersedes": "eeg2027-draft-2026-04",
-  "sourceReference": "Referentenentwurf EEG 2027 (revidiert), BMWK, Juni 2026",
-  "sourceUrl": null,
+  "sourceReference": "Referentenentwurf EEG-Novelle 2027, von Table.Media verlinkte Referenzfassung (Dateiname: 260420_referentenentwurf_novelle_eeg_2027)",
+  "sourceUrl": "https://table.media/assets/climate/eeg-entwurf-20260226.pdf",
   "calculationMode": "eeg2027_clawback",
   "parameters": {
     "s51ConsecutiveNegHours": 4,
@@ -17,12 +17,18 @@
       "wind_offshore": 0.5,
       "biomass": 1.0
     },
+    "refinancingContribution": {
+      "minCapacityKw": 100,
+      "excludedTechnologies": ["biomass"],
+      "marketValueMode": "timeframe_weighted_average"
+    },
     "supportedTechnologies": ["solar", "wind_onshore", "wind_offshore", "biomass"],
     "priceIndexDefault": "DA",
     "calculationBasis": "quarterly"
   },
   "notes": [
-    "Revidierter Referentenentwurf; verschärfte Floors für Wind Onshore (2.0 EUR/MWh) und neue Floors für Wind Offshore und Biomasse.",
-    "S51-Schwellenwert von 6h auf 4h reduziert."
+    "MVP-Szenariomodell auf Basis des Referentenentwurfs; nicht paragraphenscharf und keine Rechtsberatung.",
+    "Der Entwurf adressiert Refinanzierungsbeitrag/CfD-Mechanik, negative Preise, Direktvermarktung, Speicher/Systemdienlichkeit sowie iMSys-/Steuerungstechnik.",
+    "Biomasse wird für den Refinanzierungsbeitrag ausgenommen; Jahresmarktwert wird im MVP als gewichteter Marktwert des Simulationszeitraums approximiert."
   ]
 }
