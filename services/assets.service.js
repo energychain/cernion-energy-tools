@@ -3,6 +3,7 @@ const XLSX = require('xlsx');
 const { callWithAutoPoll } = require('../src/async-job-poller');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId, tenantNamespace } = require('../src/tenant-context');
+const { getDemoAsset, isDemoAssetId } = require('../src/rcs-demo-data');
 
 const OEO_CLASS_KEY = 'x-oeo-class';
 const PARAM_DESC_VNB_NAME = 'Name of grid operator';
@@ -1069,6 +1070,11 @@ module.exports = {
       },
       async handler(ctx) {
         const assetId = this._normalizeAssetId(ctx.params.assetId);
+        if (isDemoAssetId(assetId)) {
+          const demoAsset = getDemoAsset(assetId);
+          if (demoAsset) return demoAsset;
+        }
+
         const assetType = ctx.params.assetType || 'all';
         const assetTypes =
           assetType === 'all'

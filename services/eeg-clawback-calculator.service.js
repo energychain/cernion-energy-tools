@@ -7,6 +7,7 @@ const { runAsync } = require('../src/async-job-runner');
 const jobStore = require('../src/job-store');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { rcsError } = require('../src/rcs-errors');
+const { getDemoPrices } = require('../src/rcs-demo-data');
 
 // ── Thresholds (env-configurable) ────────────────────────────────────────────
 
@@ -33,7 +34,39 @@ function normaliseAsset(raw) {
 }
 
 function normaliseSeries(raw) {
-  return Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(raw?.data)) return raw.data;
+  if (Array.isArray(raw?.values)) {
+    return raw.values.map((row) => ({
+      timestamp: row.timestamp ?? row.ts,
+      volumeKwh: row.volumeKwh ?? row.value,
+      priceEurMwh: row.priceEurMwh ?? row.priceEURMWh,
+      ...row,
+    }));
+  }
+  if (Array.isArray(raw?.prices)) return raw.prices;
+  if (Array.isArray(raw?.data?.prices)) return raw.data.prices;
+  return [];
+}
+
+async function fetchPriceSeries(ctx, timeframe) {
+  const pricesRaw = await ctx
+    .call('energy-market.prices', {
+      start: timeframe.start,
+      end: timeframe.end,
+      startDate: timeframe.start,
+      endDate: timeframe.end,
+      region: 'Deutschland',
+      market: 'day-ahead',
+      resolution: 'hourly',
+    })
+    .catch(() => []);
+  const prices = normaliseSeries(pricesRaw).map((row) => ({
+    timestamp: row.timestamp ?? row.ts,
+    priceEurMwh: row.priceEurMwh ?? row.priceEURMWh ?? row.value,
+  })).filter((row) => row.timestamp && Number.isFinite(Number(row.priceEurMwh)));
+
+  return prices.length > 0 ? prices : getDemoPrices(timeframe.start, timeframe.end);
 }
 
 // ── TraceMode resolution ──────────────────────────────────────────────────────
@@ -266,15 +299,7 @@ async function runPortfolioSimulationCore(
   const traceSampleSize = opts.traceSampleSize ?? 10;
 
   jobStore.appendLog(jobId, 'price_fetch', 10, 'Fetching shared price series', { timeframe });
-  const pricesRaw = await ctx
-    .call('energy-market.prices', {
-      start: timeframe.start,
-      end: timeframe.end,
-      market: 'day-ahead',
-      resolution: 'hourly',
-    })
-    .catch(() => []);
-  const prices = normaliseSeries(pricesRaw);
+  const prices = await fetchPriceSeries(ctx, timeframe);
 
   const allAssetResults = [];
   const totalChunks = Math.ceil(assetIds.length / chunkSize);
@@ -462,15 +487,7 @@ async function runPortfolioSimulationCore(
 
 async function runPortfolioReadinessCore(ctx, { assetIds, timeframe, workload }, jobId) {
   jobStore.appendLog(jobId, 'price_series', 10, 'Fetching shared price series', { timeframe });
-  const pricesRaw = await ctx
-    .call('energy-market.prices', {
-      start: timeframe.start,
-      end: timeframe.end,
-      market: 'day-ahead',
-      resolution: 'hourly',
-    })
-    .catch(() => []);
-  const prices = normaliseSeries(pricesRaw);
+  const prices = await fetchPriceSeries(ctx, timeframe);
 
   const total = assetIds.length;
   const assetReports = await Promise.all(
@@ -578,12 +595,11 @@ module.exports = {
       },
       async handler(ctx) {
         const { assetId, timeframe } = ctx.params;
-        const [assetRaw, pricesRaw, injectionRaw] = await Promise.all([
+        const [assetRaw, prices, injectionRaw] = await Promise.all([
           ctx.call('assets.effective', { assetId }).catch(() => null),
-          ctx.call('energy-market.prices', { start: timeframe.start, end: timeframe.end, market: 'day-ahead', resolution: 'hourly' }).catch(() => []),
+          fetchPriceSeries(ctx, timeframe),
           ctx.call('edm.getTimeseries', { meloId: assetId, from: timeframe.start, to: timeframe.end, resolution: '15min' }).catch(() => []),
         ]);
-        const prices = normaliseSeries(pricesRaw);
         const injection = normaliseSeries(injectionRaw);
         const report = computeReadiness(assetRaw, prices, injection, timeframe);
         return { assetId, timeframe, ...report };
@@ -602,14 +618,13 @@ module.exports = {
       },
       async handler(ctx) {
         const { assetId, timeframe, options } = ctx.params;
-        const [assetRaw, pricesRaw, injectionRaw] = await Promise.all([
+        const [assetRaw, prices, injectionRaw] = await Promise.all([
           ctx.call('assets.effective', { assetId }),
-          ctx.call('energy-market.prices', { start: timeframe.start, end: timeframe.end, market: 'day-ahead', resolution: 'hourly' }),
+          fetchPriceSeries(ctx, timeframe),
           ctx.call('edm.getTimeseries', { meloId: assetId, from: timeframe.start, to: timeframe.end, resolution: '15min' }),
         ]);
 
         const asset = normaliseAsset(assetRaw);
-        const prices = normaliseSeries(pricesRaw);
         const injection = normaliseSeries(injectionRaw);
         const opts = options ?? {};
         const ruleSet = resolveRuleSet(opts.ruleSetId ?? 'latest');
@@ -825,14 +840,9 @@ module.exports = {
 
         const drilldownWorker = async () => {
           try {
-            const [assetRaw, pricesRaw, injectionRaw] = await Promise.all([
+            const [assetRaw, prices, injectionRaw] = await Promise.all([
               ctx.call('assets.effective', { assetId }),
-              ctx.call('energy-market.prices', {
-                start: timeframe.start,
-                end: timeframe.end,
-                market: 'day-ahead',
-                resolution: 'hourly',
-              }),
+              fetchPriceSeries(ctx, timeframe),
               ctx.call('edm.getTimeseries', {
                 meloId: assetId,
                 from: timeframe.start,
@@ -842,7 +852,6 @@ module.exports = {
             ]);
 
             const asset = normaliseAsset(assetRaw);
-            const prices = normaliseSeries(pricesRaw);
             const injection = normaliseSeries(injectionRaw);
 
             const calc = runCalculation(asset, prices, injection, { ruleSet, includeIntervalTrace: true });

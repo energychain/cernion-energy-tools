@@ -13,6 +13,7 @@ const {
   normalizeLimit,
   resolveTenantId,
 } = require('../src/pagination');
+const { getDemoTimeseries, isDemoAssetId } = require('../src/rcs-demo-data');
 
 function parseJson(value, fallback) {
   if (!value) return fallback;
@@ -980,6 +981,30 @@ module.exports = {
       },
       handler(ctx) {
         const { meloId, obis, from, to, resolution, format } = ctx.params;
+
+        if (isDemoAssetId(meloId)) {
+          const values = getDemoTimeseries(meloId, from, to, resolution) ?? [];
+          if (format === 'csv') {
+            const lines = ['ts;value;quality'];
+            for (const row of values) {
+              lines.push(`${row.timestamp};${row.value};${row.quality || 'synthetic'}`);
+            }
+            return lines.join('\n');
+          }
+          return {
+            success: true,
+            meloId,
+            obis,
+            from,
+            to,
+            resolution,
+            values,
+            summary: computeTimeseriesSummary(
+              values.map((row) => ({ ts: row.timestamp, value: row.value, quality: row.quality }))
+            ),
+            source: 'rcs-demo',
+          };
+        }
 
         const registryDb = this.pool.getRegistry();
         ensureMeloExists(registryDb, meloId);
