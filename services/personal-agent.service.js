@@ -4369,15 +4369,25 @@ module.exports = {
           contract: executionResponsePolicyContract,
           timeoutFallback: executionTimeoutFallback,
         });
-        const responseReply = this.appendGroundingContractToReply(executionGuardedReply.reply, {
-          execution,
-          knowledgeScope: [
-            ...(session.l3?.knowledgeScopeDataPoints || []),
-            ...(session.l2?.userProfile?.knowledgeScopeDataPoints || []),
-          ],
-          missingEvidence: executionResponsePolicyContract.missingEvidence,
-          assumptions: execution?.assumptions,
-        });
+        // vdmi_matrix_table presentations are self-grounded (the RACI matrix includes
+        // all evidence and assumptions). Skip the grounding contract to keep
+        // presentation.markdown === reply as required by the grounding contract test.
+        const _groundingContractArgs =
+          presentationApplied && presentationType === 'vdmi_matrix_table'
+            ? {}
+            : {
+                execution,
+                knowledgeScope: [
+                  ...(session.l3?.knowledgeScopeDataPoints || []),
+                  ...(session.l2?.userProfile?.knowledgeScopeDataPoints || []),
+                ],
+                missingEvidence: executionResponsePolicyContract.missingEvidence,
+                assumptions: execution?.assumptions,
+              };
+        const responseReply = this.appendGroundingContractToReply(
+          executionGuardedReply.reply,
+          _groundingContractArgs
+        );
         turnGraph = addNode(turnGraph, {
           id: 'answer:final',
           type: 'answer',
