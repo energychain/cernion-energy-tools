@@ -153,3 +153,4 @@ tmp/
 # Local manual test scripts (may contain sensitive tokens/email addresses)
 scripts/local/
 .gitnexus
+rcs-test-runs-*
