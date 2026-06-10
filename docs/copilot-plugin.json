@@ -1,0 +1,42 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/copilot/plugin/v2.4/schema.json",
+  "schema_version": "v2.4",
+  "name_for_human": "Cernion Search",
+  "namespace": "cernionenergytools",
+  "description_for_human": "Suche Unternehmen, VNB, VDMI, ZNP, Netzanschluss-Validierungen und EDM-MeLo-IDs im Cernion-System.",
+  "description_for_model": "Use this plugin to search Cernion energy management data. Call searchCernionData with a search term (company name, VDMI matrix name, ZNP project name, grid operator name, or exact MeLo ID starting with DE). The domain parameter can narrow results to: companies, vnb, edm, vdmi, grid_connection, znp, or all (default). Each result has id, title, excerpt, domain, type, status, and url for follow-up detail retrieval. Do NOT use this for process actions such as VDMI approval, ZNP validation or evidence generation.",
+  "contact_email": "dev@stromdao.com",
+  "functions": [
+    {
+      "name": "searchCernionData",
+      "description": "Search across Cernion energy management entities (companies, VNBs, VDMI matrices, ZNP projects, grid connection validations, EDM MeLo IDs). Returns id, title, excerpt, type, status, and url to the detail endpoint for each hit.",
+      "capabilities": {
+        "response_semantics": {
+          "data_path": "$.results",
+          "properties": {
+            "title": "$.title",
+            "subtitle": "$.excerpt",
+            "url": "$.url"
+          }
+        },
+        "security_info": {
+          "data_handling": ["GetPrivateData"]
+        }
+      }
+    }
+  ],
+  "runtimes": [
+    {
+      "type": "OpenApi",
+      "auth": {
+        "type": "ApiKeyPluginVault",
+        "reference_id": "TODO_REPLACE_WITH_VAULT_REFERENCE_ID"
+      },
+      "spec": {
+        "url": "TODO_REPLACE_WITH_DEPLOYMENT_URL/api/openapi.json",
+        "progress_style": "ShowUsageWithInputAndOutput"
+      },
+      "run_for_functions": ["searchCernionData"]
+    }
+  ]
+}

@@ -182,7 +182,11 @@ function buildOperationFromAction(actionRef, actionDef) {
   if (openapi.description) operation.description = openapi.description;
   if (openapi.parameters) operation.parameters = openapi.parameters;
   if (openapi.requestBody) operation.requestBody = openapi.requestBody;
-  if (openapi['x-oeo-class']) operation['x-oeo-class'] = openapi['x-oeo-class'];
+
+  // Copy all x-* extension fields (Copilot, OEO, etc.)
+  for (const [key, val] of Object.entries(openapi)) {
+    if (key.startsWith('x-')) operation[key] = val;
+  }
 
   return operation;
 }
@@ -212,12 +216,80 @@ function buildStaticPaths(apiSvc, actionRegistry) {
   return paths;
 }
 
+// Mirrors the live-server autoAliases logic from api.service.js so the static
+// export also covers service actions that rely on Moleculer's autoAliases (no
+// explicit alias entry in api.service.js routes).
+const AUTO_ALIAS_ABSOLUTE_PREFIXES = [
+  '/datasources', '/datasource-cache', '/datasource-discovery',
+  '/tokens', '/nbp-monitor', '/vnb-monitor', '/jobs',
+];
+
+function buildAutoAliasedPaths() {
+  const paths = {};
+  const files = fs
+    .readdirSync(SERVICES_DIR)
+    .filter((name) => name.endsWith('.service.js'))
+    .sort((a, b) => a.localeCompare(b));
+
+  for (const file of files) {
+    let svc;
+    try {
+      // eslint-disable-next-line global-require
+      svc = require(path.join(SERVICES_DIR, file));
+    } catch {
+      continue;
+    }
+    if (!svc || !svc.name || !svc.actions || typeof svc.actions !== 'object') continue;
+
+    for (const [actionName, actionDef] of Object.entries(svc.actions)) {
+      if (!actionDef || !actionDef.rest) continue;
+
+      let method = 'POST';
+      let restPath = '';
+      const restConfig = actionDef.rest;
+
+      if (typeof restConfig === 'string') {
+        const parts = restConfig.trim().split(' ');
+        if (parts.length === 2) {
+          method = parts[0];
+          restPath = parts[1];
+        } else {
+          restPath = parts[0];
+        }
+      } else if (typeof restConfig === 'object') {
+        method = restConfig.method || method;
+        restPath = restConfig.path || '';
+      }
+
+      if (!restPath) continue;
+      method = method.toLowerCase();
+
+      const isAbsolutePublicPath = AUTO_ALIAS_ABSOLUTE_PREFIXES.some((p) => restPath.startsWith(p));
+      let finalPath = restPath;
+      if (!finalPath.startsWith(`/${svc.name}`) && !isAbsolutePublicPath) {
+        finalPath = `/${svc.name}${finalPath}`;
+      }
+
+      const fullPath = normaliseApiPath(finalPath);
+      if (!paths[fullPath]) paths[fullPath] = {};
+      paths[fullPath][method] = buildOperationFromAction(`${svc.name}.${actionName}`, actionDef);
+    }
+  }
+
+  return paths;
+}
+
 function buildStaticSpec() {
   // eslint-disable-next-line global-require
   const apiSvc = require('../services/api.service');
   const tags = apiSvc.settings?.openapi?.tags || [];
   const actionRegistry = loadActionRegistry();
-  const paths = buildStaticPaths(apiSvc, actionRegistry);
+
+  // Auto-aliased paths (service action rest declarations) provide the base;
+  // explicit api.service.js aliases override where they overlap.
+  const autoAliasedPaths = buildAutoAliasedPaths();
+  const explicitPaths = buildStaticPaths(apiSvc, actionRegistry);
+  const paths = { ...autoAliasedPaths, ...explicitPaths };
 
   return {
     openapi: '3.0.0',

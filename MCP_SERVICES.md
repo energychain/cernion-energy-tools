@@ -22,6 +22,7 @@ Natural language queries and template-based searches
 - `POST /api/query/ask` - Natural language energy data queries
 - `POST /api/query/ask-learned` - Template-based queries (20x faster)
 - `POST /api/query/discover` - Schema discovery for databases and tools
+- `GET /api/query/search` - Structured search for MS365 Copilot / OpenAPI plugins (operationId: `searchCernionData`)
 
 ### 2. Energy Market Data Service (`energy-market`)
 Prices, production, forecasts, installations

@@ -7,6 +7,119 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 
+// ── Copilot search helpers ────────────────────────────────────────────────────
+
+const MELO_ID_RE = /^DE[0-9A-Z]{20,}/i;
+
+function matchesQuery(str, qLower) {
+  return typeof str === 'string' && str.toLowerCase().includes(qLower);
+}
+
+function companyToResult(company) {
+  const vnbMembers = (company.members || []).filter((m) => m.role === 'VNB');
+  const parts = [];
+  if (company.legalName && company.legalName !== company.displayName) {
+    parts.push(company.legalName);
+  }
+  if (vnbMembers.length) parts.push(`VNB · BDEW ${vnbMembers[0].bdewCode}`);
+  parts.push(`${company.members?.length ?? 0} Marktpartner · Status: ${company.status}`);
+  return {
+    id: company.companyId,
+    title: company.displayName,
+    excerpt: parts.join(' · '),
+    domain: 'companies',
+    type: 'company',
+    status: company.status ?? null,
+    url: `/api/companies/${company.companyId}`,
+    metadata: {
+      memberCount: company.members?.length ?? 0,
+      hasVnb: vnbMembers.length > 0,
+    },
+  };
+}
+
+function meloToResult(melo) {
+  const parts = [];
+  if (melo.description || melo.name) parts.push(melo.description || melo.name);
+  if (melo.type) parts.push(`Typ: ${melo.type}`);
+  if (melo.gridOperatorMastrId) parts.push(`VNB: ${melo.gridOperatorMastrId}`);
+  return {
+    id: melo.meloId,
+    title: melo.meloId,
+    excerpt: parts.join(' · ') || melo.meloId,
+    domain: 'edm',
+    type: melo.type ?? 'melo',
+    status: null,
+    url: `/api/edm/melos/${melo.meloId}`,
+    metadata: {
+      sourceType: melo.sourceType ?? null,
+      gridOperatorMastrId: melo.gridOperatorMastrId ?? null,
+    },
+  };
+}
+
+function vdmiToResult(item) {
+  const parts = [];
+  if (item.processType) parts.push(`Prozesstyp: ${item.processType}`);
+  if (item.scope) parts.push(item.scope);
+  if (item.nominationStatus && item.nominationStatus !== 'none') {
+    parts.push(`Nominierung: ${item.nominationStatus}`);
+  }
+  return {
+    id: item.id,
+    title: item.name,
+    excerpt: parts.join(' · ') || item.name,
+    domain: 'vdmi',
+    type: 'matrix',
+    status: item.status ?? null,
+    url: `/api/vdmi/${item.id}`,
+    metadata: {
+      processType: item.processType ?? null,
+      nominationStatus: item.nominationStatus ?? null,
+      evidenceCount: item.evidenceCount ?? 0,
+    },
+  };
+}
+
+function gridConnectionToResult(doc) {
+  const operatorName =
+    doc.gridOperator?.name ?? doc.gridOperator?.mastrId ?? 'Unbekannter Netzbetreiber';
+  return {
+    id: doc.id,
+    title: `Netzanschluss-Validierung · ${operatorName}`,
+    excerpt: `Entscheidung: ${doc.decision ?? '—'} · ${doc.createdAt ? doc.createdAt.slice(0, 10) : ''}`,
+    domain: 'grid_connection',
+    type: 'validation',
+    status: doc.decision ?? null,
+    url: `/api/grid-connection/validations/${doc.id}`,
+    metadata: {
+      gridOperatorName: operatorName,
+      findingsCount: doc.findingsCount ?? null,
+      createdAt: doc.createdAt ?? null,
+    },
+  };
+}
+
+function znpProjectToResult(project) {
+  const layers = Array.isArray(project.layers) ? project.layers.join(', ') : '';
+  const stats = project.graphStats
+    ? `${project.graphStats.nodes} Knoten, ${project.graphStats.edges} Kanten`
+    : null;
+  return {
+    id: project.projectId,
+    title: project.name ?? project.projectId,
+    excerpt: [layers ? `Schichten: ${layers}` : null, stats].filter(Boolean).join(' · ') || project.projectId,
+    domain: 'znp',
+    type: 'project',
+    status: 'active',
+    url: `/api/znp/projects/${project.projectId}`,
+    metadata: {
+      graphStats: project.graphStats ?? null,
+      createdAt: project.createdAt ?? null,
+    },
+  };
+}
+
 module.exports = {
   name: 'query',
 
@@ -319,9 +432,306 @@ module.exports = {
     },
 
     /**
-     * Schema discovery for databases, tables, columns
-     * Tool: cernion_discover
+     * Structured search for Microsoft 365 Copilot and OpenAPI plugin integrations.
+     * Deterministic, fast — no MCP calls, no LLM. Uses internal Moleculer services only.
      */
+    search: {
+      rest: 'GET /search',
+      params: {
+        q: { type: 'string', min: 1, max: 200, trim: true },
+        domain: {
+          type: 'enum',
+          values: ['companies', 'vnb', 'edm', 'vdmi', 'grid_connection', 'znp', 'all'],
+          optional: true,
+          default: 'all',
+        },
+        limit: { type: 'number', optional: true, default: 10, min: 1, max: 25, convert: true },
+      },
+      openapi: {
+        summary: 'Search Cernion energy objects (companies, VDMI, ZNP, grid connections, EDM)',
+        operationId: 'searchCernionData',
+        'x-openai-isConsequential': false,
+        description: `Search across Cernion energy management data for use in Microsoft 365 Copilot, OpenAPI plugins, and connected integrations.
+
+**Supported domains**:
+- **companies** — Search company entities (Stadtwerke, Konzernverbund) by name. Returns BDEW codes, market roles, member count.
+- **vnb** — Narrow search to companies with a Verteilnetzbetreiber (VNB) market role.
+- **edm** — Look up a Messlokalisation (MeLo) by its exact DE-prefixed ID.
+- **vdmi** — Search VDMI responsibility matrix instances by name, scope, or process type.
+- **grid_connection** — Search past grid connection validation reports by operator name or decision.
+- **znp** — Search Zielnetzplanung projects by name.
+- **all** (default) — Searches all domains in parallel.
+
+Each result carries **domain**, **type**, **id**, **title**, **excerpt**, **status**, and **url** pointing to the detail endpoint for that object.
+
+**Performance**: Deterministic, < 300 ms. Does not invoke any external API or LLM.
+
+**For complex natural-language queries** (e.g. "PV-Kapazität in Bayern") use POST /ask instead.`,
+        tags: ['Query Tools', 'Copilot'],
+        parameters: [
+          {
+            name: 'q',
+            in: 'query',
+            required: true,
+            description:
+              'Search term. Company/VNB name, VDMI matrix name, ZNP project name, grid operator name, or exact MeLo ID (DE…). German or English.',
+            schema: { type: 'string', minLength: 1, maxLength: 200, example: 'Stadtwerke Heidelberg' },
+          },
+          {
+            name: 'domain',
+            in: 'query',
+            required: false,
+            description:
+              'Restrict search to a specific data domain. Defaults to "all" which searches all domains in parallel.',
+            schema: {
+              type: 'string',
+              enum: ['companies', 'vnb', 'edm', 'vdmi', 'grid_connection', 'znp', 'all'],
+              default: 'all',
+              example: 'vdmi',
+            },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            description: 'Maximum number of results to return (1–25).',
+            schema: { type: 'integer', minimum: 1, maximum: 25, default: 10 },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Search results from matched domains',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    query: { type: 'string', description: 'The original search term', example: 'Stadtwerke Heidelberg' },
+                    domain: {
+                      type: 'string',
+                      enum: ['companies', 'vnb', 'edm', 'vdmi', 'grid_connection', 'znp', 'all'],
+                      example: 'all',
+                    },
+                    totalResults: { type: 'integer', example: 2 },
+                    results: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string', description: 'Unique identifier within the domain', example: '550e8400-e29b-41d4-a716-446655440000' },
+                          title: { type: 'string', description: 'Primary display name', example: 'Stadtwerke Heidelberg GmbH & Co. KG' },
+                          excerpt: { type: 'string', description: 'One-line context string with key attributes' },
+                          domain: {
+                            type: 'string',
+                            description: 'Source domain of this result',
+                            enum: ['companies', 'edm', 'vdmi', 'grid_connection', 'znp'],
+                          },
+                          type: { type: 'string', description: 'Object type within the domain', example: 'company' },
+                          status: { type: 'string', nullable: true, description: 'Lifecycle or decision status of the object', example: 'active' },
+                          url: { type: 'string', description: 'API path to retrieve the full record', example: '/api/companies/550e8400-e29b-41d4-a716-446655440000' },
+                          metadata: { type: 'object', description: 'Domain-specific structured attributes' },
+                        },
+                        required: ['id', 'title', 'excerpt', 'domain', 'type', 'status', 'url'],
+                      },
+                    },
+                  },
+                  required: ['query', 'domain', 'totalResults', 'results'],
+                },
+                examples: {
+                  companyHit: {
+                    summary: 'Company result',
+                    value: {
+                      query: 'Stadtwerke Heidelberg',
+                      domain: 'all',
+                      totalResults: 1,
+                      results: [{
+                        id: '550e8400-e29b-41d4-a716-446655440000',
+                        title: 'Stadtwerke Heidelberg',
+                        excerpt: 'Stadtwerke Heidelberg GmbH & Co. KG · VNB · BDEW 9900277000000 · 2 Marktpartner · Status: active',
+                        domain: 'companies',
+                        type: 'company',
+                        status: 'active',
+                        url: '/api/companies/550e8400-e29b-41d4-a716-446655440000',
+                        metadata: { memberCount: 2, hasVnb: true },
+                      }],
+                    },
+                  },
+                  vdmiHit: {
+                    summary: 'VDMI matrix result',
+                    value: {
+                      query: 'Netzanschluss',
+                      domain: 'vdmi',
+                      totalResults: 1,
+                      results: [{
+                        id: 'abc123',
+                        title: 'Netzanschluss-Genehmigung PV',
+                        excerpt: 'Prozesstyp: standard · Nominierung: pending',
+                        domain: 'vdmi',
+                        type: 'matrix',
+                        status: 'active',
+                        url: '/api/vdmi/abc123',
+                        metadata: { processType: 'standard', nominationStatus: 'pending', evidenceCount: 2 },
+                      }],
+                    },
+                  },
+                  gridConnectionHit: {
+                    summary: 'Grid connection validation result',
+                    value: {
+                      query: 'TWL Netze',
+                      domain: 'grid_connection',
+                      totalResults: 1,
+                      results: [{
+                        id: 'a1b2c3d4-1234-5678-90ab-cdef12345678',
+                        title: 'Netzanschluss-Validierung · TWL Netze',
+                        excerpt: 'Entscheidung: GO_CONDITIONAL · 2026-03-30',
+                        domain: 'grid_connection',
+                        type: 'validation',
+                        status: 'GO_CONDITIONAL',
+                        url: '/api/grid-connection/validations/a1b2c3d4-1234-5678-90ab-cdef12345678',
+                        metadata: { gridOperatorName: 'TWL Netze', findingsCount: 3, createdAt: '2026-03-30T10:00:00Z' },
+                      }],
+                    },
+                  },
+                  noResults: {
+                    summary: 'No results',
+                    value: { query: 'nonexistent', domain: 'all', totalResults: 0, results: [] },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error — q is missing or too long, limit out of range',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string', example: 'ValidationError' },
+                    message: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { q, domain, limit } = ctx.params;
+        const qLower = q.toLowerCase();
+        const callOpts = { meta: { ...ctx.meta, $gateway: false } };
+        const results = [];
+
+        const includeCompanies = domain === 'all' || domain === 'companies' || domain === 'vnb';
+        const includeEdm = domain === 'all' || domain === 'edm';
+        const includeVdmi = domain === 'all' || domain === 'vdmi';
+        const includeGridConnection = domain === 'all' || domain === 'grid_connection';
+        const includeZnp = domain === 'all' || domain === 'znp';
+
+        const tasks = [];
+
+        if (includeCompanies) {
+          tasks.push(
+            ctx
+              .call('company.list', { query: q, limit, status: 'all' }, callOpts)
+              .then((r) => ({ kind: 'companies', data: r }))
+              .catch(() => ({ kind: 'companies', data: { companies: [] } }))
+          );
+        }
+
+        if (includeEdm && MELO_ID_RE.test(q)) {
+          tasks.push(
+            ctx
+              .call('edm.getMelo', { meloId: q.trim().toUpperCase() }, callOpts)
+              .then((r) => ({ kind: 'edm', data: r && r.meloId ? [r] : [] }))
+              .catch(() => ({ kind: 'edm', data: [] }))
+          );
+        }
+
+        if (includeVdmi) {
+          tasks.push(
+            ctx
+              .call('vdmi.list', { limit: 50 }, callOpts)
+              .then((r) => ({ kind: 'vdmi', data: r && r.items ? r.items : [] }))
+              .catch(() => ({ kind: 'vdmi', data: [] }))
+          );
+        }
+
+        if (includeGridConnection) {
+          tasks.push(
+            ctx
+              .call('grid-connection.list', { limit: 50 }, callOpts)
+              .then((r) => ({ kind: 'grid_connection', data: r && r.validations ? r.validations : [] }))
+              .catch(() => ({ kind: 'grid_connection', data: [] }))
+          );
+        }
+
+        if (includeZnp) {
+          tasks.push(
+            ctx
+              .call('znp.listProjects', {}, callOpts)
+              .then((r) => ({ kind: 'znp', data: r && r.projects ? r.projects : [] }))
+              .catch(() => ({ kind: 'znp', data: [] }))
+          );
+        }
+
+        const settled = await Promise.all(tasks);
+
+        for (const { kind, data } of settled) {
+          if (kind === 'companies') {
+            const companies = (data.companies || []).slice(0, limit);
+            const filtered =
+              domain === 'vnb'
+                ? companies.filter((c) => (c.members || []).some((m) => m.role === 'VNB'))
+                : companies;
+            for (const company of filtered) results.push(companyToResult(company));
+          }
+          if (kind === 'edm') {
+            for (const melo of (Array.isArray(data) ? data : []).slice(0, limit)) {
+              results.push(meloToResult(melo));
+            }
+          }
+          if (kind === 'vdmi') {
+            const matched = data
+              .filter(
+                (item) =>
+                  matchesQuery(item.name, qLower) ||
+                  matchesQuery(item.scope, qLower) ||
+                  matchesQuery(item.processType, qLower)
+              )
+              .slice(0, limit);
+            for (const item of matched) results.push(vdmiToResult(item));
+          }
+          if (kind === 'grid_connection') {
+            const matched = data
+              .filter(
+                (doc) =>
+                  matchesQuery(doc.gridOperator?.name, qLower) ||
+                  matchesQuery(doc.decision, qLower)
+              )
+              .slice(0, limit);
+            for (const doc of matched) results.push(gridConnectionToResult(doc));
+          }
+          if (kind === 'znp') {
+            const matched = data
+              .filter(
+                (project) =>
+                  matchesQuery(project.name, qLower) || matchesQuery(project.projectId, qLower)
+              )
+              .slice(0, limit);
+            for (const project of matched) results.push(znpProjectToResult(project));
+          }
+        }
+
+        return {
+          query: q,
+          domain,
+          totalResults: results.length,
+          results: results.slice(0, limit),
+        };
+      },
+    },
+
     discover: {
       rest: 'POST /discover',
       params: {
