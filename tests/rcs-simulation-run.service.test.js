@@ -210,29 +210,29 @@ describe('listRuns — filters', () => {
   });
 
   test('filter by assetId returns only matching runs', async () => {
-    const list = await broker.call('rcs-simulation-run.listRuns', {
+    const { items } = await broker.call('rcs-simulation-run.listRuns', {
       assetId: `${UNIQUE_PREFIX}-alpha`,
     });
-    expect(list.every((r) => r.assetId === `${UNIQUE_PREFIX}-alpha`)).toBe(true);
-    expect(list.length).toBeGreaterThanOrEqual(2);
+    expect(items.every((r) => r.assetId === `${UNIQUE_PREFIX}-alpha`)).toBe(true);
+    expect(items.length).toBeGreaterThanOrEqual(2);
   });
 
   test('filter by ruleSetId returns only matching runs', async () => {
-    const list = await broker.call('rcs-simulation-run.listRuns', {
+    const { items } = await broker.call('rcs-simulation-run.listRuns', {
       ruleSetId: 'eeg2027-draft-2026-06',
     });
-    expect(list.every((r) => r.ruleSetId === 'eeg2027-draft-2026-06')).toBe(true);
+    expect(items.every((r) => r.ruleSetId === 'eeg2027-draft-2026-06')).toBe(true);
   });
 
   test('limit is respected', async () => {
-    const list = await broker.call('rcs-simulation-run.listRuns', { limit: 1 });
-    expect(list.length).toBeLessThanOrEqual(1);
+    const { items } = await broker.call('rcs-simulation-run.listRuns', { limit: 1 });
+    expect(items.length).toBeLessThanOrEqual(1);
   });
 
   test('list is sorted newest first', async () => {
-    const list = await broker.call('rcs-simulation-run.listRuns', {});
-    for (let i = 1; i < list.length; i++) {
-      expect(list[i - 1].createdAt >= list[i].createdAt).toBe(true);
+    const { items } = await broker.call('rcs-simulation-run.listRuns', {});
+    for (let i = 1; i < items.length; i++) {
+      expect(items[i - 1].createdAt >= items[i].createdAt).toBe(true);
     }
   });
 });
@@ -260,14 +260,14 @@ describe('Soft Delete', () => {
   });
 
   test('deleted run is NOT visible in default listRuns', async () => {
-    const list = await broker.call('rcs-simulation-run.listRuns', {});
-    const found = list.find((r) => r.runId === runToDelete.runId);
+    const { items } = await broker.call('rcs-simulation-run.listRuns', {});
+    const found = items.find((r) => r.runId === runToDelete.runId);
     expect(found).toBeUndefined();
   });
 
   test('deleted run IS visible with includeDeleted: true', async () => {
-    const list = await broker.call('rcs-simulation-run.listRuns', { includeDeleted: true });
-    const found = list.find((r) => r.runId === runToDelete.runId);
+    const { items } = await broker.call('rcs-simulation-run.listRuns', { includeDeleted: true });
+    const found = items.find((r) => r.runId === runToDelete.runId);
     expect(found).toBeDefined();
     expect(found.isDeleted).toBe(true);
   });

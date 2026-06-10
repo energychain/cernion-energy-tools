@@ -1682,7 +1682,13 @@ function buildExecutionPlan({
       knownContext,
       promptHints,
     });
-    bpPlan.evidencePlan = planEvidence(bpPlan, {
+    // If a semantic evidence signal key was detected (e.g. redispatch_probability_forecast),
+    // use it for evidence planning — the blueprint routeKey has no registry entry.
+    const evidenceLookupPlan = evidenceSignalKey
+      ? { routeKey: evidenceSignalKey }
+      : bpPlan;
+    bpPlan.evidenceKey = evidenceSignalKey || null;
+    bpPlan.evidencePlan = planEvidence(evidenceLookupPlan, {
       ...(promptHints || {}),
       ...(knownContext || {}),
     });
