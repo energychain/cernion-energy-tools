@@ -77,6 +77,22 @@ const INPUT_PATTERNS = Object.freeze({
     ],
     aliases: ['vnb_name', 'operator', 'netzbetreiber'],
   },
+  companyName: {
+    patterns: [
+      /(?:firmenname|firma|unternehmen|unternehmensname)\s*[:=]?\s*([A-Z][a-zäöüß\s\-\.]{2,30})/i,
+    ],
+    aliases: ['company', 'vendorName', 'companyname'],
+  },
+  // bdewCode and postalCode are extracted from message via energy-id-extractor,
+  // but listed here so the knownContext passthrough path (step 3) can find them.
+  bdewCode: {
+    patterns: [],
+    aliases: ['bdew', 'bdew_code', 'bdewcode'],
+  },
+  postalCode: {
+    patterns: [],
+    aliases: ['plz', 'postleitzahl', 'postal_code', 'postalcode'],
+  },
   assetType: {
     patterns: [
       /(?:anlage|installation|typ|art)\s*[:=]?\s*(PV|photovoltaik|wind|wasserkraft|biomasse|speicher|BESS|batterie|wasserkraft)/i,

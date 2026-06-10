@@ -442,6 +442,15 @@ function buildActionTemplate(action) {
     return {
       bdew: '__step_1.data.results[0].bdewCode',
       city: '__step_1.data.results[0].contacts[0].city',
+      query: null,
+      vnbName: null,
+    };
+  }
+  if (action === 'grid-operations.vnbLookupCodes') {
+    return {
+      bdewCode: '__step_2.data.bdew',
+      vnbName: null,
+      mastrId: null,
     };
   }
   if (action === 'residual-load.netResidualLoad') {
@@ -662,6 +671,39 @@ function interpolateTemplateWithKnownContext(
   if (action === 'grid-operations.marketPartners') {
     if (hydrated.query === null || hydrated.query === undefined || hydrated.query === '') {
       hydrated.query = queryCandidate;
+    }
+  }
+
+  if (action === 'grid-operations.vnbLookup') {
+    const knownBdew = knownContext.bdew || knownContext.bdewCode || null;
+    const knownCity =
+      knownContext.city || knownContext.municipality || knownContext.postalCode || null;
+    // Override step-reference templates when direct context values are available.
+    // Step-refs remain intact for flows where marketPartners runs first (step 1).
+    if (knownBdew && typeof hydrated.bdew === 'string' && hydrated.bdew.startsWith('__step_')) {
+      hydrated.bdew = knownBdew;
+    }
+    if (knownCity && typeof hydrated.city === 'string' && hydrated.city.startsWith('__step_')) {
+      hydrated.city = knownCity;
+    }
+    if (hydrated.query === null) {
+      hydrated.query = knownContext.query || null;
+    }
+    if (hydrated.vnbName === null) {
+      hydrated.vnbName = knownContext.vnbName || knownContext.gridOperatorName || null;
+    }
+  }
+
+  if (action === 'grid-operations.vnbLookupCodes') {
+    const knownBdew = knownContext.bdewCode || knownContext.bdew || null;
+    if (knownBdew && typeof hydrated.bdewCode === 'string' && hydrated.bdewCode.startsWith('__step_')) {
+      hydrated.bdewCode = knownBdew;
+    }
+    if (hydrated.vnbName === null) {
+      hydrated.vnbName = knownContext.vnbName || knownContext.gridOperatorName || null;
+    }
+    if (hydrated.mastrId === null) {
+      hydrated.mastrId = knownContext.mastrId || null;
     }
   }
 

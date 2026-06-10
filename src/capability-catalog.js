@@ -533,9 +533,9 @@ const CURATED_CAPABILITIES = [
       'anschlusskontext',
     ],
     preferredActions: [
+      'grid-operations.marketPartners',
       'grid-operations.vnbLookup',
       'grid-operations.vnbLookupCodes',
-      'grid-operations.marketPartners',
     ],
     fallbackActions: ['grid-operations.marketPartners'],
     avoid: [

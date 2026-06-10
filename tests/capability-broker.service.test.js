@@ -352,4 +352,69 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('query.ask');
     expect(actionNames).not.toContain('query.askLearned');
   });
+
+  // ── VNB Lookup — Param Hydration from knownContext (Issue #177) ─────────────
+
+  it('hydrates vnbLookup.bdew from knownContext.bdew (direct BDEW lookup)', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'VNB Lookup: BDEW-Code auflösen',
+      knownContext: { bdew: '9900992720003' },
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('grid_operator_identity_resolution');
+    const vnbStep = result.recommendedPlan.find((s) => s.action === 'grid-operations.vnbLookup');
+    expect(vnbStep).toBeDefined();
+    expect(vnbStep.params.bdew).toBe('9900992720003');
+  });
+
+  it('hydrates vnbLookup.city from knownContext.city (Ort-based lookup)', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Netzbetreiber-Zuordnung für PLZ 80333 München',
+      knownContext: { city: 'München' },
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('grid_operator_identity_resolution');
+    const vnbStep = result.recommendedPlan.find((s) => s.action === 'grid-operations.vnbLookup');
+    expect(vnbStep).toBeDefined();
+    expect(vnbStep.params.city).toBe('München');
+  });
+
+  it('hydrates vnbLookup.city from knownContext.postalCode as fallback', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Welcher VNB ist für PLZ 12045 in Berlin zuständig?',
+      knownContext: { postalCode: '12045' },
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('grid_operator_identity_resolution');
+    const vnbStep = result.recommendedPlan.find((s) => s.action === 'grid-operations.vnbLookup');
+    expect(vnbStep).toBeDefined();
+    // postalCode maps to city as fallback when no city is provided
+    expect(vnbStep.params.city).toBe('12045');
+  });
+
+  it('hydrates marketPartners.query from knownContext.gridOperatorName (Firmenname path)', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'VNB Lookup Firmenname Stadtwerke Köln',
+      knownContext: { gridOperatorName: 'Stadtwerke Köln' },
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('grid_operator_identity_resolution');
+    const mpStep = result.recommendedPlan.find((s) => s.action === 'grid-operations.marketPartners');
+    expect(mpStep).toBeDefined();
+    expect(mpStep.params.query).toBe('Stadtwerke Köln');
+  });
+
+  it('hydrates vnbLookupCodes.bdewCode from knownContext.bdewCode', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'VNB Lookup Codes',
+      knownContext: { bdewCode: '9907473000008' },
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('grid_operator_identity_resolution');
+    const codesStep = result.recommendedPlan.find(
+      (s) => s.action === 'grid-operations.vnbLookupCodes'
+    );
+    expect(codesStep).toBeDefined();
+    expect(codesStep.params.bdewCode).toBe('9907473000008');
+  });
 });
