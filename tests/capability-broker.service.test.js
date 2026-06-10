@@ -294,4 +294,62 @@ describe('Capability Broker Service', () => {
     expect(result.recommendedPlan[0].action).toBe('vdmi.agentRole');
     expect(result.recommendedPlan[0].params.processType).toBe('grid-connection-asset-validation');
   });
+
+  // ── VNB Lookup Routing (Issue #177) ──────────────────────────────────────────
+
+  it('routes PLZ + VNB intent to grid_operator_identity_resolution with vnbLookup as first action', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Welcher Netzbetreiber ist für PLZ 12045 in Berlin zuständig?',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('grid_operator_identity_resolution');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('grid-operations.vnbLookup');
+    expect(actionNames).toContain('grid-operations.vnbLookupCodes');
+  });
+
+  it('routes explicit netzbetreiber-zuordnung prompt to grid_operator_identity_resolution', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Netzbetreiber-Zuordnung für Standort Frankfurt – welcher VNB ist zuständig und welchen BDEW-Code hat er?',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('grid_operator_identity_resolution');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('grid-operations.vnbLookup');
+    expect(actionNames).toContain('grid-operations.marketPartners');
+  });
+
+  it('routes Firmenname VNB lookup to grid_operator_identity_resolution including marketPartners', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'VNB Lookup: Netzgebiet-Zuordnung für Firmenname Stadtwerke Köln ermitteln – BDEW-Code und SNB gesucht',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('grid_operator_identity_resolution');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('grid-operations.marketPartners');
+    expect(actionNames).toContain('grid-operations.vnbLookup');
+  });
+
+  it('does NOT route pure VNB lookup to VDMI governance capabilities', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Welcher VNB ist für PLZ 70173 Stuttgart zuständig?',
+    });
+
+    const cap = result.recommendedCapabilities[0].capability;
+    expect(cap).not.toBe('vdmi_grid_connection_decision_governance');
+    expect(cap).not.toBe('vdmi_role_boundary_governance');
+    expect(cap).not.toBe('vdmi_asset_validation_governance');
+  });
+
+  it('does NOT route pure VNB lookup to interface-placeholder or generic query.ask', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Netzbetreiber Zuordnung für PLZ 80333 München',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('grid_operator_identity_resolution');
+    expect(result.recommendedPlan[0].action).not.toBe('interface-placeholder.markGap');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).not.toContain('query.ask');
+    expect(actionNames).not.toContain('query.askLearned');
+  });
 });

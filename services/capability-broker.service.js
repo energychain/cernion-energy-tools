@@ -298,6 +298,39 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // Pure VNB/Netzbetreiber identity/territory lookup — must not escalate to VDMI or fNAV.
+  // Fires only when no higher-priority signal matched above.
+  const pureVnbLookupSignals = [
+    'vnb lookup',
+    'vnb zuordnung',
+    'netzbetreiber zuordnung',
+    'welcher netzbetreiber',
+    'zuständiger netzbetreiber',
+    'zustaendiger netzbetreiber',
+    'netzgebiet zuordnung',
+    'netzgebiet klärung',
+    'netzgebiet klaerung',
+  ];
+
+  // PLZ/Postleitzahl/Standort combined with VNB identity intent, excluding contexts
+  // already claimed by higher-priority blocks (fNAV, benchmark).
+  const hasPureVnbLookupCombo =
+    /(plz|postleitzahl|\bstandort\b)/i.test(haystack) &&
+    /\b(netzbetreiber|vnb|netzgebiet)\b/i.test(haystack) &&
+    !fnavSignals.some((s) => haystack.includes(s)) &&
+    !benchmarkSignals.some((s) => haystack.includes(s));
+
+  if (pureVnbLookupSignals.some((signal) => haystack.includes(signal)) || hasPureVnbLookupCombo) {
+    const vnbLookupCapability = findCapabilityByName('grid_operator_identity_resolution');
+    if (vnbLookupCapability) {
+      return {
+        capability: vnbLookupCapability,
+        score: 90,
+        usedFallback: false,
+      };
+    }
+  }
+
   let best = null;
 
   for (const capability of CURATED_CAPABILITIES) {
