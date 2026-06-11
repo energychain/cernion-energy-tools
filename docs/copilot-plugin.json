@@ -4,7 +4,7 @@
   "name_for_human": "Cernion Energy Tools",
   "namespace": "cernionenergytools",
   "description_for_human": "Suche und kuratierte Prozessunterstützung für Cernion Energy: Unternehmen, VDMI, ZNP, Netzanschluss.",
-  "description_for_model": "Use this plugin to search Cernion energy management data and to execute curated, safety-controlled process workflows.\n\nThe plugin exposes ONLY allowlisted operations from config/copilot-operations.json — all other API endpoints are blocked.\n\nSEARCH: searchCernionData — cross-domain entity search.\n\nREAD-ONLY CONTEXT: getVdmiContext, listOpenResponsibilities, getZnpProjectStatus, getGridConnectionValidation, vdmi_context, vdmi_myResponsibilities, vdmi_findings, vdmi_dossier, znp_listProjects, znp_getProjectMeta, znp_getProjectAssets, grid-connection_list, grid-connection_get, vdmi-findings_list, connection-rejection-evidence_list, connection-rejection-evidence_get.\n\nDRAFT (no writes): prepareVdmiValidation, draftVdmiEvidence, prepareGridConnectionValidation.\n\nPREPARE (writes, x-openai-isConsequential: true): vdmi_evidence, connection-rejection-evidence_create, grid-connection_validate, grid-connection_validateMesskonzeptConflict, grid-connection_fnavValidate, znp_addAssumption.\n\nSAFETY RULES:\n- Always load context before any prepare action.\n- Summarise target, intended change, and risk BEFORE calling a prepare action.\n- For all x-openai-isConsequential: true actions, require explicit user confirmation.\n- NEVER call delete, override, signature, or final-approval actions — they are not in this plugin.\n- NEVER invent operations not listed here.",
+  "description_for_model": "Use this plugin to search Cernion energy management data and to execute curated, safety-controlled process workflows.\n\nThe plugin exposes ONLY allowlisted operations from config/copilot-operations.json — all other API endpoints are blocked. Phase 2: read and draft actions only. No direct write or execute actions are available — those are deferred to Phase 3.\n\nSEARCH: searchCernionData — cross-domain entity search.\n\nREAD-ONLY CONTEXT: getVdmiContext, listOpenResponsibilities, getZnpProjectStatus, getGridConnectionValidation, vdmi_context, vdmi_myResponsibilities, vdmi_findings, vdmi_dossier, znp_listProjects, znp_getProjectMeta, znp_getProjectAssets, gridConnectionList, gridConnectionGet, vdmiFindingsList, connectionRejectionEvidenceList, connectionRejectionEvidenceGet.\n\nDRAFT (no writes, no side effects): prepareVdmiValidation, draftVdmiEvidence, prepareGridConnectionValidation.\n\nSAFETY RULES:\n- Always load context before any draft action.\n- Summarise target, intended change, and risk BEFORE calling a draft action.\n- NEVER call delete, override, signature, final-approval, or any write/execute actions — they are not in this plugin.\n- NEVER invent operations not listed here.",
   "contact_email": "dev@stromdao.com",
   "functions": [
     {
@@ -115,7 +115,7 @@
       "capabilities": { "security_info": { "data_handling": ["GetPrivateData"] } }
     },
     {
-      "name": "vdmi-findings_list",
+      "name": "vdmiFindingsList",
       "description": "List VDMI governance findings scoped to a specific tenant (multi-tenant path). Read-only.",
       "capabilities": { "security_info": { "data_handling": ["GetPrivateData"] } }
     },
@@ -140,53 +140,54 @@
       "capabilities": { "security_info": { "data_handling": ["GetPrivateData"] } }
     },
     {
-      "name": "grid-connection_list",
+      "name": "gridConnectionList",
       "description": "List past grid connection validation reports, newest first. Optionally filter by grid operator ID. Read-only.",
       "capabilities": { "security_info": { "data_handling": ["GetPrivateData"] } }
     },
     {
-      "name": "grid-connection_get",
+      "name": "gridConnectionGet",
       "description": "Get a specific grid connection validation report including all findings. Read-only.",
       "capabilities": { "security_info": { "data_handling": ["GetPrivateData"] } }
     },
     {
-      "name": "connection-rejection-evidence_list",
+      "name": "connectionRejectionEvidenceList",
       "description": "List connection rejection evidence packages. Read-only.",
       "capabilities": { "security_info": { "data_handling": ["GetPrivateData"] } }
     },
     {
-      "name": "connection-rejection-evidence_get",
+      "name": "connectionRejectionEvidenceGet",
       "description": "Get a connection rejection evidence package by ID. Read-only.",
       "capabilities": { "security_info": { "data_handling": ["GetPrivateData"] } }
     },
     {
-      "name": "vdmi_evidence",
-      "description": "Inject manual evidence for a VDMI matrix. WRITES to database — x-openai-isConsequential: true. Require explicit user confirmation before calling.",
+      "name": "prepareVdmiEvidence",
+      "description": "Prepare a VDMI evidence injection intent. Creates a persistent ProcessExecutionIntent — no writes. requiredConfirmation: true. Present intentId and confirmationMessage to user. Execute outside Copilot via executeProcessIntent.",
+      "capabilities": {
+        "response_semantics": {
+          "data_path": "$",
+          "properties": { "title": "$.inputSummary", "subtitle": "$.status" }
+        },
+        "security_info": { "data_handling": ["GetPrivateData"] }
+      }
+    },
+    {
+      "name": "prepareZnpAssumption",
+      "description": "Prepare a ZNP planning assumption intent. Creates a persistent ProcessExecutionIntent — no writes. requiredConfirmation: true.",
       "capabilities": { "security_info": { "data_handling": ["GetPrivateData"] } }
     },
     {
-      "name": "connection-rejection-evidence_create",
-      "description": "Create a connection rejection evidence package. WRITES to database — x-openai-isConsequential: true. Require explicit user confirmation.",
+      "name": "prepareConnectionRejectionEvidence",
+      "description": "Prepare a connection rejection evidence package intent. Creates a persistent ProcessExecutionIntent — no writes. requiredConfirmation: true.",
       "capabilities": { "security_info": { "data_handling": ["GetPrivateData"] } }
     },
     {
-      "name": "grid-connection_validate",
-      "description": "Run the 6-step Netzanschluss validation pipeline (~2 min, writes report). CONSEQUENTIAL — x-openai-isConsequential: true. Require explicit user confirmation.",
+      "name": "getProcessIntent",
+      "description": "Get a process execution intent by ID. Returns intent status, payload summary, and audit trail. Read-only.",
       "capabilities": { "security_info": { "data_handling": ["GetPrivateData"] } }
     },
     {
-      "name": "grid-connection_validateMesskonzeptConflict",
-      "description": "Validate Messkonzept conflict for a connection scenario. WRITES result — x-openai-isConsequential: true. Require explicit user confirmation.",
-      "capabilities": { "security_info": { "data_handling": ["GetPrivateData"] } }
-    },
-    {
-      "name": "grid-connection_fnavValidate",
-      "description": "Run FNAV (Fernwirknetz-Anschluss-Validierung) check. WRITES result — x-openai-isConsequential: true. Require explicit user confirmation.",
-      "capabilities": { "security_info": { "data_handling": ["GetPrivateData"] } }
-    },
-    {
-      "name": "znp_addAssumption",
-      "description": "Add a planning assumption to a ZNP project graph. WRITES to graph — x-openai-isConsequential: true. Require explicit user confirmation.",
+      "name": "listProcessIntents",
+      "description": "List process execution intents. Filter by operationFamily or status. Read-only.",
       "capabilities": { "security_info": { "data_handling": ["GetPrivateData"] } }
     }
   ],
@@ -213,21 +214,20 @@
         "vdmi_context",
         "vdmi_myResponsibilities",
         "vdmi_findings",
-        "vdmi-findings_list",
+        "vdmiFindingsList",
         "vdmi_dossier",
         "znp_listProjects",
         "znp_getProjectMeta",
         "znp_getProjectAssets",
-        "grid-connection_list",
-        "grid-connection_get",
-        "connection-rejection-evidence_list",
-        "connection-rejection-evidence_get",
-        "vdmi_evidence",
-        "connection-rejection-evidence_create",
-        "grid-connection_validate",
-        "grid-connection_validateMesskonzeptConflict",
-        "grid-connection_fnavValidate",
-        "znp_addAssumption"
+        "gridConnectionList",
+        "gridConnectionGet",
+        "connectionRejectionEvidenceList",
+        "connectionRejectionEvidenceGet",
+        "prepareVdmiEvidence",
+        "prepareZnpAssumption",
+        "prepareConnectionRejectionEvidence",
+        "getProcessIntent",
+        "listProcessIntents"
       ]
     }
   ]

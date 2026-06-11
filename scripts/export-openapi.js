@@ -312,32 +312,58 @@ function buildStaticSpec() {
  * Copilot allowlist (config/copilot-operations.json).
  *
  * Applies:
+ * - Lookup via `specOperationId` (actual ID in spec) when it differs from `operationId`
+ * - Stable Copilot-friendly `operationId` in output (camelCase, no hyphens)
  * - Description overrides from allowlist entries (`copilotDescription`)
  * - x-openai-isConsequential based on mode (read/draft → false, prepare/consequential → true)
+ * - Path parameter normalization: Express `:param` → OpenAPI `{param}`
+ * - Auto-adds missing `in: "path"` parameter definitions for any path params
  *
  * @param {object} fullSpec  Annotated full spec (output of main annotation loop)
  * @param {object[]} allowlist  Array of allowlist entries from copilot-operations.json
  * @returns {object}  Filtered OpenAPI spec
  */
 function buildCopilotSpec(fullSpec, allowlist) {
-  const allowMap = new Map(allowlist.map((entry) => [entry.operationId, entry]));
+  // Key by specOperationId when present (actual ID in spec), else by operationId
+  const allowMap = new Map(
+    allowlist.map((entry) => [entry.specOperationId || entry.operationId, entry])
+  );
 
   const paths = {};
   for (const [openapiPath, pathItem] of Object.entries(fullSpec.paths || {})) {
+    // Normalize Express :param → OpenAPI {param}
+    const normalizedPath = openapiPath.replace(/:([a-zA-Z][a-zA-Z0-9_]*)/g, '{$1}');
+    const pathParamNames = [...normalizedPath.matchAll(/\{([a-zA-Z][a-zA-Z0-9_]*)\}/g)].map(
+      (m) => m[1]
+    );
+
     const filteredItem = {};
     for (const [method, operation] of Object.entries(pathItem)) {
       const entry = allowMap.get(operation.operationId);
       if (!entry) continue;
 
       const isConsequential = entry.mode === 'prepare' || entry.mode === 'consequential';
+
+      // Auto-add path param definitions that are missing from the operation
+      const existingPathParams = new Set(
+        (operation.parameters || []).filter((p) => p.in === 'path').map((p) => p.name)
+      );
+      const missingParams = pathParamNames
+        .filter((n) => !existingPathParams.has(n))
+        .map((name) => ({ name, in: 'path', required: true, schema: { type: 'string' } }));
+
       filteredItem[method] = {
         ...operation,
+        operationId: entry.operationId, // stable Copilot-friendly ID (no hyphens)
         'x-openai-isConsequential': isConsequential,
         ...(entry.copilotDescription ? { description: entry.copilotDescription } : {}),
         ...(entry.summary ? { summary: entry.summary } : {}),
+        ...(missingParams.length > 0
+          ? { parameters: [...(operation.parameters || []), ...missingParams] }
+          : {}),
       };
     }
-    if (Object.keys(filteredItem).length > 0) paths[openapiPath] = filteredItem;
+    if (Object.keys(filteredItem).length > 0) paths[normalizedPath] = filteredItem;
   }
 
   return {

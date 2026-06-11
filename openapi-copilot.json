@@ -173,29 +173,8 @@
   ],
   "paths": {
     "/api/connection-rejection-evidence/packages": {
-      "post": {
-        "operationId": "connection-rejection-evidence_create",
-        "summary": "Create a connection rejection evidence package (writes)",
-        "tags": [
-          "connection-rejection-evidence"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        },
-        "x-openai-isConsequential": true,
-        "description": "Creates a new connection rejection evidence package. This action writes to the database. Requires explicit user confirmation."
-      },
       "get": {
-        "operationId": "connection-rejection-evidence_list",
+        "operationId": "connectionRejectionEvidenceList",
         "summary": "List connection rejection evidence packages",
         "tags": [
           "connection-rejection-evidence"
@@ -216,9 +195,9 @@
         "description": "Returns all connection rejection evidence packages. Read-only."
       }
     },
-    "/api/connection-rejection-evidence/packages/:id": {
+    "/api/connection-rejection-evidence/packages/{id}": {
       "get": {
-        "operationId": "connection-rejection-evidence_get",
+        "operationId": "connectionRejectionEvidenceGet",
         "summary": "Get a connection rejection evidence package by ID",
         "tags": [
           "connection-rejection-evidence"
@@ -236,10 +215,20 @@
           }
         },
         "x-openai-isConsequential": false,
-        "description": "Returns a single connection rejection evidence package with full details. Read-only."
+        "description": "Returns a single connection rejection evidence package with full details. Read-only.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     },
-    "/api/copilot-process/vdmi/:matrixId/context": {
+    "/api/copilot-process/vdmi/{matrixId}/context": {
       "get": {
         "operationId": "getVdmiContext",
         "summary": "Load VDMI matrix context: status, open tasks, evidence count",
@@ -434,7 +423,7 @@
         "x-openai-isConsequential": false
       }
     },
-    "/api/copilot-process/znp/:projectId/status": {
+    "/api/copilot-process/znp/{projectId}/status": {
       "get": {
         "operationId": "getZnpProjectStatus",
         "summary": "Get ZNP project metadata and graph statistics",
@@ -513,7 +502,7 @@
         "x-openai-isConsequential": false
       }
     },
-    "/api/copilot-process/grid-connection/:validationId": {
+    "/api/copilot-process/grid-connection/{validationId}": {
       "get": {
         "operationId": "getGridConnectionValidation",
         "summary": "Retrieve grid connection validation report (decision, findings, operator)",
@@ -586,7 +575,7 @@
         "x-openai-isConsequential": false
       }
     },
-    "/api/copilot-process/vdmi/:matrixId/prepare-validation": {
+    "/api/copilot-process/vdmi/{matrixId}/prepare-validation": {
       "post": {
         "operationId": "prepareVdmiValidation",
         "summary": "Prepare VDMI matrix nomination — draft only, no write",
@@ -744,10 +733,20 @@
             }
           }
         },
-        "x-openai-isConsequential": false
+        "x-openai-isConsequential": false,
+        "parameters": [
+          {
+            "name": "matrixId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     },
-    "/api/copilot-process/vdmi/:matrixId/draft-evidence": {
+    "/api/copilot-process/vdmi/{matrixId}/draft-evidence": {
       "post": {
         "operationId": "draftVdmiEvidence",
         "summary": "Draft evidence suggestions for open VDMI tasks — no write",
@@ -858,7 +857,17 @@
             }
           }
         },
-        "x-openai-isConsequential": false
+        "x-openai-isConsequential": false,
+        "parameters": [
+          {
+            "name": "matrixId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     },
     "/api/copilot-process/grid-connection/prepare-validation": {
@@ -987,202 +996,532 @@
         "x-openai-isConsequential": false
       }
     },
-    "/api/grid-connection/validate": {
+    "/api/copilot-process/vdmi/{matrixId}/intents/evidence": {
       "post": {
-        "operationId": "grid-connection_validate",
-        "summary": "Run Netzanschluss validation pipeline (deterministic, ~2 min, writes report)",
+        "operationId": "prepareVdmiEvidence",
+        "summary": "Prepare VDMI evidence injection intent — creates auditable intent, no write",
         "tags": [
-          "Grid Connection Validation"
+          "Copilot Process"
         ],
         "responses": {
           "200": {
-            "description": "ValidationReport with findings from all 6 pipeline steps",
+            "description": "VDMI evidence intent created",
             "content": {
               "application/json": {
-                "example": {
-                  "success": true,
-                  "id": "a1b2c3d4-...",
-                  "decision": "GO_CONDITIONAL",
-                  "summary": {
-                    "totalInstallations": 59,
-                    "totalCapacityMW": 73.4,
-                    "findingsCount": {
-                      "info": 4,
-                      "warning": 7,
-                      "error": 1
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "intentId",
+                    "operationFamily",
+                    "proposedAction",
+                    "status",
+                    "requiresHumanConfirmation"
+                  ],
+                  "properties": {
+                    "intentId": {
+                      "type": "string"
                     },
-                    "durationMs": 12450
-                  },
-                  "snapshot": {
-                    "id": "snap-uuid",
-                    "consistent": true,
-                    "drift": null
+                    "operationFamily": {
+                      "type": "string",
+                      "example": "vdmi"
+                    },
+                    "proposedAction": {
+                      "type": "string",
+                      "example": "inject_evidence"
+                    },
+                    "target": {
+                      "type": "object"
+                    },
+                    "inputSummary": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "pending_confirmation"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    },
+                    "risk": {
+                      "type": "string",
+                      "example": "medium"
+                    },
+                    "requiresHumanConfirmation": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confirmationMessage": {
+                      "type": "string"
+                    },
+                    "executeVia": {
+                      "type": "object"
+                    },
+                    "auditTrail": {
+                      "type": "object"
+                    }
                   }
                 }
               }
             }
           },
-          "202": {
-            "description": "REST/Gateway call accepted as async job. Poll /api/jobs/:jobId/status and /api/jobs/:jobId/result.",
-            "content": {
-              "application/json": {
-                "example": {
-                  "success": true,
-                  "jobId": "f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6",
-                  "status": "queued",
-                  "statusUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/status",
-                  "resultUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/result"
-                }
-              }
-            }
+          "404": {
+            "description": "Matrix not found"
           }
         },
-        "description": "Executes the deterministic 6-step grid connection validation pipeline for a grid operator. Takes up to 2 minutes. Writes a persistent validation report. Requires explicit user confirmation before starting.",
+        "description": "Verifies the VDMI matrix exists and creates a persistent ProcessExecutionIntent for evidence injection. No evidence is written.\nReturns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "matrixId",
+                  "evidenceType",
+                  "reference",
+                  "reason"
+                ],
                 "properties": {
-                  "gridOperatorId": {
+                  "matrixId": {
                     "type": "string",
-                    "description": "MaStR grid operator ID (SNB...)",
-                    "example": "SNB935578300972"
+                    "example": "vdmi-abc123"
                   },
-                  "gridOperatorBdew": {
+                  "evidenceType": {
                     "type": "string",
-                    "description": "13-digit BDEW market-partner code",
-                    "example": "9907473000008"
+                    "minLength": 2,
+                    "example": "aktenvermerk"
                   },
-                  "gridOperatorName": {
+                  "reference": {
                     "type": "string",
-                    "description": "Grid operator name (fuzzy match via marketPartners)",
-                    "example": "TWL Netze"
+                    "minLength": 2,
+                    "example": "REF-2026-001"
                   },
-                  "datapointTags": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Tags for datapoint snapshot creation (Weg B)",
-                    "example": [
-                      "twl-netze"
-                    ]
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "example": "Jahresprüfung abgeschlossen"
                   },
-                  "maxAgeMinutes": {
-                    "type": "integer",
-                    "default": 120,
-                    "description": "Datapoint freshness threshold in minutes"
+                  "content": {
+                    "type": "object",
+                    "description": "Optional additional content payload"
                   },
-                  "skipSteps": {
-                    "type": "array",
-                    "items": {
-                      "type": "integer"
-                    },
-                    "description": "Pipeline step numbers to skip (e.g. [4] skips EWK benchmark)",
-                    "example": []
+                  "correlationId": {
+                    "type": "string",
+                    "example": "req-2026-001"
                   },
-                  "includeCapacityCheck": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Call cernion_connection_capacity_check for headroom data"
-                  },
-                  "scenarioAdditions": {
-                    "type": "array",
-                    "description": "Optional What-If installations added virtually for this validation run only.",
-                    "example": [
-                      {
-                        "id": "whatif-pv-1",
-                        "type": "solar",
-                        "capacityMW": 1.5,
-                        "voltageLevel": "MS"
-                      }
-                    ],
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "example": "whatif-1"
-                        },
-                        "type": {
-                          "type": "string",
-                          "example": "solar"
-                        },
-                        "capacityKW": {
-                          "type": "number",
-                          "example": 1500
-                        },
-                        "capacityMW": {
-                          "type": "number",
-                          "example": 1.5
-                        },
-                        "energietraeger": {
-                          "type": "string",
-                          "example": "solar"
-                        },
-                        "voltageLevel": {
-                          "type": "string",
-                          "example": "MS"
-                        }
-                      }
-                    }
-                  },
-                  "scenarioCapacityMW": {
-                    "type": "number",
-                    "description": "Optional extra capacity (MW) injected as a synthetic What-If installation.",
-                    "example": 2.5
-                  }
-                }
-              },
-              "examples": {
-                "By MaStR ID": {
-                  "value": {
-                    "gridOperatorId": "SNB935578300972",
-                    "datapointTags": [
-                      "twl-netze"
-                    ],
-                    "maxAgeMinutes": 120
-                  }
-                },
-                "By BDEW code": {
-                  "value": {
-                    "gridOperatorBdew": "9907473000008"
-                  }
-                },
-                "By name": {
-                  "value": {
-                    "gridOperatorName": "TWL Netze",
-                    "skipSteps": [
-                      4
-                    ]
-                  }
-                },
-                "What-If scenario": {
-                  "value": {
-                    "gridOperatorId": "SNB935578300972",
-                    "scenarioAdditions": [
-                      {
-                        "id": "whatif-pv-1",
-                        "type": "solar",
-                        "capacityMW": 1.5,
-                        "voltageLevel": "MS"
-                      }
-                    ],
-                    "scenarioCapacityMW": 0.8
+                  "idempotencyKey": {
+                    "type": "string",
+                    "example": "idem-vdmi-20260611"
                   }
                 }
               }
             }
           }
         },
-        "x-openai-isConsequential": true
+        "x-openai-isConsequential": false,
+        "parameters": [
+          {
+            "name": "matrixId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/copilot-process/znp/{projectId}/intents/assumption": {
+      "post": {
+        "operationId": "prepareZnpAssumption",
+        "summary": "Prepare ZNP planning assumption intent — creates auditable intent, no write",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "ZNP assumption intent created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "intentId",
+                    "operationFamily",
+                    "proposedAction",
+                    "status",
+                    "requiresHumanConfirmation"
+                  ],
+                  "properties": {
+                    "intentId": {
+                      "type": "string"
+                    },
+                    "operationFamily": {
+                      "type": "string",
+                      "example": "znp"
+                    },
+                    "proposedAction": {
+                      "type": "string",
+                      "example": "add_assumption"
+                    },
+                    "target": {
+                      "type": "object"
+                    },
+                    "inputSummary": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "pending_confirmation"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    },
+                    "risk": {
+                      "type": "string",
+                      "example": "medium"
+                    },
+                    "requiresHumanConfirmation": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confirmationMessage": {
+                      "type": "string"
+                    },
+                    "executeVia": {
+                      "type": "object"
+                    },
+                    "auditTrail": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "description": "Verifies the ZNP project exists and creates a persistent ProcessExecutionIntent for adding a planning assumption. No write occurs.\nReturns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "projectId",
+                  "text",
+                  "reason"
+                ],
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "example": "znp-proj-001"
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 2000,
+                    "example": "Annahme: Netzkapazität ausreichend für Q3 2026"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "example": "Planungsstand Q2 2026"
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "example": "req-2026-001"
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "example": "idem-znp-20260611"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false,
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/copilot-process/connection-rejection-evidence/intents": {
+      "post": {
+        "operationId": "prepareConnectionRejectionEvidence",
+        "summary": "Prepare connection rejection evidence package intent — creates auditable intent, no write",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection rejection evidence intent created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "intentId",
+                    "operationFamily",
+                    "proposedAction",
+                    "status",
+                    "requiresHumanConfirmation"
+                  ],
+                  "properties": {
+                    "intentId": {
+                      "type": "string"
+                    },
+                    "operationFamily": {
+                      "type": "string",
+                      "example": "connectionRejectionEvidence"
+                    },
+                    "proposedAction": {
+                      "type": "string",
+                      "example": "create_package"
+                    },
+                    "target": {
+                      "type": "object"
+                    },
+                    "inputSummary": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "pending_confirmation"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    },
+                    "risk": {
+                      "type": "string",
+                      "example": "medium"
+                    },
+                    "requiresHumanConfirmation": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confirmationMessage": {
+                      "type": "string"
+                    },
+                    "executeVia": {
+                      "type": "object"
+                    },
+                    "auditTrail": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Validates all required fields and creates a persistent ProcessExecutionIntent for creating a connection rejection evidence package. No write occurs.\nReturns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "gridOperatorId",
+                  "applicantReference",
+                  "loadAssumptionKw",
+                  "netzverknuepfungspunktId",
+                  "voltageLevel",
+                  "bottleneckDescription",
+                  "n1QualityStatus",
+                  "decision",
+                  "reason"
+                ],
+                "properties": {
+                  "gridOperatorId": {
+                    "type": "string",
+                    "example": "SNB935578300972"
+                  },
+                  "applicantReference": {
+                    "type": "string",
+                    "example": "APP-2026-001"
+                  },
+                  "loadAssumptionKw": {
+                    "type": "number",
+                    "example": 150
+                  },
+                  "netzverknuepfungspunktId": {
+                    "type": "string",
+                    "example": "NVP-001"
+                  },
+                  "voltageLevel": {
+                    "type": "string",
+                    "example": "NS"
+                  },
+                  "bottleneckDescription": {
+                    "type": "string",
+                    "example": "Trafoüberlastung bei Spitzenlast"
+                  },
+                  "n1QualityStatus": {
+                    "type": "string",
+                    "enum": [
+                      "COMPLIANT",
+                      "NON_COMPLIANT",
+                      "CONDITIONALLY_COMPLIANT",
+                      "UNKNOWN"
+                    ]
+                  },
+                  "decision": {
+                    "type": "string",
+                    "example": "REJECTED"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "example": "Netzkapazität nicht ausreichend"
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "example": "req-2026-001"
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "example": "idem-cre-20260611"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/intents/{intentId}": {
+      "get": {
+        "operationId": "getProcessIntent",
+        "summary": "Get a process execution intent by ID (status, payload, audit trail)",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Process execution intent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Intent not found"
+          }
+        },
+        "description": "Returns intent status, payload summary, and audit trail. Read-only.",
+        "parameters": [
+          {
+            "name": "intentId",
+            "in": "path",
+            "required": true,
+            "description": "Intent UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/intents": {
+      "get": {
+        "operationId": "listProcessIntents",
+        "summary": "List process execution intents, optionally filtered by family or status",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of process execution intents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "count",
+                    "intents"
+                  ],
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "intents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a paginated list of process execution intents. Filter by operationFamily or status. Read-only.",
+        "parameters": [
+          {
+            "name": "operationFamily",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
       }
     },
     "/api/grid-connection/validations": {
       "get": {
-        "operationId": "grid-connection_list",
+        "operationId": "gridConnectionList",
         "summary": "List past grid connection validation reports",
         "tags": [
           "Grid Connection Validation"
@@ -1253,9 +1592,9 @@
         "x-openai-isConsequential": false
       }
     },
-    "/api/grid-connection/validations/:id": {
+    "/api/grid-connection/validations/{id}": {
       "get": {
-        "operationId": "grid-connection_get",
+        "operationId": "gridConnectionGet",
         "summary": "Get a specific grid connection validation report by ID",
         "tags": [
           "Grid Connection Validation"
@@ -1282,244 +1621,6 @@
           }
         ],
         "x-openai-isConsequential": false
-      }
-    },
-    "/api/grid-connection/messkonzept/conflict/validate": {
-      "post": {
-        "operationId": "grid-connection_validateMesskonzeptConflict",
-        "summary": "Validate Messkonzept conflict for a grid connection scenario (writes report)",
-        "tags": [
-          "Grid Connection Validation"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        },
-        "description": "Validates Messkonzept conflicts for a specified connection scenario. Writes a validation result. Requires explicit user confirmation.",
-        "x-openai-isConsequential": true
-      }
-    },
-    "/api/grid-connection/fnav/validate": {
-      "post": {
-        "operationId": "grid-connection_fnavValidate",
-        "summary": "Run FNAV (Fernwirknetz-Anschluss-Validierung) check (writes result)",
-        "tags": [
-          "Netzfahrplan / fNAV"
-        ],
-        "responses": {
-          "200": {
-            "description": "fNAV validation result with capacity model, N-1 check, and governance status",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "capacityModel": {
-                      "type": "object",
-                      "description": "Normalised fNAV capacity model"
-                    },
-                    "n1Check": {
-                      "type": "object",
-                      "description": "N-1 compliance result"
-                    },
-                    "feasibility": {
-                      "type": "string",
-                      "enum": [
-                        "feasible",
-                        "conditional",
-                        "copper_needed"
-                      ]
-                    },
-                    "governanceStatus": {
-                      "type": "string"
-                    },
-                    "governanceBlockers": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "contractGate": {
-                      "type": "object",
-                      "description": "Explicit contract-gate assessment"
-                    },
-                    "governanceArtifact": {
-                      "type": "object",
-                      "nullable": true
-                    },
-                    "decisionChain": {
-                      "type": "array",
-                      "items": {
-                        "type": "object"
-                      }
-                    },
-                    "proof": {
-                      "type": "object"
-                    },
-                    "findings": {
-                      "type": "array",
-                      "items": {
-                        "type": "object"
-                      }
-                    },
-                    "metadata": {
-                      "type": "object"
-                    },
-                    "source": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "description": "Runs the FNAV (remote control network connection) validation check. Writes a result record. Requires explicit user confirmation.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "fnavProfile"
-                ],
-                "properties": {
-                  "gridOperatorName": {
-                    "type": "string",
-                    "example": "TWL Netze"
-                  },
-                  "voltageLevel": {
-                    "type": "string",
-                    "enum": [
-                      "NS",
-                      "MS",
-                      "HS"
-                    ],
-                    "default": "MS",
-                    "description": "Voltage level of the connection point"
-                  },
-                  "fnavProfile": {
-                    "type": "object",
-                    "example": {
-                      "requestedCapacity": 5000,
-                      "firmCapacity": 3000,
-                      "flexibleCapacity": 2000,
-                      "curtailmentWindow": 4,
-                      "signalPriorityPolicy": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung",
-                      "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
-                      "contractStatus": "negotiating",
-                      "legalStatus": "pending"
-                    },
-                    "required": [
-                      "requestedCapacity"
-                    ],
-                    "properties": {
-                      "requestedCapacity": {
-                        "type": "number",
-                        "example": 5000,
-                        "description": "Requested capacity in kW"
-                      },
-                      "firmCapacity": {
-                        "type": "number",
-                        "example": 3000,
-                        "description": "Guaranteed firm capacity in kW"
-                      },
-                      "flexibleCapacity": {
-                        "type": "number",
-                        "example": 2000,
-                        "description": "Curtailable §14a flex capacity in kW"
-                      },
-                      "curtailmentWindow": {
-                        "type": "number",
-                        "example": 4,
-                        "description": "Max curtailment hours per day (0–24)"
-                      },
-                      "operatingConstraint": {
-                        "type": "string",
-                        "example": "§14a max 2h/event"
-                      },
-                      "signalPriorityPolicy": {
-                        "type": "string",
-                        "example": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung"
-                      },
-                      "controlEvidenceRef": {
-                        "type": "string",
-                        "example": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05"
-                      },
-                      "contractStatus": {
-                        "type": "string",
-                        "example": "negotiating"
-                      },
-                      "legalStatus": {
-                        "type": "string",
-                        "example": "pending"
-                      }
-                    }
-                  },
-                  "n1ThresholdOverride": {
-                    "type": "object",
-                    "example": {
-                      "project": 78
-                    },
-                    "description": "Override N-1 threshold (MVA) at tenant/project/scenario level",
-                    "properties": {
-                      "tenant": {
-                        "type": "number",
-                        "example": 85
-                      },
-                      "project": {
-                        "type": "number",
-                        "example": 78
-                      },
-                      "scenario": {
-                        "type": "number",
-                        "example": 70
-                      }
-                    }
-                  },
-                  "ownerContact": {
-                    "type": "string",
-                    "example": "netzplanung@twl.de",
-                    "description": "Responsible owner — required for governance approval"
-                  }
-                }
-              },
-              "examples": {
-                "fNAV hybrid MS": {
-                  "value": {
-                    "gridOperatorName": "TWL Netze",
-                    "voltageLevel": "MS",
-                    "fnavProfile": {
-                      "requestedCapacity": 5000,
-                      "firmCapacity": 3000,
-                      "flexibleCapacity": 2000,
-                      "curtailmentWindow": 4,
-                      "signalPriorityPolicy": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung",
-                      "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
-                      "contractStatus": "signed",
-                      "legalStatus": "approved"
-                    },
-                    "ownerContact": "netzplanung@twl.de"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "x-oeo-class": [
-          "https://openenergyplatform.org/ontology/oeo/OEO_00000143",
-          "https://openenergyplatform.org/ontology/oeo/OEO_00020107"
-        ],
-        "x-openai-isConsequential": true
       }
     },
     "/api/query/search": {
@@ -1852,88 +1953,7 @@
         "description": "Returns the active VDMI matrix context for a currently running process job. Read-only."
       }
     },
-    "/api/vdmi/:id/evidence": {
-      "post": {
-        "operationId": "vdmi_evidence",
-        "summary": "Inject manual evidence for a VDMI matrix (writes)",
-        "tags": [
-          "VDMI"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "abc123"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "reason",
-                  "type",
-                  "reference"
-                ],
-                "properties": {
-                  "reason": {
-                    "type": "string",
-                    "example": "Telefonischer Freigabenachweis"
-                  },
-                  "type": {
-                    "type": "string",
-                    "example": "aktenvermerk"
-                  },
-                  "reference": {
-                    "type": "string",
-                    "example": "AZ-2026-0042"
-                  },
-                  "content": {
-                    "type": "object",
-                    "example": {
-                      "note": "Entscheid am Telefon bestätigt"
-                    }
-                  }
-                }
-              },
-              "examples": {
-                "default": {
-                  "value": {
-                    "reason": "Telefonischer Freigabenachweis",
-                    "type": "aktenvermerk",
-                    "reference": "AZ-2026-0042",
-                    "content": {
-                      "note": "Entscheid am Telefon bestätigt"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "x-openai-isConsequential": true,
-        "description": "Adds manual evidence to a VDMI matrix. This action writes to the database. Requires explicit user confirmation. Not a final approval — evidence can be supplemented."
-      }
-    },
-    "/api/vdmi/tasks/:taskId/dossier": {
+    "/api/vdmi/tasks/{taskId}/dossier": {
       "get": {
         "operationId": "vdmi_dossier",
         "summary": "Get condensed decision dossier for a VDMI task (V-role view)",
@@ -2047,7 +2067,7 @@
         "x-openai-isConsequential": false
       }
     },
-    "/api/znp/projects/:projectId/assets": {
+    "/api/znp/projects/{projectId}/assets": {
       "get": {
         "operationId": "znp_getProjectAssets",
         "summary": "List Layer 0 MaStR assets loaded into a ZNP project",
@@ -2193,7 +2213,7 @@
         "x-openai-isConsequential": false
       }
     },
-    "/api/znp/projects/:projectId": {
+    "/api/znp/projects/{projectId}": {
       "get": {
         "operationId": "znp_getProjectMeta",
         "summary": "Get ZNP project metadata and graph statistics",
@@ -2227,9 +2247,9 @@
         "x-openai-isConsequential": false
       }
     },
-    "/api/vdmi/tenants/:tenantId/findings": {
+    "/api/vdmi/tenants/{tenantId}/findings": {
       "get": {
-        "operationId": "vdmi-findings_list",
+        "operationId": "vdmiFindingsList",
         "summary": "List VDMI findings (multi-tenant path)",
         "tags": [
           "vdmi-findings"
@@ -2247,101 +2267,22 @@
           }
         },
         "x-openai-isConsequential": false,
-        "description": "Returns VDMI governance findings scoped to a specific tenant. Read-only."
-      }
-    },
-    "/api/znp/projects/:projectId/assumptions": {
-      "post": {
-        "operationId": "znp_addAssumption",
-        "summary": "Add a planning assumption to a ZNP project (writes)",
-        "tags": [
-          "Zielnetzplanung (ZNP)"
-        ],
-        "responses": {
-          "200": {
-            "description": "Assumption node inserted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "projectId": {
-                      "type": "string"
-                    },
-                    "assumptionId": {
-                      "type": "string"
-                    },
-                    "nodeKey": {
-                      "type": "string"
-                    },
-                    "extracted": {
-                      "type": "object"
-                    },
-                    "hasFlexibleNav": {
-                      "type": "boolean"
-                    },
-                    "graphStats": {
-                      "type": "object"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "HTTP 422 ASSUMPTION_EXTRACTION_FAILED — LLM could not extract valid capacity"
-          },
-          "503": {
-            "description": "HTTP 503 LLM_NOT_CONFIGURED — GEMINI_API_KEY not set"
-          }
-        },
-        "description": "Adds a named planning assumption to a ZNP project graph. This is a write operation. Requires explicit user confirmation. Assumptions can be reviewed via getZnpProjectStatus.",
+        "description": "Returns VDMI governance findings scoped to a specific tenant. Read-only.",
         "parameters": [
           {
-            "name": "projectId",
+            "name": "tenantId",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string"
             }
           }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "text"
-                ],
-                "properties": {
-                  "text": {
-                    "type": "string",
-                    "example": "Wir planen einen 5 MW Speicher mit flexiblem NAV am Brückweg."
-                  }
-                }
-              },
-              "examples": {
-                "flexNav": {
-                  "value": {
-                    "text": "Wir planen einen 5 MW Speicher mit flexiblem NAV am Brückweg."
-                  }
-                },
-                "datacenter": {
-                  "value": {
-                    "text": "Ein neues Rechenzentrum mit 3000 kW Anschlussleistung ist im Gewerbegebiet Nord geplant."
-                  }
-                }
-              }
-            }
-          }
-        },
-        "x-openai-isConsequential": true
+        ]
       }
     }
   },
   "x-generator": "scripts/export-openapi.js",
   "x-version": "0.60.8",
   "x-copilot-subset": true,
-  "x-copilot-operations-version": 26
+  "x-copilot-operations-version": 25
 }

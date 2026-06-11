@@ -12,11 +12,13 @@ Der Copilot Process Bridge verbindet MS365 Copilot mit einer **kuratierten Unter
 |--|--|--|
 | Export-Datei | `openapi-export.json` | `openapi-copilot.json` |
 | Generierung | `npm run export:openapi` | `npm run export:openapi:copilot` |
-| Pfad-Anzahl | ~604 | 25 |
+| Pfad-Anzahl | ~604 | 20 (Phase 2) |
 | Zweck | Vollständige Dokumentation, interne Tools | MS365 Copilot Plugin |
-| Enthält | Alle Dienste | Nur freigegebene Operationen |
+| Enthält | Alle Dienste | Nur freigegebene Operationen (read + draft) |
 | Auth-Exposure | Vollständig | Nur was Copilot braucht |
-| `x-openai-isConsequential` | Teilweise | Immer gesetzt |
+| `x-openai-isConsequential` | Teilweise | Immer gesetzt (Phase 2: immer `false`) |
+| Pfad-Parameter | Express `:param`-Syntax | OpenAPI `{param}`-Syntax |
+| OperationId-Format | Dienstgeneriert (kann Bindestriche enthalten) | Stabile camelCase-IDs ohne Bindestriche |
 
 **Deployment-Hinweis:** Das Plugin-Manifest (`docs/copilot-plugin.json`) zeigt auf `TODO_REPLACE_WITH_DEPLOYMENT_URL/openapi-copilot.json`. Die kuratierte Datei muss unter diesem Pfad öffentlich erreichbar sein — nicht die vollständige API-Spec.
 
@@ -62,15 +64,15 @@ Die Allowlist wird in `config/copilot-operations.json` gepflegt. Jeder Eintrag h
 | `vdmi_context` | `GET /api/vdmi/context` | Aktiver VDMI-Matrixkontext (Job-basiert) |
 | `vdmi_myResponsibilities` | `GET /api/vdmi/my-responsibilities` | Eigene V-Verantwortlichkeiten |
 | `vdmi_findings` | `GET /api/vdmi/findings` | VDMI Governance-Findings |
-| `vdmi-findings_list` | `GET /api/vdmi/tenants/:tenantId/findings` | Findings (Multi-Tenant-Pfad) |
+| `vdmiFindingsList` | `GET /api/vdmi/tenants/{tenantId}/findings` | Findings (Multi-Tenant-Pfad) |
 | `vdmi_dossier` | `GET /api/vdmi/tasks/:taskId/dossier` | Entscheidungsdossier (V-Rolle) |
 | `znp_listProjects` | `GET /api/znp/projects` | ZNP-Projektliste |
 | `znp_getProjectMeta` | `GET /api/znp/projects/:projectId` | ZNP-Projektmetadaten |
 | `znp_getProjectAssets` | `GET /api/znp/projects/:projectId/assets` | Layer-0-Assets eines ZNP-Projekts |
-| `grid-connection_list` | `GET /api/grid-connection/validations` | Netzanschluss-Validierungsliste |
-| `grid-connection_get` | `GET /api/grid-connection/validations/:id` | Einzelner Validierungsbericht |
-| `connection-rejection-evidence_list` | `GET /api/connection-rejection-evidence/packages` | Ablehnungsnachweise |
-| `connection-rejection-evidence_get` | `GET /api/connection-rejection-evidence/packages/:id` | Einzelner Ablehnungsnachweis |
+| `gridConnectionList` | `GET /api/grid-connection/validations` | Netzanschluss-Validierungsliste |
+| `gridConnectionGet` | `GET /api/grid-connection/validations/{id}` | Einzelner Validierungsbericht |
+| `connectionRejectionEvidenceList` | `GET /api/connection-rejection-evidence/packages` | Ablehnungsnachweise |
+| `connectionRejectionEvidenceGet` | `GET /api/connection-rejection-evidence/packages/{id}` | Einzelner Ablehnungsnachweis |
 
 ### Draft/Propose (mode: draft, risk: low, keine Seiteneffekte)
 
@@ -80,18 +82,18 @@ Die Allowlist wird in `config/copilot-operations.json` gepflegt. Jeder Eintrag h
 | `draftVdmiEvidence` | `POST /api/copilot-process/vdmi/:matrixId/draft-evidence` | Evidenz-Vorschläge (kein Schreiben) |
 | `prepareGridConnectionValidation` | `POST /api/copilot-process/grid-connection/prepare-validation` | Validierungs-Config-Entwurf |
 
-### Prepare/Consequential (mode: prepare, risk: medium, schreibt Daten)
+### Prepare/Consequential (Phase 3 — nicht im Phase-2-Subset)
 
-Diese Operationen haben `x-openai-isConsequential: true` — der Agent muss explizite Nutzerbestätigung einholen.
+Die folgenden schreibenden Operationen existieren in der vollständigen API, sind aber im Phase-2-Copilot-Subset **nicht** exponiert (`x-openai-isConsequential: true`, in der Blocklist). Sie werden in Phase 3 als kontrollierte Execute-Aktionen eingeführt.
 
-| operationId | Endpunkt | Beschreibung |
+| operationId (API) | Endpunkt | Beschreibung |
 |-------------|----------|--------------|
-| `vdmi_evidence` | `POST /api/vdmi/:id/evidence` | Evidenz in VDMI-Matrix einpflegen |
+| `vdmi_evidence` | `POST /api/vdmi/{id}/evidence` | Evidenz in VDMI-Matrix einpflegen |
 | `connection-rejection-evidence_create` | `POST /api/connection-rejection-evidence/packages` | Ablehnungsnachweis erstellen |
 | `grid-connection_validate` | `POST /api/grid-connection/validate` | 6-stufige Netzanschluss-Validierung (~2 min) |
 | `grid-connection_validateMesskonzeptConflict` | `POST /api/grid-connection/messkonzept/conflict/validate` | Messkonzept-Konfliktprüfung |
 | `grid-connection_fnavValidate` | `POST /api/grid-connection/fnav/validate` | FNAV-Validierung |
-| `znp_addAssumption` | `POST /api/znp/projects/:projectId/assumptions` | Planungsannahme hinzufügen |
+| `znp_addAssumption` | `POST /api/znp/projects/{projectId}/assumptions` | Planungsannahme hinzufügen |
 
 ---
 
@@ -135,12 +137,12 @@ COPILOT_VAULT_REFERENCE_ID=<azure-key-vault-reference-id>
 ### Verifizierung nach Deployment
 
 ```bash
-# Prüfe, dass alle 26 erlaubten OperationIds im Subset sind
+# Prüfe, dass alle 20 erlaubten OperationIds im Subset sind (Phase 2)
 node -e "
 const spec = require('./openapi-copilot.json');
 const ids = Object.values(spec.paths).flatMap(p => Object.values(p).map(op => op.operationId));
 console.log('Operations:', ids.length, '| Paths:', Object.keys(spec.paths).length);
-const blocked = ['znp_deleteProject','vdmi_evidence_sign','vdmi_confirmNomination'];
+const blocked = ['znp_deleteProject','vdmi_evidence','grid-connection_validate','znp_addAssumption'];
 blocked.forEach(id => console.log(id, ids.includes(id) ? 'PRESENT (ERROR)' : 'absent (ok)'));
 "
 ```

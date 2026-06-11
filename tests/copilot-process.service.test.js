@@ -460,7 +460,7 @@ describe('copilot-process service', () => {
       expect(result.summary).toMatch(/TWL Netze/);
       expect(result).toHaveProperty('confirmationMessage');
       expect(result).toHaveProperty('requiredConfirmation', true);
-      expect(result.consequentialAction).toHaveProperty('operationId', 'runGridConnectionValidation');
+      expect(result.consequentialAction).toHaveProperty('operationId', 'executeProcessIntent');
     });
 
     it('accepts gridOperatorBdew as sole identifier', async () => {

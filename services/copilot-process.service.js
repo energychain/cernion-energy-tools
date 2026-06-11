@@ -5,10 +5,10 @@
  *
  * Provides MS365 Copilot-compatible process actions for VDMI, ZNP, and
  * grid connection workflows. Strictly separates read-only, draft/propose,
- * and (future) consequential-execute tiers.
+ * and consequential-execute tiers.
  *
  * Phase 2: read-only + draft/propose only. No writes, no bulk actions.
- * All consequential execute actions are deferred to Phase 3.
+ * Phase 3: intent-based preparation and execution lifecycle.
  */
 
 const { MoleculerClientError } = require('moleculer').Errors;
@@ -30,8 +30,99 @@ function openTasksOf(matrix) {
   );
 }
 
+// ── ProcessIntentStore ─────────────────────────────────────────────────────────
+// In-memory store for process execution intents. Each service instance (broker)
+// gets its own store — this gives test isolation and avoids external dependencies.
+
+const INTENT_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours default
+
+class ProcessIntentStore {
+  constructor(ttlMs = INTENT_TTL_MS) {
+    this._store = new Map();
+    this._ttlMs = ttlMs;
+  }
+
+  create({ operationFamily, proposedAction, targetType, targetId, inputSummary, payload, risk, createdBy, correlationId, reason }) {
+    const now = new Date();
+    const intent = {
+      intentId: randomUUID(),
+      operationFamily,
+      proposedAction,
+      targetType: targetType || null,
+      targetId: targetId || null,
+      inputSummary: inputSummary || '',
+      payload: payload || {},
+      risk: risk || 'medium',
+      requiresHumanConfirmation: true,
+      createdBy: createdBy || 'unknown',
+      createdAt: now.toISOString(),
+      expiresAt: new Date(now.getTime() + this._ttlMs).toISOString(),
+      status: 'pending_confirmation',
+      auditTrail: [
+        {
+          timestamp: now.toISOString(),
+          actor: createdBy || 'unknown',
+          action: 'prepared',
+          reason: reason || null,
+          correlationId: correlationId || null,
+        },
+      ],
+    };
+    this._store.set(intent.intentId, intent);
+    return intent;
+  }
+
+  get(intentId) {
+    const intent = this._store.get(intentId);
+    if (!intent) return null;
+    this._checkExpiry(intent);
+    return intent;
+  }
+
+  list({ operationFamily, status, createdBy, limit = 20 } = {}) {
+    const all = [...this._store.values()];
+    all.forEach((i) => this._checkExpiry(i));
+    return all
+      .filter((i) => !operationFamily || i.operationFamily === operationFamily)
+      .filter((i) => !status || i.status === status)
+      .filter((i) => !createdBy || i.createdBy === createdBy)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, Math.min(limit, 100));
+  }
+
+  transition(intentId, newStatus, actor, reason, extra = {}) {
+    const intent = this._store.get(intentId);
+    if (!intent) return null;
+    intent.status = newStatus;
+    intent.auditTrail.push({
+      timestamp: new Date().toISOString(),
+      actor: actor || 'system',
+      action: newStatus,
+      reason: reason || null,
+      ...extra,
+    });
+    return intent;
+  }
+
+  _checkExpiry(intent) {
+    if (intent.status === 'pending_confirmation' && new Date(intent.expiresAt) < new Date()) {
+      intent.status = 'expired';
+      intent.auditTrail.push({
+        timestamp: new Date().toISOString(),
+        actor: 'system',
+        action: 'expired',
+        reason: 'Intent TTL exceeded',
+      });
+    }
+  }
+}
+
 module.exports = {
   name: 'copilot-process',
+
+  created() {
+    this.intentStore = new ProcessIntentStore();
+  },
 
   actions: {
     // ── READ-ONLY ────────────────────────────────────────────────────────────
@@ -787,7 +878,21 @@ The consequential execute action (\`POST /api/grid-connection/validate\`) is Pha
           datapointTags: [],
         };
 
+        const intent = this.intentStore.create({
+          operationFamily: 'gridConnection',
+          proposedAction: 'run_grid_connection_validation',
+          targetType: 'gridOperator',
+          targetId: gridOperatorId || gridOperatorBdew || gridOperatorName,
+          inputSummary: `Run grid connection validation for operator '${operatorLabel}'`,
+          payload: proposedValidation,
+          risk: 'medium',
+          createdBy: audit.requestedBy,
+          correlationId: audit.correlationId,
+          reason,
+        });
+
         return {
+          intentId: intent.intentId,
           draftId: randomUUID(),
           action: 'run_grid_connection_validation',
           target: {
@@ -800,9 +905,9 @@ The consequential execute action (\`POST /api/grid-connection/validate\`) is Pha
           confirmationMessage: `Bitte bestätige die Ausführung der Netzanschluss-Validierungs-Pipeline für '${operatorLabel}'. Diese Aktion dauert bis zu 2 Minuten und schreibt einen persistenten Validierungsbericht.`,
           requiredConfirmation: true,
           consequentialAction: {
-            operationId: 'runGridConnectionValidation',
-            endpoint: 'POST /api/grid-connection/validate',
-            note: 'Noch nicht implementiert (Phase 3). Direkt: POST /api/grid-connection/validate',
+            operationId: 'executeProcessIntent',
+            endpoint: 'POST /api/copilot-process/intents/:intentId/execute',
+            note: 'Use executeProcessIntent with intentId to run after human confirmation',
           },
           auditTrail: {
             ...audit,
@@ -811,6 +916,633 @@ The consequential execute action (\`POST /api/grid-connection/validate\`) is Pha
           },
         };
       },
+    },
+
+    // ── PHASE 3: INTENT-BASED PREPARE + EXECUTE ──────────────────────────────
+
+    /**
+     * Prepare a VDMI evidence injection intent — no write.
+     * operationId: prepareVdmiEvidence
+     */
+    prepareVdmiEvidence: {
+      rest: 'POST /vdmi/:matrixId/intents/evidence',
+      params: {
+        matrixId: { type: 'string', min: 2 },
+        evidenceType: { type: 'string', min: 2 },
+        reference: { type: 'string', min: 2 },
+        reason: { type: 'string', min: 1, max: 500 },
+        content: { type: 'object', optional: true, default: {} },
+        correlationId: { type: 'string', optional: true },
+        idempotencyKey: { type: 'string', optional: true },
+      },
+      openapi: {
+        operationId: 'prepareVdmiEvidence',
+        'x-openai-isConsequential': false,
+        summary: 'Prepare VDMI evidence injection intent — no write',
+        description: `Verifies the VDMI matrix exists and creates a persistent ProcessExecutionIntent for evidence injection. No evidence is written.
+Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.`,
+        tags: [SERVICE_TAG],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['matrixId', 'evidenceType', 'reference', 'reason'],
+                properties: {
+                  matrixId: { type: 'string', example: 'vdmi-abc123' },
+                  evidenceType: { type: 'string', minLength: 2, example: 'aktenvermerk' },
+                  reference: { type: 'string', minLength: 2, example: 'REF-2026-001' },
+                  reason: { type: 'string', minLength: 1, maxLength: 500, example: 'Jahresprüfung abgeschlossen' },
+                  content: { type: 'object', description: 'Optional additional content payload' },
+                  correlationId: { type: 'string', example: 'req-2026-001' },
+                  idempotencyKey: { type: 'string', example: 'idem-vdmi-20260611' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'VDMI evidence intent created',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['intentId', 'operationFamily', 'proposedAction', 'status', 'requiresHumanConfirmation'],
+                  properties: {
+                    intentId: { type: 'string' },
+                    operationFamily: { type: 'string', example: 'vdmi' },
+                    proposedAction: { type: 'string', example: 'inject_evidence' },
+                    target: { type: 'object' },
+                    inputSummary: { type: 'string' },
+                    status: { type: 'string', example: 'pending_confirmation' },
+                    expiresAt: { type: 'string' },
+                    risk: { type: 'string', example: 'medium' },
+                    requiresHumanConfirmation: { type: 'boolean', example: true },
+                    summary: { type: 'string' },
+                    confirmationMessage: { type: 'string' },
+                    executeVia: { type: 'object' },
+                    auditTrail: { type: 'object' },
+                  },
+                },
+              },
+            },
+          },
+          404: { description: 'Matrix not found' },
+        },
+      },
+      async handler(ctx) {
+        const callOpts = { meta: { ...ctx.meta, $gateway: false } };
+        const { matrixId, evidenceType, reference, reason, content } = ctx.params;
+        const audit = buildAudit(ctx, ctx.params.correlationId);
+
+        const { matrix } = await ctx.call('vdmi.get', { id: matrixId }, callOpts);
+
+        const inputSummary = `Inject ${evidenceType} evidence for matrix '${matrix.name}' (${matrixId})`;
+        const intent = this.intentStore.create({
+          operationFamily: 'vdmi',
+          proposedAction: 'inject_evidence',
+          targetType: 'vdmiMatrix',
+          targetId: matrixId,
+          inputSummary,
+          payload: { id: matrixId, type: evidenceType, reference, reason, content: content || {} },
+          risk: 'medium',
+          createdBy: audit.requestedBy,
+          correlationId: audit.correlationId,
+          reason,
+        });
+
+        return {
+          intentId: intent.intentId,
+          operationFamily: 'vdmi',
+          proposedAction: 'inject_evidence',
+          target: { matrixId, matrixName: matrix.name },
+          inputSummary: intent.inputSummary,
+          status: intent.status,
+          expiresAt: intent.expiresAt,
+          risk: 'medium',
+          requiresHumanConfirmation: true,
+          summary: `Evidenz-Intent erstellt für '${matrix.name}': Typ '${evidenceType}', Referenz '${reference}'. Menschliche Bestätigung erforderlich.`,
+          confirmationMessage: `Bitte bestätige die Evidenz-Einbuchung in VDMI-Matrix '${matrix.name}' (${matrixId}). Typ: ${evidenceType}, Referenz: ${reference}.`,
+          executeVia: { operationId: 'executeProcessIntent', note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute' },
+          auditTrail: { ...audit, idempotencyKey: ctx.params.idempotencyKey ?? null, reason },
+        };
+      },
+    },
+
+    /**
+     * Prepare a ZNP planning assumption intent — no write.
+     * operationId: prepareZnpAssumption
+     */
+    prepareZnpAssumption: {
+      rest: 'POST /znp/:projectId/intents/assumption',
+      params: {
+        projectId: { type: 'string', min: 2 },
+        text: { type: 'string', min: 10, max: 2000 },
+        reason: { type: 'string', min: 1, max: 500 },
+        correlationId: { type: 'string', optional: true },
+        idempotencyKey: { type: 'string', optional: true },
+      },
+      openapi: {
+        operationId: 'prepareZnpAssumption',
+        'x-openai-isConsequential': false,
+        summary: 'Prepare ZNP planning assumption intent — no write',
+        description: `Verifies the ZNP project exists and creates a persistent ProcessExecutionIntent for adding a planning assumption. No write occurs.
+Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.`,
+        tags: [SERVICE_TAG],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['projectId', 'text', 'reason'],
+                properties: {
+                  projectId: { type: 'string', example: 'znp-proj-001' },
+                  text: { type: 'string', minLength: 10, maxLength: 2000, example: 'Annahme: Netzkapazität ausreichend für Q3 2026' },
+                  reason: { type: 'string', minLength: 1, maxLength: 500, example: 'Planungsstand Q2 2026' },
+                  correlationId: { type: 'string', example: 'req-2026-001' },
+                  idempotencyKey: { type: 'string', example: 'idem-znp-20260611' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'ZNP assumption intent created',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['intentId', 'operationFamily', 'proposedAction', 'status', 'requiresHumanConfirmation'],
+                  properties: {
+                    intentId: { type: 'string' },
+                    operationFamily: { type: 'string', example: 'znp' },
+                    proposedAction: { type: 'string', example: 'add_assumption' },
+                    target: { type: 'object' },
+                    inputSummary: { type: 'string' },
+                    status: { type: 'string', example: 'pending_confirmation' },
+                    expiresAt: { type: 'string' },
+                    risk: { type: 'string', example: 'medium' },
+                    requiresHumanConfirmation: { type: 'boolean', example: true },
+                    summary: { type: 'string' },
+                    confirmationMessage: { type: 'string' },
+                    executeVia: { type: 'object' },
+                    auditTrail: { type: 'object' },
+                  },
+                },
+              },
+            },
+          },
+          404: { description: 'Project not found' },
+        },
+      },
+      async handler(ctx) {
+        const callOpts = { meta: { ...ctx.meta, $gateway: false } };
+        const { projectId, text, reason } = ctx.params;
+        const audit = buildAudit(ctx, ctx.params.correlationId);
+
+        const project = await ctx.call('znp.getProjectMeta', { projectId }, callOpts);
+
+        const inputSummary = `Add assumption to ZNP project '${project.name || projectId}'`;
+        const intent = this.intentStore.create({
+          operationFamily: 'znp',
+          proposedAction: 'add_assumption',
+          targetType: 'znpProject',
+          targetId: projectId,
+          inputSummary,
+          payload: { projectId, text },
+          risk: 'medium',
+          createdBy: audit.requestedBy,
+          correlationId: audit.correlationId,
+          reason,
+        });
+
+        return {
+          intentId: intent.intentId,
+          operationFamily: 'znp',
+          proposedAction: 'add_assumption',
+          target: { projectId, projectName: project.name || projectId },
+          inputSummary: intent.inputSummary,
+          status: intent.status,
+          expiresAt: intent.expiresAt,
+          risk: 'medium',
+          requiresHumanConfirmation: true,
+          summary: `ZNP-Annahme-Intent erstellt für '${project.name || projectId}'. Menschliche Bestätigung erforderlich.`,
+          confirmationMessage: `Bitte bestätige das Hinzufügen der Planungsannahme zum ZNP-Projekt '${project.name || projectId}' (${projectId}).`,
+          executeVia: { operationId: 'executeProcessIntent', note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute' },
+          auditTrail: { ...audit, idempotencyKey: ctx.params.idempotencyKey ?? null, reason },
+        };
+      },
+    },
+
+    /**
+     * Prepare a connection rejection evidence package intent — no write.
+     * operationId: prepareConnectionRejectionEvidence
+     */
+    prepareConnectionRejectionEvidence: {
+      rest: 'POST /connection-rejection-evidence/intents',
+      params: {
+        gridOperatorId: { type: 'string' },
+        applicantReference: { type: 'string' },
+        loadAssumptionKw: { type: 'number', convert: true },
+        netzverknuepfungspunktId: { type: 'string' },
+        voltageLevel: { type: 'string' },
+        bottleneckDescription: { type: 'string' },
+        n1QualityStatus: { type: 'enum', values: ['COMPLIANT', 'NON_COMPLIANT', 'CONDITIONALLY_COMPLIANT', 'UNKNOWN'] },
+        decision: { type: 'string' },
+        reason: { type: 'string', min: 1, max: 500 },
+        correlationId: { type: 'string', optional: true },
+        idempotencyKey: { type: 'string', optional: true },
+      },
+      openapi: {
+        operationId: 'prepareConnectionRejectionEvidence',
+        'x-openai-isConsequential': false,
+        summary: 'Prepare connection rejection evidence package intent — no write',
+        description: `Validates all required fields and creates a persistent ProcessExecutionIntent for creating a connection rejection evidence package. No write occurs.
+Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.`,
+        tags: [SERVICE_TAG],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['gridOperatorId', 'applicantReference', 'loadAssumptionKw', 'netzverknuepfungspunktId', 'voltageLevel', 'bottleneckDescription', 'n1QualityStatus', 'decision', 'reason'],
+                properties: {
+                  gridOperatorId: { type: 'string', example: 'SNB935578300972' },
+                  applicantReference: { type: 'string', example: 'APP-2026-001' },
+                  loadAssumptionKw: { type: 'number', example: 150 },
+                  netzverknuepfungspunktId: { type: 'string', example: 'NVP-001' },
+                  voltageLevel: { type: 'string', example: 'NS' },
+                  bottleneckDescription: { type: 'string', example: 'Trafoüberlastung bei Spitzenlast' },
+                  n1QualityStatus: { type: 'string', enum: ['COMPLIANT', 'NON_COMPLIANT', 'CONDITIONALLY_COMPLIANT', 'UNKNOWN'] },
+                  decision: { type: 'string', example: 'REJECTED' },
+                  reason: { type: 'string', minLength: 1, maxLength: 500, example: 'Netzkapazität nicht ausreichend' },
+                  correlationId: { type: 'string', example: 'req-2026-001' },
+                  idempotencyKey: { type: 'string', example: 'idem-cre-20260611' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Connection rejection evidence intent created',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['intentId', 'operationFamily', 'proposedAction', 'status', 'requiresHumanConfirmation'],
+                  properties: {
+                    intentId: { type: 'string' },
+                    operationFamily: { type: 'string', example: 'connectionRejectionEvidence' },
+                    proposedAction: { type: 'string', example: 'create_package' },
+                    target: { type: 'object' },
+                    inputSummary: { type: 'string' },
+                    status: { type: 'string', example: 'pending_confirmation' },
+                    expiresAt: { type: 'string' },
+                    risk: { type: 'string', example: 'medium' },
+                    requiresHumanConfirmation: { type: 'boolean', example: true },
+                    summary: { type: 'string' },
+                    confirmationMessage: { type: 'string' },
+                    executeVia: { type: 'object' },
+                    auditTrail: { type: 'object' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const {
+          gridOperatorId, applicantReference, loadAssumptionKw,
+          netzverknuepfungspunktId, voltageLevel, bottleneckDescription,
+          n1QualityStatus, decision, reason,
+        } = ctx.params;
+        const audit = buildAudit(ctx, ctx.params.correlationId);
+
+        const payload = {
+          gridOperatorId, applicantReference, loadAssumptionKw,
+          netzverknuepfungspunktId, voltageLevel, bottleneckDescription,
+          n1QualityStatus, decision,
+        };
+
+        const inputSummary = `Create rejection evidence package for operator '${gridOperatorId}', ref '${applicantReference}'`;
+        const intent = this.intentStore.create({
+          operationFamily: 'connectionRejectionEvidence',
+          proposedAction: 'create_package',
+          targetType: 'gridOperator',
+          targetId: gridOperatorId,
+          inputSummary,
+          payload,
+          risk: 'medium',
+          createdBy: audit.requestedBy,
+          correlationId: audit.correlationId,
+          reason,
+        });
+
+        return {
+          intentId: intent.intentId,
+          operationFamily: 'connectionRejectionEvidence',
+          proposedAction: 'create_package',
+          target: { gridOperatorId, applicantReference },
+          inputSummary: intent.inputSummary,
+          status: intent.status,
+          expiresAt: intent.expiresAt,
+          risk: 'medium',
+          requiresHumanConfirmation: true,
+          summary: `Ablehnungs-Nachweis-Intent erstellt für Netzbetreiber '${gridOperatorId}', Referenz '${applicantReference}'. Menschliche Bestätigung erforderlich.`,
+          confirmationMessage: `Bitte bestätige die Erstellung des Ablehnungs-Nachweispakets für Netzbetreiber '${gridOperatorId}', Antragssteller-Referenz '${applicantReference}'.`,
+          executeVia: { operationId: 'executeProcessIntent', note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute' },
+          auditTrail: { ...audit, idempotencyKey: ctx.params.idempotencyKey ?? null, reason },
+        };
+      },
+    },
+
+    /**
+     * Get a process execution intent by ID.
+     * operationId: getProcessIntent
+     */
+    getProcessIntent: {
+      rest: 'GET /intents/:intentId',
+      params: {
+        intentId: { type: 'string' },
+      },
+      openapi: {
+        operationId: 'getProcessIntent',
+        'x-openai-isConsequential': false,
+        summary: 'Get a process execution intent by ID',
+        description: 'Returns intent status, payload summary, and audit trail. Read-only.',
+        tags: [SERVICE_TAG],
+        parameters: [
+          {
+            name: 'intentId',
+            in: 'path',
+            required: true,
+            description: 'Intent UUID',
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: { description: 'Process execution intent', content: { 'application/json': { schema: { type: 'object' } } } },
+          404: { description: 'Intent not found' },
+        },
+      },
+      async handler(ctx) {
+        const intent = this.intentStore.get(ctx.params.intentId);
+        if (!intent) {
+          throw new MoleculerClientError(
+            `Intent ${ctx.params.intentId} not found`,
+            404,
+            'INTENT_NOT_FOUND'
+          );
+        }
+        return intent;
+      },
+    },
+
+    /**
+     * List process execution intents.
+     * operationId: listProcessIntents
+     */
+    listProcessIntents: {
+      rest: 'GET /intents',
+      params: {
+        operationFamily: { type: 'string', optional: true },
+        status: { type: 'string', optional: true },
+        limit: { type: 'number', optional: true, default: 20, min: 1, max: 100, convert: true },
+      },
+      openapi: {
+        operationId: 'listProcessIntents',
+        'x-openai-isConsequential': false,
+        summary: 'List process execution intents',
+        description: 'Returns a paginated list of process execution intents. Filter by operationFamily or status. Read-only.',
+        tags: [SERVICE_TAG],
+        parameters: [
+          { name: 'operationFamily', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'status', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 20, minimum: 1, maximum: 100 } },
+        ],
+        responses: {
+          200: {
+            description: 'List of process execution intents',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['count', 'intents'],
+                  properties: {
+                    count: { type: 'integer' },
+                    intents: { type: 'array', items: { type: 'object' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { operationFamily, status, limit } = ctx.params;
+        const intents = this.intentStore.list({ operationFamily, status, limit });
+        return { count: intents.length, intents };
+      },
+    },
+
+    /**
+     * Execute a confirmed process intent (consequential write).
+     * NOT available in Copilot.
+     * operationId: executeProcessIntent
+     */
+    executeProcessIntent: {
+      rest: 'POST /intents/:intentId/execute',
+      params: {
+        intentId: { type: 'string' },
+        executedBy: { type: 'string', optional: true },
+        correlationId: { type: 'string', optional: true },
+      },
+      openapi: {
+        operationId: 'executeProcessIntent',
+        'x-openai-isConsequential': true,
+        summary: 'Execute a confirmed process intent (consequential)',
+        description: `Executes a process intent that is in pending_confirmation status. This is a consequential write action.
+NOT available via Copilot. Copilot prepares intents; humans execute outside Copilot using this endpoint.`,
+        tags: [SERVICE_TAG],
+        parameters: [
+          {
+            name: 'intentId',
+            in: 'path',
+            required: true,
+            description: 'Intent UUID to execute',
+            schema: { type: 'string' },
+          },
+        ],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  executedBy: { type: 'string', description: 'Actor performing the execution' },
+                  correlationId: { type: 'string', description: 'Trace ID for audit' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Intent executed successfully', content: { 'application/json': { schema: { type: 'object' } } } },
+          404: { description: 'Intent not found' },
+          409: { description: 'Intent not in executable status' },
+          410: { description: 'Intent has expired' },
+        },
+      },
+      async handler(ctx) {
+        const { intentId, executedBy } = ctx.params;
+        const actor = executedBy || ctx.meta?.userId || ctx.meta?.actorId || 'system';
+
+        const intent = this.intentStore.get(intentId);
+        if (!intent) {
+          throw new MoleculerClientError(`Intent ${intentId} not found`, 404, 'INTENT_NOT_FOUND');
+        }
+        if (intent.status === 'expired') {
+          throw new MoleculerClientError(`Intent ${intentId} has expired`, 410, 'INTENT_EXPIRED');
+        }
+        if (intent.status === 'rejected') {
+          throw new MoleculerClientError(`Intent ${intentId} was rejected`, 409, 'INTENT_REJECTED');
+        }
+        if (intent.status === 'executed') {
+          throw new MoleculerClientError(`Intent ${intentId} was already executed`, 409, 'INTENT_ALREADY_EXECUTED');
+        }
+        if (intent.status === 'failed') {
+          throw new MoleculerClientError(`Intent ${intentId} previously failed`, 409, 'INTENT_FAILED');
+        }
+        if (intent.status !== 'pending_confirmation') {
+          throw new MoleculerClientError(`Intent ${intentId} has invalid status: ${intent.status}`, 409, 'INTENT_INVALID_STATUS');
+        }
+
+        try {
+          await this._executeIntent(ctx, intent);
+          this.intentStore.transition(intentId, 'executed', actor, 'Human-confirmed execution', { result: 'success' });
+          return {
+            intentId,
+            status: 'executed',
+            operationFamily: intent.operationFamily,
+            proposedAction: intent.proposedAction,
+            executedAt: new Date().toISOString(),
+            executedBy: actor,
+            auditTrail: intent.auditTrail,
+          };
+        } catch (err) {
+          this.intentStore.transition(intentId, 'failed', actor, err.message);
+          throw err;
+        }
+      },
+    },
+
+    /**
+     * Reject a process intent (human rejection).
+     * NOT available in Copilot.
+     * operationId: rejectProcessIntent
+     */
+    rejectProcessIntent: {
+      rest: 'POST /intents/:intentId/reject',
+      params: {
+        intentId: { type: 'string' },
+        reason: { type: 'string', min: 1 },
+        rejectedBy: { type: 'string', optional: true },
+      },
+      openapi: {
+        operationId: 'rejectProcessIntent',
+        'x-openai-isConsequential': false,
+        summary: 'Reject a process intent (human rejection)',
+        description: `Rejects a pending_confirmation intent. Must be performed by a human operator.
+NOT available via Copilot — not for autonomous agent use.`,
+        tags: [SERVICE_TAG],
+        parameters: [
+          {
+            name: 'intentId',
+            in: 'path',
+            required: true,
+            description: 'Intent UUID to reject',
+            schema: { type: 'string' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['reason'],
+                properties: {
+                  reason: { type: 'string', minLength: 1, description: 'Reason for rejection' },
+                  rejectedBy: { type: 'string', description: 'Actor performing the rejection' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Intent rejected', content: { 'application/json': { schema: { type: 'object' } } } },
+          404: { description: 'Intent not found' },
+          409: { description: 'Intent not in rejectable status' },
+        },
+      },
+      async handler(ctx) {
+        const { intentId, reason, rejectedBy } = ctx.params;
+        const actor = rejectedBy || ctx.meta?.userId || ctx.meta?.actorId || 'system';
+
+        const intent = this.intentStore.get(intentId);
+        if (!intent) {
+          throw new MoleculerClientError(`Intent ${intentId} not found`, 404, 'INTENT_NOT_FOUND');
+        }
+        const rejectableStatuses = ['pending_confirmation'];
+        if (!rejectableStatuses.includes(intent.status)) {
+          throw new MoleculerClientError(
+            `Intent ${intentId} is not in a rejectable status: ${intent.status}`,
+            409,
+            'INTENT_NOT_REJECTABLE'
+          );
+        }
+
+        this.intentStore.transition(intentId, 'rejected', actor, reason);
+        return {
+          intentId,
+          status: 'rejected',
+          reason,
+          rejectedBy: actor,
+          rejectedAt: new Date().toISOString(),
+        };
+      },
+    },
+  },
+
+  methods: {
+    async _executeIntent(ctx, intent) {
+      const callOpts = { meta: { ...ctx.meta, $gateway: false } };
+      const { operationFamily, payload } = intent;
+
+      switch (operationFamily) {
+        case 'vdmi':
+          return ctx.call('vdmi.evidence', payload, callOpts);
+        case 'gridConnection':
+          return ctx.call('grid-connection.validate', payload, callOpts);
+        case 'znp':
+          return ctx.call('znp.addAssumption', payload, callOpts);
+        case 'connectionRejectionEvidence':
+          return ctx.call('connection-rejection-evidence.create', payload, callOpts);
+        default:
+          throw new MoleculerClientError(
+            `Unknown operationFamily: ${operationFamily}`,
+            400,
+            'UNKNOWN_OPERATION_FAMILY'
+          );
+      }
     },
   },
 };

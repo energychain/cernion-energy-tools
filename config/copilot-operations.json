@@ -1,7 +1,7 @@
 {
   "$schema": "./copilot-operations.schema.json",
-  "version": "1.0.0",
-  "description": "Curated allowlist of Cernion API operations exposed to MS365 Copilot. All other operations are implicitly denied. See docs/copilot-process-bridge.md.",
+  "version": "1.1.0",
+  "description": "Curated allowlist of Cernion API operations exposed to MS365 Copilot. All other operations are implicitly denied. Phase 2: read + draft only — no direct write/execute actions. See docs/copilot-process-bridge.md.",
   "allowlist": [
     {
       "operationId": "searchCernionData",
@@ -64,7 +64,8 @@
       "copilotDescription": "Returns VDMI governance findings for the current tenant. Read-only."
     },
     {
-      "operationId": "vdmi-findings_list",
+      "operationId": "vdmiFindingsList",
+      "specOperationId": "vdmi-findings_list",
       "mode": "read",
       "requiresConfirmation": false,
       "summary": "List VDMI findings (multi-tenant path)",
@@ -102,7 +103,8 @@
       "copilotDescription": "Returns paginated Layer 0 MaStR assets (generators, storage, loads) for a ZNP project. Read-only."
     },
     {
-      "operationId": "grid-connection_list",
+      "operationId": "gridConnectionList",
+      "specOperationId": "grid-connection_list",
       "mode": "read",
       "requiresConfirmation": false,
       "summary": "List past grid connection validation reports",
@@ -110,7 +112,8 @@
       "copilotDescription": "Returns validation reports stored in the system, newest first. Optionally filter by grid operator ID. Read-only."
     },
     {
-      "operationId": "grid-connection_get",
+      "operationId": "gridConnectionGet",
+      "specOperationId": "grid-connection_get",
       "mode": "read",
       "requiresConfirmation": false,
       "summary": "Get a specific grid connection validation report by ID",
@@ -118,7 +121,8 @@
       "copilotDescription": "Returns the full validation report including all findings and decision. Read-only."
     },
     {
-      "operationId": "connection-rejection-evidence_list",
+      "operationId": "connectionRejectionEvidenceList",
+      "specOperationId": "connection-rejection-evidence_list",
       "mode": "read",
       "requiresConfirmation": false,
       "summary": "List connection rejection evidence packages",
@@ -126,7 +130,8 @@
       "copilotDescription": "Returns all connection rejection evidence packages. Read-only."
     },
     {
-      "operationId": "connection-rejection-evidence_get",
+      "operationId": "connectionRejectionEvidenceGet",
+      "specOperationId": "connection-rejection-evidence_get",
       "mode": "read",
       "requiresConfirmation": false,
       "summary": "Get a connection rejection evidence package by ID",
@@ -155,61 +160,53 @@
       "requiresConfirmation": true,
       "summary": "Prepare grid connection validation config — draft only, no write",
       "risk": "low",
-      "notes": "Returns validation configuration draft with requiredConfirmation: true. No side effects."
+      "notes": "Returns validation configuration draft with requiredConfirmation: true. Now also creates a persistent ProcessExecutionIntent."
     },
     {
-      "operationId": "vdmi_evidence",
-      "mode": "prepare",
+      "operationId": "prepareVdmiEvidence",
+      "mode": "draft",
       "requiresConfirmation": true,
-      "summary": "Inject manual evidence for a VDMI matrix (writes)",
-      "risk": "medium",
-      "copilotDescription": "Adds manual evidence to a VDMI matrix. This action writes to the database. Requires explicit user confirmation. Not a final approval — evidence can be supplemented.",
-      "notes": "POST — creates a new evidence entry. Not reversible via this API."
+      "summary": "Prepare VDMI evidence injection intent — creates auditable intent, no write",
+      "risk": "low",
+      "allowedInCopilot": true,
+      "allowedForExecution": false,
+      "notes": "Creates a ProcessExecutionIntent with status pending_confirmation. Execute via executeProcessIntent (not available in Copilot)."
     },
     {
-      "operationId": "connection-rejection-evidence_create",
-      "mode": "prepare",
+      "operationId": "prepareZnpAssumption",
+      "mode": "draft",
       "requiresConfirmation": true,
-      "summary": "Create a connection rejection evidence package (writes)",
-      "risk": "medium",
-      "copilotDescription": "Creates a new connection rejection evidence package. This action writes to the database. Requires explicit user confirmation.",
-      "notes": "POST — creates a new document. Use connection-rejection-evidence_get to verify after creation."
+      "summary": "Prepare ZNP planning assumption intent — creates auditable intent, no write",
+      "risk": "low",
+      "allowedInCopilot": true,
+      "allowedForExecution": false
     },
     {
-      "operationId": "grid-connection_validate",
-      "mode": "prepare",
+      "operationId": "prepareConnectionRejectionEvidence",
+      "mode": "draft",
       "requiresConfirmation": true,
-      "summary": "Run Netzanschluss validation pipeline (deterministic, ~2 min, writes report)",
-      "risk": "medium",
-      "copilotDescription": "Executes the deterministic 6-step grid connection validation pipeline for a grid operator. Takes up to 2 minutes. Writes a persistent validation report. Requires explicit user confirmation before starting.",
-      "notes": "No LLM involvement — identical inputs always produce identical results. Report is retrievable via grid-connection_get afterwards."
+      "summary": "Prepare connection rejection evidence package intent — creates auditable intent, no write",
+      "risk": "low",
+      "allowedInCopilot": true,
+      "allowedForExecution": false
     },
     {
-      "operationId": "grid-connection_validateMesskonzeptConflict",
-      "mode": "prepare",
-      "requiresConfirmation": true,
-      "summary": "Validate Messkonzept conflict for a grid connection scenario (writes report)",
-      "risk": "medium",
-      "copilotDescription": "Validates Messkonzept conflicts for a specified connection scenario. Writes a validation result. Requires explicit user confirmation.",
-      "notes": "Use to verify metering concept compatibility before proceeding with grid connection approval."
+      "operationId": "getProcessIntent",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "Get a process execution intent by ID (status, payload, audit trail)",
+      "risk": "low",
+      "allowedInCopilot": true,
+      "allowedForExecution": false
     },
     {
-      "operationId": "grid-connection_fnavValidate",
-      "mode": "prepare",
-      "requiresConfirmation": true,
-      "summary": "Run FNAV (Fernwirknetz-Anschluss-Validierung) check (writes result)",
-      "risk": "medium",
-      "copilotDescription": "Runs the FNAV (remote control network connection) validation check. Writes a result record. Requires explicit user confirmation.",
-      "notes": "Specific to FNAV scenarios. Does not affect existing grid connection reports."
-    },
-    {
-      "operationId": "znp_addAssumption",
-      "mode": "prepare",
-      "requiresConfirmation": true,
-      "summary": "Add a planning assumption to a ZNP project (writes)",
-      "risk": "medium",
-      "copilotDescription": "Adds a named planning assumption to a ZNP project graph. This is a write operation. Requires explicit user confirmation. Assumptions can be reviewed via getZnpProjectStatus.",
-      "notes": "Does not delete or restructure the graph. Only adds a new assumption node/annotation."
+      "operationId": "listProcessIntents",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "List process execution intents, optionally filtered by family or status",
+      "risk": "low",
+      "allowedInCopilot": true,
+      "allowedForExecution": false
     }
   ],
   "blocklist": [
@@ -272,6 +269,38 @@
     {
       "operationId": "vdmi-portfolio-gatekeeping_gate",
       "reason": "Portfolio gating decision — final approval, requires human authority"
+    },
+    {
+      "operationId": "vdmi_evidence",
+      "reason": "Phase 2: direct evidence write endpoint — use draftVdmiEvidence for safe draft proposals; consequential write actions deferred to Phase 3"
+    },
+    {
+      "operationId": "connection-rejection-evidence_create",
+      "reason": "Phase 2: direct create endpoint — not exposed in Phase 2 Copilot subset; consequential write actions deferred to Phase 3"
+    },
+    {
+      "operationId": "grid-connection_validate",
+      "reason": "Phase 2: validation pipeline trigger writes persistent report (~2 min) — x-openai-isConsequential, deferred to Phase 3; use prepareGridConnectionValidation for safe draft"
+    },
+    {
+      "operationId": "grid-connection_validateMesskonzeptConflict",
+      "reason": "Phase 2: writes Messkonzept validation result — x-openai-isConsequential, deferred to Phase 3"
+    },
+    {
+      "operationId": "grid-connection_fnavValidate",
+      "reason": "Phase 2: writes FNAV validation result — x-openai-isConsequential, deferred to Phase 3"
+    },
+    {
+      "operationId": "znp_addAssumption",
+      "reason": "Phase 2: writes planning assumption to ZNP project graph — x-openai-isConsequential, deferred to Phase 3"
+    },
+    {
+      "operationId": "executeProcessIntent",
+      "reason": "Execute-only via trusted system caller or direct API — not available via Copilot. Copilot prepares intents only; humans execute outside Copilot."
+    },
+    {
+      "operationId": "rejectProcessIntent",
+      "reason": "Human rejection action — must be performed by a human operator outside Copilot. Not for autonomous agent use."
     }
   ]
 }

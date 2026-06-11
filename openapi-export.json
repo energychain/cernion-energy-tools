@@ -7338,6 +7338,636 @@
         "x-openai-isConsequential": false
       }
     },
+    "/api/copilot-process/vdmi/:matrixId/intents/evidence": {
+      "post": {
+        "operationId": "prepareVdmiEvidence",
+        "summary": "Prepare VDMI evidence injection intent — no write",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "VDMI evidence intent created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "intentId",
+                    "operationFamily",
+                    "proposedAction",
+                    "status",
+                    "requiresHumanConfirmation"
+                  ],
+                  "properties": {
+                    "intentId": {
+                      "type": "string"
+                    },
+                    "operationFamily": {
+                      "type": "string",
+                      "example": "vdmi"
+                    },
+                    "proposedAction": {
+                      "type": "string",
+                      "example": "inject_evidence"
+                    },
+                    "target": {
+                      "type": "object"
+                    },
+                    "inputSummary": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "pending_confirmation"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    },
+                    "risk": {
+                      "type": "string",
+                      "example": "medium"
+                    },
+                    "requiresHumanConfirmation": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confirmationMessage": {
+                      "type": "string"
+                    },
+                    "executeVia": {
+                      "type": "object"
+                    },
+                    "auditTrail": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Matrix not found"
+          }
+        },
+        "description": "Verifies the VDMI matrix exists and creates a persistent ProcessExecutionIntent for evidence injection. No evidence is written.\nReturns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "matrixId",
+                  "evidenceType",
+                  "reference",
+                  "reason"
+                ],
+                "properties": {
+                  "matrixId": {
+                    "type": "string",
+                    "example": "vdmi-abc123"
+                  },
+                  "evidenceType": {
+                    "type": "string",
+                    "minLength": 2,
+                    "example": "aktenvermerk"
+                  },
+                  "reference": {
+                    "type": "string",
+                    "minLength": 2,
+                    "example": "REF-2026-001"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "example": "Jahresprüfung abgeschlossen"
+                  },
+                  "content": {
+                    "type": "object",
+                    "description": "Optional additional content payload"
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "example": "req-2026-001"
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "example": "idem-vdmi-20260611"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/znp/:projectId/intents/assumption": {
+      "post": {
+        "operationId": "prepareZnpAssumption",
+        "summary": "Prepare ZNP planning assumption intent — no write",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "ZNP assumption intent created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "intentId",
+                    "operationFamily",
+                    "proposedAction",
+                    "status",
+                    "requiresHumanConfirmation"
+                  ],
+                  "properties": {
+                    "intentId": {
+                      "type": "string"
+                    },
+                    "operationFamily": {
+                      "type": "string",
+                      "example": "znp"
+                    },
+                    "proposedAction": {
+                      "type": "string",
+                      "example": "add_assumption"
+                    },
+                    "target": {
+                      "type": "object"
+                    },
+                    "inputSummary": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "pending_confirmation"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    },
+                    "risk": {
+                      "type": "string",
+                      "example": "medium"
+                    },
+                    "requiresHumanConfirmation": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confirmationMessage": {
+                      "type": "string"
+                    },
+                    "executeVia": {
+                      "type": "object"
+                    },
+                    "auditTrail": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "description": "Verifies the ZNP project exists and creates a persistent ProcessExecutionIntent for adding a planning assumption. No write occurs.\nReturns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "projectId",
+                  "text",
+                  "reason"
+                ],
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "example": "znp-proj-001"
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 2000,
+                    "example": "Annahme: Netzkapazität ausreichend für Q3 2026"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "example": "Planungsstand Q2 2026"
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "example": "req-2026-001"
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "example": "idem-znp-20260611"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/connection-rejection-evidence/intents": {
+      "post": {
+        "operationId": "prepareConnectionRejectionEvidence",
+        "summary": "Prepare connection rejection evidence package intent — no write",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection rejection evidence intent created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "intentId",
+                    "operationFamily",
+                    "proposedAction",
+                    "status",
+                    "requiresHumanConfirmation"
+                  ],
+                  "properties": {
+                    "intentId": {
+                      "type": "string"
+                    },
+                    "operationFamily": {
+                      "type": "string",
+                      "example": "connectionRejectionEvidence"
+                    },
+                    "proposedAction": {
+                      "type": "string",
+                      "example": "create_package"
+                    },
+                    "target": {
+                      "type": "object"
+                    },
+                    "inputSummary": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "pending_confirmation"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    },
+                    "risk": {
+                      "type": "string",
+                      "example": "medium"
+                    },
+                    "requiresHumanConfirmation": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confirmationMessage": {
+                      "type": "string"
+                    },
+                    "executeVia": {
+                      "type": "object"
+                    },
+                    "auditTrail": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Validates all required fields and creates a persistent ProcessExecutionIntent for creating a connection rejection evidence package. No write occurs.\nReturns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "gridOperatorId",
+                  "applicantReference",
+                  "loadAssumptionKw",
+                  "netzverknuepfungspunktId",
+                  "voltageLevel",
+                  "bottleneckDescription",
+                  "n1QualityStatus",
+                  "decision",
+                  "reason"
+                ],
+                "properties": {
+                  "gridOperatorId": {
+                    "type": "string",
+                    "example": "SNB935578300972"
+                  },
+                  "applicantReference": {
+                    "type": "string",
+                    "example": "APP-2026-001"
+                  },
+                  "loadAssumptionKw": {
+                    "type": "number",
+                    "example": 150
+                  },
+                  "netzverknuepfungspunktId": {
+                    "type": "string",
+                    "example": "NVP-001"
+                  },
+                  "voltageLevel": {
+                    "type": "string",
+                    "example": "NS"
+                  },
+                  "bottleneckDescription": {
+                    "type": "string",
+                    "example": "Trafoüberlastung bei Spitzenlast"
+                  },
+                  "n1QualityStatus": {
+                    "type": "string",
+                    "enum": [
+                      "COMPLIANT",
+                      "NON_COMPLIANT",
+                      "CONDITIONALLY_COMPLIANT",
+                      "UNKNOWN"
+                    ]
+                  },
+                  "decision": {
+                    "type": "string",
+                    "example": "REJECTED"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "example": "Netzkapazität nicht ausreichend"
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "example": "req-2026-001"
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "example": "idem-cre-20260611"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/intents/:intentId": {
+      "get": {
+        "operationId": "getProcessIntent",
+        "summary": "Get a process execution intent by ID",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Process execution intent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Intent not found"
+          }
+        },
+        "description": "Returns intent status, payload summary, and audit trail. Read-only.",
+        "parameters": [
+          {
+            "name": "intentId",
+            "in": "path",
+            "required": true,
+            "description": "Intent UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/intents": {
+      "get": {
+        "operationId": "listProcessIntents",
+        "summary": "List process execution intents",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of process execution intents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "count",
+                    "intents"
+                  ],
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "intents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a paginated list of process execution intents. Filter by operationFamily or status. Read-only.",
+        "parameters": [
+          {
+            "name": "operationFamily",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/intents/:intentId/execute": {
+      "post": {
+        "operationId": "executeProcessIntent",
+        "summary": "Execute a confirmed process intent (consequential)",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Intent executed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Intent not found"
+          },
+          "409": {
+            "description": "Intent not in executable status"
+          },
+          "410": {
+            "description": "Intent has expired"
+          }
+        },
+        "description": "Executes a process intent that is in pending_confirmation status. This is a consequential write action.\nNOT available via Copilot. Copilot prepares intents; humans execute outside Copilot using this endpoint.",
+        "parameters": [
+          {
+            "name": "intentId",
+            "in": "path",
+            "required": true,
+            "description": "Intent UUID to execute",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "executedBy": {
+                    "type": "string",
+                    "description": "Actor performing the execution"
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "description": "Trace ID for audit"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": true
+      }
+    },
+    "/api/copilot-process/intents/:intentId/reject": {
+      "post": {
+        "operationId": "rejectProcessIntent",
+        "summary": "Reject a process intent (human rejection)",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Intent rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Intent not found"
+          },
+          "409": {
+            "description": "Intent not in rejectable status"
+          }
+        },
+        "description": "Rejects a pending_confirmation intent. Must be performed by a human operator.\nNOT available via Copilot — not for autonomous agent use.",
+        "parameters": [
+          {
+            "name": "intentId",
+            "in": "path",
+            "required": true,
+            "description": "Intent UUID to reject",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Reason for rejection"
+                  },
+                  "rejectedBy": {
+                    "type": "string",
+                    "description": "Actor performing the rejection"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
+    },
     "/api/customer-service/portal-widget": {
       "post": {
         "operationId": "customer-service_portalWidget",

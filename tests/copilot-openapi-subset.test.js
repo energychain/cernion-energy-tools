@@ -61,6 +61,72 @@ describe('Copilot OpenAPI subset (openapi-copilot.json)', () => {
     });
   });
 
+  // ── Phase 2 safety: no consequential operations ─────────────────────────────
+  describe('Phase 2 safety — no consequential operations', () => {
+    it('no operation has x-openai-isConsequential: true', () => {
+      for (const [oid, { operation }] of specOps.entries()) {
+        expect(operation['x-openai-isConsequential']).not.toBe(true);
+      }
+    });
+
+    it('does not contain vdmi_evidence (direct write, deferred to Phase 3)', () => {
+      expect(specIds.has('vdmi_evidence')).toBe(false);
+    });
+
+    it('does not contain connection-rejection-evidence_create (deferred to Phase 3)', () => {
+      expect(specIds.has('connection-rejection-evidence_create')).toBe(false);
+    });
+
+    it('does not contain grid-connection_validate (deferred to Phase 3)', () => {
+      expect(specIds.has('grid-connection_validate')).toBe(false);
+    });
+
+    it('does not contain grid-connection_validateMesskonzeptConflict (deferred to Phase 3)', () => {
+      expect(specIds.has('grid-connection_validateMesskonzeptConflict')).toBe(false);
+    });
+
+    it('does not contain grid-connection_fnavValidate (deferred to Phase 3)', () => {
+      expect(specIds.has('grid-connection_fnavValidate')).toBe(false);
+    });
+
+    it('does not contain znp_addAssumption (deferred to Phase 3)', () => {
+      expect(specIds.has('znp_addAssumption')).toBe(false);
+    });
+  });
+
+  // ── OpenAPI path compliance ──────────────────────────────────────────────────
+  describe('OpenAPI path compliance', () => {
+    it('no path contains Express colon-params (/:param) — must use {param}', () => {
+      for (const p of Object.keys(copilotSpec.paths)) {
+        expect(p).not.toMatch(/\/:/);
+      }
+    });
+
+    it('all path params in {param} paths have a matching in:path parameter definition', () => {
+      for (const [p, pathItem] of Object.entries(copilotSpec.paths)) {
+        const paramNames = [...p.matchAll(/\{([a-zA-Z][a-zA-Z0-9_]*)\}/g)].map((m) => m[1]);
+        if (paramNames.length === 0) continue;
+        for (const [, operation] of Object.entries(pathItem)) {
+          const defined = new Set(
+            (operation.parameters || []).filter((x) => x.in === 'path').map((x) => x.name)
+          );
+          for (const name of paramNames) {
+            expect(defined.has(name)).toBe(true);
+          }
+        }
+      }
+    });
+  });
+
+  // ── Stable operationId naming ────────────────────────────────────────────────
+  describe('stable operationId naming', () => {
+    it('no operationId contains a hyphen', () => {
+      for (const id of specIds) {
+        expect(id).not.toMatch(/-/);
+      }
+    });
+  });
+
   // ── Blocklist: explicitly blocked operations must NOT be present ─────────────
   describe('blocklist — blocked operations absent', () => {
     const criticalBlocked = [
@@ -71,6 +137,13 @@ describe('Copilot OpenAPI subset (openapi-copilot.json)', () => {
       'vdmi_confirmNomination',
       'vdmi_nominate',
       'vdmi_revert',
+      // Phase 2 deferred write/execute operations
+      'vdmi_evidence',
+      'connection-rejection-evidence_create',
+      'grid-connection_validate',
+      'grid-connection_validateMesskonzeptConflict',
+      'grid-connection_fnavValidate',
+      'znp_addAssumption',
     ];
 
     for (const id of criticalBlocked) {
@@ -102,14 +175,6 @@ describe('Copilot OpenAPI subset (openapi-copilot.json)', () => {
         const specOp = specOps.get(entry.operationId);
         if (!specOp) continue;
         expect(specOp.operation['x-openai-isConsequential']).toBe(false);
-      }
-    });
-
-    it('prepare-mode operations have x-openai-isConsequential: true', () => {
-      for (const entry of allowlist.filter((e) => e.mode === 'prepare')) {
-        const specOp = specOps.get(entry.operationId);
-        if (!specOp) continue;
-        expect(specOp.operation['x-openai-isConsequential']).toBe(true);
       }
     });
 
@@ -159,6 +224,12 @@ describe('Copilot OpenAPI subset (openapi-copilot.json)', () => {
         expect(fn.description.length).toBeGreaterThan(0);
       }
     });
+
+    it('no function name in plugin contains a hyphen', () => {
+      for (const fn of copilotPlugin.functions) {
+        expect(fn.name).not.toMatch(/-/);
+      }
+    });
   });
 
   // ── No broken $refs ──────────────────────────────────────────────────────────
@@ -177,6 +248,37 @@ describe('Copilot OpenAPI subset (openapi-copilot.json)', () => {
       for (const [oid, { operation }] of specOps.entries()) {
         expect(operation.summary).toBeTruthy();
       }
+    });
+  });
+
+  // ── Phase 3: executeProcessIntent and rejectProcessIntent NOT in Copilot spec ─
+  describe('Phase 3 safety — execute and reject actions NOT in Copilot spec', () => {
+    it('executeProcessIntent is NOT in Copilot spec', () => {
+      expect(specIds.has('executeProcessIntent')).toBe(false);
+    });
+
+    it('rejectProcessIntent is NOT in Copilot spec', () => {
+      expect(specIds.has('rejectProcessIntent')).toBe(false);
+    });
+
+    it('prepareVdmiEvidence IS in Copilot spec', () => {
+      expect(specIds.has('prepareVdmiEvidence')).toBe(true);
+    });
+
+    it('prepareZnpAssumption IS in Copilot spec', () => {
+      expect(specIds.has('prepareZnpAssumption')).toBe(true);
+    });
+
+    it('prepareConnectionRejectionEvidence IS in Copilot spec', () => {
+      expect(specIds.has('prepareConnectionRejectionEvidence')).toBe(true);
+    });
+
+    it('getProcessIntent IS in Copilot spec', () => {
+      expect(specIds.has('getProcessIntent')).toBe(true);
+    });
+
+    it('listProcessIntents IS in Copilot spec', () => {
+      expect(specIds.has('listProcessIntents')).toBe(true);
     });
   });
 
@@ -214,6 +316,12 @@ describe('Copilot OpenAPI subset (openapi-copilot.json)', () => {
       for (const entry of blocklist) {
         expect(typeof entry.reason).toBe('string');
         expect(entry.reason.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('allowlist operationIds have no hyphens (stable Copilot-friendly naming)', () => {
+      for (const entry of allowlist) {
+        expect(entry.operationId).not.toMatch(/-/);
       }
     });
   });
