@@ -307,6 +307,31 @@ function buildStaticSpec() {
 
 // ── Copilot subset builder ────────────────────────────────────────────────
 
+function sanitizeCopilotText(value, maxLen = 900) {
+  if (typeof value !== 'string') return value;
+  const cleaned = value
+    .replace(/\*\*/g, '')
+    .replace(/`/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (cleaned.length <= maxLen) return cleaned;
+  return `${cleaned.slice(0, Math.max(0, maxLen - 1)).trim()}…`;
+}
+
+function sanitizeCopilotSchema(value) {
+  if (Array.isArray(value)) return value.map((item) => sanitizeCopilotSchema(item));
+  if (!value || typeof value !== 'object') return value;
+
+  const copy = {};
+  for (const [key, nested] of Object.entries(value)) {
+    copy[key] =
+      key === 'description' || key === 'summary'
+        ? sanitizeCopilotText(nested, key === 'description' ? 900 : 180)
+        : sanitizeCopilotSchema(nested);
+  }
+  return copy;
+}
+
 /**
  * Builds a curated OpenAPI spec containing only operations from the
  * Copilot allowlist (config/copilot-operations.json).
@@ -352,7 +377,7 @@ function buildCopilotSpec(fullSpec, allowlist) {
         .filter((n) => !existingPathParams.has(n))
         .map((name) => ({ name, in: 'path', required: true, schema: { type: 'string' } }));
 
-      filteredItem[method] = {
+      const filteredOperation = {
         ...operation,
         operationId: entry.operationId, // stable Copilot-friendly ID (no hyphens)
         'x-openai-isConsequential': isConsequential,
@@ -362,6 +387,8 @@ function buildCopilotSpec(fullSpec, allowlist) {
           ? { parameters: [...(operation.parameters || []), ...missingParams] }
           : {}),
       };
+
+      filteredItem[method] = sanitizeCopilotSchema(filteredOperation);
     }
     if (Object.keys(filteredItem).length > 0) paths[normalizedPath] = filteredItem;
   }

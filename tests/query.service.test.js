@@ -192,6 +192,18 @@ describe('Query Service', () => {
       expect(result.results.length).toBeLessThanOrEqual(5);
     });
 
+    it('supports body-style Copilot search wrapper', async () => {
+      const result = await broker.call('query.searchCopilot', {
+        q: 'Wiesloch',
+        domain: 'vnb',
+        limit: 5,
+      });
+
+      expect(result).toHaveProperty('query', 'Wiesloch');
+      expect(result).toHaveProperty('domain', 'vnb');
+      expect(Array.isArray(result.results)).toBe(true);
+    });
+
     it('result items have the required Copilot schema shape when data is present', async () => {
       // Inject a live company service mock to verify result shape
       const fakeBroker = new (require('moleculer').ServiceBroker)({ logger: false });

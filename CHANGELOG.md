@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`askCernionAgent` Copilot Action**: New `personal-agent.askCernionAgent` action (`POST /api/copilot/ask-cernion-agent`) as a Copilot-first entry point to the Personal Agent. Accepts `question`, optional `sessionId`, `context`, and `domain`. Returns compact structured evidence, process context, risks, open questions, and next steps — designed for Copilot Studio to compose the final user-facing answer. Added to allowlist as mode `read`, risk `low`. Route registered in `api.service.js`. Added to `docs/copilot-plugin.json` with `response_semantics` and `data_handling: ["GetPrivateData"]`.
+
+- **SCQA Decision Frame Layer** (`services/decision-frame.service.js`): PouchDB-backed SCQA (Situation–Complication–Question–Answer) decision frame store. Actions: `create`, `get`, `list`, `update`, `linkEntity` (idempotent entity attachment with types `znp_project`, `vdmi_matrix`, `investment_plan`, `grid_operator`, `grid_connection`, `process_intent`), `generateStarter` (AI-assisted — calls `znp.getProjectMeta` + `znp.strategicPrompts` as context seeds, then `generateStructured` to synthesise Situation/Complication/Question), `exportSummary` (Markdown or JSON). Frames do not write to domain objects; they carry `frameId`, `situation`, `complication`, `question`, `answer`, `domain`, `role`, `status`, and `linkedEntities`. DB path configurable via `DECISION_FRAME_DB_PATH` env var.
+
+- **SCQA Capability Routing**: New `scqa_decision_framing` entry in `src/capability-catalog.js` (domain `governance`, `routingPattern: 'scqa_elicitation'`, 16 keywords including `entscheidungsrahmen`, `kernfrage`, `transformationsdruck`). The Capability Broker now recognises SCQA framing intent and routes to `decision-frame.generateStarter` / `decision-frame.create`.
+
+- **SCQA Personal Agent Integration**: `buildDecisionFrameDirectives(decisionFrame)` exported from `src/personal-agent-context.js`. When `knownContext.decisionFrame` is present in a `personal-agent.chat` request, its Situation/Complication/Question/Answer fields are injected as L1 tenant-fact strings at all five `buildContextStack` call sites. Returns `[]` when `decisionFrame` is absent — zero impact on existing sessions.
+
+### Changed
+
+- **Copilot Studio Search Compatibility**: `searchCernionData` in `openapi-copilot.json` now maps to a body-based POST operation (`query.searchCopilot`, `POST /api/query/search`, `operationId: searchCernionDataBody`) instead of the GET query-param variant. This avoids Copilot Studio connector failures where query parameters were imported as a PowerFx function argument but invoked with zero parameters. The original GET search endpoint (`query.search`) is unchanged for direct API callers. Allowlist entry updated with `specOperationId: "searchCernionDataBody"`.
+
+- **Copilot OpenAPI Text Sanitization**: `buildCopilotSpec()` in `scripts/export-openapi.js` now runs all `summary` and `description` strings through `sanitizeCopilotText()` (strips `**` Markdown bold, backticks, collapses whitespace, caps at 900/180 chars) before embedding them in the Copilot subset. Prevents Copilot Studio model-description limit errors and import validation failures.
+
+### Tests
+
+- `tests/decision-frame.service.test.js` (33 tests): CRUD lifecycle, idempotent `linkEntity`, AI-mocked `generateStarter` (LLM mock + downstream ZNP mock), `exportSummary` in both formats, `list` with `domain`, `status`, and `linkedEntityId` filters.
+- `tests/copilot-openapi-subset.test.js`: two new assertions — body-based `searchCernionData` uses `POST`, has `requestBody` with required `q`, no `parameters`; all Copilot operation descriptions stay within the Copilot Studio model-description character limit and contain no Markdown bold.
+- `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
+
 ## [0.61.0] — MS365 Copilot Integration & Human-confirmed Process Execution Layer (2026-06-11)
 
 ### Added

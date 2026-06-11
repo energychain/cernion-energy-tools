@@ -8,6 +8,17 @@
   "contact_email": "dev@stromdao.com",
   "functions": [
     {
+      "name": "askCernionAgent",
+      "description": "Ask Cernion for compact evidence, process context, risks, open questions and next steps. Read-only; Copilot composes the final answer.",
+      "capabilities": {
+        "response_semantics": {
+          "data_path": "$",
+          "properties": { "title": "$.shortAnswer", "subtitle": "$.confidence" }
+        },
+        "security_info": { "data_handling": ["GetPrivateData"] }
+      }
+    },
+    {
       "name": "searchCernionData",
       "description": "Search across Cernion energy entities (companies, VNBs, VDMI matrices, ZNP projects, grid connection validations, EDM MeLo IDs). Returns id, title, excerpt, type, status, and url for each hit.",
       "capabilities": {
@@ -203,6 +214,7 @@
         "progress_style": "ShowUsageWithInputAndOutput"
       },
       "run_for_functions": [
+        "askCernionAgent",
         "searchCernionData",
         "getVdmiContext",
         "listOpenResponsibilities",

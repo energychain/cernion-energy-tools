@@ -12989,6 +12989,150 @@
         }
       }
     },
+    "/api/decision-frame/": {
+      "post": {
+        "operationId": "decision-frame_create",
+        "summary": "Create a SCQA decision frame",
+        "tags": [
+          "Decision Frame"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "decision-frame_list",
+        "summary": "List SCQA decision frames",
+        "tags": [
+          "Decision Frame"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/decision-frame/:frameId": {
+      "get": {
+        "operationId": "decision-frame_get",
+        "summary": "Get a SCQA decision frame by ID",
+        "tags": [
+          "Decision Frame"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "decision-frame_update",
+        "summary": "Update a SCQA decision frame (patch answer, status, etc.)",
+        "tags": [
+          "Decision Frame"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/decision-frame/:frameId/links": {
+      "post": {
+        "operationId": "decision-frame_linkEntity",
+        "summary": "Link a domain entity to a SCQA frame",
+        "tags": [
+          "Decision Frame"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/decision-frame/generate-starter": {
+      "post": {
+        "operationId": "decision-frame_generateStarter",
+        "summary": "AI-assisted SCQA starter from entity context",
+        "tags": [
+          "Decision Frame"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Gathers context from available downstream services (ZNP, VDMI) and uses an LLM to synthesise a SCQA starter frame. Returns Situation, Complication, Question — the caller decides whether to persist via create. Requires LLM configuration."
+      }
+    },
+    "/api/decision-frame/:frameId/export": {
+      "get": {
+        "operationId": "decision-frame_exportSummary",
+        "summary": "Export a SCQA frame as Markdown or JSON document",
+        "tags": [
+          "Decision Frame"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/e2e-connection-check/checks": {
       "post": {
         "operationId": "e2e-connection-check_create",
@@ -34239,6 +34383,109 @@
           }
         ],
         "x-openai-isConsequential": false
+      },
+      "post": {
+        "operationId": "searchCernionDataBody",
+        "summary": "Search Cernion data with a JSON request body",
+        "tags": [
+          "Query Tools",
+          "Copilot"
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results from matched domains",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "description": "The original search term"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "enum": [
+                        "companies",
+                        "vnb",
+                        "edm",
+                        "vdmi",
+                        "grid_connection",
+                        "znp",
+                        "all"
+                      ]
+                    },
+                    "totalResults": {
+                      "type": "integer"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "required": [
+                    "query",
+                    "domain",
+                    "totalResults",
+                    "results"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        },
+        "description": "Search Cernion entities from Copilot Studio. Provide q as the search term, optionally domain and limit. Read-only.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "q": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Required search term, such as a city, company, VNB, VDMI matrix, ZNP project, grid operator, or MeLo ID.",
+                    "example": "Wiesloch"
+                  },
+                  "domain": {
+                    "type": "string",
+                    "enum": [
+                      "companies",
+                      "vnb",
+                      "edm",
+                      "vdmi",
+                      "grid_connection",
+                      "znp",
+                      "all"
+                    ],
+                    "default": "all",
+                    "description": "Optional search domain. Use vnb to find distribution grid operators.",
+                    "example": "vnb"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 25,
+                    "default": 10,
+                    "description": "Optional maximum number of results.",
+                    "example": 5
+                  }
+                },
+                "required": [
+                  "q"
+                ]
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
       }
     },
     "/api/query/discover": {
@@ -43562,6 +43809,181 @@
           "https://openenergyplatform.org/ontology/oeo/OEO_00000143",
           "https://openenergyplatform.org/ontology/oeo/OEO_00020107"
         ]
+      }
+    },
+    "/api/copilot/ask-cernion-agent": {
+      "post": {
+        "operationId": "askCernionAgent",
+        "summary": "Ask the Cernion agent for compact evidence and process context",
+        "tags": [
+          "Personal Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Compact Cernion answer for Copilot composition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "shortAnswer",
+                    "evidence",
+                    "processContext",
+                    "openQuestions",
+                    "recommendedNextSteps",
+                    "allowedActions",
+                    "forbiddenActions"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "shortAnswer": {
+                      "type": "string"
+                    },
+                    "confidence": {
+                      "type": "string",
+                      "enum": [
+                        "high",
+                        "medium",
+                        "low"
+                      ]
+                    },
+                    "evidence": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "source": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "processContext": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "entities": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "risks": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "openQuestions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "recommendedNextSteps": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "allowedActions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "forbiddenActions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "routing": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Read-only Copilot action. Routes a user question through the Cernion Personal Agent and returns compact structured evidence, process context, risks and next steps. It does not execute, confirm, sign, delete or modify process data.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "question"
+                ],
+                "properties": {
+                  "question": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 8000,
+                    "description": "User question to answer with Cernion evidence and process context.",
+                    "example": "Welcher VNB ist in Wiesloch zuständig?"
+                  },
+                  "sessionId": {
+                    "type": "string",
+                    "description": "Optional stable Copilot conversation/session identifier."
+                  },
+                  "context": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Optional tenant, user, object, process or document context."
+                  },
+                  "domain": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "vnb",
+                      "vdmi",
+                      "znp",
+                      "grid-connection",
+                      "edm",
+                      "finance",
+                      "process"
+                    ],
+                    "default": "auto",
+                    "description": "Optional domain hint for routing."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "answer",
+                      "evidence",
+                      "process_check",
+                      "prepare_intent"
+                    ],
+                    "default": "answer",
+                    "description": "Controls whether the answer should focus on evidence or process checks."
+                  },
+                  "maxEvidence": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12,
+                    "default": 5,
+                    "description": "Maximum number of evidence items returned."
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/webhooks": {

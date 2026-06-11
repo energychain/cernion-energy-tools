@@ -315,7 +315,7 @@
             "description": "Matrix not found"
           }
         },
-        "description": "Returns full VDMI matrix context for Copilot: status, open tasks, nomination state, evidence count, and regulatory basis.\n\n**When to use**: Before proposing any VDMI process action, load context to understand current state.\n**Read-only**: No state is changed.",
+        "description": "Returns full VDMI matrix context for Copilot: status, open tasks, nomination state, evidence count, and regulatory basis. When to use: Before proposing any VDMI process action, load context to understand current state. Read-only: No state is changed.",
         "parameters": [
           {
             "name": "matrixId",
@@ -386,7 +386,7 @@
             }
           }
         },
-        "description": "Returns VDMI matrices where the specified user (or authenticated caller) holds open Verantwortlich tasks.\n\nIf `userId` is not supplied, falls back to listing all active matrices with at least one open task.\n**Read-only**: No state is changed.",
+        "description": "Returns VDMI matrices where the specified user (or authenticated caller) holds open Verantwortlich tasks. If userId is not supplied, falls back to listing all active matrices with at least one open task. Read-only: No state is changed.",
         "parameters": [
           {
             "name": "userId",
@@ -486,7 +486,7 @@
             "description": "Project not found"
           }
         },
-        "description": "Returns ZNP project metadata: name, loaded layers, node/edge counts, bounding box, and creation timestamp.\n\n**Read-only**: No state is changed.",
+        "description": "Returns ZNP project metadata: name, loaded layers, node/edge counts, bounding box, and creation timestamp. Read-only: No state is changed.",
         "parameters": [
           {
             "name": "projectId",
@@ -559,7 +559,7 @@
             "description": "Validation not found"
           }
         },
-        "description": "Returns a specific grid connection validation report including decision, findings, and grid operator details.\n\n**Read-only**: No state is changed.",
+        "description": "Returns a specific grid connection validation report including decision, findings, and grid operator details. Read-only: No state is changed.",
         "parameters": [
           {
             "name": "validationId",
@@ -694,7 +694,7 @@
             "description": "Matrix status does not allow nomination"
           }
         },
-        "description": "Analyses the VDMI matrix and returns a draft nomination proposal.\n**No writes**: This action creates no persisted state. The returned draft must be explicitly confirmed by a consequential execute action (Phase 3).\n\nSet `requiredConfirmation: true` in the response means Copilot must ask the user to confirm before proceeding.",
+        "description": "Analyses the VDMI matrix and returns a draft nomination proposal. No writes: This action creates no persisted state. The returned draft must be explicitly confirmed by a consequential execute action (Phase 3). Set requiredConfirmation: true in the response means Copilot must ask the user to confirm before proceeding.",
         "requestBody": {
           "required": true,
           "content": {
@@ -829,7 +829,7 @@
             "description": "Matrix not found"
           }
         },
-        "description": "Analyses open VDMI tasks and returns structured evidence suggestions for each.\n**No writes**: This returns suggestions only. No evidence is added to the matrix.\nUse `POST /api/vdmi/:id/evidence` (Phase 3) to actually inject evidence.",
+        "description": "Analyses open VDMI tasks and returns structured evidence suggestions for each. No writes: This returns suggestions only. No evidence is added to the matrix. Use POST /api/vdmi/:id/evidence (Phase 3) to actually inject evidence.",
         "requestBody": {
           "required": true,
           "content": {
@@ -947,7 +947,7 @@
             "description": "No grid operator identifier supplied"
           }
         },
-        "description": "Validates the input parameters and returns a draft validation configuration.\n**No writes**: This action has no side effects. The returned proposal must be confirmed before the actual 6-step pipeline is started.\nAt least one of `gridOperatorId`, `gridOperatorBdew`, or `gridOperatorName` is required.\n\nThe consequential execute action (`POST /api/grid-connection/validate`) is Phase 3.",
+        "description": "Validates the input parameters and returns a draft validation configuration. No writes: This action has no side effects. The returned proposal must be confirmed before the actual 6-step pipeline is started. At least one of gridOperatorId, gridOperatorBdew, or gridOperatorName is required. The consequential execute action (POST /api/grid-connection/validate) is Phase 3.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1071,7 +1071,7 @@
             "description": "Matrix not found"
           }
         },
-        "description": "Verifies the VDMI matrix exists and creates a persistent ProcessExecutionIntent for evidence injection. No evidence is written.\nReturns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.",
+        "description": "Verifies the VDMI matrix exists and creates a persistent ProcessExecutionIntent for evidence injection. No evidence is written. Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1210,7 +1210,7 @@
             "description": "Project not found"
           }
         },
-        "description": "Verifies the ZNP project exists and creates a persistent ProcessExecutionIntent for adding a planning assumption. No write occurs.\nReturns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.",
+        "description": "Verifies the ZNP project exists and creates a persistent ProcessExecutionIntent for adding a planning assumption. No write occurs. Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1337,7 +1337,7 @@
             }
           }
         },
-        "description": "Validates all required fields and creates a persistent ProcessExecutionIntent for creating a connection rejection evidence package. No write occurs.\nReturns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.",
+        "description": "Validates all required fields and creates a persistent ProcessExecutionIntent for creating a connection rejection evidence package. No write occurs. Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1624,7 +1624,7 @@
       }
     },
     "/api/query/search": {
-      "get": {
+      "post": {
         "operationId": "searchCernionData",
         "summary": "Cross-domain entity search (companies, VNB, VDMI, ZNP, grid connection, EDM)",
         "tags": [
@@ -1641,8 +1641,7 @@
                   "properties": {
                     "query": {
                       "type": "string",
-                      "description": "The original search term",
-                      "example": "Stadtwerke Heidelberg"
+                      "description": "The original search term"
                     },
                     "domain": {
                       "type": "string",
@@ -1654,73 +1653,15 @@
                         "grid_connection",
                         "znp",
                         "all"
-                      ],
-                      "example": "all"
+                      ]
                     },
                     "totalResults": {
-                      "type": "integer",
-                      "example": 2
+                      "type": "integer"
                     },
                     "results": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "description": "Unique identifier within the domain",
-                            "example": "550e8400-e29b-41d4-a716-446655440000"
-                          },
-                          "title": {
-                            "type": "string",
-                            "description": "Primary display name",
-                            "example": "Stadtwerke Heidelberg GmbH & Co. KG"
-                          },
-                          "excerpt": {
-                            "type": "string",
-                            "description": "One-line context string with key attributes"
-                          },
-                          "domain": {
-                            "type": "string",
-                            "description": "Source domain of this result",
-                            "enum": [
-                              "companies",
-                              "edm",
-                              "vdmi",
-                              "grid_connection",
-                              "znp"
-                            ]
-                          },
-                          "type": {
-                            "type": "string",
-                            "description": "Object type within the domain",
-                            "example": "company"
-                          },
-                          "status": {
-                            "type": "string",
-                            "nullable": true,
-                            "description": "Lifecycle or decision status of the object",
-                            "example": "active"
-                          },
-                          "url": {
-                            "type": "string",
-                            "description": "API path to retrieve the full record",
-                            "example": "/api/companies/550e8400-e29b-41d4-a716-446655440000"
-                          },
-                          "metadata": {
-                            "type": "object",
-                            "description": "Domain-specific structured attributes"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "title",
-                          "excerpt",
-                          "domain",
-                          "type",
-                          "status",
-                          "url"
-                        ]
+                        "type": "object"
                       }
                     }
                   },
@@ -1730,159 +1671,60 @@
                     "totalResults",
                     "results"
                   ]
-                },
-                "examples": {
-                  "companyHit": {
-                    "summary": "Company result",
-                    "value": {
-                      "query": "Stadtwerke Heidelberg",
-                      "domain": "all",
-                      "totalResults": 1,
-                      "results": [
-                        {
-                          "id": "550e8400-e29b-41d4-a716-446655440000",
-                          "title": "Stadtwerke Heidelberg",
-                          "excerpt": "Stadtwerke Heidelberg GmbH & Co. KG · VNB · BDEW 9900277000000 · 2 Marktpartner · Status: active",
-                          "domain": "companies",
-                          "type": "company",
-                          "status": "active",
-                          "url": "/api/companies/550e8400-e29b-41d4-a716-446655440000",
-                          "metadata": {
-                            "memberCount": 2,
-                            "hasVnb": true
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  "vdmiHit": {
-                    "summary": "VDMI matrix result",
-                    "value": {
-                      "query": "Netzanschluss",
-                      "domain": "vdmi",
-                      "totalResults": 1,
-                      "results": [
-                        {
-                          "id": "abc123",
-                          "title": "Netzanschluss-Genehmigung PV",
-                          "excerpt": "Prozesstyp: standard · Nominierung: pending",
-                          "domain": "vdmi",
-                          "type": "matrix",
-                          "status": "active",
-                          "url": "/api/vdmi/abc123",
-                          "metadata": {
-                            "processType": "standard",
-                            "nominationStatus": "pending",
-                            "evidenceCount": 2
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  "gridConnectionHit": {
-                    "summary": "Grid connection validation result",
-                    "value": {
-                      "query": "TWL Netze",
-                      "domain": "grid_connection",
-                      "totalResults": 1,
-                      "results": [
-                        {
-                          "id": "a1b2c3d4-1234-5678-90ab-cdef12345678",
-                          "title": "Netzanschluss-Validierung · TWL Netze",
-                          "excerpt": "Entscheidung: GO_CONDITIONAL · 2026-03-30",
-                          "domain": "grid_connection",
-                          "type": "validation",
-                          "status": "GO_CONDITIONAL",
-                          "url": "/api/grid-connection/validations/a1b2c3d4-1234-5678-90ab-cdef12345678",
-                          "metadata": {
-                            "gridOperatorName": "TWL Netze",
-                            "findingsCount": 3,
-                            "createdAt": "2026-03-30T10:00:00Z"
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  "noResults": {
-                    "summary": "No results",
-                    "value": {
-                      "query": "nonexistent",
-                      "domain": "all",
-                      "totalResults": 0,
-                      "results": []
-                    }
-                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Validation error — q is missing or too long, limit out of range",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "example": "ValidationError"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
+            "description": "Validation error"
+          }
+        },
+        "description": "Search Cernion entities. Provide q as the required search term. Use domain=vnb for distribution grid operator lookup. Read-only.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "q": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Required search term, such as a city, company, VNB, VDMI matrix, ZNP project, grid operator, or MeLo ID.",
+                    "example": "Wiesloch"
+                  },
+                  "domain": {
+                    "type": "string",
+                    "enum": [
+                      "companies",
+                      "vnb",
+                      "edm",
+                      "vdmi",
+                      "grid_connection",
+                      "znp",
+                      "all"
+                    ],
+                    "default": "all",
+                    "description": "Optional search domain. Use vnb to find distribution grid operators.",
+                    "example": "vnb"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 25,
+                    "default": 10,
+                    "description": "Optional maximum number of results.",
+                    "example": 5
                   }
-                }
+                },
+                "required": [
+                  "q"
+                ]
               }
             }
           }
         },
-        "description": "Search across Cernion energy management data for use in Microsoft 365 Copilot, OpenAPI plugins, and connected integrations.\n\n**Supported domains**:\n- **companies** — Search company entities (Stadtwerke, Konzernverbund) by name. Returns BDEW codes, market roles, member count.\n- **vnb** — Narrow search to companies with a Verteilnetzbetreiber (VNB) market role.\n- **edm** — Look up a Messlokalisation (MeLo) by its exact DE-prefixed ID.\n- **vdmi** — Search VDMI responsibility matrix instances by name, scope, or process type.\n- **grid_connection** — Search past grid connection validation reports by operator name or decision.\n- **znp** — Search Zielnetzplanung projects by name.\n- **all** (default) — Searches all domains in parallel.\n\nEach result carries **domain**, **type**, **id**, **title**, **excerpt**, **status**, and **url** pointing to the detail endpoint for that object.\n\n**Performance**: Deterministic, < 300 ms. Does not invoke any external API or LLM.\n\n**For complex natural-language queries** (e.g. \"PV-Kapazität in Bayern\") use POST /ask instead.",
-        "parameters": [
-          {
-            "name": "q",
-            "in": "query",
-            "required": true,
-            "description": "Search term. Company/VNB name, VDMI matrix name, ZNP project name, grid operator name, or exact MeLo ID (DE…). German or English.",
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 200,
-              "example": "Stadtwerke Heidelberg"
-            }
-          },
-          {
-            "name": "domain",
-            "in": "query",
-            "required": false,
-            "description": "Restrict search to a specific data domain. Defaults to \"all\" which searches all domains in parallel.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "companies",
-                "vnb",
-                "edm",
-                "vdmi",
-                "grid_connection",
-                "znp",
-                "all"
-              ],
-              "default": "all",
-              "example": "vdmi"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "description": "Maximum number of results to return (1–25).",
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 25,
-              "default": 10
-            }
-          }
-        ],
         "x-openai-isConsequential": false
       }
     },
@@ -2279,10 +2121,186 @@
           }
         ]
       }
+    },
+    "/api/copilot/ask-cernion-agent": {
+      "post": {
+        "operationId": "askCernionAgent",
+        "summary": "Ask Cernion for compact evidence and process context",
+        "tags": [
+          "Personal Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Compact Cernion answer for Copilot composition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "shortAnswer",
+                    "evidence",
+                    "processContext",
+                    "openQuestions",
+                    "recommendedNextSteps",
+                    "allowedActions",
+                    "forbiddenActions"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "shortAnswer": {
+                      "type": "string"
+                    },
+                    "confidence": {
+                      "type": "string",
+                      "enum": [
+                        "high",
+                        "medium",
+                        "low"
+                      ]
+                    },
+                    "evidence": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "source": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "processContext": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "entities": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "risks": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "openQuestions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "recommendedNextSteps": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "allowedActions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "forbiddenActions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "routing": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Use this read-only action first for Cernion questions. It returns compact evidence, process context, risks, open questions and next steps. Copilot should use the structure to compose the final user-facing answer. It never executes, confirms, signs, deletes or modifies process data.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "question"
+                ],
+                "properties": {
+                  "question": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 8000,
+                    "description": "User question to answer with Cernion evidence and process context.",
+                    "example": "Welcher VNB ist in Wiesloch zuständig?"
+                  },
+                  "sessionId": {
+                    "type": "string",
+                    "description": "Optional stable Copilot conversation/session identifier."
+                  },
+                  "context": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Optional tenant, user, object, process or document context."
+                  },
+                  "domain": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "vnb",
+                      "vdmi",
+                      "znp",
+                      "grid-connection",
+                      "edm",
+                      "finance",
+                      "process"
+                    ],
+                    "default": "auto",
+                    "description": "Optional domain hint for routing."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "answer",
+                      "evidence",
+                      "process_check",
+                      "prepare_intent"
+                    ],
+                    "default": "answer",
+                    "description": "Controls whether the answer should focus on evidence or process checks."
+                  },
+                  "maxEvidence": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12,
+                    "default": 5,
+                    "description": "Maximum number of evidence items returned."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
     }
   },
   "x-generator": "scripts/export-openapi.js",
   "x-version": "0.60.8",
   "x-copilot-subset": true,
-  "x-copilot-operations-version": 25
+  "x-copilot-operations-version": 26
 }

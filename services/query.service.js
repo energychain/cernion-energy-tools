@@ -732,6 +732,101 @@ Each result carries **domain**, **type**, **id**, **title**, **excerpt**, **stat
       },
     },
 
+    /**
+     * Body-based variant for Copilot Studio connector actions.
+     * Copilot Studio often models connector operations as a single PowerFx
+     * record argument, so requestBody is more reliable than query params.
+     */
+    searchCopilot: {
+      rest: 'POST /search',
+      params: {
+        q: { type: 'string', min: 1, max: 200, trim: true },
+        domain: {
+          type: 'enum',
+          values: ['companies', 'vnb', 'edm', 'vdmi', 'grid_connection', 'znp', 'all'],
+          optional: true,
+          default: 'all',
+        },
+        limit: { type: 'number', optional: true, default: 10, min: 1, max: 25, convert: true },
+      },
+      openapi: {
+        summary: 'Search Cernion data with a JSON request body',
+        operationId: 'searchCernionDataBody',
+        'x-openai-isConsequential': false,
+        description:
+          'Search Cernion entities from Copilot Studio. Provide q as the search term, optionally domain and limit. Read-only.',
+        tags: ['Query Tools', 'Copilot'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  q: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: 200,
+                    description:
+                      'Required search term, such as a city, company, VNB, VDMI matrix, ZNP project, grid operator, or MeLo ID.',
+                    example: 'Wiesloch',
+                  },
+                  domain: {
+                    type: 'string',
+                    enum: ['companies', 'vnb', 'edm', 'vdmi', 'grid_connection', 'znp', 'all'],
+                    default: 'all',
+                    description:
+                      'Optional search domain. Use vnb to find distribution grid operators.',
+                    example: 'vnb',
+                  },
+                  limit: {
+                    type: 'integer',
+                    minimum: 1,
+                    maximum: 25,
+                    default: 10,
+                    description: 'Optional maximum number of results.',
+                    example: 5,
+                  },
+                },
+                required: ['q'],
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Search results from matched domains',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    query: { type: 'string', description: 'The original search term' },
+                    domain: {
+                      type: 'string',
+                      enum: ['companies', 'vnb', 'edm', 'vdmi', 'grid_connection', 'znp', 'all'],
+                    },
+                    totalResults: { type: 'integer' },
+                    results: {
+                      type: 'array',
+                      items: { type: 'object' },
+                    },
+                  },
+                  required: ['query', 'domain', 'totalResults', 'results'],
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error',
+          },
+        },
+      },
+      async handler(ctx) {
+        return ctx.call('query.search', ctx.params, { meta: ctx.meta });
+      },
+    },
+
     discover: {
       rest: 'POST /discover',
       params: {

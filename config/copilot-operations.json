@@ -4,10 +4,20 @@
   "description": "Curated allowlist of Cernion API operations exposed to MS365 Copilot. All other operations are implicitly denied. Phase 2: read + draft only — no direct write/execute actions. See docs/copilot-process-bridge.md.",
   "allowlist": [
     {
+      "operationId": "askCernionAgent",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "Ask Cernion for compact evidence and process context",
+      "copilotDescription": "Use this read-only action first for Cernion questions. It returns compact evidence, process context, risks, open questions and next steps. Copilot should use the structure to compose the final user-facing answer. It never executes, confirms, signs, deletes or modifies process data.",
+      "risk": "low"
+    },
+    {
       "operationId": "searchCernionData",
+      "specOperationId": "searchCernionDataBody",
       "mode": "read",
       "requiresConfirmation": false,
       "summary": "Cross-domain entity search (companies, VNB, VDMI, ZNP, grid connection, EDM)",
+      "copilotDescription": "Search Cernion entities. Provide q as the required search term. Use domain=vnb for distribution grid operator lookup. Read-only.",
       "risk": "low"
     },
     {

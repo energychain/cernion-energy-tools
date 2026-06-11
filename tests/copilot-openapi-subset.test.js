@@ -52,6 +52,18 @@ describe('Copilot OpenAPI subset (openapi-copilot.json)', () => {
       expect(specIds.has('searchCernionData')).toBe(true);
     });
 
+    it('uses body-based searchCernionData for Copilot Studio', () => {
+      const specOp = specOps.get('searchCernionData');
+      expect(specOp.method).toBe('post');
+      expect(specOp.path).toBe('/api/query/search');
+      expect(specOp.operation.requestBody).toBeDefined();
+      expect(specOp.operation.requestBody.required).toBe(true);
+      expect(specOp.operation.parameters || []).toHaveLength(0);
+      expect(
+        specOp.operation.requestBody.content['application/json'].schema.required
+      ).toContain('q');
+    });
+
     it('spec path count is less than full export', () => {
       expect(Object.keys(copilotSpec.paths).length).toBeLessThan(200);
     });
@@ -247,6 +259,15 @@ describe('Copilot OpenAPI subset (openapi-copilot.json)', () => {
     it('all operations in spec have a summary', () => {
       for (const [oid, { operation }] of specOps.entries()) {
         expect(operation.summary).toBeTruthy();
+      }
+    });
+
+    it('Copilot operation descriptions stay within Studio model description limit', () => {
+      for (const [oid, { operation }] of specOps.entries()) {
+        if (operation.description) {
+          expect(operation.description.length).toBeLessThanOrEqual(1024);
+          expect(operation.description).not.toMatch(/\*\*/);
+        }
       }
     });
   });
