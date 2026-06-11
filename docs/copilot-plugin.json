@@ -1,10 +1,10 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/copilot/plugin/v2.4/schema.json",
   "schema_version": "v2.4",
-  "name_for_human": "Cernion Search",
+  "name_for_human": "Cernion Energy Tools",
   "namespace": "cernionenergytools",
-  "description_for_human": "Suche Unternehmen, VNB, VDMI, ZNP, Netzanschluss-Validierungen und EDM-MeLo-IDs im Cernion-System.",
-  "description_for_model": "Use this plugin to search Cernion energy management data. Call searchCernionData with a search term (company name, VDMI matrix name, ZNP project name, grid operator name, or exact MeLo ID starting with DE). The domain parameter can narrow results to: companies, vnb, edm, vdmi, grid_connection, znp, or all (default). Each result has id, title, excerpt, domain, type, status, and url for follow-up detail retrieval. Do NOT use this for process actions such as VDMI approval, ZNP validation or evidence generation.",
+  "description_for_human": "Suche und Prozessunterstützung für Cernion Energy: Unternehmen, VDMI, ZNP, Netzanschluss.",
+  "description_for_model": "Use this plugin to search and navigate Cernion energy management data and to initiate controlled process workflows.\n\nSEARCH: Call searchCernionData to find companies, VNBs, VDMI matrices, ZNP projects, grid connection validations, and EDM MeLo IDs. All search results carry id, title, excerpt, domain, type, status, and url.\n\nREAD-ONLY PROCESS ACTIONS: Use getVdmiContext, listOpenResponsibilities, getZnpProjectStatus, and getGridConnectionValidation to load current state before proposing any action.\n\nDRAFT/PROPOSE: prepareVdmiValidation and draftVdmiEvidence return draft proposals only — no writes. prepareGridConnectionValidation returns a configuration draft only. All draft responses include requiredConfirmation and an auditTrail.\n\nSAFETY RULES:\n- Always load context (getVdmiContext / getZnpProjectStatus) before drafting a process action.\n- Always summarise target, intended change, and risk to the user before calling a draft action.\n- Draft actions with requiredConfirmation: true require explicit user approval before the consequential Phase-3 execute action is called.\n- DO NOT call consequential execute actions directly — they are not yet implemented.\n- DO NOT perform bulk changes, mass nominates, or irreversible actions.",
   "contact_email": "dev@stromdao.com",
   "functions": [
     {
@@ -17,6 +17,122 @@
             "title": "$.title",
             "subtitle": "$.excerpt",
             "url": "$.url"
+          }
+        },
+        "security_info": {
+          "data_handling": ["GetPrivateData"]
+        }
+      }
+    },
+    {
+      "name": "getVdmiContext",
+      "description": "Load full VDMI matrix context: status, open tasks, nomination state, evidence count. Call before drafting any VDMI process action.",
+      "capabilities": {
+        "response_semantics": {
+          "data_path": "$",
+          "properties": {
+            "title": "$.name",
+            "subtitle": "$.summary",
+            "url": "$.detailUrl"
+          }
+        },
+        "security_info": {
+          "data_handling": ["GetPrivateData"]
+        }
+      }
+    },
+    {
+      "name": "listOpenResponsibilities",
+      "description": "List VDMI matrices where the current user or a named actor has open Verantwortlich tasks.",
+      "capabilities": {
+        "response_semantics": {
+          "data_path": "$.responsibilities",
+          "properties": {
+            "title": "$.name",
+            "subtitle": "$.status",
+            "url": "$.detailUrl"
+          }
+        },
+        "security_info": {
+          "data_handling": ["GetPrivateData"]
+        }
+      }
+    },
+    {
+      "name": "getZnpProjectStatus",
+      "description": "Get ZNP project metadata and graph statistics (nodes, edges, loaded layers). Read-only.",
+      "capabilities": {
+        "response_semantics": {
+          "data_path": "$",
+          "properties": {
+            "title": "$.name",
+            "subtitle": "$.summary",
+            "url": "$.detailUrl"
+          }
+        },
+        "security_info": {
+          "data_handling": ["GetPrivateData"]
+        }
+      }
+    },
+    {
+      "name": "getGridConnectionValidation",
+      "description": "Retrieve a grid connection validation report by ID: decision, findings count, grid operator name. Read-only.",
+      "capabilities": {
+        "response_semantics": {
+          "data_path": "$",
+          "properties": {
+            "title": "$.gridOperatorName",
+            "subtitle": "$.summary",
+            "url": "$.detailUrl"
+          }
+        },
+        "security_info": {
+          "data_handling": ["GetPrivateData"]
+        }
+      }
+    },
+    {
+      "name": "prepareVdmiValidation",
+      "description": "Prepare a VDMI matrix nomination draft. Returns a structured proposal with requiredConfirmation: true. No writes. Requires explicit user approval before Phase-3 execute.",
+      "capabilities": {
+        "response_semantics": {
+          "data_path": "$",
+          "properties": {
+            "title": "$.action",
+            "subtitle": "$.summary"
+          }
+        },
+        "security_info": {
+          "data_handling": ["GetPrivateData"]
+        }
+      }
+    },
+    {
+      "name": "draftVdmiEvidence",
+      "description": "Generate evidence suggestions for open VDMI matrix tasks. Returns a list of per-task evidence recommendations. No writes, requiredConfirmation: false.",
+      "capabilities": {
+        "response_semantics": {
+          "data_path": "$.evidenceSuggestions",
+          "properties": {
+            "title": "$.taskLabel",
+            "subtitle": "$.suggestion"
+          }
+        },
+        "security_info": {
+          "data_handling": ["GetPrivateData"]
+        }
+      }
+    },
+    {
+      "name": "prepareGridConnectionValidation",
+      "description": "Prepare a grid connection validation run configuration. Returns a draft with requiredConfirmation: true. No writes. Requires explicit user approval before Phase-3 execute.",
+      "capabilities": {
+        "response_semantics": {
+          "data_path": "$",
+          "properties": {
+            "title": "$.action",
+            "subtitle": "$.summary"
           }
         },
         "security_info": {
@@ -36,7 +152,16 @@
         "url": "TODO_REPLACE_WITH_DEPLOYMENT_URL/api/openapi.json",
         "progress_style": "ShowUsageWithInputAndOutput"
       },
-      "run_for_functions": ["searchCernionData"]
+      "run_for_functions": [
+        "searchCernionData",
+        "getVdmiContext",
+        "listOpenResponsibilities",
+        "getZnpProjectStatus",
+        "getGridConnectionValidation",
+        "prepareVdmiValidation",
+        "draftVdmiEvidence",
+        "prepareGridConnectionValidation"
+      ]
     }
   ]
 }

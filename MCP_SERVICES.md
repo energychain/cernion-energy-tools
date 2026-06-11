@@ -24,6 +24,21 @@ Natural language queries and template-based searches
 - `POST /api/query/discover` - Schema discovery for databases and tools
 - `GET /api/query/search` - Structured search for MS365 Copilot / OpenAPI plugins (operationId: `searchCernionData`)
 
+### 1a. Copilot Process Service (`copilot-process`)
+MS365 Copilot process actions — read-only and draft/propose only. Phase-3 execute actions not yet implemented.
+See deployment guide: `docs/copilot-setup.md` | Plugin manifest: `docs/copilot-plugin.json` | Agent manifest: `docs/copilot-agent.json`
+
+**Read-only:**
+- `GET /api/copilot-process/vdmi/:matrixId/context` - VDMI matrix context (operationId: `getVdmiContext`)
+- `GET /api/copilot-process/vdmi/responsibilities` - Open VDMI responsibilities (operationId: `listOpenResponsibilities`)
+- `GET /api/copilot-process/znp/:projectId/status` - ZNP project status (operationId: `getZnpProjectStatus`)
+- `GET /api/copilot-process/grid-connection/:validationId` - Grid connection validation report (operationId: `getGridConnectionValidation`)
+
+**Draft/Propose (no writes):**
+- `POST /api/copilot-process/vdmi/:matrixId/prepare-validation` - VDMI nomination draft (operationId: `prepareVdmiValidation`)
+- `POST /api/copilot-process/vdmi/:matrixId/draft-evidence` - Evidence suggestions (operationId: `draftVdmiEvidence`)
+- `POST /api/copilot-process/grid-connection/prepare-validation` - Validation config draft (operationId: `prepareGridConnectionValidation`)
+
 ### 2. Energy Market Data Service (`energy-market`)
 Prices, production, forecasts, installations
 

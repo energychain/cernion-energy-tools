@@ -6590,6 +6590,754 @@
         ]
       }
     },
+    "/api/copilot-process/vdmi/:matrixId/context": {
+      "get": {
+        "operationId": "getVdmiContext",
+        "summary": "Load VDMI matrix context (read-only)",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "VDMI matrix context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "matrixId",
+                    "name",
+                    "status",
+                    "openTaskCount",
+                    "summary"
+                  ],
+                  "properties": {
+                    "matrixId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "active"
+                    },
+                    "processType": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "nominationStatus": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "openTaskCount": {
+                      "type": "integer",
+                      "example": 2
+                    },
+                    "totalTaskCount": {
+                      "type": "integer",
+                      "example": 5
+                    },
+                    "evidenceCount": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "findingCount": {
+                      "type": "integer",
+                      "example": 0
+                    },
+                    "scope": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "regulatoryBasis": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "summary": {
+                      "type": "string",
+                      "description": "Human-readable status summary"
+                    },
+                    "detailUrl": {
+                      "type": "string",
+                      "example": "/api/vdmi/vdmi-abc123"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Matrix not found"
+          }
+        },
+        "description": "Returns full VDMI matrix context for Copilot: status, open tasks, nomination state, evidence count, and regulatory basis.\n\n**When to use**: Before proposing any VDMI process action, load context to understand current state.\n**Read-only**: No state is changed.",
+        "parameters": [
+          {
+            "name": "matrixId",
+            "in": "path",
+            "required": true,
+            "description": "VDMI matrix instance ID",
+            "schema": {
+              "type": "string",
+              "example": "vdmi-abc123"
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/vdmi/responsibilities": {
+      "get": {
+        "operationId": "listOpenResponsibilities",
+        "summary": "List open VDMI responsibilities (read-only)",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Open responsibilities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "count",
+                    "responsibilities"
+                  ],
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "responsibilities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "matrixId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "openTaskCount": {
+                            "type": "integer"
+                          },
+                          "nominationStatus": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "detailUrl": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns VDMI matrices where the specified user (or authenticated caller) holds open Verantwortlich tasks.\n\nIf `userId` is not supplied, falls back to listing all active matrices with at least one open task.\n**Read-only**: No state is changed.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "description": "Actor ID to filter responsibilities for (defaults to authenticated caller)",
+            "schema": {
+              "type": "string",
+              "example": "grid_operator"
+            }
+          },
+          {
+            "name": "processType",
+            "in": "query",
+            "required": false,
+            "description": "Filter by process type",
+            "schema": {
+              "type": "string",
+              "example": "adhoc"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/znp/:projectId/status": {
+      "get": {
+        "operationId": "getZnpProjectStatus",
+        "summary": "Get ZNP project status and graph statistics (read-only)",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "ZNP project status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "projectId",
+                    "name",
+                    "layers",
+                    "graphStats"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "layers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "graphStats": {
+                      "type": "object",
+                      "properties": {
+                        "nodes": {
+                          "type": "integer"
+                        },
+                        "edges": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "detailUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "description": "Returns ZNP project metadata: name, loaded layers, node/edge counts, bounding box, and creation timestamp.\n\n**Read-only**: No state is changed.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "description": "ZNP project UUID",
+            "schema": {
+              "type": "string",
+              "example": "a1b2c3d4-0000-0000-0000-000000000001"
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/grid-connection/:validationId": {
+      "get": {
+        "operationId": "getGridConnectionValidation",
+        "summary": "Get grid connection validation report (read-only)",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Validation report summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "validationId",
+                    "decision",
+                    "gridOperatorName",
+                    "summary"
+                  ],
+                  "properties": {
+                    "validationId": {
+                      "type": "string"
+                    },
+                    "decision": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "gridOperatorName": {
+                      "type": "string"
+                    },
+                    "gridOperatorId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "findingsCount": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "detailUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Validation not found"
+          }
+        },
+        "description": "Returns a specific grid connection validation report including decision, findings, and grid operator details.\n\n**Read-only**: No state is changed.",
+        "parameters": [
+          {
+            "name": "validationId",
+            "in": "path",
+            "required": true,
+            "description": "Validation report UUID",
+            "schema": {
+              "type": "string",
+              "example": "a1b2c3d4-1234-5678-90ab-cdef12345678"
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/vdmi/:matrixId/prepare-validation": {
+      "post": {
+        "operationId": "prepareVdmiValidation",
+        "summary": "Prepare VDMI matrix nomination — draft only, no write",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft nomination proposal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "draftId",
+                    "action",
+                    "target",
+                    "summary",
+                    "requiredConfirmation",
+                    "auditTrail"
+                  ],
+                  "properties": {
+                    "draftId": {
+                      "type": "string",
+                      "description": "Unique ID of this draft"
+                    },
+                    "action": {
+                      "type": "string",
+                      "example": "nominate_vdmi_matrix"
+                    },
+                    "target": {
+                      "type": "object",
+                      "properties": {
+                        "matrixId": {
+                          "type": "string"
+                        },
+                        "matrixName": {
+                          "type": "string"
+                        },
+                        "currentStatus": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "proposedChange": {
+                      "type": "object",
+                      "properties": {
+                        "from": {
+                          "type": "string"
+                        },
+                        "to": {
+                          "type": "string"
+                        },
+                        "nominationStatus": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "warningIfAny": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confirmationMessage": {
+                      "type": "string"
+                    },
+                    "requiredConfirmation": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "readyToExecute": {
+                      "type": "boolean"
+                    },
+                    "consequentialAction": {
+                      "type": "object",
+                      "description": "The Phase 3 execute action that would perform this change",
+                      "properties": {
+                        "operationId": {
+                          "type": "string",
+                          "example": "executeVdmiNomination"
+                        },
+                        "note": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "auditTrail": {
+                      "type": "object",
+                      "properties": {
+                        "requestedAt": {
+                          "type": "string"
+                        },
+                        "requestedBy": {
+                          "type": "string"
+                        },
+                        "correlationId": {
+                          "type": "string"
+                        },
+                        "idempotencyKey": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Matrix not found"
+          },
+          "422": {
+            "description": "Matrix status does not allow nomination"
+          }
+        },
+        "description": "Analyses the VDMI matrix and returns a draft nomination proposal.\n**No writes**: This action creates no persisted state. The returned draft must be explicitly confirmed by a consequential execute action (Phase 3).\n\nSet `requiredConfirmation: true` in the response means Copilot must ask the user to confirm before proceeding.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "matrixId",
+                  "reason"
+                ],
+                "properties": {
+                  "matrixId": {
+                    "type": "string",
+                    "description": "VDMI matrix ID",
+                    "example": "vdmi-abc123"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Business reason for the nomination",
+                    "example": "Netzanschluss fristgerecht abgeschlossen",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "description": "Caller-supplied trace ID for audit logging",
+                    "example": "req-2026-001"
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "description": "Prevents duplicate submissions on retries",
+                    "example": "idem-abc123-20260611"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/vdmi/:matrixId/draft-evidence": {
+      "post": {
+        "operationId": "draftVdmiEvidence",
+        "summary": "Draft evidence suggestions for VDMI matrix tasks — no write",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Evidence draft with per-task suggestions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "draftId",
+                    "action",
+                    "target",
+                    "evidenceSuggestions",
+                    "summary",
+                    "auditTrail"
+                  ],
+                  "properties": {
+                    "draftId": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "type": "string",
+                      "example": "draft_evidence_for_vdmi"
+                    },
+                    "target": {
+                      "type": "object",
+                      "properties": {
+                        "matrixId": {
+                          "type": "string"
+                        },
+                        "matrixName": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "evidenceSuggestions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "taskIndex": {
+                            "type": "integer"
+                          },
+                          "taskLabel": {
+                            "type": "string"
+                          },
+                          "suggestedEvidenceType": {
+                            "type": "string"
+                          },
+                          "suggestion": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "openTaskCount": {
+                      "type": "integer"
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "requiredConfirmation": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "auditTrail": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Matrix not found"
+          }
+        },
+        "description": "Analyses open VDMI tasks and returns structured evidence suggestions for each.\n**No writes**: This returns suggestions only. No evidence is added to the matrix.\nUse `POST /api/vdmi/:id/evidence` (Phase 3) to actually inject evidence.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "matrixId"
+                ],
+                "properties": {
+                  "matrixId": {
+                    "type": "string",
+                    "example": "vdmi-abc123"
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "example": "req-2026-001"
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "example": "idem-abc123-20260611"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/grid-connection/prepare-validation": {
+      "post": {
+        "operationId": "prepareGridConnectionValidation",
+        "summary": "Prepare grid connection validation config — draft only, no write",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Grid connection validation draft proposal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "draftId",
+                    "action",
+                    "target",
+                    "proposedValidation",
+                    "summary",
+                    "requiredConfirmation",
+                    "auditTrail"
+                  ],
+                  "properties": {
+                    "draftId": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "type": "string",
+                      "example": "run_grid_connection_validation"
+                    },
+                    "target": {
+                      "type": "object",
+                      "properties": {
+                        "gridOperatorId": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "gridOperatorBdew": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "gridOperatorName": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "proposedValidation": {
+                      "type": "object",
+                      "description": "Parameters that would be passed to the consequential execute action"
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confirmationMessage": {
+                      "type": "string"
+                    },
+                    "requiredConfirmation": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "consequentialAction": {
+                      "type": "object"
+                    },
+                    "auditTrail": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No grid operator identifier supplied"
+          }
+        },
+        "description": "Validates the input parameters and returns a draft validation configuration.\n**No writes**: This action has no side effects. The returned proposal must be confirmed before the actual 6-step pipeline is started.\nAt least one of `gridOperatorId`, `gridOperatorBdew`, or `gridOperatorName` is required.\n\nThe consequential execute action (`POST /api/grid-connection/validate`) is Phase 3.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "gridOperatorId": {
+                    "type": "string",
+                    "example": "SNB935578300972"
+                  },
+                  "gridOperatorBdew": {
+                    "type": "string",
+                    "example": "9907473000008"
+                  },
+                  "gridOperatorName": {
+                    "type": "string",
+                    "example": "TWL Netze"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "example": "Jahresprüfung Q2 2026"
+                  },
+                  "includeCapacityCheck": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "example": "req-2026-001"
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "example": "idem-twl-20260611"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
+    },
     "/api/customer-service/portal-widget": {
       "post": {
         "operationId": "customer-service_portalWidget",
