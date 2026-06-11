@@ -146,10 +146,41 @@ describe('API Gateway Service', () => {
       expect(service.actions.openapi).toBeDefined();
     });
 
+    it('should have openapiCopilot action', () => {
+      const service = broker.getLocalService('api');
+      expect(service.actions.openapiCopilot).toBeDefined();
+    });
+
     it('should have correct REST endpoint', () => {
       const action = broker.getLocalService('api').schema.actions.openapi;
       const rest = action.rest;
       expect(rest).toBe('GET /openapi.json');
+    });
+
+    it('should have correct Copilot OpenAPI REST endpoint', () => {
+      const action = broker.getLocalService('api').schema.actions.openapiCopilot;
+      expect(action.rest).toBe('GET /openapi-copilot.json');
+    });
+
+    it('should expose Copilot OpenAPI aliases under /api and root', () => {
+      const rootRoute = ApiService.settings.routes.find((r) => r.path === '/');
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+
+      expect(rootRoute?.aliases?.['GET /openapi-copilot.json']).toBeInstanceOf(Function);
+      expect(apiRoute?.aliases?.['GET /openapi-copilot.json']).toBe('api.openapiCopilot');
+    });
+
+    it('should return the generated Copilot OpenAPI subset', async () => {
+      const schema = await broker.call('api.openapiCopilot');
+
+      expect(schema.openapi).toBe('3.0.0');
+      expect(schema['x-copilot-subset']).toBe(true);
+      expect(schema.paths).toBeDefined();
+      expect(
+        Object.values(schema.paths).some((pathItem) =>
+          Object.values(pathItem).some((operation) => operation.operationId === 'searchCernionData')
+        )
+      ).toBe(true);
     });
 
     it('should document optional token query parameter for all endpoints', async () => {

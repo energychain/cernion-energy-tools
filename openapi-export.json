@@ -1583,6 +1583,27 @@
         }
       }
     },
+    "/api/api/openapi-copilot.json": {
+      "get": {
+        "operationId": "api_openapiCopilot",
+        "summary": "api.openapiCopilot",
+        "tags": [
+          "api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/assets/:assetId/override": {
       "post": {
         "operationId": "assets_override",
@@ -40687,6 +40708,27 @@
       "get": {
         "operationId": "api_openapi",
         "summary": "api.openapi",
+        "tags": [
+          "api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/openapi-copilot.json": {
+      "get": {
+        "operationId": "api_openapiCopilot",
+        "summary": "api.openapiCopilot",
         "tags": [
           "api"
         ],

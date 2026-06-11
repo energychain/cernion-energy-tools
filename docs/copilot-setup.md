@@ -70,7 +70,7 @@ Replace the two placeholders before uploading to Copilot Studio:
     "reference_id": "<COPILOT_VAULT_REFERENCE_ID>"
   },
   "spec": {
-    "url": "<COPILOT_DEPLOYMENT_URL>/api/openapi.json"
+    "url": "<COPILOT_DEPLOYMENT_URL>/api/openapi-copilot.json"
   }
 }]
 ```
@@ -94,10 +94,10 @@ The Teams App Package (`manifest.json` + agent/plugin files + icons) is outside 
 
 ### 5. Verify OpenAPI spec
 
-After deployment, verify the live spec contains all 8 operationIds:
+After deployment, verify the live Copilot spec contains the allowlisted operationIds:
 
 ```bash
-curl -s https://your-cernion-deployment.example.com/api/openapi.json \
+curl -s https://your-cernion-deployment.example.com/api/openapi-copilot.json \
   | python3 -c "
 import json, sys
 spec = json.load(sys.stdin)

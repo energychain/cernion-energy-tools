@@ -53,6 +53,7 @@ const DEFAULT_API_CORS_ORIGINS = [
   'https://cernion.de',
   'https://*.cernion.de',
 ];
+const COPILOT_OPENAPI_PATH = path.join(__dirname, '..', 'openapi-copilot.json');
 
 function ensureUploadDir() {
   if (!fs.existsSync(UPLOAD_DIR)) {
@@ -898,6 +899,25 @@ module.exports = {
             }
           },
 
+          // MS365 Copilot uses a curated OpenAPI subset, not the full Swagger spec.
+          'GET /openapi-copilot.json'(req, res) {
+            try {
+              const content = fs.readFileSync(COPILOT_OPENAPI_PATH, 'utf-8');
+              res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
+              res.setHeader('Cache-Control', 'no-cache');
+              res.end(content);
+            } catch (_err) {
+              res.writeHead(404, { [CONTENT_TYPE_HEADER]: CONTENT_TYPE_JSON });
+              res.end(
+                JSON.stringify({
+                  success: false,
+                  message:
+                    'openapi-copilot.json not found. Run npm run export:openapi:copilot before deployment.',
+                })
+              );
+            }
+          },
+
           async 'GET /metrics'(req, res) {
             try {
               if (!envTrue('METRICS_PUBLIC')) {
@@ -997,6 +1017,7 @@ module.exports = {
         aliases: {
           'POST /blindflug-radar/scan': 'v1.blindflug-radar.scan',
           'GET /openapi.json': 'api.openapi',
+          'GET /openapi-copilot.json': 'api.openapiCopilot',
           'GET /docs'(req, res) {
             // Serve Swagger UI HTML
             res.setHeader(CONTENT_TYPE_HEADER, 'text/html');
@@ -2442,6 +2463,25 @@ module.exports = {
         };
       },
     },
+
+    /**
+     * Get the curated MS365 Copilot OpenAPI subset.
+     */
+    openapiCopilot: {
+      rest: 'GET /openapi-copilot.json',
+      handler() {
+        try {
+          return JSON.parse(fs.readFileSync(COPILOT_OPENAPI_PATH, 'utf-8'));
+        } catch (_err) {
+          throw new Errors.MoleculerError(
+            'openapi-copilot.json not found. Run npm run export:openapi:copilot before deployment.',
+            404,
+            'COPILOT_OPENAPI_NOT_FOUND',
+            { path: COPILOT_OPENAPI_PATH }
+          );
+        }
+      },
+    },
   },
 
   methods: {
@@ -2470,6 +2510,9 @@ module.exports = {
     this.logger.info(`API Gateway started on port ${this.settings.port}`);
     this.logger.info(`API endpoint: http://localhost:${this.settings.port}/api`);
     this.logger.info(`OpenAPI docs: http://localhost:${this.settings.port}/api/openapi.json`);
+    this.logger.info(
+      `Copilot OpenAPI docs: http://localhost:${this.settings.port}/api/openapi-copilot.json`
+    );
     this.logger.info(`Swagger UI: http://localhost:${this.settings.port}/api/docs`);
     this.logger.info(`🤖 Sample App: http://localhost:${this.settings.port}/app`);
   },

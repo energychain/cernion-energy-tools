@@ -20,7 +20,7 @@ Der Copilot Process Bridge verbindet MS365 Copilot mit einer **kuratierten Unter
 | Pfad-Parameter | Express `:param`-Syntax | OpenAPI `{param}`-Syntax |
 | OperationId-Format | Dienstgeneriert (kann Bindestriche enthalten) | Stabile camelCase-IDs ohne Bindestriche |
 
-**Deployment-Hinweis:** Das Plugin-Manifest (`docs/copilot-plugin.json`) zeigt auf `TODO_REPLACE_WITH_DEPLOYMENT_URL/openapi-copilot.json`. Die kuratierte Datei muss unter diesem Pfad öffentlich erreichbar sein — nicht die vollständige API-Spec.
+**Deployment-Hinweis:** Das Plugin-Manifest (`docs/copilot-plugin.json`) zeigt auf `TODO_REPLACE_WITH_DEPLOYMENT_URL/api/openapi-copilot.json`. Die kuratierte Datei muss unter diesem Pfad öffentlich erreichbar sein — nicht die vollständige API-Spec.
 
 ---
 
@@ -121,7 +121,7 @@ Die folgenden Operationen sind explizit in der Blocklist (`blocklist` in `config
 ### Schritte
 
 1. **Subset generieren**: `npm run export:openapi:copilot` → erzeugt `openapi-copilot.json`
-2. **Datei servieren**: `openapi-copilot.json` muss unter `<DEPLOYMENT_URL>/openapi-copilot.json` erreichbar sein
+2. **Datei servieren**: `openapi-copilot.json` muss unter `<DEPLOYMENT_URL>/api/openapi-copilot.json` erreichbar sein
 3. **Plugin-Manifest anpassen**:
    - `TODO_REPLACE_WITH_DEPLOYMENT_URL` → z.B. `https://cernion.example.com`
    - `TODO_REPLACE_WITH_VAULT_REFERENCE_ID` → Azure Key Vault Reference ID für den API-Key

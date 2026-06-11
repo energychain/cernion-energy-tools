@@ -199,7 +199,7 @@
         "reference_id": "TODO_REPLACE_WITH_VAULT_REFERENCE_ID"
       },
       "spec": {
-        "url": "TODO_REPLACE_WITH_DEPLOYMENT_URL/openapi-copilot.json",
+        "url": "TODO_REPLACE_WITH_DEPLOYMENT_URL/api/openapi-copilot.json",
         "progress_style": "ShowUsageWithInputAndOutput"
       },
       "run_for_functions": [
