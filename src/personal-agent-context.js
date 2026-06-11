@@ -601,6 +601,41 @@ const DECISIVE_PARAMS = new Set([
  * @param {object} incomingParams - Incoming knownContext for this turn
  * @returns {{ mode: 'append'|'replace', mergedParams: object, replacedKeys: string[] }}
  */
+/**
+ * Converts a knownContext.decisionFrame object into tenant-fact strings
+ * for injection into the L1 context layer.
+ *
+ * Returns [] when decisionFrame is absent or invalid — safe to spread unconditionally.
+ *
+ * @param {object|null} decisionFrame
+ * @returns {string[]}
+ */
+function buildDecisionFrameDirectives(decisionFrame) {
+  if (!decisionFrame || typeof decisionFrame !== 'object' || Array.isArray(decisionFrame)) {
+    return [];
+  }
+
+  const lines = [];
+
+  if (typeof decisionFrame.situation === 'string' && decisionFrame.situation.trim()) {
+    lines.push(`Entscheidungsrahmen – Situation: ${decisionFrame.situation.trim()}`);
+  }
+  if (typeof decisionFrame.complication === 'string' && decisionFrame.complication.trim()) {
+    lines.push(`Entscheidungsrahmen – Complication: ${decisionFrame.complication.trim()}`);
+  }
+  if (typeof decisionFrame.question === 'string' && decisionFrame.question.trim()) {
+    lines.push(`Entscheidungsrahmen – Kernfrage: ${decisionFrame.question.trim()}`);
+  }
+  if (typeof decisionFrame.answer === 'string' && decisionFrame.answer.trim()) {
+    lines.push(`Entscheidungsrahmen – Antwortrahmen: ${decisionFrame.answer.trim()}`);
+  }
+  if (typeof decisionFrame.frameId === 'string' && decisionFrame.frameId.trim()) {
+    lines.push(`Entscheidungsrahmen-ID: ${decisionFrame.frameId.trim()} (für Traceability)`);
+  }
+
+  return lines;
+}
+
 function resolveContextMutation(prevParams = {}, incomingParams = {}) {
   const prev = prevParams && typeof prevParams === 'object' ? prevParams : {};
   const incoming = incomingParams && typeof incomingParams === 'object' ? incomingParams : {};
@@ -652,6 +687,7 @@ module.exports = {
   assertNoL4RawInPersistedState,
   buildPersistableSessionState,
   resolveContextMutation,
+  buildDecisionFrameDirectives,
   DECISIVE_PARAMS,
   sanitizeBootstrapContext,
   sanitizeScopedDatapoints,

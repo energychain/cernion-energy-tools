@@ -10,6 +10,7 @@ const {
   synthesizeAndPurgeLayer4,
   assertNoL4RawInPersistedState,
   resolveContextMutation,
+  buildDecisionFrameDirectives,
   sanitizeBootstrapContext,
   sanitizeScopedDatapoints,
 } = require('../src/personal-agent-context');
@@ -667,6 +668,17 @@ function isPlausibleBdewCode(value) {
   return /^\d{5,13}$/.test(value.trim());
 }
 
+function compactString(value, maxLength = 800) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
+}
+
+function toCopilotList(value, mapper = (entry) => entry, maxItems = 8) {
+  if (!Array.isArray(value)) return [];
+  return value.map(mapper).filter(Boolean).slice(0, maxItems);
+}
+
 module.exports = {
   name: 'personal-agent',
 
@@ -676,6 +688,216 @@ module.exports = {
   },
 
   actions: {
+    askCernionAgent: {
+      params: {
+        question: { type: 'string', min: 1, trim: true, max: 8000 },
+        sessionId: { type: 'string', optional: true, trim: true, max: 120 },
+        context: { type: 'object', optional: true, default: {} },
+        domain: {
+          type: 'enum',
+          optional: true,
+          values: [
+            'auto',
+            'vnb',
+            'vdmi',
+            'znp',
+            'grid-connection',
+            'edm',
+            'finance',
+            'process',
+          ],
+          default: 'auto',
+        },
+        mode: {
+          type: 'enum',
+          optional: true,
+          values: ['answer', 'evidence', 'process_check', 'prepare_intent'],
+          default: 'answer',
+        },
+        maxEvidence: {
+          type: 'number',
+          optional: true,
+          integer: true,
+          min: 1,
+          max: 12,
+          default: 5,
+          convert: true,
+        },
+      },
+      openapi: {
+        operationId: 'askCernionAgent',
+        tags: [OPENAPI_TAG],
+        summary: 'Ask the Cernion agent for compact evidence and process context',
+        description:
+          'Read-only Copilot action. Routes a user question through the Cernion Personal Agent and returns compact structured evidence, process context, risks and next steps. It does not execute, confirm, sign, delete or modify process data.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['question'],
+                properties: {
+                  question: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: 8000,
+                    description: 'User question to answer with Cernion evidence and process context.',
+                    example: 'Welcher VNB ist in Wiesloch zuständig?',
+                  },
+                  sessionId: {
+                    type: 'string',
+                    description: 'Optional stable Copilot conversation/session identifier.',
+                  },
+                  context: {
+                    type: 'object',
+                    additionalProperties: true,
+                    description: 'Optional tenant, user, object, process or document context.',
+                  },
+                  domain: {
+                    type: 'string',
+                    enum: [
+                      'auto',
+                      'vnb',
+                      'vdmi',
+                      'znp',
+                      'grid-connection',
+                      'edm',
+                      'finance',
+                      'process',
+                    ],
+                    default: 'auto',
+                    description: 'Optional domain hint for routing.',
+                  },
+                  mode: {
+                    type: 'string',
+                    enum: ['answer', 'evidence', 'process_check', 'prepare_intent'],
+                    default: 'answer',
+                    description: 'Controls whether the answer should focus on evidence or process checks.',
+                  },
+                  maxEvidence: {
+                    type: 'integer',
+                    minimum: 1,
+                    maximum: 12,
+                    default: 5,
+                    description: 'Maximum number of evidence items returned.',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Compact Cernion answer for Copilot composition',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: [
+                    'success',
+                    'shortAnswer',
+                    'evidence',
+                    'processContext',
+                    'openQuestions',
+                    'recommendedNextSteps',
+                    'allowedActions',
+                    'forbiddenActions',
+                  ],
+                  properties: {
+                    success: { type: 'boolean' },
+                    sessionId: { type: 'string' },
+                    shortAnswer: { type: 'string' },
+                    confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+                    evidence: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          source: { type: 'string' },
+                          value: { type: 'string' },
+                        },
+                      },
+                    },
+                    processContext: {
+                      type: 'array',
+                      items: { type: 'string' },
+                    },
+                    entities: {
+                      type: 'array',
+                      items: { type: 'string' },
+                    },
+                    risks: {
+                      type: 'array',
+                      items: { type: 'string' },
+                    },
+                    openQuestions: {
+                      type: 'array',
+                      items: { type: 'string' },
+                    },
+                    recommendedNextSteps: {
+                      type: 'array',
+                      items: { type: 'string' },
+                    },
+                    allowedActions: {
+                      type: 'array',
+                      items: { type: 'string' },
+                    },
+                    forbiddenActions: {
+                      type: 'array',
+                      items: { type: 'string' },
+                    },
+                    routing: {
+                      type: 'object',
+                      additionalProperties: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const domain = ctx.params.domain || 'auto';
+        const mode = ctx.params.mode || 'answer';
+        const context = ctx.params.context || {};
+        const maxEvidence = ctx.params.maxEvidence || 5;
+        const promptParts = [
+          'Copilot action mode: Answer compactly and prefer structured evidence over prose.',
+          `Mode: ${mode}. Domain hint: ${domain}.`,
+          `Question: ${ctx.params.question}`,
+        ];
+
+        const chatCtx = Object.create(ctx);
+        chatCtx.params = {
+            message: promptParts.join('\n'),
+            sessionId: ctx.params.sessionId || `copilot_${crypto.randomUUID()}`,
+            chatMode: CHAT_MODES.CONSULTATION,
+            executionMode: EXECUTION_MODES.HITL,
+            disableReceiptSelection: false,
+            allowDraftReceipts: false,
+            explainReceiptSelection: false,
+            knownContext: {
+              ...context,
+              copilotAction: true,
+              copilotMode: mode,
+              domainHint: domain,
+            },
+            toolContext: {
+              copilot: {
+                responseStyle: 'structured_compact',
+                maxEvidence,
+              },
+            },
+        };
+        chatCtx.meta = ctx.meta;
+
+        const result = await this._executeChatCoreLogic(chatCtx);
+        return this.buildCopilotAgentAnswer(result, { maxEvidence });
+      },
+    },
+
     chat: {
       rest: 'POST /chat',
       params: {
@@ -1456,6 +1678,11 @@ module.exports = {
           session.resolvedParams = contextMutation.mergedParams;
         }
         const knownContext = { ...rawKnownContext };
+        const scqaFacts = buildDecisionFrameDirectives(
+          knownContext.decisionFrame && typeof knownContext.decisionFrame === 'object'
+            ? knownContext.decisionFrame
+            : null
+        );
         const bootstrapContext = this.resolveBootstrapContext({
           session,
           knownContext: rawKnownContext,
@@ -1573,7 +1800,7 @@ module.exports = {
 
           const stackResult = buildContextStack({
             systemPrompt: this.settings.systemPrompt,
-            tenantFacts: session.l1?.tenantFacts || [],
+            tenantFacts: [...(session.l1?.tenantFacts || []), ...scqaFacts],
             userProfile: session.l2?.userProfile || {},
             sessionHistory: [...(session.l3?.history || []), userMessage],
             fileAttachments: session.l3?.fileAttachments || [],
@@ -2201,7 +2428,7 @@ module.exports = {
           ];
           const stackResult = buildContextStack({
             systemPrompt: this.settings.systemPrompt,
-            tenantFacts: session.l1?.tenantFacts || [],
+            tenantFacts: [...(session.l1?.tenantFacts || []), ...scqaFacts],
             userProfile: session.l2?.userProfile || {},
             sessionHistory: clarificationHistory,
             fileAttachments: session.l3?.fileAttachments || [],
@@ -2508,7 +2735,7 @@ module.exports = {
           });
           const stackResult = buildContextStack({
             systemPrompt: this.settings.systemPrompt,
-            tenantFacts: session.l1?.tenantFacts || [],
+            tenantFacts: [...(session.l1?.tenantFacts || []), ...scqaFacts],
             userProfile: session.l2?.userProfile || {},
             sessionHistory: [...(session.l3?.history || []), userMessage],
             fileAttachments: session.l3?.fileAttachments || [],
@@ -2825,7 +3052,7 @@ module.exports = {
 
           const stackResult = buildContextStack({
             systemPrompt: this.settings.systemPrompt,
-            tenantFacts: session.l1?.tenantFacts || [],
+            tenantFacts: [...(session.l1?.tenantFacts || []), ...scqaFacts],
             userProfile: session.l2?.userProfile || {},
             sessionHistory: [...(session.l3?.history || []), userMessage],
             fileAttachments: session.l3?.fileAttachments || [],
@@ -3983,7 +4210,7 @@ module.exports = {
 
         const stackResult = buildContextStack({
           systemPrompt: this.settings.systemPrompt,
-          tenantFacts: session.l1?.tenantFacts || [],
+          tenantFacts: [...(session.l1?.tenantFacts || []), ...scqaFacts],
           userProfile: session.l2?.userProfile || {},
           sessionHistory: [...(session.l3?.history || []), userMessage],
           fileAttachments: session.l3?.fileAttachments || [],
@@ -5169,6 +5396,87 @@ module.exports = {
 
     buildStrategyLead(responseStrategy = null) {
       return buildPersonalAgentStrategyLead(responseStrategy || {});
+    },
+
+    buildCopilotAgentAnswer(result = {}, { maxEvidence = 5 } = {}) {
+      const consultation = result.consultation || {};
+      const routing = result.routing || {};
+      const execution = result.execution || {};
+      const stopPoint = execution.stopPoint || {};
+
+      const evidence = toCopilotList(
+        consultation.factsUsed || result.verifiedFacts || result.factsUsed,
+        (entry) => {
+          if (!entry) return null;
+          if (typeof entry === 'string') {
+            return { source: 'cernion', value: compactString(entry, 300) };
+          }
+          return {
+            source: compactString(entry.source || entry.label || entry.type || 'cernion', 120),
+            value: compactString(entry.value || entry.evidence || entry.statement || entry.text, 400),
+          };
+        },
+        maxEvidence
+      );
+
+      const hypotheses = toCopilotList(
+        consultation.hypotheses,
+        (entry) => entry?.statement || entry?.evidence || null,
+        5
+      );
+      const openQuestions = toCopilotList(
+        consultation.openQuestions || stopPoint.missingParams,
+        (entry) => {
+          if (typeof entry === 'string') return entry;
+          return entry?.question || entry?.paramKey || null;
+        },
+        5
+      );
+      const recommendedNextSteps = toCopilotList(
+        consultation.nextActions,
+        (entry) => {
+          if (typeof entry === 'string') return entry;
+          return entry?.description || entry?.action || null;
+        },
+        5
+      );
+
+      const requestedDomains = Array.isArray(routing.requestedDomains) ? routing.requestedDomains : [];
+      const processContext = [
+        routing.primaryIntent,
+        routing.routeLabel,
+        ...requestedDomains,
+        stopPoint.reasonCode ? `stop:${stopPoint.reasonCode}` : null,
+      ].filter(Boolean);
+
+      const risks = [
+        ...(Array.isArray(routing.warnings) ? routing.warnings : []),
+        ...(Array.isArray(result.evidenceGaps)
+          ? result.evidenceGaps.map((gap) => gap?.label || gap?.id || gap?.reason).filter(Boolean)
+          : []),
+      ].slice(0, 5);
+
+      return {
+        success: result.success !== false,
+        sessionId: result.sessionId || null,
+        shortAnswer: compactString(result.reply || consultation.reply || '', 900),
+        confidence: evidence.length > 0 ? 'medium' : 'low',
+        evidence,
+        processContext: processContext.map((entry) => compactString(entry, 160)).slice(0, 8),
+        entities: hypotheses.map((entry) => compactString(entry, 160)),
+        risks: risks.map((entry) => compactString(entry, 240)),
+        openQuestions: openQuestions.map((entry) => compactString(entry, 240)),
+        recommendedNextSteps: recommendedNextSteps.map((entry) => compactString(entry, 240)),
+        allowedActions: ['explain', 'retrieve_evidence', 'prepare_intent'],
+        forbiddenActions: ['execute', 'confirm', 'delete', 'override', 'sign', 'nominate'],
+        routing: {
+          primaryIntent: routing.primaryIntent || null,
+          routeLabel: routing.routeLabel || null,
+          requestedDomains,
+          executionStatus: execution.status || null,
+          stopReason: stopPoint.reasonCode || null,
+        },
+      };
     },
 
     resolveConsultationSynthesisTimeoutMs() {

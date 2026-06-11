@@ -1121,6 +1121,59 @@ const CURATED_CAPABILITIES = [
     ],
     routingPattern: 'tariff_rule_register',
   },
+  // ── Domain 7: Entscheidungsrahmung (SCQA) ─────────────────────────────────
+  {
+    capability: 'scqa_decision_framing',
+    domain: 'governance',
+    abstractionLevel: 'problem_framing',
+    intent: 'decision-frame.create',
+    secondaryIntents: [
+      'decision-frame.generateStarter',
+      'decision-frame.get',
+      'decision-frame.list',
+    ],
+    keywords: [
+      'entscheidungsrahmen',
+      'problemrahmen',
+      'situation',
+      'komplikation',
+      'complication',
+      'kernfrage',
+      'transformation',
+      'framing',
+      'ausgangslage',
+      'scqa',
+      'decision frame',
+      'shared situation picture',
+      'entscheidung rahmen',
+      'kontext rahmen',
+      'transformationsdruck',
+      'handlungsbedarf',
+    ],
+    preferredActions: [
+      'decision-frame.generateStarter',
+      'decision-frame.create',
+      'decision-frame.list',
+      'decision-frame.get',
+    ],
+    fallbackActions: ['decision-frame.list'],
+    avoid: ['query.ask', 'query.askLearned'],
+    requiredInputs: [
+      { name: 'situation', label: 'Aktuelle Ausgangslage', type: 'string', required: true },
+      {
+        name: 'complication',
+        label: 'Transformation / Druck / Constraint',
+        type: 'string',
+        required: true,
+      },
+    ],
+    risksAndNotes: [
+      'SCQA-Frames sind Entscheidungsrahmen, keine verbindlichen Fakten — immer mit Quelldaten validieren.',
+      'generateStarter erfordert LLM-Konfiguration; faellt ohne GEMINI_API_KEY auf leere Platzhalter zurueck.',
+      'Answer-Block bewusst offen lassen bis Analyse-Ergebnisse vorliegen — kein vorzeitiges Befuellen.',
+    ],
+    routingPattern: 'scqa_elicitation',
+  },
 ];
 
 const GLOBAL_DO_NOT_USE = [
