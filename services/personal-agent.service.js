@@ -679,6 +679,20 @@ function toCopilotList(value, mapper = (entry) => entry, maxItems = 8) {
   return value.map(mapper).filter(Boolean).slice(0, maxItems);
 }
 
+function deriveCopilotSearchTerm(question) {
+  const text = compactString(question, 200);
+  const locationMatch = text.match(/\b(?:in|für|fuer|bei)\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}){0,2})/);
+  if (locationMatch) return locationMatch[1].trim();
+  return text;
+}
+
+function mapCopilotDomainToSearchDomain(domain) {
+  const normalized = String(domain || 'auto');
+  if (normalized === 'auto' || normalized === 'process' || normalized === 'finance') return 'all';
+  if (normalized === 'grid-connection') return 'grid_connection';
+  return normalized;
+}
+
 module.exports = {
   name: 'personal-agent',
 
@@ -863,38 +877,35 @@ module.exports = {
         const mode = ctx.params.mode || 'answer';
         const context = ctx.params.context || {};
         const maxEvidence = ctx.params.maxEvidence || 5;
-        const promptParts = [
-          'Copilot action mode: Answer compactly and prefer structured evidence over prose.',
-          `Mode: ${mode}. Domain hint: ${domain}.`,
-          `Question: ${ctx.params.question}`,
-        ];
+        const searchTerm = deriveCopilotSearchTerm(ctx.params.question);
+        const searchDomain = mapCopilotDomainToSearchDomain(domain);
+        let searchResult;
+        try {
+          searchResult = await ctx.call(
+            'query.search',
+            { q: searchTerm, domain: searchDomain, limit: maxEvidence },
+            { meta: ctx.meta }
+          );
+        } catch (error) {
+          searchResult = {
+            query: searchTerm,
+            domain: searchDomain,
+            totalResults: 0,
+            results: [],
+            error: error.message,
+          };
+        }
 
-        const chatCtx = Object.create(ctx);
-        chatCtx.params = {
-            message: promptParts.join('\n'),
-            sessionId: ctx.params.sessionId || `copilot_${crypto.randomUUID()}`,
-            chatMode: CHAT_MODES.CONSULTATION,
-            executionMode: EXECUTION_MODES.HITL,
-            disableReceiptSelection: false,
-            allowDraftReceipts: false,
-            explainReceiptSelection: false,
-            knownContext: {
-              ...context,
-              copilotAction: true,
-              copilotMode: mode,
-              domainHint: domain,
-            },
-            toolContext: {
-              copilot: {
-                responseStyle: 'structured_compact',
-                maxEvidence,
-              },
-            },
-        };
-        chatCtx.meta = ctx.meta;
-
-        const result = await this._executeChatCoreLogic(chatCtx);
-        return this.buildCopilotAgentAnswer(result, { maxEvidence });
+        return this.buildCopilotSearchAnswer({
+          question: ctx.params.question,
+          sessionId: ctx.params.sessionId || null,
+          domain,
+          mode,
+          context,
+          searchTerm,
+          searchResult,
+          maxEvidence,
+        });
       },
     },
 
@@ -5475,6 +5486,76 @@ module.exports = {
           requestedDomains,
           executionStatus: execution.status || null,
           stopReason: stopPoint.reasonCode || null,
+        },
+      };
+    },
+
+    buildCopilotSearchAnswer({
+      question,
+      sessionId = null,
+      domain = 'auto',
+      mode = 'answer',
+      context = {},
+      searchTerm,
+      searchResult = {},
+      maxEvidence = 5,
+    } = {}) {
+      const results = Array.isArray(searchResult.results) ? searchResult.results : [];
+      const evidence = results.slice(0, maxEvidence).map((entry) => ({
+        source: compactString(entry.domain || entry.type || 'cernion', 120),
+        value: compactString(
+          [entry.title, entry.excerpt, entry.status ? `Status: ${entry.status}` : null]
+            .filter(Boolean)
+            .join(' · '),
+          500
+        ),
+      }));
+      const hasEvidence = evidence.length > 0;
+      const shortAnswer = hasEvidence
+        ? `Cernion hat ${evidence.length} passende Evidenztreffer zu "${searchTerm}" gefunden.`
+        : `Cernion hat zu "${searchTerm}" keine eindeutigen Evidenztreffer gefunden.`;
+
+      const processContext = [
+        domain && domain !== 'auto' ? domain : null,
+        mode && mode !== 'answer' ? mode : null,
+        searchResult.domain ? `search:${searchResult.domain}` : null,
+      ].filter(Boolean);
+
+      return {
+        success: true,
+        sessionId,
+        shortAnswer,
+        confidence: hasEvidence ? 'medium' : 'low',
+        evidence,
+        processContext,
+        entities: results
+          .slice(0, maxEvidence)
+          .map((entry) => compactString(entry.title || entry.id, 160))
+          .filter(Boolean),
+        risks: searchResult.error ? [compactString(searchResult.error, 240)] : [],
+        openQuestions: hasEvidence
+          ? []
+          : [
+              'Welche konkrete Entität, Kommune, Projektnummer, Matrix oder Marktrolle soll geprüft werden?',
+            ],
+        recommendedNextSteps: hasEvidence
+          ? ['Copilot soll die Evidenztreffer fachlich einordnen und bei Bedarf nach Details fragen.']
+          : ['Suchbegriff präzisieren oder Cernion-Kontext wie Kommune, VNB, Projekt oder Prozess ergänzen.'],
+        allowedActions: ['explain', 'retrieve_evidence', 'prepare_intent'],
+        forbiddenActions: ['execute', 'confirm', 'delete', 'override', 'sign', 'nominate'],
+        routing: {
+          primaryIntent: 'copilot_evidence_lookup',
+          routeLabel: 'Cernion Copilot evidence lookup',
+          requestedDomains: domain && domain !== 'auto' ? [domain] : [],
+          executionStatus: 'completed',
+          stopReason: null,
+        },
+        query: {
+          question: compactString(question, 500),
+          searchTerm,
+          domain: searchResult.domain || mapCopilotDomainToSearchDomain(domain),
+          totalResults: searchResult.totalResults || results.length,
+          contextKeys: Object.keys(context || {}).slice(0, 20),
         },
       };
     },

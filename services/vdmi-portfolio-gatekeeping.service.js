@@ -185,6 +185,7 @@ module.exports = {
         regulatoryAlignmentConfirmed: { type: 'boolean', optional: true, default: false },
         forbiddenAssumptions: { type: 'array', items: 'string', optional: true },
         notes: { type: 'string', optional: true },
+        decisionFrameId: { type: 'string', optional: true },
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);

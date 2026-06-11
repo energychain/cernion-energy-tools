@@ -180,10 +180,12 @@ module.exports = {
         gridOperatorId: { type: 'string' },
         measures: { type: 'array', items: 'object', min: 1 },
         label: { type: 'string', optional: true },
+        urgencyDriver: { type: 'string', optional: true, max: 500 },
+        decisionFrameId: { type: 'string', optional: true },
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
-        const { gridOperatorId, measures, label } = ctx.params;
+        const { gridOperatorId, measures, label, urgencyDriver, decisionFrameId } = ctx.params;
         const analysisId = `${DOC_PREFIX}${crypto.randomUUID()}`;
 
         const classifiedMeasures = measures.map((m) => ({
@@ -225,6 +227,7 @@ module.exports = {
               : 'Keine Flexibilitätsbrücken vorgeschlagen',
           forbiddenAssumption:
             'Marktflexibilität (fNAV, Agnes, Redispatch) darf N-1-kritische Maßnahmen NICHT ersetzen oder dauerhaft verschieben',
+          scqaUrgencyDriver: urgencyDriver ?? null,
           decisionRequired: nonNegotiable.length > 0 || regulatory.length > 0,
         };
 
@@ -235,6 +238,8 @@ module.exports = {
           gridOperatorId,
           pipelineVersion: PIPELINE_VERSION,
           label: label ?? null,
+          urgencyDriver: urgencyDriver ?? null,
+          decisionFrameId: decisionFrameId ?? null,
           createdAt: nowIso(),
           summary: {
             totalMeasures: measures.length,
@@ -259,6 +264,8 @@ module.exports = {
           summary: doc.summary,
           classifiedMeasures,
           clevelTemplate,
+          urgencyDriver: doc.urgencyDriver,
+          decisionFrameId: doc.decisionFrameId,
           pipelineVersion: PIPELINE_VERSION,
           createdAt: doc.createdAt,
         };

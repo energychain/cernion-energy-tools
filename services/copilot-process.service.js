@@ -42,7 +42,7 @@ class ProcessIntentStore {
     this._ttlMs = ttlMs;
   }
 
-  create({ operationFamily, proposedAction, targetType, targetId, inputSummary, payload, risk, createdBy, correlationId, reason }) {
+  create({ operationFamily, proposedAction, targetType, targetId, inputSummary, payload, risk, createdBy, correlationId, reason, decisionFrameId }) {
     const now = new Date();
     const intent = {
       intentId: randomUUID(),
@@ -55,6 +55,7 @@ class ProcessIntentStore {
       risk: risk || 'medium',
       requiresHumanConfirmation: true,
       createdBy: createdBy || 'unknown',
+      decisionFrameId: decisionFrameId || null,
       createdAt: now.toISOString(),
       expiresAt: new Date(now.getTime() + this._ttlMs).toISOString(),
       status: 'pending_confirmation',
@@ -79,13 +80,14 @@ class ProcessIntentStore {
     return intent;
   }
 
-  list({ operationFamily, status, createdBy, limit = 20 } = {}) {
+  list({ operationFamily, status, createdBy, decisionFrameId, limit = 20 } = {}) {
     const all = [...this._store.values()];
     all.forEach((i) => this._checkExpiry(i));
     return all
       .filter((i) => !operationFamily || i.operationFamily === operationFamily)
       .filter((i) => !status || i.status === status)
       .filter((i) => !createdBy || i.createdBy === createdBy)
+      .filter((i) => !decisionFrameId || i.decisionFrameId === decisionFrameId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, Math.min(limit, 100));
   }
@@ -934,6 +936,7 @@ The consequential execute action (\`POST /api/grid-connection/validate\`) is Pha
         content: { type: 'object', optional: true, default: {} },
         correlationId: { type: 'string', optional: true },
         idempotencyKey: { type: 'string', optional: true },
+        decisionFrameId: { type: 'string', optional: true },
       },
       openapi: {
         operationId: 'prepareVdmiEvidence',
@@ -1011,6 +1014,7 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
           createdBy: audit.requestedBy,
           correlationId: audit.correlationId,
           reason,
+          decisionFrameId: ctx.params.decisionFrameId || null,
         });
 
         return {
@@ -1023,6 +1027,7 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
           expiresAt: intent.expiresAt,
           risk: 'medium',
           requiresHumanConfirmation: true,
+          decisionFrameId: intent.decisionFrameId,
           summary: `Evidenz-Intent erstellt für '${matrix.name}': Typ '${evidenceType}', Referenz '${reference}'. Menschliche Bestätigung erforderlich.`,
           confirmationMessage: `Bitte bestätige die Evidenz-Einbuchung in VDMI-Matrix '${matrix.name}' (${matrixId}). Typ: ${evidenceType}, Referenz: ${reference}.`,
           executeVia: { operationId: 'executeProcessIntent', note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute' },
@@ -1043,6 +1048,7 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
         reason: { type: 'string', min: 1, max: 500 },
         correlationId: { type: 'string', optional: true },
         idempotencyKey: { type: 'string', optional: true },
+        decisionFrameId: { type: 'string', optional: true },
       },
       openapi: {
         operationId: 'prepareZnpAssumption',
@@ -1118,6 +1124,7 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
           createdBy: audit.requestedBy,
           correlationId: audit.correlationId,
           reason,
+          decisionFrameId: ctx.params.decisionFrameId || null,
         });
 
         return {
@@ -1130,6 +1137,7 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
           expiresAt: intent.expiresAt,
           risk: 'medium',
           requiresHumanConfirmation: true,
+          decisionFrameId: intent.decisionFrameId,
           summary: `ZNP-Annahme-Intent erstellt für '${project.name || projectId}'. Menschliche Bestätigung erforderlich.`,
           confirmationMessage: `Bitte bestätige das Hinzufügen der Planungsannahme zum ZNP-Projekt '${project.name || projectId}' (${projectId}).`,
           executeVia: { operationId: 'executeProcessIntent', note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute' },
@@ -1156,6 +1164,7 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
         reason: { type: 'string', min: 1, max: 500 },
         correlationId: { type: 'string', optional: true },
         idempotencyKey: { type: 'string', optional: true },
+        decisionFrameId: { type: 'string', optional: true },
       },
       openapi: {
         operationId: 'prepareConnectionRejectionEvidence',
@@ -1243,6 +1252,7 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
           createdBy: audit.requestedBy,
           correlationId: audit.correlationId,
           reason,
+          decisionFrameId: ctx.params.decisionFrameId || null,
         });
 
         return {
@@ -1255,6 +1265,7 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
           expiresAt: intent.expiresAt,
           risk: 'medium',
           requiresHumanConfirmation: true,
+          decisionFrameId: intent.decisionFrameId,
           summary: `Ablehnungs-Nachweis-Intent erstellt für Netzbetreiber '${gridOperatorId}', Referenz '${applicantReference}'. Menschliche Bestätigung erforderlich.`,
           confirmationMessage: `Bitte bestätige die Erstellung des Ablehnungs-Nachweispakets für Netzbetreiber '${gridOperatorId}', Antragssteller-Referenz '${applicantReference}'.`,
           executeVia: { operationId: 'executeProcessIntent', note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute' },
@@ -1314,17 +1325,19 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
       params: {
         operationFamily: { type: 'string', optional: true },
         status: { type: 'string', optional: true },
+        decisionFrameId: { type: 'string', optional: true },
         limit: { type: 'number', optional: true, default: 20, min: 1, max: 100, convert: true },
       },
       openapi: {
         operationId: 'listProcessIntents',
         'x-openai-isConsequential': false,
         summary: 'List process execution intents',
-        description: 'Returns a paginated list of process execution intents. Filter by operationFamily or status. Read-only.',
+        description: 'Returns a paginated list of process execution intents. Filter by operationFamily, status, or decisionFrameId. Read-only.',
         tags: [SERVICE_TAG],
         parameters: [
           { name: 'operationFamily', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'status', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionFrameId', in: 'query', required: false, description: 'Filter by SCQA decision frame ID', schema: { type: 'string' } },
           { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 20, minimum: 1, maximum: 100 } },
         ],
         responses: {
@@ -1346,8 +1359,8 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
         },
       },
       async handler(ctx) {
-        const { operationFamily, status, limit } = ctx.params;
-        const intents = this.intentStore.list({ operationFamily, status, limit });
+        const { operationFamily, status, decisionFrameId, limit } = ctx.params;
+        const intents = this.intentStore.list({ operationFamily, status, decisionFrameId, limit });
         return { count: intents.length, intents };
       },
     },

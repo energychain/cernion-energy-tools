@@ -23,9 +23,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Copilot OpenAPI Text Sanitization**: `buildCopilotSpec()` in `scripts/export-openapi.js` now runs all `summary` and `description` strings through `sanitizeCopilotText()` (strips `**` Markdown bold, backticks, collapses whitespace, caps at 900/180 chars) before embedding them in the Copilot subset. Prevents Copilot Studio model-description limit errors and import validation failures.
 
+- **SCQA Downstream Integration — Layer 4**: SCQA decision frames are now wired into 6 downstream services:
+  - `copilot-process.service.js`: `ProcessIntentStore.create()` and `.list()` accept optional `decisionFrameId`; all three prepare actions (`prepareVdmiEvidence`, `prepareZnpAssumption`, `prepareConnectionRejectionEvidence`) forward `decisionFrameId` to the intent and return it in the response; `listProcessIntents` accepts a `decisionFrameId` query filter.
+  - `znp.service.js`: `strategicPrompts` accepts optional `questionSeed` param; when present, the SCQA question is appended to the LLM prompt to orient generated planning questions.
+  - `capex-prioritization.service.js`: `analyze` accepts optional `urgencyDriver` (SCQA complication text) and `decisionFrameId`; both are persisted in the analysis document and returned in the response; `clevelTemplate.scqaUrgencyDriver` is populated when the driver is provided.
+  - `investment-planning.service.js`: `createPlan` accepts optional `decisionFrameId`; stored under `metadata.decisionFrameId` and exposed via `toPublic()`.
+  - `vdmi-portfolio-gatekeeping.service.js`: `gate` action formally accepts optional `decisionFrameId`; stored automatically via `...ctx.params` spread into the proposal document.
+  - `finance-agent.service.js`: `analyze` accepts optional `decisionFrameId` (stored in analysis doc) and `decisionFrame` object (Situation/Complication/Question/Answer); when present, an SCQA context block is prepended to the synthesis LLM prompt above the `Query:` line.
+
 ### Tests
 
 - `tests/decision-frame.service.test.js` (33 tests): CRUD lifecycle, idempotent `linkEntity`, AI-mocked `generateStarter` (LLM mock + downstream ZNP mock), `exportSummary` in both formats, `list` with `domain`, `status`, and `linkedEntityId` filters.
+- `tests/scqa-layer4.test.js` (12 tests): `ProcessIntentStore` decisionFrameId propagation in all 3 prepare actions; `listProcessIntents` filter by `decisionFrameId`; `capex-prioritization` `urgencyDriver` / `decisionFrameId` storage and `clevelTemplate.scqaUrgencyDriver`; `investment-planning` `metadata.decisionFrameId`; `vdmi-portfolio-gatekeeping` PouchDB doc storage via spread.
 - `tests/copilot-openapi-subset.test.js`: two new assertions — body-based `searchCernionData` uses `POST`, has `requestBody` with required `q`, no `parameters`; all Copilot operation descriptions stay within the Copilot Studio model-description character limit and contain no Markdown bold.
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
