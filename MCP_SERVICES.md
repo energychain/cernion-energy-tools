@@ -25,8 +25,10 @@ Natural language queries and template-based searches
 - `GET /api/query/search` - Structured search for MS365 Copilot / OpenAPI plugins (operationId: `searchCernionData`)
 
 ### 1a. Copilot Process Service (`copilot-process`)
-MS365 Copilot process actions — read-only and draft/propose only. Phase-3 execute actions not yet implemented.
-See deployment guide: `docs/copilot-setup.md` | Plugin manifest: `docs/copilot-plugin.json` | Agent manifest: `docs/copilot-agent.json`
+MS365 Copilot process actions (Phase 2). Read-only + draft/propose. Consequential execute in Phase 3.
+**Allowlist:** `config/copilot-operations.json` (26 ops) | **Copilot spec:** `openapi-copilot.json` (generate: `npm run export:openapi:copilot`)
+**Process bridge doc:** `docs/copilot-process-bridge.md` | **Setup guide:** `docs/copilot-setup.md`
+Plugin: `docs/copilot-plugin.json` | Agent: `docs/copilot-agent.json`
 
 **Read-only:**
 - `GET /api/copilot-process/vdmi/:matrixId/context` - VDMI matrix context (operationId: `getVdmiContext`)

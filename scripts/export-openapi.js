@@ -305,10 +305,54 @@ function buildStaticSpec() {
   };
 }
 
+// ── Copilot subset builder ────────────────────────────────────────────────
+
+/**
+ * Builds a curated OpenAPI spec containing only operations from the
+ * Copilot allowlist (config/copilot-operations.json).
+ *
+ * Applies:
+ * - Description overrides from allowlist entries (`copilotDescription`)
+ * - x-openai-isConsequential based on mode (read/draft → false, prepare/consequential → true)
+ *
+ * @param {object} fullSpec  Annotated full spec (output of main annotation loop)
+ * @param {object[]} allowlist  Array of allowlist entries from copilot-operations.json
+ * @returns {object}  Filtered OpenAPI spec
+ */
+function buildCopilotSpec(fullSpec, allowlist) {
+  const allowMap = new Map(allowlist.map((entry) => [entry.operationId, entry]));
+
+  const paths = {};
+  for (const [openapiPath, pathItem] of Object.entries(fullSpec.paths || {})) {
+    const filteredItem = {};
+    for (const [method, operation] of Object.entries(pathItem)) {
+      const entry = allowMap.get(operation.operationId);
+      if (!entry) continue;
+
+      const isConsequential = entry.mode === 'prepare' || entry.mode === 'consequential';
+      filteredItem[method] = {
+        ...operation,
+        'x-openai-isConsequential': isConsequential,
+        ...(entry.copilotDescription ? { description: entry.copilotDescription } : {}),
+        ...(entry.summary ? { summary: entry.summary } : {}),
+      };
+    }
+    if (Object.keys(filteredItem).length > 0) paths[openapiPath] = filteredItem;
+  }
+
+  return {
+    ...fullSpec,
+    paths,
+    'x-copilot-subset': true,
+    'x-copilot-operations-version': allowlist.length,
+  };
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────
 
 async function main() {
   const isLive = process.argv.includes('--live');
+  const isCopilot = process.argv.includes('--copilot');
   let spec;
 
   if (isLive) {
@@ -349,13 +393,32 @@ async function main() {
     exportSpec['x-generated-at'] = new Date().toISOString();
   }
 
-  const outPath = path.join(__dirname, '..', 'openapi-export.json');
-  fs.writeFileSync(outPath, JSON.stringify(exportSpec, null, 2), 'utf-8');
-
-  const pathCount = Object.keys(annotatedPaths).length;
-  console.log(`[export-openapi] ✅ Wrote ${pathCount} path(s) to ${outPath}`);
-  console.log(`[export-openapi]    Version: ${packageVersion}`);
-  console.log(`[export-openapi]    Tip: run with --live to fetch from a running server`);
+  if (!isCopilot) {
+    // Default: write full export
+    const outPath = path.join(__dirname, '..', 'openapi-export.json');
+    fs.writeFileSync(outPath, JSON.stringify(exportSpec, null, 2), 'utf-8');
+    const pathCount = Object.keys(annotatedPaths).length;
+    console.log(`[export-openapi] ✅ Wrote ${pathCount} path(s) to ${outPath}`);
+    console.log(`[export-openapi]    Version: ${packageVersion}`);
+    console.log(`[export-openapi]    Tip: run with --live to fetch from a running server`);
+    console.log(`[export-openapi]    Tip: run with --copilot to generate openapi-copilot.json`);
+  } else {
+    // --copilot: write Copilot subset only
+    const copilotConfigPath = path.join(__dirname, '..', 'config', 'copilot-operations.json');
+    if (!fs.existsSync(copilotConfigPath)) {
+      console.error('[export-openapi] ❌ config/copilot-operations.json not found. Cannot build Copilot subset.');
+      process.exit(1);
+    }
+    // eslint-disable-next-line global-require
+    const { allowlist } = require(copilotConfigPath);
+    const copilotSpec = buildCopilotSpec(exportSpec, allowlist);
+    const copilotOutPath = path.join(__dirname, '..', 'openapi-copilot.json');
+    fs.writeFileSync(copilotOutPath, JSON.stringify(copilotSpec, null, 2), 'utf-8');
+    const copilotPathCount = Object.keys(copilotSpec.paths).length;
+    console.log(`[export-openapi] ✅ Wrote ${copilotPathCount} Copilot path(s) to ${copilotOutPath}`);
+    console.log(`[export-openapi]    Allowlist: ${allowlist.length} operations`);
+    console.log(`[export-openapi]    Version: ${packageVersion}`);
+  }
 }
 
 main().catch((err) => {

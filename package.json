@@ -32,6 +32,7 @@
     "check:quality-gate": "node scripts/check-quality-gate.js",
     "release:check": "npm run test:unit:ci && npm run test:tdd-matrix && npm run check:tdd-matrix-coverage && npm run audit:openapi && npm run check:llm && npm run check:quality-gate && npm run audit:security",
     "export:openapi": "node scripts/export-openapi.js",
+    "export:openapi:copilot": "node scripts/export-openapi.js --copilot",
     "sync:oeo": "node scripts/sync-oeo.js",
     "sync:oemetadata": "node scripts/sync-oemetadata.js",
     "migrate:jobs": "node scripts/migrate-jobs.js",

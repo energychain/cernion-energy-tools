@@ -1,0 +1,2347 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Cernion Energy Tools API",
+    "version": "0.60.8",
+    "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
+  },
+  "tags": [
+    {
+      "name": "Energy",
+      "description": "Energy market operations"
+    },
+    {
+      "name": "Example",
+      "description": "Example service endpoints"
+    },
+    {
+      "name": "DataSources",
+      "description": "Inhouse datasource registry, cache, and discovery"
+    },
+    {
+      "name": "VNBMonitor",
+      "description": "VNB (grid operator) KPI monitoring and alerts"
+    },
+    {
+      "name": "NBPMonitor",
+      "description": "Netzbetreiberprüfungs-Monitor (MaStR status 2955 queue KPIs)"
+    },
+    {
+      "name": "IntegrationHub",
+      "description": "Token management and integration helpers"
+    },
+    {
+      "name": "Authentication",
+      "description": "OIDC/SAML session bootstrap and verification"
+    },
+    {
+      "name": "Tenant Quotas",
+      "description": "Tenant quota snapshots, events, and admin overrides"
+    },
+    {
+      "name": "Jobs",
+      "description": "Async job status and result polling (v0.9.8+)"
+    },
+    {
+      "name": "Datapoints",
+      "description": "Managed data source points with lifecycle tracking and health monitoring (v0.11)"
+    },
+    {
+      "name": "OSM Geo (OpenStreetMap)",
+      "description": "Layer 2 Geo-Architecture: physical grid infrastructure from OpenStreetMap via the Overpass API. Complements authoritative VNBDigital data (Layer 1) with visible substations, transformers, and lines. Data: © OpenStreetMap contributors, ODbL 1.0 — https://opendatacommons.org/licenses/odbl/"
+    },
+    {
+      "name": "OEP (Open Energy Platform)",
+      "description": "Read-only access to Open Energy Platform research and scenario datasets. No authentication required for public tables. Supports schema/table discovery, column metadata, row queries, and full-text search. API: https://openenergyplatform.org/api/v0"
+    },
+    {
+      "name": "Knowledge RAG",
+      "description": "HyDE-aware RAG access with tenant-local ingestion and vector indexing. Supports semantic search, scroll/fetch/collection info, collection lifecycle, datasource/audit ingestion, and reindex/cutover."
+    },
+    {
+      "name": "Finance Agent",
+      "description": "Deterministic finance/regulatory analysis for VNBs (v0.40). Performs query planning, ontology-aware RAG retrieval, L1/L2 evidence arbitration, and guarded synthesis with audit trail."
+    },
+    {
+      "name": "Personal Agent",
+      "description": "Interactive personal chat orchestration (v0.52). Builds deterministic L0-L4 context stacks with strict token budgeting. Layer 4 is transient and never persisted."
+    },
+    {
+      "name": "Actor Personas",
+      "description": "Tenant-scoped actor persona registry for HITL routing, notification ownership, and persona-aware inbox delivery."
+    },
+    {
+      "name": "Grid Connection Validation",
+      "description": "Deterministic 6-step Netzanschluss validation pipeline (v0.14). Produces structured findings and a Go/No-Go decision sealed with a PouchDB snapshot for audit integrity. No LLM involvement — identical inputs always produce identical finding codes."
+    },
+    {
+      "name": "Energy Sharing Validation",
+      "description": "Deterministic 6-step Energy Sharing community validation pipeline (v0.15). Validates generator MaStR records, Direktvermarkter status (§ 21 Abs. 2 EEG), share allocations, and § 42c EnWG eligibility. Interims-Prozess for VNBs ahead of § 20b EnWG central platform. No LLM involvement — identical inputs always produce identical finding codes."
+    },
+    {
+      "name": "Energy Sharing Allocation",
+      "description": "Deterministic 6-step Energy Sharing allocation engine (v0.16). Computes per-consumer 15-min allocation time-series (§ 12 StromNZV) for § 42c EnWG communities. Stufe A: synthetic forecast via mastr_generation_forecast. Stufe B: real iMSys metering data via inhouse CSV upload. KRITIS-compliant: time-series computed in RAM, only metadata persisted. Interimsprozess operative deadline: 01.06.2026 (§ 20b EnWG)."
+    },
+    {
+      "name": "MaStR Data Quality",
+      "description": "Deterministic 8-step MaStR portfolio quality audit (v0.17). Audits the entire VNB portfolio in MaStR: VNB identity → full inventory → status anomalies → capacity anomalies → connection point integrity → duplicate detection → geo spot check → audit trail. Returns a qualityScore (0–100) across 5 weighted dimensions. No LLM involvement. Steps 3–7 independently skippable via skipSteps parameter."
+    },
+    {
+      "name": "Redispatch Ex-Post",
+      "description": "Deterministic 7-step Redispatch 2.0 Ex-Post settlement audit (v0.18). Cross-references MaStR portfolio (≥100 kW) with Netztransparenz curtailment data: VNB identity → portfolio inventory → master data validation → curtailment correlation → settlement readiness → financial risk assessment → audit trail. Returns settlementReadiness (% of installations ready for A96 settlement) and riskAssessment (estimated lost compensation in €). No LLM involvement. Regulatory basis: §§ 13, 13a EnWG, NABEG, StromNZV, Redispatch 2.0 (BDEW/BNetzA). Steps 3–6 independently skippable via skipSteps parameter."
+    },
+    {
+      "name": "Dashboard API",
+      "description": "UI-optimised aggregate endpoints (v0.19). Each endpoint consolidates 4–7 internal service calls into a single response, reducing the roundtrips required for an Enterprise UI dashboard page to one. Read-only — no side-effects, no own PouchDB. Endpoints: vnb-overview (VNB identity + KPIs + latest agent results), market-snapshot (spot prices + CO₂ + renewable forecast), quality-summary (recent reports from all agent pipelines), observability-mini (compact health/incidents/performance cards), finding-codes (complete 100-code reference with metadata for UI tooltips)."
+    },
+    {
+      "name": "Observability",
+      "description": "Read-only production feedback endpoints (v0.40.7) for captured service log output, action performance metrics, compact operational summaries, and an agent-ready debugging prompt. Data is retained locally in PouchDB with redaction-safe storage."
+    },
+    {
+      "name": "Companies",
+      "description": "Company entity management (v0.20.3). Groups multiple BDEW market-partner codes that belong to the same economic unit (Konzernverbund / Stadtwerk). Supports autoDiscover (cernion_market_partners query → draft → confirm flow) and manual member management. enrichResults enriches market-partner search results with companyId + marketRole."
+    },
+    {
+      "name": "Zielnetzplanung (ZNP)",
+      "description": "Stateful workspace API for target grid planning (v0.20.4). Each project is an in-memory graphology graph for a geographic bounding box. Data Layers are loaded iteratively: Layer 0 (MaStR assets), Layer 1 (OSM buildings — stub), Layer 2 (transformer loads — stub). All assets in Layer 0 connect to a virtual substation SUB_1 (MaStR has no topology). Graph state is persisted in PouchDB (meta + graph split docs) and hydrated on service start. Project metadata (bbox, layer counts) is persisted alongside graph topology."
+    },
+    {
+      "name": "Object Store",
+      "description": "Generic namespaced document store backed by PouchDB (v0.20.5). Provides CRUD and Mango-query operations for frontend persistence (ZNP workspaces, user settings, etc.) without backend schema changes. Documents are keyed as namespace:key; namespace isolation enforced in all queries."
+    },
+    {
+      "name": "Cookbook",
+      "description": "Reusable API workflow recipes (v0.20.5). Code-managed community cookbook with semantic lookup, runtime relation graph, and periodic validity checks against live microservice actions."
+    },
+    {
+      "name": "Agent Receipts",
+      "description": "Runtime-managed receipt documents (v0.54.0 foundation). PouchDB-backed CRUD, validation, lifecycle status transitions, and auditable soft-delete."
+    },
+    {
+      "name": "CYA Agent",
+      "description": "Stakeholder-perspective argumentation engine with regulatory grounding (v0.26). Generates data-backed, profile-aware narratives from Cernion microservice data + OEO regulatory context."
+    },
+    {
+      "name": "EDM (Energiedatenmanagement)",
+      "description": "Meter data management with SQLite-backed timeseries storage, MeLo registry, and measurement concepts (v0.28). KRITIS-compliant embedded storage with quarterly partitioning."
+    },
+    {
+      "name": "SLP (Standardlastprofile)",
+      "description": "Standard load profiles (BDEW H0/G0/L0) and custom profiles for load estimation, settlement, and forecast baseline."
+    },
+    {
+      "name": "Settlement (Abrechnung)",
+      "description": "Redispatch compensation (§13a/14 EnWG), EEG revenue calculation, and A96 settlement export. Based on EDM timeseries, generation forecasts, and ENTSO-E market prices with KRITIS fallbacks."
+    },
+    {
+      "name": "Forecast (Prognostik)",
+      "description": "Load forecasting (SLP-based with historical correction), generation forecasting (MCP with KRITIS fallback), residual load calculation, Day-Ahead scheduling, storage dispatch optimization, and forecast quality evaluation (RMSE/MAE/MAPE)."
+    },
+    {
+      "name": "Flex (§14a Flexibilitätsmanagement)",
+      "description": "Controllable consumption device management (§14a EnWG). SVE registry, dimming planning with grid capacity analysis, MQTT-based execution, Entlastungsnachweis, and tariff reduction."
+    },
+    {
+      "name": "MaStR Monitor",
+      "description": "MaStR installation change monitoring with field-level delta detection and email notifications (v0.27). Watches track changes to MaStR installations based on saved queries with configurable schedules."
+    },
+    {
+      "name": "HITL",
+      "description": "Human-in-the-loop approval workflow with tenant-scoped review items, intervention trail, and lifecycle events."
+    },
+    {
+      "name": "Investment Planning",
+      "description": "Deterministic investment planning and budget steering (v0.51.2) with hybrid Soll baselines, Redispatch Ex-Post Ist comparison, mandate alignment checks, and >1M EUR HITL triggers."
+    },
+    {
+      "name": "Blindflug Radar",
+      "description": "Deterministic disturbance-to-investment signal correlation (v0.51.3) using Redispatch, MaStR monitor deltas, and quality findings with confidence-threshold auto-proposals."
+    },
+    {
+      "name": "Netzfahrplan / fNAV",
+      "description": "Deterministic fNAV feasibility assessment (v0.51.5): capacity model (firm + flexible + curtailment), N-1 check with hybrid threshold (domain default + tenant/project/scenario override), technical feasibility verdict, governance gate (Option B: requires_governance_decision until legal + contract prerequisites met), and TOTEX-based economics with eog-calculator integration."
+    },
+    {
+      "name": "Webhooks",
+      "description": "Outbound webhook subscriptions with signed delivery, retry backoff, replay, and dead-letter tracking."
+    },
+    {
+      "name": "Interface Placeholder",
+      "description": "Explicit gap markers for unresolved interfaces, evidence, and ownership"
+    }
+  ],
+  "paths": {
+    "/api/connection-rejection-evidence/packages": {
+      "post": {
+        "operationId": "connection-rejection-evidence_create",
+        "summary": "Create a connection rejection evidence package (writes)",
+        "tags": [
+          "connection-rejection-evidence"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": true,
+        "description": "Creates a new connection rejection evidence package. This action writes to the database. Requires explicit user confirmation."
+      },
+      "get": {
+        "operationId": "connection-rejection-evidence_list",
+        "summary": "List connection rejection evidence packages",
+        "tags": [
+          "connection-rejection-evidence"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false,
+        "description": "Returns all connection rejection evidence packages. Read-only."
+      }
+    },
+    "/api/connection-rejection-evidence/packages/:id": {
+      "get": {
+        "operationId": "connection-rejection-evidence_get",
+        "summary": "Get a connection rejection evidence package by ID",
+        "tags": [
+          "connection-rejection-evidence"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false,
+        "description": "Returns a single connection rejection evidence package with full details. Read-only."
+      }
+    },
+    "/api/copilot-process/vdmi/:matrixId/context": {
+      "get": {
+        "operationId": "getVdmiContext",
+        "summary": "Load VDMI matrix context: status, open tasks, evidence count",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "VDMI matrix context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "matrixId",
+                    "name",
+                    "status",
+                    "openTaskCount",
+                    "summary"
+                  ],
+                  "properties": {
+                    "matrixId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "active"
+                    },
+                    "processType": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "nominationStatus": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "openTaskCount": {
+                      "type": "integer",
+                      "example": 2
+                    },
+                    "totalTaskCount": {
+                      "type": "integer",
+                      "example": 5
+                    },
+                    "evidenceCount": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "findingCount": {
+                      "type": "integer",
+                      "example": 0
+                    },
+                    "scope": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "regulatoryBasis": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "summary": {
+                      "type": "string",
+                      "description": "Human-readable status summary"
+                    },
+                    "detailUrl": {
+                      "type": "string",
+                      "example": "/api/vdmi/vdmi-abc123"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Matrix not found"
+          }
+        },
+        "description": "Returns full VDMI matrix context for Copilot: status, open tasks, nomination state, evidence count, and regulatory basis.\n\n**When to use**: Before proposing any VDMI process action, load context to understand current state.\n**Read-only**: No state is changed.",
+        "parameters": [
+          {
+            "name": "matrixId",
+            "in": "path",
+            "required": true,
+            "description": "VDMI matrix instance ID",
+            "schema": {
+              "type": "string",
+              "example": "vdmi-abc123"
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/vdmi/responsibilities": {
+      "get": {
+        "operationId": "listOpenResponsibilities",
+        "summary": "List VDMI matrices with open Verantwortlich tasks for a user",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Open responsibilities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "count",
+                    "responsibilities"
+                  ],
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "responsibilities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "matrixId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "openTaskCount": {
+                            "type": "integer"
+                          },
+                          "nominationStatus": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "detailUrl": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns VDMI matrices where the specified user (or authenticated caller) holds open Verantwortlich tasks.\n\nIf `userId` is not supplied, falls back to listing all active matrices with at least one open task.\n**Read-only**: No state is changed.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "description": "Actor ID to filter responsibilities for (defaults to authenticated caller)",
+            "schema": {
+              "type": "string",
+              "example": "grid_operator"
+            }
+          },
+          {
+            "name": "processType",
+            "in": "query",
+            "required": false,
+            "description": "Filter by process type",
+            "schema": {
+              "type": "string",
+              "example": "adhoc"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/znp/:projectId/status": {
+      "get": {
+        "operationId": "getZnpProjectStatus",
+        "summary": "Get ZNP project metadata and graph statistics",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "ZNP project status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "projectId",
+                    "name",
+                    "layers",
+                    "graphStats"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "layers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "graphStats": {
+                      "type": "object",
+                      "properties": {
+                        "nodes": {
+                          "type": "integer"
+                        },
+                        "edges": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "detailUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "description": "Returns ZNP project metadata: name, loaded layers, node/edge counts, bounding box, and creation timestamp.\n\n**Read-only**: No state is changed.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "description": "ZNP project UUID",
+            "schema": {
+              "type": "string",
+              "example": "a1b2c3d4-0000-0000-0000-000000000001"
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/grid-connection/:validationId": {
+      "get": {
+        "operationId": "getGridConnectionValidation",
+        "summary": "Retrieve grid connection validation report (decision, findings, operator)",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Validation report summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "validationId",
+                    "decision",
+                    "gridOperatorName",
+                    "summary"
+                  ],
+                  "properties": {
+                    "validationId": {
+                      "type": "string"
+                    },
+                    "decision": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "gridOperatorName": {
+                      "type": "string"
+                    },
+                    "gridOperatorId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "findingsCount": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "detailUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Validation not found"
+          }
+        },
+        "description": "Returns a specific grid connection validation report including decision, findings, and grid operator details.\n\n**Read-only**: No state is changed.",
+        "parameters": [
+          {
+            "name": "validationId",
+            "in": "path",
+            "required": true,
+            "description": "Validation report UUID",
+            "schema": {
+              "type": "string",
+              "example": "a1b2c3d4-1234-5678-90ab-cdef12345678"
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/vdmi/:matrixId/prepare-validation": {
+      "post": {
+        "operationId": "prepareVdmiValidation",
+        "summary": "Prepare VDMI matrix nomination — draft only, no write",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft nomination proposal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "draftId",
+                    "action",
+                    "target",
+                    "summary",
+                    "requiredConfirmation",
+                    "auditTrail"
+                  ],
+                  "properties": {
+                    "draftId": {
+                      "type": "string",
+                      "description": "Unique ID of this draft"
+                    },
+                    "action": {
+                      "type": "string",
+                      "example": "nominate_vdmi_matrix"
+                    },
+                    "target": {
+                      "type": "object",
+                      "properties": {
+                        "matrixId": {
+                          "type": "string"
+                        },
+                        "matrixName": {
+                          "type": "string"
+                        },
+                        "currentStatus": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "proposedChange": {
+                      "type": "object",
+                      "properties": {
+                        "from": {
+                          "type": "string"
+                        },
+                        "to": {
+                          "type": "string"
+                        },
+                        "nominationStatus": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "warningIfAny": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confirmationMessage": {
+                      "type": "string"
+                    },
+                    "requiredConfirmation": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "readyToExecute": {
+                      "type": "boolean"
+                    },
+                    "consequentialAction": {
+                      "type": "object",
+                      "description": "The Phase 3 execute action that would perform this change",
+                      "properties": {
+                        "operationId": {
+                          "type": "string",
+                          "example": "executeVdmiNomination"
+                        },
+                        "note": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "auditTrail": {
+                      "type": "object",
+                      "properties": {
+                        "requestedAt": {
+                          "type": "string"
+                        },
+                        "requestedBy": {
+                          "type": "string"
+                        },
+                        "correlationId": {
+                          "type": "string"
+                        },
+                        "idempotencyKey": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Matrix not found"
+          },
+          "422": {
+            "description": "Matrix status does not allow nomination"
+          }
+        },
+        "description": "Analyses the VDMI matrix and returns a draft nomination proposal.\n**No writes**: This action creates no persisted state. The returned draft must be explicitly confirmed by a consequential execute action (Phase 3).\n\nSet `requiredConfirmation: true` in the response means Copilot must ask the user to confirm before proceeding.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "matrixId",
+                  "reason"
+                ],
+                "properties": {
+                  "matrixId": {
+                    "type": "string",
+                    "description": "VDMI matrix ID",
+                    "example": "vdmi-abc123"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Business reason for the nomination",
+                    "example": "Netzanschluss fristgerecht abgeschlossen",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "description": "Caller-supplied trace ID for audit logging",
+                    "example": "req-2026-001"
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "description": "Prevents duplicate submissions on retries",
+                    "example": "idem-abc123-20260611"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/vdmi/:matrixId/draft-evidence": {
+      "post": {
+        "operationId": "draftVdmiEvidence",
+        "summary": "Draft evidence suggestions for open VDMI tasks — no write",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Evidence draft with per-task suggestions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "draftId",
+                    "action",
+                    "target",
+                    "evidenceSuggestions",
+                    "summary",
+                    "auditTrail"
+                  ],
+                  "properties": {
+                    "draftId": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "type": "string",
+                      "example": "draft_evidence_for_vdmi"
+                    },
+                    "target": {
+                      "type": "object",
+                      "properties": {
+                        "matrixId": {
+                          "type": "string"
+                        },
+                        "matrixName": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "evidenceSuggestions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "taskIndex": {
+                            "type": "integer"
+                          },
+                          "taskLabel": {
+                            "type": "string"
+                          },
+                          "suggestedEvidenceType": {
+                            "type": "string"
+                          },
+                          "suggestion": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "openTaskCount": {
+                      "type": "integer"
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "requiredConfirmation": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "auditTrail": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Matrix not found"
+          }
+        },
+        "description": "Analyses open VDMI tasks and returns structured evidence suggestions for each.\n**No writes**: This returns suggestions only. No evidence is added to the matrix.\nUse `POST /api/vdmi/:id/evidence` (Phase 3) to actually inject evidence.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "matrixId"
+                ],
+                "properties": {
+                  "matrixId": {
+                    "type": "string",
+                    "example": "vdmi-abc123"
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "example": "req-2026-001"
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "example": "idem-abc123-20260611"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/grid-connection/prepare-validation": {
+      "post": {
+        "operationId": "prepareGridConnectionValidation",
+        "summary": "Prepare grid connection validation config — draft only, no write",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Grid connection validation draft proposal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "draftId",
+                    "action",
+                    "target",
+                    "proposedValidation",
+                    "summary",
+                    "requiredConfirmation",
+                    "auditTrail"
+                  ],
+                  "properties": {
+                    "draftId": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "type": "string",
+                      "example": "run_grid_connection_validation"
+                    },
+                    "target": {
+                      "type": "object",
+                      "properties": {
+                        "gridOperatorId": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "gridOperatorBdew": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "gridOperatorName": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "proposedValidation": {
+                      "type": "object",
+                      "description": "Parameters that would be passed to the consequential execute action"
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confirmationMessage": {
+                      "type": "string"
+                    },
+                    "requiredConfirmation": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "consequentialAction": {
+                      "type": "object"
+                    },
+                    "auditTrail": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No grid operator identifier supplied"
+          }
+        },
+        "description": "Validates the input parameters and returns a draft validation configuration.\n**No writes**: This action has no side effects. The returned proposal must be confirmed before the actual 6-step pipeline is started.\nAt least one of `gridOperatorId`, `gridOperatorBdew`, or `gridOperatorName` is required.\n\nThe consequential execute action (`POST /api/grid-connection/validate`) is Phase 3.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "gridOperatorId": {
+                    "type": "string",
+                    "example": "SNB935578300972"
+                  },
+                  "gridOperatorBdew": {
+                    "type": "string",
+                    "example": "9907473000008"
+                  },
+                  "gridOperatorName": {
+                    "type": "string",
+                    "example": "TWL Netze"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "example": "Jahresprüfung Q2 2026"
+                  },
+                  "includeCapacityCheck": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "example": "req-2026-001"
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "example": "idem-twl-20260611"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/grid-connection/validate": {
+      "post": {
+        "operationId": "grid-connection_validate",
+        "summary": "Run Netzanschluss validation pipeline (deterministic, ~2 min, writes report)",
+        "tags": [
+          "Grid Connection Validation"
+        ],
+        "responses": {
+          "200": {
+            "description": "ValidationReport with findings from all 6 pipeline steps",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "id": "a1b2c3d4-...",
+                  "decision": "GO_CONDITIONAL",
+                  "summary": {
+                    "totalInstallations": 59,
+                    "totalCapacityMW": 73.4,
+                    "findingsCount": {
+                      "info": 4,
+                      "warning": 7,
+                      "error": 1
+                    },
+                    "durationMs": 12450
+                  },
+                  "snapshot": {
+                    "id": "snap-uuid",
+                    "consistent": true,
+                    "drift": null
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "REST/Gateway call accepted as async job. Poll /api/jobs/:jobId/status and /api/jobs/:jobId/result.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "jobId": "f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6",
+                  "status": "queued",
+                  "statusUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/status",
+                  "resultUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/result"
+                }
+              }
+            }
+          }
+        },
+        "description": "Executes the deterministic 6-step grid connection validation pipeline for a grid operator. Takes up to 2 minutes. Writes a persistent validation report. Requires explicit user confirmation before starting.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "gridOperatorId": {
+                    "type": "string",
+                    "description": "MaStR grid operator ID (SNB...)",
+                    "example": "SNB935578300972"
+                  },
+                  "gridOperatorBdew": {
+                    "type": "string",
+                    "description": "13-digit BDEW market-partner code",
+                    "example": "9907473000008"
+                  },
+                  "gridOperatorName": {
+                    "type": "string",
+                    "description": "Grid operator name (fuzzy match via marketPartners)",
+                    "example": "TWL Netze"
+                  },
+                  "datapointTags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Tags for datapoint snapshot creation (Weg B)",
+                    "example": [
+                      "twl-netze"
+                    ]
+                  },
+                  "maxAgeMinutes": {
+                    "type": "integer",
+                    "default": 120,
+                    "description": "Datapoint freshness threshold in minutes"
+                  },
+                  "skipSteps": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Pipeline step numbers to skip (e.g. [4] skips EWK benchmark)",
+                    "example": []
+                  },
+                  "includeCapacityCheck": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Call cernion_connection_capacity_check for headroom data"
+                  },
+                  "scenarioAdditions": {
+                    "type": "array",
+                    "description": "Optional What-If installations added virtually for this validation run only.",
+                    "example": [
+                      {
+                        "id": "whatif-pv-1",
+                        "type": "solar",
+                        "capacityMW": 1.5,
+                        "voltageLevel": "MS"
+                      }
+                    ],
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "whatif-1"
+                        },
+                        "type": {
+                          "type": "string",
+                          "example": "solar"
+                        },
+                        "capacityKW": {
+                          "type": "number",
+                          "example": 1500
+                        },
+                        "capacityMW": {
+                          "type": "number",
+                          "example": 1.5
+                        },
+                        "energietraeger": {
+                          "type": "string",
+                          "example": "solar"
+                        },
+                        "voltageLevel": {
+                          "type": "string",
+                          "example": "MS"
+                        }
+                      }
+                    }
+                  },
+                  "scenarioCapacityMW": {
+                    "type": "number",
+                    "description": "Optional extra capacity (MW) injected as a synthetic What-If installation.",
+                    "example": 2.5
+                  }
+                }
+              },
+              "examples": {
+                "By MaStR ID": {
+                  "value": {
+                    "gridOperatorId": "SNB935578300972",
+                    "datapointTags": [
+                      "twl-netze"
+                    ],
+                    "maxAgeMinutes": 120
+                  }
+                },
+                "By BDEW code": {
+                  "value": {
+                    "gridOperatorBdew": "9907473000008"
+                  }
+                },
+                "By name": {
+                  "value": {
+                    "gridOperatorName": "TWL Netze",
+                    "skipSteps": [
+                      4
+                    ]
+                  }
+                },
+                "What-If scenario": {
+                  "value": {
+                    "gridOperatorId": "SNB935578300972",
+                    "scenarioAdditions": [
+                      {
+                        "id": "whatif-pv-1",
+                        "type": "solar",
+                        "capacityMW": 1.5,
+                        "voltageLevel": "MS"
+                      }
+                    ],
+                    "scenarioCapacityMW": 0.8
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": true
+      }
+    },
+    "/api/grid-connection/validations": {
+      "get": {
+        "operationId": "grid-connection_list",
+        "summary": "List past grid connection validation reports",
+        "tags": [
+          "Grid Connection Validation"
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of validation report summaries",
+            "content": {
+              "application/json": {
+                "example": {
+                  "count": 3,
+                  "validations": [
+                    {
+                      "id": "...",
+                      "gridOperator": {
+                        "name": "TWL Netze"
+                      },
+                      "decision": "GO_CONDITIONAL",
+                      "createdAt": "2026-03-30T..."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns validation reports stored in the system, newest first. Optionally filter by grid operator ID. Read-only.",
+        "parameters": [
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "SNB935578300972"
+            },
+            "description": "Filter by MaStR grid operator ID"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            },
+            "description": "Maximum number of results"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjIwfQ=="
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "example": 0
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/grid-connection/validations/:id": {
+      "get": {
+        "operationId": "grid-connection_get",
+        "summary": "Get a specific grid connection validation report by ID",
+        "tags": [
+          "Grid Connection Validation"
+        ],
+        "responses": {
+          "200": {
+            "description": "Full ValidationReport document"
+          },
+          "404": {
+            "description": "Validation not found"
+          }
+        },
+        "description": "Returns the full validation report including all findings and decision. Read-only.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "a1b2c3d4-1234-5678-90ab-cdef12345678"
+            },
+            "description": "Validation report UUID"
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/grid-connection/messkonzept/conflict/validate": {
+      "post": {
+        "operationId": "grid-connection_validateMesskonzeptConflict",
+        "summary": "Validate Messkonzept conflict for a grid connection scenario (writes report)",
+        "tags": [
+          "Grid Connection Validation"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Validates Messkonzept conflicts for a specified connection scenario. Writes a validation result. Requires explicit user confirmation.",
+        "x-openai-isConsequential": true
+      }
+    },
+    "/api/grid-connection/fnav/validate": {
+      "post": {
+        "operationId": "grid-connection_fnavValidate",
+        "summary": "Run FNAV (Fernwirknetz-Anschluss-Validierung) check (writes result)",
+        "tags": [
+          "Netzfahrplan / fNAV"
+        ],
+        "responses": {
+          "200": {
+            "description": "fNAV validation result with capacity model, N-1 check, and governance status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capacityModel": {
+                      "type": "object",
+                      "description": "Normalised fNAV capacity model"
+                    },
+                    "n1Check": {
+                      "type": "object",
+                      "description": "N-1 compliance result"
+                    },
+                    "feasibility": {
+                      "type": "string",
+                      "enum": [
+                        "feasible",
+                        "conditional",
+                        "copper_needed"
+                      ]
+                    },
+                    "governanceStatus": {
+                      "type": "string"
+                    },
+                    "governanceBlockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "contractGate": {
+                      "type": "object",
+                      "description": "Explicit contract-gate assessment"
+                    },
+                    "governanceArtifact": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "decisionChain": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "proof": {
+                      "type": "object"
+                    },
+                    "findings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "metadata": {
+                      "type": "object"
+                    },
+                    "source": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Runs the FNAV (remote control network connection) validation check. Writes a result record. Requires explicit user confirmation.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "fnavProfile"
+                ],
+                "properties": {
+                  "gridOperatorName": {
+                    "type": "string",
+                    "example": "TWL Netze"
+                  },
+                  "voltageLevel": {
+                    "type": "string",
+                    "enum": [
+                      "NS",
+                      "MS",
+                      "HS"
+                    ],
+                    "default": "MS",
+                    "description": "Voltage level of the connection point"
+                  },
+                  "fnavProfile": {
+                    "type": "object",
+                    "example": {
+                      "requestedCapacity": 5000,
+                      "firmCapacity": 3000,
+                      "flexibleCapacity": 2000,
+                      "curtailmentWindow": 4,
+                      "signalPriorityPolicy": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung",
+                      "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
+                      "contractStatus": "negotiating",
+                      "legalStatus": "pending"
+                    },
+                    "required": [
+                      "requestedCapacity"
+                    ],
+                    "properties": {
+                      "requestedCapacity": {
+                        "type": "number",
+                        "example": 5000,
+                        "description": "Requested capacity in kW"
+                      },
+                      "firmCapacity": {
+                        "type": "number",
+                        "example": 3000,
+                        "description": "Guaranteed firm capacity in kW"
+                      },
+                      "flexibleCapacity": {
+                        "type": "number",
+                        "example": 2000,
+                        "description": "Curtailable §14a flex capacity in kW"
+                      },
+                      "curtailmentWindow": {
+                        "type": "number",
+                        "example": 4,
+                        "description": "Max curtailment hours per day (0–24)"
+                      },
+                      "operatingConstraint": {
+                        "type": "string",
+                        "example": "§14a max 2h/event"
+                      },
+                      "signalPriorityPolicy": {
+                        "type": "string",
+                        "example": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung"
+                      },
+                      "controlEvidenceRef": {
+                        "type": "string",
+                        "example": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05"
+                      },
+                      "contractStatus": {
+                        "type": "string",
+                        "example": "negotiating"
+                      },
+                      "legalStatus": {
+                        "type": "string",
+                        "example": "pending"
+                      }
+                    }
+                  },
+                  "n1ThresholdOverride": {
+                    "type": "object",
+                    "example": {
+                      "project": 78
+                    },
+                    "description": "Override N-1 threshold (MVA) at tenant/project/scenario level",
+                    "properties": {
+                      "tenant": {
+                        "type": "number",
+                        "example": 85
+                      },
+                      "project": {
+                        "type": "number",
+                        "example": 78
+                      },
+                      "scenario": {
+                        "type": "number",
+                        "example": 70
+                      }
+                    }
+                  },
+                  "ownerContact": {
+                    "type": "string",
+                    "example": "netzplanung@twl.de",
+                    "description": "Responsible owner — required for governance approval"
+                  }
+                }
+              },
+              "examples": {
+                "fNAV hybrid MS": {
+                  "value": {
+                    "gridOperatorName": "TWL Netze",
+                    "voltageLevel": "MS",
+                    "fnavProfile": {
+                      "requestedCapacity": 5000,
+                      "firmCapacity": 3000,
+                      "flexibleCapacity": 2000,
+                      "curtailmentWindow": 4,
+                      "signalPriorityPolicy": "Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung",
+                      "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
+                      "contractStatus": "signed",
+                      "legalStatus": "approved"
+                    },
+                    "ownerContact": "netzplanung@twl.de"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-oeo-class": [
+          "https://openenergyplatform.org/ontology/oeo/OEO_00000143",
+          "https://openenergyplatform.org/ontology/oeo/OEO_00020107"
+        ],
+        "x-openai-isConsequential": true
+      }
+    },
+    "/api/query/search": {
+      "get": {
+        "operationId": "searchCernionData",
+        "summary": "Cross-domain entity search (companies, VNB, VDMI, ZNP, grid connection, EDM)",
+        "tags": [
+          "Query Tools",
+          "Copilot"
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results from matched domains",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "description": "The original search term",
+                      "example": "Stadtwerke Heidelberg"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "enum": [
+                        "companies",
+                        "vnb",
+                        "edm",
+                        "vdmi",
+                        "grid_connection",
+                        "znp",
+                        "all"
+                      ],
+                      "example": "all"
+                    },
+                    "totalResults": {
+                      "type": "integer",
+                      "example": 2
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Unique identifier within the domain",
+                            "example": "550e8400-e29b-41d4-a716-446655440000"
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "Primary display name",
+                            "example": "Stadtwerke Heidelberg GmbH & Co. KG"
+                          },
+                          "excerpt": {
+                            "type": "string",
+                            "description": "One-line context string with key attributes"
+                          },
+                          "domain": {
+                            "type": "string",
+                            "description": "Source domain of this result",
+                            "enum": [
+                              "companies",
+                              "edm",
+                              "vdmi",
+                              "grid_connection",
+                              "znp"
+                            ]
+                          },
+                          "type": {
+                            "type": "string",
+                            "description": "Object type within the domain",
+                            "example": "company"
+                          },
+                          "status": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Lifecycle or decision status of the object",
+                            "example": "active"
+                          },
+                          "url": {
+                            "type": "string",
+                            "description": "API path to retrieve the full record",
+                            "example": "/api/companies/550e8400-e29b-41d4-a716-446655440000"
+                          },
+                          "metadata": {
+                            "type": "object",
+                            "description": "Domain-specific structured attributes"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "excerpt",
+                          "domain",
+                          "type",
+                          "status",
+                          "url"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "query",
+                    "domain",
+                    "totalResults",
+                    "results"
+                  ]
+                },
+                "examples": {
+                  "companyHit": {
+                    "summary": "Company result",
+                    "value": {
+                      "query": "Stadtwerke Heidelberg",
+                      "domain": "all",
+                      "totalResults": 1,
+                      "results": [
+                        {
+                          "id": "550e8400-e29b-41d4-a716-446655440000",
+                          "title": "Stadtwerke Heidelberg",
+                          "excerpt": "Stadtwerke Heidelberg GmbH & Co. KG · VNB · BDEW 9900277000000 · 2 Marktpartner · Status: active",
+                          "domain": "companies",
+                          "type": "company",
+                          "status": "active",
+                          "url": "/api/companies/550e8400-e29b-41d4-a716-446655440000",
+                          "metadata": {
+                            "memberCount": 2,
+                            "hasVnb": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "vdmiHit": {
+                    "summary": "VDMI matrix result",
+                    "value": {
+                      "query": "Netzanschluss",
+                      "domain": "vdmi",
+                      "totalResults": 1,
+                      "results": [
+                        {
+                          "id": "abc123",
+                          "title": "Netzanschluss-Genehmigung PV",
+                          "excerpt": "Prozesstyp: standard · Nominierung: pending",
+                          "domain": "vdmi",
+                          "type": "matrix",
+                          "status": "active",
+                          "url": "/api/vdmi/abc123",
+                          "metadata": {
+                            "processType": "standard",
+                            "nominationStatus": "pending",
+                            "evidenceCount": 2
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "gridConnectionHit": {
+                    "summary": "Grid connection validation result",
+                    "value": {
+                      "query": "TWL Netze",
+                      "domain": "grid_connection",
+                      "totalResults": 1,
+                      "results": [
+                        {
+                          "id": "a1b2c3d4-1234-5678-90ab-cdef12345678",
+                          "title": "Netzanschluss-Validierung · TWL Netze",
+                          "excerpt": "Entscheidung: GO_CONDITIONAL · 2026-03-30",
+                          "domain": "grid_connection",
+                          "type": "validation",
+                          "status": "GO_CONDITIONAL",
+                          "url": "/api/grid-connection/validations/a1b2c3d4-1234-5678-90ab-cdef12345678",
+                          "metadata": {
+                            "gridOperatorName": "TWL Netze",
+                            "findingsCount": 3,
+                            "createdAt": "2026-03-30T10:00:00Z"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "noResults": {
+                    "summary": "No results",
+                    "value": {
+                      "query": "nonexistent",
+                      "domain": "all",
+                      "totalResults": 0,
+                      "results": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error — q is missing or too long, limit out of range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "example": "ValidationError"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Search across Cernion energy management data for use in Microsoft 365 Copilot, OpenAPI plugins, and connected integrations.\n\n**Supported domains**:\n- **companies** — Search company entities (Stadtwerke, Konzernverbund) by name. Returns BDEW codes, market roles, member count.\n- **vnb** — Narrow search to companies with a Verteilnetzbetreiber (VNB) market role.\n- **edm** — Look up a Messlokalisation (MeLo) by its exact DE-prefixed ID.\n- **vdmi** — Search VDMI responsibility matrix instances by name, scope, or process type.\n- **grid_connection** — Search past grid connection validation reports by operator name or decision.\n- **znp** — Search Zielnetzplanung projects by name.\n- **all** (default) — Searches all domains in parallel.\n\nEach result carries **domain**, **type**, **id**, **title**, **excerpt**, **status**, and **url** pointing to the detail endpoint for that object.\n\n**Performance**: Deterministic, < 300 ms. Does not invoke any external API or LLM.\n\n**For complex natural-language queries** (e.g. \"PV-Kapazität in Bayern\") use POST /ask instead.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Search term. Company/VNB name, VDMI matrix name, ZNP project name, grid operator name, or exact MeLo ID (DE…). German or English.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "example": "Stadtwerke Heidelberg"
+            }
+          },
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "description": "Restrict search to a specific data domain. Defaults to \"all\" which searches all domains in parallel.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "companies",
+                "vnb",
+                "edm",
+                "vdmi",
+                "grid_connection",
+                "znp",
+                "all"
+              ],
+              "default": "all",
+              "example": "vdmi"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of results to return (1–25).",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25,
+              "default": 10
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/vdmi/my-responsibilities": {
+      "get": {
+        "operationId": "vdmi_myResponsibilities",
+        "summary": "List VDMI matrices where the caller has Verantwortlich (V) role",
+        "tags": [
+          "VDMI"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "grid_operator"
+            }
+          }
+        ],
+        "x-openai-isConsequential": false,
+        "description": "Returns VDMI matrices where the authenticated caller holds a Verantwortlich responsibility. Read-only."
+      }
+    },
+    "/api/vdmi/context": {
+      "get": {
+        "operationId": "vdmi_context",
+        "summary": "Get active VDMI matrix context for a running process job",
+        "tags": [
+          "VDMI"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "job-123"
+            }
+          }
+        ],
+        "x-openai-isConsequential": false,
+        "description": "Returns the active VDMI matrix context for a currently running process job. Read-only."
+      }
+    },
+    "/api/vdmi/:id/evidence": {
+      "post": {
+        "operationId": "vdmi_evidence",
+        "summary": "Inject manual evidence for a VDMI matrix (writes)",
+        "tags": [
+          "VDMI"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "abc123"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reason",
+                  "type",
+                  "reference"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "example": "Telefonischer Freigabenachweis"
+                  },
+                  "type": {
+                    "type": "string",
+                    "example": "aktenvermerk"
+                  },
+                  "reference": {
+                    "type": "string",
+                    "example": "AZ-2026-0042"
+                  },
+                  "content": {
+                    "type": "object",
+                    "example": {
+                      "note": "Entscheid am Telefon bestätigt"
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "reason": "Telefonischer Freigabenachweis",
+                    "type": "aktenvermerk",
+                    "reference": "AZ-2026-0042",
+                    "content": {
+                      "note": "Entscheid am Telefon bestätigt"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": true,
+        "description": "Adds manual evidence to a VDMI matrix. This action writes to the database. Requires explicit user confirmation. Not a final approval — evidence can be supplemented."
+      }
+    },
+    "/api/vdmi/tasks/:taskId/dossier": {
+      "get": {
+        "operationId": "vdmi_dossier",
+        "summary": "Get condensed decision dossier for a VDMI task (V-role view)",
+        "tags": [
+          "VDMI"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "task-01"
+            }
+          }
+        ],
+        "x-openai-isConsequential": false,
+        "description": "Returns the condensed decision dossier for a VDMI task. Intended for the Verantwortlich actor. Read-only."
+      }
+    },
+    "/api/vdmi/findings": {
+      "get": {
+        "operationId": "vdmi_findings",
+        "summary": "List VDMI governance findings",
+        "tags": [
+          "VDMI"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "severity",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "H"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "open"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "VD_GOV_RECURRENCE_K"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 100
+            }
+          }
+        ],
+        "x-openai-isConsequential": false,
+        "description": "Returns VDMI governance findings for the current tenant. Read-only."
+      }
+    },
+    "/api/znp/projects": {
+      "get": {
+        "operationId": "znp_listProjects",
+        "summary": "List all active ZNP workspace projects",
+        "tags": [
+          "Zielnetzplanung (ZNP)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns all projects currently held in the in-memory activeGraphs Map. As of v0.23, graphs are hydrated from PouchDB on service start, so this list is populated even after a server restart.",
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/znp/projects/:projectId/assets": {
+      "get": {
+        "operationId": "znp_getProjectAssets",
+        "summary": "List Layer 0 MaStR assets loaded into a ZNP project",
+        "tags": [
+          "Zielnetzplanung (ZNP)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated asset list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalCount": {
+                      "type": "integer",
+                      "example": 42
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "example": 0
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "example": 100
+                    },
+                    "assets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "mastrNummer": {
+                            "type": "string",
+                            "example": "SEE900123456789"
+                          },
+                          "capacity": {
+                            "type": "number",
+                            "example": 10.5
+                          },
+                          "assetType": {
+                            "type": "string",
+                            "example": "solar"
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "InBetrieb",
+                            "nullable": true
+                          },
+                          "commissioningDate": {
+                            "type": "string",
+                            "example": "2024-06-15",
+                            "nullable": true
+                          },
+                          "lat": {
+                            "type": "number",
+                            "example": 49.491,
+                            "nullable": true
+                          },
+                          "lon": {
+                            "type": "number",
+                            "example": 8.471,
+                            "nullable": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns paginated Layer 0 MaStR assets (generators, storage, loads) for a ZNP project. Read-only.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "a1b2c3d4-0000-0000-0000-000000000001"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "InBetrieb"
+            },
+            "description": "Filter by asset status (exact string match)."
+          },
+          {
+            "name": "assetType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "solar"
+            },
+            "description": "Filter by asset type (exact string match)."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "maximum": 1000,
+              "example": 100
+            },
+            "description": "Maximum number of results to return (1–1000)."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "example": 0
+            },
+            "description": "Zero-based offset for pagination."
+          },
+          {
+            "name": "sortByCapacity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc",
+              "example": "desc"
+            },
+            "description": "Sort direction by capacity (kW). Default: desc (highest capacity first)."
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/znp/projects/:projectId": {
+      "get": {
+        "operationId": "znp_getProjectMeta",
+        "summary": "Get ZNP project metadata and graph statistics",
+        "tags": [
+          "Zielnetzplanung (ZNP)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns the project metadata (bbox, name, createdAt, loaded layers) and live graph statistics (node count, edge count) from the in-memory graph. As of v0.23, graphs are persisted and hydrated on restart — 404 should not occur unless the project was explicitly deleted from PouchDB.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "a1b2c3d4-0000-0000-0000-000000000001"
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/findings": {
+      "get": {
+        "operationId": "vdmi-findings_list",
+        "summary": "List VDMI findings (multi-tenant path)",
+        "tags": [
+          "vdmi-findings"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false,
+        "description": "Returns VDMI governance findings scoped to a specific tenant. Read-only."
+      }
+    },
+    "/api/znp/projects/:projectId/assumptions": {
+      "post": {
+        "operationId": "znp_addAssumption",
+        "summary": "Add a planning assumption to a ZNP project (writes)",
+        "tags": [
+          "Zielnetzplanung (ZNP)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Assumption node inserted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "assumptionId": {
+                      "type": "string"
+                    },
+                    "nodeKey": {
+                      "type": "string"
+                    },
+                    "extracted": {
+                      "type": "object"
+                    },
+                    "hasFlexibleNav": {
+                      "type": "boolean"
+                    },
+                    "graphStats": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "HTTP 422 ASSUMPTION_EXTRACTION_FAILED — LLM could not extract valid capacity"
+          },
+          "503": {
+            "description": "HTTP 503 LLM_NOT_CONFIGURED — GEMINI_API_KEY not set"
+          }
+        },
+        "description": "Adds a named planning assumption to a ZNP project graph. This is a write operation. Requires explicit user confirmation. Assumptions can be reviewed via getZnpProjectStatus.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "text"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "example": "Wir planen einen 5 MW Speicher mit flexiblem NAV am Brückweg."
+                  }
+                }
+              },
+              "examples": {
+                "flexNav": {
+                  "value": {
+                    "text": "Wir planen einen 5 MW Speicher mit flexiblem NAV am Brückweg."
+                  }
+                },
+                "datacenter": {
+                  "value": {
+                    "text": "Ein neues Rechenzentrum mit 3000 kW Anschlussleistung ist im Gewerbegebiet Nord geplant."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": true
+      }
+    }
+  },
+  "x-generator": "scripts/export-openapi.js",
+  "x-version": "0.60.8",
+  "x-copilot-subset": true,
+  "x-copilot-operations-version": 26
+}

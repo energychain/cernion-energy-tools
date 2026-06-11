@@ -1,0 +1,277 @@
+{
+  "$schema": "./copilot-operations.schema.json",
+  "version": "1.0.0",
+  "description": "Curated allowlist of Cernion API operations exposed to MS365 Copilot. All other operations are implicitly denied. See docs/copilot-process-bridge.md.",
+  "allowlist": [
+    {
+      "operationId": "searchCernionData",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "Cross-domain entity search (companies, VNB, VDMI, ZNP, grid connection, EDM)",
+      "risk": "low"
+    },
+    {
+      "operationId": "getVdmiContext",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "Load VDMI matrix context: status, open tasks, evidence count",
+      "risk": "low",
+      "notes": "Copilot-process wrapper — use before any draft action on a VDMI matrix"
+    },
+    {
+      "operationId": "listOpenResponsibilities",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "List VDMI matrices with open Verantwortlich tasks for a user",
+      "risk": "low"
+    },
+    {
+      "operationId": "getZnpProjectStatus",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "Get ZNP project metadata and graph statistics",
+      "risk": "low"
+    },
+    {
+      "operationId": "getGridConnectionValidation",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "Retrieve grid connection validation report (decision, findings, operator)",
+      "risk": "low"
+    },
+    {
+      "operationId": "vdmi_context",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "Get active VDMI matrix context for a running process job",
+      "risk": "low",
+      "copilotDescription": "Returns the active VDMI matrix context for a currently running process job. Read-only."
+    },
+    {
+      "operationId": "vdmi_myResponsibilities",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "List VDMI matrices where the caller has Verantwortlich (V) role",
+      "risk": "low",
+      "copilotDescription": "Returns VDMI matrices where the authenticated caller holds a Verantwortlich responsibility. Read-only."
+    },
+    {
+      "operationId": "vdmi_findings",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "List VDMI governance findings",
+      "risk": "low",
+      "copilotDescription": "Returns VDMI governance findings for the current tenant. Read-only."
+    },
+    {
+      "operationId": "vdmi-findings_list",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "List VDMI findings (multi-tenant path)",
+      "risk": "low",
+      "copilotDescription": "Returns VDMI governance findings scoped to a specific tenant. Read-only."
+    },
+    {
+      "operationId": "vdmi_dossier",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "Get condensed decision dossier for a VDMI task (V-role view)",
+      "risk": "low",
+      "copilotDescription": "Returns the condensed decision dossier for a VDMI task. Intended for the Verantwortlich actor. Read-only."
+    },
+    {
+      "operationId": "znp_listProjects",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "List all active ZNP workspace projects",
+      "risk": "low"
+    },
+    {
+      "operationId": "znp_getProjectMeta",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "Get ZNP project metadata and graph statistics",
+      "risk": "low"
+    },
+    {
+      "operationId": "znp_getProjectAssets",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "List Layer 0 MaStR assets loaded into a ZNP project",
+      "risk": "low",
+      "copilotDescription": "Returns paginated Layer 0 MaStR assets (generators, storage, loads) for a ZNP project. Read-only."
+    },
+    {
+      "operationId": "grid-connection_list",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "List past grid connection validation reports",
+      "risk": "low",
+      "copilotDescription": "Returns validation reports stored in the system, newest first. Optionally filter by grid operator ID. Read-only."
+    },
+    {
+      "operationId": "grid-connection_get",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "Get a specific grid connection validation report by ID",
+      "risk": "low",
+      "copilotDescription": "Returns the full validation report including all findings and decision. Read-only."
+    },
+    {
+      "operationId": "connection-rejection-evidence_list",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "List connection rejection evidence packages",
+      "risk": "low",
+      "copilotDescription": "Returns all connection rejection evidence packages. Read-only."
+    },
+    {
+      "operationId": "connection-rejection-evidence_get",
+      "mode": "read",
+      "requiresConfirmation": false,
+      "summary": "Get a connection rejection evidence package by ID",
+      "risk": "low",
+      "copilotDescription": "Returns a single connection rejection evidence package with full details. Read-only."
+    },
+    {
+      "operationId": "prepareVdmiValidation",
+      "mode": "draft",
+      "requiresConfirmation": true,
+      "summary": "Prepare VDMI matrix nomination — draft only, no write",
+      "risk": "low",
+      "notes": "Returns draft proposal with requiredConfirmation: true. No side effects."
+    },
+    {
+      "operationId": "draftVdmiEvidence",
+      "mode": "draft",
+      "requiresConfirmation": false,
+      "summary": "Draft evidence suggestions for open VDMI tasks — no write",
+      "risk": "low",
+      "notes": "Returns suggestions only. No evidence is added."
+    },
+    {
+      "operationId": "prepareGridConnectionValidation",
+      "mode": "draft",
+      "requiresConfirmation": true,
+      "summary": "Prepare grid connection validation config — draft only, no write",
+      "risk": "low",
+      "notes": "Returns validation configuration draft with requiredConfirmation: true. No side effects."
+    },
+    {
+      "operationId": "vdmi_evidence",
+      "mode": "prepare",
+      "requiresConfirmation": true,
+      "summary": "Inject manual evidence for a VDMI matrix (writes)",
+      "risk": "medium",
+      "copilotDescription": "Adds manual evidence to a VDMI matrix. This action writes to the database. Requires explicit user confirmation. Not a final approval — evidence can be supplemented.",
+      "notes": "POST — creates a new evidence entry. Not reversible via this API."
+    },
+    {
+      "operationId": "connection-rejection-evidence_create",
+      "mode": "prepare",
+      "requiresConfirmation": true,
+      "summary": "Create a connection rejection evidence package (writes)",
+      "risk": "medium",
+      "copilotDescription": "Creates a new connection rejection evidence package. This action writes to the database. Requires explicit user confirmation.",
+      "notes": "POST — creates a new document. Use connection-rejection-evidence_get to verify after creation."
+    },
+    {
+      "operationId": "grid-connection_validate",
+      "mode": "prepare",
+      "requiresConfirmation": true,
+      "summary": "Run Netzanschluss validation pipeline (deterministic, ~2 min, writes report)",
+      "risk": "medium",
+      "copilotDescription": "Executes the deterministic 6-step grid connection validation pipeline for a grid operator. Takes up to 2 minutes. Writes a persistent validation report. Requires explicit user confirmation before starting.",
+      "notes": "No LLM involvement — identical inputs always produce identical results. Report is retrievable via grid-connection_get afterwards."
+    },
+    {
+      "operationId": "grid-connection_validateMesskonzeptConflict",
+      "mode": "prepare",
+      "requiresConfirmation": true,
+      "summary": "Validate Messkonzept conflict for a grid connection scenario (writes report)",
+      "risk": "medium",
+      "copilotDescription": "Validates Messkonzept conflicts for a specified connection scenario. Writes a validation result. Requires explicit user confirmation.",
+      "notes": "Use to verify metering concept compatibility before proceeding with grid connection approval."
+    },
+    {
+      "operationId": "grid-connection_fnavValidate",
+      "mode": "prepare",
+      "requiresConfirmation": true,
+      "summary": "Run FNAV (Fernwirknetz-Anschluss-Validierung) check (writes result)",
+      "risk": "medium",
+      "copilotDescription": "Runs the FNAV (remote control network connection) validation check. Writes a result record. Requires explicit user confirmation.",
+      "notes": "Specific to FNAV scenarios. Does not affect existing grid connection reports."
+    },
+    {
+      "operationId": "znp_addAssumption",
+      "mode": "prepare",
+      "requiresConfirmation": true,
+      "summary": "Add a planning assumption to a ZNP project (writes)",
+      "risk": "medium",
+      "copilotDescription": "Adds a named planning assumption to a ZNP project graph. This is a write operation. Requires explicit user confirmation. Assumptions can be reviewed via getZnpProjectStatus.",
+      "notes": "Does not delete or restructure the graph. Only adds a new assumption node/annotation."
+    }
+  ],
+  "blocklist": [
+    {
+      "operationId": "znp_deleteProject",
+      "reason": "Irreversible — permanently deletes project and all graph data from PouchDB"
+    },
+    {
+      "operationId": "vdmi_revert",
+      "reason": "Reverts a VDMI matrix to a previous state — potentially destructive, requires human oversight"
+    },
+    {
+      "operationId": "vdmi-human-override_override",
+      "reason": "Manual HITL override of matrix — consequential, requires explicit human authority"
+    },
+    {
+      "operationId": "vdmi-human-override_revert",
+      "reason": "Reverts a HITL override — consequential, requires explicit human authority"
+    },
+    {
+      "operationId": "vdmi-evidence_sign",
+      "reason": "Cryptographic signature on evidence — irreversible, legal consequence"
+    },
+    {
+      "operationId": "vdmi_confirmNomination",
+      "reason": "Final nomination approval — irreversible workflow step, requires explicit human authority"
+    },
+    {
+      "operationId": "vdmi_nominate",
+      "reason": "Triggers nomination workflow — consequential, requires explicit human authority"
+    },
+    {
+      "operationId": "vdmi_create",
+      "reason": "Creates new VDMI matrix — consequential, not needed for Copilot read/draft workflows"
+    },
+    {
+      "operationId": "vdmi_update",
+      "reason": "Updates matrix fields — consequential edit, requires explicit human authority"
+    },
+    {
+      "operationId": "vdmi_detect",
+      "reason": "Auto-detection triggers — consequential ML workflow, not Copilot-safe"
+    },
+    {
+      "operationId": "znp_createProject",
+      "reason": "Creates a new ZNP project — consequential, not needed for read/draft workflows"
+    },
+    {
+      "operationId": "znp_addLayer0",
+      "reason": "Bulk Layer 0 import from MaStR — long-running, consequential, not Copilot-safe"
+    },
+    {
+      "operationId": "znp_addLayer1",
+      "reason": "OSM-based Layer 1 import — long-running, consequential"
+    },
+    {
+      "operationId": "znp_addLayer2",
+      "reason": "Layer 2 import — consequential"
+    },
+    {
+      "operationId": "vdmi-portfolio-gatekeeping_gate",
+      "reason": "Portfolio gating decision — final approval, requires human authority"
+    }
+  ]
+}
