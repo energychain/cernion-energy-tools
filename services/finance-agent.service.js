@@ -180,6 +180,8 @@ module.exports = {
         persistDatapoints: { type: 'boolean', optional: true, default: false },
         allowHypotheticals: { type: 'boolean', optional: true, default: false },
         collection: { type: 'string', optional: true, default: FINANCE_AGENT_DEFAULT_COLLECTION },
+        decisionFrameId: { type: 'string', optional: true, trim: true, max: 120 },
+        decisionFrame: { type: 'object', optional: true },
       },
       openapi: {
         summary: 'Analyze finance/regulatory questions with evidence-bound synthesis',
@@ -299,6 +301,7 @@ module.exports = {
           type: 'finance-analysis',
           query: ctx.params.query,
           sessionId: ctx.params.sessionId || null,
+          decisionFrameId: ctx.params.decisionFrameId || null,
           mode: report.mode,
           status: report.status,
           confidence: report.confidence,
@@ -324,6 +327,7 @@ module.exports = {
               contextLimit: ctx.params.contextLimit,
               persistDatapoints: !!ctx.params.persistDatapoints,
               allowHypotheticals: !!ctx.params.allowHypotheticals,
+              decisionFrameId: ctx.params.decisionFrameId || null,
             },
             pipelineVersion: PIPELINE_VERSION,
             generatedAt: new Date().toISOString(),
@@ -1154,6 +1158,16 @@ module.exports = {
       const requestedCollection =
         typeof params.collection === 'string' ? params.collection.trim() : '';
       const collection = requestedCollection || FINANCE_AGENT_DEFAULT_COLLECTION;
+      const scqaContext = (() => {
+        const frame = params.decisionFrame && typeof params.decisionFrame === 'object' ? params.decisionFrame : null;
+        if (!frame) return null;
+        const parts = [];
+        if (frame.situation) parts.push(`Situation: ${frame.situation}`);
+        if (frame.complication) parts.push(`Complication: ${frame.complication}`);
+        if (frame.question) parts.push(`Kernfrage: ${frame.question}`);
+        if (frame.answer) parts.push(`Antwortrahmen: ${frame.answer}`);
+        return parts.length ? parts.join('\n') : null;
+      })();
 
       if (!query) {
         throw new MoleculerClientError('query is required', 400, 'VALIDATION_ERROR');
@@ -1325,6 +1339,7 @@ module.exports = {
         allowHypotheticals,
         datapointFacts,
         oeoTags: this.collectOeoTags(arbitration.selectedEvidence),
+        scqaContext,
       });
       if (synthesis.status === 'needs_clarification') {
         findings.push(
@@ -2653,6 +2668,7 @@ module.exports = {
       const allowHypotheticals = options.allowHypotheticals === true;
       const datapointFacts = Array.isArray(options.datapointFacts) ? options.datapointFacts : [];
       const oeoTags = Array.isArray(options.oeoTags) ? options.oeoTags : [];
+      const scqaContext = typeof options.scqaContext === 'string' ? options.scqaContext : null;
 
       const evidenceSnippets = arbitration.selectedEvidence.slice(0, 5).map((e) => ({
         pointId: e.pointId,
@@ -2665,9 +2681,14 @@ module.exports = {
         text: String(e.text || '').slice(0, 200),
       }));
 
+      const scqaBlock = scqaContext
+        ? [`Entscheidungsrahmen (SCQA):\n${scqaContext}`, '']
+        : [];
+
       const prompt = [
         INTERNAL_PROMPTS.synthesis,
         '',
+        ...scqaBlock,
         `Query: ${query}`,
         `Mode: ${mode}`,
         `L1_Rule evidence count: ${arbitration.ruleEvidence.length}`,

@@ -79,6 +79,7 @@ module.exports = {
           default: INVESTMENT_TRIGGER_THRESHOLD_EUR,
           convert: true,
         },
+        decisionFrameId: { type: 'string', optional: true },
       },
       openapi: {
         summary: 'Create investment plan with Soll-Ist delta and mandate alignment',
@@ -246,6 +247,7 @@ module.exports = {
             source: {
               redispatchAuditAvailable: Boolean(audit),
             },
+            decisionFrameId: ctx.params.decisionFrameId || null,
           },
           createdAt,
           updatedAt: createdAt,

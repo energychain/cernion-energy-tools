@@ -1290,6 +1290,7 @@ module.exports = {
       rest: 'GET /projects/:projectId/strategic-prompts',
       params: {
         projectId: { type: 'string' },
+        questionSeed: { type: 'string', optional: true, max: 500 },
       },
       openapi: {
         summary: 'Generate strategic planning questions for a ZNP project (AI)',
@@ -1370,6 +1371,10 @@ module.exports = {
             ? `\n\nPlanungsassistenz-Hinweis: ${planningAssist.summary}`
             : '';
 
+        const questionSeedHint = ctx.params.questionSeed
+          ? `\n\nSCQA-Kernfrage des Entscheidungsrahmens (als Orientierung f\u00fcr die Fragengenerierung): ${ctx.params.questionSeed}`
+          : '';
+
         const prompt =
           'Du bist ein Zielnetzplanungs-Experte f\u00fcr deutsche Verteilnetzbetreiber.\n' +
           'Analysiere folgendes Verteilnetz-Areal und formuliere 2-3 strategische Fragen, ' +
@@ -1379,7 +1384,8 @@ module.exports = {
           'Beziehe dich auf \u00a714a EnWG (steuerbare Verbrauchseinrichtungen), m\u00f6gliche ' +
           'Rechenzentren/Gewerbegebiete, Neubaupotenzial, W\u00e4rmepumpenpflicht (GEG), ' +
           'und EV-Ladeinfrastruktur. Stelle konkrete, handlungsrelevante Fragen.' +
-          planningHint;
+          planningHint +
+          questionSeedHint;
 
         const result = await generateStructured(STRATEGIC_PROMPTS_SCHEMA, prompt);
 
