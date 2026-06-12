@@ -449,7 +449,9 @@ describe('getMissingInputs — znp.assessPortfolio', () => {
   });
 
   it('returns [projectId] when projectId is undefined', () => {
-    expect(getMissingInputs('znp.assessPortfolio', { projectId: undefined })).toEqual(['projectId']);
+    expect(getMissingInputs('znp.assessPortfolio', { projectId: undefined })).toEqual([
+      'projectId',
+    ]);
   });
 
   it('returns [projectId] when projectId is null', () => {

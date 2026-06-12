@@ -66,13 +66,13 @@ const KNOWN_OPERATOR_NAMES =
 function hasLocationScope(context = {}) {
   return Boolean(
     context.city ||
-      context.municipality ||
-      context.location ||
-      context.postalCode ||
-      context.postleitzahl ||
-      context.region ||
-      context.bundesland ||
-      context.gemeinde
+    context.municipality ||
+    context.location ||
+    context.postalCode ||
+    context.postleitzahl ||
+    context.region ||
+    context.bundesland ||
+    context.gemeinde
   );
 }
 
@@ -87,12 +87,9 @@ function isOperatorScopeResolved(context = {}) {
     context.bdewCode ||
     context.gridOperatorBdewCode ||
     context.gridOperatorBdewCode;
-  const isPlausibleBdew =
-    typeof bdew === 'string' && /^\d{5,13}$/.test(bdew.trim());
+  const isPlausibleBdew = typeof bdew === 'string' && /^\d{5,13}$/.test(bdew.trim());
   const hasVnbName = Boolean(
-    context.vnbName ||
-      context.gridOperatorName ||
-      context.assertedGridOperatorName
+    context.vnbName || context.gridOperatorName || context.assertedGridOperatorName
   );
   const hasMastrId = Boolean(context.gridOperatorMastrId || context.snbMastrId);
   return isPlausibleBdew || hasVnbName || hasMastrId;
@@ -117,10 +114,7 @@ function extractOperatorScope(context = {}) {
   return {
     bdew: context.bdew || context.bdewCode || context.gridOperatorBdewCode || null,
     vnbName:
-      context.vnbName ||
-      context.gridOperatorName ||
-      context.assertedGridOperatorName ||
-      null,
+      context.vnbName || context.gridOperatorName || context.assertedGridOperatorName || null,
     gridOperatorMastrId: context.gridOperatorMastrId || context.snbMastrId || null,
   };
 }
@@ -159,8 +153,7 @@ function classifyQueryScope(message = '', knownContext = {}) {
 
   if (locationAvailable) {
     scopes.push(QUERY_SCOPE.LOCATION_SCOPE);
-    const locLabel =
-      locationScope.city || locationScope.postalCode || locationScope.region || '?';
+    const locLabel = locationScope.city || locationScope.postalCode || locationScope.region || '?';
     scopeTrace.push(`locationScope available: ${locLabel}`);
   }
 
@@ -173,7 +166,10 @@ function classifyQueryScope(message = '', knownContext = {}) {
 
   // Detect market role hint from operator scope or message
   let marketRoleScope = null;
-  if (KNOWN_OPERATOR_NAMES.test(text) || (operatorResolved && !ASSET_BY_OPERATOR_SIGNALS.test(text))) {
+  if (
+    KNOWN_OPERATOR_NAMES.test(text) ||
+    (operatorResolved && !ASSET_BY_OPERATOR_SIGNALS.test(text))
+  ) {
     marketRoleScope = QUERY_SCOPE.MARKET_ROLE_VNB;
     scopes.push(QUERY_SCOPE.MARKET_ROLE_VNB);
     scopeTrace.push('marketRoleScope: VNB (known operator name or explicit operator identity)');
@@ -195,17 +191,13 @@ function classifyQueryScope(message = '', knownContext = {}) {
     if (!scopes.includes(QUERY_SCOPE.ASSET_BY_OPERATOR)) {
       scopes.push(QUERY_SCOPE.ASSET_BY_OPERATOR);
     }
-    scopeTrace.push(
-      'primaryScope: assetByOperator — named operator as query subject'
-    );
+    scopeTrace.push('primaryScope: assetByOperator — named operator as query subject');
   } else if (ASSET_BY_LOCATION_SIGNALS.test(text)) {
     primaryScope = QUERY_SCOPE.ASSET_BY_LOCATION;
     if (!scopes.includes(QUERY_SCOPE.ASSET_BY_LOCATION)) {
       scopes.push(QUERY_SCOPE.ASSET_BY_LOCATION);
     }
-    scopeTrace.push(
-      'primaryScope: assetByLocation — assets/data requested for a geographic area'
-    );
+    scopeTrace.push('primaryScope: assetByLocation — assets/data requested for a geographic area');
   } else if (operatorResolved && locationAvailable) {
     // Both scopes present: operator wins for operator-targeted queries
     primaryScope = QUERY_SCOPE.OPERATOR_SCOPE;

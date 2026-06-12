@@ -67,14 +67,15 @@ function normalizeSelectionPayload(payload = {}) {
     ...inputKnownContext,
   };
 
-  const message = firstNonEmptyString(
-    payload.message,
-    payload.question,
-    context.message,
-    context.question,
-    input.message,
-    input.question
-  ) || '';
+  const message =
+    firstNonEmptyString(
+      payload.message,
+      payload.question,
+      context.message,
+      context.question,
+      input.message,
+      input.question
+    ) || '';
 
   const question = firstNonEmptyString(payload.question, context.question, input.question, message);
 
@@ -1160,8 +1161,7 @@ module.exports = {
                     type: 'string',
                     enum: CREATOR_SOURCES,
                     default: 'api',
-                    description:
-                      'Origin of the proposal. Chat-originated proposals must use chat.',
+                    description: 'Origin of the proposal. Chat-originated proposals must use chat.',
                   },
                   changeReason: {
                     type: 'string',
@@ -1241,9 +1241,7 @@ module.exports = {
             : null;
         const rawSupersedes = ctx.params.supersedes;
         const supersedes =
-          typeof rawSupersedes === 'string' && rawSupersedes.trim()
-            ? rawSupersedes.trim()
-            : null;
+          typeof rawSupersedes === 'string' && rawSupersedes.trim() ? rawSupersedes.trim() : null;
 
         const now = new Date().toISOString();
         const doc = {
@@ -1324,7 +1322,8 @@ module.exports = {
                   _rev: {
                     type: 'string',
                     nullable: true,
-                    description: 'CAS revision token. Prevents concurrent promotion race conditions.',
+                    description:
+                      'CAS revision token. Prevents concurrent promotion race conditions.',
                   },
                 },
               },
@@ -1900,10 +1899,13 @@ module.exports = {
                 createdAt: existing.createdAt || now,
                 updatedAt: now,
                 activatedAt:
-                  normalizedSeed.status === 'active' ? existing.activatedAt || now : existing.activatedAt || null,
+                  normalizedSeed.status === 'active'
+                    ? existing.activatedAt || now
+                    : existing.activatedAt || null,
                 deprecatedAt:
                   normalizedSeed.status === 'deprecated' ? now : existing.deprecatedAt || null,
-                archivedAt: normalizedSeed.status === 'archived' ? now : existing.archivedAt || null,
+                archivedAt:
+                  normalizedSeed.status === 'archived' ? now : existing.archivedAt || null,
               };
               await this.db.put(updated);
               this.logger.info(
@@ -2092,7 +2094,8 @@ module.exports = {
       const mergedScope = {
         message:
           evalInput?.input?.message || evalInput?.context?.message || evalInput?.message || '',
-        context: evalInput?.context && typeof evalInput.context === 'object' ? evalInput.context : {},
+        context:
+          evalInput?.context && typeof evalInput.context === 'object' ? evalInput.context : {},
         input: evalInput?.input && typeof evalInput.input === 'object' ? evalInput.input : {},
       };
 

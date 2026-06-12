@@ -3319,7 +3319,9 @@ module.exports = {
             operationalStatus: '35',
           });
         } catch (err) {
-          this.logger?.warn(`[inferGridOperators] MaStR query failed for ${locationQuery}: ${err.message}`);
+          this.logger?.warn(
+            `[inferGridOperators] MaStR query failed for ${locationQuery}: ${err.message}`
+          );
           return {
             success: true,
             operatorCandidates: [],
@@ -3353,7 +3355,13 @@ module.exports = {
 
           const key = mastrId || name;
           if (!vnbMap.has(key)) {
-            vnbMap.set(key, { name, mastrNetzbetreiberId: mastrId, assetCount: 0, assetTypes: new Set(), totalCapacityKW: 0 });
+            vnbMap.set(key, {
+              name,
+              mastrNetzbetreiberId: mastrId,
+              assetCount: 0,
+              assetTypes: new Set(),
+              totalCapacityKW: 0,
+            });
           }
           const entry = vnbMap.get(key);
           entry.assetCount += 1;

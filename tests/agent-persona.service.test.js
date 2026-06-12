@@ -26,8 +26,9 @@ describe('agent-persona service', () => {
         personaName: overrides.personaName || `Persona ${tenantId}`,
         personaType: overrides.personaType || 'human',
         assignedRoles: overrides.assignedRoles || ['billing@stadtwerk'],
-        communicationChannels:
-          overrides.communicationChannels || [{ type: 'email', address: `${tenantId}@example.com` }],
+        communicationChannels: overrides.communicationChannels || [
+          { type: 'email', address: `${tenantId}@example.com` },
+        ],
         status: overrides.status || 'active',
         openclawUserId: overrides.openclawUserId,
         defaultPersonalAgentSessionId: overrides.defaultPersonalAgentSessionId,
@@ -147,8 +148,16 @@ describe('agent-persona service', () => {
     expect(tenantB.item.personaName).toBe('Tenant B Persona');
     expect(tenantC.item.personaName).toBe('Tenant C Persona');
 
-    const listB = await broker.call('agent-persona.list', { tenantId: 'tenant-b' }, tenantMeta('tenant-b'));
-    const listC = await broker.call('agent-persona.list', { tenantId: 'tenant-c' }, tenantMeta('tenant-c'));
+    const listB = await broker.call(
+      'agent-persona.list',
+      { tenantId: 'tenant-b' },
+      tenantMeta('tenant-b')
+    );
+    const listC = await broker.call(
+      'agent-persona.list',
+      { tenantId: 'tenant-c' },
+      tenantMeta('tenant-c')
+    );
 
     expect(listB.items.some((item) => item.personaName === 'Tenant C Persona')).toBe(false);
     expect(listC.items.some((item) => item.personaName === 'Tenant B Persona')).toBe(false);
@@ -403,7 +412,9 @@ describe('agent-persona service', () => {
 
     expect(updated.item.lastSeenAt).toBeDefined();
     expect(updated.item.lastSeenAt).not.toBe(initialLastSeen);
-    expect(new Date(updated.item.lastSeenAt).getTime()).toBeGreaterThan(new Date(initialLastSeen).getTime());
+    expect(new Date(updated.item.lastSeenAt).getTime()).toBeGreaterThan(
+      new Date(initialLastSeen).getTime()
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -591,7 +602,9 @@ describe('agent-persona service', () => {
       );
 
       expect(r1.resolvedPersona.matchedSignals).toEqual(r2.resolvedPersona.matchedSignals);
-      expect(r1.resolvedPersona.matchedSignals).toEqual([...r1.resolvedPersona.matchedSignals].sort());
+      expect(r1.resolvedPersona.matchedSignals).toEqual(
+        [...r1.resolvedPersona.matchedSignals].sort()
+      );
       expect(r1.resolvedPersona.matchedSignals).toHaveLength(3);
     });
 
@@ -609,7 +622,11 @@ describe('agent-persona service', () => {
           tenantId: 'tenant-res-whitelist',
           workflowType: 'asset_review',
           // these must never appear in the output
-          assetContext: { mastrId: 'SEE123456789012', privateKey: 'secret', prompt: 'raw llm prompt' },
+          assetContext: {
+            mastrId: 'SEE123456789012',
+            privateKey: 'secret',
+            prompt: 'raw llm prompt',
+          },
         },
         tenantMeta('tenant-res-whitelist')
       );
@@ -1018,9 +1035,10 @@ describe('agent-persona service', () => {
         broker.call('agent-persona.pruneResolutionAudits', { olderThanDays: 0 })
       ).rejects.toMatchObject({ code: 422, type: 'VALIDATION_ERROR' });
 
-      await expect(
-        broker.call('agent-persona.queryResolutionAudits', {})
-      ).rejects.toMatchObject({ code: 422, type: 'VALIDATION_ERROR' });
+      await expect(broker.call('agent-persona.queryResolutionAudits', {})).rejects.toMatchObject({
+        code: 422,
+        type: 'VALIDATION_ERROR',
+      });
 
       await expect(
         broker.call('agent-persona.summarizeResolutionAudits', {})
@@ -1074,7 +1092,10 @@ describe('agent-persona service', () => {
       });
       const result = await broker.call(
         'agent-persona.resolvePersona',
-        { tenantId: 'tenant-znp-03', assetContext: { assetType: 'storage', capacityClass: 'large' } },
+        {
+          tenantId: 'tenant-znp-03',
+          assetContext: { assetType: 'storage', capacityClass: 'large' },
+        },
         tenantMeta('tenant-znp-03')
       );
       expect(result.resolvedPersona.personaId).toBe('znp-storage-expert');
@@ -1177,8 +1198,14 @@ describe('agent-persona service', () => {
       );
       const pr = result.resolvedPersona;
       const allowedKeys = new Set([
-        'personaId', 'roleId', 'confidence', 'resolutionMode',
-        'availability', 'matchedSignals', 'fallbackPersonaIds', 'policy',
+        'personaId',
+        'roleId',
+        'confidence',
+        'resolutionMode',
+        'availability',
+        'matchedSignals',
+        'fallbackPersonaIds',
+        'policy',
       ]);
       for (const key of Object.keys(pr)) {
         expect(allowedKeys.has(key)).toBe(true);

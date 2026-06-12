@@ -132,7 +132,11 @@ describeOrSkip('T-PA-WOL-011: Sequential requests have independent per-turn work
 
   beforeAll(async () => {
     turn1 = await postChat({ sessionId: sid1, message: 'Hello', chatMode: 'auto' });
-    turn2 = await postChat({ sessionId: sid2, message: 'Grid analysis for Frankenthal', chatMode: 'auto' });
+    turn2 = await postChat({
+      sessionId: sid2,
+      message: 'Grid analysis for Frankenthal',
+      chatMode: 'auto',
+    });
   }, 70000);
 
   test('turn 2 workLog starts at step 1', () => {
@@ -176,7 +180,7 @@ describeOrSkip('T-PA-WOL-012: Concurrent requests do not share workLog state', (
 
   test('no entry from response 1 appears in response 2 by identical timestamp+action', () => {
     const wl1Keys = new Set(
-      (results[0].agentTrace?.workLog || []).map(e => `${e.timestamp}:${e.action}`)
+      (results[0].agentTrace?.workLog || []).map((e) => `${e.timestamp}:${e.action}`)
     );
     for (const entry of results[1].agentTrace?.workLog || []) {
       const key = `${entry.timestamp}:${entry.action}`;
@@ -211,7 +215,7 @@ describeOrSkip('T-PA-WOL-013: workLog entries are chronological with valid times
   test('step values are sequential starting from 1 (before any truncation)', () => {
     const wl = response?.agentTrace?.workLog || [];
     if (wl.length === 0) return;
-    const truncIdx = wl.findIndex(e => e.action === 'worklog_truncated');
+    const truncIdx = wl.findIndex((e) => e.action === 'worklog_truncated');
     const preSection = truncIdx >= 0 ? wl.slice(0, truncIdx) : wl;
     for (let i = 0; i < preSection.length; i++) {
       expect(preSection[i].step).toBe(i + 1);
@@ -240,7 +244,7 @@ describeOrSkip('T-PA-WOL-014: persona_resolved entry exposes roleLabel only', ()
 
   test('if persona_resolved entry exists, it has roleLabel only (no personaId, no confidence)', () => {
     const wl = response?.agentTrace?.workLog || [];
-    const personaEntry = wl.find(e => e.action === 'persona_resolved');
+    const personaEntry = wl.find((e) => e.action === 'persona_resolved');
     if (!personaEntry) {
       // Persona resolution may not always trigger — skip softly
       expect(true).toBe(true);
@@ -266,7 +270,7 @@ describeOrSkip('T-PA-WOL-015: Consultation entry exposes toolCount, not toolsUse
   test('consultation_synthesis or consultation_fallback entry is present', () => {
     const wl = response?.agentTrace?.workLog || [];
     const synthEntry = wl.find(
-      e => e.action === 'consultation_synthesis' || e.action === 'consultation_fallback'
+      (e) => e.action === 'consultation_synthesis' || e.action === 'consultation_fallback'
     );
     // May not appear if routed differently; soft check
     if (synthEntry) {

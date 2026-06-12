@@ -42,7 +42,19 @@ class ProcessIntentStore {
     this._ttlMs = ttlMs;
   }
 
-  create({ operationFamily, proposedAction, targetType, targetId, inputSummary, payload, risk, createdBy, correlationId, reason, decisionFrameId }) {
+  create({
+    operationFamily,
+    proposedAction,
+    targetType,
+    targetId,
+    inputSummary,
+    payload,
+    risk,
+    createdBy,
+    correlationId,
+    reason,
+    decisionFrameId,
+  }) {
     const now = new Date();
     const intent = {
       intentId: randomUUID(),
@@ -244,7 +256,8 @@ If \`userId\` is not supplied, falls back to listing all active matrices with at
             name: 'userId',
             in: 'query',
             required: false,
-            description: 'Actor ID to filter responsibilities for (defaults to authenticated caller)',
+            description:
+              'Actor ID to filter responsibilities for (defaults to authenticated caller)',
             schema: { type: 'string', example: 'grid_operator' },
           },
           {
@@ -304,7 +317,11 @@ If \`userId\` is not supplied, falls back to listing all active matrices with at
         } else {
           const resp = await ctx.call(
             'vdmi.list',
-            { status: 'active', limit, ...(ctx.params.processType ? { processType: ctx.params.processType } : {}) },
+            {
+              status: 'active',
+              limit,
+              ...(ctx.params.processType ? { processType: ctx.params.processType } : {}),
+            },
             callOpts
           );
           items = resp.items || [];
@@ -478,7 +495,9 @@ If \`userId\` is not supplied, falls back to listing all active matrices with at
         }
         const operatorName =
           report.gridOperator?.name ?? report.gridOperator?.mastrId ?? 'Unbekannter Netzbetreiber';
-        const findings = Array.isArray(report.findings) ? report.findings.length : (report.findingsCount ?? 0);
+        const findings = Array.isArray(report.findings)
+          ? report.findings.length
+          : (report.findingsCount ?? 0);
         return {
           validationId: ctx.params.validationId,
           decision: report.decision ?? null,
@@ -523,7 +542,11 @@ Set \`requiredConfirmation: true\` in the response means Copilot must ask the us
                 type: 'object',
                 required: ['matrixId', 'reason'],
                 properties: {
-                  matrixId: { type: 'string', description: 'VDMI matrix ID', example: 'vdmi-abc123' },
+                  matrixId: {
+                    type: 'string',
+                    description: 'VDMI matrix ID',
+                    example: 'vdmi-abc123',
+                  },
                   reason: {
                     type: 'string',
                     description: 'Business reason for the nomination',
@@ -553,7 +576,14 @@ Set \`requiredConfirmation: true\` in the response means Copilot must ask the us
               'application/json': {
                 schema: {
                   type: 'object',
-                  required: ['draftId', 'action', 'target', 'summary', 'requiredConfirmation', 'auditTrail'],
+                  required: [
+                    'draftId',
+                    'action',
+                    'target',
+                    'summary',
+                    'requiredConfirmation',
+                    'auditTrail',
+                  ],
                   properties: {
                     draftId: { type: 'string', description: 'Unique ID of this draft' },
                     action: { type: 'string', example: 'nominate_vdmi_matrix' },
@@ -620,9 +650,10 @@ Set \`requiredConfirmation: true\` in the response means Copilot must ask the us
           );
         }
 
-        const warning = open.length > 0
-          ? `${open.length} offene Aufgabe(n) — Nominierung trotzdem möglich, aber unvollständige Evidenz erhöht Ablehnungsrisiko.`
-          : null;
+        const warning =
+          open.length > 0
+            ? `${open.length} offene Aufgabe(n) — Nominierung trotzdem möglich, aber unvollständige Evidenz erhöht Ablehnungsrisiko.`
+            : null;
 
         return {
           draftId: randomUUID(),
@@ -697,7 +728,14 @@ Use \`POST /api/vdmi/:id/evidence\` (Phase 3) to actually inject evidence.`,
               'application/json': {
                 schema: {
                   type: 'object',
-                  required: ['draftId', 'action', 'target', 'evidenceSuggestions', 'summary', 'auditTrail'],
+                  required: [
+                    'draftId',
+                    'action',
+                    'target',
+                    'evidenceSuggestions',
+                    'summary',
+                    'auditTrail',
+                  ],
                   properties: {
                     draftId: { type: 'string' },
                     action: { type: 'string', example: 'draft_evidence_for_vdmi' },
@@ -766,9 +804,10 @@ Use \`POST /api/vdmi/:id/evidence\` (Phase 3) to actually inject evidence.`,
           target: { matrixId: matrix.id, matrixName: matrix.name },
           evidenceSuggestions,
           openTaskCount: open.length,
-          summary: open.length === 0
-            ? `Alle Aufgaben der Matrix '${matrix.name}' sind abgeschlossen. Kein Evidenz-Entwurf nötig.`
-            : `Evidenz-Entwurf für '${matrix.name}': ${open.length} offene Aufgabe(n) ohne Nachweis.`,
+          summary:
+            open.length === 0
+              ? `Alle Aufgaben der Matrix '${matrix.name}' sind abgeschlossen. Kein Evidenz-Entwurf nötig.`
+              : `Evidenz-Entwurf für '${matrix.name}': ${open.length} offene Aufgabe(n) ohne Nachweis.`,
           requiredConfirmation: false,
           auditTrail: {
             ...audit,
@@ -814,7 +853,12 @@ The consequential execute action (\`POST /api/grid-connection/validate\`) is Pha
                   gridOperatorId: { type: 'string', example: 'SNB935578300972' },
                   gridOperatorBdew: { type: 'string', example: '9907473000008' },
                   gridOperatorName: { type: 'string', example: 'TWL Netze' },
-                  reason: { type: 'string', minLength: 1, maxLength: 500, example: 'Jahresprüfung Q2 2026' },
+                  reason: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: 500,
+                    example: 'Jahresprüfung Q2 2026',
+                  },
                   includeCapacityCheck: { type: 'boolean', default: false },
                   correlationId: { type: 'string', example: 'req-2026-001' },
                   idempotencyKey: { type: 'string', example: 'idem-twl-20260611' },
@@ -830,7 +874,15 @@ The consequential execute action (\`POST /api/grid-connection/validate\`) is Pha
               'application/json': {
                 schema: {
                   type: 'object',
-                  required: ['draftId', 'action', 'target', 'proposedValidation', 'summary', 'requiredConfirmation', 'auditTrail'],
+                  required: [
+                    'draftId',
+                    'action',
+                    'target',
+                    'proposedValidation',
+                    'summary',
+                    'requiredConfirmation',
+                    'auditTrail',
+                  ],
                   properties: {
                     draftId: { type: 'string' },
                     action: { type: 'string', example: 'run_grid_connection_validation' },
@@ -844,7 +896,8 @@ The consequential execute action (\`POST /api/grid-connection/validate\`) is Pha
                     },
                     proposedValidation: {
                       type: 'object',
-                      description: 'Parameters that would be passed to the consequential execute action',
+                      description:
+                        'Parameters that would be passed to the consequential execute action',
                     },
                     summary: { type: 'string' },
                     confirmationMessage: { type: 'string' },
@@ -860,7 +913,8 @@ The consequential execute action (\`POST /api/grid-connection/validate\`) is Pha
         },
       },
       async handler(ctx) {
-        const { gridOperatorId, gridOperatorBdew, gridOperatorName, reason, includeCapacityCheck } = ctx.params;
+        const { gridOperatorId, gridOperatorBdew, gridOperatorName, reason, includeCapacityCheck } =
+          ctx.params;
         const audit = buildAudit(ctx, ctx.params.correlationId);
 
         if (!gridOperatorId && !gridOperatorBdew && !gridOperatorName) {
@@ -956,7 +1010,12 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
                   matrixId: { type: 'string', example: 'vdmi-abc123' },
                   evidenceType: { type: 'string', minLength: 2, example: 'aktenvermerk' },
                   reference: { type: 'string', minLength: 2, example: 'REF-2026-001' },
-                  reason: { type: 'string', minLength: 1, maxLength: 500, example: 'Jahresprüfung abgeschlossen' },
+                  reason: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: 500,
+                    example: 'Jahresprüfung abgeschlossen',
+                  },
                   content: { type: 'object', description: 'Optional additional content payload' },
                   correlationId: { type: 'string', example: 'req-2026-001' },
                   idempotencyKey: { type: 'string', example: 'idem-vdmi-20260611' },
@@ -972,7 +1031,13 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
               'application/json': {
                 schema: {
                   type: 'object',
-                  required: ['intentId', 'operationFamily', 'proposedAction', 'status', 'requiresHumanConfirmation'],
+                  required: [
+                    'intentId',
+                    'operationFamily',
+                    'proposedAction',
+                    'status',
+                    'requiresHumanConfirmation',
+                  ],
                   properties: {
                     intentId: { type: 'string' },
                     operationFamily: { type: 'string', example: 'vdmi' },
@@ -1030,7 +1095,10 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
           decisionFrameId: intent.decisionFrameId,
           summary: `Evidenz-Intent erstellt für '${matrix.name}': Typ '${evidenceType}', Referenz '${reference}'. Menschliche Bestätigung erforderlich.`,
           confirmationMessage: `Bitte bestätige die Evidenz-Einbuchung in VDMI-Matrix '${matrix.name}' (${matrixId}). Typ: ${evidenceType}, Referenz: ${reference}.`,
-          executeVia: { operationId: 'executeProcessIntent', note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute' },
+          executeVia: {
+            operationId: 'executeProcessIntent',
+            note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute',
+          },
           auditTrail: { ...audit, idempotencyKey: ctx.params.idempotencyKey ?? null, reason },
         };
       },
@@ -1066,8 +1134,18 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
                 required: ['projectId', 'text', 'reason'],
                 properties: {
                   projectId: { type: 'string', example: 'znp-proj-001' },
-                  text: { type: 'string', minLength: 10, maxLength: 2000, example: 'Annahme: Netzkapazität ausreichend für Q3 2026' },
-                  reason: { type: 'string', minLength: 1, maxLength: 500, example: 'Planungsstand Q2 2026' },
+                  text: {
+                    type: 'string',
+                    minLength: 10,
+                    maxLength: 2000,
+                    example: 'Annahme: Netzkapazität ausreichend für Q3 2026',
+                  },
+                  reason: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: 500,
+                    example: 'Planungsstand Q2 2026',
+                  },
                   correlationId: { type: 'string', example: 'req-2026-001' },
                   idempotencyKey: { type: 'string', example: 'idem-znp-20260611' },
                 },
@@ -1082,7 +1160,13 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
               'application/json': {
                 schema: {
                   type: 'object',
-                  required: ['intentId', 'operationFamily', 'proposedAction', 'status', 'requiresHumanConfirmation'],
+                  required: [
+                    'intentId',
+                    'operationFamily',
+                    'proposedAction',
+                    'status',
+                    'requiresHumanConfirmation',
+                  ],
                   properties: {
                     intentId: { type: 'string' },
                     operationFamily: { type: 'string', example: 'znp' },
@@ -1140,7 +1224,10 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
           decisionFrameId: intent.decisionFrameId,
           summary: `ZNP-Annahme-Intent erstellt für '${project.name || projectId}'. Menschliche Bestätigung erforderlich.`,
           confirmationMessage: `Bitte bestätige das Hinzufügen der Planungsannahme zum ZNP-Projekt '${project.name || projectId}' (${projectId}).`,
-          executeVia: { operationId: 'executeProcessIntent', note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute' },
+          executeVia: {
+            operationId: 'executeProcessIntent',
+            note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute',
+          },
           auditTrail: { ...audit, idempotencyKey: ctx.params.idempotencyKey ?? null, reason },
         };
       },
@@ -1159,7 +1246,10 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
         netzverknuepfungspunktId: { type: 'string' },
         voltageLevel: { type: 'string' },
         bottleneckDescription: { type: 'string' },
-        n1QualityStatus: { type: 'enum', values: ['COMPLIANT', 'NON_COMPLIANT', 'CONDITIONALLY_COMPLIANT', 'UNKNOWN'] },
+        n1QualityStatus: {
+          type: 'enum',
+          values: ['COMPLIANT', 'NON_COMPLIANT', 'CONDITIONALLY_COMPLIANT', 'UNKNOWN'],
+        },
         decision: { type: 'string' },
         reason: { type: 'string', min: 1, max: 500 },
         correlationId: { type: 'string', optional: true },
@@ -1179,17 +1269,38 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['gridOperatorId', 'applicantReference', 'loadAssumptionKw', 'netzverknuepfungspunktId', 'voltageLevel', 'bottleneckDescription', 'n1QualityStatus', 'decision', 'reason'],
+                required: [
+                  'gridOperatorId',
+                  'applicantReference',
+                  'loadAssumptionKw',
+                  'netzverknuepfungspunktId',
+                  'voltageLevel',
+                  'bottleneckDescription',
+                  'n1QualityStatus',
+                  'decision',
+                  'reason',
+                ],
                 properties: {
                   gridOperatorId: { type: 'string', example: 'SNB935578300972' },
                   applicantReference: { type: 'string', example: 'APP-2026-001' },
                   loadAssumptionKw: { type: 'number', example: 150 },
                   netzverknuepfungspunktId: { type: 'string', example: 'NVP-001' },
                   voltageLevel: { type: 'string', example: 'NS' },
-                  bottleneckDescription: { type: 'string', example: 'Trafoüberlastung bei Spitzenlast' },
-                  n1QualityStatus: { type: 'string', enum: ['COMPLIANT', 'NON_COMPLIANT', 'CONDITIONALLY_COMPLIANT', 'UNKNOWN'] },
+                  bottleneckDescription: {
+                    type: 'string',
+                    example: 'Trafoüberlastung bei Spitzenlast',
+                  },
+                  n1QualityStatus: {
+                    type: 'string',
+                    enum: ['COMPLIANT', 'NON_COMPLIANT', 'CONDITIONALLY_COMPLIANT', 'UNKNOWN'],
+                  },
                   decision: { type: 'string', example: 'REJECTED' },
-                  reason: { type: 'string', minLength: 1, maxLength: 500, example: 'Netzkapazität nicht ausreichend' },
+                  reason: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: 500,
+                    example: 'Netzkapazität nicht ausreichend',
+                  },
                   correlationId: { type: 'string', example: 'req-2026-001' },
                   idempotencyKey: { type: 'string', example: 'idem-cre-20260611' },
                 },
@@ -1204,7 +1315,13 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
               'application/json': {
                 schema: {
                   type: 'object',
-                  required: ['intentId', 'operationFamily', 'proposedAction', 'status', 'requiresHumanConfirmation'],
+                  required: [
+                    'intentId',
+                    'operationFamily',
+                    'proposedAction',
+                    'status',
+                    'requiresHumanConfirmation',
+                  ],
                   properties: {
                     intentId: { type: 'string' },
                     operationFamily: { type: 'string', example: 'connectionRejectionEvidence' },
@@ -1228,16 +1345,27 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
       },
       async handler(ctx) {
         const {
-          gridOperatorId, applicantReference, loadAssumptionKw,
-          netzverknuepfungspunktId, voltageLevel, bottleneckDescription,
-          n1QualityStatus, decision, reason,
+          gridOperatorId,
+          applicantReference,
+          loadAssumptionKw,
+          netzverknuepfungspunktId,
+          voltageLevel,
+          bottleneckDescription,
+          n1QualityStatus,
+          decision,
+          reason,
         } = ctx.params;
         const audit = buildAudit(ctx, ctx.params.correlationId);
 
         const payload = {
-          gridOperatorId, applicantReference, loadAssumptionKw,
-          netzverknuepfungspunktId, voltageLevel, bottleneckDescription,
-          n1QualityStatus, decision,
+          gridOperatorId,
+          applicantReference,
+          loadAssumptionKw,
+          netzverknuepfungspunktId,
+          voltageLevel,
+          bottleneckDescription,
+          n1QualityStatus,
+          decision,
         };
 
         const inputSummary = `Create rejection evidence package for operator '${gridOperatorId}', ref '${applicantReference}'`;
@@ -1268,7 +1396,10 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
           decisionFrameId: intent.decisionFrameId,
           summary: `Ablehnungs-Nachweis-Intent erstellt für Netzbetreiber '${gridOperatorId}', Referenz '${applicantReference}'. Menschliche Bestätigung erforderlich.`,
           confirmationMessage: `Bitte bestätige die Erstellung des Ablehnungs-Nachweispakets für Netzbetreiber '${gridOperatorId}', Antragssteller-Referenz '${applicantReference}'.`,
-          executeVia: { operationId: 'executeProcessIntent', note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute' },
+          executeVia: {
+            operationId: 'executeProcessIntent',
+            note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute',
+          },
           auditTrail: { ...audit, idempotencyKey: ctx.params.idempotencyKey ?? null, reason },
         };
       },
@@ -1299,7 +1430,10 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
           },
         ],
         responses: {
-          200: { description: 'Process execution intent', content: { 'application/json': { schema: { type: 'object' } } } },
+          200: {
+            description: 'Process execution intent',
+            content: { 'application/json': { schema: { type: 'object' } } },
+          },
           404: { description: 'Intent not found' },
         },
       },
@@ -1332,13 +1466,25 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
         operationId: 'listProcessIntents',
         'x-openai-isConsequential': false,
         summary: 'List process execution intents',
-        description: 'Returns a paginated list of process execution intents. Filter by operationFamily, status, or decisionFrameId. Read-only.',
+        description:
+          'Returns a paginated list of process execution intents. Filter by operationFamily, status, or decisionFrameId. Read-only.',
         tags: [SERVICE_TAG],
         parameters: [
           { name: 'operationFamily', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'status', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'decisionFrameId', in: 'query', required: false, description: 'Filter by SCQA decision frame ID', schema: { type: 'string' } },
-          { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 20, minimum: 1, maximum: 100 } },
+          {
+            name: 'decisionFrameId',
+            in: 'query',
+            required: false,
+            description: 'Filter by SCQA decision frame ID',
+            schema: { type: 'string' },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 20, minimum: 1, maximum: 100 },
+          },
         ],
         responses: {
           200: {
@@ -1408,7 +1554,10 @@ NOT available via Copilot. Copilot prepares intents; humans execute outside Copi
           },
         },
         responses: {
-          200: { description: 'Intent executed successfully', content: { 'application/json': { schema: { type: 'object' } } } },
+          200: {
+            description: 'Intent executed successfully',
+            content: { 'application/json': { schema: { type: 'object' } } },
+          },
           404: { description: 'Intent not found' },
           409: { description: 'Intent not in executable status' },
           410: { description: 'Intent has expired' },
@@ -1429,18 +1578,32 @@ NOT available via Copilot. Copilot prepares intents; humans execute outside Copi
           throw new MoleculerClientError(`Intent ${intentId} was rejected`, 409, 'INTENT_REJECTED');
         }
         if (intent.status === 'executed') {
-          throw new MoleculerClientError(`Intent ${intentId} was already executed`, 409, 'INTENT_ALREADY_EXECUTED');
+          throw new MoleculerClientError(
+            `Intent ${intentId} was already executed`,
+            409,
+            'INTENT_ALREADY_EXECUTED'
+          );
         }
         if (intent.status === 'failed') {
-          throw new MoleculerClientError(`Intent ${intentId} previously failed`, 409, 'INTENT_FAILED');
+          throw new MoleculerClientError(
+            `Intent ${intentId} previously failed`,
+            409,
+            'INTENT_FAILED'
+          );
         }
         if (intent.status !== 'pending_confirmation') {
-          throw new MoleculerClientError(`Intent ${intentId} has invalid status: ${intent.status}`, 409, 'INTENT_INVALID_STATUS');
+          throw new MoleculerClientError(
+            `Intent ${intentId} has invalid status: ${intent.status}`,
+            409,
+            'INTENT_INVALID_STATUS'
+          );
         }
 
         try {
           await this._executeIntent(ctx, intent);
-          this.intentStore.transition(intentId, 'executed', actor, 'Human-confirmed execution', { result: 'success' });
+          this.intentStore.transition(intentId, 'executed', actor, 'Human-confirmed execution', {
+            result: 'success',
+          });
           return {
             intentId,
             status: 'executed',
@@ -1501,7 +1664,10 @@ NOT available via Copilot — not for autonomous agent use.`,
           },
         },
         responses: {
-          200: { description: 'Intent rejected', content: { 'application/json': { schema: { type: 'object' } } } },
+          200: {
+            description: 'Intent rejected',
+            content: { 'application/json': { schema: { type: 'object' } } },
+          },
           404: { description: 'Intent not found' },
           409: { description: 'Intent not in rejectable status' },
         },

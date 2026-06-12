@@ -27,9 +27,7 @@ const INPUT_PATTERNS = Object.freeze({
     aliases: ['walletDid', 'assetDid', 'didUri'],
   },
   meloId: {
-    patterns: [
-      /\b(?:melo|marktlokation|marktlokations?[-\s]?id)\s*[:=]?\s*([A-Z0-9]{10,35})\b/i,
-    ],
+    patterns: [/\b(?:melo|marktlokation|marktlokations?[-\s]?id)\s*[:=]?\s*([A-Z0-9]{10,35})\b/i],
     aliases: ['melo', 'marketLocationId', 'marktlokation'],
   },
   mastrId: {

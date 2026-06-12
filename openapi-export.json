@@ -7829,7 +7829,7 @@
             }
           }
         },
-        "description": "Returns a paginated list of process execution intents. Filter by operationFamily or status. Read-only.",
+        "description": "Returns a paginated list of process execution intents. Filter by operationFamily, status, or decisionFrameId. Read-only.",
         "parameters": [
           {
             "name": "operationFamily",
@@ -7843,6 +7843,15 @@
             "name": "status",
             "in": "query",
             "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionFrameId",
+            "in": "query",
+            "required": false,
+            "description": "Filter by SCQA decision frame ID",
             "schema": {
               "type": "string"
             }
@@ -43814,7 +43823,7 @@
     "/api/copilot/ask-cernion-agent": {
       "post": {
         "operationId": "askCernionAgent",
-        "summary": "Ask the Cernion agent for compact evidence and process context",
+        "summary": "Ask Cernion for compact evidence, guardrails and process context",
         "tags": [
           "Personal Agent"
         ],
@@ -43873,6 +43882,18 @@
                         "type": "string"
                       }
                     },
+                    "evidenceBySource": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "Evidence grouped by source: entities, knowledge, datapoints, and object-store objects."
+                    },
+                    "guardrails": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Instructions Copilot must apply before composing the final answer."
+                    },
                     "entities": {
                       "type": "array",
                       "items": {
@@ -43919,7 +43940,7 @@
             }
           }
         },
-        "description": "Read-only Copilot action. Routes a user question through the Cernion Personal Agent and returns compact structured evidence, process context, risks and next steps. It does not execute, confirm, sign, delete or modify process data.",
+        "description": "Read-only Copilot action. Returns compact structured evidence and guardrails from Cernion entity search, Knowledge RAG, datapoints and object-store context. It does not run the heavy Personal Agent chat path and does not execute, confirm, sign, delete or modify process data.",
         "requestBody": {
           "required": true,
           "content": {

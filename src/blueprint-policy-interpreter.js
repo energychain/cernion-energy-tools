@@ -167,12 +167,12 @@ function resolveActivePolicy(matchedBlueprint, session) {
     return fromBlueprint;
   }
 
-  const sessionRoutingPolicy = session && session.l3 ? session.l3.activeRoutingPolicy || null : null;
+  const sessionRoutingPolicy =
+    session && session.l3 ? session.l3.activeRoutingPolicy || null : null;
   if (sessionRoutingPolicy) {
     return {
       routingPolicy: sessionRoutingPolicy,
-      synthesisPolicy:
-        session && session.l3 ? session.l3.activeSynthesisPolicy || null : null,
+      synthesisPolicy: session && session.l3 ? session.l3.activeSynthesisPolicy || null : null,
     };
   }
 
@@ -190,7 +190,10 @@ function resolveActivePolicy(matchedBlueprint, session) {
  */
 function filterSuppressedInputs(missingInputs, doNotAskFor) {
   if (!Array.isArray(doNotAskFor) || doNotAskFor.length === 0) return missingInputs;
-  const norm = (s) => String(s || '').toLowerCase().replace(/[_\s-]+/g, '');
+  const norm = (s) =>
+    String(s || '')
+      .toLowerCase()
+      .replace(/[_\s-]+/g, '');
   return (Array.isArray(missingInputs) ? missingInputs : []).filter((missing) => {
     const normParam = norm(missing.param);
     return !doNotAskFor.some((excluded) => {

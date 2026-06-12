@@ -148,9 +148,7 @@ describe('personal-agent-context', () => {
       },
     });
 
-    expect(persisted.l3.activeRoutingPolicy.sessionIntent).toBe(
-      'municipal_energy_site_precheck'
-    );
+    expect(persisted.l3.activeRoutingPolicy.sessionIntent).toBe('municipal_energy_site_precheck');
     expect(persisted.l3.activeRoutingPolicy.avoidWorkflowTypes).toContain(
       'prosumer_nap_wallet_onboarding'
     );
@@ -341,7 +339,12 @@ describe('personal-agent-context', () => {
     expect(persisted.l3.bootstrapContext).not.toHaveProperty('tenantId');
     expect(persisted.l3.bootstrapContext).not.toHaveProperty('confidence');
     expect(persisted.l3.bootstrapContext).not.toHaveProperty('extraField');
-    expect(Object.keys(persisted.l3.bootstrapContext)).toEqual(['status', 'organizationType', 'source', 'updatedAt']);
+    expect(Object.keys(persisted.l3.bootstrapContext)).toEqual([
+      'status',
+      'organizationType',
+      'source',
+      'updatedAt',
+    ]);
   });
 
   it('keeps only minimal scoped datapoint fields and strips raw values', () => {
@@ -495,12 +498,48 @@ describe('personal-agent-context', () => {
     const { sanitizeScopedDatapoints } = require('../src/personal-agent-context');
 
     const results = sanitizeScopedDatapoints([
-      { key: 'valid.key:name-test_1', scope: 'session', source: 'knownContext', status: 'observed', updatedAt: '2026-05-28T08:00:00.000Z' },
-      { key: 'key with spaces', scope: 'session', source: 'knownContext', status: 'observed', updatedAt: '2026-05-28T08:00:00.000Z' },
-      { key: 'key/slash', scope: 'session', source: 'knownContext', status: 'observed', updatedAt: '2026-05-28T08:00:00.000Z' },
-      { key: 'key<script>', scope: 'session', source: 'knownContext', status: 'observed', updatedAt: '2026-05-28T08:00:00.000Z' },
-      { key: 'key!bang', scope: 'session', source: 'knownContext', status: 'observed', updatedAt: '2026-05-28T08:00:00.000Z' },
-      { key: 'key@at', scope: 'session', source: 'knownContext', status: 'observed', updatedAt: '2026-05-28T08:00:00.000Z' },
+      {
+        key: 'valid.key:name-test_1',
+        scope: 'session',
+        source: 'knownContext',
+        status: 'observed',
+        updatedAt: '2026-05-28T08:00:00.000Z',
+      },
+      {
+        key: 'key with spaces',
+        scope: 'session',
+        source: 'knownContext',
+        status: 'observed',
+        updatedAt: '2026-05-28T08:00:00.000Z',
+      },
+      {
+        key: 'key/slash',
+        scope: 'session',
+        source: 'knownContext',
+        status: 'observed',
+        updatedAt: '2026-05-28T08:00:00.000Z',
+      },
+      {
+        key: 'key<script>',
+        scope: 'session',
+        source: 'knownContext',
+        status: 'observed',
+        updatedAt: '2026-05-28T08:00:00.000Z',
+      },
+      {
+        key: 'key!bang',
+        scope: 'session',
+        source: 'knownContext',
+        status: 'observed',
+        updatedAt: '2026-05-28T08:00:00.000Z',
+      },
+      {
+        key: 'key@at',
+        scope: 'session',
+        source: 'knownContext',
+        status: 'observed',
+        updatedAt: '2026-05-28T08:00:00.000Z',
+      },
     ]);
 
     expect(results).toHaveLength(1);

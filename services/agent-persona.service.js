@@ -11,11 +11,8 @@ const {
   normalizeActiveLayer,
   normalizePlanningScenario,
   normalizeZnpAssetContext,
-} = require('../src/znp-context-snapshot');  // v0.56.3
-const {
-  CATALOG_BY_ROLE,
-  ALL_ROLE_KEYS,
-} = require('../src/evu-operational-persona-catalog');
+} = require('../src/znp-context-snapshot'); // v0.56.3
+const { CATALOG_BY_ROLE, ALL_ROLE_KEYS } = require('../src/evu-operational-persona-catalog');
 
 const DB_PATH = process.env.AGENT_PERSONA_DB_PATH || './data/agent-personas';
 const AUDIT_DB_PATH = process.env.AGENT_PERSONA_AUDIT_DB_PATH || './data/agent-persona-audit';
@@ -136,7 +133,10 @@ function personaSchema() {
       contextAffinities: {
         type: 'object',
         nullable: true,
-        example: { workflowTypes: ['grid_connection_validation'], domainIntents: ['grid_planning'] },
+        example: {
+          workflowTypes: ['grid_connection_validation'],
+          domainIntents: ['grid_planning'],
+        },
       },
       handoffTargets: {
         type: 'array',
@@ -327,10 +327,15 @@ function notFoundError(tenantId, id) {
 }
 
 function forbiddenTenantError(requestedTenantId, callerTenantId) {
-  return new MoleculerClientError('Cross-tenant persona access is not allowed', 403, 'PERSONA_TENANT_FORBIDDEN', {
-    tenantId: requestedTenantId,
-    callerTenantId,
-  });
+  return new MoleculerClientError(
+    'Cross-tenant persona access is not allowed',
+    403,
+    'PERSONA_TENANT_FORBIDDEN',
+    {
+      tenantId: requestedTenantId,
+      callerTenantId,
+    }
+  );
 }
 
 module.exports = {
@@ -388,9 +393,19 @@ module.exports = {
         defaultPersonalAgentSessionId: { type: 'string', trim: true, min: 1, optional: true },
         status: { type: 'enum', values: PERSONA_STATUSES, optional: true, default: 'active' },
         // v0.56.1
-        roleIds: { type: 'array', optional: true, default: [], items: { type: 'string', trim: true, min: 1 } },
+        roleIds: {
+          type: 'array',
+          optional: true,
+          default: [],
+          items: { type: 'string', trim: true, min: 1 },
+        },
         contextAffinities: { type: 'object', optional: true },
-        handoffTargets: { type: 'array', optional: true, default: [], items: { type: 'string', trim: true, min: 1 } },
+        handoffTargets: {
+          type: 'array',
+          optional: true,
+          default: [],
+          items: { type: 'string', trim: true, min: 1 },
+        },
         resolutionPolicy: { type: 'object', optional: true },
       },
       openapi: {
@@ -485,7 +500,11 @@ module.exports = {
         // v0.56.1
         roleIds: { type: 'array', optional: true, items: { type: 'string', trim: true, min: 1 } },
         contextAffinities: { type: 'object', optional: true },
-        handoffTargets: { type: 'array', optional: true, items: { type: 'string', trim: true, min: 1 } },
+        handoffTargets: {
+          type: 'array',
+          optional: true,
+          items: { type: 'string', trim: true, min: 1 },
+        },
         resolutionPolicy: { type: 'object', optional: true },
       },
       openapi: {
@@ -537,7 +556,8 @@ module.exports = {
       },
       openapi: {
         summary: 'List actor personas by role',
-        description: 'Lists all active actor personas matching one role inside the resolved tenant scope.',
+        description:
+          'Lists all active actor personas matching one role inside the resolved tenant scope.',
         tags: [OPENAPI_TAG],
         parameters: [tenantHeaderParameter(), tenantQueryParameter(), rolePathParameter()],
         responses: collectionResponse(true),
@@ -575,11 +595,15 @@ module.exports = {
         tenantId: { type: 'string', optional: true },
         id: { type: 'string', trim: true, min: 1 },
         available: { type: 'boolean', optional: true },
-        availabilityWindow: { type: 'object', optional: true, props: {
-          startHour: { type: 'number', integer: true, min: 0, max: 23, optional: true },
-          endHour: { type: 'number', integer: true, min: 0, max: 23, optional: true },
-          timezone: { type: 'string', optional: true, default: 'UTC' },
-        }},
+        availabilityWindow: {
+          type: 'object',
+          optional: true,
+          props: {
+            startHour: { type: 'number', integer: true, min: 0, max: 23, optional: true },
+            endHour: { type: 'number', integer: true, min: 0, max: 23, optional: true },
+            timezone: { type: 'string', optional: true, default: 'UTC' },
+          },
+        },
       },
       openapi: {
         summary: 'Update persona availability status and windows',
@@ -632,7 +656,11 @@ module.exports = {
               schema: {
                 type: 'object',
                 properties: {
-                  activityType: { type: 'string', example: 'interaction', enum: ['interaction', 'approval', 'message'] },
+                  activityType: {
+                    type: 'string',
+                    example: 'interaction',
+                    enum: ['interaction', 'approval', 'message'],
+                  },
                 },
               },
             },
@@ -662,7 +690,7 @@ module.exports = {
         domainIntent: { type: 'string', optional: true },
         znpProjectId: { type: 'string', optional: true },
         activeLayer: { type: 'string', optional: true },
-        planningScenario: { type: 'string', optional: true },   // v0.56.3
+        planningScenario: { type: 'string', optional: true }, // v0.56.3
         assetContext: { type: 'object', optional: true },
         hitlItemId: { type: 'string', optional: true },
         workflowCompletionState: { type: 'string', optional: true },
@@ -678,9 +706,9 @@ module.exports = {
           sourceAction: trimString(ctx.params.sourceAction),
           workflowType: trimString(ctx.params.workflowType),
           domainIntent: trimString(ctx.params.domainIntent),
-          activeLayer: normalizeActiveLayer(ctx.params.activeLayer),       // v0.56.3
+          activeLayer: normalizeActiveLayer(ctx.params.activeLayer), // v0.56.3
           planningScenario: normalizePlanningScenario(ctx.params.planningScenario), // v0.56.3
-          assetContext: normalizeZnpAssetContext(ctx.params.assetContext),  // v0.56.3
+          assetContext: normalizeZnpAssetContext(ctx.params.assetContext), // v0.56.3
           handoffPersonaId: trimString(ctx.params.handoffPersonaId),
         };
         const result = await this.resolvePersonaForContext(tenantId, context);
@@ -711,7 +739,15 @@ module.exports = {
         personaId: { type: 'string', optional: true },
         roleId: { type: 'string', optional: true },
         resolutionMode: { type: 'enum', values: RESOLUTION_MODES, optional: true },
-        limit: { type: 'number', integer: true, min: 1, max: 500, optional: true, convert: true, default: 100 },
+        limit: {
+          type: 'number',
+          integer: true,
+          min: 1,
+          max: 500,
+          optional: true,
+          convert: true,
+          default: 100,
+        },
       },
       async handler(ctx) {
         const tenantId = this.resolveTenantScopeForAudit(ctx, ctx.params.tenantId);
@@ -734,7 +770,15 @@ module.exports = {
         personaId: { type: 'string', optional: true },
         roleId: { type: 'string', optional: true },
         resolutionMode: { type: 'enum', values: RESOLUTION_MODES, optional: true },
-        limit: { type: 'number', integer: true, min: 1, max: 500, optional: true, convert: true, default: 500 },
+        limit: {
+          type: 'number',
+          integer: true,
+          min: 1,
+          max: 500,
+          optional: true,
+          convert: true,
+          default: 500,
+        },
       },
       async handler(ctx) {
         const tenantId = this.resolveTenantScopeForAudit(ctx, ctx.params.tenantId);
@@ -804,7 +848,11 @@ module.exports = {
                   properties: {
                     success: { type: 'boolean', example: true },
                     tenantId: { type: 'string', example: 'tenant-heidelberg' },
-                    created: { type: 'array', items: { type: 'string' }, example: ['customer-service', 'edm'] },
+                    created: {
+                      type: 'array',
+                      items: { type: 'string' },
+                      example: ['customer-service', 'edm'],
+                    },
                     skipped: { type: 'array', items: { type: 'string' }, example: ['billing'] },
                   },
                 },
@@ -983,7 +1031,10 @@ module.exports = {
       }
 
       if (persona.personaType === 'human' && persona.openclawUserId != null) {
-        persona.openclawUserId = this.normalizeOptionalString(persona.openclawUserId, 'openclawUserId');
+        persona.openclawUserId = this.normalizeOptionalString(
+          persona.openclawUserId,
+          'openclawUserId'
+        );
       }
 
       if (!Array.isArray(persona.assignedRoles)) {
@@ -1111,7 +1162,9 @@ module.exports = {
             ? this.normalizeOptionalString(params.openclawUserId, 'openclawUserId')
             : current.openclawUserId,
         assignedRoles:
-          params.assignedRoles !== undefined ? this.normalizeRoles(params.assignedRoles) : current.assignedRoles,
+          params.assignedRoles !== undefined
+            ? this.normalizeRoles(params.assignedRoles)
+            : current.assignedRoles,
         communicationChannels:
           params.communicationChannels !== undefined
             ? this.normalizeChannels(params.communicationChannels)
@@ -1125,7 +1178,8 @@ module.exports = {
             : current.defaultPersonalAgentSessionId,
         status: params.status !== undefined ? this.normalizeStatus(params.status) : current.status,
         // v0.56.1
-        roleIds: params.roleIds !== undefined ? this.normalizeRoleIds(params.roleIds) : current.roleIds,
+        roleIds:
+          params.roleIds !== undefined ? this.normalizeRoleIds(params.roleIds) : current.roleIds,
         contextAffinities:
           params.contextAffinities !== undefined
             ? this.normalizeContextAffinities(params.contextAffinities)
@@ -1166,7 +1220,10 @@ module.exports = {
       const personas = await this.getTenantPersonas(tenantId);
       const items = personas
         .filter((persona) => persona.status === 'active')
-        .filter((persona) => Array.isArray(persona.assignedRoles) && persona.assignedRoles.includes(normalizedRole))
+        .filter(
+          (persona) =>
+            Array.isArray(persona.assignedRoles) && persona.assignedRoles.includes(normalizedRole)
+        )
         .sort(this.sortByNameThenId)
         .map((persona) => this.toPublic(persona));
 
@@ -1174,7 +1231,9 @@ module.exports = {
     },
 
     sortByNameThenId(left, right) {
-      const nameCompare = String(left?.personaName || '').localeCompare(String(right?.personaName || ''));
+      const nameCompare = String(left?.personaName || '').localeCompare(
+        String(right?.personaName || '')
+      );
       if (nameCompare !== 0) return nameCompare;
       return String(left?.id || '').localeCompare(String(right?.id || ''));
     },
@@ -1191,7 +1250,8 @@ module.exports = {
       const updated = {
         ...current,
         available: params.available !== undefined ? params.available : current.available,
-        availabilityWindow: params.availabilityWindow || current.availabilityWindow || { startHour: 0, endHour: 24, timezone: 'UTC' },
+        availabilityWindow: params.availabilityWindow ||
+          current.availabilityWindow || { startHour: 0, endHour: 24, timezone: 'UTC' },
         updatedAt: nowIso(),
       };
 
@@ -1232,9 +1292,13 @@ module.exports = {
     normalizeContextAffinities(value) {
       if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
       const ALLOWED_KEYS = [
-        'workflowTypes', 'domainIntents', 'activeLayers',
-        'planningScenarios', 'assetTypes',           // v0.56.3
-        'sourceServices', 'sourceActions',
+        'workflowTypes',
+        'domainIntents',
+        'activeLayers',
+        'planningScenarios',
+        'assetTypes', // v0.56.3
+        'sourceServices',
+        'sourceActions',
       ];
       const result = {};
       for (const key of ALLOWED_KEYS) {
@@ -1346,7 +1410,7 @@ module.exports = {
       check(context.domainIntent, 'domainIntents', 3, 'domainIntent');
       check(context.activeLayer, 'activeLayers', 2, 'activeLayer');
       check(context.planningScenario, 'planningScenarios', 2, 'planningScenario'); // v0.56.3
-      check(context.assetContext?.assetType, 'assetTypes', 1, 'assetType');        // v0.56.3
+      check(context.assetContext?.assetType, 'assetTypes', 1, 'assetType'); // v0.56.3
       check(context.sourceService, 'sourceServices', 1, 'sourceService');
       check(context.sourceAction, 'sourceActions', 1, 'sourceAction');
 
@@ -1442,7 +1506,9 @@ module.exports = {
         resolutionMode: trimString(rp.resolutionMode) || null,
         confidence: typeof rp.confidence === 'number' ? rp.confidence : null,
         matchedSignals: Array.isArray(rp.matchedSignals) ? rp.matchedSignals.slice(0, 32) : [],
-        fallbackPersonaIds: Array.isArray(rp.fallbackPersonaIds) ? rp.fallbackPersonaIds.slice(0, 64) : [],
+        fallbackPersonaIds: Array.isArray(rp.fallbackPersonaIds)
+          ? rp.fallbackPersonaIds.slice(0, 64)
+          : [],
         resolved: true,
         reason: null,
         timestamp: new Date().toISOString(),
@@ -1493,7 +1559,9 @@ module.exports = {
         roleId: trimString(payload.roleId) || null,
         resolutionMode: trimString(payload.resolutionMode) || null,
         confidence: typeof payload.confidence === 'number' ? payload.confidence : null,
-        matchedSignals: Array.isArray(payload.matchedSignals) ? payload.matchedSignals.slice(0, 32) : [],
+        matchedSignals: Array.isArray(payload.matchedSignals)
+          ? payload.matchedSignals.slice(0, 32)
+          : [],
         fallbackPersonaIds: Array.isArray(payload.fallbackPersonaIds)
           ? payload.fallbackPersonaIds.slice(0, 64)
           : [],
@@ -1558,7 +1626,8 @@ module.exports = {
       if (filters.toMs != null && (Number.isNaN(ts) || ts > filters.toMs)) return false;
       if (filters.personaId && trimString(doc.personaId) !== filters.personaId) return false;
       if (filters.roleId && trimString(doc.roleId) !== filters.roleId) return false;
-      if (filters.resolutionMode && trimString(doc.resolutionMode) !== filters.resolutionMode) return false;
+      if (filters.resolutionMode && trimString(doc.resolutionMode) !== filters.resolutionMode)
+        return false;
       return true;
     },
 
@@ -1602,7 +1671,9 @@ module.exports = {
     async seedEvuOperationalPersonas(tenantId, options = {}) {
       const { roles, overwrite } = options;
       const requestedRoles =
-        Array.isArray(roles) && roles.length > 0 ? roles.map((r) => trimString(r)).filter(Boolean) : ALL_ROLE_KEYS;
+        Array.isArray(roles) && roles.length > 0
+          ? roles.map((r) => trimString(r)).filter(Boolean)
+          : ALL_ROLE_KEYS;
 
       const unknownRoles = requestedRoles.filter((r) => !CATALOG_BY_ROLE.has(r));
       if (unknownRoles.length > 0) {

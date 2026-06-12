@@ -92,9 +92,11 @@ function computeLiquidityRiskIndex(retainedCents, oldLawCents) {
 
 const RULE_ARM_REASONS = {
   none: 'No refinancing contribution applies for this interval under the current scenario assumptions.',
-  negative_price: 'Market price is negative; EEG payment claim/payment obligation is modelled as zero for this interval.',
+  negative_price:
+    'Market price is negative; EEG payment claim/payment obligation is modelled as zero for this interval.',
   sub_floor: 'Market price is positive but below the technology-specific dynamic floor.',
-  excess_profit: 'Market value proxy exceeds the anzulegender Wert (AW); excess value is modelled as refinancing contribution.',
+  excess_profit:
+    'Market value proxy exceeds the anzulegender Wert (AW); excess value is modelled as refinancing contribution.',
 };
 
 const DEFAULT_REFINANCING_CONFIG = {
@@ -149,8 +151,9 @@ function runCalculation(asset, prices, injection, options = {}) {
   );
   const marketValueProxyCentsPerKwh =
     marketValueDenominator > 0 ? marketValueNumerator / marketValueDenominator : 0;
-  const marketValueExcessCentsPerKwh =
-    refinancingEligible ? Math.max(marketValueProxyCentsPerKwh - awCentsPerKwh, 0) : 0;
+  const marketValueExcessCentsPerKwh = refinancingEligible
+    ? Math.max(marketValueProxyCentsPerKwh - awCentsPerKwh, 0)
+    : 0;
 
   // Running accumulators
   let totalVolumeKwh = 0;

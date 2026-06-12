@@ -173,16 +173,16 @@ module.exports = {
 
         const requestedLimit = Math.min(Number(ctx.params.limit) || 20, 100);
         // Fetch more if we need to post-filter by linkedEntityId
-        const fetchLimit = ctx.params.linkedEntityId ? Math.min(requestedLimit * 10, 500) : requestedLimit;
+        const fetchLimit = ctx.params.linkedEntityId
+          ? Math.min(requestedLimit * 10, 500)
+          : requestedLimit;
 
         const result = await this.db.find({ selector, limit: fetchLimit });
         let docs = result.docs;
 
         if (ctx.params.linkedEntityId) {
           docs = docs
-            .filter((d) =>
-              (d.linkedEntities || []).some((e) => e.id === ctx.params.linkedEntityId)
-            )
+            .filter((d) => (d.linkedEntities || []).some((e) => e.id === ctx.params.linkedEntityId))
             .slice(0, requestedLimit);
         }
 
@@ -334,9 +334,7 @@ module.exports = {
           contextParts.push(`Netzbetreiber-ID: ${ctx.params.gridOperatorId}`);
         }
 
-        const domainHint = ctx.params.domain
-          ? `Ziel-Domäne: ${ctx.params.domain}\n`
-          : '';
+        const domainHint = ctx.params.domain ? `Ziel-Domäne: ${ctx.params.domain}\n` : '';
         const contextBlock =
           contextParts.length > 0 ? `Verfügbarer Kontext:\n${contextParts.join('\n')}\n\n` : '';
 

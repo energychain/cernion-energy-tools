@@ -46,7 +46,9 @@ module.exports = {
       }
 
       if (!payload.tenantId || typeof payload.tenantId !== 'string' || !payload.tenantId.trim()) {
-        this.logger?.warn('Rejected personal-agent.work-out-loud event: missing or invalid tenantId');
+        this.logger?.warn(
+          'Rejected personal-agent.work-out-loud event: missing or invalid tenantId'
+        );
         return null;
       }
 

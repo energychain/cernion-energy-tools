@@ -7,7 +7,11 @@ let broker;
 const SAMPLE_SUMMARY = {
   totalVolumeKwh: 960,
   calculatedUnderOldLaw: { totalRevenueCents: 7200, marketPremiumCents: 0, curtailedHoursCount: 0 },
-  calculatedUnderNewLaw: { totalRefinancingContributionCents: 0, retainedRevenueCents: 7200, clawbackTriggeredIntervalsCount: 0 },
+  calculatedUnderNewLaw: {
+    totalRefinancingContributionCents: 0,
+    retainedRevenueCents: 7200,
+    clawbackTriggeredIntervalsCount: 0,
+  },
   deltaCents: 0,
   liquidityRiskIndex: 'low',
 };

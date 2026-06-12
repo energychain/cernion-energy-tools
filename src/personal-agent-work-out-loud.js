@@ -79,7 +79,10 @@ const VALID_UPDATE_REASONS = new Set([
 
 function sanitizeString(value, { maxLength = 120 } = {}) {
   if (typeof value !== 'string') return null;
-  const normalized = value.slice(0, maxLength).trim().replace(/[\x00-\x1f]/g, '');
+  const normalized = value
+    .slice(0, maxLength)
+    .trim()
+    .replace(/[\x00-\x1f]/g, '');
   return normalized || null;
 }
 
@@ -223,8 +226,7 @@ function buildWorkOutLoudPayload(input = {}) {
 
   const relevance = sanitizeRelevance(input.relevance || {});
   const evidence = sanitizeEvidence(input.evidence || {});
-  const timestamp =
-    sanitizeString(input.timestamp, { maxLength: 64 }) || new Date().toISOString();
+  const timestamp = sanitizeString(input.timestamp, { maxLength: 64 }) || new Date().toISOString();
 
   if (Number.isNaN(Date.parse(timestamp))) return null;
 
@@ -292,7 +294,15 @@ function validateWorkOutLoudPayload(payload) {
   }
 
   const rootKeys = Object.keys(payload || {}).sort();
-  const allowedRootKeys = ['agentId', 'evidence', 'relevance', 'signal', 'tenantId', 'timestamp', 'userId'];
+  const allowedRootKeys = [
+    'agentId',
+    'evidence',
+    'relevance',
+    'signal',
+    'tenantId',
+    'timestamp',
+    'userId',
+  ];
   if (JSON.stringify(rootKeys) !== JSON.stringify(allowedRootKeys)) {
     throw new Error('Unexpected root keys in Work Out Loud payload');
   }
@@ -303,7 +313,9 @@ function validateWorkOutLoudPayload(payload) {
   }
 
   const relevanceKeys = Object.keys(payload.relevance || {}).sort();
-  if (JSON.stringify(relevanceKeys) !== JSON.stringify(['suggestedCapabilities', 'suggestedRoles'])) {
+  if (
+    JSON.stringify(relevanceKeys) !== JSON.stringify(['suggestedCapabilities', 'suggestedRoles'])
+  ) {
     throw new Error('Unexpected relevance keys in Work Out Loud payload');
   }
 

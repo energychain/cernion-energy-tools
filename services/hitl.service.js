@@ -171,8 +171,11 @@ module.exports = {
           severity: ctx.params.severity,
           requiredScope: ctx.params.requiredScope,
           payload: ctx.params.payload || {},
-          responsibleRole: personaRouting?.responsibleRole || trimString(ctx.params.responsibleRole) || null,
-          requiredResolverRoles: personaRouting?.requiredResolverRoles || uniqueStrings(ctx.params.requiredResolverRoles),
+          responsibleRole:
+            personaRouting?.responsibleRole || trimString(ctx.params.responsibleRole) || null,
+          requiredResolverRoles:
+            personaRouting?.requiredResolverRoles ||
+            uniqueStrings(ctx.params.requiredResolverRoles),
           personaId: personaRouting?.personaId || null,
           personaName: personaRouting?.personaName || null,
           personaType: personaRouting?.personaType || null,
@@ -199,7 +202,11 @@ module.exports = {
         const putResult = await this.db.put(item);
         item._rev = putResult.rev;
 
-        const notificationSummary = await this.dispatchHitlApprovalNotification(ctx, tenantId, item);
+        const notificationSummary = await this.dispatchHitlApprovalNotification(
+          ctx,
+          tenantId,
+          item
+        );
         if (notificationSummary) {
           item.notification = notificationSummary;
           item.updatedAt = nowIso();
@@ -998,7 +1005,9 @@ module.exports = {
 
     async resolvePersonaRouting(ctx, tenantId, params = {}) {
       const routingContext =
-        params.routingContext && typeof params.routingContext === 'object' ? params.routingContext : null;
+        params.routingContext && typeof params.routingContext === 'object'
+          ? params.routingContext
+          : null;
       const candidateRoles = uniqueStrings([
         params.responsibleRole,
         routingContext?.responsibleRole,
@@ -1126,7 +1135,9 @@ module.exports = {
         action: `resolution_${status}`,
         actor: this.buildInterventionActor(ctx).actor || 'system',
         stepNumber: (item.agent_interventions || []).length + 1,
-        duration_seconds: item.createdAt ? Math.round((Date.parse(resolvedAt) - Date.parse(item.createdAt)) / 1000) : null,
+        duration_seconds: item.createdAt
+          ? Math.round((Date.parse(resolvedAt) - Date.parse(item.createdAt)) / 1000)
+          : null,
       };
 
       const updated = {

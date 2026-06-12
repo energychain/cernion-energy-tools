@@ -94,7 +94,7 @@ const STATE_FULL_NAME_MAP = [
   ['thueringen', 'Thüringen'],
   ['thuringen', 'Thüringen'],
   ['hessen', 'Hessen'],
-  ['sachsen', 'Sachsen'],  // AFTER sachsen-anhalt to prevent partial match
+  ['sachsen', 'Sachsen'], // AFTER sachsen-anhalt to prevent partial match
   ['bavaria', 'Bayern'],
   ['bayern', 'Bayern'],
 ];
@@ -119,19 +119,42 @@ const STATE_ABBREV_PATTERNS = [
 // Lowercase canonical state names — used to prevent extracting a Bundesland name
 // as a municipality/city candidate (e.g. "in Baden-Württemberg" must not set municipality).
 const CANONICAL_STATE_NAMES_LOWER = new Set([
-  'thüringen', 'thueringen', 'thuringen', 'bayern', 'bavaria',
-  'nordrhein-westfalen', 'nordrhein westfalen',
-  'bad.-württ.', 'bawü', 'bawue', 'bad.-wuertt.',
-  'baden-württemberg', 'baden-wuerttemberg',
-  'schleswig-holstein', 'mecklenburg-vorpommern',
-  'sachsen-anhalt', 'sachsen', 'brandenb', 'bb', 'brandenburg',
-  'hessen', 'rheinland-pfalz', 'saarland', 'niedersachsen',
+  'thüringen',
+  'thueringen',
+  'thuringen',
+  'bayern',
+  'bavaria',
+  'nordrhein-westfalen',
+  'nordrhein westfalen',
+  'bad.-württ.',
+  'bawü',
+  'bawue',
+  'bad.-wuertt.',
+  'baden-württemberg',
+  'baden-wuerttemberg',
+  'schleswig-holstein',
+  'mecklenburg-vorpommern',
+  'sachsen-anhalt',
+  'sachsen',
+  'brandenb',
+  'bb',
+  'brandenburg',
+  'hessen',
+  'rheinland-pfalz',
+  'saarland',
+  'niedersachsen',
   // City-states: ambiguous as city names, but guard them in municipality extraction
-  'berlin', 'hamburg', 'bremen',
+  'berlin',
+  'hamburg',
+  'bremen',
 ]);
 
 function isCanonicalStateName(text = '') {
-  return CANONICAL_STATE_NAMES_LOWER.has(String(text || '').toLowerCase().trim());
+  return CANONICAL_STATE_NAMES_LOWER.has(
+    String(text || '')
+      .toLowerCase()
+      .trim()
+  );
 }
 
 // German PLZ prefix (first 2 digits) → Bundesland hint.
@@ -139,33 +162,91 @@ function isCanonicalStateName(text = '') {
 // When PLZ + municipality are both present, use this to derive state and prevent
 // false positives from single-letter abbreviations in city names.
 const PLZ_PREFIX_TO_STATE = {
-  '01': 'Sachsen', '02': 'Sachsen', '04': 'Sachsen', '08': 'Sachsen', '09': 'Sachsen',
-  '03': 'Brandenburg', '14': 'Brandenburg', '15': 'Brandenburg', '16': 'Brandenburg',
-  '06': 'Sachsen-Anhalt', '39': 'Sachsen-Anhalt',
-  '07': 'Thüringen', '98': 'Thüringen', '99': 'Thüringen',
-  '17': 'Mecklenburg-Vorpommern', '18': 'Mecklenburg-Vorpommern', '19': 'Mecklenburg-Vorpommern',
-  '23': 'Schleswig-Holstein', '24': 'Schleswig-Holstein', '25': 'Schleswig-Holstein',
-  '26': 'Niedersachsen', '27': 'Niedersachsen', '29': 'Niedersachsen',
-  '30': 'Niedersachsen', '31': 'Niedersachsen', '38': 'Niedersachsen', '49': 'Niedersachsen',
-  '34': 'Hessen', '35': 'Hessen', '36': 'Hessen',
-  '40': 'Nordrhein-Westfalen', '41': 'Nordrhein-Westfalen', '42': 'Nordrhein-Westfalen',
-  '44': 'Nordrhein-Westfalen', '45': 'Nordrhein-Westfalen', '46': 'Nordrhein-Westfalen',
-  '47': 'Nordrhein-Westfalen', '48': 'Nordrhein-Westfalen', '50': 'Nordrhein-Westfalen',
-  '51': 'Nordrhein-Westfalen', '52': 'Nordrhein-Westfalen', '53': 'Nordrhein-Westfalen',
-  '57': 'Nordrhein-Westfalen', '58': 'Nordrhein-Westfalen', '59': 'Nordrhein-Westfalen',
-  '33': 'Nordrhein-Westfalen',
-  '54': 'Rheinland-Pfalz', '55': 'Rheinland-Pfalz', '56': 'Rheinland-Pfalz',
-  '60': 'Hessen', '61': 'Hessen', '63': 'Hessen', '64': 'Hessen', '65': 'Hessen',
-  '66': 'Saarland', '67': 'Rheinland-Pfalz',
-  '68': 'Baden-Württemberg', '69': 'Baden-Württemberg',
-  '70': 'Baden-Württemberg', '71': 'Baden-Württemberg', '72': 'Baden-Württemberg',
-  '73': 'Baden-Württemberg', '74': 'Baden-Württemberg', '75': 'Baden-Württemberg',
-  '76': 'Baden-Württemberg', '77': 'Baden-Württemberg', '78': 'Baden-Württemberg',
-  '79': 'Baden-Württemberg', '88': 'Baden-Württemberg',
-  '80': 'Bayern', '81': 'Bayern', '82': 'Bayern', '83': 'Bayern', '84': 'Bayern',
-  '85': 'Bayern', '86': 'Bayern', '87': 'Bayern', '90': 'Bayern', '91': 'Bayern',
-  '92': 'Bayern', '93': 'Bayern', '94': 'Bayern', '95': 'Bayern', '96': 'Bayern',
-  '97': 'Bayern',
+  '01': 'Sachsen',
+  '02': 'Sachsen',
+  '04': 'Sachsen',
+  '08': 'Sachsen',
+  '09': 'Sachsen',
+  '03': 'Brandenburg',
+  14: 'Brandenburg',
+  15: 'Brandenburg',
+  16: 'Brandenburg',
+  '06': 'Sachsen-Anhalt',
+  39: 'Sachsen-Anhalt',
+  '07': 'Thüringen',
+  98: 'Thüringen',
+  99: 'Thüringen',
+  17: 'Mecklenburg-Vorpommern',
+  18: 'Mecklenburg-Vorpommern',
+  19: 'Mecklenburg-Vorpommern',
+  23: 'Schleswig-Holstein',
+  24: 'Schleswig-Holstein',
+  25: 'Schleswig-Holstein',
+  26: 'Niedersachsen',
+  27: 'Niedersachsen',
+  29: 'Niedersachsen',
+  30: 'Niedersachsen',
+  31: 'Niedersachsen',
+  38: 'Niedersachsen',
+  49: 'Niedersachsen',
+  34: 'Hessen',
+  35: 'Hessen',
+  36: 'Hessen',
+  40: 'Nordrhein-Westfalen',
+  41: 'Nordrhein-Westfalen',
+  42: 'Nordrhein-Westfalen',
+  44: 'Nordrhein-Westfalen',
+  45: 'Nordrhein-Westfalen',
+  46: 'Nordrhein-Westfalen',
+  47: 'Nordrhein-Westfalen',
+  48: 'Nordrhein-Westfalen',
+  50: 'Nordrhein-Westfalen',
+  51: 'Nordrhein-Westfalen',
+  52: 'Nordrhein-Westfalen',
+  53: 'Nordrhein-Westfalen',
+  57: 'Nordrhein-Westfalen',
+  58: 'Nordrhein-Westfalen',
+  59: 'Nordrhein-Westfalen',
+  33: 'Nordrhein-Westfalen',
+  54: 'Rheinland-Pfalz',
+  55: 'Rheinland-Pfalz',
+  56: 'Rheinland-Pfalz',
+  60: 'Hessen',
+  61: 'Hessen',
+  63: 'Hessen',
+  64: 'Hessen',
+  65: 'Hessen',
+  66: 'Saarland',
+  67: 'Rheinland-Pfalz',
+  68: 'Baden-Württemberg',
+  69: 'Baden-Württemberg',
+  70: 'Baden-Württemberg',
+  71: 'Baden-Württemberg',
+  72: 'Baden-Württemberg',
+  73: 'Baden-Württemberg',
+  74: 'Baden-Württemberg',
+  75: 'Baden-Württemberg',
+  76: 'Baden-Württemberg',
+  77: 'Baden-Württemberg',
+  78: 'Baden-Württemberg',
+  79: 'Baden-Württemberg',
+  88: 'Baden-Württemberg',
+  80: 'Bayern',
+  81: 'Bayern',
+  82: 'Bayern',
+  83: 'Bayern',
+  84: 'Bayern',
+  85: 'Bayern',
+  86: 'Bayern',
+  87: 'Bayern',
+  90: 'Bayern',
+  91: 'Bayern',
+  92: 'Bayern',
+  93: 'Bayern',
+  94: 'Bayern',
+  95: 'Bayern',
+  96: 'Bayern',
+  97: 'Bayern',
 };
 
 /**
@@ -173,7 +254,9 @@ const PLZ_PREFIX_TO_STATE = {
  * Returns null when the prefix covers multiple states (border zones) or is unknown.
  */
 function inferStateFromPostalCode(postalCode = '') {
-  const prefix = String(postalCode || '').trim().slice(0, 2);
+  const prefix = String(postalCode || '')
+    .trim()
+    .slice(0, 2);
   return PLZ_PREFIX_TO_STATE[prefix] || null;
 }
 
@@ -183,7 +266,8 @@ function inferStateFromPostalCode(postalCode = '') {
 const VNB_NAME_PATTERN =
   /\b(netze\s+bw|bayernwerk\s+netz|e\.dis\s+netz|shng|mitnetz\s+strom|westnetz|netz\s+hamburg|stromnetz\s+hamburg|swd\s+netz|lew\s+verteilnetz|e\.on\s+netz|rheinische\s+netzgesellschaft|rhein-ruhr\s+netz|netz\s+niederrhein)\b/i;
 const VNB_SUFFIX_PATTERN = /\b(verteilnetz|netz(?:gesellschaft|betrieb)?|netze)\b/i;
-const STADTWERK_PREFIX_PATTERN = /\b(stadtwerke?|stadtwerk|sw[a-z]{1,6}|sw\s+[a-z]+|stadtbetriebe?)\b/i;
+const STADTWERK_PREFIX_PATTERN =
+  /\b(stadtwerke?|stadtwerk|sw[a-z]{1,6}|sw\s+[a-z]+|stadtbetriebe?)\b/i;
 const LIEFERANT_PATTERN =
   /\b(lieferant|vertrieb|grundversorger|strom(?:lieferant|anbieter|versorger)|energiehandel|e-werk(?!\s*netz)|energievertrieb)\b/i;
 const MSB_PATTERN = /\b(messstellenbetreiber|msb|grundzust[aä]ndiger\s+msb|mes(?:ss)?techniker)\b/i;
@@ -338,7 +422,12 @@ function resolveLocationFromText(text = '', ctx = {}) {
     if (lat >= 47 && lat <= 56 && lon >= 5 && lon <= 16) {
       latitude = lat;
       longitude = lon;
-      evidence.push({ field: 'coordinates', value: `${lat},${lon}`, source: 'text_coord_pattern', confidence: 0.99 });
+      evidence.push({
+        field: 'coordinates',
+        value: `${lat},${lon}`,
+        source: 'text_coord_pattern',
+        confidence: 0.99,
+      });
       candidates.push({ latitude, longitude, source: 'text_coord' });
     }
   }
@@ -348,7 +437,12 @@ function resolveLocationFromText(text = '', ctx = {}) {
   const addrMatch = STREET_ADDRESS_PATTERN.exec(haystack);
   if (addrMatch) {
     address = addrMatch[0].trim();
-    evidence.push({ field: 'address', value: address, source: 'text_address_pattern', confidence: 0.82 });
+    evidence.push({
+      field: 'address',
+      value: address,
+      source: 'text_address_pattern',
+      confidence: 0.82,
+    });
     candidates.push({ address, source: 'text_address' });
   }
 
@@ -359,13 +453,23 @@ function resolveLocationFromText(text = '', ctx = {}) {
   const plzMatch = POSTAL_CODE_PATTERN.exec(haystack);
   if (plzMatch) {
     postalCode = plzMatch[1];
-    evidence.push({ field: 'postalCode', value: postalCode, source: 'text_plz_pattern', confidence: 0.95 });
+    evidence.push({
+      field: 'postalCode',
+      value: postalCode,
+      source: 'text_plz_pattern',
+      confidence: 0.95,
+    });
   }
 
   const cityAfterPlzMatch = CITY_AFTER_POSTAL_PATTERN.exec(haystack);
   if (cityAfterPlzMatch) {
     municipality = cityAfterPlzMatch[1].trim();
-    evidence.push({ field: 'municipality', value: municipality, source: 'text_plz_city_pattern', confidence: 0.92 });
+    evidence.push({
+      field: 'municipality',
+      value: municipality,
+      source: 'text_plz_city_pattern',
+      confidence: 0.92,
+    });
     candidates.push({ postalCode, municipality, source: 'text_plz_city' });
   }
 
@@ -377,7 +481,12 @@ function resolveLocationFromText(text = '', ctx = {}) {
       const raw = cityBeforeStateMatch[1].trim();
       if (/^[A-ZÄÖÜ]/.test(raw) && raw.length >= 3 && !isCanonicalStateName(raw)) {
         municipality = raw;
-        evidence.push({ field: 'municipality', value: municipality, source: 'text_city_before_state_pattern', confidence: 0.88 });
+        evidence.push({
+          field: 'municipality',
+          value: municipality,
+          source: 'text_city_before_state_pattern',
+          confidence: 0.88,
+        });
         candidates.push({ municipality, source: 'text_city_before_state' });
       }
     }
@@ -391,11 +500,17 @@ function resolveLocationFromText(text = '', ctx = {}) {
       // Reject common stop words, overly short strings, lowercase starts, and state names.
       // The uppercase and isCanonicalStateName checks prevent "genannt", "gemeint",
       // "Baden-Württemberg" etc. from being accepted as city names.
-      const isStopWord = /^(ein|die|der|das|ich|wir|sie|ihr|uns|und|auf|bei|von|dem|den|des|mit|aus)\b/i.test(raw);
+      const isStopWord =
+        /^(ein|die|der|das|ich|wir|sie|ihr|uns|und|auf|bei|von|dem|den|des|mit|aus)\b/i.test(raw);
       const startsUppercase = /^[A-ZÄÖÜ]/.test(raw);
       if (!isStopWord && startsUppercase && raw.length >= 3 && !isCanonicalStateName(raw)) {
         municipality = raw;
-        evidence.push({ field: 'municipality', value: municipality, source: 'text_keyword_pattern', confidence: 0.78 });
+        evidence.push({
+          field: 'municipality',
+          value: municipality,
+          source: 'text_keyword_pattern',
+          confidence: 0.78,
+        });
         candidates.push({ municipality, source: 'text_keyword' });
       }
     }
@@ -423,7 +538,12 @@ function resolveLocationFromText(text = '', ctx = {}) {
     });
     if (textState && textState !== plzDerivedState) {
       // Record the discrepancy without replacing the PLZ-derived state
-      evidence.push({ field: 'state_text_conflict', value: textState, source: 'text_state_pattern', confidence: 0.4 });
+      evidence.push({
+        field: 'state_text_conflict',
+        value: textState,
+        source: 'text_state_pattern',
+        confidence: 0.4,
+      });
     }
   } else if (textState) {
     state = textState;
@@ -447,12 +567,22 @@ function resolveLocationFromText(text = '', ctx = {}) {
   const gewMatch = GEWERBEGEBIET_PATTERN.exec(haystack);
   if (gewMatch) {
     approximateHint = gewMatch[0].trim();
-    evidence.push({ field: 'approximateHint', value: approximateHint, source: 'text_area_keyword', confidence: 0.5 });
+    evidence.push({
+      field: 'approximateHint',
+      value: approximateHint,
+      source: 'text_area_keyword',
+      confidence: 0.5,
+    });
   }
   if (!approximateHint && AUTOBAHN_PROXIMITY_PATTERN.test(haystack)) {
     const abMatch = AUTOBAHN_PROXIMITY_PATTERN.exec(haystack);
     approximateHint = abMatch ? abMatch[0].trim() : 'Autobahn-Nähe';
-    evidence.push({ field: 'approximateHint', value: approximateHint, source: 'text_autobahn_proximity', confidence: 0.4 });
+    evidence.push({
+      field: 'approximateHint',
+      value: approximateHint,
+      source: 'text_autobahn_proximity',
+      confidence: 0.4,
+    });
   }
 
   // ── Merge: structured context wins over extracted values ──

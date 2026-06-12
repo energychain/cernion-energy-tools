@@ -23,7 +23,12 @@ const MOCK_MATRIX = {
   findingCount: 0,
   createdAt: '2026-01-01T08:00:00Z',
   tasks: [
-    { id: 't1', label: 'Unterlagen prüfen', status: 'open', verantwortlich: [{ actorId: 'grid_operator' }] },
+    {
+      id: 't1',
+      label: 'Unterlagen prüfen',
+      status: 'open',
+      verantwortlich: [{ actorId: 'grid_operator' }],
+    },
     { id: 't2', label: 'Netzanschluss freigeben', status: 'done', verantwortlich: [] },
   ],
 };
@@ -47,7 +52,13 @@ const MOCK_GRID_REPORT = {
 
 // ── Helper: build isolated broker with mocked dependencies ────────────────────
 
-async function buildBroker({ vdmiMatrix, vdmiMatrixNotFound, znpProject, gridReport, vnbItems } = {}) {
+async function buildBroker({
+  vdmiMatrix,
+  vdmiMatrixNotFound,
+  znpProject,
+  gridReport,
+  vnbItems,
+} = {}) {
   const broker = new ServiceBroker({ logger: false });
   broker.createService(CopilotProcessService);
 
@@ -113,7 +124,9 @@ describe('copilot-process service', () => {
   // ── getVdmiContext ──────────────────────────────────────────────────────────
   describe('getVdmiContext (read-only)', () => {
     let broker;
-    beforeAll(async () => { broker = await buildBroker(); });
+    beforeAll(async () => {
+      broker = await buildBroker();
+    });
     afterAll(() => broker.stop());
 
     it('requires matrixId', async () => {
@@ -121,7 +134,9 @@ describe('copilot-process service', () => {
     });
 
     it('returns full context shape', async () => {
-      const result = await broker.call('copilot-process.getVdmiContext', { matrixId: 'vdmi-test-1' });
+      const result = await broker.call('copilot-process.getVdmiContext', {
+        matrixId: 'vdmi-test-1',
+      });
 
       expect(result).toHaveProperty('matrixId', 'vdmi-test-1');
       expect(result).toHaveProperty('name', 'Netzanschluss-Genehmigung PV');
@@ -137,13 +152,17 @@ describe('copilot-process service', () => {
     });
 
     it('counts only non-done tasks as open', async () => {
-      const result = await broker.call('copilot-process.getVdmiContext', { matrixId: 'vdmi-test-1' });
+      const result = await broker.call('copilot-process.getVdmiContext', {
+        matrixId: 'vdmi-test-1',
+      });
       // MOCK_MATRIX has t1=open, t2=done → openTaskCount=1
       expect(result.openTaskCount).toBe(1);
     });
 
     it('includes nominationStatus in result', async () => {
-      const result = await broker.call('copilot-process.getVdmiContext', { matrixId: 'vdmi-test-1' });
+      const result = await broker.call('copilot-process.getVdmiContext', {
+        matrixId: 'vdmi-test-1',
+      });
       expect(result).toHaveProperty('nominationStatus');
     });
 
@@ -159,7 +178,9 @@ describe('copilot-process service', () => {
   // ── listOpenResponsibilities ────────────────────────────────────────────────
   describe('listOpenResponsibilities (read-only)', () => {
     let broker;
-    beforeAll(async () => { broker = await buildBroker(); });
+    beforeAll(async () => {
+      broker = await buildBroker();
+    });
     afterAll(() => broker.stop());
 
     it('returns count and responsibilities array', async () => {
@@ -211,7 +232,9 @@ describe('copilot-process service', () => {
   // ── getZnpProjectStatus ─────────────────────────────────────────────────────
   describe('getZnpProjectStatus (read-only)', () => {
     let broker;
-    beforeAll(async () => { broker = await buildBroker(); });
+    beforeAll(async () => {
+      broker = await buildBroker();
+    });
     afterAll(() => broker.stop());
 
     it('requires projectId', async () => {
@@ -242,11 +265,15 @@ describe('copilot-process service', () => {
   // ── getGridConnectionValidation ─────────────────────────────────────────────
   describe('getGridConnectionValidation (read-only)', () => {
     let broker;
-    beforeAll(async () => { broker = await buildBroker(); });
+    beforeAll(async () => {
+      broker = await buildBroker();
+    });
     afterAll(() => broker.stop());
 
     it('requires validationId', async () => {
-      await expect(broker.call('copilot-process.getGridConnectionValidation', {})).rejects.toThrow();
+      await expect(
+        broker.call('copilot-process.getGridConnectionValidation', {})
+      ).rejects.toThrow();
     });
 
     it('returns validation summary shape', async () => {
@@ -274,7 +301,9 @@ describe('copilot-process service', () => {
   // ── prepareVdmiValidation ───────────────────────────────────────────────────
   describe('prepareVdmiValidation (draft)', () => {
     let broker;
-    beforeAll(async () => { broker = await buildBroker(); });
+    beforeAll(async () => {
+      broker = await buildBroker();
+    });
     afterAll(() => broker.stop());
 
     it('requires matrixId and reason', async () => {
@@ -295,7 +324,10 @@ describe('copilot-process service', () => {
       expect(result).toHaveProperty('draftId');
       expect(typeof result.draftId).toBe('string');
       expect(result).toHaveProperty('action', 'nominate_vdmi_matrix');
-      expect(result.target).toMatchObject({ matrixId: 'vdmi-test-1', matrixName: 'Netzanschluss-Genehmigung PV' });
+      expect(result.target).toMatchObject({
+        matrixId: 'vdmi-test-1',
+        matrixName: 'Netzanschluss-Genehmigung PV',
+      });
       expect(result).toHaveProperty('proposedChange');
       expect(result.proposedChange).toHaveProperty('nominationStatus', 'pending');
       expect(result).toHaveProperty('summary');
@@ -362,8 +394,14 @@ describe('copilot-process service', () => {
 
     it('each call produces a unique draftId', async () => {
       const [r1, r2] = await Promise.all([
-        broker.call('copilot-process.prepareVdmiValidation', { matrixId: 'vdmi-test-1', reason: 'A' }),
-        broker.call('copilot-process.prepareVdmiValidation', { matrixId: 'vdmi-test-1', reason: 'B' }),
+        broker.call('copilot-process.prepareVdmiValidation', {
+          matrixId: 'vdmi-test-1',
+          reason: 'A',
+        }),
+        broker.call('copilot-process.prepareVdmiValidation', {
+          matrixId: 'vdmi-test-1',
+          reason: 'B',
+        }),
       ]);
       expect(r1.draftId).not.toBe(r2.draftId);
     });
@@ -372,7 +410,9 @@ describe('copilot-process service', () => {
   // ── draftVdmiEvidence ───────────────────────────────────────────────────────
   describe('draftVdmiEvidence (draft)', () => {
     let broker;
-    beforeAll(async () => { broker = await buildBroker(); });
+    beforeAll(async () => {
+      broker = await buildBroker();
+    });
     afterAll(() => broker.stop());
 
     it('requires matrixId', async () => {
@@ -427,7 +467,9 @@ describe('copilot-process service', () => {
   // ── prepareGridConnectionValidation ────────────────────────────────────────
   describe('prepareGridConnectionValidation (draft)', () => {
     let broker;
-    beforeAll(async () => { broker = await buildBroker(); });
+    beforeAll(async () => {
+      broker = await buildBroker();
+    });
     afterAll(() => broker.stop());
 
     it('requires reason', async () => {
@@ -453,7 +495,10 @@ describe('copilot-process service', () => {
 
       expect(result).toHaveProperty('draftId');
       expect(result).toHaveProperty('action', 'run_grid_connection_validation');
-      expect(result.target).toMatchObject({ gridOperatorName: 'TWL Netze', gridOperatorId: 'SNB935578300972' });
+      expect(result.target).toMatchObject({
+        gridOperatorName: 'TWL Netze',
+        gridOperatorId: 'SNB935578300972',
+      });
       expect(result).toHaveProperty('proposedValidation');
       expect(result.proposedValidation).toHaveProperty('gridOperatorName', 'TWL Netze');
       expect(result).toHaveProperty('summary');

@@ -819,8 +819,7 @@ module.exports = {
                       curtailmentWindow: { type: 'number', example: 4 },
                       signalPriorityPolicy: {
                         type: 'string',
-                        example:
-                          'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+                        example: 'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
                       },
                       controlEvidenceRef: {
                         type: 'string',
@@ -891,7 +890,10 @@ module.exports = {
                     sensitivityFlags: { type: 'array', items: { type: 'string' } },
                     governanceStatus: { type: 'string' },
                     governanceBlockers: { type: 'array', items: { type: 'string' } },
-                    contractGate: { type: 'object', description: 'Explicit contract-gate assessment' },
+                    contractGate: {
+                      type: 'object',
+                      description: 'Explicit contract-gate assessment',
+                    },
                     governanceArtifact: { type: 'object', nullable: true },
                     decisionChain: { type: 'array', items: { type: 'object' } },
                     proof: { type: 'object' },
@@ -1159,7 +1161,10 @@ module.exports = {
         typeof params.collection === 'string' ? params.collection.trim() : '';
       const collection = requestedCollection || FINANCE_AGENT_DEFAULT_COLLECTION;
       const scqaContext = (() => {
-        const frame = params.decisionFrame && typeof params.decisionFrame === 'object' ? params.decisionFrame : null;
+        const frame =
+          params.decisionFrame && typeof params.decisionFrame === 'object'
+            ? params.decisionFrame
+            : null;
         if (!frame) return null;
         const parts = [];
         if (frame.situation) parts.push(`Situation: ${frame.situation}`);
@@ -2681,9 +2686,7 @@ module.exports = {
         text: String(e.text || '').slice(0, 200),
       }));
 
-      const scqaBlock = scqaContext
-        ? [`Entscheidungsrahmen (SCQA):\n${scqaContext}`, '']
-        : [];
+      const scqaBlock = scqaContext ? [`Entscheidungsrahmen (SCQA):\n${scqaContext}`, ''] : [];
 
       const prompt = [
         INTERNAL_PROMPTS.synthesis,

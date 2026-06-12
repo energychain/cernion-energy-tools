@@ -106,7 +106,12 @@ const WORK_LOG_METADATA_WHITELIST = Object.freeze({
     },
     blockerCodes: {
       type: 'enum_array',
-      enumCodes: ['PARAMS_INCOMPLETE', 'TENANT_UNRESOLVED', 'KNOWLEDGE_SCOPE_MISSING', 'HITL_PENDING'],
+      enumCodes: [
+        'PARAMS_INCOMPLETE',
+        'TENANT_UNRESOLVED',
+        'KNOWLEDGE_SCOPE_MISSING',
+        'HITL_PENDING',
+      ],
     },
     phase: {
       type: 'string',
@@ -226,7 +231,14 @@ const WORK_LOG_METADATA_WHITELIST = Object.freeze({
     sourceCategory: {
       type: 'string',
       maxLength: 64,
-      enumValues: ['grid_data', 'market_data', 'geo_data', 'regulatory_data', 'inhouse_data', 'other'],
+      enumValues: [
+        'grid_data',
+        'market_data',
+        'geo_data',
+        'regulatory_data',
+        'inhouse_data',
+        'other',
+      ],
     },
     toolCount: { type: 'number' },
     elapsedMs: { type: 'number' },
@@ -263,7 +275,14 @@ const WORK_LOG_METADATA_WHITELIST = Object.freeze({
     sourceCategory: {
       type: 'string',
       maxLength: 64,
-      enumValues: ['grid_data', 'market_data', 'geo_data', 'regulatory_data', 'inhouse_data', 'other'],
+      enumValues: [
+        'grid_data',
+        'market_data',
+        'geo_data',
+        'regulatory_data',
+        'inhouse_data',
+        'other',
+      ],
     },
     phase: {
       type: 'string',
@@ -284,7 +303,12 @@ const WORK_LOG_METADATA_WHITELIST = Object.freeze({
     reason: {
       type: 'string',
       maxLength: 64,
-      enumValues: ['BUDGET_EXHAUSTED', 'TOOLS_UNAVAILABLE', 'SYNTHESIS_TIMEOUT', 'MANDATORY_HITL_GATE'],
+      enumValues: [
+        'BUDGET_EXHAUSTED',
+        'TOOLS_UNAVAILABLE',
+        'SYNTHESIS_TIMEOUT',
+        'MANDATORY_HITL_GATE',
+      ],
     },
     phase: {
       type: 'string',
@@ -407,7 +431,13 @@ const WORK_LOG_METADATA_WHITELIST = Object.freeze({
     reason: {
       type: 'string',
       maxLength: 64,
-      enumValues: ['PLAN_COMPLETE', 'EXECUTION_READY', 'CONSULTATION_START', 'SYNTHESIS_COMPLETE', 'FALLBACK_APPLIED'],
+      enumValues: [
+        'PLAN_COMPLETE',
+        'EXECUTION_READY',
+        'CONSULTATION_START',
+        'SYNTHESIS_COMPLETE',
+        'FALLBACK_APPLIED',
+      ],
     },
     category: {
       type: 'string',
@@ -473,7 +503,7 @@ function sanitizeMetadataField(value, fieldSpec) {
       }
       if (!Array.isArray(value)) throw new Error('Not an array');
       const validCodes = new Set(enumCodes);
-      return value.filter(v => validCodes.has(String(v))).slice(0, 10);
+      return value.filter((v) => validCodes.has(String(v))).slice(0, 10);
     }
     default:
       throw new Error(`Unknown field type: ${type}`);
@@ -604,7 +634,7 @@ function createTurnWorkLog() {
    */
   function toArray() {
     return Object.freeze(
-      entries.map(e =>
+      entries.map((e) =>
         Object.freeze({
           ...e,
           metadata: Object.freeze({ ...e.metadata }),
@@ -629,8 +659,7 @@ function createTurnWorkLog() {
  */
 function validateWorkLogEntry(entry) {
   if (!entry || typeof entry !== 'object') throw new Error('Entry must be an object');
-  if (!VALID_WORK_LOG_ACTIONS.has(entry.action))
-    throw new Error(`Invalid action: ${entry.action}`);
+  if (!VALID_WORK_LOG_ACTIONS.has(entry.action)) throw new Error(`Invalid action: ${entry.action}`);
   if (typeof entry.step !== 'number' || entry.step < 1) throw new Error('Invalid step number');
   if (!entry.timestamp || !new Date(entry.timestamp).getTime())
     throw new Error('Invalid timestamp');
@@ -657,7 +686,7 @@ function validateWorkLogEntry(entry) {
     'questionId',
   ]);
 
-  const foundForbidden = Object.keys(entry.metadata || {}).filter(k => FORBIDDEN_KEYS.has(k));
+  const foundForbidden = Object.keys(entry.metadata || {}).filter((k) => FORBIDDEN_KEYS.has(k));
   if (foundForbidden.length > 0) {
     throw new Error(`Forbidden metadata keys: ${foundForbidden.join(', ')}`);
   }

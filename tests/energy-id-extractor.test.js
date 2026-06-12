@@ -205,8 +205,7 @@ describe('energy-id-extractor', () => {
   // ───────────────────────────────────────────────────────────────────────────
   describe('multiple IDs in one message', () => {
     it('extracts MeLo and PLZ from the same text without cross-contamination', () => {
-      const text =
-        'Zähler DE1234567890123456789012345678901 befindet sich in 69115 Heidelberg.';
+      const text = 'Zähler DE1234567890123456789012345678901 befindet sich in 69115 Heidelberg.';
       const results = extractEnergyIds(text);
       expect(results.some((r) => r.type === 'meloId')).toBe(true);
       expect(results.some((r) => r.type === 'postalCode' && r.value === '69115')).toBe(true);
@@ -218,9 +217,7 @@ describe('energy-id-extractor', () => {
     it('extracts MaStR-ID and PLZ without collision', () => {
       const text = 'Anlage SEE900123456789 in 76137 Karlsruhe.'; // SEE + 12 digits
       const results = extractEnergyIds(text);
-      expect(results.some((r) => r.type === 'mastrId' && r.value === 'SEE900123456789')).toBe(
-        true
-      );
+      expect(results.some((r) => r.type === 'mastrId' && r.value === 'SEE900123456789')).toBe(true);
       expect(results.some((r) => r.type === 'postalCode' && r.value === '76137')).toBe(true);
     });
 

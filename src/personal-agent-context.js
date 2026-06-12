@@ -39,7 +39,11 @@ const ALLOWED_KNOWLEDGE_STATUSES = new Set(['observed', 'candidate', 'confirmed'
 const ALLOWED_KNOWLEDGE_SOURCES = new Set(['default', 'knownContext', 'session', 'user_confirmed']);
 
 function sanitizeBootstrapContext(bootstrapContext = null) {
-  if (!bootstrapContext || typeof bootstrapContext !== 'object' || Array.isArray(bootstrapContext)) {
+  if (
+    !bootstrapContext ||
+    typeof bootstrapContext !== 'object' ||
+    Array.isArray(bootstrapContext)
+  ) {
     return {
       status: 'unknown',
       organizationType: 'unknown',
@@ -48,10 +52,14 @@ function sanitizeBootstrapContext(bootstrapContext = null) {
     };
   }
 
-  const rawStatus = String(bootstrapContext.status || '').trim().toLowerCase();
+  const rawStatus = String(bootstrapContext.status || '')
+    .trim()
+    .toLowerCase();
   const status = ALLOWED_BOOTSTRAP_STATUSES.has(rawStatus) ? rawStatus : 'unknown';
 
-  const rawOrganizationType = String(bootstrapContext.organizationType || '').trim().toLowerCase();
+  const rawOrganizationType = String(bootstrapContext.organizationType || '')
+    .trim()
+    .toLowerCase();
   const organizationType = ALLOWED_ORGANIZATION_TYPES.has(rawOrganizationType)
     ? rawOrganizationType
     : 'unknown';
@@ -88,7 +96,9 @@ function sanitizeScopedDatapoint(dataPoint = null) {
     return null;
   }
 
-  const rawScope = String(dataPoint.scope || '').trim().toLowerCase();
+  const rawScope = String(dataPoint.scope || '')
+    .trim()
+    .toLowerCase();
   const scope = ALLOWED_KNOWLEDGE_SCOPES.has(rawScope)
     ? rawScope
     : rawScope === 'tenant' || rawScope === 'tenant_operational'
@@ -99,7 +109,9 @@ function sanitizeScopedDatapoint(dataPoint = null) {
     return null;
   }
 
-  const rawStatus = String(dataPoint.status || '').trim().toLowerCase();
+  const rawStatus = String(dataPoint.status || '')
+    .trim()
+    .toLowerCase();
   let status = ALLOWED_KNOWLEDGE_STATUSES.has(rawStatus) ? rawStatus : 'observed';
   if (scope === 'tenant_candidate' && status === 'confirmed') {
     status = 'candidate';
@@ -410,20 +422,19 @@ function buildPersistableSessionState(input = {}) {
               unsupportedDomains: Array.isArray(value.planSnapshot.unsupportedDomains)
                 ? value.planSnapshot.unsupportedDomains
                 : [],
-              warnings: Array.isArray(value.planSnapshot.warnings) ? value.planSnapshot.warnings : [],
+              warnings: Array.isArray(value.planSnapshot.warnings)
+                ? value.planSnapshot.warnings
+                : [],
               promptHints:
                 value.planSnapshot.promptHints && typeof value.planSnapshot.promptHints === 'object'
                   ? value.planSnapshot.promptHints
                   : {},
               status: value.planSnapshot.status || null,
-              steps: Array.isArray(value.planSnapshot.steps)
-                ? value.planSnapshot.steps
-                : [],
+              steps: Array.isArray(value.planSnapshot.steps) ? value.planSnapshot.steps : [],
               blockedAction: value.planSnapshot.blockedAction || null,
-              blockedStep:
-                Number.isFinite(Number(value.planSnapshot.blockedStep))
-                  ? Number(value.planSnapshot.blockedStep)
-                  : null,
+              blockedStep: Number.isFinite(Number(value.planSnapshot.blockedStep))
+                ? Number(value.planSnapshot.blockedStep)
+                : null,
               responsibleRole: value.planSnapshot.responsibleRole || null,
               requiredResolverRoles: Array.isArray(value.planSnapshot.requiredResolverRoles)
                 ? value.planSnapshot.requiredResolverRoles
@@ -432,11 +443,13 @@ function buildPersistableSessionState(input = {}) {
               personaName: value.planSnapshot.personaName || null,
               personaType: value.planSnapshot.personaType || null,
               personaResolution:
-                value.planSnapshot.personaResolution && typeof value.planSnapshot.personaResolution === 'object'
+                value.planSnapshot.personaResolution &&
+                typeof value.planSnapshot.personaResolution === 'object'
                   ? value.planSnapshot.personaResolution
                   : null,
               routingContext:
-                value.planSnapshot.routingContext && typeof value.planSnapshot.routingContext === 'object'
+                value.planSnapshot.routingContext &&
+                typeof value.planSnapshot.routingContext === 'object'
                   ? value.planSnapshot.routingContext
                   : null,
             }
@@ -464,7 +477,9 @@ function buildPersistableSessionState(input = {}) {
             ? value.personaResolution
             : null,
         routingContext:
-          value.routingContext && typeof value.routingContext === 'object' ? value.routingContext : null,
+          value.routingContext && typeof value.routingContext === 'object'
+            ? value.routingContext
+            : null,
         planSnapshot,
       };
       return acc;

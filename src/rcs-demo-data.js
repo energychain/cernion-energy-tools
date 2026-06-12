@@ -65,7 +65,8 @@ function getDemoAsset(assetId) {
       ['wind_offshore', 15],
     ]);
     const profile = technologyProfile(technology);
-    const capacityKw = Math.round((profile.minKw + rnd() * (profile.maxKw - profile.minKw)) * 100) / 100;
+    const capacityKw =
+      Math.round((profile.minKw + rnd() * (profile.maxKw - profile.minKw)) * 100) / 100;
     rnd();
     selected = { technology, profile, capacityKw };
   }
@@ -118,7 +119,7 @@ function getDemoPrices(from, to) {
     const day = Math.floor(ts / 86400000);
     const solarDip = hour >= 10 && hour <= 15 ? -35 : 0;
     const eveningPeak = hour >= 18 && hour <= 21 ? 32 : 0;
-    const wave = Math.sin((day % 14) / 14 * Math.PI * 2) * 18;
+    const wave = Math.sin(((day % 14) / 14) * Math.PI * 2) * 18;
     const priceEurMwh = Math.round((38 + wave + solarDip + eveningPeak) * 100) / 100;
     rows.push({ timestamp: new Date(ts).toISOString(), priceEurMwh });
   }

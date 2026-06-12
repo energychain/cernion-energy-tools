@@ -110,9 +110,7 @@ describe('personal-agent-reflection', () => {
         consultationHistory: [],
         knownContext: {},
         missingRequiredInputs: [],
-        scopeViolations: [
-          { scope: 'locationScope', message: 'city/postalCode required' },
-        ],
+        scopeViolations: [{ scope: 'locationScope', message: 'city/postalCode required' }],
       });
       expect(system).toContain('locationScope');
     });

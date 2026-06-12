@@ -58,7 +58,11 @@ function assessAsset(assetRaw) {
   for (const field of ASSET_RECOMMENDED_FIELDS) {
     const val = assetRaw[field] ?? assetRaw[field.replace(/([A-Z])/g, '_$1').toLowerCase()];
     if (val == null || val === '') {
-      issues.push({ field, severity: 'warning', message: `Recommended field '${field}' is missing.` });
+      issues.push({
+        field,
+        severity: 'warning',
+        message: `Recommended field '${field}' is missing.`,
+      });
     }
   }
   const hasErrors = issues.some((i) => i.severity === 'error');
@@ -119,7 +123,9 @@ function computeReadiness(assetRaw, prices, injection, timeframe) {
   if (injectionResult.coveragePercent < 95)
     recommendations.push('Verify EDM metering completeness for the requested period.');
   if (assetResult.issues.some((i) => i.severity === 'warning'))
-    recommendations.push('Enrich asset record with capacityKw and commissioningDate for full analysis.');
+    recommendations.push(
+      'Enrich asset record with capacityKw and commissioningDate for full analysis.'
+    );
 
   return {
     overallStatus,

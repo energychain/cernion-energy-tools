@@ -35,7 +35,10 @@ function validateRuleSet(rule) {
     errors.push({ field: 'version', message: 'version is required.' });
   }
   if (!STATUS_VALUES.includes(rule.status)) {
-    errors.push({ field: 'status', message: `status must be one of: ${STATUS_VALUES.join(', ')}.` });
+    errors.push({
+      field: 'status',
+      message: `status must be one of: ${STATUS_VALUES.join(', ')}.`,
+    });
   }
   if (!LEGAL_STATUS_VALUES.includes(rule.legalStatus)) {
     errors.push({
@@ -134,9 +137,7 @@ function getRuleSet(id) {
  */
 function resolveRuleSet(idOrLatest) {
   if (!idOrLatest || idOrLatest === 'latest') {
-    const active = listRuleSets().filter(
-      (r) => r.status === 'active' || r.status === 'in_kraft'
-    );
+    const active = listRuleSets().filter((r) => r.status === 'active' || r.status === 'in_kraft');
     if (active.length === 0) return null;
     return getRuleSet(active[0].id);
   }

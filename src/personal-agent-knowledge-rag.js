@@ -260,7 +260,11 @@ function clampSummaryMaxChars(value) {
   );
 }
 
-function buildSafeEvidenceSummary(hit = {}, metadata = {}, maxChars = DEFAULT_EVIDENCE_SUMMARY_MAX_CHARS) {
+function buildSafeEvidenceSummary(
+  hit = {},
+  metadata = {},
+  maxChars = DEFAULT_EVIDENCE_SUMMARY_MAX_CHARS
+) {
   const summaryCandidate =
     hit.summary ||
     metadata.summary ||
@@ -276,7 +280,10 @@ function buildSafeEvidenceSummary(hit = {}, metadata = {}, maxChars = DEFAULT_EV
     .slice(0, clampSummaryMaxChars(maxChars));
 }
 
-function toSafeEvidenceHit(hit = {}, { summaryMaxChars = DEFAULT_EVIDENCE_SUMMARY_MAX_CHARS } = {}) {
+function toSafeEvidenceHit(
+  hit = {},
+  { summaryMaxChars = DEFAULT_EVIDENCE_SUMMARY_MAX_CHARS } = {}
+) {
   const metadata = hit?.metadata && typeof hit.metadata === 'object' ? hit.metadata : {};
   const safe = {
     hitId: String(

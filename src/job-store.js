@@ -356,7 +356,10 @@ function findDispatchableQueueIndex(queue, tenantId) {
 
 function pickNextTenantForDispatch() {
   const tenants = Array.from(pendingJobsByTenant.entries())
-    .filter(([tenantId, queue]) => Array.isArray(queue) && queue.length > 0 && findDispatchableQueueIndex(queue, tenantId) >= 0)
+    .filter(
+      ([tenantId, queue]) =>
+        Array.isArray(queue) && queue.length > 0 && findDispatchableQueueIndex(queue, tenantId) >= 0
+    )
     .map(([tenantId]) => tenantId);
 
   if (tenants.length === 0) return null;

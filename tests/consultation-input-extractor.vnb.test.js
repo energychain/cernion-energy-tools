@@ -54,11 +54,7 @@ describe('consultation-input-extractor — VNB Lookup Parameter Mapping (Issue #
     });
 
     it('extracts municipality for Frankfurt', () => {
-      const inputs = extractAvailableInputs(
-        'Netzbetreiber für Frankfurt ermitteln',
-        {},
-        {}
-      );
+      const inputs = extractAvailableInputs('Netzbetreiber für Frankfurt ermitteln', {}, {});
       const city = find(inputs, 'municipality');
       expect(city).toBeDefined();
       expect(city.value.toLowerCase()).toContain('frankfurt');

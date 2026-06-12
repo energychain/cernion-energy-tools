@@ -77,10 +77,10 @@ describe('query-scope-classifier', () => {
 
   describe('SCOPE-REGRESSION-001: Asset query by location — no VNB lookup required', () => {
     it('Wiesloch city → assetByLocation, no operatorScope, locationScope available', () => {
-      const result = classifyQueryScope(
-        'Zeige mir Anlagen in Wiesloch / PLZ 69168',
-        { city: 'Wiesloch', postalCode: '69168' }
-      );
+      const result = classifyQueryScope('Zeige mir Anlagen in Wiesloch / PLZ 69168', {
+        city: 'Wiesloch',
+        postalCode: '69168',
+      });
       expect(result.primaryScope).toBe(QUERY_SCOPE.ASSET_BY_LOCATION);
       expect(result.locationScopeAvailable).toBe(true);
       expect(result.operatorScopeResolved).toBe(false);
@@ -91,10 +91,9 @@ describe('query-scope-classifier', () => {
 
   describe('SCOPE-REGRESSION-002: Asset query by operator — not a location query', () => {
     it('Netze BW → assetByOperator, operatorScope via name, no locationScope needed', () => {
-      const result = classifyQueryScope(
-        'Zeige mir Anlagen der Netze BW',
-        { gridOperatorName: 'Netze BW' }
-      );
+      const result = classifyQueryScope('Zeige mir Anlagen der Netze BW', {
+        gridOperatorName: 'Netze BW',
+      });
       expect(result.primaryScope).toBe(QUERY_SCOPE.ASSET_BY_OPERATOR);
       expect(result.operatorScopeResolved).toBe(true);
       // Location scope is not required for an operator query
@@ -103,10 +102,10 @@ describe('query-scope-classifier', () => {
 
   describe('SCOPE-REGRESSION-003: GrünstromIndex / weather / CO2 — locationScope only', () => {
     it('GrünstromIndex for Wiesloch 69168 → assetByLocation or locationScope primary', () => {
-      const result = classifyQueryScope(
-        'Wie ist der GrünstromIndex für Wiesloch 69168?',
-        { city: 'Wiesloch', postalCode: '69168' }
-      );
+      const result = classifyQueryScope('Wie ist der GrünstromIndex für Wiesloch 69168?', {
+        city: 'Wiesloch',
+        postalCode: '69168',
+      });
       // locationScope should be available; no VNB lookup should be triggered
       expect(result.locationScopeAvailable).toBe(true);
       expect(result.operatorScopeResolved).toBe(false);
@@ -120,10 +119,9 @@ describe('query-scope-classifier', () => {
 
   describe('SCOPE-REGRESSION-004: VNB resolution request — explicit intent with uncertainty', () => {
     it('Wer ist der zuständige VNB für Wiesloch → vnbResolution intent', () => {
-      const result = classifyQueryScope(
-        'Wer ist der zuständige Netzbetreiber für Wiesloch?',
-        { city: 'Wiesloch' }
-      );
+      const result = classifyQueryScope('Wer ist der zuständige Netzbetreiber für Wiesloch?', {
+        city: 'Wiesloch',
+      });
       expect(result.primaryScope).toBe(QUERY_SCOPE.VNB_RESOLUTION);
       expect(result.scopes).toContain(QUERY_SCOPE.VNB_RESOLUTION);
       // locationScope is available (disambiguation context)
@@ -133,17 +131,18 @@ describe('query-scope-classifier', () => {
     });
 
     it('Welcher Netzbetreiber ist zuständig → vnbResolution', () => {
-      const result = classifyQueryScope('Welcher Netzbetreiber ist zuständig?', { city: 'Heidelberg' });
+      const result = classifyQueryScope('Welcher Netzbetreiber ist zuständig?', {
+        city: 'Heidelberg',
+      });
       expect(result.primaryScope).toBe(QUERY_SCOPE.VNB_RESOLUTION);
     });
   });
 
   describe('SCOPE-REGRESSION-005: No city-only vnbLookup — Heidelberg must NOT have operatorScope', () => {
     it('city=Heidelberg → no operatorScope resolved', () => {
-      const result = classifyQueryScope(
-        'Wer ist der Netzbetreiber in Heidelberg?',
-        { municipality: 'Heidelberg' }
-      );
+      const result = classifyQueryScope('Wer ist der Netzbetreiber in Heidelberg?', {
+        municipality: 'Heidelberg',
+      });
       // This is a VNB resolution request
       expect(result.primaryScope).toBe(QUERY_SCOPE.VNB_RESOLUTION);
       // Critical: locationScope≠operatorScope
@@ -154,10 +153,10 @@ describe('query-scope-classifier', () => {
     });
 
     it('city=Heidelberg with bdew → now operatorScope IS resolved', () => {
-      const result = classifyQueryScope(
-        'VNB für Heidelberg, BDEW 9900277000000',
-        { municipality: 'Heidelberg', bdew: '9900277000000' }
-      );
+      const result = classifyQueryScope('VNB für Heidelberg, BDEW 9900277000000', {
+        municipality: 'Heidelberg',
+        bdew: '9900277000000',
+      });
       expect(result.operatorScopeResolved).toBe(true);
       expect(result.operatorScope.bdew).toBe('9900277000000');
     });
@@ -178,7 +177,11 @@ describe('query-scope-classifier', () => {
 
     it('explains when no scope is resolved', () => {
       const result = classifyQueryScope('Was ist ein VNB?', {});
-      expect(result.scopeTrace.some((t) => t.includes('null') || t.includes('no scope') || t.includes('neither'))).toBe(true);
+      expect(
+        result.scopeTrace.some(
+          (t) => t.includes('null') || t.includes('no scope') || t.includes('neither')
+        )
+      ).toBe(true);
     });
   });
 });

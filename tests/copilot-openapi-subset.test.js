@@ -59,9 +59,9 @@ describe('Copilot OpenAPI subset (openapi-copilot.json)', () => {
       expect(specOp.operation.requestBody).toBeDefined();
       expect(specOp.operation.requestBody.required).toBe(true);
       expect(specOp.operation.parameters || []).toHaveLength(0);
-      expect(
-        specOp.operation.requestBody.content['application/json'].schema.required
-      ).toContain('q');
+      expect(specOp.operation.requestBody.content['application/json'].schema.required).toContain(
+        'q'
+      );
     });
 
     it('spec path count is less than full export', () => {

@@ -382,7 +382,10 @@ function requiresFullAccess(method, requestPath) {
   if (pathOnly === '/api/vnb/rcs/runs' && (m === 'POST' || m === 'GET')) {
     return true;
   }
-  if (pathOnly.startsWith('/api/vnb/rcs/runs/') && (m === 'GET' || m === 'DELETE' || m === 'POST')) {
+  if (
+    pathOnly.startsWith('/api/vnb/rcs/runs/') &&
+    (m === 'GET' || m === 'DELETE' || m === 'POST')
+  ) {
     return true;
   }
   if (pathOnly === '/api/vnb/rcs/portfolio/simulate' && m === 'POST') {
@@ -1163,7 +1166,8 @@ module.exports = {
           'POST /vnb/rcs/assess-readiness': 'eeg-clawback-calculator.assessReadiness',
           // RCS Portfolio (P1)
           'POST /vnb/rcs/portfolio/simulate': 'eeg-clawback-calculator.simulatePortfolio',
-          'POST /vnb/rcs/portfolio/assess-readiness': 'eeg-clawback-calculator.assessPortfolioReadiness',
+          'POST /vnb/rcs/portfolio/assess-readiness':
+            'eeg-clawback-calculator.assessPortfolioReadiness',
           // RCS Simulation Run persistence (P0.4)
           'POST /vnb/rcs/runs': 'rcs-simulation-run.saveRun',
           'GET /vnb/rcs/runs': 'rcs-simulation-run.listRuns',
@@ -1176,7 +1180,8 @@ module.exports = {
           // RCS UI Enablement (v0.60.7)
           'GET /vnb/rcs/rules': 'rcs-rule-catalog.listRuleSets',
           'GET /vnb/rcs/rules/:ruleSetId': 'rcs-rule-catalog.getRuleSet',
-          'POST /vnb/rcs/runs/:runId/assets/:assetId/drilldown': 'eeg-clawback-calculator.drilldownAsset',
+          'POST /vnb/rcs/runs/:runId/assets/:assetId/drilldown':
+            'eeg-clawback-calculator.drilldownAsset',
           'GET /vnb/rcs/runs/:runId/assets/:assetId/trace': 'rcs-simulation-run.getTrace',
           'GET /vnb/rcs/runs/:runId/readiness': 'rcs-simulation-run.getRunReadiness',
           // EOG Calculator (Revenue Cap Calculation)

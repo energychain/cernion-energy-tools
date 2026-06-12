@@ -43,7 +43,10 @@ describe('rcsError factory', () => {
   });
 
   test('error.data contains the provided details', () => {
-    const err = rcsError('RCS_MAX_ASSETS_EXCEEDED', 'Too many assets.', { assetCount: 600, maxAssets: 500 });
+    const err = rcsError('RCS_MAX_ASSETS_EXCEEDED', 'Too many assets.', {
+      assetCount: 600,
+      maxAssets: 500,
+    });
     expect(err.data).toMatchObject({ assetCount: 600, maxAssets: 500 });
   });
 

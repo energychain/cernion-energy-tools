@@ -26,9 +26,7 @@ const MOCK_MATRIX = {
   evidenceCount: 0,
   findingCount: 0,
   createdAt: '2026-01-01T08:00:00Z',
-  tasks: [
-    { id: 't1', label: 'Unterlagen prüfen', status: 'open' },
-  ],
+  tasks: [{ id: 't1', label: 'Unterlagen prüfen', status: 'open' }],
 };
 
 const MOCK_ZNP_PROJECT = {
@@ -198,10 +196,18 @@ describe('copilot-process service — Phase 3', () => {
 
     it('requires evidenceType, reference, and reason', async () => {
       await expect(
-        broker.call('copilot-process.prepareVdmiEvidence', { matrixId: 'vdmi-test-p3', evidenceType: 'x', reference: 'REF-001' })
+        broker.call('copilot-process.prepareVdmiEvidence', {
+          matrixId: 'vdmi-test-p3',
+          evidenceType: 'x',
+          reference: 'REF-001',
+        })
       ).rejects.toThrow();
       await expect(
-        broker.call('copilot-process.prepareVdmiEvidence', { matrixId: 'vdmi-test-p3', evidenceType: 'x', reason: 'test' })
+        broker.call('copilot-process.prepareVdmiEvidence', {
+          matrixId: 'vdmi-test-p3',
+          evidenceType: 'x',
+          reason: 'test',
+        })
       ).rejects.toThrow();
     });
   });
@@ -209,7 +215,9 @@ describe('copilot-process service — Phase 3', () => {
   // ── prepareZnpAssumption ────────────────────────────────────────────────────
   describe('prepareZnpAssumption', () => {
     let broker;
-    beforeAll(async () => { ({ broker } = await buildBroker()); });
+    beforeAll(async () => {
+      ({ broker } = await buildBroker());
+    });
     afterAll(() => broker.stop());
 
     const VALID_PARAMS = {
@@ -262,7 +270,9 @@ describe('copilot-process service — Phase 3', () => {
   // ── prepareConnectionRejectionEvidence ──────────────────────────────────────
   describe('prepareConnectionRejectionEvidence', () => {
     let broker;
-    beforeAll(async () => { ({ broker } = await buildBroker()); });
+    beforeAll(async () => {
+      ({ broker } = await buildBroker());
+    });
     afterAll(() => broker.stop());
 
     const VALID_PARAMS = {
@@ -278,23 +288,35 @@ describe('copilot-process service — Phase 3', () => {
     };
 
     it('returns intentId', async () => {
-      const result = await broker.call('copilot-process.prepareConnectionRejectionEvidence', VALID_PARAMS);
+      const result = await broker.call(
+        'copilot-process.prepareConnectionRejectionEvidence',
+        VALID_PARAMS
+      );
       expect(result).toHaveProperty('intentId');
       expect(typeof result.intentId).toBe('string');
     });
 
     it('operationFamily is connectionRejectionEvidence', async () => {
-      const result = await broker.call('copilot-process.prepareConnectionRejectionEvidence', VALID_PARAMS);
+      const result = await broker.call(
+        'copilot-process.prepareConnectionRejectionEvidence',
+        VALID_PARAMS
+      );
       expect(result.operationFamily).toBe('connectionRejectionEvidence');
     });
 
     it('proposedAction is create_package', async () => {
-      const result = await broker.call('copilot-process.prepareConnectionRejectionEvidence', VALID_PARAMS);
+      const result = await broker.call(
+        'copilot-process.prepareConnectionRejectionEvidence',
+        VALID_PARAMS
+      );
       expect(result.proposedAction).toBe('create_package');
     });
 
     it('status is pending_confirmation', async () => {
-      const result = await broker.call('copilot-process.prepareConnectionRejectionEvidence', VALID_PARAMS);
+      const result = await broker.call(
+        'copilot-process.prepareConnectionRejectionEvidence',
+        VALID_PARAMS
+      );
       expect(result.status).toBe('pending_confirmation');
     });
 
@@ -503,13 +525,19 @@ describe('copilot-process service — Phase 3', () => {
 
     it('throws 404 for non-existent intent', async () => {
       await expect(
-        broker.call('copilot-process.rejectProcessIntent', { intentId: 'nonexistent', reason: 'No' })
+        broker.call('copilot-process.rejectProcessIntent', {
+          intentId: 'nonexistent',
+          reason: 'No',
+        })
       ).rejects.toMatchObject({ code: 404 });
     });
 
     it('throws 409 when rejecting an already-rejected intent', async () => {
       const intentId = await prepareIntent();
-      await broker.call('copilot-process.rejectProcessIntent', { intentId, reason: 'First rejection' });
+      await broker.call('copilot-process.rejectProcessIntent', {
+        intentId,
+        reason: 'First rejection',
+      });
       await expect(
         broker.call('copilot-process.rejectProcessIntent', { intentId, reason: 'Second rejection' })
       ).rejects.toMatchObject({ code: 409 });
@@ -520,7 +548,9 @@ describe('copilot-process service — Phase 3', () => {
   describe('getProcessIntent', () => {
     let broker;
 
-    beforeAll(async () => { ({ broker } = await buildBroker()); });
+    beforeAll(async () => {
+      ({ broker } = await buildBroker());
+    });
     afterAll(() => broker.stop());
 
     it('returns intent by ID', async () => {
@@ -530,7 +560,9 @@ describe('copilot-process service — Phase 3', () => {
         reference: 'REF-001',
         reason: 'Test',
       });
-      const intent = await broker.call('copilot-process.getProcessIntent', { intentId: prepared.intentId });
+      const intent = await broker.call('copilot-process.getProcessIntent', {
+        intentId: prepared.intentId,
+      });
       expect(intent).toHaveProperty('intentId', prepared.intentId);
       expect(intent).toHaveProperty('operationFamily', 'vdmi');
       expect(intent).toHaveProperty('status', 'pending_confirmation');
@@ -575,7 +607,9 @@ describe('copilot-process service — Phase 3', () => {
     });
 
     it('filters by operationFamily', async () => {
-      const result = await broker.call('copilot-process.listProcessIntents', { operationFamily: 'znp' });
+      const result = await broker.call('copilot-process.listProcessIntents', {
+        operationFamily: 'znp',
+      });
       expect(result.count).toBeGreaterThanOrEqual(1);
       for (const intent of result.intents) {
         expect(intent.operationFamily).toBe('znp');
@@ -583,7 +617,9 @@ describe('copilot-process service — Phase 3', () => {
     });
 
     it('filters by status', async () => {
-      const result = await broker.call('copilot-process.listProcessIntents', { status: 'pending_confirmation' });
+      const result = await broker.call('copilot-process.listProcessIntents', {
+        status: 'pending_confirmation',
+      });
       for (const intent of result.intents) {
         expect(intent.status).toBe('pending_confirmation');
       }

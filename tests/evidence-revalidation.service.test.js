@@ -629,7 +629,11 @@ describe('evidence revalidation service', () => {
         originSessionId: 'pa-origin-hd-customer-service-test',
         responsibleRole: 'customer-service',
         requestedFact: 'moveOutFinalReadingStatus',
-        scope: { meterNumber: 'HD-M-001', meteringPointId: 'DE001HD0001', contractAccount: 'HD-CA-001' },
+        scope: {
+          meterNumber: 'HD-M-001',
+          meteringPointId: 'DE001HD0001',
+          contractAccount: 'HD-CA-001',
+        },
       },
       { meta: { tenantId: 'heidelberg' } }
     );
@@ -639,7 +643,11 @@ describe('evidence revalidation service', () => {
       'evidence-revalidation.correlateFact',
       {
         requestedFact: 'moveOutFinalReadingStatus',
-        scope: { meterNumber: 'HD-M-001', meteringPointId: 'DE001HD0001', contractAccount: 'HD-CA-001' },
+        scope: {
+          meterNumber: 'HD-M-001',
+          meteringPointId: 'DE001HD0001',
+          contractAccount: 'HD-CA-001',
+        },
       },
       { meta: { tenantId: 'heidelberg' } }
     );

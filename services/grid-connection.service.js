@@ -470,8 +470,12 @@ module.exports = {
           heatPumpKW,
           newPvKWp,
         } = ctx.params;
-        const normalizedConcept = String(reportedMeteringConcept || '').trim().toUpperCase();
-        const normalizedLegacyStatus = String(legacyPvStatus || '').trim().toUpperCase();
+        const normalizedConcept = String(reportedMeteringConcept || '')
+          .trim()
+          .toUpperCase();
+        const normalizedLegacyStatus = String(legacyPvStatus || '')
+          .trim()
+          .toUpperCase();
         const isMk10 =
           normalizedConcept === 'MK10' ||
           normalizedConcept === 'MK 10' ||
@@ -483,8 +487,7 @@ module.exports = {
           findings.push({
             code: 'FA_MESSKONZEPT_ERROR_MK10',
             severity: 'error',
-            message:
-              'Fehlerhaftes Messkonzept MK10 gemeldet. Soll-Messkonzept ist MK40 (Kaskade).',
+            message: 'Fehlerhaftes Messkonzept MK10 gemeldet. Soll-Messkonzept ist MK40 (Kaskade).',
           });
         }
 
@@ -651,8 +654,7 @@ module.exports = {
                       operatingConstraint: { type: 'string', example: '§14a max 2h/event' },
                       signalPriorityPolicy: {
                         type: 'string',
-                        example:
-                          'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
+                        example: 'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
                       },
                       controlEvidenceRef: {
                         type: 'string',
@@ -722,7 +724,10 @@ module.exports = {
                     },
                     governanceStatus: { type: 'string' },
                     governanceBlockers: { type: 'array', items: { type: 'string' } },
-                    contractGate: { type: 'object', description: 'Explicit contract-gate assessment' },
+                    contractGate: {
+                      type: 'object',
+                      description: 'Explicit contract-gate assessment',
+                    },
                     governanceArtifact: { type: 'object', nullable: true },
                     decisionChain: { type: 'array', items: { type: 'object' } },
                     proof: { type: 'object' },

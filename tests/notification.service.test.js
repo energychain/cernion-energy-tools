@@ -44,7 +44,8 @@ describe('notification service', () => {
             const items = [...tenantPersonas.values()]
               .filter(
                 (persona) =>
-                  Array.isArray(persona.assignedRoles) && persona.assignedRoles.includes(ctx.params.role)
+                  Array.isArray(persona.assignedRoles) &&
+                  persona.assignedRoles.includes(ctx.params.role)
               )
               .sort((left, right) =>
                 String(left.personaName || '').localeCompare(String(right.personaName || ''))

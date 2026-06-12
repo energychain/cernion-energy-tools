@@ -94,9 +94,7 @@ function main() {
   const activePassedCount = blackboxGateEnabled
     ? passedUnitIds.length + passedBlackboxIds.length
     : passedUnitIds.length;
-  const activeCoverage = Number(
-    ((activePassedCount / activeRequiredIds.length) * 100).toFixed(2)
-  );
+  const activeCoverage = Number(((activePassedCount / activeRequiredIds.length) * 100).toFixed(2));
 
   console.log('=== v0.52.5 TDD Matrix Coverage ===');
   console.log(`blackbox gate enabled: ${blackboxGateEnabled}`);

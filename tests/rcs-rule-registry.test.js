@@ -217,7 +217,9 @@ describe('validateRuleSet', () => {
   });
 
   test('accepts eeg2027_clawback as calculationMode', () => {
-    expect(validateRuleSet({ ...BASE_VALID_RULE, calculationMode: 'eeg2027_clawback' }).valid).toBe(true);
+    expect(validateRuleSet({ ...BASE_VALID_RULE, calculationMode: 'eeg2027_clawback' }).valid).toBe(
+      true
+    );
   });
 
   test('rejects null', () => {

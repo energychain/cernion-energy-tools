@@ -37,8 +37,8 @@ function makeAsset(assetId) {
   const techIdx = parseInt(assetId.replace(/\D/g, '') || '0', 10) % TECHNOLOGIES.length;
   return {
     technology: TECHNOLOGIES[techIdx],
-    awCentsPerKwh: 7.5 + (techIdx * 1.5),
-    capacityKw: 100 + (techIdx * 500),
+    awCentsPerKwh: 7.5 + techIdx * 1.5,
+    capacityKw: 100 + techIdx * 500,
     commissioningDate: '2023-01-01',
     name: `Asset ${assetId}`,
   };
@@ -93,37 +93,33 @@ afterAll(async () => {
 // ── 1K asset load test ────────────────────────────────────────────────────────
 
 describe('1K asset portfolio simulation', () => {
-  test(
-    '1000 assets with chunkSize=100, traceMode=none completes within 60s',
-    async () => {
-      const assetIds = Array.from({ length: 1000 }, (_, i) => `asset-mass-${i}`);
+  test('1000 assets with chunkSize=100, traceMode=none completes within 60s', async () => {
+    const assetIds = Array.from({ length: 1000 }, (_, i) => `asset-mass-${i}`);
 
-      const r = await broker.call('eeg-clawback-calculator.simulatePortfolio', {
-        assetIds,
-        timeframe: TIMEFRAME,
-        executionMode: 'sync',
-        options: {
-          chunkSize: 100,
-          traceMode: 'none',
-        },
-      });
+    const r = await broker.call('eeg-clawback-calculator.simulatePortfolio', {
+      assetIds,
+      timeframe: TIMEFRAME,
+      executionMode: 'sync',
+      options: {
+        chunkSize: 100,
+        traceMode: 'none',
+      },
+    });
 
-      expect(r.portfolioSummary.assetCount).toBe(1000);
-      expect(r.portfolioSummary.successfulAssets).toBe(1000);
-      expect(r.portfolioSummary.failedAssets).toBe(0);
-      expect(r.portfolioSummary.totalBaselineAmountEur).toBeGreaterThan(0);
-      expect(r.assetResultsTotal).toBe(1000);
-      expect(r.errorCount).toBe(0);
-      expect(r.workloadEstimate).toBeDefined();
-      expect(r.workloadEstimate.assetCount).toBe(1000);
-      expect(r.byTechnology.length).toBeGreaterThan(0);
+    expect(r.portfolioSummary.assetCount).toBe(1000);
+    expect(r.portfolioSummary.successfulAssets).toBe(1000);
+    expect(r.portfolioSummary.failedAssets).toBe(0);
+    expect(r.portfolioSummary.totalBaselineAmountEur).toBeGreaterThan(0);
+    expect(r.assetResultsTotal).toBe(1000);
+    expect(r.errorCount).toBe(0);
+    expect(r.workloadEstimate).toBeDefined();
+    expect(r.workloadEstimate.assetCount).toBe(1000);
+    expect(r.byTechnology.length).toBeGreaterThan(0);
 
-      // All byTechnology asset counts should sum to successfulAssets
-      const techSum = r.byTechnology.reduce((s, g) => s + g.assetCount, 0);
-      expect(techSum).toBe(1000);
-    },
-    60000
-  );
+    // All byTechnology asset counts should sum to successfulAssets
+    const techSum = r.byTechnology.reduce((s, g) => s + g.assetCount, 0);
+    expect(techSum).toBe(1000);
+  }, 60000);
 
   test('1K simulation: workloadEstimate correctly pre-computed', async () => {
     const assetIds = Array.from({ length: 1000 }, (_, i) => `asset-mass-${i}`);
@@ -179,28 +175,24 @@ describe('1K asset portfolio simulation', () => {
 // ── 5K asset load test ────────────────────────────────────────────────────────
 
 describe('5K asset portfolio simulation', () => {
-  test(
-    '5000 assets with chunkSize=100, traceMode=none completes within 120s',
-    async () => {
-      const assetIds = Array.from({ length: 5000 }, (_, i) => `asset-mass5k-${i}`);
+  test('5000 assets with chunkSize=100, traceMode=none completes within 120s', async () => {
+    const assetIds = Array.from({ length: 5000 }, (_, i) => `asset-mass5k-${i}`);
 
-      const r = await broker.call('eeg-clawback-calculator.simulatePortfolio', {
-        assetIds,
-        timeframe: TIMEFRAME,
-        executionMode: 'sync',
-        options: {
-          chunkSize: 100,
-          traceMode: 'none',
-          assetResultsLimit: 0, // suppress assetResults payload
-        },
-      });
+    const r = await broker.call('eeg-clawback-calculator.simulatePortfolio', {
+      assetIds,
+      timeframe: TIMEFRAME,
+      executionMode: 'sync',
+      options: {
+        chunkSize: 100,
+        traceMode: 'none',
+        assetResultsLimit: 0, // suppress assetResults payload
+      },
+    });
 
-      expect(r.portfolioSummary.assetCount).toBe(5000);
-      expect(r.portfolioSummary.successfulAssets).toBe(5000);
-      expect(r.portfolioSummary.failedAssets).toBe(0);
-      expect(r.assetResultsTotal).toBe(5000);
-      expect(r.workloadEstimate.estimatedTotalIntervals).toBe(480000);
-    },
-    120000
-  );
+    expect(r.portfolioSummary.assetCount).toBe(5000);
+    expect(r.portfolioSummary.successfulAssets).toBe(5000);
+    expect(r.portfolioSummary.failedAssets).toBe(0);
+    expect(r.assetResultsTotal).toBe(5000);
+    expect(r.workloadEstimate.estimatedTotalIntervals).toBe(480000);
+  }, 120000);
 });

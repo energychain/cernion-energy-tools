@@ -805,15 +805,12 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
             ctx.meta.cernionToken
           );
         } catch (err) {
-          this.logger.error(
-            `[vnbLookup] MCP call to cernion_vnb_lookup failed: ${err.message}`,
-            {
-              tool: 'cernion_vnb_lookup',
-              lookupType,
-              lookupParam,
-              error: err.message,
-            }
-          );
+          this.logger.error(`[vnbLookup] MCP call to cernion_vnb_lookup failed: ${err.message}`, {
+            tool: 'cernion_vnb_lookup',
+            lookupType,
+            lookupParam,
+            error: err.message,
+          });
 
           // Return diagnostic error response instead of throwing
           return {
@@ -2570,7 +2567,9 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
       const payload = result && typeof result === 'object' ? result : { success: true, data: {} };
       const data = payload?.data && typeof payload.data === 'object' ? { ...payload.data } : {};
 
-      const source = String(data.source || '').trim().toLowerCase();
+      const source = String(data.source || '')
+        .trim()
+        .toLowerCase();
       const city = String(requestParams?.city || '').trim();
       const normalizedCity = city.toLowerCase();
       const bdew = String(data.bdew || '').trim();
@@ -2578,7 +2577,8 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
 
       const cityPlaceholderBdew = normalizedCity && bdew.toLowerCase() === normalizedCity;
       const cityPlaceholderName = normalizedCity && companyName.toLowerCase() === normalizedCity;
-      const fallbackPlaceholder = source === 'city-nap-fallback' && (cityPlaceholderBdew || cityPlaceholderName);
+      const fallbackPlaceholder =
+        source === 'city-nap-fallback' && (cityPlaceholderBdew || cityPlaceholderName);
 
       const warnings = [];
       if (fallbackPlaceholder) {

@@ -35,7 +35,12 @@ const REQUIREMENT_STATUS_UPDATED = 'updated';
 // Identifiers that uniquely distinguish a metering-point / contract within a tenant.
 // Used for object-scope correlation to prevent cross-contract false-positive matches
 // (e.g. two moveOut flows for different meters sharing the same requestedFact).
-const STRONG_SCOPE_IDENTIFIERS = ['meteringPointId', 'meterNumber', 'contractAccount', 'customerId'];
+const STRONG_SCOPE_IDENTIFIERS = [
+  'meteringPointId',
+  'meterNumber',
+  'contractAccount',
+  'customerId',
+];
 
 function nowIso() {
   return new Date().toISOString();
@@ -164,7 +169,12 @@ module.exports = {
         const requestedFact = trimString(ctx.params.requestedFact);
         // Normalize to null when not provided so scopeMatchesForCorrelation uses legacy path.
         const incomingScope = 'scope' in ctx.params ? normalizeScope(ctx.params.scope) : null;
-        const correlated = await this.correlateLearnedFact(ctx, tenantId, requestedFact, incomingScope);
+        const correlated = await this.correlateLearnedFact(
+          ctx,
+          tenantId,
+          requestedFact,
+          incomingScope
+        );
         return {
           success: true,
           tenantId,

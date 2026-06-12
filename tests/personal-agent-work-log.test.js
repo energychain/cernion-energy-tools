@@ -36,7 +36,11 @@ describe('T-PA-WOL-001: createTurnWorkLog returns empty frozen array', () => {
     wl.addEntry({
       action: WORK_LOG_ACTIONS.ROUTING_CLASSIFIED,
       label: 'Test',
-      metadata: { targetDomain: 'grid', primaryIntent: 'check', reasonCode: 'INTENT_SIGNAL_DETECTED' },
+      metadata: {
+        targetDomain: 'grid',
+        primaryIntent: 'check',
+        reasonCode: 'INTENT_SIGNAL_DETECTED',
+      },
     });
     const arr1 = wl.toArray();
     // Attempting to push to frozen array throws in strict mode, so test that
@@ -307,7 +311,12 @@ describe('T-PA-WOL-006: enum_array fields filter runtime strings', () => {
   test('blockerCodes: valid single code retained', () => {
     const fieldSpec = {
       type: 'enum_array',
-      enumCodes: ['PARAMS_INCOMPLETE', 'TENANT_UNRESOLVED', 'KNOWLEDGE_SCOPE_MISSING', 'HITL_PENDING'],
+      enumCodes: [
+        'PARAMS_INCOMPLETE',
+        'TENANT_UNRESOLVED',
+        'KNOWLEDGE_SCOPE_MISSING',
+        'HITL_PENDING',
+      ],
     };
     const result = sanitizeMetadataField(['PARAMS_INCOMPLETE'], fieldSpec);
     expect(result).toEqual(['PARAMS_INCOMPLETE']);
@@ -418,7 +427,7 @@ describe('T-PA-WOL-008: totalActivities counter survives multiple overflow event
     addEntries(wl, 10); // second overflow
     const entries = wl.toArray();
     // Find the truncation entry
-    const truncEntry = entries.find(e => e.action === 'worklog_truncated');
+    const truncEntry = entries.find((e) => e.action === 'worklog_truncated');
     expect(truncEntry).toBeDefined();
     expect(truncEntry.metadata.totalActivities).toBe(30);
   });
@@ -434,7 +443,7 @@ describe('T-PA-WOL-008: totalActivities counter survives multiple overflow event
     const wl = createTurnWorkLog();
     addEntries(wl, 20);
     addEntries(wl, 10);
-    const truncEntry = wl.toArray().find(e => e.action === 'worklog_truncated');
+    const truncEntry = wl.toArray().find((e) => e.action === 'worklog_truncated');
     expect(truncEntry.metadata.droppedMiddle).toBe(15);
   });
 });
@@ -462,27 +471,27 @@ describe('T-PA-WOL-009: validateWorkLogEntry throws on violations', () => {
   });
 
   test('throws on toolsUsed in metadata', () => {
-    expect(() =>
-      validateWorkLogEntry(makeValidEntry({ metadata: { toolsUsed: ['a'] } }))
-    ).toThrow(/Forbidden/);
+    expect(() => validateWorkLogEntry(makeValidEntry({ metadata: { toolsUsed: ['a'] } }))).toThrow(
+      /Forbidden/
+    );
   });
 
   test('throws on questionId in metadata', () => {
-    expect(() =>
-      validateWorkLogEntry(makeValidEntry({ metadata: { questionId: 'q1' } }))
-    ).toThrow(/Forbidden/);
+    expect(() => validateWorkLogEntry(makeValidEntry({ metadata: { questionId: 'q1' } }))).toThrow(
+      /Forbidden/
+    );
   });
 
   test('throws on warnings in metadata', () => {
-    expect(() =>
-      validateWorkLogEntry(makeValidEntry({ metadata: { warnings: ['x'] } }))
-    ).toThrow(/Forbidden/);
+    expect(() => validateWorkLogEntry(makeValidEntry({ metadata: { warnings: ['x'] } }))).toThrow(
+      /Forbidden/
+    );
   });
 
   test('throws on blockers in metadata', () => {
-    expect(() =>
-      validateWorkLogEntry(makeValidEntry({ metadata: { blockers: ['x'] } }))
-    ).toThrow(/Forbidden/);
+    expect(() => validateWorkLogEntry(makeValidEntry({ metadata: { blockers: ['x'] } }))).toThrow(
+      /Forbidden/
+    );
   });
 
   test('throws on nested object in metadata', () => {
@@ -503,21 +512,19 @@ describe('T-PA-WOL-009: validateWorkLogEntry throws on violations', () => {
   });
 
   test('throws on invalid action', () => {
-    expect(() =>
-      validateWorkLogEntry(makeValidEntry({ action: 'not_valid' }))
-    ).toThrow(/Invalid action/);
+    expect(() => validateWorkLogEntry(makeValidEntry({ action: 'not_valid' }))).toThrow(
+      /Invalid action/
+    );
   });
 
   test('throws on label exceeding 120 chars', () => {
-    expect(() =>
-      validateWorkLogEntry(makeValidEntry({ label: 'A'.repeat(121) }))
-    ).toThrow(/Invalid label/);
+    expect(() => validateWorkLogEntry(makeValidEntry({ label: 'A'.repeat(121) }))).toThrow(
+      /Invalid label/
+    );
   });
 
   test('throws on non-numeric step', () => {
-    expect(() =>
-      validateWorkLogEntry(makeValidEntry({ step: 'one' }))
-    ).toThrow(/Invalid step/);
+    expect(() => validateWorkLogEntry(makeValidEntry({ step: 'one' }))).toThrow(/Invalid step/);
   });
 });
 
@@ -548,7 +555,11 @@ describe('persona_resolved label sanitization', () => {
     wl.addEntry({
       action: WORK_LOG_ACTIONS.PERSONA_RESOLVED,
       label: getSafePersonaLabel(invalidRoleLabel),
-      metadata: { roleLabel: invalidRoleLabel, source: 'session', updateReason: 'role_consistency_check' },
+      metadata: {
+        roleLabel: invalidRoleLabel,
+        source: 'session',
+        updateReason: 'role_consistency_check',
+      },
     });
     const e = wl.toArray();
     // Entry is recorded (action is valid)
@@ -565,7 +576,11 @@ describe('persona_resolved label sanitization', () => {
     wl.addEntry({
       action: WORK_LOG_ACTIONS.PERSONA_RESOLVED,
       label: getSafePersonaLabel('Grid Analyst'),
-      metadata: { roleLabel: 'Grid Analyst', source: 'session', updateReason: 'role_consistency_check' },
+      metadata: {
+        roleLabel: 'Grid Analyst',
+        source: 'session',
+        updateReason: 'role_consistency_check',
+      },
     });
     const e = wl.toArray();
     expect(e[0].label).toBe('Persona: Grid Analyst');
