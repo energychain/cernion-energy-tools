@@ -431,6 +431,7 @@ module.exports = {
             'application/json': {
               schema: {
                 type: 'object',
+                required: ['location'],
                 properties: {
                   location: {
                     type: 'string',

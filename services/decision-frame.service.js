@@ -141,6 +141,14 @@ module.exports = {
       openapi: {
         summary: 'Get a SCQA decision frame by ID',
         tags: [OPENAPI_TAG],
+        parameters: [
+          {
+            name: 'frameId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'df-aabbccddeeff' },
+          },
+        ],
       },
       params: {
         frameId: { type: 'string' },
@@ -157,6 +165,18 @@ module.exports = {
       openapi: {
         summary: 'List SCQA decision frames',
         tags: [OPENAPI_TAG],
+        parameters: [
+          { name: 'domain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'status', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'createdBy', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'linkedEntityId', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 20, minimum: 1, maximum: 100 },
+          },
+        ],
       },
       params: {
         domain: { type: 'string', optional: true },
@@ -377,6 +397,20 @@ module.exports = {
       openapi: {
         summary: 'Export a SCQA frame as Markdown or JSON document',
         tags: [OPENAPI_TAG],
+        parameters: [
+          {
+            name: 'frameId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'df-aabbccddeeff' },
+          },
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['markdown', 'json'], default: 'markdown' },
+          },
+        ],
       },
       params: {
         frameId: { type: 'string' },
