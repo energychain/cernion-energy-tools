@@ -21,7 +21,7 @@ const {
   hasLocationScope,
 } = require('./query-scope-classifier');
 
-const { isSufficientForMunicipalPrecheck, LOCATION_PRECISION } = require('./location-resolution');
+const { LOCATION_PRECISION } = require('./location-resolution');
 
 const WORKFLOW_TYPES = Object.freeze({
   BESS_SCREENING: 'bess_screening',
