@@ -16,12 +16,6 @@ const VdmiGatekeepingService = require('../services/vdmi-portfolio-gatekeeping.s
 // ─── ProcessIntentStore unit tests ──────────────────────────────────────────
 
 describe('ProcessIntentStore (unit)', () => {
-  const { ProcessIntentStore } = (() => {
-    // Re-extract the class from the service module by reading the source.
-    // Simpler: just instantiate via the service's created() hook.
-    return {};
-  })();
-
   let broker;
 
   beforeAll(async () => {
