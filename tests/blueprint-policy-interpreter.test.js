@@ -58,7 +58,10 @@ describe('extractBlueprintPolicy', () => {
 
   it('BPI-003: handles null/undefined input gracefully', () => {
     expect(extractBlueprintPolicy(null)).toEqual({ routingPolicy: null, synthesisPolicy: null });
-    expect(extractBlueprintPolicy(undefined)).toEqual({ routingPolicy: null, synthesisPolicy: null });
+    expect(extractBlueprintPolicy(undefined)).toEqual({
+      routingPolicy: null,
+      synthesisPolicy: null,
+    });
   });
 });
 

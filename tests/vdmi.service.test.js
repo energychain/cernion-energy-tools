@@ -41,10 +41,14 @@ describe('vdmi.service', () => {
             const tenantPersonas = personasByTenant.get(tenantId) || new Map();
             const items = [...tenantPersonas.values()]
               .filter((persona) => persona.status === 'active')
-              .filter((persona) => Array.isArray(persona.assignedRoles) && persona.assignedRoles.includes(role))
-              .sort((left, right) =>
-                String(left.personaName || '').localeCompare(String(right.personaName || '')) ||
-                String(left.id || '').localeCompare(String(right.id || ''))
+              .filter(
+                (persona) =>
+                  Array.isArray(persona.assignedRoles) && persona.assignedRoles.includes(role)
+              )
+              .sort(
+                (left, right) =>
+                  String(left.personaName || '').localeCompare(String(right.personaName || '')) ||
+                  String(left.id || '').localeCompare(String(right.id || ''))
               );
             return { success: true, tenantId, role, count: items.length, items };
           },

@@ -157,8 +157,7 @@ describe('Capability Broker Service', () => {
 
   it('routes Netzsignal-Vorrang Vertragsgate prompts to the Phase-5 fNAV capability', async () => {
     const result = await broker.call('capability-broker.recommend', {
-      task:
-        'Bitte fNAV Netzfahrplan mit Netzsignal Vorrang Vertragsgate für einen flexiblen Netzanschlussvertrag prüfen.',
+      task: 'Bitte fNAV Netzfahrplan mit Netzsignal Vorrang Vertragsgate für einen flexiblen Netzanschlussvertrag prüfen.',
     });
 
     expect(result.recommendedCapabilities[0].capability).toBe('netzfahrplan_fnav_assessment');
@@ -170,7 +169,12 @@ describe('Capability Broker Service', () => {
       task: 'Bitte A96 Abgleich per anlageId/timeSlice durchführen und Deltas zeigen.',
       knownContext: {
         settlementId: 'redispatch_2026q2_SEE999952467552',
-        incomingRows: [{ anlageId: 'SEE999952467552', timeSlice: '2026-04-01T00:00:00.000Z/2026-04-01T01:00:00.000Z' }],
+        incomingRows: [
+          {
+            anlageId: 'SEE999952467552',
+            timeSlice: '2026-04-01T00:00:00.000Z/2026-04-01T01:00:00.000Z',
+          },
+        ],
       },
     });
 
@@ -399,7 +403,9 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.recommendedCapabilities[0].capability).toBe('grid_operator_identity_resolution');
-    const mpStep = result.recommendedPlan.find((s) => s.action === 'grid-operations.marketPartners');
+    const mpStep = result.recommendedPlan.find(
+      (s) => s.action === 'grid-operations.marketPartners'
+    );
     expect(mpStep).toBeDefined();
     expect(mpStep.params.query).toBe('Stadtwerke Köln');
   });

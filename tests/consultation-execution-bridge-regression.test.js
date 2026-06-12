@@ -612,4 +612,3 @@ describe('Consultation-Execution-Bridge Regression Tests', () => {
     });
   });
 });
-

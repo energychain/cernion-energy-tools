@@ -108,7 +108,9 @@ function znpProjectToResult(project) {
   return {
     id: project.projectId,
     title: project.name ?? project.projectId,
-    excerpt: [layers ? `Schichten: ${layers}` : null, stats].filter(Boolean).join(' · ') || project.projectId,
+    excerpt:
+      [layers ? `Schichten: ${layers}` : null, stats].filter(Boolean).join(' · ') ||
+      project.projectId,
     domain: 'znp',
     type: 'project',
     status: 'active',
@@ -475,7 +477,12 @@ Each result carries **domain**, **type**, **id**, **title**, **excerpt**, **stat
             required: true,
             description:
               'Search term. Company/VNB name, VDMI matrix name, ZNP project name, grid operator name, or exact MeLo ID (DE…). German or English.',
-            schema: { type: 'string', minLength: 1, maxLength: 200, example: 'Stadtwerke Heidelberg' },
+            schema: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 200,
+              example: 'Stadtwerke Heidelberg',
+            },
           },
           {
             name: 'domain',
@@ -506,7 +513,11 @@ Each result carries **domain**, **type**, **id**, **title**, **excerpt**, **stat
                 schema: {
                   type: 'object',
                   properties: {
-                    query: { type: 'string', description: 'The original search term', example: 'Stadtwerke Heidelberg' },
+                    query: {
+                      type: 'string',
+                      description: 'The original search term',
+                      example: 'Stadtwerke Heidelberg',
+                    },
                     domain: {
                       type: 'string',
                       enum: ['companies', 'vnb', 'edm', 'vdmi', 'grid_connection', 'znp', 'all'],
@@ -518,18 +529,45 @@ Each result carries **domain**, **type**, **id**, **title**, **excerpt**, **stat
                       items: {
                         type: 'object',
                         properties: {
-                          id: { type: 'string', description: 'Unique identifier within the domain', example: '550e8400-e29b-41d4-a716-446655440000' },
-                          title: { type: 'string', description: 'Primary display name', example: 'Stadtwerke Heidelberg GmbH & Co. KG' },
-                          excerpt: { type: 'string', description: 'One-line context string with key attributes' },
+                          id: {
+                            type: 'string',
+                            description: 'Unique identifier within the domain',
+                            example: '550e8400-e29b-41d4-a716-446655440000',
+                          },
+                          title: {
+                            type: 'string',
+                            description: 'Primary display name',
+                            example: 'Stadtwerke Heidelberg GmbH & Co. KG',
+                          },
+                          excerpt: {
+                            type: 'string',
+                            description: 'One-line context string with key attributes',
+                          },
                           domain: {
                             type: 'string',
                             description: 'Source domain of this result',
                             enum: ['companies', 'edm', 'vdmi', 'grid_connection', 'znp'],
                           },
-                          type: { type: 'string', description: 'Object type within the domain', example: 'company' },
-                          status: { type: 'string', nullable: true, description: 'Lifecycle or decision status of the object', example: 'active' },
-                          url: { type: 'string', description: 'API path to retrieve the full record', example: '/api/companies/550e8400-e29b-41d4-a716-446655440000' },
-                          metadata: { type: 'object', description: 'Domain-specific structured attributes' },
+                          type: {
+                            type: 'string',
+                            description: 'Object type within the domain',
+                            example: 'company',
+                          },
+                          status: {
+                            type: 'string',
+                            nullable: true,
+                            description: 'Lifecycle or decision status of the object',
+                            example: 'active',
+                          },
+                          url: {
+                            type: 'string',
+                            description: 'API path to retrieve the full record',
+                            example: '/api/companies/550e8400-e29b-41d4-a716-446655440000',
+                          },
+                          metadata: {
+                            type: 'object',
+                            description: 'Domain-specific structured attributes',
+                          },
                         },
                         required: ['id', 'title', 'excerpt', 'domain', 'type', 'status', 'url'],
                       },
@@ -544,16 +582,19 @@ Each result carries **domain**, **type**, **id**, **title**, **excerpt**, **stat
                       query: 'Stadtwerke Heidelberg',
                       domain: 'all',
                       totalResults: 1,
-                      results: [{
-                        id: '550e8400-e29b-41d4-a716-446655440000',
-                        title: 'Stadtwerke Heidelberg',
-                        excerpt: 'Stadtwerke Heidelberg GmbH & Co. KG · VNB · BDEW 9900277000000 · 2 Marktpartner · Status: active',
-                        domain: 'companies',
-                        type: 'company',
-                        status: 'active',
-                        url: '/api/companies/550e8400-e29b-41d4-a716-446655440000',
-                        metadata: { memberCount: 2, hasVnb: true },
-                      }],
+                      results: [
+                        {
+                          id: '550e8400-e29b-41d4-a716-446655440000',
+                          title: 'Stadtwerke Heidelberg',
+                          excerpt:
+                            'Stadtwerke Heidelberg GmbH & Co. KG · VNB · BDEW 9900277000000 · 2 Marktpartner · Status: active',
+                          domain: 'companies',
+                          type: 'company',
+                          status: 'active',
+                          url: '/api/companies/550e8400-e29b-41d4-a716-446655440000',
+                          metadata: { memberCount: 2, hasVnb: true },
+                        },
+                      ],
                     },
                   },
                   vdmiHit: {
@@ -562,16 +603,22 @@ Each result carries **domain**, **type**, **id**, **title**, **excerpt**, **stat
                       query: 'Netzanschluss',
                       domain: 'vdmi',
                       totalResults: 1,
-                      results: [{
-                        id: 'abc123',
-                        title: 'Netzanschluss-Genehmigung PV',
-                        excerpt: 'Prozesstyp: standard · Nominierung: pending',
-                        domain: 'vdmi',
-                        type: 'matrix',
-                        status: 'active',
-                        url: '/api/vdmi/abc123',
-                        metadata: { processType: 'standard', nominationStatus: 'pending', evidenceCount: 2 },
-                      }],
+                      results: [
+                        {
+                          id: 'abc123',
+                          title: 'Netzanschluss-Genehmigung PV',
+                          excerpt: 'Prozesstyp: standard · Nominierung: pending',
+                          domain: 'vdmi',
+                          type: 'matrix',
+                          status: 'active',
+                          url: '/api/vdmi/abc123',
+                          metadata: {
+                            processType: 'standard',
+                            nominationStatus: 'pending',
+                            evidenceCount: 2,
+                          },
+                        },
+                      ],
                     },
                   },
                   gridConnectionHit: {
@@ -580,16 +627,22 @@ Each result carries **domain**, **type**, **id**, **title**, **excerpt**, **stat
                       query: 'TWL Netze',
                       domain: 'grid_connection',
                       totalResults: 1,
-                      results: [{
-                        id: 'a1b2c3d4-1234-5678-90ab-cdef12345678',
-                        title: 'Netzanschluss-Validierung · TWL Netze',
-                        excerpt: 'Entscheidung: GO_CONDITIONAL · 2026-03-30',
-                        domain: 'grid_connection',
-                        type: 'validation',
-                        status: 'GO_CONDITIONAL',
-                        url: '/api/grid-connection/validations/a1b2c3d4-1234-5678-90ab-cdef12345678',
-                        metadata: { gridOperatorName: 'TWL Netze', findingsCount: 3, createdAt: '2026-03-30T10:00:00Z' },
-                      }],
+                      results: [
+                        {
+                          id: 'a1b2c3d4-1234-5678-90ab-cdef12345678',
+                          title: 'Netzanschluss-Validierung · TWL Netze',
+                          excerpt: 'Entscheidung: GO_CONDITIONAL · 2026-03-30',
+                          domain: 'grid_connection',
+                          type: 'validation',
+                          status: 'GO_CONDITIONAL',
+                          url: '/api/grid-connection/validations/a1b2c3d4-1234-5678-90ab-cdef12345678',
+                          metadata: {
+                            gridOperatorName: 'TWL Netze',
+                            findingsCount: 3,
+                            createdAt: '2026-03-30T10:00:00Z',
+                          },
+                        },
+                      ],
                     },
                   },
                   noResults: {
@@ -661,7 +714,10 @@ Each result carries **domain**, **type**, **id**, **title**, **excerpt**, **stat
           tasks.push(
             ctx
               .call('grid-connection.list', { limit: 50 }, callOpts)
-              .then((r) => ({ kind: 'grid_connection', data: r && r.validations ? r.validations : [] }))
+              .then((r) => ({
+                kind: 'grid_connection',
+                data: r && r.validations ? r.validations : [],
+              }))
               .catch(() => ({ kind: 'grid_connection', data: [] }))
           );
         }
@@ -706,8 +762,7 @@ Each result carries **domain**, **type**, **id**, **title**, **excerpt**, **stat
             const matched = data
               .filter(
                 (doc) =>
-                  matchesQuery(doc.gridOperator?.name, qLower) ||
-                  matchesQuery(doc.decision, qLower)
+                  matchesQuery(doc.gridOperator?.name, qLower) || matchesQuery(doc.decision, qLower)
               )
               .slice(0, limit);
             for (const doc of matched) results.push(gridConnectionToResult(doc));

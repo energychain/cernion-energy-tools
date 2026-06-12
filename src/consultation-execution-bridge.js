@@ -21,10 +21,7 @@ const {
   hasLocationScope,
 } = require('./query-scope-classifier');
 
-const {
-  isSufficientForMunicipalPrecheck,
-  LOCATION_PRECISION,
-} = require('./location-resolution');
+const { LOCATION_PRECISION } = require('./location-resolution');
 
 const WORKFLOW_TYPES = Object.freeze({
   BESS_SCREENING: 'bess_screening',
@@ -769,7 +766,10 @@ function buildExecutablePlan({
     }
 
     if (hasMunicipality) {
-      const spatialQuery = [knownContext.postalCode, knownContext.municipality || knownContext.location]
+      const spatialQuery = [
+        knownContext.postalCode,
+        knownContext.municipality || knownContext.location,
+      ]
         .filter(Boolean)
         .join(' ')
         .trim();
@@ -779,7 +779,11 @@ function buildExecutablePlan({
         action: 'osm-geo.infrastructureNearby',
         label: 'OSM-Raum- und Infrastrukturkontext spiegeln',
         params: {
-          location: spatialQuery || knownContext.municipality || knownContext.location || knownContext.postalCode,
+          location:
+            spatialQuery ||
+            knownContext.municipality ||
+            knownContext.location ||
+            knownContext.postalCode,
           radiusMeters: 5000,
           infraTypes: ['substation', 'transformer', 'line', 'cable'],
           maxResults: 25,
@@ -994,7 +998,12 @@ function buildExecutablePlan({
     const hasMelo = hasInput(knownContext, ['meloId', 'melo', 'marketLocationId']);
     const hasMastr = hasInput(knownContext, ['mastrId', 'mastrNumber']);
     const hasAssets = hasInput(knownContext, ['assetType', 'assets', 'devices']);
-    const hasGridOperator = hasInput(knownContext, ['gridOperatorName', 'gridOperatorId', 'bdewCode', 'bdew']);
+    const hasGridOperator = hasInput(knownContext, [
+      'gridOperatorName',
+      'gridOperatorId',
+      'bdewCode',
+      'bdew',
+    ]);
     const query =
       knownContext.municipality ||
       knownContext.location ||
@@ -1007,7 +1016,8 @@ function buildExecutablePlan({
     if (hasDid) {
       assumptions.push({
         type: 'identity_anchor',
-        statement: 'Die NAP-Wallet-DID wird als technischer Anker verwendet; private Schlüssel werden nie verarbeitet.',
+        statement:
+          'Die NAP-Wallet-DID wird als technischer Anker verwendet; private Schlüssel werden nie verarbeitet.',
         basis: 'user_provided_did',
         status: 'explicit',
       });
@@ -1029,7 +1039,8 @@ function buildExecutablePlan({
         params: { query, limit: 10 },
         canExecute: true,
         purpose: 'nap_connection_context',
-        disclaimer: 'Marktpartner-/MaStR-Kontext ist kein Nachweis der Anschluss- oder Steuerbarkeit.',
+        disclaimer:
+          'Marktpartner-/MaStR-Kontext ist kein Nachweis der Anschluss- oder Steuerbarkeit.',
       });
     } else {
       evidenceGates.push({
@@ -1037,7 +1048,8 @@ function buildExecutablePlan({
         label: 'Netzanschluss-Kontext prüfen',
         blockedBy: 'location_or_melo_missing',
         required: true,
-        description: 'PLZ, Ort oder MeLo-ID benötigt, um Netzanschluss und Zuständigkeit einzuordnen.',
+        description:
+          'PLZ, Ort oder MeLo-ID benötigt, um Netzanschluss und Zuständigkeit einzuordnen.',
       });
     }
 
@@ -1084,9 +1096,12 @@ function buildExecutablePlan({
       evidenceGates.push({
         id: 'nap_asset_baseline_gate',
         label: 'Asset-Baseline für Wallet-Nachweis',
-        blockedBy: hasGridOperator ? 'asset_baseline_missing' : 'grid_operator_or_asset_baseline_missing',
+        blockedBy: hasGridOperator
+          ? 'asset_baseline_missing'
+          : 'grid_operator_or_asset_baseline_missing',
         required: true,
-        description: 'Für belastbare Credentials werden Netzbetreiberbezug plus MaStR-/MeLo-/Asset-Daten benötigt.',
+        description:
+          'Für belastbare Credentials werden Netzbetreiberbezug plus MaStR-/MeLo-/Asset-Daten benötigt.',
       });
     }
 
@@ -1213,7 +1228,10 @@ function _resolvePermittedWorkflowType(semanticWorkflowType, avoidWorkflowTypes)
  */
 function _filterSuppressedInputs(missingInputs, doNotAskFor) {
   if (!Array.isArray(doNotAskFor) || doNotAskFor.length === 0) return missingInputs;
-  const norm = (s) => String(s || '').toLowerCase().replace(/[_\s-]+/g, '');
+  const norm = (s) =>
+    String(s || '')
+      .toLowerCase()
+      .replace(/[_\s-]+/g, '');
   return (Array.isArray(missingInputs) ? missingInputs : []).filter((missing) => {
     const normParam = norm(missing.param);
     return !doNotAskFor.some((excluded) => {
@@ -1450,7 +1468,9 @@ async function executeWithReceipt(
       const normalizedObservation = normalizeObservationForStep(action, observation);
       const normalizedResult = normalizedObservation?.result;
       const normalizedStepData =
-        normalizedResult && typeof normalizedResult === 'object' && normalizedResult.data !== undefined
+        normalizedResult &&
+        typeof normalizedResult === 'object' &&
+        normalizedResult.data !== undefined
           ? normalizedResult.data
           : normalizedResult;
       if (stepNum) {
@@ -1475,7 +1495,8 @@ async function executeWithReceipt(
       // 3. Conditional fallback: if step had no result AND fallbackActions exist
       if (
         !normalizedObservation.error &&
-        (!normalizedObservation.result || Object.keys(normalizedObservation.result || {}).length === 0) &&
+        (!normalizedObservation.result ||
+          Object.keys(normalizedObservation.result || {}).length === 0) &&
         step.fallbackActions &&
         Array.isArray(step.fallbackActions) &&
         step.fallbackActions.length > 0
@@ -1499,7 +1520,10 @@ async function executeWithReceipt(
           };
         }
 
-        const normalizedFallbackObservation = normalizeObservationForStep(fallbackAction, fallbackObs);
+        const normalizedFallbackObservation = normalizeObservationForStep(
+          fallbackAction,
+          fallbackObs
+        );
         const fallbackStepData =
           normalizedFallbackObservation?.result &&
           typeof normalizedFallbackObservation.result === 'object' &&
@@ -1558,12 +1582,19 @@ async function executeWithReceipt(
  *   city: { source: 'fixed', value: 'Berlin' },  // or source: 'default', defaultKey: 'defaultCity'
  * }
  */
-function resolveReceiptParamMapping(step = {}, knownContext = {}, defaults = {}, executionState = {}) {
+function resolveReceiptParamMapping(
+  step = {},
+  knownContext = {},
+  defaults = {},
+  executionState = {}
+) {
   const resolved = pruneEmptyValues(
     deepResolveStepReferences(
       {
         ...(step?.params && typeof step.params === 'object' ? step.params : {}),
-        ...(step?.paramsTemplate && typeof step.paramsTemplate === 'object' ? step.paramsTemplate : {}),
+        ...(step?.paramsTemplate && typeof step.paramsTemplate === 'object'
+          ? step.paramsTemplate
+          : {}),
       },
       executionState
     )
@@ -1653,7 +1684,9 @@ function orderMarketPartnersByVnbPreference(candidates = []) {
   const scoreCandidate = (candidate = {}) => {
     const role = String(candidate?.role || candidate?.marketRole || '').toLowerCase();
     const roleLabel = String(candidate?.roleLabel || '').toLowerCase();
-    const name = String(candidate?.name || candidate?.companyName || candidate?.legalName || '').toLowerCase();
+    const name = String(
+      candidate?.name || candidate?.companyName || candidate?.legalName || ''
+    ).toLowerCase();
     const hasBdew = Boolean(candidate?.bdewCode || candidate?.bdew);
 
     let score = 0;
@@ -1663,7 +1696,10 @@ function orderMarketPartnersByVnbPreference(candidates = []) {
     if (/netze|netz|verteilnetz/.test(name)) {
       score += 90;
     }
-    if (/lieferant|vertrieb|energiehandel|sales/.test(role) || /lieferant|vertrieb|energiehandel/.test(name)) {
+    if (
+      /lieferant|vertrieb|energiehandel|sales/.test(role) ||
+      /lieferant|vertrieb|energiehandel/.test(name)
+    ) {
       score -= 70;
     }
     if (hasBdew) {
@@ -1691,7 +1727,12 @@ function orderMarketPartnersByVnbPreference(candidates = []) {
 }
 
 function mergeContextFromStepResult(runtimeContext = {}, action = '', stepData = {}) {
-  if (!runtimeContext || typeof runtimeContext !== 'object' || !stepData || typeof stepData !== 'object') {
+  if (
+    !runtimeContext ||
+    typeof runtimeContext !== 'object' ||
+    !stepData ||
+    typeof stepData !== 'object'
+  ) {
     return;
   }
 
@@ -1711,7 +1752,8 @@ function mergeContextFromStepResult(runtimeContext = {}, action = '', stepData =
   }
 
   if (action === 'grid-operations.vnbLookup') {
-    const operator = stepData?.operator && typeof stepData.operator === 'object' ? stepData.operator : null;
+    const operator =
+      stepData?.operator && typeof stepData.operator === 'object' ? stepData.operator : null;
     if (operator && runtimeContext.bdewCode == null && runtimeContext.bdew == null) {
       runtimeContext.bdewCode = operator.bdew || runtimeContext.bdewCode;
       runtimeContext.bdew = operator.bdew || runtimeContext.bdew;
@@ -1745,7 +1787,10 @@ function deepResolveStepReferences(value, executionState = {}) {
   }
 
   return Object.fromEntries(
-    Object.entries(value).map(([key, child]) => [key, deepResolveStepReferences(child, executionState)])
+    Object.entries(value).map(([key, child]) => [
+      key,
+      deepResolveStepReferences(child, executionState),
+    ])
   );
 }
 
@@ -1792,9 +1837,7 @@ function getByPath(source, path = '') {
 
 function pruneEmptyValues(value) {
   if (Array.isArray(value)) {
-    return value
-      .map((item) => pruneEmptyValues(item))
-      .filter((item) => item !== undefined);
+    return value.map((item) => pruneEmptyValues(item)).filter((item) => item !== undefined);
   }
   if (!value || typeof value !== 'object') {
     if (value === undefined || value === null || value === '') {

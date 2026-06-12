@@ -41,7 +41,10 @@ function renderTemplate(template, payload = {}) {
   return text.replace(/\{\{([a-zA-Z0-9_]+)\}\}/g, (_match, key) => trimString(payload[key]));
 }
 
-function buildInboxSummary(payload = {}, definition = getDispatchTypeDefinition(payload?.dispatchType)) {
+function buildInboxSummary(
+  payload = {},
+  definition = getDispatchTypeDefinition(payload?.dispatchType)
+) {
   const inbox = definition?.inbox || {};
   const title = trimString(inbox.title) || 'Freigabe erforderlich';
   const summary = renderTemplate(inbox.summary, payload);
@@ -52,7 +55,11 @@ function buildInboxSummary(payload = {}, definition = getDispatchTypeDefinition(
 }
 
 function toHash(value) {
-  return crypto.createHash('sha256').update(String(value || ''), 'utf8').digest('hex').slice(0, 24);
+  return crypto
+    .createHash('sha256')
+    .update(String(value || ''), 'utf8')
+    .digest('hex')
+    .slice(0, 24);
 }
 
 module.exports = {
@@ -153,7 +160,9 @@ module.exports = {
           docs = docs.filter((doc) => doc.payload?.hitlItemId === hitlItemId);
         }
 
-        docs.sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')));
+        docs.sort((left, right) =>
+          String(right.createdAt || '').localeCompare(String(left.createdAt || ''))
+        );
 
         const offset = Number(ctx.params.offset || 0);
         const limit = Number(ctx.params.limit || 50);
@@ -192,7 +201,12 @@ module.exports = {
       async handler(ctx) {
         const tenantId = this.resolveTenantId(ctx, ctx.params.tenantId);
         const existing = await this.getDispatchOrThrow(ctx.params.id, tenantId);
-        const updated = await this.updateChannelStatus(existing, ctx.params.channelId, 'delivered', null);
+        const updated = await this.updateChannelStatus(
+          existing,
+          ctx.params.channelId,
+          'delivered',
+          null
+        );
         return { success: true, dispatch: this.toPublic(updated) };
       },
     },
@@ -283,7 +297,9 @@ module.exports = {
         personaId,
         responsibleRole,
         routingContext:
-          params.routingContext && typeof params.routingContext === 'object' ? params.routingContext : null,
+          params.routingContext && typeof params.routingContext === 'object'
+            ? params.routingContext
+            : null,
         embedRef,
         sourceService: trimString(params.sourceService) || 'unknown',
         sourceAction: trimString(params.sourceAction) || 'unknown',
@@ -316,7 +332,11 @@ module.exports = {
       const docs = await this.getTenantDispatches(tenantId);
       const found = docs.find((doc) => doc.id === id);
       if (!found) {
-        throw new MoleculerClientError('Notification dispatch not found', 404, 'NOTIFICATION_DISPATCH_NOT_FOUND');
+        throw new MoleculerClientError(
+          'Notification dispatch not found',
+          404,
+          'NOTIFICATION_DISPATCH_NOT_FOUND'
+        );
       }
       return found;
     },
@@ -398,7 +418,9 @@ module.exports = {
 
     buildInitialChannels(persona, dispatchId, timestamp) {
       const channels = [];
-      const configured = Array.isArray(persona?.communicationChannels) ? persona.communicationChannels : [];
+      const configured = Array.isArray(persona?.communicationChannels)
+        ? persona.communicationChannels
+        : [];
 
       for (const [index, channel] of configured.entries()) {
         const type = trimString(channel?.type);
@@ -602,7 +624,9 @@ module.exports = {
       const inboxConfig = definition?.inbox || {};
       const sessionId =
         inboxConfig.targetSession === 'originSession'
-          ? trimString(payload?.originSessionId) || trimString(persona?.defaultPersonalAgentSessionId) || null
+          ? trimString(payload?.originSessionId) ||
+            trimString(persona?.defaultPersonalAgentSessionId) ||
+            null
           : trimString(persona?.defaultPersonalAgentSessionId) || null;
 
       try {
@@ -672,7 +696,11 @@ module.exports = {
       const channels = Array.isArray(existing.channels) ? [...existing.channels] : [];
       const index = channels.findIndex((channel) => channel.channelId === channelId);
       if (index < 0) {
-        throw new MoleculerClientError('Notification channel not found', 404, 'NOTIFICATION_CHANNEL_NOT_FOUND');
+        throw new MoleculerClientError(
+          'Notification channel not found',
+          404,
+          'NOTIFICATION_CHANNEL_NOT_FOUND'
+        );
       }
 
       const previous = channels[index];

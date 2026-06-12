@@ -220,11 +220,15 @@ describe('Location Resolution — Unit tests', () => {
   });
 
   it('classifyLocationPrecision: MUNICIPALITY for postalCode', () => {
-    expect(classifyLocationPrecision({ postalCode: '74889' })).toBe(LOCATION_PRECISION.MUNICIPALITY);
+    expect(classifyLocationPrecision({ postalCode: '74889' })).toBe(
+      LOCATION_PRECISION.MUNICIPALITY
+    );
   });
 
   it('classifyLocationPrecision: SITE for lat/lon', () => {
-    expect(classifyLocationPrecision({ latitude: 49.1, longitude: 8.9 })).toBe(LOCATION_PRECISION.SITE);
+    expect(classifyLocationPrecision({ latitude: 49.1, longitude: 8.9 })).toBe(
+      LOCATION_PRECISION.SITE
+    );
   });
 
   it('buildLocationResolutionTrace: contains required fields', () => {
@@ -240,7 +244,10 @@ describe('Location Resolution — Unit tests', () => {
   });
 
   it('resolveLocationFromText: structured context wins over text extraction', () => {
-    const result = resolveLocationFromText('74889 Sinsheim', { postalCode: '69256', city: 'Mauer' });
+    const result = resolveLocationFromText('74889 Sinsheim', {
+      postalCode: '69256',
+      city: 'Mauer',
+    });
     expect(result.postalCode).toBe('69256'); // context beats text
     expect(result.municipality).toBe('Mauer');
   });
@@ -281,8 +288,17 @@ describe('Location Resolution — Integration: context patch is consultation-bri
     const resolved = resolveLocationFromText('74889 Sinsheim');
     const patch = buildLocationContextPatch(resolved);
 
-    const bessScreenKeys = ['state', 'bundesland', 'region', 'municipality', 'location', 'postalCode'];
-    const hasSomeKey = bessScreenKeys.some((key) => Object.prototype.hasOwnProperty.call(patch, key));
+    const bessScreenKeys = [
+      'state',
+      'bundesland',
+      'region',
+      'municipality',
+      'location',
+      'postalCode',
+    ];
+    const hasSomeKey = bessScreenKeys.some((key) =>
+      Object.prototype.hasOwnProperty.call(patch, key)
+    );
     expect(hasSomeKey).toBe(true);
   });
 });
@@ -290,7 +306,6 @@ describe('Location Resolution — Integration: context patch is consultation-bri
 // ─── Bug-regression: Sinsheim state + Schleswig-Holstein false positive ───────
 
 describe('Location Resolution — Bug regression: Sinsheim / Schleswig-Holstein', () => {
-
   // Acceptance Test 1 (spec): 74889 Sinsheim → correct state
   it('AT1: resolveLocationFromText("74889 Sinsheim") gives state = Baden-Württemberg, NOT Schleswig-Holstein', () => {
     const result = resolveLocationFromText('74889 Sinsheim');

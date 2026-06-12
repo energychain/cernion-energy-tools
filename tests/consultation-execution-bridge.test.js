@@ -468,8 +468,12 @@ describe('consultation-execution-bridge', () => {
       expect(plan.workflowType).toBe(WORKFLOW_TYPES.PROSUMER_NAP_WALLET_ONBOARDING);
       expect(plan.missingInputs.find((m) => m.param === 'did')).toBeUndefined();
       expect(plan.missingInputs.find((m) => m.param === 'location_or_melo')).toBeUndefined();
-      expect(plan.executableSteps.map((step) => step.action)).toContain('grid-operations.marketPartners');
-      expect(plan.executableSteps.map((step) => step.action)).toContain('osm-geo.infrastructureNearby');
+      expect(plan.executableSteps.map((step) => step.action)).toContain(
+        'grid-operations.marketPartners'
+      );
+      expect(plan.executableSteps.map((step) => step.action)).toContain(
+        'osm-geo.infrastructureNearby'
+      );
       expect(plan.evidenceGates.map((gate) => gate.id)).toContain('nap_consent_gate');
       expect(plan.evidenceGates.map((gate) => gate.id)).toContain('nap_dlr_publication_gate');
     });

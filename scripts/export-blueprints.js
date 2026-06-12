@@ -45,7 +45,7 @@ async function fetchActiveBlueprintIds(baseUrl) {
   const data = response.data;
 
   // Accept plain array, { data: [...] } (current API), { blueprints: [...] }, { items: [...] }
-  const list = Array.isArray(data) ? data : data.data ?? data.blueprints ?? data.items ?? [];
+  const list = Array.isArray(data) ? data : (data.data ?? data.blueprints ?? data.items ?? []);
   return list.map((b) => b.blueprintId ?? b.id).filter(Boolean);
 }
 

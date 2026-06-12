@@ -53,7 +53,12 @@ describe('decision-frame.service', () => {
       actions: {
         getProjectMeta: {
           handler() {
-            return { projectId: 'proj-test-001', name: 'Test-Netz', layers: ['L0'], assetCount: 42 };
+            return {
+              projectId: 'proj-test-001',
+              name: 'Test-Netz',
+              layers: ['L0'],
+              assetCount: 42,
+            };
           },
         },
         strategicPrompts: {
@@ -363,9 +368,7 @@ describe('decision-frame.service', () => {
       mockGenerateStructured.mockResolvedValueOnce(STARTER_LLM_RESPONSE);
       await broker.call('decision-frame.generateStarter', { contextHint: 'Test' });
       const { frames } = await broker.call('decision-frame.list', {});
-      const hasGeneratedFrame = frames.some(
-        (f) => f.situation === 'KI-generierte Ausgangslage.'
-      );
+      const hasGeneratedFrame = frames.some((f) => f.situation === 'KI-generierte Ausgangslage.');
       expect(hasGeneratedFrame).toBe(false);
     });
   });

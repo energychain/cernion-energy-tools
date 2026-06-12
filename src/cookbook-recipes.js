@@ -293,7 +293,12 @@ const COOKBOOK_RECIPES = [
     ],
     expectedResult:
       'Technical feasibility, explicit contract-gate status, and additive economics for the same fNAV profile.',
-    prerequisites: ['Grid operator', 'Requested capacity', 'Signal priority wording', 'Control evidence reference'],
+    prerequisites: [
+      'Grid operator',
+      'Requested capacity',
+      'Signal priority wording',
+      'Control evidence reference',
+    ],
   },
   {
     id: 'energy-sharing-validation',
@@ -1605,9 +1610,10 @@ const COOKBOOK_RECIPES = [
         restPath: 'POST /api/mastr-quality/audit',
         params: {
           operatorBdew: null,
-          zipCode: null
+          zipCode: null,
         },
-        description: 'Check MaStR for existing assets at the prosumers location to validate their baseline.',
+        description:
+          'Check MaStR for existing assets at the prosumers location to validate their baseline.',
         expectedOutput: 'List of registered assets (e.g., PV, Wallbox) for the given Prosumer.',
       },
       {
@@ -1618,7 +1624,7 @@ const COOKBOOK_RECIPES = [
         params: {
           lat: null,
           lon: null,
-          radiusMeters: 2000
+          radiusMeters: 2000,
         },
         description: 'Look for existing Energy Sharing clusters near the Prosumer location.',
         expectedOutput: 'GeoJSON showing nearby grid infra and potential sharing partners.',
@@ -1631,11 +1637,12 @@ const COOKBOOK_RECIPES = [
         params: {
           operatorId: null,
           generators: null,
-          consumers: null
+          consumers: null,
         },
-        description: 'Validate if the Prosumer can legally join the local Energy Sharing community according to §42c EnWG.',
+        description:
+          'Validate if the Prosumer can legally join the local Energy Sharing community according to §42c EnWG.',
         expectedOutput: 'Eligibility decision with findings for community setup.',
-      }
+      },
     ],
     expectedResult:
       'A validated onboarding package for the Prosumer including a Smart Contract draft for §14a grid fee reduction and a §42c community join link.',

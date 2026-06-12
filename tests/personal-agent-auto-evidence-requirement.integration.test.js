@@ -102,10 +102,7 @@ describe('personal-agent auto-evidence-requirement end-to-end (Part C)', () => {
         },
         resolveByRole: {
           handler(ctx) {
-            if (
-              ctx.params.tenantId === TENANT &&
-              ctx.params.role === 'Netzplaner'
-            ) {
+            if (ctx.params.tenantId === TENANT && ctx.params.role === 'Netzplaner') {
               return {
                 success: true,
                 items: [
@@ -115,9 +112,7 @@ describe('personal-agent auto-evidence-requirement end-to-end (Part C)', () => {
                     personaName: 'Netzplanung',
                     personaType: 'human',
                     assignedRoles: ['Netzplaner'],
-                    communicationChannels: [
-                      { type: 'openclaw-chat', address: 'room-netzplanung' },
-                    ],
+                    communicationChannels: [{ type: 'openclaw-chat', address: 'room-netzplanung' }],
                     defaultPersonalAgentSessionId: 'pa-netzplaner-default',
                     status: 'active',
                   },
@@ -199,7 +194,11 @@ describe('personal-agent auto-evidence-requirement end-to-end (Part C)', () => {
           domainIntent: 'grid_operator_evidence_check',
           evidenceStatus: 'unverified',
           missingEvidence: [
-            { id: 'vnb_lookup_required', label: 'Dedizierter VNB-/Netzgebietslookup fehlt.', severity: 'high' },
+            {
+              id: 'vnb_lookup_required',
+              label: 'Dedizierter VNB-/Netzgebietslookup fehlt.',
+              severity: 'high',
+            },
           ],
           nextVerificationSteps: [
             { action: 'grid-operations.vnbLookup', description: 'VNB verifizieren.' },
@@ -235,124 +234,116 @@ describe('personal-agent auto-evidence-requirement end-to-end (Part C)', () => {
     fs.rmSync(requirementDbPath, { recursive: true, force: true });
   });
 
-  test(
-    'full chain: chat auto-registers requirement → later knownContext.gridOperatorBdew → WoL → correlateFact → evidence_revalidated inbox',
-    async () => {
-      inboxEntries.length = 0;
+  test('full chain: chat auto-registers requirement → later knownContext.gridOperatorBdew → WoL → correlateFact → evidence_revalidated inbox', async () => {
+    inboxEntries.length = 0;
 
-      const originSessionId = `pa-part-c-origin-${Date.now()}`;
+    const originSessionId = `pa-part-c-origin-${Date.now()}`;
 
-      // ─── Step 1 (Part B): Turn 1 — chat with responsibleRole and VNB signal ───
-      // Personal-agent should auto-register an evidence requirement because
-      // consultationPayload.missingEvidence contains vnb_lookup_required AND
-      // knownContext.responsibleRole is 'Netzplaner'.
-      const turn1 = await broker.call(
-        'personal-agent.chat',
-        {
-          message: 'Welcher VNB ist für unseren Standort zuständig?',
-          chatMode: 'consultation',
-          executionMode: 'auto',
-          sessionId: originSessionId,
-          knownContext: {
-            responsibleRole: 'Netzplaner',
-          },
-        },
-        META
-      );
-
-      expect(turn1.success).toBe(true);
-      expect(turn1.missingEvidence).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ id: 'vnb_lookup_required' }),
-        ])
-      );
-
-      // Allow the fire-and-forget recordRequirement call to complete.
-      await new Promise((r) => setTimeout(r, 200));
-
-      // ─── Verify Step 1: requirement is persisted ─────────────────────────────
-      const expectedRequirementId = `evreq:${originSessionId}:gridOperatorBdew`;
-      const recordedRequirement = await broker.call(
-        'evidence-revalidation.recordRequirement',
-        {
-          evidenceRequirementId: expectedRequirementId,
-          originSessionId,
-          responsibleRole: 'Netzplaner',
-          requestedFact: 'gridOperatorBdew',
-          scope: 'tenant_candidate',
-        },
-        META
-      );
-
-      expect(recordedRequirement.deduplicated).toBe(true);
-      expect(recordedRequirement.requirement.originSessionId).toBe(originSessionId);
-      expect(recordedRequirement.requirement.requestedFact).toBe('gridOperatorBdew');
-      expect(recordedRequirement.requirement.status).toBe('missing');
-
-      // ─── Step 2 (Parts A + Part C): Turn 2 — supply gridOperatorBdew ─────────
-      // resolveScopedKnowledgeState derives a new tenant_candidate datapoint,
-      // emitScopedKnowledgeWorkOutLoud emits scoped_fact_learned,
-      // listener auto-calls correlateFact,
-      // correlateFact dispatches evidence_revalidated to the origin session.
-      const laterSessionId = `pa-part-c-later-${Date.now()}`;
-      const turn2 = await broker.call(
-        'personal-agent.chat',
-        {
-          message: 'Ich habe die BDEW-Codenummer vom Netzbetreiber erhalten.',
-          chatMode: 'consultation',
-          executionMode: 'auto',
-          sessionId: laterSessionId,
-          knownContext: {
-            gridOperatorBdew: '9907473000008',
-          },
-        },
-        META
-      );
-
-      expect(turn2.success).toBe(true);
-
-      // Part A assertion: gridOperatorBdew produced a tenant_candidate scoped datapoint
-      expect(turn2.agentTrace?.knowledgeScope?.byScope?.tenant_candidate).toBeGreaterThanOrEqual(1);
-
-      // Allow the async WoL → listener → correlateFact → notification → inbox chain to complete.
-      await new Promise((r) => setTimeout(r, 400));
-
-      // ─── Step 3 (Part C): origin session inbox receives evidence_revalidated ───
-      const inboxEntry = inboxEntries.find(
-        (entry) => entry.sessionId === originSessionId
-      );
-      expect(inboxEntry).toMatchObject({
-        tenantId: TENANT,
+    // ─── Step 1 (Part B): Turn 1 — chat with responsibleRole and VNB signal ───
+    // Personal-agent should auto-register an evidence requirement because
+    // consultationPayload.missingEvidence contains vnb_lookup_required AND
+    // knownContext.responsibleRole is 'Netzplaner'.
+    const turn1 = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Welcher VNB ist für unseren Standort zuständig?',
+        chatMode: 'consultation',
+        executionMode: 'auto',
         sessionId: originSessionId,
-        type: dispatchTypeDefinitions.evidence_revalidated.inbox.type,
-        title: dispatchTypeDefinitions.evidence_revalidated.inbox.title,
-      });
-      expect(inboxEntry.summary).toContain(expectedRequirementId);
-
-      // ─── Privacy guard: no raw values or prompt text in the inbox chain ───────
-      const serialized = JSON.stringify(inboxEntry);
-      expect(serialized).not.toContain('9907473000008');
-      expect(serialized).not.toContain('Welcher VNB');
-      expect(serialized).not.toContain('BDEW-Codenummer');
-
-      // ─── Verify requirement flipped to 'updated' after correlation ────────────
-      const refetched = await broker.call(
-        'evidence-revalidation.recordRequirement',
-        {
-          evidenceRequirementId: expectedRequirementId,
-          originSessionId,
+        knownContext: {
           responsibleRole: 'Netzplaner',
-          requestedFact: 'gridOperatorBdew',
-          scope: 'tenant_candidate',
         },
-        META
-      );
-      expect(refetched.deduplicated).toBe(true);
-      expect(refetched.requirement.status).toBe('updated');
-      expect(refetched.requirement.revalidatedAt).toEqual(expect.any(String));
-    },
-    15000
-  );
+      },
+      META
+    );
+
+    expect(turn1.success).toBe(true);
+    expect(turn1.missingEvidence).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: 'vnb_lookup_required' })])
+    );
+
+    // Allow the fire-and-forget recordRequirement call to complete.
+    await new Promise((r) => setTimeout(r, 200));
+
+    // ─── Verify Step 1: requirement is persisted ─────────────────────────────
+    const expectedRequirementId = `evreq:${originSessionId}:gridOperatorBdew`;
+    const recordedRequirement = await broker.call(
+      'evidence-revalidation.recordRequirement',
+      {
+        evidenceRequirementId: expectedRequirementId,
+        originSessionId,
+        responsibleRole: 'Netzplaner',
+        requestedFact: 'gridOperatorBdew',
+        scope: 'tenant_candidate',
+      },
+      META
+    );
+
+    expect(recordedRequirement.deduplicated).toBe(true);
+    expect(recordedRequirement.requirement.originSessionId).toBe(originSessionId);
+    expect(recordedRequirement.requirement.requestedFact).toBe('gridOperatorBdew');
+    expect(recordedRequirement.requirement.status).toBe('missing');
+
+    // ─── Step 2 (Parts A + Part C): Turn 2 — supply gridOperatorBdew ─────────
+    // resolveScopedKnowledgeState derives a new tenant_candidate datapoint,
+    // emitScopedKnowledgeWorkOutLoud emits scoped_fact_learned,
+    // listener auto-calls correlateFact,
+    // correlateFact dispatches evidence_revalidated to the origin session.
+    const laterSessionId = `pa-part-c-later-${Date.now()}`;
+    const turn2 = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Ich habe die BDEW-Codenummer vom Netzbetreiber erhalten.',
+        chatMode: 'consultation',
+        executionMode: 'auto',
+        sessionId: laterSessionId,
+        knownContext: {
+          gridOperatorBdew: '9907473000008',
+        },
+      },
+      META
+    );
+
+    expect(turn2.success).toBe(true);
+
+    // Part A assertion: gridOperatorBdew produced a tenant_candidate scoped datapoint
+    expect(turn2.agentTrace?.knowledgeScope?.byScope?.tenant_candidate).toBeGreaterThanOrEqual(1);
+
+    // Allow the async WoL → listener → correlateFact → notification → inbox chain to complete.
+    await new Promise((r) => setTimeout(r, 400));
+
+    // ─── Step 3 (Part C): origin session inbox receives evidence_revalidated ───
+    const inboxEntry = inboxEntries.find((entry) => entry.sessionId === originSessionId);
+    expect(inboxEntry).toMatchObject({
+      tenantId: TENANT,
+      sessionId: originSessionId,
+      type: dispatchTypeDefinitions.evidence_revalidated.inbox.type,
+      title: dispatchTypeDefinitions.evidence_revalidated.inbox.title,
+    });
+    expect(inboxEntry.summary).toContain(expectedRequirementId);
+
+    // ─── Privacy guard: no raw values or prompt text in the inbox chain ───────
+    const serialized = JSON.stringify(inboxEntry);
+    expect(serialized).not.toContain('9907473000008');
+    expect(serialized).not.toContain('Welcher VNB');
+    expect(serialized).not.toContain('BDEW-Codenummer');
+
+    // ─── Verify requirement flipped to 'updated' after correlation ────────────
+    const refetched = await broker.call(
+      'evidence-revalidation.recordRequirement',
+      {
+        evidenceRequirementId: expectedRequirementId,
+        originSessionId,
+        responsibleRole: 'Netzplaner',
+        requestedFact: 'gridOperatorBdew',
+        scope: 'tenant_candidate',
+      },
+      META
+    );
+    expect(refetched.deduplicated).toBe(true);
+    expect(refetched.requirement.status).toBe('updated');
+    expect(refetched.requirement.revalidatedAt).toEqual(expect.any(String));
+  }, 15000);
 
   test('no evidence_revalidated inbox when no responsibleRole or personaId in knownContext (no recipient → auto-registration skipped)', async () => {
     inboxEntries.length = 0;

@@ -848,12 +848,12 @@ describe('dashboard-api.service', () => {
 
       expect(result._errors).toContain('redispatch-expost.list');
       expect(result._errors).toContain('mastr-quality.list');
-      expect(result.blockingEvidenceGaps.some((b) => b.code === 'REDISPATCH_EVIDENCE_MISSING')).toBe(
-        true
-      );
-      expect(result.blockingEvidenceGaps.some((b) => b.code === 'MASTERDATA_EVIDENCE_MISSING')).toBe(
-        true
-      );
+      expect(
+        result.blockingEvidenceGaps.some((b) => b.code === 'REDISPATCH_EVIDENCE_MISSING')
+      ).toBe(true);
+      expect(
+        result.blockingEvidenceGaps.some((b) => b.code === 'MASTERDATA_EVIDENCE_MISSING')
+      ).toBe(true);
     });
   });
 
@@ -906,7 +906,9 @@ describe('dashboard-api.service', () => {
         gridOperatorId: 'SNB935578300972',
       });
 
-      expect(result.anomalySignals.dataQualityGap.some((f) => f.ref === 'GAP_DETECTION')).toBe(true);
+      expect(result.anomalySignals.dataQualityGap.some((f) => f.ref === 'GAP_DETECTION')).toBe(
+        true
+      );
       expect(result.anomalySignals.realAnomaly.some((f) => f.ref === 'BANDWIDTH_CHECK')).toBe(true);
       expect(result.anomalySignals.forecastProblem.some((f) => f.ref === 'SLP_PLAUSIBILITY')).toBe(
         true

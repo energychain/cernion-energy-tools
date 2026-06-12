@@ -11,15 +11,9 @@ const { getDemoPrices } = require('../src/rcs-demo-data');
 
 // ── Thresholds (env-configurable) ────────────────────────────────────────────
 
-const SYNC_THRESHOLD_INTERVALS = parseInt(
-  process.env.RCS_SYNC_THRESHOLD_INTERVALS || '9600',
-  10
-);
+const SYNC_THRESHOLD_INTERVALS = parseInt(process.env.RCS_SYNC_THRESHOLD_INTERVALS || '9600', 10);
 
-const MAX_FULL_TRACE_INTERVALS = parseInt(
-  process.env.RCS_MAX_FULL_TRACE_INTERVALS || '500000',
-  10
-);
+const MAX_FULL_TRACE_INTERVALS = parseInt(process.env.RCS_MAX_FULL_TRACE_INTERVALS || '500000', 10);
 
 // ── Normalise raw upstream responses ─────────────────────────────────────────
 
@@ -28,8 +22,7 @@ function normaliseAsset(raw) {
     technology: raw.technology ?? raw.tech,
     capacityKw: raw.capacityKw ?? raw.capacity_kw ?? raw.capacityKW,
     awCentsPerKwh: raw.awCentsPerKwh ?? raw.aw_cents_per_kwh ?? raw.anzulegenderWertCentsKwh,
-    commissioningDate:
-      raw.commissioningDate ?? raw.commissioning_date ?? raw.inbetriebnahmedatum,
+    commissioningDate: raw.commissioningDate ?? raw.commissioning_date ?? raw.inbetriebnahmedatum,
   };
 }
 
@@ -61,10 +54,12 @@ async function fetchPriceSeries(ctx, timeframe) {
       resolution: 'hourly',
     })
     .catch(() => []);
-  const prices = normaliseSeries(pricesRaw).map((row) => ({
-    timestamp: row.timestamp ?? row.ts,
-    priceEurMwh: row.priceEurMwh ?? row.priceEURMWh ?? row.value,
-  })).filter((row) => row.timestamp && Number.isFinite(Number(row.priceEurMwh)));
+  const prices = normaliseSeries(pricesRaw)
+    .map((row) => ({
+      timestamp: row.timestamp ?? row.ts,
+      priceEurMwh: row.priceEurMwh ?? row.priceEURMWh ?? row.value,
+    }))
+    .filter((row) => row.timestamp && Number.isFinite(Number(row.priceEurMwh)));
 
   return prices.length > 0 ? prices : getDemoPrices(timeframe.start, timeframe.end);
 }
@@ -181,8 +176,7 @@ function aggregatePortfolioSummary(assetResults) {
 
   for (const r of successful) {
     totalBaselineCents += r.summary.calculatedUnderOldLaw.totalRevenueCents ?? 0;
-    totalClawbackCents +=
-      r.summary.calculatedUnderNewLaw.totalRefinancingContributionCents ?? 0;
+    totalClawbackCents += r.summary.calculatedUnderNewLaw.totalRefinancingContributionCents ?? 0;
     totalRetainedCents += r.summary.calculatedUnderNewLaw.retainedRevenueCents ?? 0;
   }
 
@@ -210,12 +204,19 @@ function groupByTechnology(assetResults) {
   for (const r of assetResults.filter((r) => r.status === 'success')) {
     const tech = r.technology ?? 'unknown';
     if (!byTech[tech]) {
-      byTech[tech] = { technology: tech, assetCount: 0, totalBaselineAmountEur: 0, totalClawbackAmountEur: 0, totalDeltaEur: 0 };
+      byTech[tech] = {
+        technology: tech,
+        assetCount: 0,
+        totalBaselineAmountEur: 0,
+        totalClawbackAmountEur: 0,
+        totalDeltaEur: 0,
+      };
     }
     const g = byTech[tech];
     g.assetCount += 1;
     g.totalBaselineAmountEur += (r.summary.calculatedUnderOldLaw.totalRevenueCents ?? 0) / 100;
-    g.totalClawbackAmountEur += (r.summary.calculatedUnderNewLaw.totalRefinancingContributionCents ?? 0) / 100;
+    g.totalClawbackAmountEur +=
+      (r.summary.calculatedUnderNewLaw.totalRefinancingContributionCents ?? 0) / 100;
     g.totalDeltaEur += (r.summary.deltaCents ?? 0) / 100;
   }
   return Object.values(byTech).sort((a, b) => b.assetCount - a.assetCount);
@@ -249,22 +250,27 @@ function topAssetsByDelta(assetResults, n = 5) {
 function topAssetsByClawback(assetResults, n = 5) {
   return assetResults
     .filter((r) => r.status === 'success')
-    .sort((a, b) =>
-      (b.summary?.calculatedUnderNewLaw?.totalRefinancingContributionCents ?? 0) -
-      (a.summary?.calculatedUnderNewLaw?.totalRefinancingContributionCents ?? 0)
+    .sort(
+      (a, b) =>
+        (b.summary?.calculatedUnderNewLaw?.totalRefinancingContributionCents ?? 0) -
+        (a.summary?.calculatedUnderNewLaw?.totalRefinancingContributionCents ?? 0)
     )
     .slice(0, n)
     .map((r) => ({
       assetId: r.assetId,
       assetName: r.assetName,
       technology: r.technology,
-      clawbackAmountEur: (r.summary.calculatedUnderNewLaw.totalRefinancingContributionCents ?? 0) / 100,
+      clawbackAmountEur:
+        (r.summary.calculatedUnderNewLaw.totalRefinancingContributionCents ?? 0) / 100,
     }));
 }
 
 function topAssetsByDataRisk(assetResults, n = 5) {
   return assetResults
-    .filter((r) => r.status === 'error' || r.readinessStatus === 'not_ready' || r.readinessStatus === 'partial')
+    .filter(
+      (r) =>
+        r.status === 'error' || r.readinessStatus === 'not_ready' || r.readinessStatus === 'partial'
+    )
     .slice(0, n)
     .map((r) => ({
       assetId: r.assetId,
@@ -493,10 +499,19 @@ async function runPortfolioReadinessCore(ctx, { assetIds, timeframe, workload },
   const assetReports = await Promise.all(
     assetIds.map(async (assetId, idx) => {
       const percent = 20 + Math.round(((idx + 1) / total) * 50);
-      jobStore.appendLog(jobId, 'timeseries_check', percent, `Checking asset ${idx + 1}/${total}`, { assetId });
+      jobStore.appendLog(jobId, 'timeseries_check', percent, `Checking asset ${idx + 1}/${total}`, {
+        assetId,
+      });
       const [assetRaw, injectionRaw] = await Promise.all([
         ctx.call('assets.effective', { assetId }).catch(() => null),
-        ctx.call('edm.getTimeseries', { meloId: assetId, from: timeframe.start, to: timeframe.end, resolution: '15min' }).catch(() => []),
+        ctx
+          .call('edm.getTimeseries', {
+            meloId: assetId,
+            from: timeframe.start,
+            to: timeframe.end,
+            resolution: '15min',
+          })
+          .catch(() => []),
       ]);
       const injection = normaliseSeries(injectionRaw);
       const report = computeReadiness(assetRaw, prices, injection, timeframe);
@@ -564,7 +579,10 @@ module.exports = {
         asset: {
           type: 'object',
           props: {
-            technology: { type: 'enum', values: ['solar', 'wind_onshore', 'wind_offshore', 'biomass'] },
+            technology: {
+              type: 'enum',
+              values: ['solar', 'wind_onshore', 'wind_offshore', 'biomass'],
+            },
             capacityKw: { type: 'number', positive: true },
             awCentsPerKwh: { type: 'number', positive: true },
             commissioningDate: { type: 'string' },
@@ -598,7 +616,14 @@ module.exports = {
         const [assetRaw, prices, injectionRaw] = await Promise.all([
           ctx.call('assets.effective', { assetId }).catch(() => null),
           fetchPriceSeries(ctx, timeframe),
-          ctx.call('edm.getTimeseries', { meloId: assetId, from: timeframe.start, to: timeframe.end, resolution: '15min' }).catch(() => []),
+          ctx
+            .call('edm.getTimeseries', {
+              meloId: assetId,
+              from: timeframe.start,
+              to: timeframe.end,
+              resolution: '15min',
+            })
+            .catch(() => []),
         ]);
         const injection = normaliseSeries(injectionRaw);
         const report = computeReadiness(assetRaw, prices, injection, timeframe);
@@ -621,7 +646,12 @@ module.exports = {
         const [assetRaw, prices, injectionRaw] = await Promise.all([
           ctx.call('assets.effective', { assetId }),
           fetchPriceSeries(ctx, timeframe),
-          ctx.call('edm.getTimeseries', { meloId: assetId, from: timeframe.start, to: timeframe.end, resolution: '15min' }),
+          ctx.call('edm.getTimeseries', {
+            meloId: assetId,
+            from: timeframe.start,
+            to: timeframe.end,
+            resolution: '15min',
+          }),
         ]);
 
         const asset = normaliseAsset(assetRaw);
@@ -653,7 +683,12 @@ module.exports = {
           props: { start: { type: 'string' }, end: { type: 'string' } },
         },
         options: { type: 'object', optional: true },
-        executionMode: { type: 'enum', values: ['auto', 'sync', 'async'], optional: true, default: 'auto' },
+        executionMode: {
+          type: 'enum',
+          values: ['auto', 'sync', 'async'],
+          optional: true,
+          default: 'auto',
+        },
       },
       async handler(ctx) {
         const { assetIds, timeframe, options } = ctx.params;
@@ -688,7 +723,10 @@ module.exports = {
               }. Use traceMode 'summary' or specify traceAssetIds.`,
               400,
               'RCS_TRACE_PAYLOAD_TOO_LARGE',
-              { assetCount: assetIds.length, estimatedTotalIntervals: workload.estimatedTotalIntervals }
+              {
+                assetCount: assetIds.length,
+                estimatedTotalIntervals: workload.estimatedTotalIntervals,
+              }
             );
           }
         }
@@ -773,7 +811,12 @@ module.exports = {
           type: 'object',
           props: { start: { type: 'string' }, end: { type: 'string' } },
         },
-        executionMode: { type: 'enum', values: ['auto', 'sync', 'async'], optional: true, default: 'auto' },
+        executionMode: {
+          type: 'enum',
+          values: ['auto', 'sync', 'async'],
+          optional: true,
+          default: 'auto',
+        },
       },
       async handler(ctx) {
         const { assetIds, timeframe } = ctx.params;
@@ -813,7 +856,12 @@ module.exports = {
         runId: { type: 'string', min: 1 },
         assetId: { type: 'string', min: 1 },
         persistTrace: { type: 'boolean', optional: true, default: true },
-        executionMode: { type: 'enum', values: ['auto', 'sync', 'async'], optional: true, default: 'auto' },
+        executionMode: {
+          type: 'enum',
+          values: ['auto', 'sync', 'async'],
+          optional: true,
+          default: 'auto',
+        },
       },
       async handler(ctx) {
         const { runId, assetId } = ctx.params;
@@ -825,11 +873,23 @@ module.exports = {
           run = await ctx.call('rcs-simulation-run.getRun', { runId });
         } catch (err) {
           if (err.type === 'RCS_RUN_NOT_FOUND') throw err;
-          throw rcsError('RCS_DRILLDOWN_FAILED', `Failed to load run context for '${runId}': ${err.message}`, { runId, assetId });
+          throw rcsError(
+            'RCS_DRILLDOWN_FAILED',
+            `Failed to load run context for '${runId}': ${err.message}`,
+            { runId, assetId }
+          );
         }
 
-        if (Array.isArray(run.assetIds) && run.assetIds.length > 0 && !run.assetIds.includes(assetId)) {
-          throw rcsError('RCS_ASSET_NOT_IN_RUN', `Asset '${assetId}' was not part of run '${runId}'.`, { runId, assetId });
+        if (
+          Array.isArray(run.assetIds) &&
+          run.assetIds.length > 0 &&
+          !run.assetIds.includes(assetId)
+        ) {
+          throw rcsError(
+            'RCS_ASSET_NOT_IN_RUN',
+            `Asset '${assetId}' was not part of run '${runId}'.`,
+            { runId, assetId }
+          );
         }
 
         const { timeframe, ruleSetId } = run;
@@ -859,7 +919,10 @@ module.exports = {
             const asset = normaliseAsset(assetRaw);
             const injection = normaliseSeries(injectionRaw);
 
-            const calc = runCalculation(asset, prices, injection, { ruleSet, includeIntervalTrace: true });
+            const calc = runCalculation(asset, prices, injection, {
+              ruleSet,
+              includeIntervalTrace: true,
+            });
 
             const drilldownSemantics = {
               mode: 'recomputed_from_current_source_data',
@@ -910,7 +973,11 @@ module.exports = {
             return result;
           } catch (err) {
             if (err.type && err.type.startsWith('RCS_')) throw err;
-            throw rcsError('RCS_DRILLDOWN_FAILED', `Drilldown failed for asset '${assetId}': ${err.message}`, { runId, assetId, cause: err.message });
+            throw rcsError(
+              'RCS_DRILLDOWN_FAILED',
+              `Drilldown failed for asset '${assetId}': ${err.message}`,
+              { runId, assetId, cause: err.message }
+            );
           }
         };
 

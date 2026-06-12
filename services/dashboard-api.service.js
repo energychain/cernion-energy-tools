@@ -374,9 +374,14 @@ module.exports = {
                 : null;
 
             const resolvedGridOperatorId =
-              incomingGridOperatorId || identityLookup?.results?.[0]?.mastrId || identityLookup?.mastrId || null;
+              incomingGridOperatorId ||
+              identityLookup?.results?.[0]?.mastrId ||
+              identityLookup?.mastrId ||
+              null;
 
-            const baseFilter = resolvedGridOperatorId ? { gridOperatorId: resolvedGridOperatorId } : {};
+            const baseFilter = resolvedGridOperatorId
+              ? { gridOperatorId: resolvedGridOperatorId }
+              : {};
 
             const [rdRes, allocRes, mqRes, vdmiRes, dpRes] = await Promise.all([
               this.safeCall(
@@ -478,7 +483,8 @@ module.exports = {
               },
               evidence: {
                 redispatch: {
-                  settlementReadinessPercent: rdLatest?.settlementReadiness?.readinessPercent ?? null,
+                  settlementReadinessPercent:
+                    rdLatest?.settlementReadiness?.readinessPercent ?? null,
                   riskLevel: rdLatest?.riskAssessment?.level ?? null,
                   lastAuditAt: rdLatest?.createdAt || null,
                   auditId: rdLatest?.id || null,
@@ -632,15 +638,8 @@ module.exports = {
         'x-oeo-class': ['OEO_00000143'],
       },
       async handler(ctx) {
-        const {
-          meloId,
-          from,
-          to,
-          obis,
-          gridOperatorId,
-          profileId,
-          annualConsumptionKwh,
-        } = ctx.params;
+        const { meloId, from, to, obis, gridOperatorId, profileId, annualConsumptionKwh } =
+          ctx.params;
 
         const cacheKey = `load-profile-stream-monitor:${meloId}:${obis}:${from}:${to}:${gridOperatorId || 'all'}:${profileId}:${annualConsumptionKwh || 'default'}`;
 
@@ -715,7 +714,11 @@ module.exports = {
             const vdmiFindings = gridOperatorId
               ? vdmiFindingsRaw.filter((f) => {
                   const findingOperatorId =
-                    f?.gridOperatorId || f?.operatorId || f?.mastrId || f?.gridOperatorMastrId || null;
+                    f?.gridOperatorId ||
+                    f?.operatorId ||
+                    f?.mastrId ||
+                    f?.gridOperatorMastrId ||
+                    null;
                   if (!findingOperatorId) return true;
                   return String(findingOperatorId) === String(gridOperatorId);
                 })
@@ -1980,7 +1983,12 @@ module.exports = {
         });
       }
 
-      if (!allocLatest && dpOverview?.healthy == null && dpOverview?.stale == null && dpOverview?.errored == null) {
+      if (
+        !allocLatest &&
+        dpOverview?.healthy == null &&
+        dpOverview?.stale == null &&
+        dpOverview?.errored == null
+      ) {
         blockers.push({
           code: 'METERING_EVIDENCE_MISSING',
           severity: 'high',
@@ -2158,7 +2166,12 @@ module.exports = {
       return refs;
     },
 
-    deriveLoadProfileStreamStatus({ qualitySummary, anomalySignals, hasPartialData, forecastQuality }) {
+    deriveLoadProfileStreamStatus({
+      qualitySummary,
+      anomalySignals,
+      hasPartialData,
+      forecastQuality,
+    }) {
       const dataQualityGap = (anomalySignals?.dataQualityGap || []).length;
       const realAnomaly = (anomalySignals?.realAnomaly || []).length;
       const forecastProblem = (anomalySignals?.forecastProblem || []).length;
@@ -2214,19 +2227,27 @@ module.exports = {
       }
 
       if ((anomalySignals?.dataQualityGap || []).length > 0) {
-        notes.push('Data-quality gap erkannt: Lücken/Dubletten/Monotonieabweichungen vor Prognosefreigabe bereinigen.');
+        notes.push(
+          'Data-quality gap erkannt: Lücken/Dubletten/Monotonieabweichungen vor Prognosefreigabe bereinigen.'
+        );
       }
 
       if ((anomalySignals?.realAnomaly || []).length > 0) {
-        notes.push('Real anomaly signal erkannt: Messwertausreißer/Negativwerte gegen Zähler- und Anlagenzustand verifizieren.');
+        notes.push(
+          'Real anomaly signal erkannt: Messwertausreißer/Negativwerte gegen Zähler- und Anlagenzustand verifizieren.'
+        );
       }
 
       if ((anomalySignals?.forecastProblem || []).length > 0) {
-        notes.push('Forecast problem signal erkannt: SLP-/Forecast-Parameter und Vergleichsfenster nachkalibrieren.');
+        notes.push(
+          'Forecast problem signal erkannt: SLP-/Forecast-Parameter und Vergleichsfenster nachkalibrieren.'
+        );
       }
 
       if (qualitySummary && typeof qualitySummary.dataQuality === 'number') {
-        notes.push(`Gemessene Datenqualität im Zeitraum: ${(qualitySummary.dataQuality * 100).toFixed(1)}%.`);
+        notes.push(
+          `Gemessene Datenqualität im Zeitraum: ${(qualitySummary.dataQuality * 100).toFixed(1)}%.`
+        );
       }
 
       if (forecastQuality?.rating) {
@@ -2257,14 +2278,19 @@ module.exports = {
       const healthy = dpOverview?.healthy;
       const stale = dpOverview?.stale;
       const errored = dpOverview?.errored;
-      const total = [healthy, stale, errored].every((v) => typeof v === 'number') ? healthy + stale + errored : null;
+      const total = [healthy, stale, errored].every((v) => typeof v === 'number')
+        ? healthy + stale + errored
+        : null;
       if (total && total > 0) {
         const datapointScore = ((healthy - errored) / total) * 100;
         parts.push(Math.max(0, Math.min(100, datapointScore)));
       }
 
       if (Array.isArray(openCriticalFindings)) {
-        const governanceScore = openCriticalFindings.length === 0 ? 100 : Math.max(0, 60 - openCriticalFindings.length * 10);
+        const governanceScore =
+          openCriticalFindings.length === 0
+            ? 100
+            : Math.max(0, 60 - openCriticalFindings.length * 10);
         parts.push(governanceScore);
       }
 

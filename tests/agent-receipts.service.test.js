@@ -480,7 +480,9 @@ describe('Agent Receipts Service', () => {
 
     expect(evaluation.success).toBe(true);
     expect(evaluation.data.knowledgeEvidenceStatus).toBe('available');
-    expect(evaluation.data.knowledgeEvidencePolicy).toEqual(expect.objectContaining({ required: false }));
+    expect(evaluation.data.knowledgeEvidencePolicy).toEqual(
+      expect.objectContaining({ required: false })
+    );
     expect(evaluation.data.knowledgeEvidence[0]).toEqual(
       expect.objectContaining({
         hitId: 'knowledge-hit-1',
@@ -488,7 +490,9 @@ describe('Agent Receipts Service', () => {
         summary: expect.any(String),
       })
     );
-    expect(JSON.stringify(evaluation.data.knowledgeEvidence)).not.toContain('DO_NOT_LEAK_RAW_REFERENCE');
+    expect(JSON.stringify(evaluation.data.knowledgeEvidence)).not.toContain(
+      'DO_NOT_LEAK_RAW_REFERENCE'
+    );
   });
 
   it('marks timeout knowledge status and warning when knowledge evidence is required', async () => {
@@ -700,7 +704,9 @@ describe('Agent Receipts Service', () => {
 
     expect(evaluation.success).toBe(true);
     // Step 1: marketPartners — locationScope satisfied
-    expect(evaluation.data.plannedToolCalls[0].selectedAction).toBe('grid-operations.marketPartners');
+    expect(evaluation.data.plannedToolCalls[0].selectedAction).toBe(
+      'grid-operations.marketPartners'
+    );
     expect(evaluation.data.plannedToolCalls[0].params).toMatchObject({ query: 'Wiesloch' });
     expect(evaluation.data.plannedToolCalls[0].status).toBe('ready');
     // Step 2: vnbLookup — scope-blocked (operatorScope not yet resolved in static eval)

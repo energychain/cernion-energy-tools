@@ -158,9 +158,10 @@ function _buildParamsTemplate(blueprint, knownContext, promptHints) {
     }
 
     if (inputDef.required === true) {
-      const isMissing = inputDef.semanticType === 'OEO:PostalCode'
-        ? params.postalCode == null
-        : params[key] == null;
+      const isMissing =
+        inputDef.semanticType === 'OEO:PostalCode'
+          ? params.postalCode == null
+          : params[key] == null;
       if (isMissing) {
         missing.push(key);
       }
@@ -241,7 +242,11 @@ function buildBlueprintPlan(blueprintId, { knownContext = {}, promptHints = {} }
   }
 
   const primaryIntent = _derivePrimaryIntent(blueprintId);
-  const { params: paramsTemplate, missing } = _buildParamsTemplate(blueprint, knownContext, promptHints);
+  const { params: paramsTemplate, missing } = _buildParamsTemplate(
+    blueprint,
+    knownContext,
+    promptHints
+  );
 
   const requiredIds = _requiredStepIds(blueprint);
   const allSteps = blueprint.execution?.steps || [];

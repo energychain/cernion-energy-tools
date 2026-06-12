@@ -1,7 +1,10 @@
 'use strict';
 
 const { ServiceBroker } = require('moleculer');
-const { normaliseTimestamp, interpolatePricesToQuarterHour } = require('../src/eeg-clawback-calculator');
+const {
+  normaliseTimestamp,
+  interpolatePricesToQuarterHour,
+} = require('../src/eeg-clawback-calculator');
 
 // ── Shared fixtures ───────────────────────────────────────────────────────────
 

@@ -210,17 +210,16 @@ function normalizeStep(rawStep, index, errors) {
     step.required = Boolean(rawStep.required);
   }
 
-
-    if (rawStep.requiredScopes != null) {
-      const scopes = ensureStringArray(
-        rawStep.requiredScopes,
-        `toolPlan.steps[${index}].requiredScopes`,
-        errors
-      );
-      if (scopes.length > 0) {
-        step.requiredScopes = scopes;
-      }
+  if (rawStep.requiredScopes != null) {
+    const scopes = ensureStringArray(
+      rawStep.requiredScopes,
+      `toolPlan.steps[${index}].requiredScopes`,
+      errors
+    );
+    if (scopes.length > 0) {
+      step.requiredScopes = scopes;
     }
+  }
 
   if (rawStep.evidence != null) {
     if (!isPlainObject(rawStep.evidence)) {
@@ -330,7 +329,9 @@ function normalizeKnowledgeQueries(rawQueries, errors) {
     return [];
   }
 
-  return rawQueries.map((entry, idx) => normalizeKnowledgeQuery(entry, idx, errors)).filter(Boolean);
+  return rawQueries
+    .map((entry, idx) => normalizeKnowledgeQuery(entry, idx, errors))
+    .filter(Boolean);
 }
 
 function normalizeKnowledgeEvidencePolicy(rawPolicy, errors) {
@@ -351,7 +352,9 @@ function normalizeKnowledgeEvidencePolicy(rawPolicy, errors) {
   };
 
   if (rawPolicy.timeoutBehavior != null) {
-    const timeoutBehavior = String(rawPolicy.timeoutBehavior || '').trim().toLowerCase();
+    const timeoutBehavior = String(rawPolicy.timeoutBehavior || '')
+      .trim()
+      .toLowerCase();
     if (timeoutBehavior && timeoutBehavior !== 'degraded') {
       errors.push({
         field: 'knowledgeEvidencePolicy.timeoutBehavior',

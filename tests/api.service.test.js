@@ -340,7 +340,9 @@ describe('API Gateway Service', () => {
 
       const createParameters = schema.paths['/api/agent-personas'].post.parameters || [];
       expect(
-        createParameters.some((parameter) => parameter.name === 'X-Tenant-Id' && parameter.in === 'header')
+        createParameters.some(
+          (parameter) => parameter.name === 'X-Tenant-Id' && parameter.in === 'header'
+        )
       ).toBe(true);
     });
 

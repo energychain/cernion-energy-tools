@@ -202,8 +202,12 @@ function sanitizePlanFrame(frame = {}) {
       ? [...new Set(safe.awaitingParams.filter(Boolean).map((item) => String(item).trim()))]
       : [],
     resolvedParamsSnapshot: sanitizeResolvedParams(safe.resolvedParamsSnapshot || {}),
-    hitlItemId: typeof safe.hitlItemId === 'string' && safe.hitlItemId.trim() ? safe.hitlItemId.trim() : null,
-    blockedAction: typeof safe.blockedAction === 'string' && safe.blockedAction.trim() ? safe.blockedAction.trim() : null,
+    hitlItemId:
+      typeof safe.hitlItemId === 'string' && safe.hitlItemId.trim() ? safe.hitlItemId.trim() : null,
+    blockedAction:
+      typeof safe.blockedAction === 'string' && safe.blockedAction.trim()
+        ? safe.blockedAction.trim()
+        : null,
     blockedStep: Number.isFinite(Number(safe.blockedStep)) ? Number(safe.blockedStep) : null,
     checkpointKey:
       typeof safe.checkpointKey === 'string' && safe.checkpointKey.trim()
@@ -222,9 +226,16 @@ function sanitizePlanFrame(frame = {}) {
     requiredResolverRoles: Array.isArray(safe.requiredResolverRoles)
       ? [...new Set(safe.requiredResolverRoles.filter(Boolean).map((item) => String(item).trim()))]
       : [],
-    personaId: typeof safe.personaId === 'string' && safe.personaId.trim() ? safe.personaId.trim() : null,
-    personaName: typeof safe.personaName === 'string' && safe.personaName.trim() ? safe.personaName.trim() : null,
-    personaType: typeof safe.personaType === 'string' && safe.personaType.trim() ? safe.personaType.trim() : null,
+    personaId:
+      typeof safe.personaId === 'string' && safe.personaId.trim() ? safe.personaId.trim() : null,
+    personaName:
+      typeof safe.personaName === 'string' && safe.personaName.trim()
+        ? safe.personaName.trim()
+        : null,
+    personaType:
+      typeof safe.personaType === 'string' && safe.personaType.trim()
+        ? safe.personaType.trim()
+        : null,
     personaResolution: isPlainObject(safe.personaResolution) ? safe.personaResolution : null,
     routingContext: isPlainObject(safe.routingContext) ? safe.routingContext : null,
     status: PLAN_FRAME_STATUSES.has(rawStatus) ? rawStatus : 'suspended',

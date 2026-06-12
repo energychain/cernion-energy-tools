@@ -28,11 +28,41 @@ const INJECTION_24H = makeInjectionSeries(96, 10);
 
 // Mock assets: different technologies and AW values
 const MOCK_ASSETS = {
-  'asset-solar-01': { technology: 'solar', awCentsPerKwh: 7.5, capacityKw: 100, commissioningDate: '2024-01-01', name: 'Solar 01' },
-  'asset-solar-02': { technology: 'solar', awCentsPerKwh: 8.0, capacityKw: 200, commissioningDate: '2023-06-01', name: 'Solar 02' },
-  'asset-wind-01':  { technology: 'wind_onshore', awCentsPerKwh: 9.0, capacityKw: 2000, commissioningDate: '2022-01-01', name: 'Wind 01' },
-  'asset-wind-02':  { technology: 'wind_onshore', awCentsPerKwh: 9.5, capacityKw: 3000, commissioningDate: '2021-06-01', name: 'Wind 02' },
-  'asset-bio-01':   { technology: 'biomass', awCentsPerKwh: 12.0, capacityKw: 500, commissioningDate: '2020-01-01', name: 'Biomasse 01' },
+  'asset-solar-01': {
+    technology: 'solar',
+    awCentsPerKwh: 7.5,
+    capacityKw: 100,
+    commissioningDate: '2024-01-01',
+    name: 'Solar 01',
+  },
+  'asset-solar-02': {
+    technology: 'solar',
+    awCentsPerKwh: 8.0,
+    capacityKw: 200,
+    commissioningDate: '2023-06-01',
+    name: 'Solar 02',
+  },
+  'asset-wind-01': {
+    technology: 'wind_onshore',
+    awCentsPerKwh: 9.0,
+    capacityKw: 2000,
+    commissioningDate: '2022-01-01',
+    name: 'Wind 01',
+  },
+  'asset-wind-02': {
+    technology: 'wind_onshore',
+    awCentsPerKwh: 9.5,
+    capacityKw: 3000,
+    commissioningDate: '2021-06-01',
+    name: 'Wind 02',
+  },
+  'asset-bio-01': {
+    technology: 'biomass',
+    awCentsPerKwh: 12.0,
+    capacityKw: 500,
+    commissioningDate: '2020-01-01',
+    name: 'Biomasse 01',
+  },
 };
 
 // ── Broker setup with mocked dependencies ────────────────────────────────────

@@ -141,6 +141,14 @@ module.exports = {
       openapi: {
         summary: 'Get a SCQA decision frame by ID',
         tags: [OPENAPI_TAG],
+        parameters: [
+          {
+            name: 'frameId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'df-aabbccddeeff' },
+          },
+        ],
       },
       params: {
         frameId: { type: 'string' },
@@ -157,6 +165,18 @@ module.exports = {
       openapi: {
         summary: 'List SCQA decision frames',
         tags: [OPENAPI_TAG],
+        parameters: [
+          { name: 'domain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'status', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'createdBy', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'linkedEntityId', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 20, minimum: 1, maximum: 100 },
+          },
+        ],
       },
       params: {
         domain: { type: 'string', optional: true },
@@ -173,16 +193,16 @@ module.exports = {
 
         const requestedLimit = Math.min(Number(ctx.params.limit) || 20, 100);
         // Fetch more if we need to post-filter by linkedEntityId
-        const fetchLimit = ctx.params.linkedEntityId ? Math.min(requestedLimit * 10, 500) : requestedLimit;
+        const fetchLimit = ctx.params.linkedEntityId
+          ? Math.min(requestedLimit * 10, 500)
+          : requestedLimit;
 
         const result = await this.db.find({ selector, limit: fetchLimit });
         let docs = result.docs;
 
         if (ctx.params.linkedEntityId) {
           docs = docs
-            .filter((d) =>
-              (d.linkedEntities || []).some((e) => e.id === ctx.params.linkedEntityId)
-            )
+            .filter((d) => (d.linkedEntities || []).some((e) => e.id === ctx.params.linkedEntityId))
             .slice(0, requestedLimit);
         }
 
@@ -334,9 +354,7 @@ module.exports = {
           contextParts.push(`Netzbetreiber-ID: ${ctx.params.gridOperatorId}`);
         }
 
-        const domainHint = ctx.params.domain
-          ? `Ziel-Domäne: ${ctx.params.domain}\n`
-          : '';
+        const domainHint = ctx.params.domain ? `Ziel-Domäne: ${ctx.params.domain}\n` : '';
         const contextBlock =
           contextParts.length > 0 ? `Verfügbarer Kontext:\n${contextParts.join('\n')}\n\n` : '';
 
@@ -379,6 +397,20 @@ module.exports = {
       openapi: {
         summary: 'Export a SCQA frame as Markdown or JSON document',
         tags: [OPENAPI_TAG],
+        parameters: [
+          {
+            name: 'frameId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'df-aabbccddeeff' },
+          },
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['markdown', 'json'], default: 'markdown' },
+          },
+        ],
       },
       params: {
         frameId: { type: 'string' },

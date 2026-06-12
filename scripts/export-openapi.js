@@ -220,8 +220,13 @@ function buildStaticPaths(apiSvc, actionRegistry) {
 // export also covers service actions that rely on Moleculer's autoAliases (no
 // explicit alias entry in api.service.js routes).
 const AUTO_ALIAS_ABSOLUTE_PREFIXES = [
-  '/datasources', '/datasource-cache', '/datasource-discovery',
-  '/tokens', '/nbp-monitor', '/vnb-monitor', '/jobs',
+  '/datasources',
+  '/datasource-cache',
+  '/datasource-discovery',
+  '/tokens',
+  '/nbp-monitor',
+  '/vnb-monitor',
+  '/jobs',
 ];
 
 function buildAutoAliasedPaths() {
@@ -309,11 +314,7 @@ function buildStaticSpec() {
 
 function sanitizeCopilotText(value, maxLen = 900) {
   if (typeof value !== 'string') return value;
-  const cleaned = value
-    .replace(/\*\*/g, '')
-    .replace(/`/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const cleaned = value.replace(/\*\*/g, '').replace(/`/g, '').replace(/\s+/g, ' ').trim();
   if (cleaned.length <= maxLen) return cleaned;
   return `${cleaned.slice(0, Math.max(0, maxLen - 1)).trim()}…`;
 }
@@ -459,7 +460,9 @@ async function main() {
     // --copilot: write Copilot subset only
     const copilotConfigPath = path.join(__dirname, '..', 'config', 'copilot-operations.json');
     if (!fs.existsSync(copilotConfigPath)) {
-      console.error('[export-openapi] ❌ config/copilot-operations.json not found. Cannot build Copilot subset.');
+      console.error(
+        '[export-openapi] ❌ config/copilot-operations.json not found. Cannot build Copilot subset.'
+      );
       process.exit(1);
     }
     // eslint-disable-next-line global-require
@@ -468,7 +471,9 @@ async function main() {
     const copilotOutPath = path.join(__dirname, '..', 'openapi-copilot.json');
     fs.writeFileSync(copilotOutPath, JSON.stringify(copilotSpec, null, 2), 'utf-8');
     const copilotPathCount = Object.keys(copilotSpec.paths).length;
-    console.log(`[export-openapi] ✅ Wrote ${copilotPathCount} Copilot path(s) to ${copilotOutPath}`);
+    console.log(
+      `[export-openapi] ✅ Wrote ${copilotPathCount} Copilot path(s) to ${copilotOutPath}`
+    );
     console.log(`[export-openapi]    Allowlist: ${allowlist.length} operations`);
     console.log(`[export-openapi]    Version: ${packageVersion}`);
   }

@@ -119,27 +119,17 @@ describe('Query Service', () => {
     });
 
     it('rejects q longer than 200 characters', async () => {
-      await expect(
-        broker.call('query.search', { q: 'x'.repeat(201) })
-      ).rejects.toThrow();
+      await expect(broker.call('query.search', { q: 'x'.repeat(201) })).rejects.toThrow();
     });
 
     it('rejects invalid domain', async () => {
-      await expect(
-        broker.call('query.search', { q: 'Test', domain: 'invalid' })
-      ).rejects.toThrow();
-      await expect(
-        broker.call('query.search', { q: 'Test', domain: 'edm2' })
-      ).rejects.toThrow();
+      await expect(broker.call('query.search', { q: 'Test', domain: 'invalid' })).rejects.toThrow();
+      await expect(broker.call('query.search', { q: 'Test', domain: 'edm2' })).rejects.toThrow();
     });
 
     it('rejects limit out of range', async () => {
-      await expect(
-        broker.call('query.search', { q: 'Test', limit: 0 })
-      ).rejects.toThrow();
-      await expect(
-        broker.call('query.search', { q: 'Test', limit: 26 })
-      ).rejects.toThrow();
+      await expect(broker.call('query.search', { q: 'Test', limit: 0 })).rejects.toThrow();
+      await expect(broker.call('query.search', { q: 'Test', limit: 26 })).rejects.toThrow();
     });
 
     it('returns valid response shape when company service returns empty results', async () => {
@@ -297,7 +287,10 @@ describe('Query Service', () => {
       });
       await fakeBroker.start();
       try {
-        const result = await fakeBroker.call('query.search', { q: 'Netzanschluss', domain: 'vdmi' });
+        const result = await fakeBroker.call('query.search', {
+          q: 'Netzanschluss',
+          domain: 'vdmi',
+        });
         expect(result.totalResults).toBe(1);
         const item = result.results[0];
         expect(item).toHaveProperty('id', 'vdmi-1');
@@ -305,7 +298,10 @@ describe('Query Service', () => {
         expect(item).toHaveProperty('type', 'matrix');
         expect(item).toHaveProperty('status', 'active');
         expect(item.url).toBe('/api/vdmi/vdmi-1');
-        expect(item.metadata).toMatchObject({ processType: 'standard', nominationStatus: 'pending' });
+        expect(item.metadata).toMatchObject({
+          processType: 'standard',
+          nominationStatus: 'pending',
+        });
       } finally {
         await fakeBroker.stop();
       }
@@ -336,7 +332,10 @@ describe('Query Service', () => {
       });
       await fakeBroker.start();
       try {
-        const result = await fakeBroker.call('query.search', { q: 'TWL', domain: 'grid_connection' });
+        const result = await fakeBroker.call('query.search', {
+          q: 'TWL',
+          domain: 'grid_connection',
+        });
         expect(result.totalResults).toBe(1);
         const item = result.results[0];
         expect(item).toHaveProperty('id', 'gc-report-1');
@@ -399,8 +398,24 @@ describe('Query Service', () => {
             handler() {
               return {
                 items: [
-                  { id: 'v1', name: 'Netzanschluss PV', scope: 'Dach', processType: 'standard', status: 'active', nominationStatus: 'none', evidenceCount: 0 },
-                  { id: 'v2', name: 'Zählerprüfung', scope: 'Zählerplatz', processType: 'adhoc', status: 'draft', nominationStatus: 'none', evidenceCount: 0 },
+                  {
+                    id: 'v1',
+                    name: 'Netzanschluss PV',
+                    scope: 'Dach',
+                    processType: 'standard',
+                    status: 'active',
+                    nominationStatus: 'none',
+                    evidenceCount: 0,
+                  },
+                  {
+                    id: 'v2',
+                    name: 'Zählerprüfung',
+                    scope: 'Zählerplatz',
+                    processType: 'adhoc',
+                    status: 'draft',
+                    nominationStatus: 'none',
+                    evidenceCount: 0,
+                  },
                 ],
               };
             },
@@ -409,7 +424,10 @@ describe('Query Service', () => {
       });
       await fakeBroker.start();
       try {
-        const result = await fakeBroker.call('query.search', { q: 'Netzanschluss', domain: 'vdmi' });
+        const result = await fakeBroker.call('query.search', {
+          q: 'Netzanschluss',
+          domain: 'vdmi',
+        });
         expect(result.totalResults).toBe(1);
         expect(result.results[0].id).toBe('v1');
       } finally {

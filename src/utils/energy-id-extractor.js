@@ -100,7 +100,10 @@ function extractEnergyIds(text) {
   const seen = new Set(); // de-duplicate (type + ':' + value)
 
   for (const rule of ENERGY_ID_RULES) {
-    const globalPattern = new RegExp(rule.pattern.source, rule.pattern.flags.includes('g') ? rule.pattern.flags : rule.pattern.flags + 'g');
+    const globalPattern = new RegExp(
+      rule.pattern.source,
+      rule.pattern.flags.includes('g') ? rule.pattern.flags : rule.pattern.flags + 'g'
+    );
     let match;
     while ((match = globalPattern.exec(text)) !== null) {
       const value = match[0];

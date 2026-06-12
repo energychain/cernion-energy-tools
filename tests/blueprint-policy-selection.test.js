@@ -12,7 +12,11 @@ const {
   _derivePrimaryIntent,
 } = require('../src/l3-broker');
 const { extractPromptHints } = require('../src/personal-agent-routing');
-const { loadBlueprint, listBlueprints, setRuntimeBlueprint, _resetCache } = require('../src/blueprint-registry');
+const {
+  listBlueprints,
+  setRuntimeBlueprint,
+  _resetCache,
+} = require('../src/blueprint-registry');
 const {
   extractBlueprintPolicy,
   checkStickinessRetain,
@@ -42,13 +46,34 @@ function makeRuntimeBlueprint(overrides = {}) {
     },
     routing: {
       intentSignals: [
-        'bürgermeister', 'buergermeister', 'gemeinde', 'kommunal',
-        'rechenzentrum', 'data center', 'ladepark', 'ladeparks',
-        'gewerbegebiet', 'ansiedelung', 'ansiedeln', 'standortprüfung',
-        'bess', 'batteriespeicher', 'photovoltaik', 'ladeinfrastruktur',
-        'vertriebler', 'vertrieb', 'stadtwerk vertrieb', 'energievertrieb',
-        'kundenberater', 'vertriebsberater', 'account manager', 'key account',
-        'gewerbekunden', 'kommunalvertrieb', 'vertriebsgespraech', 'vertriebsgespräch',
+        'bürgermeister',
+        'buergermeister',
+        'gemeinde',
+        'kommunal',
+        'rechenzentrum',
+        'data center',
+        'ladepark',
+        'ladeparks',
+        'gewerbegebiet',
+        'ansiedelung',
+        'ansiedeln',
+        'standortprüfung',
+        'bess',
+        'batteriespeicher',
+        'photovoltaik',
+        'ladeinfrastruktur',
+        'vertriebler',
+        'vertrieb',
+        'stadtwerk vertrieb',
+        'energievertrieb',
+        'kundenberater',
+        'vertriebsberater',
+        'account manager',
+        'key account',
+        'gewerbekunden',
+        'kommunalvertrieb',
+        'vertriebsgespraech',
+        'vertriebsgespräch',
       ],
       negativeSignals: ['redispatch', 'settlement', 'messkonzept', 'fnav', 'mieterstrom'],
       priorityBoost: 4,
@@ -172,7 +197,11 @@ describe('AC-1: Runtime blueprint policy selection', () => {
       intent: null,
       domainIntent: 'bess_screening', // contains "bess" → extra signal hit
     };
-    const match = detectBlueprintIntent('bürgermeister von 74889 sinsheim', brokerEnrichedContext, {});
+    const match = detectBlueprintIntent(
+      'bürgermeister von 74889 sinsheim',
+      brokerEnrichedContext,
+      {}
+    );
     // "bürgermeister" + "bess" (from domainIntent) = 2 hits = score 2.4 ≥ threshold
     expect(match).not.toBeNull();
     expect(match.blueprintId).toBe(RUNTIME_BP_ID);
@@ -271,16 +300,18 @@ describe('AC-3: Negative signals release stickiness', () => {
 describe('AC-4: avoidWorkflowTypes blocks workflow drift', () => {
   const bp = makeRuntimeBlueprint();
   const { routingPolicy, synthesisPolicy } = extractBlueprintPolicy(bp);
-  const routingPolicyWithId = { ...routingPolicy, _blueprintId: bp.id, _blueprintVersion: bp.version };
+  const routingPolicyWithId = {
+    ...routingPolicy,
+    _blueprintId: bp.id,
+    _blueprintVersion: bp.version,
+  };
 
   it('BPS-013: consultation output with "netzanschlusspunkt" prosumer signal is blocked', () => {
     // Simulates a consultation payload whose factsUsed/nextActions contain
     // "Netzanschlusspunkt" — a legitimate term that triggers prosumer classification
     const consultationWithProsumerSignals = {
       workflowType: null,
-      factsUsed: [
-        { source: 'grid-ops', value: 'Netzanschlusspunkt verfügbar' },
-      ],
+      factsUsed: [{ source: 'grid-ops', value: 'Netzanschlusspunkt verfügbar' }],
       nextActions: [
         { action: 'Prüfen', description: 'Netzanschlusspunkt und Wallet-Anbindung klären' },
       ],
@@ -338,7 +369,11 @@ describe('AC-5: doNotAskFor suppresses forbidden questions', () => {
       { param: 'did', label: 'NAP-Wallet-DID', priority: 'critical' },
       { param: 'location_or_melo', label: 'PLZ oder MeLo-ID', priority: 'critical' },
     ];
-    const filtered = _filterSuppressedInputs(missingInputs, ['nap_wallet_did', 'did', 'prosumer_wallet']);
+    const filtered = _filterSuppressedInputs(missingInputs, [
+      'nap_wallet_did',
+      'did',
+      'prosumer_wallet',
+    ]);
     expect(filtered.map((m) => m.param)).not.toContain('did');
     expect(filtered.map((m) => m.param)).toContain('location_or_melo');
   });

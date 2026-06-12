@@ -3293,6 +3293,32 @@ module.exports = {
           '⚠️ NOT authoritative: derives candidates only — does not confirm the grid area ' +
           'boundary. A formal Netzanschlussanfrage is required for binding VNB attribution.',
         tags: ['Assets'],
+        parameters: [
+          {
+            name: 'postalCode',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'municipality',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'state',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 60, minimum: 1, maximum: 200 },
+          },
+        ],
       },
       async handler(ctx) {
         const { postalCode, municipality, state, limit = 60 } = ctx.params;
@@ -3319,7 +3345,9 @@ module.exports = {
             operationalStatus: '35',
           });
         } catch (err) {
-          this.logger?.warn(`[inferGridOperators] MaStR query failed for ${locationQuery}: ${err.message}`);
+          this.logger?.warn(
+            `[inferGridOperators] MaStR query failed for ${locationQuery}: ${err.message}`
+          );
           return {
             success: true,
             operatorCandidates: [],
@@ -3353,7 +3381,13 @@ module.exports = {
 
           const key = mastrId || name;
           if (!vnbMap.has(key)) {
-            vnbMap.set(key, { name, mastrNetzbetreiberId: mastrId, assetCount: 0, assetTypes: new Set(), totalCapacityKW: 0 });
+            vnbMap.set(key, {
+              name,
+              mastrNetzbetreiberId: mastrId,
+              assetCount: 0,
+              assetTypes: new Set(),
+              totalCapacityKW: 0,
+            });
           }
           const entry = vnbMap.get(key);
           entry.assetCount += 1;

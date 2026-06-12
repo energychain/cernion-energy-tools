@@ -142,9 +142,7 @@ describe('BP-EXB-003: avoidWorkflowTypes blocks prosumer drift', () => {
           { source: 'message', value: 'Netzanschlusspunkt' },
           { source: 'turn1', value: 'Gemeinde Sinsheim, Bürgermeister-Anfrage' },
         ],
-        nextActions: [
-          { action: 'nap_wallet_check', description: 'NAP-Wallet prüfen' },
-        ],
+        nextActions: [{ action: 'nap_wallet_check', description: 'NAP-Wallet prüfen' }],
         semanticClassification: {
           workflowType: WORKFLOW_TYPES.BESS_SCREENING,
         },
@@ -310,18 +308,16 @@ describe('BP-EXB-006: two-turn Sinsheim regression — no prosumer drift, no NAP
 
 describe('BP-EXB-007: _resolvePermittedWorkflowType', () => {
   it('uses semanticWorkflowType when it is not blocked', () => {
-    const result = _resolvePermittedWorkflowType(
-      WORKFLOW_TYPES.BESS_SCREENING,
-      ['prosumer_nap_wallet_onboarding']
-    );
+    const result = _resolvePermittedWorkflowType(WORKFLOW_TYPES.BESS_SCREENING, [
+      'prosumer_nap_wallet_onboarding',
+    ]);
     expect(result).toBe(WORKFLOW_TYPES.BESS_SCREENING);
   });
 
   it('falls back to advisory_only when semanticWorkflowType is also blocked', () => {
-    const result = _resolvePermittedWorkflowType(
-      WORKFLOW_TYPES.PROSUMER_NAP_WALLET_ONBOARDING,
-      ['prosumer_nap_wallet_onboarding']
-    );
+    const result = _resolvePermittedWorkflowType(WORKFLOW_TYPES.PROSUMER_NAP_WALLET_ONBOARDING, [
+      'prosumer_nap_wallet_onboarding',
+    ]);
     expect(result).toBe(WORKFLOW_TYPES.ADVISORY_ONLY);
   });
 
@@ -331,10 +327,9 @@ describe('BP-EXB-007: _resolvePermittedWorkflowType', () => {
   });
 
   it('falls back to advisory_only when semanticWorkflowType is unknown', () => {
-    const result = _resolvePermittedWorkflowType(
-      'some_unknown_workflow',
-      ['prosumer_nap_wallet_onboarding']
-    );
+    const result = _resolvePermittedWorkflowType('some_unknown_workflow', [
+      'prosumer_nap_wallet_onboarding',
+    ]);
     expect(result).toBe(WORKFLOW_TYPES.ADVISORY_ONLY);
   });
 });

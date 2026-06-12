@@ -75,7 +75,8 @@ const RECEIPT_SEEDS = Object.freeze([
       {
         id: 'vnb-regulatory-context',
         queryType: 'semantic',
-        query: 'VNB Zuständigkeit Netzgebiet BDEW {{context.knownContext.bdew}} {{context.knownContext.vnbName}} {{message}}',
+        query:
+          'VNB Zuständigkeit Netzgebiet BDEW {{context.knownContext.bdew}} {{context.knownContext.vnbName}} {{message}}',
         limit: 2,
         summaryMaxChars: 220,
       },
@@ -106,7 +107,8 @@ const RECEIPT_SEEDS = Object.freeze([
     responsePolicy: {
       verified: 'Return full VNB record with BDEW, name, contact',
       partial: 'Surface which field is missing (name vs. code)',
-      unverified: 'Ask for BDEW code or operator name: "Welchen Netzbetreiber oder BDEW-Code meinst du?"',
+      unverified:
+        'Ask for BDEW code or operator name: "Welchen Netzbetreiber oder BDEW-Code meinst du?"',
       timeout: 'Grid lookup timed out; try again or contact support',
     },
 
@@ -231,8 +233,7 @@ const RECEIPT_SEEDS = Object.freeze([
     responsePolicy: {
       verified: 'Return confirmed VNB with BDEW, name, contact from vnbLookup result',
       partial: 'Show marketPartners candidates with note that identity is not confirmed',
-      unverified:
-        'Ask for disambiguation: "Welchen Netzbetreiber meinst du?" or provide BDEW code',
+      unverified: 'Ask for disambiguation: "Welchen Netzbetreiber meinst du?" or provide BDEW code',
       timeout: 'VNB resolution timed out; provide BDEW code for a direct lookup',
     },
 
@@ -288,8 +289,7 @@ const RECEIPT_SEEDS = Object.freeze([
         {
           step: 1,
           action: 'grid-operations.marketPartners',
-          description:
-            'Resolve operator/market partner candidates before numeric conclusions',
+          description: 'Resolve operator/market partner candidates before numeric conclusions',
           paramMapping: {
             query: {
               source: 'context',
@@ -374,8 +374,7 @@ const RECEIPT_SEEDS = Object.freeze([
         'Lead with available verified numbers and mark missing values as evidence gaps, not assumptions.',
       unverified:
         'Do not estimate MW potential. Ask for operator ID/BDEW and asset/topology evidence.',
-      timeout:
-        'Return the available evidence table and list timed-out sources separately.',
+      timeout: 'Return the available evidence table and list timed-out sources separately.',
     },
 
     tags: [

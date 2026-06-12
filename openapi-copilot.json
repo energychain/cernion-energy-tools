@@ -176,9 +176,7 @@
       "get": {
         "operationId": "connectionRejectionEvidenceList",
         "summary": "List connection rejection evidence packages",
-        "tags": [
-          "connection-rejection-evidence"
-        ],
+        "tags": ["connection-rejection-evidence"],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -199,9 +197,7 @@
       "get": {
         "operationId": "connectionRejectionEvidenceGet",
         "summary": "Get a connection rejection evidence package by ID",
-        "tags": [
-          "connection-rejection-evidence"
-        ],
+        "tags": ["connection-rejection-evidence"],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -232,9 +228,7 @@
       "get": {
         "operationId": "getVdmiContext",
         "summary": "Load VDMI matrix context: status, open tasks, evidence count",
-        "tags": [
-          "Copilot Process"
-        ],
+        "tags": ["Copilot Process"],
         "responses": {
           "200": {
             "description": "VDMI matrix context",
@@ -242,13 +236,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "matrixId",
-                    "name",
-                    "status",
-                    "openTaskCount",
-                    "summary"
-                  ],
+                  "required": ["matrixId", "name", "status", "openTaskCount", "summary"],
                   "properties": {
                     "matrixId": {
                       "type": "string"
@@ -335,9 +323,7 @@
       "get": {
         "operationId": "listOpenResponsibilities",
         "summary": "List VDMI matrices with open Verantwortlich tasks for a user",
-        "tags": [
-          "Copilot Process"
-        ],
+        "tags": ["Copilot Process"],
         "responses": {
           "200": {
             "description": "Open responsibilities",
@@ -345,10 +331,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "count",
-                    "responsibilities"
-                  ],
+                  "required": ["count", "responsibilities"],
                   "properties": {
                     "count": {
                       "type": "integer"
@@ -427,9 +410,7 @@
       "get": {
         "operationId": "getZnpProjectStatus",
         "summary": "Get ZNP project metadata and graph statistics",
-        "tags": [
-          "Copilot Process"
-        ],
+        "tags": ["Copilot Process"],
         "responses": {
           "200": {
             "description": "ZNP project status",
@@ -437,12 +418,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "projectId",
-                    "name",
-                    "layers",
-                    "graphStats"
-                  ],
+                  "required": ["projectId", "name", "layers", "graphStats"],
                   "properties": {
                     "projectId": {
                       "type": "string"
@@ -506,9 +482,7 @@
       "get": {
         "operationId": "getGridConnectionValidation",
         "summary": "Retrieve grid connection validation report (decision, findings, operator)",
-        "tags": [
-          "Copilot Process"
-        ],
+        "tags": ["Copilot Process"],
         "responses": {
           "200": {
             "description": "Validation report summary",
@@ -516,12 +490,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "validationId",
-                    "decision",
-                    "gridOperatorName",
-                    "summary"
-                  ],
+                  "required": ["validationId", "decision", "gridOperatorName", "summary"],
                   "properties": {
                     "validationId": {
                       "type": "string"
@@ -579,9 +548,7 @@
       "post": {
         "operationId": "prepareVdmiValidation",
         "summary": "Prepare VDMI matrix nomination — draft only, no write",
-        "tags": [
-          "Copilot Process"
-        ],
+        "tags": ["Copilot Process"],
         "responses": {
           "200": {
             "description": "Draft nomination proposal",
@@ -701,10 +668,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "matrixId",
-                  "reason"
-                ],
+                "required": ["matrixId", "reason"],
                 "properties": {
                   "matrixId": {
                     "type": "string",
@@ -750,9 +714,7 @@
       "post": {
         "operationId": "draftVdmiEvidence",
         "summary": "Draft evidence suggestions for open VDMI tasks — no write",
-        "tags": [
-          "Copilot Process"
-        ],
+        "tags": ["Copilot Process"],
         "responses": {
           "200": {
             "description": "Evidence draft with per-task suggestions",
@@ -836,9 +798,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "matrixId"
-                ],
+                "required": ["matrixId"],
                 "properties": {
                   "matrixId": {
                     "type": "string",
@@ -874,9 +834,7 @@
       "post": {
         "operationId": "prepareGridConnectionValidation",
         "summary": "Prepare grid connection validation config — draft only, no write",
-        "tags": [
-          "Copilot Process"
-        ],
+        "tags": ["Copilot Process"],
         "responses": {
           "200": {
             "description": "Grid connection validation draft proposal",
@@ -954,9 +912,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "reason"
-                ],
+                "required": ["reason"],
                 "properties": {
                   "gridOperatorId": {
                     "type": "string",
@@ -1000,9 +956,7 @@
       "post": {
         "operationId": "prepareVdmiEvidence",
         "summary": "Prepare VDMI evidence injection intent — creates auditable intent, no write",
-        "tags": [
-          "Copilot Process"
-        ],
+        "tags": ["Copilot Process"],
         "responses": {
           "200": {
             "description": "VDMI evidence intent created",
@@ -1078,12 +1032,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "matrixId",
-                  "evidenceType",
-                  "reference",
-                  "reason"
-                ],
+                "required": ["matrixId", "evidenceType", "reference", "reason"],
                 "properties": {
                   "matrixId": {
                     "type": "string",
@@ -1139,9 +1088,7 @@
       "post": {
         "operationId": "prepareZnpAssumption",
         "summary": "Prepare ZNP planning assumption intent — creates auditable intent, no write",
-        "tags": [
-          "Copilot Process"
-        ],
+        "tags": ["Copilot Process"],
         "responses": {
           "200": {
             "description": "ZNP assumption intent created",
@@ -1217,11 +1164,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "projectId",
-                  "text",
-                  "reason"
-                ],
+                "required": ["projectId", "text", "reason"],
                 "properties": {
                   "projectId": {
                     "type": "string",
@@ -1269,9 +1212,7 @@
       "post": {
         "operationId": "prepareConnectionRejectionEvidence",
         "summary": "Prepare connection rejection evidence package intent — creates auditable intent, no write",
-        "tags": [
-          "Copilot Process"
-        ],
+        "tags": ["Copilot Process"],
         "responses": {
           "200": {
             "description": "Connection rejection evidence intent created",
@@ -1382,12 +1323,7 @@
                   },
                   "n1QualityStatus": {
                     "type": "string",
-                    "enum": [
-                      "COMPLIANT",
-                      "NON_COMPLIANT",
-                      "CONDITIONALLY_COMPLIANT",
-                      "UNKNOWN"
-                    ]
+                    "enum": ["COMPLIANT", "NON_COMPLIANT", "CONDITIONALLY_COMPLIANT", "UNKNOWN"]
                   },
                   "decision": {
                     "type": "string",
@@ -1419,9 +1355,7 @@
       "get": {
         "operationId": "getProcessIntent",
         "summary": "Get a process execution intent by ID (status, payload, audit trail)",
-        "tags": [
-          "Copilot Process"
-        ],
+        "tags": ["Copilot Process"],
         "responses": {
           "200": {
             "description": "Process execution intent",
@@ -1456,9 +1390,7 @@
       "get": {
         "operationId": "listProcessIntents",
         "summary": "List process execution intents, optionally filtered by family or status",
-        "tags": [
-          "Copilot Process"
-        ],
+        "tags": ["Copilot Process"],
         "responses": {
           "200": {
             "description": "List of process execution intents",
@@ -1466,10 +1398,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "count",
-                    "intents"
-                  ],
+                  "required": ["count", "intents"],
                   "properties": {
                     "count": {
                       "type": "integer"
@@ -1486,7 +1415,7 @@
             }
           }
         },
-        "description": "Returns a paginated list of process execution intents. Filter by operationFamily or status. Read-only.",
+        "description": "Returns a paginated list of process execution intents. Filter by operationFamily, status, or decisionFrameId. Read-only.",
         "parameters": [
           {
             "name": "operationFamily",
@@ -1500,6 +1429,15 @@
             "name": "status",
             "in": "query",
             "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionFrameId",
+            "in": "query",
+            "required": false,
+            "description": "Filter by SCQA decision frame ID",
             "schema": {
               "type": "string"
             }
@@ -1523,9 +1461,7 @@
       "get": {
         "operationId": "gridConnectionList",
         "summary": "List past grid connection validation reports",
-        "tags": [
-          "Grid Connection Validation"
-        ],
+        "tags": ["Grid Connection Validation"],
         "responses": {
           "200": {
             "description": "Paginated list of validation report summaries",
@@ -1596,9 +1532,7 @@
       "get": {
         "operationId": "gridConnectionGet",
         "summary": "Get a specific grid connection validation report by ID",
-        "tags": [
-          "Grid Connection Validation"
-        ],
+        "tags": ["Grid Connection Validation"],
         "responses": {
           "200": {
             "description": "Full ValidationReport document"
@@ -1627,10 +1561,7 @@
       "post": {
         "operationId": "searchCernionData",
         "summary": "Cross-domain entity search (companies, VNB, VDMI, ZNP, grid connection, EDM)",
-        "tags": [
-          "Query Tools",
-          "Copilot"
-        ],
+        "tags": ["Query Tools", "Copilot"],
         "responses": {
           "200": {
             "description": "Search results from matched domains",
@@ -1645,15 +1576,7 @@
                     },
                     "domain": {
                       "type": "string",
-                      "enum": [
-                        "companies",
-                        "vnb",
-                        "edm",
-                        "vdmi",
-                        "grid_connection",
-                        "znp",
-                        "all"
-                      ]
+                      "enum": ["companies", "vnb", "edm", "vdmi", "grid_connection", "znp", "all"]
                     },
                     "totalResults": {
                       "type": "integer"
@@ -1665,12 +1588,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "query",
-                    "domain",
-                    "totalResults",
-                    "results"
-                  ]
+                  "required": ["query", "domain", "totalResults", "results"]
                 }
               }
             }
@@ -1696,15 +1614,7 @@
                   },
                   "domain": {
                     "type": "string",
-                    "enum": [
-                      "companies",
-                      "vnb",
-                      "edm",
-                      "vdmi",
-                      "grid_connection",
-                      "znp",
-                      "all"
-                    ],
+                    "enum": ["companies", "vnb", "edm", "vdmi", "grid_connection", "znp", "all"],
                     "default": "all",
                     "description": "Optional search domain. Use vnb to find distribution grid operators.",
                     "example": "vnb"
@@ -1718,9 +1628,7 @@
                     "example": 5
                   }
                 },
-                "required": [
-                  "q"
-                ]
+                "required": ["q"]
               }
             }
           }
@@ -1732,9 +1640,7 @@
       "get": {
         "operationId": "vdmi_myResponsibilities",
         "summary": "List VDMI matrices where the caller has Verantwortlich (V) role",
-        "tags": [
-          "VDMI"
-        ],
+        "tags": ["VDMI"],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -1765,9 +1671,7 @@
       "get": {
         "operationId": "vdmi_context",
         "summary": "Get active VDMI matrix context for a running process job",
-        "tags": [
-          "VDMI"
-        ],
+        "tags": ["VDMI"],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -1799,9 +1703,7 @@
       "get": {
         "operationId": "vdmi_dossier",
         "summary": "Get condensed decision dossier for a VDMI task (V-role view)",
-        "tags": [
-          "VDMI"
-        ],
+        "tags": ["VDMI"],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -1833,9 +1735,7 @@
       "get": {
         "operationId": "vdmi_findings",
         "summary": "List VDMI governance findings",
-        "tags": [
-          "VDMI"
-        ],
+        "tags": ["VDMI"],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -1890,9 +1790,7 @@
       "get": {
         "operationId": "znp_listProjects",
         "summary": "List all active ZNP workspace projects",
-        "tags": [
-          "Zielnetzplanung (ZNP)"
-        ],
+        "tags": ["Zielnetzplanung (ZNP)"],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -1913,9 +1811,7 @@
       "get": {
         "operationId": "znp_getProjectAssets",
         "summary": "List Layer 0 MaStR assets loaded into a ZNP project",
-        "tags": [
-          "Zielnetzplanung (ZNP)"
-        ],
+        "tags": ["Zielnetzplanung (ZNP)"],
         "responses": {
           "200": {
             "description": "Paginated asset list",
@@ -2042,10 +1938,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": [
-                "asc",
-                "desc"
-              ],
+              "enum": ["asc", "desc"],
               "default": "desc",
               "example": "desc"
             },
@@ -2059,9 +1952,7 @@
       "get": {
         "operationId": "znp_getProjectMeta",
         "summary": "Get ZNP project metadata and graph statistics",
-        "tags": [
-          "Zielnetzplanung (ZNP)"
-        ],
+        "tags": ["Zielnetzplanung (ZNP)"],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -2093,9 +1984,7 @@
       "get": {
         "operationId": "vdmiFindingsList",
         "summary": "List VDMI findings (multi-tenant path)",
-        "tags": [
-          "vdmi-findings"
-        ],
+        "tags": ["vdmi-findings"],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -2126,9 +2015,7 @@
       "post": {
         "operationId": "askCernionAgent",
         "summary": "Ask Cernion for compact evidence and process context",
-        "tags": [
-          "Personal Agent"
-        ],
+        "tags": ["Personal Agent"],
         "responses": {
           "200": {
             "description": "Compact Cernion answer for Copilot composition",
@@ -2158,11 +2045,7 @@
                     },
                     "confidence": {
                       "type": "string",
-                      "enum": [
-                        "high",
-                        "medium",
-                        "low"
-                      ]
+                      "enum": ["high", "medium", "low"]
                     },
                     "evidence": {
                       "type": "array",
@@ -2183,6 +2066,18 @@
                       "items": {
                         "type": "string"
                       }
+                    },
+                    "evidenceBySource": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "Evidence grouped by source: entities, knowledge, datapoints, and object-store objects."
+                    },
+                    "guardrails": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Instructions Copilot must apply before composing the final answer."
                     },
                     "entities": {
                       "type": "array",
@@ -2237,9 +2132,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "question"
-                ],
+                "required": ["question"],
                 "properties": {
                   "question": {
                     "type": "string",
@@ -2274,12 +2167,7 @@
                   },
                   "mode": {
                     "type": "string",
-                    "enum": [
-                      "answer",
-                      "evidence",
-                      "process_check",
-                      "prepare_intent"
-                    ],
+                    "enum": ["answer", "evidence", "process_check", "prepare_intent"],
                     "default": "answer",
                     "description": "Controls whether the answer should focus on evidence or process checks."
                   },

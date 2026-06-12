@@ -220,7 +220,12 @@ function makeDocs() {
   const assets = Array.from({ length: ASSET_COUNT }, (_, i) => makeAsset(i + 1));
   const { summary, ruleArmSummary } = aggregate(assets);
   const assetIds = assets.map((a) => a.assetId);
-  const timeframe = { from: '2025-06-07', to: '2026-06-07', start: '2025-06-07', end: '2026-06-07' };
+  const timeframe = {
+    from: '2025-06-07',
+    to: '2026-06-07',
+    start: '2025-06-07',
+    end: '2026-06-07',
+  };
   const inputHash = hashData({ tenantId: TENANT_ID, assetIds, timeframe, ruleSetId: RULE_SET_ID });
 
   const runDoc = {
@@ -298,9 +303,21 @@ function makeDocs() {
     ruleArmSummary:
       a.status === 'success'
         ? {
-            positive_price: { count: 28400, totalClawbackEur: round2(a.clawback * 0.18), totalVolumeKwh: Math.round(a.capacityKw * 850) },
-            negative_price_4h: { count: 6400, totalClawbackEur: round2(a.clawback * 0.64), totalVolumeKwh: Math.round(a.capacityKw * 210) },
-            floor_price: { count: 240, totalClawbackEur: round2(a.clawback * 0.18), totalVolumeKwh: Math.round(a.capacityKw * 34) },
+            positive_price: {
+              count: 28400,
+              totalClawbackEur: round2(a.clawback * 0.18),
+              totalVolumeKwh: Math.round(a.capacityKw * 850),
+            },
+            negative_price_4h: {
+              count: 6400,
+              totalClawbackEur: round2(a.clawback * 0.64),
+              totalVolumeKwh: Math.round(a.capacityKw * 210),
+            },
+            floor_price: {
+              count: 240,
+              totalClawbackEur: round2(a.clawback * 0.18),
+              totalVolumeKwh: Math.round(a.capacityKw * 34),
+            },
           }
         : null,
     dataQualitySummary: a.dataQualitySummary,
@@ -371,8 +388,12 @@ async function main() {
   console.log(`[seed-rcs-demo-tenant] tenant=${TENANT_NAME}`);
   console.log(`[seed-rcs-demo-tenant] runId=${RUN_ID}`);
   console.log(`[seed-rcs-demo-tenant] db=${DB_NAME}`);
-  console.log(`[seed-rcs-demo-tenant] docs=${docs.length} assets=${assetDocs.length} traces=${traceDocs.length}`);
-  console.log(`[seed-rcs-demo-tenant] errors=${summary.errorCount} totalDelta=${summary.totalDelta} EUR`);
+  console.log(
+    `[seed-rcs-demo-tenant] docs=${docs.length} assets=${assetDocs.length} traces=${traceDocs.length}`
+  );
+  console.log(
+    `[seed-rcs-demo-tenant] errors=${summary.errorCount} totalDelta=${summary.totalDelta} EUR`
+  );
 
   if (DRY_RUN) {
     console.log('[seed-rcs-demo-tenant] dry-run: no documents written');

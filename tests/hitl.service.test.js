@@ -68,10 +68,14 @@ describe('hitl service', () => {
             const tenantPersonas = personasByTenant.get(tenantId) || new Map();
             const items = [...tenantPersonas.values()]
               .filter((persona) => persona.status === 'active')
-              .filter((persona) => Array.isArray(persona.assignedRoles) && persona.assignedRoles.includes(role))
-              .sort((left, right) =>
-                String(left.personaName || '').localeCompare(String(right.personaName || '')) ||
-                String(left.id || '').localeCompare(String(right.id || ''))
+              .filter(
+                (persona) =>
+                  Array.isArray(persona.assignedRoles) && persona.assignedRoles.includes(role)
+              )
+              .sort(
+                (left, right) =>
+                  String(left.personaName || '').localeCompare(String(right.personaName || '')) ||
+                  String(left.id || '').localeCompare(String(right.id || ''))
               );
             return { success: true, tenantId, role, count: items.length, items };
           },
@@ -84,7 +88,10 @@ describe('hitl service', () => {
       actions: {
         dispatchHitlApproval: {
           handler(ctx) {
-            notificationDispatches.push({ ...ctx.params, metaTenantId: ctx.meta?.tenantId || null });
+            notificationDispatches.push({
+              ...ctx.params,
+              metaTenantId: ctx.meta?.tenantId || null,
+            });
             if (notificationShouldFail) {
               const error = new Error('notification backend unavailable');
               error.type = 'NOTIFICATION_BACKEND_UNAVAILABLE';
@@ -572,7 +579,7 @@ describe('hitl service', () => {
       expect(false).toBe(true);
     } catch (err) {
       expect(err.message).toMatch(/Cannot mark pending item/);
-        expect(err.status || err.code).toBe(400);
+      expect(err.status || err.code).toBe(400);
     }
   });
 
@@ -581,11 +588,7 @@ describe('hitl service', () => {
       kind: 'event-test',
     });
 
-    await broker.call(
-      'hitl.approve',
-      { id: created.item.id },
-      tenantMeta('tenant-event')
-    );
+    await broker.call('hitl.approve', { id: created.item.id }, tenantMeta('tenant-event'));
 
     const completedCount = emitted.filter((e) => e.eventName === 'hitl.workflow.completed').length;
 
@@ -598,7 +601,9 @@ describe('hitl service', () => {
     const newCount = emitted.filter((e) => e.eventName === 'hitl.workflow.completed').length;
     expect(newCount).toBe(completedCount + 1);
 
-    const event = emitted.find((e) => e.eventName === 'hitl.workflow.completed' && e.payload.itemId === created.item.id);
+    const event = emitted.find(
+      (e) => e.eventName === 'hitl.workflow.completed' && e.payload.itemId === created.item.id
+    );
     expect(event).toBeDefined();
     expect(event.payload.workflowCompletionState).toBe('completed');
   });

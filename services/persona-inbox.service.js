@@ -19,7 +19,11 @@ function trimString(value) {
 }
 
 function toHash(value) {
-  return crypto.createHash('sha256').update(String(value || ''), 'utf8').digest('hex').slice(0, 24);
+  return crypto
+    .createHash('sha256')
+    .update(String(value || ''), 'utf8')
+    .digest('hex')
+    .slice(0, 24);
 }
 
 module.exports = {
@@ -63,7 +67,11 @@ module.exports = {
       async handler(ctx) {
         const tenantId = this.resolveTenantId(ctx, ctx.params.tenantId);
         const record = await this.enqueueMessage(tenantId, ctx.params);
-        return { success: true, deduplicated: record.deduplicated, item: this.toPublic(record.item) };
+        return {
+          success: true,
+          deduplicated: record.deduplicated,
+          item: this.toPublic(record.item),
+        };
       },
     },
 
@@ -85,7 +93,9 @@ module.exports = {
           .filter((doc) => doc.personaId === personaId)
           .filter((doc) => doc.status === 'queued')
           .filter((doc) => !sessionId || !doc.sessionId || doc.sessionId === sessionId)
-          .sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')));
+          .sort((left, right) =>
+            String(right.createdAt || '').localeCompare(String(left.createdAt || ''))
+          );
 
         const offset = Number(ctx.params.offset || 0);
         const limit = Number(ctx.params.limit || 50);
@@ -315,7 +325,11 @@ module.exports = {
       const docs = await this.getTenantInboxMessages(tenantId);
       const doc = docs.find((entry) => entry.id === id);
       if (!doc) {
-        throw new MoleculerClientError('Persona inbox message not found', 404, 'PERSONA_INBOX_NOT_FOUND');
+        throw new MoleculerClientError(
+          'Persona inbox message not found',
+          404,
+          'PERSONA_INBOX_NOT_FOUND'
+        );
       }
 
       const updated = this.buildTransitionedDoc(doc, status);

@@ -1150,11 +1150,10 @@ function extractPromptHints(message) {
       : capacityKwMatch
         ? Number(capacityKwMatch[1].replace(',', '.'))
         : undefined;
-  const reportedMeteringConcept = /\b(?:mk\s*10|messkonzept\s*10|zusammenlegung(?:\s+der\s+z[aä]hler)?)\b/i.test(
-    text
-  )
-    ? 'MK10'
-    : undefined;
+  const reportedMeteringConcept =
+    /\b(?:mk\s*10|messkonzept\s*10|zusammenlegung(?:\s+der\s+z[aä]hler)?)\b/i.test(text)
+      ? 'MK10'
+      : undefined;
   const legacyPvStatus =
     /\b(?:pv|volleinspeis(?:eanlage|ung)?|altanlage)\b/i.test(text) &&
     /\b(?:demontiert|deinstalliert|abgebaut|zurueckgebaut|zurückgebaut)\b/i.test(text)
@@ -1684,9 +1683,7 @@ function buildExecutionPlan({
     });
     // If a semantic evidence signal key was detected (e.g. redispatch_probability_forecast),
     // use it for evidence planning — the blueprint routeKey has no registry entry.
-    const evidenceLookupPlan = evidenceSignalKey
-      ? { routeKey: evidenceSignalKey }
-      : bpPlan;
+    const evidenceLookupPlan = evidenceSignalKey ? { routeKey: evidenceSignalKey } : bpPlan;
     bpPlan.evidenceKey = evidenceSignalKey || null;
     bpPlan.evidencePlan = planEvidence(evidenceLookupPlan, {
       ...(promptHints || {}),

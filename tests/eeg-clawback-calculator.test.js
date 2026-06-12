@@ -67,7 +67,10 @@ describe('eeg-clawback-calculator — Szenario 1: konstante positive Preise (50 
 
   test('Summen-Rekonstruktion: aggregierte baselineAmountEur entspricht totalRevenueCents/100', () => {
     const sumBaseline = result.intervals.reduce((s, iv) => s + iv.baselineAmountEur, 0);
-    expect(sumBaseline * 100).toBeCloseTo(result.summary.calculatedUnderOldLaw.totalRevenueCents, 1);
+    expect(sumBaseline * 100).toBeCloseTo(
+      result.summary.calculatedUnderOldLaw.totalRevenueCents,
+      1
+    );
   });
 
   test('Summen-Rekonstruktion: aggregierte clawbackAmountEur entspricht totalRefinancingContributionCents/100', () => {
@@ -104,7 +107,9 @@ describe('eeg-clawback-calculator — Szenario 2: 8 aufeinanderfolgende Negativp
   });
 
   test('totalRefinancingContributionCents positiv', () => {
-    expect(result.summary.calculatedUnderNewLaw.totalRefinancingContributionCents).toBeGreaterThan(0);
+    expect(result.summary.calculatedUnderNewLaw.totalRefinancingContributionCents).toBeGreaterThan(
+      0
+    );
   });
 
   test('mathematischer Erwartungswert: negative Preise setzen Zahlung im MVP auf null', () => {
@@ -438,7 +443,12 @@ describe('runCalculation — options.ruleSet overrides', () => {
 // includeIntervalTrace flag
 // ─────────────────────────────────────────────────────────────────────────────
 describe('runCalculation — includeIntervalTrace option', () => {
-  const asset = { technology: 'solar', capacityKw: 100, awCentsPerKwh: 7.5, commissioningDate: '2024-01-01' };
+  const asset = {
+    technology: 'solar',
+    capacityKw: 100,
+    awCentsPerKwh: 7.5,
+    commissioningDate: '2024-01-01',
+  };
 
   test('includeIntervalTrace: false omits intervals', () => {
     const prices = makeQhPrices(4, 50);

@@ -73,6 +73,7 @@ const {
 } = require('../src/evidence-planner');
 const {
   queryKnowledgeOrientation: queryKnowledgeOrientationAdapter,
+  queryKnowledgeEvidence: queryKnowledgeEvidenceAdapter,
 } = require('../src/personal-agent-knowledge-rag');
 const {
   scheduleDream,
@@ -252,6 +253,16 @@ const CONSULTATION_HISTORY_ENTRY_MAX_CHARS = Number(
 );
 const CONSULTATION_HISTORY_REDACTION_PLACEHOLDER =
   '[technischer Rohinhalt aus vorherigem Turn ausgeblendet]';
+const COPILOT_KNOWLEDGE_TIMEOUT_MS = Number(process.env.COPILOT_KNOWLEDGE_TIMEOUT_MS || 8000);
+const COPILOT_DATAPOINT_TIMEOUT_MS = Number(process.env.COPILOT_DATAPOINT_TIMEOUT_MS || 2500);
+const COPILOT_OBJECT_STORE_TIMEOUT_MS = Number(process.env.COPILOT_OBJECT_STORE_TIMEOUT_MS || 2500);
+const COPILOT_DEFAULT_OBJECT_NAMESPACES = Object.freeze([
+  'copilot_context',
+  'process_context',
+  'evidence',
+  'znp_projects',
+  'vdmi_context',
+]);
 
 function isNotFound(error) {
   return error?.code === 404 || error?.type === 'OBJECT_NOT_FOUND';
@@ -669,7 +680,9 @@ function isPlausibleBdewCode(value) {
 }
 
 function compactString(value, maxLength = 800) {
-  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  const text = String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (text.length <= maxLength) return text;
   return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
 }
@@ -679,9 +692,22 @@ function toCopilotList(value, mapper = (entry) => entry, maxItems = 8) {
   return value.map(mapper).filter(Boolean).slice(0, maxItems);
 }
 
+function normalizeCopilotArray(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
 function deriveCopilotSearchTerm(question) {
   const text = compactString(question, 200);
-  const locationMatch = text.match(/\b(?:in|für|fuer|bei)\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}){0,2})/);
+  const locationMatch = text.match(
+    /\b(?:in|für|fuer|bei)\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}){0,2})/
+  );
   if (locationMatch) return locationMatch[1].trim();
   return text;
 }
@@ -691,6 +717,62 @@ function mapCopilotDomainToSearchDomain(domain) {
   if (normalized === 'auto' || normalized === 'process' || normalized === 'finance') return 'all';
   if (normalized === 'grid-connection') return 'grid_connection';
   return normalized;
+}
+
+function buildCopilotContextQueries({ question, searchTerm, context = {}, maxItems = 5 }) {
+  const explicit = normalizeCopilotArray(context.datapointTags || context.tags);
+  const domainHints = normalizeCopilotArray(context.domains);
+  const baseTerms = [searchTerm, question, ...explicit, ...domainHints]
+    .map((entry) => compactString(entry, 160))
+    .filter(Boolean);
+  const tokens = baseTerms
+    .flatMap((entry) => String(entry).split(/[^A-Za-zÄÖÜäöüß0-9_-]+/))
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length >= 4);
+  return Array.from(new Set([...baseTerms, ...tokens])).slice(
+    0,
+    Math.max(1, Math.min(maxItems * 3, 16))
+  );
+}
+
+function objectLooksRelevantToCopilot(doc, queryTerms = []) {
+  const haystack = compactString(JSON.stringify(doc || {}), 3000).toLowerCase();
+  if (!haystack) return false;
+  return queryTerms.some((term) => {
+    const normalized = String(term || '')
+      .toLowerCase()
+      .trim();
+    return normalized.length >= 3 && haystack.includes(normalized);
+  });
+}
+
+function datapointLooksRelevantToCopilot(datapoint, queryTerms = []) {
+  const haystack = [
+    datapoint?.name,
+    datapoint?.description,
+    ...(Array.isArray(datapoint?.tags) ? datapoint.tags : []),
+    datapoint?.sourceType,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  if (!haystack) return false;
+  return queryTerms.some((term) => {
+    const normalized = String(term || '')
+      .toLowerCase()
+      .trim();
+    return normalized.length >= 3 && haystack.includes(normalized);
+  });
+}
+
+function normalizeCopilotObjectNamespaces(context = {}) {
+  const configured = normalizeCopilotArray(
+    context.objectNamespaces || context.objectStoreNamespaces
+  );
+  const namespaces = configured.length > 0 ? configured : COPILOT_DEFAULT_OBJECT_NAMESPACES;
+  return Array.from(new Set(namespaces))
+    .filter((ns) => /^[a-z][a-z0-9_]*(:[a-z0-9_-]+)*$/.test(ns))
+    .slice(0, 6);
 }
 
 module.exports = {
@@ -710,16 +792,7 @@ module.exports = {
         domain: {
           type: 'enum',
           optional: true,
-          values: [
-            'auto',
-            'vnb',
-            'vdmi',
-            'znp',
-            'grid-connection',
-            'edm',
-            'finance',
-            'process',
-          ],
+          values: ['auto', 'vnb', 'vdmi', 'znp', 'grid-connection', 'edm', 'finance', 'process'],
           default: 'auto',
         },
         mode: {
@@ -741,9 +814,9 @@ module.exports = {
       openapi: {
         operationId: 'askCernionAgent',
         tags: [OPENAPI_TAG],
-        summary: 'Ask the Cernion agent for compact evidence and process context',
+        summary: 'Ask Cernion for compact evidence, guardrails and process context',
         description:
-          'Read-only Copilot action. Routes a user question through the Cernion Personal Agent and returns compact structured evidence, process context, risks and next steps. It does not execute, confirm, sign, delete or modify process data.',
+          'Read-only Copilot action. Returns compact structured evidence and guardrails from Cernion entity search, Knowledge RAG, datapoints and object-store context. It does not run the heavy Personal Agent chat path and does not execute, confirm, sign, delete or modify process data.',
         requestBody: {
           required: true,
           content: {
@@ -756,7 +829,8 @@ module.exports = {
                     type: 'string',
                     minLength: 1,
                     maxLength: 8000,
-                    description: 'User question to answer with Cernion evidence and process context.',
+                    description:
+                      'User question to answer with Cernion evidence and process context.',
                     example: 'Welcher VNB ist in Wiesloch zuständig?',
                   },
                   sessionId: {
@@ -787,7 +861,8 @@ module.exports = {
                     type: 'string',
                     enum: ['answer', 'evidence', 'process_check', 'prepare_intent'],
                     default: 'answer',
-                    description: 'Controls whether the answer should focus on evidence or process checks.',
+                    description:
+                      'Controls whether the answer should focus on evidence or process checks.',
                   },
                   maxEvidence: {
                     type: 'integer',
@@ -837,6 +912,18 @@ module.exports = {
                       type: 'array',
                       items: { type: 'string' },
                     },
+                    evidenceBySource: {
+                      type: 'object',
+                      additionalProperties: true,
+                      description:
+                        'Evidence grouped by source: entities, knowledge, datapoints, and object-store objects.',
+                    },
+                    guardrails: {
+                      type: 'array',
+                      items: { type: 'string' },
+                      description:
+                        'Instructions Copilot must apply before composing the final answer.',
+                    },
                     entities: {
                       type: 'array',
                       items: { type: 'string' },
@@ -879,22 +966,24 @@ module.exports = {
         const maxEvidence = ctx.params.maxEvidence || 5;
         const searchTerm = deriveCopilotSearchTerm(ctx.params.question);
         const searchDomain = mapCopilotDomainToSearchDomain(domain);
-        let searchResult;
-        try {
-          searchResult = await ctx.call(
-            'query.search',
-            { q: searchTerm, domain: searchDomain, limit: maxEvidence },
-            { meta: ctx.meta }
-          );
-        } catch (error) {
-          searchResult = {
-            query: searchTerm,
-            domain: searchDomain,
-            totalResults: 0,
-            results: [],
-            error: error.message,
-          };
-        }
+        const queryTerms = buildCopilotContextQueries({
+          question: ctx.params.question,
+          searchTerm,
+          context,
+          maxItems: maxEvidence,
+        });
+
+        const [searchResult, knowledgeEvidence, datapointEvidence, objectEvidence] =
+          await Promise.all([
+            this.searchCopilotEntities(ctx, { searchTerm, searchDomain, maxEvidence }),
+            this.collectCopilotKnowledgeEvidence(ctx, {
+              question: ctx.params.question,
+              searchTerm,
+              maxEvidence,
+            }),
+            this.collectCopilotDatapointEvidence(ctx, { queryTerms, maxEvidence }),
+            this.collectCopilotObjectEvidence(ctx, { context, queryTerms, maxEvidence }),
+          ]);
 
         return this.buildCopilotSearchAnswer({
           question: ctx.params.question,
@@ -904,6 +993,9 @@ module.exports = {
           context,
           searchTerm,
           searchResult,
+          knowledgeEvidence,
+          datapointEvidence,
+          objectEvidence,
           maxEvidence,
         });
       },
@@ -5424,7 +5516,10 @@ module.exports = {
           }
           return {
             source: compactString(entry.source || entry.label || entry.type || 'cernion', 120),
-            value: compactString(entry.value || entry.evidence || entry.statement || entry.text, 400),
+            value: compactString(
+              entry.value || entry.evidence || entry.statement || entry.text,
+              400
+            ),
           };
         },
         maxEvidence
@@ -5452,7 +5547,9 @@ module.exports = {
         5
       );
 
-      const requestedDomains = Array.isArray(routing.requestedDomains) ? routing.requestedDomains : [];
+      const requestedDomains = Array.isArray(routing.requestedDomains)
+        ? routing.requestedDomains
+        : [];
       const processContext = [
         routing.primaryIntent,
         routing.routeLabel,
@@ -5490,6 +5587,189 @@ module.exports = {
       };
     },
 
+    async searchCopilotEntities(ctx, { searchTerm, searchDomain, maxEvidence } = {}) {
+      try {
+        return await ctx.call(
+          'query.search',
+          { q: searchTerm, domain: searchDomain, limit: maxEvidence },
+          { meta: { ...ctx.meta, $gateway: false }, timeout: 3000 }
+        );
+      } catch (error) {
+        return {
+          query: searchTerm,
+          domain: searchDomain,
+          totalResults: 0,
+          results: [],
+          error: error.message,
+        };
+      }
+    },
+
+    async collectCopilotKnowledgeEvidence(ctx, { question, searchTerm, maxEvidence = 5 } = {}) {
+      const query = compactString([searchTerm, question].filter(Boolean).join(' · '), 600);
+      const result = await queryKnowledgeEvidenceAdapter(ctx, {
+        query,
+        limit: Math.min(Math.max(Number(maxEvidence) || 5, 1), 8),
+        timeoutMs: COPILOT_KNOWLEDGE_TIMEOUT_MS,
+      });
+
+      return {
+        source: 'knowledge-rag',
+        status: result.status,
+        query: result.query,
+        hits: toCopilotList(
+          result.hits,
+          (hit) => ({
+            source: compactString(hit.source || 'knowledge-rag', 120),
+            value: compactString(
+              [
+                hit.summary,
+                hit.documentType ? `Dokumenttyp: ${hit.documentType}` : null,
+                Number.isFinite(Number(hit.score))
+                  ? `Score: ${Number(hit.score).toFixed(3)}`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' · '),
+              520
+            ),
+            metadata: {
+              hitId: hit.hitId || null,
+              timestamp: hit.timestamp || null,
+              documentType: hit.documentType || null,
+              score: Number.isFinite(Number(hit.score)) ? Number(hit.score) : null,
+            },
+          }),
+          maxEvidence
+        ),
+        trace: result.trace || { hitCount: 0 },
+      };
+    },
+
+    async collectCopilotDatapointEvidence(ctx, { queryTerms = [], maxEvidence = 5 } = {}) {
+      try {
+        const result = await ctx.call(
+          'datapoint.list',
+          { limit: 100, includeHealth: true },
+          { meta: { ...ctx.meta, $gateway: false }, timeout: COPILOT_DATAPOINT_TIMEOUT_MS }
+        );
+        const datapoints = Array.isArray(result?.datapoints) ? result.datapoints : [];
+        const relevant = datapoints
+          .filter((datapoint) => datapointLooksRelevantToCopilot(datapoint, queryTerms))
+          .slice(0, maxEvidence);
+
+        return {
+          source: 'datapoint',
+          status: relevant.length > 0 ? 'available' : 'missing',
+          hits: relevant.map((datapoint) => ({
+            source: 'datapoint',
+            value: compactString(
+              [
+                datapoint.name,
+                datapoint.description,
+                Array.isArray(datapoint.tags) && datapoint.tags.length
+                  ? `Tags: ${datapoint.tags.join(', ')}`
+                  : null,
+                datapoint.health?.status ? `Health: ${datapoint.health.status}` : null,
+              ]
+                .filter(Boolean)
+                .join(' · '),
+              520
+            ),
+            metadata: {
+              name: datapoint.name,
+              sourceType: datapoint.sourceType || null,
+              createdAt: datapoint.createdAt || null,
+              lastRunAt: datapoint.lastRun?.at || datapoint.lastRun?.finishedAt || null,
+            },
+          })),
+          trace: {
+            scannedCount: datapoints.length,
+            hitCount: relevant.length,
+          },
+        };
+      } catch (error) {
+        return {
+          source: 'datapoint',
+          status: isActionUnavailable(error) ? 'unavailable' : 'timeout_or_error',
+          hits: [],
+          trace: { hitCount: 0, error: compactString(error.message, 180) },
+        };
+      }
+    },
+
+    async collectCopilotObjectEvidence(
+      ctx,
+      { context = {}, queryTerms = [], maxEvidence = 5 } = {}
+    ) {
+      const namespaces = normalizeCopilotObjectNamespaces(context);
+      const perNamespaceLimit = Math.max(
+        3,
+        Math.ceil(maxEvidence / Math.max(1, namespaces.length))
+      );
+      const responses = await Promise.all(
+        namespaces.map(async (namespace) => {
+          try {
+            const result = await ctx.call(
+              'object-store.query',
+              { namespace, selector: {}, limit: 25 },
+              { meta: { ...ctx.meta, $gateway: false }, timeout: COPILOT_OBJECT_STORE_TIMEOUT_MS }
+            );
+            const docs = Array.isArray(result?.docs) ? result.docs : [];
+            const matched = docs
+              .filter((doc) => objectLooksRelevantToCopilot(doc, queryTerms))
+              .slice(0, perNamespaceLimit);
+            return { namespace, status: 'available', scannedCount: docs.length, docs: matched };
+          } catch (error) {
+            return {
+              namespace,
+              status: isActionUnavailable(error) ? 'unavailable' : 'timeout_or_error',
+              scannedCount: 0,
+              docs: [],
+              error: compactString(error.message, 160),
+            };
+          }
+        })
+      );
+
+      const hits = responses.flatMap((entry) =>
+        entry.docs.map((doc) => ({
+          source: `object-store:${entry.namespace}`,
+          value: compactString(
+            [
+              doc.key,
+              doc.payload?.title || doc.payload?.name || doc.payload?.status || null,
+              doc.updatedAt ? `updated: ${doc.updatedAt}` : null,
+            ]
+              .filter(Boolean)
+              .join(' · '),
+            520
+          ),
+          metadata: {
+            namespace: entry.namespace,
+            key: doc.key,
+            updatedAt: doc.updatedAt || null,
+          },
+        }))
+      );
+
+      const availableNamespaces = responses.filter((entry) => entry.status === 'available').length;
+      return {
+        source: 'object-store',
+        status: hits.length > 0 ? 'available' : availableNamespaces > 0 ? 'missing' : 'unavailable',
+        hits: hits.slice(0, maxEvidence),
+        trace: {
+          namespaces: responses.map((entry) => ({
+            namespace: entry.namespace,
+            status: entry.status,
+            scannedCount: entry.scannedCount,
+            hitCount: entry.docs.length,
+          })),
+          hitCount: hits.length,
+        },
+      };
+    },
+
     buildCopilotSearchAnswer({
       question,
       sessionId = null,
@@ -5498,10 +5778,13 @@ module.exports = {
       context = {},
       searchTerm,
       searchResult = {},
+      knowledgeEvidence = { status: 'unavailable', hits: [] },
+      datapointEvidence = { status: 'unavailable', hits: [] },
+      objectEvidence = { status: 'unavailable', hits: [] },
       maxEvidence = 5,
     } = {}) {
       const results = Array.isArray(searchResult.results) ? searchResult.results : [];
-      const evidence = results.slice(0, maxEvidence).map((entry) => ({
+      const entityEvidence = results.slice(0, maxEvidence).map((entry) => ({
         source: compactString(entry.domain || entry.type || 'cernion', 120),
         value: compactString(
           [entry.title, entry.excerpt, entry.status ? `Status: ${entry.status}` : null]
@@ -5510,6 +5793,13 @@ module.exports = {
           500
         ),
       }));
+      const knowledgeHits = Array.isArray(knowledgeEvidence.hits) ? knowledgeEvidence.hits : [];
+      const datapointHits = Array.isArray(datapointEvidence.hits) ? datapointEvidence.hits : [];
+      const objectHits = Array.isArray(objectEvidence.hits) ? objectEvidence.hits : [];
+      const evidence = [...entityEvidence, ...knowledgeHits, ...datapointHits, ...objectHits].slice(
+        0,
+        Math.max(maxEvidence * 4, maxEvidence)
+      );
       const hasEvidence = evidence.length > 0;
       const shortAnswer = hasEvidence
         ? `Cernion hat ${evidence.length} passende Evidenztreffer zu "${searchTerm}" gefunden.`
@@ -5519,28 +5809,73 @@ module.exports = {
         domain && domain !== 'auto' ? domain : null,
         mode && mode !== 'answer' ? mode : null,
         searchResult.domain ? `search:${searchResult.domain}` : null,
+        knowledgeEvidence.status ? `knowledge:${knowledgeEvidence.status}` : null,
+        datapointEvidence.status ? `datapoints:${datapointEvidence.status}` : null,
+        objectEvidence.status ? `objects:${objectEvidence.status}` : null,
       ].filter(Boolean);
+      const guardrails = [
+        'Copilot muss Knowledge-RAG, Datapoints und Object-Store-Evidence vor der Antwortformulierung beachten.',
+        'Copilot darf keine Ausführungs-, Lösch-, Signatur-, Override- oder Nominierungsaktion durchführen.',
+        'Bei fehlender oder widersprüchlicher Evidence muss Copilot Unsicherheit benennen und Rückfragen stellen.',
+      ];
 
       return {
         success: true,
         sessionId,
         shortAnswer,
-        confidence: hasEvidence ? 'medium' : 'low',
+        confidence:
+          knowledgeHits.length > 0 || datapointHits.length > 0 || objectHits.length > 0
+            ? 'medium'
+            : hasEvidence
+              ? 'medium'
+              : 'low',
         evidence,
+        evidenceBySource: {
+          entities: {
+            status: entityEvidence.length > 0 ? 'available' : 'missing',
+            hits: entityEvidence,
+            trace: {
+              hitCount: entityEvidence.length,
+              totalResults: searchResult.totalResults || results.length,
+            },
+          },
+          knowledge: knowledgeEvidence,
+          datapoints: datapointEvidence,
+          objects: objectEvidence,
+        },
+        guardrails,
         processContext,
         entities: results
           .slice(0, maxEvidence)
           .map((entry) => compactString(entry.title || entry.id, 160))
           .filter(Boolean),
-        risks: searchResult.error ? [compactString(searchResult.error, 240)] : [],
+        risks: [
+          searchResult.error ? compactString(searchResult.error, 240) : null,
+          knowledgeEvidence.status === 'timeout'
+            ? 'Knowledge-RAG Timeout: Antwort nicht ohne Hinweis finalisieren.'
+            : null,
+          knowledgeEvidence.status === 'unavailable'
+            ? 'Knowledge-RAG nicht verfügbar: zentrale Guardrails konnten nicht geladen werden.'
+            : null,
+          datapointEvidence.status === 'timeout_or_error'
+            ? 'Datapoint-Evidence konnte nicht vollständig geladen werden.'
+            : null,
+          objectEvidence.status === 'timeout_or_error'
+            ? 'Object-Store-Evidence konnte nicht vollständig geladen werden.'
+            : null,
+        ].filter(Boolean),
         openQuestions: hasEvidence
           ? []
           : [
               'Welche konkrete Entität, Kommune, Projektnummer, Matrix oder Marktrolle soll geprüft werden?',
             ],
         recommendedNextSteps: hasEvidence
-          ? ['Copilot soll die Evidenztreffer fachlich einordnen und bei Bedarf nach Details fragen.']
-          : ['Suchbegriff präzisieren oder Cernion-Kontext wie Kommune, VNB, Projekt oder Prozess ergänzen.'],
+          ? [
+              'Copilot soll die Evidenztreffer fachlich einordnen und bei Bedarf nach Details fragen.',
+            ]
+          : [
+              'Suchbegriff präzisieren oder Cernion-Kontext wie Kommune, VNB, Projekt oder Prozess ergänzen.',
+            ],
         allowedActions: ['explain', 'retrieve_evidence', 'prepare_intent'],
         forbiddenActions: ['execute', 'confirm', 'delete', 'override', 'sign', 'nominate'],
         routing: {

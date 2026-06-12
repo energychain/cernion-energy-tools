@@ -696,7 +696,11 @@ function interpolateTemplateWithKnownContext(
 
   if (action === 'grid-operations.vnbLookupCodes') {
     const knownBdew = knownContext.bdewCode || knownContext.bdew || null;
-    if (knownBdew && typeof hydrated.bdewCode === 'string' && hydrated.bdewCode.startsWith('__step_')) {
+    if (
+      knownBdew &&
+      typeof hydrated.bdewCode === 'string' &&
+      hydrated.bdewCode.startsWith('__step_')
+    ) {
       hydrated.bdewCode = knownBdew;
     }
     if (hydrated.vnbName === null) {

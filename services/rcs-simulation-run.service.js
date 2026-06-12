@@ -194,8 +194,10 @@ module.exports = {
         const now = new Date().toISOString();
         const p = ctx.params;
 
-        const priceSeriesHash = p.priceSeriesHash ?? (p.priceSeries ? hashData(p.priceSeries) : null);
-        const injectionSeriesHash = p.injectionSeriesHash ?? (p.injectionSeries ? hashData(p.injectionSeries) : null);
+        const priceSeriesHash =
+          p.priceSeriesHash ?? (p.priceSeries ? hashData(p.priceSeries) : null);
+        const injectionSeriesHash =
+          p.injectionSeriesHash ?? (p.injectionSeries ? hashData(p.injectionSeries) : null);
         const inputHash =
           p.inputHash ??
           hashData({
@@ -339,7 +341,8 @@ module.exports = {
           await updateRunDoc(this._db, runId, cleanUpdates);
           return { updated: true, runId };
         } catch (err) {
-          if (err.status === 404) throw rcsError('RCS_RUN_NOT_FOUND', `Run '${runId}' not found.`, { runId });
+          if (err.status === 404)
+            throw rcsError('RCS_RUN_NOT_FOUND', `Run '${runId}' not found.`, { runId });
           throw err;
         }
       },
@@ -383,13 +386,35 @@ module.exports = {
         from: { type: 'string', optional: true },
         to: { type: 'string', optional: true },
         includeDeleted: { type: 'boolean', optional: true, default: false, convert: true },
-        limit: { type: 'number', integer: true, positive: true, optional: true, default: 50, convert: true },
-        offset: { type: 'number', integer: true, min: 0, optional: true, default: 0, convert: true },
+        limit: {
+          type: 'number',
+          integer: true,
+          positive: true,
+          optional: true,
+          default: 50,
+          convert: true,
+        },
+        offset: {
+          type: 'number',
+          integer: true,
+          min: 0,
+          optional: true,
+          default: 0,
+          convert: true,
+        },
       },
       async handler(ctx) {
         const {
-          assetId, ruleSetId, jobId, executionMode, status,
-          from, to, includeDeleted, limit, offset,
+          assetId,
+          ruleSetId,
+          jobId,
+          executionMode,
+          status,
+          from,
+          to,
+          includeDeleted,
+          limit,
+          offset,
         } = ctx.params;
 
         const result = await this._db.allDocs({
@@ -419,9 +444,7 @@ module.exports = {
           offset,
           limit,
           hasMore,
-          items: page
-            .map((d) => toPublic(d, { includeDeleted: true }))
-            .filter(Boolean),
+          items: page.map((d) => toPublic(d, { includeDeleted: true })).filter(Boolean),
         };
       },
     },
@@ -442,7 +465,10 @@ module.exports = {
         try {
           doc = await this._db.get(docId(ctx.params.runId));
         } catch (err) {
-          if (err.status === 404) throw rcsError('RCS_RUN_NOT_FOUND', `Run '${ctx.params.runId}' not found.`, { runId: ctx.params.runId });
+          if (err.status === 404)
+            throw rcsError('RCS_RUN_NOT_FOUND', `Run '${ctx.params.runId}' not found.`, {
+              runId: ctx.params.runId,
+            });
           throw err;
         }
         if (doc.deletedAt) return { deleted: true, runId: ctx.params.runId, alreadyDeleted: true };
@@ -505,8 +531,22 @@ module.exports = {
         readinessStatus: { type: 'string', optional: true },
         technology: { type: 'string', optional: true },
         q: { type: 'string', optional: true },
-        limit: { type: 'number', integer: true, positive: true, optional: true, default: 100, convert: true },
-        offset: { type: 'number', integer: true, min: 0, optional: true, default: 0, convert: true },
+        limit: {
+          type: 'number',
+          integer: true,
+          positive: true,
+          optional: true,
+          default: 100,
+          convert: true,
+        },
+        offset: {
+          type: 'number',
+          integer: true,
+          min: 0,
+          optional: true,
+          default: 0,
+          convert: true,
+        },
       },
       async handler(ctx) {
         const { runId, status, readinessStatus, technology, q, limit, offset } = ctx.params;
@@ -523,9 +563,14 @@ module.exports = {
         if (technology) docs = docs.filter((d) => d.technology === technology);
         if (q) {
           const needle = q.toLowerCase();
-          docs = docs.filter((d) =>
-            String(d.assetId ?? '').toLowerCase().includes(needle) ||
-            String(d.assetName ?? '').toLowerCase().includes(needle)
+          docs = docs.filter(
+            (d) =>
+              String(d.assetId ?? '')
+                .toLowerCase()
+                .includes(needle) ||
+              String(d.assetName ?? '')
+                .toLowerCase()
+                .includes(needle)
           );
         }
 
@@ -565,7 +610,11 @@ module.exports = {
           doc = await this._db.get(assetDocId(runId, assetId));
         } catch (err) {
           if (err.status === 404) {
-            throw rcsError('RCS_ASSET_RESULT_NOT_FOUND', `Asset result '${assetId}' not found for run '${runId}'.`, { runId, assetId });
+            throw rcsError(
+              'RCS_ASSET_RESULT_NOT_FOUND',
+              `Asset result '${assetId}' not found for run '${runId}'.`,
+              { runId, assetId }
+            );
           }
           throw err;
         }
@@ -591,7 +640,14 @@ module.exports = {
       rest: 'GET /runs/:runId/errors',
       params: {
         runId: { type: 'string', min: 1 },
-        limit: { type: 'number', integer: true, positive: true, optional: true, default: 50, convert: true },
+        limit: {
+          type: 'number',
+          integer: true,
+          positive: true,
+          optional: true,
+          default: 50,
+          convert: true,
+        },
       },
       async handler(ctx) {
         const { runId, limit } = ctx.params;
@@ -602,9 +658,7 @@ module.exports = {
           endkey: `rcs:asset:${runId}:￿`,
         });
 
-        const allErrorDocs = result.rows
-          .map((r) => r.doc)
-          .filter((d) => d && d.status === 'error');
+        const allErrorDocs = result.rows.map((r) => r.doc).filter((d) => d && d.status === 'error');
         const errorDocs = allErrorDocs.slice(0, limit);
 
         return {
@@ -703,7 +757,11 @@ module.exports = {
             throw rcsError(
               'RCS_TRACE_NOT_FOUND',
               `No trace found for asset '${assetId}' in run '${runId}'. Use POST .../drilldown to compute one.`,
-              { runId, assetId, drilldownUrl: `/api/vnb/rcs/runs/${runId}/assets/${assetId}/drilldown` }
+              {
+                runId,
+                assetId,
+                drilldownUrl: `/api/vnb/rcs/runs/${runId}/assets/${assetId}/drilldown`,
+              }
             );
           }
           throw err;
@@ -726,7 +784,8 @@ module.exports = {
         try {
           await this._db.get(docId(runId));
         } catch (err) {
-          if (err.status === 404) throw rcsError('RCS_RUN_NOT_FOUND', `Run '${runId}' not found.`, { runId });
+          if (err.status === 404)
+            throw rcsError('RCS_RUN_NOT_FOUND', `Run '${runId}' not found.`, { runId });
           throw err;
         }
 
@@ -746,7 +805,8 @@ module.exports = {
           return {
             runId,
             dataAvailable: false,
-            message: 'No per-asset results found. Run may have used sync mode without per-asset persistence.',
+            message:
+              'No per-asset results found. Run may have used sync mode without per-asset persistence.',
             links: baseLinks,
           };
         }
@@ -757,7 +817,8 @@ module.exports = {
             runId,
             dataAvailable: false,
             totalAssets: docs.length,
-            message: 'Readiness data not collected for this run. Re-run with options.includeReadiness=true.',
+            message:
+              'Readiness data not collected for this run. Re-run with options.includeReadiness=true.',
             links: baseLinks,
           };
         }

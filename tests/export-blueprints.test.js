@@ -5,7 +5,12 @@ jest.mock('axios');
 const axios = require('axios');
 const path = require('path');
 
-const { exportBlueprints, fetchActiveBlueprintIds, fetchBlueprint, parseArgs } = require('../scripts/export-blueprints');
+const {
+  exportBlueprints,
+  fetchActiveBlueprintIds,
+  fetchBlueprint,
+  parseArgs,
+} = require('../scripts/export-blueprints');
 
 // Minimal fs stub: captures writeFileSync calls, no disk I/O
 function makeFsStub() {
@@ -30,7 +35,12 @@ describe('parseArgs', () => {
   });
 
   it('parses --base-url and --out', () => {
-    const { baseUrl, out } = parseArgs(['--base-url', 'http://localhost:4000', '--out', '/tmp/bps']);
+    const { baseUrl, out } = parseArgs([
+      '--base-url',
+      'http://localhost:4000',
+      '--out',
+      '/tmp/bps',
+    ]);
     expect(baseUrl).toBe('http://localhost:4000');
     expect(out).toBe('/tmp/bps');
   });
@@ -53,7 +63,11 @@ describe('fetchActiveBlueprintIds', () => {
 
   it('extracts IDs from a { success, data, total } envelope (current API)', async () => {
     axios.get.mockResolvedValueOnce({
-      data: { success: true, total: 2, data: [{ blueprintId: 'bp-alpha-v1' }, { blueprintId: 'bp-beta-v1' }] },
+      data: {
+        success: true,
+        total: 2,
+        data: [{ blueprintId: 'bp-alpha-v1' }, { blueprintId: 'bp-beta-v1' }],
+      },
     });
     const ids = await fetchActiveBlueprintIds('http://127.0.0.1:3900');
     expect(ids).toEqual(['bp-alpha-v1', 'bp-beta-v1']);
@@ -75,7 +89,9 @@ describe('fetchActiveBlueprintIds', () => {
 
   it('propagates HTTP errors', async () => {
     axios.get.mockRejectedValueOnce(new Error('connect ECONNREFUSED'));
-    await expect(fetchActiveBlueprintIds('http://127.0.0.1:3900')).rejects.toThrow('connect ECONNREFUSED');
+    await expect(fetchActiveBlueprintIds('http://127.0.0.1:3900')).rejects.toThrow(
+      'connect ECONNREFUSED'
+    );
   });
 });
 
@@ -114,12 +130,18 @@ describe('exportBlueprints', () => {
 
   it('lists blueprints, fetches each, and writes JSON files', async () => {
     axios.get
-      .mockResolvedValueOnce({ data: [{ blueprintId: 'bp-alpha-v1' }, { blueprintId: 'bp-beta-v1' }] })
+      .mockResolvedValueOnce({
+        data: [{ blueprintId: 'bp-alpha-v1' }, { blueprintId: 'bp-beta-v1' }],
+      })
       .mockResolvedValueOnce({ data: { blueprint: BLUEPRINT_A } })
       .mockResolvedValueOnce({ data: { blueprint: BLUEPRINT_B } });
 
     const fsStub = makeFsStub();
-    const result = await exportBlueprints({ baseUrl: 'http://127.0.0.1:3900', out: '/tmp/bps', _fs: fsStub });
+    const result = await exportBlueprints({
+      baseUrl: 'http://127.0.0.1:3900',
+      out: '/tmp/bps',
+      _fs: fsStub,
+    });
 
     expect(result.errors).toHaveLength(0);
     expect(result.written).toHaveLength(2);
@@ -142,7 +164,9 @@ describe('exportBlueprints', () => {
 
   it('calls GET /:id for each active blueprint ID', async () => {
     axios.get
-      .mockResolvedValueOnce({ data: [{ blueprintId: 'bp-alpha-v1' }, { blueprintId: 'bp-beta-v1' }] })
+      .mockResolvedValueOnce({
+        data: [{ blueprintId: 'bp-alpha-v1' }, { blueprintId: 'bp-beta-v1' }],
+      })
       .mockResolvedValueOnce({ data: { blueprint: BLUEPRINT_A } })
       .mockResolvedValueOnce({ data: { blueprint: BLUEPRINT_B } });
 
@@ -163,12 +187,18 @@ describe('exportBlueprints', () => {
 
   it('records an error when blueprint field is missing and continues processing others', async () => {
     axios.get
-      .mockResolvedValueOnce({ data: [{ blueprintId: 'bp-alpha-v1' }, { blueprintId: 'bp-beta-v1' }] })
-      .mockResolvedValueOnce({ data: {} })                             // bp-alpha: no blueprint field
-      .mockResolvedValueOnce({ data: { blueprint: BLUEPRINT_B } });    // bp-beta: ok
+      .mockResolvedValueOnce({
+        data: [{ blueprintId: 'bp-alpha-v1' }, { blueprintId: 'bp-beta-v1' }],
+      })
+      .mockResolvedValueOnce({ data: {} }) // bp-alpha: no blueprint field
+      .mockResolvedValueOnce({ data: { blueprint: BLUEPRINT_B } }); // bp-beta: ok
 
     const fsStub = makeFsStub();
-    const result = await exportBlueprints({ baseUrl: 'http://127.0.0.1:3900', out: '/tmp/bps', _fs: fsStub });
+    const result = await exportBlueprints({
+      baseUrl: 'http://127.0.0.1:3900',
+      out: '/tmp/bps',
+      _fs: fsStub,
+    });
 
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].id).toBe('bp-alpha-v1');
@@ -179,12 +209,18 @@ describe('exportBlueprints', () => {
 
   it('records an error on HTTP failure for a single blueprint and continues', async () => {
     axios.get
-      .mockResolvedValueOnce({ data: [{ blueprintId: 'bp-alpha-v1' }, { blueprintId: 'bp-beta-v1' }] })
+      .mockResolvedValueOnce({
+        data: [{ blueprintId: 'bp-alpha-v1' }, { blueprintId: 'bp-beta-v1' }],
+      })
       .mockRejectedValueOnce(new Error('Request failed with status code 500'))
       .mockResolvedValueOnce({ data: { blueprint: BLUEPRINT_B } });
 
     const fsStub = makeFsStub();
-    const result = await exportBlueprints({ baseUrl: 'http://127.0.0.1:3900', out: '/tmp/bps', _fs: fsStub });
+    const result = await exportBlueprints({
+      baseUrl: 'http://127.0.0.1:3900',
+      out: '/tmp/bps',
+      _fs: fsStub,
+    });
 
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].id).toBe('bp-alpha-v1');
@@ -204,7 +240,11 @@ describe('exportBlueprints', () => {
     axios.get.mockResolvedValueOnce({ data: [] });
 
     const fsStub = makeFsStub();
-    const result = await exportBlueprints({ baseUrl: 'http://127.0.0.1:3900', out: '/tmp/bps', _fs: fsStub });
+    const result = await exportBlueprints({
+      baseUrl: 'http://127.0.0.1:3900',
+      out: '/tmp/bps',
+      _fs: fsStub,
+    });
 
     expect(result.written).toHaveLength(0);
     expect(result.errors).toHaveLength(0);

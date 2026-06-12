@@ -24,24 +24,52 @@ describe('ProcessIntentStore (unit)', () => {
     broker.createService({
       name: 'vdmi',
       actions: {
-        get: { handler() { return { success: true, matrix: { id: 'vm-1', name: 'TestMatrix' } }; } },
-        evidence: { handler() { return { success: true }; } },
+        get: {
+          handler() {
+            return { success: true, matrix: { id: 'vm-1', name: 'TestMatrix' } };
+          },
+        },
+        evidence: {
+          handler() {
+            return { success: true };
+          },
+        },
       },
     });
     broker.createService({
       name: 'znp',
       actions: {
-        getProjectMeta: { handler() { return { projectId: 'znp-1', name: 'TestProject' }; } },
-        addAssumption: { handler() { return { success: true }; } },
+        getProjectMeta: {
+          handler() {
+            return { projectId: 'znp-1', name: 'TestProject' };
+          },
+        },
+        addAssumption: {
+          handler() {
+            return { success: true };
+          },
+        },
       },
     });
     broker.createService({
       name: 'grid-connection',
-      actions: { validate: { handler() { return { success: true }; } } },
+      actions: {
+        validate: {
+          handler() {
+            return { success: true };
+          },
+        },
+      },
     });
     broker.createService({
       name: 'connection-rejection-evidence',
-      actions: { create: { handler() { return { success: true }; } } },
+      actions: {
+        create: {
+          handler() {
+            return { success: true };
+          },
+        },
+      },
     });
     await broker.start();
   });
@@ -178,7 +206,9 @@ describe('capex-prioritization.service — SCQA Layer 4', () => {
       urgencyDriver: '§14a Steuerbarkeit Pflicht bis 2026-09-30',
     });
     expect(result.urgencyDriver).toBe('§14a Steuerbarkeit Pflicht bis 2026-09-30');
-    expect(result.clevelTemplate.scqaUrgencyDriver).toBe('§14a Steuerbarkeit Pflicht bis 2026-09-30');
+    expect(result.clevelTemplate.scqaUrgencyDriver).toBe(
+      '§14a Steuerbarkeit Pflicht bis 2026-09-30'
+    );
   });
 
   it('stores and returns decisionFrameId when provided', async () => {
@@ -215,21 +245,47 @@ describe('investment-planning.service — SCQA Layer 4', () => {
 
     broker.createService({
       name: 'redispatch-expost',
-      actions: { list: { handler() { return { audits: [] }; } } },
+      actions: {
+        list: {
+          handler() {
+            return { audits: [] };
+          },
+        },
+      },
     });
     broker.createService({
       name: 'vdmi',
-      actions: { list: { handler() { return { items: [] }; } } },
+      actions: {
+        list: {
+          handler() {
+            return { items: [] };
+          },
+        },
+      },
     });
     broker.createService({
       name: 'hitl',
-      actions: { create: { handler() { return { item: null }; } } },
+      actions: {
+        create: {
+          handler() {
+            return { item: null };
+          },
+        },
+      },
     });
     broker.createService({
       name: 'interface-placeholder',
       actions: {
-        listGaps: { handler() { return { placeholders: [] }; } },
-        markGap: { handler() { return { placeholder: null }; } },
+        listGaps: {
+          handler() {
+            return { placeholders: [] };
+          },
+        },
+        markGap: {
+          handler() {
+            return { placeholder: null };
+          },
+        },
       },
     });
 

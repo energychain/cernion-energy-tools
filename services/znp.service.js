@@ -1308,6 +1308,13 @@ module.exports = {
             required: true,
             schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000001' },
           },
+          {
+            name: 'questionSeed',
+            in: 'query',
+            required: false,
+            description: 'SCQA Kernfrage as seed to orient generated planning questions',
+            schema: { type: 'string', maxLength: 500 },
+          },
         ],
         responses: {
           200: {
