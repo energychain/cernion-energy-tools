@@ -256,7 +256,13 @@ const CONSULTATION_HISTORY_REDACTION_PLACEHOLDER =
 const COPILOT_KNOWLEDGE_TIMEOUT_MS = Number(process.env.COPILOT_KNOWLEDGE_TIMEOUT_MS || 8000);
 const COPILOT_DATAPOINT_TIMEOUT_MS = Number(process.env.COPILOT_DATAPOINT_TIMEOUT_MS || 2500);
 const COPILOT_OBJECT_STORE_TIMEOUT_MS = Number(process.env.COPILOT_OBJECT_STORE_TIMEOUT_MS || 2500);
+const COPILOT_OBJECT_STORE_MAX_NAMESPACES = Number(
+  process.env.COPILOT_OBJECT_STORE_MAX_NAMESPACES || 10
+);
 const COPILOT_DEFAULT_OBJECT_NAMESPACES = Object.freeze([
+  'cya_sessions',
+  'cya_profiles',
+  'finance_agent_memory',
   'copilot_context',
   'process_context',
   'evidence',
@@ -772,7 +778,7 @@ function normalizeCopilotObjectNamespaces(context = {}) {
   const namespaces = configured.length > 0 ? configured : COPILOT_DEFAULT_OBJECT_NAMESPACES;
   return Array.from(new Set(namespaces))
     .filter((ns) => /^[a-z][a-z0-9_]*(:[a-z0-9_-]+)*$/.test(ns))
-    .slice(0, 6);
+    .slice(0, Math.max(1, COPILOT_OBJECT_STORE_MAX_NAMESPACES));
 }
 
 module.exports = {

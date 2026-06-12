@@ -143,4 +143,75 @@ describe('askCernionAgent evidence bundle', () => {
       'Knowledge-RAG nicht verfügbar: zentrale Guardrails konnten nicht geladen werden.'
     );
   });
+
+  test('uses evidence-bearing object-store namespaces by default', async () => {
+    const service = buildServiceHarness();
+    const handler = PersonalAgentService.actions.askCernionAgent.handler;
+    const queriedNamespaces = [];
+    const ctx = {
+      meta: { tenantId: 'tenant-a' },
+      params: {
+        question: 'Welche regulatorische Evidenz gibt es zum Netzanschluss?',
+        domain: 'auto',
+        maxEvidence: 4,
+        context: {},
+      },
+      call: jest.fn(async (action, params) => {
+        if (action === 'query.search') {
+          return { query: params.q, domain: 'all', totalResults: 0, results: [] };
+        }
+
+        if (action === 'knowledge-rag.query') {
+          return { success: true, data: { results: [] } };
+        }
+
+        if (action === 'datapoint.list') {
+          return { datapoints: [] };
+        }
+
+        if (action === 'object-store.query') {
+          queriedNamespaces.push(params.namespace);
+          if (params.namespace !== 'cya_sessions') {
+            return { docs: [] };
+          }
+          return {
+            docs: [
+              {
+                namespace: params.namespace,
+                key: 'cya-session-regulatory',
+                payload: {
+                  status: 'completed',
+                  regulatory_graph: {
+                    topic: 'Netzanschluss regulatorische Evidenz',
+                  },
+                },
+                updatedAt: '2026-06-12T00:00:00.000Z',
+              },
+            ],
+          };
+        }
+
+        throw new Error(`unexpected action ${action}`);
+      }),
+    };
+
+    const result = await handler.call(service, ctx);
+
+    expect(queriedNamespaces).toEqual(
+      expect.arrayContaining(['cya_sessions', 'cya_profiles', 'finance_agent_memory'])
+    );
+    expect(result.evidenceBySource.objects.status).toBe('available');
+    expect(result.evidenceBySource.objects.trace.namespaces).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          namespace: 'cya_sessions',
+          scannedCount: 1,
+          hitCount: 1,
+        }),
+      ])
+    );
+    expect(JSON.stringify(result.evidenceBySource.objects.hits)).toContain(
+      'cya-session-regulatory'
+    );
+  });
 });
