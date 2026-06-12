@@ -52,6 +52,12 @@ const DEFAULT_API_CORS_ORIGINS = [
   'https://energychain.github.io',
   'https://cernion.de',
   'https://*.cernion.de',
+  'https://make.powerautomate.com',
+  'https://*.powerautomate.com',
+  'https://make.powerapps.com',
+  'https://*.powerapps.com',
+  'https://flow.microsoft.com',
+  'https://*.flow.microsoft.com',
 ];
 const COPILOT_OPENAPI_PATH = path.join(__dirname, '..', 'openapi-copilot.json');
 

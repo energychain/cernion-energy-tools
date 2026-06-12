@@ -138,6 +138,13 @@ describe('API Gateway Service', () => {
       expect(apiRoute).toBeDefined();
       expect(apiRoute.autoAliases).toBe(true);
     });
+
+    it('should allow Power Platform origins for custom connector tests', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      expect(apiRoute.cors.origin('https://make.powerautomate.com')).toBe(true);
+      expect(apiRoute.cors.origin('https://emea.flow.microsoft.com')).toBe(true);
+      expect(apiRoute.cors.origin('https://make.powerapps.com')).toBe(true);
+    });
   });
 
   describe('openapi', () => {
