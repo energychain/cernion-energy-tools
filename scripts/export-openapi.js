@@ -305,6 +305,12 @@ function buildStaticSpec() {
         'MicroService Agent System for Energy Markets - REST API with AI integration.\n\n' +
         'CERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.',
     },
+    servers: [
+      {
+        url: process.env.API_URL || 'https://api.cernion.de',
+        description: 'Cernion API Server',
+      },
+    ],
     tags,
     paths,
   };

@@ -5,6 +5,12 @@
     "version": "0.60.8",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
+  "servers": [
+    {
+      "url": "https://api.cernion.de",
+      "description": "Cernion API Server"
+    }
+  ],
   "tags": [
     {
       "name": "Energy",
