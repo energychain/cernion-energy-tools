@@ -13,7 +13,6 @@ const {
 } = require('../src/l3-broker');
 const { extractPromptHints } = require('../src/personal-agent-routing');
 const {
-  loadBlueprint,
   listBlueprints,
   setRuntimeBlueprint,
   _resetCache,
