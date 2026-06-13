@@ -1008,6 +1008,8 @@ function buildCopilotGroundingAnswer({
       'Du darfst aus den Snippets eine nutzernahe Antwort formulieren und Zusammenhaenge erklaeren.',
       'Du darfst keine Rechtsquellen, Termine, Prozessregeln oder Fakten ergaenzen, die weder in den Snippets noch im Cernion-Kontext enthalten sind.',
       'Wenn die Evidenz nur indirekt passt, nutze sie als Kontext und kennzeichne die Unsicherheit statt nur nach Praezisierung zu fragen.',
+      'Wenn eine Standortaufloesung enthalten ist, nenne den aufgeloesten Standort ausdruecklich.',
+      'Bei Planner- oder Schnellcheck-Evidence formuliere als Vorpruefung, nicht als abschliessende Machbarkeitsbewertung.',
       '',
       section('BENUTZERFRAGE', [question || searchTerm]),
       '',
@@ -1034,7 +1036,7 @@ function buildCopilotGroundingAnswer({
       section('EMPFOHLENE NAECHSTE SCHRITTE', recommendedNextSteps),
       '',
       'ANTWORTREGEL:',
-      'Formuliere eine hilfreiche Antwort aus den vorhandenen Snippets. Retrieval-Hinweise duerfen zur Themenorientierung genutzt werden, aber nicht als alleinige Quelle fuer fachliche Aussagen. Bei niedriger Confidence oder unscharfer Evidenz: Unsicherheit sichtbar machen, aber verwertbare Snippet-Inhalte trotzdem zusammenfassen. Nicht aus Modellwissen auffuellen.',
+      'Formuliere eine hilfreiche Antwort aus den vorhandenen Snippets. Retrieval-Hinweise duerfen zur Themenorientierung genutzt werden, aber nicht als alleinige Quelle fuer fachliche Aussagen. Standortaufloesungen aus der Evidence sollen in der Antwort genannt werden. Bei niedriger Confidence oder unscharfer Evidenz: Unsicherheit sichtbar machen, aber verwertbare Snippet-Inhalte trotzdem zusammenfassen. Nicht aus Modellwissen auffuellen.',
     ].join('\n'),
     6000
   );

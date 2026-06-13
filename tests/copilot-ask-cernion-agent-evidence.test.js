@@ -379,6 +379,7 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.groundingAnswer).toContain('PLZ: 69256');
     expect(result.groundingAnswer).toContain('Leistung: 10 MW');
     expect(result.groundingAnswer).toContain('Standortauflösung: 69256 Mauer');
+    expect(result.groundingAnswer).toContain('Standortaufloesungen aus der Evidence');
     expect(result.groundingAnswer).toContain('VNBdigital-Suche zur PLZ 69256');
     expect(result.groundingAnswer).toContain('keine Netzkapazitätsprüfung');
     expect(result.groundingAnswer).toContain('MaStR-Schnellcheck PLZ 69256');
