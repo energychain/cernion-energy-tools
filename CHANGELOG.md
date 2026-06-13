@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (v0.62.0)
+- `file-ingest-monitor` service: generic file/CSV monitoring with schema registry, provenance tracking, staleness detection, error-folder findings, and green/yellow/red health status per monitored flow (issue #216)
+- `redispatch-asset-register` service: Redispatch-specific asset projection layer over MaStR data with deterministic identifier-conflict and market-location findings; relationship API for co-location, shared-NAP, shared-metering and control-group associations (issues #215, #216)
+- `redispatch-data-governance` service: process governance layer with configurable deadline classes, owner model, source-of-record resolution, and deterministic governance findings (issue #214)
+- `redispatch-settlement-sandbox` service: immutable append-only settlement scenario orchestration with kWh→EUR method variants, A96 reconciliation orchestration, and scenario download (issue #216)
+- `redispatch-special-case-gate` service: Speicher/Eigenverbrauch/Co-Location gate with per-criterion blocking/warning/info findings and overall ready/ready_with_warnings/blocked/insufficient_evidence status (issue #215)
+- 36 new finding codes across four new namespaces: `FIM_*`, `RDAR_*`, `RDG_*`, `RDSS_*`, `RSCG_*` — all registered in `src/validation-findings.js` and surfaced via `GET /api/dashboard/finding-codes` (issue #216 Deliverable 0)
+
 ### Added
 
 - **`askCernionAgent` Copilot Action**: New `personal-agent.askCernionAgent` action (`POST /api/copilot/ask-cernion-agent`) as a Copilot-first entry point to the Personal Agent. Accepts `question`, optional `sessionId`, `context`, and `domain`. Returns compact structured evidence, process context, risks, open questions, and next steps — designed for Copilot Studio to compose the final user-facing answer. Added to allowlist as mode `read`, risk `low`. Route registered in `api.service.js`. Added to `docs/copilot-plugin.json` with `response_semantics` and `data_handling: ["GetPrivateData"]`.

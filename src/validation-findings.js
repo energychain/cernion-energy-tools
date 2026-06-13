@@ -236,6 +236,53 @@ const VD_GOV_RECURRENCE_K = 'VD_GOV_RECURRENCE_K';
 const BLINDFLUG_ANOMALY_DETECTED = 'BLINDFLUG_ANOMALY_DETECTED';
 
 // ---------------------------------------------------------------------------
+// FIM — File Ingest Monitor (v0.62)
+// ---------------------------------------------------------------------------
+const FIM_FILE_MISSING = 'FIM_FILE_MISSING';
+const FIM_FILE_STALE = 'FIM_FILE_STALE';
+const FIM_SCHEMA_MISMATCH = 'FIM_SCHEMA_MISMATCH';
+const FIM_PARSE_ERROR = 'FIM_PARSE_ERROR';
+const FIM_ERROR_FOLDER_PRESENT = 'FIM_ERROR_FOLDER_PRESENT';
+const FIM_REQUIRED_COLUMNS_MISSING = 'FIM_REQUIRED_COLUMNS_MISSING';
+const FIM_MONITOR_HEALTHY = 'FIM_MONITOR_HEALTHY';
+
+// RDAR — Redispatch Asset Register (v0.62)
+const RDAR_RESOURCE_MAPPING_MISSING = 'RDAR_RESOURCE_MAPPING_MISSING';
+const RDAR_IDENTIFIER_CONFLICT = 'RDAR_IDENTIFIER_CONFLICT';
+const RDAR_MARKET_LOCATION_MISSING = 'RDAR_MARKET_LOCATION_MISSING';
+const RDAR_CONTROL_GROUP_AMBIGUOUS = 'RDAR_CONTROL_GROUP_AMBIGUOUS';
+const RDAR_CO_LOCATION_UNRESOLVED = 'RDAR_CO_LOCATION_UNRESOLVED';
+const RDAR_ASSET_PROJECTION_COMPLETE = 'RDAR_ASSET_PROJECTION_COMPLETE';
+
+// RDG — Redispatch Data Governance (v0.62)
+const RDG_DEADLINE_MISSED = 'RDG_DEADLINE_MISSED';
+const RDG_OWNER_UNASSIGNED = 'RDG_OWNER_UNASSIGNED';
+const RDG_SOURCE_OF_RECORD_UNRESOLVED = 'RDG_SOURCE_OF_RECORD_UNRESOLVED';
+const RDG_GOVERNANCE_POLICY_MISSING = 'RDG_GOVERNANCE_POLICY_MISSING';
+const RDG_DATA_CONFLICT = 'RDG_DATA_CONFLICT';
+const RDG_GOVERNANCE_COMPLIANT = 'RDG_GOVERNANCE_COMPLIANT';
+
+// RDSS — Redispatch Settlement Sandbox (v0.62)
+const RDSS_MISSING_SCENARIO = 'RDSS_MISSING_SCENARIO';
+const RDSS_RECONCILIATION_DEVIATION = 'RDSS_RECONCILIATION_DEVIATION';
+const RDSS_MISSING_DATAPOINT_EVIDENCE = 'RDSS_MISSING_DATAPOINT_EVIDENCE';
+const RDSS_POLICY_VERSION_MISMATCH = 'RDSS_POLICY_VERSION_MISMATCH';
+const RDSS_SCENARIO_COMPLETE = 'RDSS_SCENARIO_COMPLETE';
+
+// RSCG — Redispatch Special Case Gate (v0.62)
+const RSCG_CO_LOCATION_CONFIRMED = 'RSCG_CO_LOCATION_CONFIRMED';
+const RSCG_CO_LOCATION_UNCONFIRMED = 'RSCG_CO_LOCATION_UNCONFIRMED';
+const RSCG_CONTROLLABILITY_CONFIRMED = 'RSCG_CONTROLLABILITY_CONFIRMED';
+const RSCG_CONTROLLABILITY_MISSING = 'RSCG_CONTROLLABILITY_MISSING';
+const RSCG_NON_AVAILABILITY_EVIDENCE_PRESENT = 'RSCG_NON_AVAILABILITY_EVIDENCE_PRESENT';
+const RSCG_NON_AVAILABILITY_EVIDENCE_MISSING = 'RSCG_NON_AVAILABILITY_EVIDENCE_MISSING';
+const RSCG_DEVIATION_WITHIN_TOLERANCE = 'RSCG_DEVIATION_WITHIN_TOLERANCE';
+const RSCG_DEVIATION_EXCEEDS_TOLERANCE = 'RSCG_DEVIATION_EXCEEDS_TOLERANCE';
+const RSCG_GATE_READY = 'RSCG_GATE_READY';
+const RSCG_GATE_BLOCKED = 'RSCG_GATE_BLOCKED';
+const RSCG_GATE_INSUFFICIENT_EVIDENCE = 'RSCG_GATE_INSUFFICIENT_EVIDENCE';
+
+// ---------------------------------------------------------------------------
 // Netzfahrplan / fNAV finding codes (v0.51.5) — Phase 5
 // ---------------------------------------------------------------------------
 
@@ -1337,6 +1384,271 @@ const FINDING_CODE_METADATA = {
     descriptionDe:
       'fNAV-Wirtschaftlichkeit nur teilweise berechnet — eog-calculator-Daten nicht verfügbar',
   },
+
+  // ── File Ingest Monitor (v0.62) ──────────────────────────────────────────
+  FIM_FILE_MISSING: {
+    severity: 'error',
+    agent: 'file-ingest-monitor',
+    step: 1,
+    description: 'Watch path directory or expected file is missing',
+    descriptionDe: 'Überwachungspfad oder erwartete Datei fehlt',
+  },
+  FIM_FILE_STALE: {
+    severity: 'warning',
+    agent: 'file-ingest-monitor',
+    step: 1,
+    description: 'File has not been updated within the configured staleness window',
+    descriptionDe: 'Datei wurde innerhalb des Staleness-Fensters nicht aktualisiert',
+  },
+  FIM_SCHEMA_MISMATCH: {
+    severity: 'error',
+    agent: 'file-ingest-monitor',
+    step: 1,
+    description: 'File structure does not match the registered schema definition',
+    descriptionDe: 'Dateistruktur stimmt nicht mit dem registrierten Schema überein',
+  },
+  FIM_PARSE_ERROR: {
+    severity: 'error',
+    agent: 'file-ingest-monitor',
+    step: 1,
+    description: 'File could not be parsed — encoding, delimiter, or format error',
+    descriptionDe:
+      'Datei konnte nicht geparst werden — Kodierungs-, Trennzeichen- oder Formatfehler',
+  },
+  FIM_ERROR_FOLDER_PRESENT: {
+    severity: 'error',
+    agent: 'file-ingest-monitor',
+    step: 1,
+    description: 'Error folder exists and contains files — upstream ingest failures detected',
+    descriptionDe:
+      'Fehlerordner vorhanden und enthält Dateien — vorgelagerte Ingest-Fehler erkannt',
+  },
+  FIM_REQUIRED_COLUMNS_MISSING: {
+    severity: 'error',
+    agent: 'file-ingest-monitor',
+    step: 1,
+    description: 'CSV file is missing one or more required columns defined in the schema',
+    descriptionDe: 'CSV-Datei fehlt eine oder mehrere im Schema definierte Pflicht-Spalten',
+  },
+  FIM_MONITOR_HEALTHY: {
+    severity: 'info',
+    agent: 'file-ingest-monitor',
+    step: 1,
+    description: 'All monitored files are present, current, and schema-compliant',
+    descriptionDe: 'Alle überwachten Dateien vorhanden, aktuell und schema-konform',
+  },
+
+  // ── Redispatch Asset Register (v0.62) ────────────────────────────────────
+  RDAR_RESOURCE_MAPPING_MISSING: {
+    severity: 'warning',
+    agent: 'redispatch-asset-register',
+    step: 1,
+    description: 'No technical resource ID (BTR) mapping found for this MaStR unit',
+    descriptionDe: 'Keine Technische-Ressource-ID (BTR)-Zuordnung für diese MaStR-Einheit gefunden',
+  },
+  RDAR_IDENTIFIER_CONFLICT: {
+    severity: 'error',
+    agent: 'redispatch-asset-register',
+    step: 1,
+    description: 'Conflicting identifiers detected across source systems for this asset',
+    descriptionDe: 'Widersprüchliche Kennungen aus verschiedenen Quellsystemen für diese Anlage',
+  },
+  RDAR_MARKET_LOCATION_MISSING: {
+    severity: 'error',
+    agent: 'redispatch-asset-register',
+    step: 1,
+    description: 'Neither MaLo (MaloId) nor MeLo (MeloId) is assigned to this asset',
+    descriptionDe: 'Weder MaLo (MaloId) noch MeLo (MeloId) dieser Anlage zugeordnet',
+  },
+  RDAR_CONTROL_GROUP_AMBIGUOUS: {
+    severity: 'warning',
+    agent: 'redispatch-asset-register',
+    step: 1,
+    description:
+      'Control group assignment cannot be determined without operator evidence reference',
+    descriptionDe:
+      'Steuergruppenzuordnung ohne Betreiber-Evidenz-Referenz nicht eindeutig bestimmbar',
+  },
+  RDAR_CO_LOCATION_UNRESOLVED: {
+    severity: 'warning',
+    agent: 'redispatch-asset-register',
+    step: 1,
+    description: 'Co-location relationship exists but target asset could not be resolved',
+    descriptionDe: 'Co-Location-Beziehung vorhanden, aber Zielanlage konnte nicht aufgelöst werden',
+  },
+  RDAR_ASSET_PROJECTION_COMPLETE: {
+    severity: 'info',
+    agent: 'redispatch-asset-register',
+    step: 1,
+    description: 'Asset projection is complete — all required identifiers and evidence present',
+    descriptionDe:
+      'Asset-Projektion vollständig — alle erforderlichen Kennungen und Evidenzen vorhanden',
+  },
+
+  // ── Redispatch Data Governance (v0.62) ───────────────────────────────────
+  RDG_DEADLINE_MISSED: {
+    severity: 'error',
+    agent: 'redispatch-data-governance',
+    step: 1,
+    description: 'Data delivery deadline has been missed for this process and period',
+    descriptionDe: 'Datenlieferdeadline für diesen Prozess und Zeitraum wurde versäumt',
+  },
+  RDG_OWNER_UNASSIGNED: {
+    severity: 'warning',
+    agent: 'redispatch-data-governance',
+    step: 1,
+    description: 'No owner is assigned to the governance policy for this data class',
+    descriptionDe: 'Kein Verantwortlicher für die Governance-Policy dieser Datenklasse zugewiesen',
+  },
+  RDG_SOURCE_OF_RECORD_UNRESOLVED: {
+    severity: 'warning',
+    agent: 'redispatch-data-governance',
+    step: 1,
+    description: 'Preferred source of record is not available in the provided source list',
+    descriptionDe:
+      'Bevorzugte Datenquelle ist in der bereitgestellten Quellenliste nicht verfügbar',
+  },
+  RDG_GOVERNANCE_POLICY_MISSING: {
+    severity: 'error',
+    agent: 'redispatch-data-governance',
+    step: 1,
+    description: 'No governance policy found for this data class and process combination',
+    descriptionDe: 'Keine Governance-Policy für diese Datenklasse- und Prozesskombination gefunden',
+  },
+  RDG_DATA_CONFLICT: {
+    severity: 'error',
+    agent: 'redispatch-data-governance',
+    step: 1,
+    description: 'Conflicting data values detected across source systems',
+    descriptionDe: 'Widersprüchliche Datenwerte in verschiedenen Quellsystemen erkannt',
+  },
+  RDG_GOVERNANCE_COMPLIANT: {
+    severity: 'info',
+    agent: 'redispatch-data-governance',
+    step: 1,
+    description: 'Governance evaluation passed — all policy criteria met',
+    descriptionDe: 'Governance-Evaluierung bestanden — alle Policy-Kriterien erfüllt',
+  },
+
+  // ── Redispatch Settlement Sandbox (v0.62) ────────────────────────────────
+  RDSS_MISSING_SCENARIO: {
+    severity: 'error',
+    agent: 'redispatch-settlement-sandbox',
+    step: 1,
+    description: 'Scenario has no input artifact references — reconciliation cannot proceed',
+    descriptionDe: 'Szenario hat keine Eingabe-Artefakt-Referenzen — Abstimmung nicht möglich',
+  },
+  RDSS_RECONCILIATION_DEVIATION: {
+    severity: 'warning',
+    agent: 'redispatch-settlement-sandbox',
+    step: 1,
+    description: 'Reconciliation result deviates from expected settlement baseline',
+    descriptionDe: 'Abstimmungsergebnis weicht von der erwarteten Abrechnungsbasislinie ab',
+  },
+  RDSS_MISSING_DATAPOINT_EVIDENCE: {
+    severity: 'error',
+    agent: 'redispatch-settlement-sandbox',
+    step: 1,
+    description: 'Settlement service unavailable or required datapoint evidence is missing',
+    descriptionDe: 'Abrechnungsdienst nicht verfügbar oder erforderliche Datenpunkt-Evidenz fehlt',
+  },
+  RDSS_POLICY_VERSION_MISMATCH: {
+    severity: 'warning',
+    agent: 'redispatch-settlement-sandbox',
+    step: 1,
+    description: 'Scenario policy version does not match current governance policy version',
+    descriptionDe:
+      'Szenario-Policy-Version stimmt nicht mit aktueller Governance-Policy-Version überein',
+  },
+  RDSS_SCENARIO_COMPLETE: {
+    severity: 'info',
+    agent: 'redispatch-settlement-sandbox',
+    step: 1,
+    description: 'Settlement scenario reconciliation completed successfully',
+    descriptionDe: 'Abrechnungsszenario-Abstimmung erfolgreich abgeschlossen',
+  },
+
+  // ── Redispatch Special Case Gate (v0.62) ─────────────────────────────────
+  RSCG_CO_LOCATION_CONFIRMED: {
+    severity: 'info',
+    agent: 'redispatch-special-case-gate',
+    step: 1,
+    description: 'Co-location relationship confirmed for this asset',
+    descriptionDe: 'Co-Location-Beziehung für diese Anlage bestätigt',
+  },
+  RSCG_CO_LOCATION_UNCONFIRMED: {
+    severity: 'warning',
+    agent: 'redispatch-special-case-gate',
+    step: 1,
+    description: 'No co-location relationship found for this asset',
+    descriptionDe: 'Keine Co-Location-Beziehung für diese Anlage gefunden',
+  },
+  RSCG_CONTROLLABILITY_CONFIRMED: {
+    severity: 'info',
+    agent: 'redispatch-special-case-gate',
+    step: 1,
+    description: 'Remote controllability (FernsteuerbarkeitDv) confirmed for this asset',
+    descriptionDe: 'Fernsteuerbarkeit (FernsteuerbarkeitDv) für diese Anlage bestätigt',
+  },
+  RSCG_CONTROLLABILITY_MISSING: {
+    severity: 'error',
+    agent: 'redispatch-special-case-gate',
+    step: 1,
+    description: 'Remote controllability (FernsteuerbarkeitDv) is not active for this asset',
+    descriptionDe: 'Fernsteuerbarkeit (FernsteuerbarkeitDv) für diese Anlage nicht aktiv',
+  },
+  RSCG_NON_AVAILABILITY_EVIDENCE_PRESENT: {
+    severity: 'info',
+    agent: 'redispatch-special-case-gate',
+    step: 1,
+    description: 'Non-availability evidence references provided for Nichtverfügbarkeit check',
+    descriptionDe: 'Nichtverfügbarkeits-Evidenzreferenzen für Nichtverfügbarkeitsprüfung vorhanden',
+  },
+  RSCG_NON_AVAILABILITY_EVIDENCE_MISSING: {
+    severity: 'warning',
+    agent: 'redispatch-special-case-gate',
+    step: 1,
+    description: 'No non-availability evidence references provided',
+    descriptionDe: 'Keine Nichtverfügbarkeits-Evidenzreferenzen vorhanden',
+  },
+  RSCG_DEVIATION_WITHIN_TOLERANCE: {
+    severity: 'info',
+    agent: 'redispatch-special-case-gate',
+    step: 1,
+    description: 'Deviation tolerance parameter is within acceptable range',
+    descriptionDe: 'Abweichungstoleranzparameter liegt im akzeptablen Bereich',
+  },
+  RSCG_DEVIATION_EXCEEDS_TOLERANCE: {
+    severity: 'error',
+    agent: 'redispatch-special-case-gate',
+    step: 1,
+    description: 'Measured deviation exceeds the configured tolerance threshold',
+    descriptionDe: 'Gemessene Abweichung überschreitet den konfigurierten Toleranzschwellenwert',
+  },
+  RSCG_GATE_READY: {
+    severity: 'info',
+    agent: 'redispatch-special-case-gate',
+    step: 1,
+    description: 'All gate criteria passed — asset cleared for Redispatch special case processing',
+    descriptionDe:
+      'Alle Gate-Kriterien bestanden — Anlage für Redispatch-Sonderfall-Verarbeitung freigegeben',
+  },
+  RSCG_GATE_BLOCKED: {
+    severity: 'error',
+    agent: 'redispatch-special-case-gate',
+    step: 1,
+    description: 'Gate blocked — one or more error-severity criteria failed',
+    descriptionDe: 'Gate gesperrt — ein oder mehrere fehler-schwere Kriterien nicht erfüllt',
+  },
+  RSCG_GATE_INSUFFICIENT_EVIDENCE: {
+    severity: 'warning',
+    agent: 'redispatch-special-case-gate',
+    step: 1,
+    description:
+      'Gate cannot be fully evaluated — upstream service unavailable for one or more checks',
+    descriptionDe:
+      'Gate kann nicht vollständig bewertet werden — vorgelagerter Dienst für eine oder mehrere Prüfungen nicht verfügbar',
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -1509,4 +1821,44 @@ module.exports = {
   FN_ECONOMICS_PARTIAL,
   // UI metadata (v0.19)
   FINDING_CODE_METADATA,
+  // FIM — File Ingest Monitor (v0.62)
+  FIM_FILE_MISSING,
+  FIM_FILE_STALE,
+  FIM_SCHEMA_MISMATCH,
+  FIM_PARSE_ERROR,
+  FIM_ERROR_FOLDER_PRESENT,
+  FIM_REQUIRED_COLUMNS_MISSING,
+  FIM_MONITOR_HEALTHY,
+  // RDAR — Redispatch Asset Register (v0.62)
+  RDAR_RESOURCE_MAPPING_MISSING,
+  RDAR_IDENTIFIER_CONFLICT,
+  RDAR_MARKET_LOCATION_MISSING,
+  RDAR_CONTROL_GROUP_AMBIGUOUS,
+  RDAR_CO_LOCATION_UNRESOLVED,
+  RDAR_ASSET_PROJECTION_COMPLETE,
+  // RDG — Redispatch Data Governance (v0.62)
+  RDG_DEADLINE_MISSED,
+  RDG_OWNER_UNASSIGNED,
+  RDG_SOURCE_OF_RECORD_UNRESOLVED,
+  RDG_GOVERNANCE_POLICY_MISSING,
+  RDG_DATA_CONFLICT,
+  RDG_GOVERNANCE_COMPLIANT,
+  // RDSS — Redispatch Settlement Sandbox (v0.62)
+  RDSS_MISSING_SCENARIO,
+  RDSS_RECONCILIATION_DEVIATION,
+  RDSS_MISSING_DATAPOINT_EVIDENCE,
+  RDSS_POLICY_VERSION_MISMATCH,
+  RDSS_SCENARIO_COMPLETE,
+  // RSCG — Redispatch Special Case Gate (v0.62)
+  RSCG_CO_LOCATION_CONFIRMED,
+  RSCG_CO_LOCATION_UNCONFIRMED,
+  RSCG_CONTROLLABILITY_CONFIRMED,
+  RSCG_CONTROLLABILITY_MISSING,
+  RSCG_NON_AVAILABILITY_EVIDENCE_PRESENT,
+  RSCG_NON_AVAILABILITY_EVIDENCE_MISSING,
+  RSCG_DEVIATION_WITHIN_TOLERANCE,
+  RSCG_DEVIATION_EXCEEDS_TOLERANCE,
+  RSCG_GATE_READY,
+  RSCG_GATE_BLOCKED,
+  RSCG_GATE_INSUFFICIENT_EVIDENCE,
 };

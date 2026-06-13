@@ -1551,6 +1551,62 @@ module.exports = {
           'GET /flex/relief-proof/:period': 'flex.getReliefProof',
           'GET /flex/customer/:deviceId/reduction': 'flex.getTariffReduction',
 
+          // File Ingest Monitor + Schema Registry (v0.62)
+          'POST /file-ingest-schemas': 'file-ingest-monitor.createSchema',
+          'GET /file-ingest-schemas': 'file-ingest-monitor.listSchemas',
+          'GET /file-ingest-schemas/:schemaId': 'file-ingest-monitor.getSchema',
+          'POST /file-ingest-monitors': 'file-ingest-monitor.createMonitor',
+          'GET /file-ingest-monitors': 'file-ingest-monitor.listMonitors',
+          'GET /file-ingest-monitors/:id': 'file-ingest-monitor.getMonitor',
+          'DELETE /file-ingest-monitors/:id': 'file-ingest-monitor.deleteMonitor',
+          'POST /file-ingest-monitors/:id/scan': 'file-ingest-monitor.scan',
+          'GET /file-ingest-monitors/:id/status': 'file-ingest-monitor.getStatus',
+          'GET /file-ingest-monitors/:id/files': 'file-ingest-monitor.getFiles',
+          'GET /file-ingest-monitors/:id/findings': 'file-ingest-monitor.getFindings',
+
+          // Redispatch Asset Register (v0.62)
+          'POST /redispatch-asset-register/projections':
+            'redispatch-asset-register.createProjection',
+          'GET /redispatch-asset-register/projections': 'redispatch-asset-register.listProjections',
+          'GET /redispatch-asset-register/projections/:id':
+            'redispatch-asset-register.getProjection',
+          'POST /redispatch-asset-register/relationships':
+            'redispatch-asset-register.createRelationship',
+          'GET /redispatch-asset-register/relationships':
+            'redispatch-asset-register.listRelationships',
+          'GET /redispatch-asset-register/relationships/:id':
+            'redispatch-asset-register.getRelationship',
+          'DELETE /redispatch-asset-register/relationships/:id':
+            'redispatch-asset-register.deleteRelationship',
+
+          // Redispatch Data Governance (v0.62)
+          'POST /redispatch-data-governance/policies': 'redispatch-data-governance.createPolicy',
+          'GET /redispatch-data-governance/policies': 'redispatch-data-governance.listPolicies',
+          'GET /redispatch-data-governance/policies/:id': 'redispatch-data-governance.getPolicy',
+          'PUT /redispatch-data-governance/policies/:id': 'redispatch-data-governance.updatePolicy',
+          'DELETE /redispatch-data-governance/policies/:id':
+            'redispatch-data-governance.deletePolicy',
+          'POST /redispatch-data-governance/evaluate': 'redispatch-data-governance.evaluate',
+          'GET /redispatch-data-governance/evaluations':
+            'redispatch-data-governance.listEvaluations',
+
+          // Redispatch Settlement Sandbox (v0.62)
+          'POST /redispatch-settlement-sandbox/scenarios':
+            'redispatch-settlement-sandbox.createScenario',
+          'GET /redispatch-settlement-sandbox/scenarios':
+            'redispatch-settlement-sandbox.listScenarios',
+          'GET /redispatch-settlement-sandbox/scenarios/:id':
+            'redispatch-settlement-sandbox.getScenario',
+          'POST /redispatch-settlement-sandbox/scenarios/:id/reconcile':
+            'redispatch-settlement-sandbox.reconcile',
+          'GET /redispatch-settlement-sandbox/scenarios/:id/download':
+            'redispatch-settlement-sandbox.downloadScenario',
+
+          // Redispatch Special Case Gate (v0.62)
+          'POST /redispatch-special-case-gate/evaluate': 'redispatch-special-case-gate.evaluate',
+          'GET /redispatch-special-case-gate/runs': 'redispatch-special-case-gate.listRuns',
+          'GET /redispatch-special-case-gate/runs/:id': 'redispatch-special-case-gate.getRun',
+
           // Local upload folder for datasource file connectors (csv/xlsx/docx/...)
           'GET /datasources/uploads'(req, res) {
             try {
