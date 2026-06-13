@@ -916,6 +916,8 @@ function buildCopilotShortAnswerTerms(searchTerm) {
 }
 
 function copilotEvidenceMatchesShortAnswerQuery(entry, queryTerms = []) {
+  if (entry?.metadata?.kind === 'signals') return false;
+  if (entry?.metadata?.status === 'unavailable') return false;
   if (queryTerms.length === 0) return true;
   const haystack = [entry?.source, entry?.value].filter(Boolean).join(' ').toLowerCase();
   return queryTerms.some((term) => haystack.includes(term));
@@ -6112,10 +6114,6 @@ module.exports = {
       const responses = await Promise.all(calls);
       for (const response of responses) {
         if (response.error) {
-          addHit(`${response.kind} nicht verfügbar: ${response.error.message}`, {
-            kind: response.kind,
-            status: 'unavailable',
-          });
           continue;
         }
 
@@ -6245,6 +6243,12 @@ module.exports = {
       const datapointHits = Array.isArray(datapointEvidence.hits) ? datapointEvidence.hits : [];
       const objectHits = Array.isArray(objectEvidence.hits) ? objectEvidence.hits : [];
       const planningHits = Array.isArray(planningEvidence.hits) ? planningEvidence.hits : [];
+      const unavailablePlannerTools = Array.isArray(planningEvidence.trace?.toolCalls)
+        ? planningEvidence.trace.toolCalls
+            .filter((entry) => entry?.status === 'unavailable')
+            .map((entry) => entry.kind)
+            .filter(Boolean)
+        : [];
       const evidence = [
         ...planningHits,
         ...entityEvidence,
@@ -6301,6 +6305,9 @@ module.exports = {
           : null,
         objectEvidence.status === 'timeout_or_error'
           ? 'Object-Store-Evidence konnte nicht vollständig geladen werden.'
+          : null,
+        unavailablePlannerTools.length > 0
+          ? `Planner-Schnellcheck unvollständig: ${unavailablePlannerTools.join(', ')} nicht verfügbar.`
           : null,
       ].filter(Boolean);
       const openQuestions = hasUsableShortAnswerEvidence

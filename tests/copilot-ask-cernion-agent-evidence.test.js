@@ -386,6 +386,47 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.evidenceBySource.planning.status).toBe('available');
   });
 
+  test('keeps planner tool timeouts out of evidence while lowering answer certainty', () => {
+    const service = buildServiceHarness();
+
+    const result = service.buildCopilotSearchAnswer({
+      question: 'Kann in 69256 ein Rechenzentrum mit 10 MW gebaut werden?',
+      searchTerm:
+        'Rechenzentrum Netzanschluss Anschlussleistung Netzkapazität VNB Genehmigung Planung 10 MW PLZ 69256',
+      searchResult: { domain: 'all', totalResults: 0, results: [] },
+      knowledgeEvidence: { status: 'missing', hits: [] },
+      datapointEvidence: { status: 'missing', hits: [] },
+      objectEvidence: { status: 'missing', hits: [] },
+      planningEvidence: {
+        status: 'available',
+        hits: [
+          {
+            source: 'analysis-planner',
+            value:
+              'Cernion Analysis Planner: PLZ: 69256 · Asset-Klasse: data_center · Leistung: 10 MW',
+            metadata: { kind: 'signals' },
+          },
+        ],
+        trace: {
+          toolCalls: [
+            { kind: 'vnbdigital', status: 'unavailable' },
+            { kind: 'mastr_installations', status: 'unavailable' },
+          ],
+        },
+      },
+      maxEvidence: 5,
+    });
+
+    expect(result.confidence).toBe('low');
+    expect(result.shortAnswer).toContain('keine belastbare Kurzantwort');
+    expect(result.risks).toContain(
+      'Planner-Schnellcheck unvollständig: vnbdigital, mastr_installations nicht verfügbar.'
+    );
+    expect(result.groundingAnswer).toContain('Planner-Schnellcheck unvollständig');
+    expect(result.groundingAnswer).not.toContain('Request is timed out');
+    expect(result.groundingAnswer).not.toContain('nicht verfügbar: Request');
+  });
+
   test('uses evidence-bearing object-store namespaces by default', async () => {
     const service = buildServiceHarness();
     const handler = PersonalAgentService.actions.askCernionAgent.handler;
