@@ -829,9 +829,9 @@ function copilotEvidenceMatchesShortAnswerQuery(entry, queryTerms = []) {
   return queryTerms.some((term) => haystack.includes(term));
 }
 
-function buildCopilotEvidenceShortAnswer({ searchTerm, evidence = [], confidence = 'low' } = {}) {
+function collectCopilotShortAnswerEvidence(searchTerm, evidence = []) {
   const queryTerms = buildCopilotShortAnswerTerms(searchTerm);
-  const usableEvidence = evidence
+  return evidence
     .filter((entry) => copilotEvidenceMatchesShortAnswerQuery(entry, queryTerms))
     .map((entry) => {
       const source = compactString(entry?.source || 'Cernion', 80);
@@ -841,8 +841,19 @@ function buildCopilotEvidenceShortAnswer({ searchTerm, evidence = [], confidence
     })
     .filter(Boolean)
     .slice(0, 3);
+}
 
-  if (usableEvidence.length === 0) {
+function buildCopilotEvidenceShortAnswer({
+  searchTerm,
+  evidence = [],
+  confidence = 'low',
+  usableEvidence = null,
+} = {}) {
+  const answerEvidence = Array.isArray(usableEvidence)
+    ? usableEvidence
+    : collectCopilotShortAnswerEvidence(searchTerm, evidence);
+
+  if (answerEvidence.length === 0) {
     if (evidence.length > 0) {
       return `Cernion hat zu "${searchTerm}" Treffer gefunden, aber daraus lässt sich keine belastbare Kurzantwort ableiten. Copilot sollte die Treffer als unscharf behandeln und nach einer präziseren Fundstelle oder Domäne fragen.`;
     }
@@ -850,9 +861,9 @@ function buildCopilotEvidenceShortAnswer({ searchTerm, evidence = [], confidence
   }
 
   const answer =
-    usableEvidence.length === 1
-      ? `Zu "${searchTerm}" liegt folgender Cernion-Hinweis vor: ${usableEvidence[0]}.`
-      : `Zu "${searchTerm}" verweisen die besten Cernion-Hinweise auf ${usableEvidence.join('; ')}.`;
+    answerEvidence.length === 1
+      ? `Zu "${searchTerm}" liegt folgender Cernion-Hinweis vor: ${answerEvidence[0]}.`
+      : `Zu "${searchTerm}" verweisen die besten Cernion-Hinweise auf ${answerEvidence.join('; ')}.`;
 
   const caution =
     confidence === 'high'
@@ -5888,16 +5899,20 @@ module.exports = {
         Math.max(maxEvidence * 4, maxEvidence)
       );
       const hasEvidence = evidence.length > 0;
+      const usableShortAnswerEvidence = collectCopilotShortAnswerEvidence(searchTerm, evidence);
+      const hasUsableShortAnswerEvidence = usableShortAnswerEvidence.length > 0;
       const confidence =
-        knowledgeHits.length > 0 || datapointHits.length > 0 || objectHits.length > 0
+        hasUsableShortAnswerEvidence &&
+        (knowledgeHits.length > 0 || datapointHits.length > 0 || objectHits.length > 0)
           ? 'medium'
-          : hasEvidence
+          : hasUsableShortAnswerEvidence && hasEvidence
             ? 'medium'
             : 'low';
       const shortAnswer = buildCopilotEvidenceShortAnswer({
         searchTerm,
         evidence,
         confidence,
+        usableEvidence: usableShortAnswerEvidence,
       });
 
       const processContext = [
@@ -5941,6 +5956,9 @@ module.exports = {
           .filter(Boolean),
         risks: [
           searchResult.error ? compactString(searchResult.error, 240) : null,
+          hasEvidence && !hasUsableShortAnswerEvidence
+            ? 'Treffer vorhanden, aber keine direkt verwertbare Kurzantwort-Evidenz zum Suchthema.'
+            : null,
           knowledgeEvidence.status === 'timeout'
             ? 'Knowledge-RAG Timeout: Antwort nicht ohne Hinweis finalisieren.'
             : null,
@@ -5954,12 +5972,12 @@ module.exports = {
             ? 'Object-Store-Evidence konnte nicht vollständig geladen werden.'
             : null,
         ].filter(Boolean),
-        openQuestions: hasEvidence
+        openQuestions: hasUsableShortAnswerEvidence
           ? []
           : [
-              'Welche konkrete Entität, Kommune, Projektnummer, Matrix oder Marktrolle soll geprüft werden?',
+              'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll geprüft werden?',
             ],
-        recommendedNextSteps: hasEvidence
+        recommendedNextSteps: hasUsableShortAnswerEvidence
           ? [
               'Copilot soll die Evidenztreffer fachlich einordnen und bei Bedarf nach Details fragen.',
             ]

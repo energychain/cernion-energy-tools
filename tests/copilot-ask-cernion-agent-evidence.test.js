@@ -184,9 +184,16 @@ describe('askCernionAgent evidence bundle', () => {
     });
 
     expect(result.success).toBe(true);
+    expect(result.confidence).toBe('low');
     expect(result.evidence).toHaveLength(4);
     expect(result.shortAnswer).toContain('Treffer gefunden');
     expect(result.shortAnswer).toContain('keine belastbare Kurzantwort');
+    expect(result.risks).toContain(
+      'Treffer vorhanden, aber keine direkt verwertbare Kurzantwort-Evidenz zum Suchthema.'
+    );
+    expect(result.openQuestions).toContain(
+      'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll geprüft werden?'
+    );
     expect(result.shortAnswer).not.toContain('MsbG § 1');
     expect(result.shortAnswer).not.toContain('Redispatch');
     expect(result.shortAnswer).not.toContain('bundesnetzagentur.de/example.pdf');
