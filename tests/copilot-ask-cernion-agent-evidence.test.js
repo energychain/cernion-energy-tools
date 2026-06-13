@@ -101,6 +101,8 @@ describe('askCernionAgent evidence bundle', () => {
     const result = await handler.call(service, ctx);
 
     expect(result.success).toBe(true);
+    expect(result.shortAnswer).toContain('Netzanschluss-Validierung Wiesloch');
+    expect(result.shortAnswer).not.toMatch(/Evidenztreffer .* gefunden/);
     expect(result.evidenceBySource.entities.status).toBe('available');
     expect(result.evidenceBySource.knowledge.status).toBe('available');
     expect(result.evidenceBySource.datapoints.status).toBe('available');
@@ -139,6 +141,7 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.evidenceBySource.knowledge.status).toBe('unavailable');
     expect(result.evidenceBySource.datapoints.status).toBe('unavailable');
     expect(result.evidenceBySource.objects.status).toBe('unavailable');
+    expect(result.shortAnswer).toContain('keine eindeutigen Evidenztreffer');
     expect(result.risks).toContain(
       'Knowledge-RAG nicht verfügbar: zentrale Guardrails konnten nicht geladen werden.'
     );

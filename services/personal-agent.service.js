@@ -781,6 +781,44 @@ function normalizeCopilotObjectNamespaces(context = {}) {
     .slice(0, Math.max(1, COPILOT_OBJECT_STORE_MAX_NAMESPACES));
 }
 
+function cleanCopilotEvidenceValue(value) {
+  return compactString(value, 500)
+    .split(' · ')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter((part) => !/^Score:\s*\d/i.test(part))
+    .filter((part) => !/^Knowledge hit$/i.test(part))
+    .join(' · ');
+}
+
+function buildCopilotEvidenceShortAnswer({ searchTerm, evidence = [], confidence = 'low' } = {}) {
+  const usableEvidence = evidence
+    .map((entry) => {
+      const source = compactString(entry?.source || 'Cernion', 80);
+      const value = cleanCopilotEvidenceValue(entry?.value);
+      if (!value) return null;
+      return `${source}: ${value}`;
+    })
+    .filter(Boolean)
+    .slice(0, 3);
+
+  if (usableEvidence.length === 0) {
+    return `Cernion hat zu "${searchTerm}" keine eindeutigen Evidenztreffer gefunden.`;
+  }
+
+  const answer =
+    usableEvidence.length === 1
+      ? `Zu "${searchTerm}" liegt folgender Cernion-Hinweis vor: ${usableEvidence[0]}.`
+      : `Zu "${searchTerm}" verweisen die besten Cernion-Hinweise auf ${usableEvidence.join('; ')}.`;
+
+  const caution =
+    confidence === 'high'
+      ? ''
+      : ' Die Einordnung ist als evidenzbasierter Kurzbefund zu verstehen; bei unklaren Treffern sollte Copilot Unsicherheit benennen.';
+
+  return compactString(`${answer}${caution}`, 900);
+}
+
 module.exports = {
   name: 'personal-agent',
 
@@ -5807,9 +5845,17 @@ module.exports = {
         Math.max(maxEvidence * 4, maxEvidence)
       );
       const hasEvidence = evidence.length > 0;
-      const shortAnswer = hasEvidence
-        ? `Cernion hat ${evidence.length} passende Evidenztreffer zu "${searchTerm}" gefunden.`
-        : `Cernion hat zu "${searchTerm}" keine eindeutigen Evidenztreffer gefunden.`;
+      const confidence =
+        knowledgeHits.length > 0 || datapointHits.length > 0 || objectHits.length > 0
+          ? 'medium'
+          : hasEvidence
+            ? 'medium'
+            : 'low';
+      const shortAnswer = buildCopilotEvidenceShortAnswer({
+        searchTerm,
+        evidence,
+        confidence,
+      });
 
       const processContext = [
         domain && domain !== 'auto' ? domain : null,
@@ -5829,12 +5875,7 @@ module.exports = {
         success: true,
         sessionId,
         shortAnswer,
-        confidence:
-          knowledgeHits.length > 0 || datapointHits.length > 0 || objectHits.length > 0
-            ? 'medium'
-            : hasEvidence
-              ? 'medium'
-              : 'low',
+        confidence,
         evidence,
         evidenceBySource: {
           entities: {
