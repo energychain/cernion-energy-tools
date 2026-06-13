@@ -791,8 +791,48 @@ function cleanCopilotEvidenceValue(value) {
     .join(' · ');
 }
 
+const COPILOT_SHORT_ANSWER_STOPWORDS = new Set([
+  'bitte',
+  'dazu',
+  'definiert',
+  'eine',
+  'einer',
+  'eines',
+  'fuer',
+  'gibt',
+  'geregelt',
+  'gelten',
+  'haben',
+  'information',
+  'informationen',
+  'kontext',
+  'regelt',
+  'welche',
+  'welcher',
+  'welches',
+  'wird',
+]);
+
+function buildCopilotShortAnswerTerms(searchTerm) {
+  return compactString(searchTerm, 300)
+    .toLowerCase()
+    .split(/[^a-zäöüß0-9_-]+/i)
+    .map((term) => term.trim())
+    .filter((term) => term.length >= 4)
+    .filter((term) => !COPILOT_SHORT_ANSWER_STOPWORDS.has(term))
+    .slice(0, 8);
+}
+
+function copilotEvidenceMatchesShortAnswerQuery(entry, queryTerms = []) {
+  if (queryTerms.length === 0) return true;
+  const haystack = [entry?.source, entry?.value].filter(Boolean).join(' ').toLowerCase();
+  return queryTerms.some((term) => haystack.includes(term));
+}
+
 function buildCopilotEvidenceShortAnswer({ searchTerm, evidence = [], confidence = 'low' } = {}) {
+  const queryTerms = buildCopilotShortAnswerTerms(searchTerm);
   const usableEvidence = evidence
+    .filter((entry) => copilotEvidenceMatchesShortAnswerQuery(entry, queryTerms))
     .map((entry) => {
       const source = compactString(entry?.source || 'Cernion', 80);
       const value = cleanCopilotEvidenceValue(entry?.value);
@@ -803,6 +843,9 @@ function buildCopilotEvidenceShortAnswer({ searchTerm, evidence = [], confidence
     .slice(0, 3);
 
   if (usableEvidence.length === 0) {
+    if (evidence.length > 0) {
+      return `Cernion hat zu "${searchTerm}" Treffer gefunden, aber daraus lässt sich keine belastbare Kurzantwort ableiten. Copilot sollte die Treffer als unscharf behandeln und nach einer präziseren Fundstelle oder Domäne fragen.`;
+    }
     return `Cernion hat zu "${searchTerm}" keine eindeutigen Evidenztreffer gefunden.`;
   }
 

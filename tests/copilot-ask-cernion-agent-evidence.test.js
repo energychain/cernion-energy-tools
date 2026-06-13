@@ -147,6 +147,51 @@ describe('askCernionAgent evidence bundle', () => {
     );
   });
 
+  test('does not synthesize a confident shortAnswer from weak unrelated evidence hits', () => {
+    const service = buildServiceHarness();
+
+    const result = service.buildCopilotSearchAnswer({
+      question: 'Wie ist Energy Sharing geregelt',
+      searchTerm: 'Wie ist Energy Sharing geregelt',
+      searchResult: { domain: 'all', totalResults: 0, results: [] },
+      knowledgeEvidence: {
+        source: 'knowledge-rag',
+        status: 'available',
+        hits: [
+          {
+            source: 'knowledge-rag',
+            value: 'Knowledge hit · Score: 0.626',
+          },
+          {
+            source: 'Gesetzgeber',
+            value: 'MsbG § 1 · Dokumenttyp: Gesetz · Score: 0.596',
+          },
+          {
+            source: 'BNetzA',
+            value:
+              'https://www.bundesnetzagentur.de/example.pdf · Dokumenttyp: Festlegung · Score: 0.590',
+          },
+          {
+            source: 'BDEW',
+            value:
+              'PDF Gutachten: Berücksichtigung von Intraday-Optionalitäten im Rahmen der Redispatch-Vergütung · Dokumenttyp: Redispatch-Leitfaden · Score: 0.582',
+          },
+        ],
+      },
+      datapointEvidence: { status: 'missing', hits: [] },
+      objectEvidence: { status: 'missing', hits: [] },
+      maxEvidence: 5,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.evidence).toHaveLength(4);
+    expect(result.shortAnswer).toContain('Treffer gefunden');
+    expect(result.shortAnswer).toContain('keine belastbare Kurzantwort');
+    expect(result.shortAnswer).not.toContain('MsbG § 1');
+    expect(result.shortAnswer).not.toContain('Redispatch');
+    expect(result.shortAnswer).not.toContain('bundesnetzagentur.de/example.pdf');
+  });
+
   test('uses evidence-bearing object-store namespaces by default', async () => {
     const service = buildServiceHarness();
     const handler = PersonalAgentService.actions.askCernionAgent.handler;
