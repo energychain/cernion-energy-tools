@@ -256,6 +256,9 @@ const CONSULTATION_HISTORY_REDACTION_PLACEHOLDER =
 const COPILOT_KNOWLEDGE_TIMEOUT_MS = Number(process.env.COPILOT_KNOWLEDGE_TIMEOUT_MS || 8000);
 const COPILOT_DATAPOINT_TIMEOUT_MS = Number(process.env.COPILOT_DATAPOINT_TIMEOUT_MS || 2500);
 const COPILOT_OBJECT_STORE_TIMEOUT_MS = Number(process.env.COPILOT_OBJECT_STORE_TIMEOUT_MS || 2500);
+const COPILOT_CONSULTING_BRIEF_TIMEOUT_MS = Number(
+  process.env.COPILOT_CONSULTING_BRIEF_TIMEOUT_MS || 6000
+);
 const COPILOT_OBJECT_STORE_MAX_NAMESPACES = Number(
   process.env.COPILOT_OBJECT_STORE_MAX_NAMESPACES || 10
 );
@@ -1064,6 +1067,41 @@ function buildCopilotGroundingAnswer({
   );
 }
 
+function shouldBuildCopilotConsultingBrief(context = {}) {
+  if (process.env.NODE_ENV === 'test') return false;
+  if (context?.disableCernionConsultingBrief === true) return false;
+  if (process.env.COPILOT_CONSULTING_BRIEF_ENABLED === 'false') return false;
+  return true;
+}
+
+function formatCopilotConsultingBrief(brief = {}) {
+  const lines = [
+    brief.assessment ? `Einordnung: ${compactString(brief.assessment, 900)}` : null,
+    Array.isArray(brief.usableEvidence) && brief.usableEvidence.length > 0
+      ? `Nutzbare Evidenz: ${brief.usableEvidence.map((item) => compactString(item, 260)).join(' | ')}`
+      : null,
+    Array.isArray(brief.cautions) && brief.cautions.length > 0
+      ? `Unsicherheiten: ${brief.cautions.map((item) => compactString(item, 260)).join(' | ')}`
+      : null,
+    Array.isArray(brief.followUpQuestions) && brief.followUpQuestions.length > 0
+      ? `Beratungsfragen: ${brief.followUpQuestions
+          .map((item) => compactString(item, 260))
+          .join(' | ')}`
+      : null,
+  ].filter(Boolean);
+  return lines.join('\n');
+}
+
+const COPILOT_CONSULTING_BRIEF_SCHEMA = {
+  type: 'object',
+  properties: {
+    assessment: { type: 'string' },
+    usableEvidence: { type: 'array', items: { type: 'string' } },
+    cautions: { type: 'array', items: { type: 'string' } },
+    followUpQuestions: { type: 'array', items: { type: 'string' } },
+  },
+};
+
 module.exports = {
   name: 'personal-agent',
 
@@ -1186,11 +1224,17 @@ module.exports = {
                   properties: {
                     success: { type: 'boolean' },
                     sessionId: { type: 'string' },
+                    question: { type: 'string' },
                     shortAnswer: { type: 'string' },
                     groundingAnswer: {
                       type: 'string',
                       description:
                         'Prompt-ready Cernion grounding package for Copilot composition. Contains user question, answer, evidence, guardrails, risks, open questions and answer rules in one text field.',
+                    },
+                    consultingBrief: {
+                      type: 'string',
+                      description:
+                        'Optional backend-generated consulting brief for Copilot. It structures the evidence but is not a standalone source of facts.',
                     },
                     confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
                     evidence: {
@@ -1287,7 +1331,7 @@ module.exports = {
             this.collectCopilotPlanningEvidence(ctx, { analysisSignals, maxEvidence }),
           ]);
 
-        return this.buildCopilotSearchAnswer({
+        const baseAnswer = this.buildCopilotSearchAnswer({
           question: ctx.params.question,
           sessionId: ctx.params.sessionId || null,
           domain,
@@ -1300,6 +1344,9 @@ module.exports = {
           objectEvidence,
           planningEvidence,
           maxEvidence,
+        });
+        return await this.enhanceCopilotAnswerWithConsultingBrief(ctx, baseAnswer, {
+          context,
         });
       },
     },
@@ -6235,6 +6282,70 @@ module.exports = {
       };
     },
 
+    async enhanceCopilotAnswerWithConsultingBrief(ctx, answer = {}, { context = {} } = {}) {
+      if (!shouldBuildCopilotConsultingBrief(context)) return answer;
+
+      try {
+        const evidencePreview = (Array.isArray(answer.evidence) ? answer.evidence : [])
+          .slice(0, 10)
+          .map((entry, index) =>
+            [
+              `${index + 1}. ${entry.source || 'Cernion'}: ${entry.value || ''}`,
+              entry.retrievalHint ? `Retrieval: ${entry.retrievalHint}` : null,
+            ]
+              .filter(Boolean)
+              .join('\n')
+          )
+          .join('\n\n');
+        const prompt = [
+          'Du bist Cernion-internes Consulting-Briefing, nicht der finale Nutzer-Chat.',
+          'Erzeuge ein kurzes Grounding-Briefing fuer Copilot.',
+          'Nutze ausschliesslich die uebergebenen Evidence-Zeilen, Risiken und offenen Fragen.',
+          'Keine neuen Rechtsquellen, Fristen, Prozessschritte, Ortsdaten oder Kapazitaetszahlen erfinden.',
+          'Wenn die Evidence nur eine Vorpruefung erlaubt, sage das klar.',
+          '',
+          `NUTZERFRAGE:\n${answer.question || ''}`,
+          '',
+          `CONFIDENCE:\n${answer.confidence || 'low'}`,
+          '',
+          `EVIDENCE:\n${evidencePreview || 'Keine Evidence.'}`,
+          '',
+          `RISIKEN:\n${(answer.risks || []).join('\n') || 'Keine Risiken gemeldet.'}`,
+          '',
+          `OFFENE FRAGEN:\n${(answer.openQuestions || []).join('\n') || 'Keine offenen Fragen gemeldet.'}`,
+        ].join('\n');
+
+        const brief = await llmGenerateStructured(COPILOT_CONSULTING_BRIEF_SCHEMA, prompt, {
+          timeoutMs: COPILOT_CONSULTING_BRIEF_TIMEOUT_MS,
+          maxRetries: 1,
+          tenantId: ctx?.meta?.tenantId,
+          ctx,
+        });
+        const briefText = formatCopilotConsultingBrief(brief);
+        if (!briefText) return answer;
+
+        return {
+          ...answer,
+          consultingBrief: briefText,
+          groundingAnswer: compactString(
+            [
+              answer.groundingAnswer,
+              '',
+              'CERNION CONSULTING BRIEF:',
+              briefText,
+              '',
+              'BRIEF-REGEL:',
+              'Copilot soll den Consulting Brief zur Strukturierung nutzen, aber weiterhin keine Fakten ergaenzen, die nicht in Evidence oder Brief enthalten sind.',
+            ].join('\n'),
+            7600
+          ),
+        };
+      } catch (error) {
+        this.logger?.warn?.(`Copilot consulting brief skipped: ${error.message}`);
+        return answer;
+      }
+    },
+
     buildCopilotSearchAnswer({
       question,
       sessionId = null,
@@ -6364,6 +6475,7 @@ module.exports = {
       return {
         success: true,
         sessionId,
+        question: compactString(question, 500),
         shortAnswer,
         groundingAnswer,
         confidence,
