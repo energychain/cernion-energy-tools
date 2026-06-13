@@ -906,6 +906,90 @@ function copilotKnowledgeHitIsAllowedForQuery(hit = {}, query = '') {
   return true;
 }
 
+const COPILOT_RELEVANCE_STOPWORDS = new Set([
+  'anschlussleistung',
+  'asset',
+  'built',
+  'cernion',
+  'daten',
+  'evidence',
+  'genehmigung',
+  'kontext',
+  'leistung',
+  'netzkapazität',
+  'netzkapazitaet',
+  'planung',
+  'prozess',
+  'pruefung',
+  'prüfung',
+  'relevante',
+  'search',
+  'standort',
+  'treffer',
+]);
+
+function copilotQueryRequiresStrictEvidenceRelevance(query = '') {
+  const text = String(query || '').toLowerCase();
+  return (
+    /\b\d{5}\b/.test(text) ||
+    /\b\d+(?:[,.]\d+)?\s*(?:mw|megawatt)\b/.test(text) ||
+    /rechenzentrum|data\s*center|datacenter/.test(text)
+  );
+}
+
+function normalizeCopilotRelevanceTerm(term) {
+  const normalized = String(term || '')
+    .toLowerCase()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .trim();
+  if (normalized.startsWith('rechenzentrum') || normalized.startsWith('rechenzentren')) {
+    return 'rechenzentr';
+  }
+  if (normalized.startsWith('netzanschluss')) return 'netzanschluss';
+  return normalized.replace(/(?:innen|ungen|keit|heiten|en|er|e|s)$/i, '');
+}
+
+function buildCopilotStrictEvidenceTerms(query = '') {
+  const rawTerms = compactString(query, 700)
+    .split(/[^A-Za-zÄÖÜäöüß0-9_-]+/)
+    .map((term) => term.trim())
+    .filter((term) => term.length >= 5)
+    .filter((term) => !COPILOT_RELEVANCE_STOPWORDS.has(term.toLowerCase()));
+  const normalizedTerms = rawTerms
+    .map(normalizeCopilotRelevanceTerm)
+    .filter((term) => term.length >= 5)
+    .filter((term) => !COPILOT_RELEVANCE_STOPWORDS.has(term));
+  return Array.from(new Set(normalizedTerms)).slice(0, 10);
+}
+
+function normalizeCopilotSearchableText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss');
+}
+
+function copilotKnowledgeHitHasStrictQueryRelevance(hit = {}, query = '') {
+  if (!copilotQueryRequiresStrictEvidenceRelevance(query)) return true;
+  const terms = buildCopilotStrictEvidenceTerms(query);
+  if (terms.length === 0) return true;
+  const haystack = normalizeCopilotSearchableText(
+    [hit.summary, hit.retrievalHint, hit.source, hit.documentType].filter(Boolean).join(' ')
+  );
+  const queryAsksForDataCenter = /rechenzentrum|rechenzentren|data\s*center|datacenter/i.test(
+    query
+  );
+  if (queryAsksForDataCenter && !/rechenzentr|data\s*center|datacenter/i.test(haystack)) {
+    return false;
+  }
+  return terms.some((term) => haystack.includes(term));
+}
+
 const COPILOT_SHORT_ANSWER_STOPWORDS = new Set([
   'bitte',
   'dazu',
@@ -1062,6 +1146,7 @@ function buildCopilotGroundingAnswer({
       '',
       'ANTWORTREGEL:',
       'Formuliere eine hilfreiche Antwort aus den vorhandenen Snippets. Retrieval-Hinweise duerfen zur Themenorientierung genutzt werden, aber nicht als alleinige Quelle fuer fachliche Aussagen. Standortaufloesungen aus der Evidence sollen in der Antwort genannt werden. Bei niedriger Confidence oder unscharfer Evidenz: Unsicherheit sichtbar machen, aber verwertbare Snippet-Inhalte trotzdem zusammenfassen. Nicht aus Modellwissen auffuellen.',
+      'Bei konkreten Standort-/Leistungsfragen darf Copilot aus Planner-Signalen, Tool-Ausfaellen oder unspezifischen Retrieval-Treffern keine Machbarkeit, Netzkapazitaet, VNB-Zustaendigkeit oder Genehmigungsfaehigkeit ableiten.',
     ].join('\n'),
     6000
   );
@@ -5962,13 +6047,16 @@ module.exports = {
         limit: Math.min(Math.max(Number(maxEvidence) || 5, 1), 8),
         timeoutMs: COPILOT_KNOWLEDGE_TIMEOUT_MS,
       });
+      const filteredHits = result.hits
+        .filter((hit) => copilotKnowledgeHitIsAllowedForQuery(hit, query))
+        .filter((hit) => copilotKnowledgeHitHasStrictQueryRelevance(hit, query));
 
       return {
         source: 'knowledge-rag',
-        status: result.status,
+        status: result.status === 'available' && filteredHits.length === 0 ? 'missing' : result.status,
         query: result.query,
         hits: toCopilotList(
-          result.hits.filter((hit) => copilotKnowledgeHitIsAllowedForQuery(hit, query)),
+          filteredHits,
           (hit) => ({
             source: compactString(hit.source || 'knowledge-rag', 120),
             value: compactString(
@@ -6390,6 +6478,14 @@ module.exports = {
       const hasEvidence = evidence.length > 0;
       const usableShortAnswerEvidence = collectCopilotShortAnswerEvidence(searchTerm, evidence);
       const hasUsableShortAnswerEvidence = usableShortAnswerEvidence.length > 0;
+      const strictEvidenceQuestion = copilotQueryRequiresStrictEvidenceRelevance(
+        [searchTerm, question].filter(Boolean).join(' ')
+      );
+      const hasOnlyPlannerSignals =
+        evidence.length > 0 &&
+        evidence.every(
+          (entry) => entry?.source === 'analysis-planner' && entry?.metadata?.kind === 'signals'
+        );
       const confidence =
         hasUsableShortAnswerEvidence &&
         (knowledgeHits.length > 0 || datapointHits.length > 0 || objectHits.length > 0)
@@ -6425,6 +6521,12 @@ module.exports = {
         hasEvidence && !hasUsableShortAnswerEvidence
           ? 'Treffer vorhanden; sie sollten als indirekter Kontext genutzt und mit Unsicherheit eingeordnet werden.'
           : null,
+        strictEvidenceQuestion && !hasUsableShortAnswerEvidence
+          ? 'Für diese Standort-/Leistungsfrage liegt keine belastbare Standort-, VNB- oder Netzkapazitäts-Evidence vor.'
+          : null,
+        hasOnlyPlannerSignals
+          ? 'Nur Planner-Signal vorhanden; das ist ein Prüfplan, keine Machbarkeits- oder Kapazitätsevidenz.'
+          : null,
         knowledgeEvidence.status === 'timeout'
           ? 'Knowledge-RAG Timeout: Antwort nicht ohne Hinweis finalisieren.'
           : null,
@@ -6443,22 +6545,32 @@ module.exports = {
       ].filter(Boolean);
       const openQuestions = hasUsableShortAnswerEvidence
         ? []
-        : hasEvidence
+        : strictEvidenceQuestion
           ? [
-              'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll bei Bedarf vertieft werden?',
+              'Gibt es eine konkrete Fläche, einen Netzanschlusspunkt oder Koordinaten für den Standort?',
+              'Liegt eine Rückmeldung, Zuständigkeitsklärung oder Kapazitätsprüfung des zuständigen VNB vor?',
+              'Welches Lastprofil, welche Flexibilität und welche Abwärme-/Planungsvorgaben sollen geprüft werden?',
             ]
-          : [
-              'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll geprüft werden?',
-            ];
+          : hasEvidence
+            ? [
+                'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll bei Bedarf vertieft werden?',
+              ]
+            : [
+                'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll geprüft werden?',
+              ];
       const recommendedNextSteps = hasUsableShortAnswerEvidence
         ? ['Copilot soll die Evidenztreffer fachlich einordnen und bei Bedarf nach Details fragen.']
-        : hasEvidence
+        : strictEvidenceQuestion
           ? [
-              'Copilot soll die vorhandenen Evidenz-Snippets zusammenfassen, Unsicherheit kennzeichnen und optional eine Vertiefung anbieten.',
+              'Copilot soll klar sagen, dass aus dem Cernion-Kontext keine belastbare Machbarkeits- oder Kapazitätsaussage ableitbar ist, und nur die fehlenden Prüfpunkte nennen.',
             ]
-          : [
-              'Suchbegriff präzisieren oder Cernion-Kontext wie Kommune, VNB, Projekt oder Prozess ergänzen.',
-            ];
+          : hasEvidence
+            ? [
+                'Copilot soll die vorhandenen Evidenz-Snippets zusammenfassen, Unsicherheit kennzeichnen und optional eine Vertiefung anbieten.',
+              ]
+            : [
+                'Suchbegriff präzisieren oder Cernion-Kontext wie Kommune, VNB, Projekt oder Prozess ergänzen.',
+              ];
       const groundingAnswer = buildCopilotGroundingAnswer({
         question,
         searchTerm,

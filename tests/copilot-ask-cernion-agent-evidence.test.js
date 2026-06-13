@@ -332,6 +332,16 @@ describe('askCernionAgent evidence bundle', () => {
                     'N-1, 81 MVA, Kopplungspunkt, vorgelagertes Netz, TWL Netze, Headroom',
                   metadata: { docType: 'Pattern-Card' },
                 },
+                {
+                  id: 'irrelevant-regulatory',
+                  source: 'BNetzA',
+                  score: 0.53,
+                  referenceText_L0:
+                    'Laut NEP Szenariorahmen soll im deutschen Stromsystem bis 2045 eine volatile erneuerbare Erzeugungskapazität installiert sein.',
+                  vectorText:
+                    'Regel: Wenn Elektrolyseure nicht per se netzdienlich sind, dann sollte eine pauschale Befreiung differenziert werden.',
+                  metadata: { docType: 'Festlegung' },
+                },
               ],
             },
           };
@@ -396,6 +406,8 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.groundingAnswer).not.toContain('81 MVA');
     expect(result.groundingAnswer).not.toContain('TWL Netze');
     expect(result.groundingAnswer).not.toContain('Kopplungspunkt');
+    expect(result.groundingAnswer).not.toContain('Elektrolyseure');
+    expect(result.groundingAnswer).not.toContain('NEP Szenariorahmen');
     expect(result.evidenceBySource.planning.status).toBe('available');
   });
 
@@ -435,9 +447,113 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.risks).toContain(
       'Planner-Schnellcheck unvollständig: vnbdigital, mastr_installations nicht verfügbar.'
     );
+    expect(result.risks).toContain(
+      'Für diese Standort-/Leistungsfrage liegt keine belastbare Standort-, VNB- oder Netzkapazitäts-Evidence vor.'
+    );
+    expect(result.risks).toContain(
+      'Nur Planner-Signal vorhanden; das ist ein Prüfplan, keine Machbarkeits- oder Kapazitätsevidenz.'
+    );
+    expect(result.openQuestions).toContain(
+      'Liegt eine Rückmeldung, Zuständigkeitsklärung oder Kapazitätsprüfung des zuständigen VNB vor?'
+    );
+    expect(result.recommendedNextSteps).toContain(
+      'Copilot soll klar sagen, dass aus dem Cernion-Kontext keine belastbare Machbarkeits- oder Kapazitätsaussage ableitbar ist, und nur die fehlenden Prüfpunkte nennen.'
+    );
     expect(result.groundingAnswer).toContain('Planner-Schnellcheck unvollständig');
+    expect(result.groundingAnswer).toContain('keine belastbare Machbarkeits- oder Kapazitätsaussage');
     expect(result.groundingAnswer).not.toContain('Request is timed out');
     expect(result.groundingAnswer).not.toContain('nicht verfügbar: Request');
+  });
+
+  test('filters weak unrelated regulatory hits for concrete data-center location checks', async () => {
+    const service = buildServiceHarness();
+    const handler = PersonalAgentService.actions.askCernionAgent.handler;
+    const ctx = {
+      meta: { tenantId: 'tenant-a' },
+      params: {
+        question: 'Kann in 69256 ein Rechenzentrum mit 10 MW gebaut werden?',
+        domain: 'auto',
+        maxEvidence: 6,
+        context: {},
+      },
+      call: jest.fn(async (action, params) => {
+        if (action === 'query.search') {
+          return { query: params.q, domain: params.domain, totalResults: 0, results: [] };
+        }
+
+        if (action === 'knowledge-rag.query') {
+          return {
+            success: true,
+            data: {
+              results: [
+                {
+                  id: 'bnetza-ofgem',
+                  source: 'BNetzA',
+                  score: 0.527,
+                  referenceText_L0:
+                    'Ofgem RIIO-2 Final Determinations Finance Annex. Wir quantifizieren Vorfinanzierungskosten basierend auf 10 bp.',
+                  vectorText:
+                    'Regel: Wenn Regulatorische Evidenz verfügt, dann Vorfinanzierungskosten von 10 bp.',
+                  metadata: { docType: 'Festlegung' },
+                },
+                {
+                  id: 'bnetza-utilmd',
+                  source: 'BNetzA',
+                  score: 0.518,
+                  referenceText_L0:
+                    'UTILMD Anwendungshandbuch Strom Seite 470 von 1397 EDIFACT Struktur Beschreibung Änderung Rückmeldung.',
+                  vectorText:
+                    'Fachbegriffe: SG10, CCI 00249, CCI 7059, ZW5, ZW6.',
+                  metadata: { docType: 'Festlegung' },
+                },
+                {
+                  id: 'storage-process',
+                  source: 'knowledge-rag',
+                  score: 0.512,
+                  referenceText_L0:
+                    'Branchenwissen zu Grossspeichern, flexiblen Netzanschluessen und Mustervertraegen muss in ein Anschluss- und Fahrplan-Gate uebersetzt werden.',
+                  vectorText:
+                    'Suche nach Speicheranschluss, BESS, flexible Netzanschlussvereinbarung, Fahrplanmanagement',
+                  metadata: { docType: 'Pattern-Card' },
+                },
+              ],
+            },
+          };
+        }
+
+        if (action === 'grid-operations.vnbdigitalSearch') {
+          throw new Error('Request is timed out');
+        }
+
+        if (action === 'energy-market.installations') {
+          throw new Error('Request is timed out');
+        }
+
+        if (action === 'datapoint.list') {
+          return { datapoints: [] };
+        }
+
+        if (action === 'object-store.query') {
+          return { docs: [] };
+        }
+
+        throw new Error(`unexpected action ${action}`);
+      }),
+    };
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.confidence).toBe('low');
+    expect(result.evidenceBySource.knowledge.status).toBe('missing');
+    expect(result.groundingAnswer).toContain('Cernion Analysis Planner');
+    expect(result.groundingAnswer).toContain('keine belastbare Machbarkeits- oder Kapazitätsaussage');
+    expect(result.groundingAnswer).toContain(
+      'Für diese Standort-/Leistungsfrage liegt keine belastbare Standort-, VNB- oder Netzkapazitäts-Evidence vor.'
+    );
+    expect(result.groundingAnswer).not.toContain('Ofgem');
+    expect(result.groundingAnswer).not.toContain('UTILMD');
+    expect(result.groundingAnswer).not.toContain('Grossspeichern');
+    expect(result.groundingAnswer).not.toContain('Vorfinanzierungskosten');
   });
 
   test('uses evidence-bearing object-store namespaces by default', async () => {
