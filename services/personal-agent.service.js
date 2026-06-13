@@ -6143,8 +6143,8 @@ module.exports = {
             .filter(Boolean);
           addHit(
             labels.length > 0
-              ? `VNBdigital-Suche zur PLZ ${analysisSignals.postalCode}: ${labels.join(' | ')}`
-              : `VNBdigital-Suche zur PLZ ${analysisSignals.postalCode}: keine Treffer im Schnellcheck.`,
+              ? `VNBdigital-Suche zur PLZ ${analysisSignals.postalCode}: ${labels.join(' | ')}. Hinweis: VNBdigital ist ein Zuständigkeits-/Verzeichnischeck, keine Netzkapazitätsprüfung.`
+              : `VNBdigital-Suche zur PLZ ${analysisSignals.postalCode}: keine Treffer im Verzeichnis-Schnellcheck. Daraus folgt keine Aussage zur Netzkapazität oder Anschlussfähigkeit.`,
             { kind: response.kind, hitCount: labels.length }
           );
         }
