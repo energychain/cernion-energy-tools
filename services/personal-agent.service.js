@@ -724,10 +724,59 @@ function isCopilotEnergySharingQuestion(question) {
   );
 }
 
+function extractCopilotAnalysisSignals(question) {
+  const text = String(question || '');
+  const lower = text.toLowerCase();
+  const postalCode = text.match(/\b\d{5}\b/)?.[0] || null;
+  const powerMatch = text.match(/\b(\d+(?:[,.]\d+)?)\s*(mw|megawatt|kw|kilowatt)\b/i);
+  const power = powerMatch
+    ? {
+        value: Number(String(powerMatch[1]).replace(',', '.')),
+        unit: powerMatch[2].toLowerCase().startsWith('k') ? 'kW' : 'MW',
+      }
+    : null;
+  const assetClass = /rechenzentrum|data\s*center|datacenter/i.test(lower)
+    ? 'data_center'
+    : /speicher|bess|batterie/i.test(lower)
+      ? 'battery_storage'
+      : /pv|photovoltaik|solar/i.test(lower)
+        ? 'solar'
+        : null;
+
+  const perspectives = [];
+  if (postalCode) perspectives.push('Standort-/PLZ-Auflösung');
+  if (assetClass === 'data_center' || power) perspectives.push('Netzanschluss und Anschlussleistung');
+  if (assetClass) perspectives.push('Asset-spezifische Genehmigungs- und Prozesssicht');
+  if (assetClass === 'data_center') {
+    perspectives.push('VNB-Zuständigkeit, Netzkapazität, Lastprofil und ggf. Abwärme/Planungsrecht');
+  }
+
+  return {
+    postalCode,
+    power,
+    assetClass,
+    perspectives,
+    active: Boolean(postalCode || power || assetClass),
+  };
+}
+
 function deriveCopilotSearchTerm(question) {
   const text = compactString(question, 200);
   if (isCopilotEnergySharingQuestion(text)) {
     return 'Energy Sharing §42c EnWG Mieterstrom gemeinschaftliche Gebäudeversorgung Stromlieferung an Dritte PV Nachbar';
+  }
+  const signals = extractCopilotAnalysisSignals(text);
+  if (signals.assetClass === 'data_center') {
+    return compactString(
+      [
+        'Rechenzentrum Netzanschluss Anschlussleistung Netzkapazität VNB Genehmigung Planung',
+        signals.power ? `${signals.power.value} ${signals.power.unit}` : null,
+        signals.postalCode ? `PLZ ${signals.postalCode}` : null,
+      ]
+        .filter(Boolean)
+        .join(' '),
+      260
+    );
   }
   const locationMatch = text.match(
     /\b(?:in|für|fuer|bei)\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}){0,2})/
@@ -1167,6 +1216,7 @@ module.exports = {
         const context = ctx.params.context || {};
         const maxEvidence = ctx.params.maxEvidence || 5;
         const searchTerm = deriveCopilotSearchTerm(ctx.params.question);
+        const analysisSignals = extractCopilotAnalysisSignals(ctx.params.question);
         const searchDomain = mapCopilotDomainToSearchDomain(domain);
         const queryTerms = buildCopilotContextQueries({
           question: ctx.params.question,
@@ -1175,7 +1225,7 @@ module.exports = {
           maxItems: maxEvidence,
         });
 
-        const [searchResult, knowledgeEvidence, datapointEvidence, objectEvidence] =
+        const [searchResult, knowledgeEvidence, datapointEvidence, objectEvidence, planningEvidence] =
           await Promise.all([
             this.searchCopilotEntities(ctx, { searchTerm, searchDomain, maxEvidence }),
             this.collectCopilotKnowledgeEvidence(ctx, {
@@ -1185,6 +1235,7 @@ module.exports = {
             }),
             this.collectCopilotDatapointEvidence(ctx, { queryTerms, maxEvidence }),
             this.collectCopilotObjectEvidence(ctx, { context, queryTerms, maxEvidence }),
+            this.collectCopilotPlanningEvidence(ctx, { analysisSignals, maxEvidence }),
           ]);
 
         return this.buildCopilotSearchAnswer({
@@ -1198,6 +1249,7 @@ module.exports = {
           knowledgeEvidence,
           datapointEvidence,
           objectEvidence,
+          planningEvidence,
           maxEvidence,
         });
       },
@@ -5973,6 +6025,147 @@ module.exports = {
       };
     },
 
+    async collectCopilotPlanningEvidence(ctx, { analysisSignals = {}, maxEvidence = 5 } = {}) {
+      if (!analysisSignals?.active) {
+        return { source: 'analysis-planner', status: 'skipped', hits: [] };
+      }
+
+      const hits = [];
+      const addHit = (value, metadata = {}) => {
+        const safeValue = compactString(value, 620);
+        if (!safeValue) return;
+        hits.push({
+          source: 'analysis-planner',
+          value: safeValue,
+          metadata,
+        });
+      };
+
+      const signalParts = [
+        analysisSignals.postalCode ? `PLZ: ${analysisSignals.postalCode}` : null,
+        analysisSignals.assetClass ? `Asset-Klasse: ${analysisSignals.assetClass}` : null,
+        analysisSignals.power
+          ? `Leistung: ${analysisSignals.power.value} ${analysisSignals.power.unit}`
+          : null,
+        Array.isArray(analysisSignals.perspectives) && analysisSignals.perspectives.length > 0
+          ? `Prüfperspektiven: ${analysisSignals.perspectives.join('; ')}`
+          : null,
+      ].filter(Boolean);
+      addHit(`Cernion Analysis Planner: ${signalParts.join(' · ')}`, { kind: 'signals' });
+
+      const calls = [];
+      if (analysisSignals.postalCode) {
+        calls.push(
+          ctx
+            .call(
+              'grid-operations.vnbdigitalSearch',
+              { searchTerm: analysisSignals.postalCode },
+              { meta: { ...ctx.meta, $gateway: false }, timeout: 3000 }
+            )
+            .then((result) => ({ kind: 'vnbdigital', result }))
+            .catch((error) => ({ kind: 'vnbdigital', error }))
+        );
+        calls.push(
+          ctx
+            .call(
+              'energy-market.installations',
+              {
+                installationType: 'all',
+                postleitzahl: analysisSignals.postalCode,
+                limit: 5,
+                includeNapData: true,
+              },
+              { meta: { ...ctx.meta, $gateway: false }, timeout: 5000 }
+            )
+            .then((result) => ({ kind: 'mastr_installations', result }))
+            .catch((error) => ({ kind: 'mastr_installations', error }))
+        );
+      }
+
+      const responses = await Promise.all(calls);
+      for (const response of responses) {
+        if (response.error) {
+          addHit(`${response.kind} nicht verfügbar: ${response.error.message}`, {
+            kind: response.kind,
+            status: 'unavailable',
+          });
+          continue;
+        }
+
+        if (response.kind === 'vnbdigital') {
+          const results = Array.isArray(response.result?.results) ? response.result.results : [];
+          const labels = results
+            .slice(0, 3)
+            .map((entry) =>
+              compactString(
+                [entry.title || entry.name, entry.type, entry.profileUrl].filter(Boolean).join(' · '),
+                180
+              )
+            )
+            .filter(Boolean);
+          addHit(
+            labels.length > 0
+              ? `VNBdigital-Suche zur PLZ ${analysisSignals.postalCode}: ${labels.join(' | ')}`
+              : `VNBdigital-Suche zur PLZ ${analysisSignals.postalCode}: keine Treffer im Schnellcheck.`,
+            { kind: response.kind, hitCount: labels.length }
+          );
+        }
+
+        if (response.kind === 'mastr_installations') {
+          const installations = Array.isArray(response.result?.data?.installations)
+            ? response.result.data.installations
+            : Array.isArray(response.result?.installations)
+              ? response.result.installations
+              : Array.isArray(response.result?.data?.results)
+                ? response.result.data.results
+                : Array.isArray(response.result?.results)
+                  ? response.result.results
+                  : [];
+          const total =
+            response.result?.data?.total ??
+            response.result?.total ??
+            response.result?.data?.count ??
+            installations.length;
+          const labels = installations
+            .slice(0, 3)
+            .map((entry) =>
+              compactString(
+                [
+                  entry.name || entry.einheitName || entry.EinheitName || entry.mastrNummer,
+                  entry.nettoleistung || entry.nettoNennleistung || entry.capacityKW
+                    ? `Leistung: ${entry.nettoleistung || entry.nettoNennleistung || entry.capacityKW}`
+                    : null,
+                  entry.netzbetreiberMastrNummer || entry.gridOperatorMastrId || entry.gridOperatorName,
+                ]
+                  .filter(Boolean)
+                  .join(' · '),
+                180
+              )
+            )
+            .filter(Boolean);
+          addHit(
+            labels.length > 0
+              ? `MaStR-Schnellcheck PLZ ${analysisSignals.postalCode}: ${total} Treffer; Beispiele: ${labels.join(' | ')}`
+              : `MaStR-Schnellcheck PLZ ${analysisSignals.postalCode}: keine Anlagenbeispiele im Schnellcheck.`,
+            { kind: response.kind, total }
+          );
+        }
+      }
+
+      return {
+        source: 'analysis-planner',
+        status: hits.length > 0 ? 'available' : 'missing',
+        hits: hits.slice(0, Math.max(1, maxEvidence)),
+        trace: {
+          signals: analysisSignals,
+          toolCalls: responses.map((entry) => ({
+            kind: entry.kind,
+            status: entry.error ? 'unavailable' : 'available',
+          })),
+        },
+      };
+    },
+
     buildCopilotSearchAnswer({
       question,
       sessionId = null,
@@ -5984,6 +6177,7 @@ module.exports = {
       knowledgeEvidence = { status: 'unavailable', hits: [] },
       datapointEvidence = { status: 'unavailable', hits: [] },
       objectEvidence = { status: 'unavailable', hits: [] },
+      planningEvidence = { status: 'skipped', hits: [] },
       maxEvidence = 5,
     } = {}) {
       const results = Array.isArray(searchResult.results) ? searchResult.results : [];
@@ -5999,10 +6193,14 @@ module.exports = {
       const knowledgeHits = Array.isArray(knowledgeEvidence.hits) ? knowledgeEvidence.hits : [];
       const datapointHits = Array.isArray(datapointEvidence.hits) ? datapointEvidence.hits : [];
       const objectHits = Array.isArray(objectEvidence.hits) ? objectEvidence.hits : [];
-      const evidence = [...entityEvidence, ...knowledgeHits, ...datapointHits, ...objectHits].slice(
-        0,
-        Math.max(maxEvidence * 4, maxEvidence)
-      );
+      const planningHits = Array.isArray(planningEvidence.hits) ? planningEvidence.hits : [];
+      const evidence = [
+        ...planningHits,
+        ...entityEvidence,
+        ...knowledgeHits,
+        ...datapointHits,
+        ...objectHits,
+      ].slice(0, Math.max(maxEvidence * 4, maxEvidence));
       const hasEvidence = evidence.length > 0;
       const usableShortAnswerEvidence = collectCopilotShortAnswerEvidence(searchTerm, evidence);
       const hasUsableShortAnswerEvidence = usableShortAnswerEvidence.length > 0;
@@ -6027,6 +6225,7 @@ module.exports = {
         knowledgeEvidence.status ? `knowledge:${knowledgeEvidence.status}` : null,
         datapointEvidence.status ? `datapoints:${datapointEvidence.status}` : null,
         objectEvidence.status ? `objects:${objectEvidence.status}` : null,
+        planningEvidence.status ? `planner:${planningEvidence.status}` : null,
       ].filter(Boolean);
       const guardrails = [
         'Copilot soll Knowledge-RAG, Datapoints und Object-Store-Evidence als Antwortkontext nutzen.',
@@ -6103,6 +6302,7 @@ module.exports = {
           knowledge: knowledgeEvidence,
           datapoints: datapointEvidence,
           objects: objectEvidence,
+          planning: planningEvidence,
         },
         guardrails,
         processContext,

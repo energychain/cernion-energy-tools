@@ -290,6 +290,97 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.shortAnswer).not.toContain('keine belastbare Kurzantwort');
   });
 
+  test('adds lightweight analysis planner evidence for location and load questions', async () => {
+    const service = buildServiceHarness();
+    const handler = PersonalAgentService.actions.askCernionAgent.handler;
+    const calls = [];
+    const ctx = {
+      meta: { tenantId: 'tenant-a' },
+      params: {
+        question: 'Kann in 69256 ein Rechenzentrum mit 10 MW gebaut werden?',
+        domain: 'auto',
+        maxEvidence: 8,
+        context: {},
+      },
+      call: jest.fn(async (action, params) => {
+        calls.push({ action, params });
+        if (action === 'query.search') {
+          return { query: params.q, domain: params.domain, totalResults: 0, results: [] };
+        }
+
+        if (action === 'knowledge-rag.query') {
+          return {
+            success: true,
+            data: {
+              results: [
+                {
+                  id: 'dc-1',
+                  source: 'Cernion Knowledge',
+                  score: 0.88,
+                  referenceText_L0:
+                    'Für Rechenzentren sind Netzanschlussleistung, Netzkapazität, Lastprofil, VNB-Zuständigkeit und planerische Genehmigungsfragen getrennt zu prüfen.',
+                  vectorText: 'Rechenzentrum 10 MW Netzanschluss VNB Netzkapazität Planung',
+                  metadata: { docType: 'Cernion-Fachkontext' },
+                },
+              ],
+            },
+          };
+        }
+
+        if (action === 'grid-operations.vnbdigitalSearch') {
+          return {
+            results: [
+              {
+                title: 'Netze BW GmbH',
+                type: 'VNB',
+                profileUrl: 'https://www.vnbdigital.de/example',
+              },
+            ],
+          };
+        }
+
+        if (action === 'energy-market.installations') {
+          return {
+            data: {
+              total: 2,
+              installations: [
+                {
+                  name: 'PV Mauer Beispiel',
+                  capacityKW: 750,
+                  gridOperatorName: 'Netze BW GmbH',
+                },
+              ],
+            },
+          };
+        }
+
+        if (action === 'datapoint.list') {
+          return { datapoints: [] };
+        }
+
+        if (action === 'object-store.query') {
+          return { docs: [] };
+        }
+
+        throw new Error(`unexpected action ${action}`);
+      }),
+    };
+
+    const result = await handler.call(service, ctx);
+    const knowledgeCall = calls.find((entry) => entry.action === 'knowledge-rag.query');
+
+    expect(knowledgeCall.params.query).toContain('Rechenzentrum Netzanschluss');
+    expect(knowledgeCall.params.query).toContain('10 MW');
+    expect(calls.some((entry) => entry.action === 'grid-operations.vnbdigitalSearch')).toBe(true);
+    expect(calls.some((entry) => entry.action === 'energy-market.installations')).toBe(true);
+    expect(result.groundingAnswer).toContain('Cernion Analysis Planner');
+    expect(result.groundingAnswer).toContain('PLZ: 69256');
+    expect(result.groundingAnswer).toContain('Leistung: 10 MW');
+    expect(result.groundingAnswer).toContain('VNBdigital-Suche zur PLZ 69256');
+    expect(result.groundingAnswer).toContain('MaStR-Schnellcheck PLZ 69256');
+    expect(result.evidenceBySource.planning.status).toBe('available');
+  });
+
   test('uses evidence-bearing object-store namespaces by default', async () => {
     const service = buildServiceHarness();
     const handler = PersonalAgentService.actions.askCernionAgent.handler;
