@@ -191,6 +191,42 @@ describe('personal-agent-knowledge-rag adapter', () => {
     expect(JSON.stringify(result)).not.toContain('DO_NOT_EXPOSE_VECTOR');
   });
 
+  test('T-PA-KR-010: queryKnowledgeEvidence keeps safe snippets when summary is only a URL', async () => {
+    const ctx = {
+      call: jest.fn().mockResolvedValue({
+        success: true,
+        data: {
+          results: [
+            {
+              id: 'doc-2',
+              source: 'BNetzA',
+              score: 0.82,
+              summary: 'https://www.bundesnetzagentur.de/example.pdf',
+              snippet:
+                'Gemeinschaftliche Versorgungskonzepte muessen anhand Marktrollen, Messung und Abrechnung konkret geprueft werden.',
+              referenceText: 'DO_NOT_EXPOSE_REFERENCE',
+              vectorText: 'DO_NOT_EXPOSE_VECTOR',
+              metadata: {
+                docType: 'Festlegung',
+              },
+            },
+          ],
+        },
+      }),
+    };
+
+    const result = await queryKnowledgeEvidence(ctx, {
+      query: 'Strom mit Nachbarn teilen',
+      limit: 1,
+    });
+
+    expect(result.status).toBe('available');
+    expect(result.hits[0].summary).toContain('Gemeinschaftliche Versorgungskonzepte');
+    expect(result.hits[0].summary).not.toContain('https://www.bundesnetzagentur.de/example.pdf');
+    expect(JSON.stringify(result)).not.toContain('DO_NOT_EXPOSE_REFERENCE');
+    expect(JSON.stringify(result)).not.toContain('DO_NOT_EXPOSE_VECTOR');
+  });
+
   test('T-PA-KR-008: queryKnowledgeEvidence returns timeout as first-class status', async () => {
     const timeoutCtx = {
       call: jest.fn().mockRejectedValue({

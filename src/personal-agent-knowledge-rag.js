@@ -265,14 +265,38 @@ function buildSafeEvidenceSummary(
   metadata = {},
   maxChars = DEFAULT_EVIDENCE_SUMMARY_MAX_CHARS
 ) {
-  const summaryCandidate =
-    hit.summary ||
-    metadata.summary ||
-    hit.title ||
-    metadata.title ||
+  const candidates = [
+    hit.summary,
+    metadata.summary,
+    hit.snippet,
+    metadata.snippet,
+    hit.excerpt,
+    metadata.excerpt,
+    hit.description,
+    metadata.description,
+    hit.content,
+    metadata.content,
+    hit.text,
+    metadata.text,
+    hit.title,
+    metadata.title,
+    hit.url,
+    metadata.url,
+    hit.sourceUrl,
+    metadata.sourceUrl,
     [metadata.authority, metadata.docType].filter(Boolean).join(' - ') ||
-    [hit.domain, hit.category].filter(Boolean).join(' - ') ||
-    'Knowledge hit';
+      [hit.domain, hit.category].filter(Boolean).join(' - '),
+    'Knowledge hit',
+  ]
+    .map((candidate) =>
+      String(candidate || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+    )
+    .filter(Boolean);
+
+  const summaryCandidate =
+    candidates.find((candidate) => !/^https?:\/\//i.test(candidate)) || candidates[0];
 
   return String(summaryCandidate || '')
     .replace(/\s+/g, ' ')
