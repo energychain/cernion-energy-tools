@@ -110,6 +110,7 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.groundingAnswer).toContain('KERNANTWORT AUS CERNION');
     expect(result.groundingAnswer).toContain('EVIDENZ');
     expect(result.groundingAnswer).toContain('Copilot Guardrail Wiesloch');
+    expect(result.groundingAnswer).toContain('Evidence-Snippets als fachliche Grundlage');
     expect(result.groundingAnswer).toContain('Nicht aus Modellwissen auffuellen');
     expect(result.evidenceBySource.entities.status).toBe('available');
     expect(result.evidenceBySource.knowledge.status).toBe('available');
@@ -198,16 +199,19 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.shortAnswer).toContain('keine belastbare Kurzantwort');
     expect(result.groundingAnswer).toContain('Wie ist Energy Sharing geregelt');
     expect(result.groundingAnswer).toContain(
-      'Treffer vorhanden, aber keine direkt verwertbare Kurzantwort-Evidenz'
+      'Treffer vorhanden; sie sollten als indirekter Kontext genutzt'
     );
     expect(result.groundingAnswer).toContain(
-      'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll geprüft werden?'
+      'verwertbare Snippet-Inhalte trotzdem zusammenfassen'
+    );
+    expect(result.groundingAnswer).toContain(
+      'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll bei Bedarf vertieft werden?'
     );
     expect(result.risks).toContain(
-      'Treffer vorhanden, aber keine direkt verwertbare Kurzantwort-Evidenz zum Suchthema.'
+      'Treffer vorhanden; sie sollten als indirekter Kontext genutzt und mit Unsicherheit eingeordnet werden.'
     );
     expect(result.openQuestions).toContain(
-      'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll geprüft werden?'
+      'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll bei Bedarf vertieft werden?'
     );
     expect(result.shortAnswer).not.toContain('MsbG § 1');
     expect(result.shortAnswer).not.toContain('Redispatch');

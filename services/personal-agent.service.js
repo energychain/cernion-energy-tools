@@ -904,8 +904,10 @@ function buildCopilotGroundingAnswer({
   return compactString(
     [
       'GROUNDING ANSWER FUER COPILOT',
-      'Verwende diesen Cernion-Kontext als einzige fachliche Grundlage fuer die Antwort.',
-      'Du darfst umformulieren, aber keine Rechtsquellen, Termine, Prozessregeln oder Fakten ergaenzen, die hier nicht enthalten sind.',
+      'Verwende diesen Cernion-Kontext und die Evidence-Snippets als fachliche Grundlage fuer die Antwort.',
+      'Du darfst aus den Snippets eine nutzernahe Antwort formulieren und Zusammenhaenge erklaeren.',
+      'Du darfst keine Rechtsquellen, Termine, Prozessregeln oder Fakten ergaenzen, die weder in den Snippets noch im Cernion-Kontext enthalten sind.',
+      'Wenn die Evidenz nur indirekt passt, nutze sie als Kontext und kennzeichne die Unsicherheit statt nur nach Praezisierung zu fragen.',
       '',
       section('BENUTZERFRAGE', [question || searchTerm]),
       '',
@@ -926,7 +928,7 @@ function buildCopilotGroundingAnswer({
       section('EMPFOHLENE NAECHSTE SCHRITTE', recommendedNextSteps),
       '',
       'ANTWORTREGEL:',
-      'Wenn die Evidenz nicht reicht oder unscharf ist, sage das klar und frage nach Praezisierung. Nicht aus Modellwissen auffuellen.',
+      'Formuliere eine hilfreiche Antwort aus den vorhandenen Snippets. Bei niedriger Confidence oder unscharfer Evidenz: Unsicherheit sichtbar machen, aber verwertbare Snippet-Inhalte trotzdem zusammenfassen. Nicht aus Modellwissen auffuellen.',
     ].join('\n'),
     6000
   );
@@ -5989,15 +5991,16 @@ module.exports = {
         objectEvidence.status ? `objects:${objectEvidence.status}` : null,
       ].filter(Boolean);
       const guardrails = [
-        'Copilot muss Knowledge-RAG, Datapoints und Object-Store-Evidence vor der Antwortformulierung beachten.',
+        'Copilot soll Knowledge-RAG, Datapoints und Object-Store-Evidence als Antwortkontext nutzen.',
+        'Copilot darf Evidence-Snippets nutzernah zusammenfassen, auch wenn daraus keine perfekte Kurzantwort ableitbar ist.',
         'Copilot darf keine Ausführungs-, Lösch-, Signatur-, Override- oder Nominierungsaktion durchführen.',
-        'Bei fehlender oder widersprüchlicher Evidence muss Copilot Unsicherheit benennen und Rückfragen stellen.',
+        'Bei fehlender oder widersprüchlicher Evidence muss Copilot Unsicherheit benennen und darf gezielt nach fehlendem Kontext fragen.',
       ];
 
       const risks = [
         searchResult.error ? compactString(searchResult.error, 240) : null,
         hasEvidence && !hasUsableShortAnswerEvidence
-          ? 'Treffer vorhanden, aber keine direkt verwertbare Kurzantwort-Evidenz zum Suchthema.'
+          ? 'Treffer vorhanden; sie sollten als indirekter Kontext genutzt und mit Unsicherheit eingeordnet werden.'
           : null,
         knowledgeEvidence.status === 'timeout'
           ? 'Knowledge-RAG Timeout: Antwort nicht ohne Hinweis finalisieren.'
@@ -6014,14 +6017,22 @@ module.exports = {
       ].filter(Boolean);
       const openQuestions = hasUsableShortAnswerEvidence
         ? []
-        : [
-            'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll geprüft werden?',
-          ];
+        : hasEvidence
+          ? [
+              'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll bei Bedarf vertieft werden?',
+            ]
+          : [
+              'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll geprüft werden?',
+            ];
       const recommendedNextSteps = hasUsableShortAnswerEvidence
         ? ['Copilot soll die Evidenztreffer fachlich einordnen und bei Bedarf nach Details fragen.']
-        : [
-            'Suchbegriff präzisieren oder Cernion-Kontext wie Kommune, VNB, Projekt oder Prozess ergänzen.',
-          ];
+        : hasEvidence
+          ? [
+              'Copilot soll die vorhandenen Evidenz-Snippets zusammenfassen, Unsicherheit kennzeichnen und optional eine Vertiefung anbieten.',
+            ]
+          : [
+              'Suchbegriff präzisieren oder Cernion-Kontext wie Kommune, VNB, Projekt oder Prozess ergänzen.',
+            ];
       const groundingAnswer = buildCopilotGroundingAnswer({
         question,
         searchTerm,
