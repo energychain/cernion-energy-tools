@@ -883,6 +883,26 @@ function cleanCopilotEvidenceValue(value) {
     .join(' · ');
 }
 
+function copilotKnowledgeHitIsAllowedForQuery(hit = {}, query = '') {
+  const haystack = [hit.source, hit.summary, hit.retrievalHint]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  const normalizedQuery = String(query || '').toLowerCase();
+
+  const containsTwlContext = /\btwl\b|twl\s+netze/.test(haystack);
+  if (containsTwlContext && !/\btwl\b|twl\s+netze/.test(normalizedQuery)) return false;
+
+  const containsLocalCapacityAnchor = /\b81\s*mva\b/.test(haystack);
+  if (containsLocalCapacityAnchor && !/\b81\s*mva\b/.test(normalizedQuery)) return false;
+
+  const containsCouplingPoint =
+    /kopplungspunkt/.test(haystack) && (containsLocalCapacityAnchor || containsTwlContext);
+  if (containsCouplingPoint && !/kopplungspunkt/.test(normalizedQuery)) return false;
+
+  return true;
+}
+
 const COPILOT_SHORT_ANSWER_STOPWORDS = new Set([
   'bitte',
   'dazu',
@@ -5901,7 +5921,7 @@ module.exports = {
         status: result.status,
         query: result.query,
         hits: toCopilotList(
-          result.hits,
+          result.hits.filter((hit) => copilotKnowledgeHitIsAllowedForQuery(hit, query)),
           (hit) => ({
             source: compactString(hit.source || 'knowledge-rag', 120),
             value: compactString(
