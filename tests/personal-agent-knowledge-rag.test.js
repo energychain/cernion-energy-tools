@@ -191,7 +191,7 @@ describe('personal-agent-knowledge-rag adapter', () => {
     expect(JSON.stringify(result)).not.toContain('DO_NOT_EXPOSE_VECTOR');
   });
 
-  test('T-PA-KR-010: queryKnowledgeEvidence keeps safe snippets when summary is only a URL', async () => {
+  test('T-PA-KR-010: queryKnowledgeEvidence keeps canonical RAG snippets when summary is only a URL', async () => {
     const ctx = {
       call: jest.fn().mockResolvedValue({
         success: true,
@@ -202,7 +202,7 @@ describe('personal-agent-knowledge-rag adapter', () => {
               source: 'BNetzA',
               score: 0.82,
               summary: 'https://www.bundesnetzagentur.de/example.pdf',
-              snippet:
+              referenceText_L0:
                 'Gemeinschaftliche Versorgungskonzepte muessen anhand Marktrollen, Messung und Abrechnung konkret geprueft werden.',
               referenceText: 'DO_NOT_EXPOSE_REFERENCE',
               vectorText: 'DO_NOT_EXPOSE_VECTOR',

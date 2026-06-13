@@ -48,6 +48,8 @@ describe('askCernionAgent evidence bundle', () => {
                 {
                   id: 'rag-1',
                   score: 0.93,
+                  referenceText_L0:
+                    'Netzanschlussanfragen in Wiesloch muessen anhand dokumentierter Betreiber- und Prozess-Evidenz beantwortet werden.',
                   referenceText: 'DO_NOT_LEAK_REFERENCE',
                   vectorText: 'DO_NOT_LEAK_VECTOR',
                   metadata: {
@@ -110,6 +112,9 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.groundingAnswer).toContain('KERNANTWORT AUS CERNION');
     expect(result.groundingAnswer).toContain('EVIDENZ');
     expect(result.groundingAnswer).toContain('Copilot Guardrail Wiesloch');
+    expect(result.groundingAnswer).toContain(
+      'Netzanschlussanfragen in Wiesloch muessen anhand dokumentierter Betreiber- und Prozess-Evidenz beantwortet werden.'
+    );
     expect(result.groundingAnswer).toContain('Evidence-Snippets als fachliche Grundlage');
     expect(result.groundingAnswer).toContain('Nicht aus Modellwissen auffuellen');
     expect(result.evidenceBySource.entities.status).toBe('available');

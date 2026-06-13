@@ -268,6 +268,8 @@ function buildSafeEvidenceSummary(
   const candidates = [
     hit.summary,
     metadata.summary,
+    hit.referenceText_L0,
+    metadata.referenceText_L0,
     hit.snippet,
     metadata.snippet,
     hit.excerpt,
