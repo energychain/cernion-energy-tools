@@ -298,6 +298,117 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // Redispatch Special Case Gate — Speicher / Eigenverbrauch / Co-Location
+  const redispatchSpecialCaseSignals = [
+    'speicher redispatch',
+    'eigenverbrauch redispatch',
+    'co-location gate',
+    'co location gate',
+    'sonderfall gate',
+    'special case gate',
+    'steuerbarkeitsnachweis',
+    'nichtverfügbarkeit redispatch',
+    'nichtverfuegbarkeit redispatch',
+    'abweichungstoleranz',
+    'redispatch gate speicher',
+    'bess redispatch gate',
+    'eigenverbrauch gate',
+  ];
+
+  if (redispatchSpecialCaseSignals.some((signal) => haystack.includes(signal))) {
+    const rdscgCapability = findCapabilityByName('redispatch_special_case_gate');
+    if (rdscgCapability) {
+      return { capability: rdscgCapability, score: 100, usedFallback: false };
+    }
+  }
+
+  // Redispatch Settlement Sandbox — scenario creation / kWh→EUR variants
+  const redispatchSettlementSandboxSignals = [
+    'settlement sandbox',
+    'abrechnungsszenario',
+    'settlement szenario',
+    'redispatch szenario',
+    'ausfallarbeit kalkulation',
+    'redispatch kalkulation',
+    'kwh eur szenario',
+    'szenario abrechnung',
+    'curtailment szenario',
+    'redispatch abrechnung variante',
+  ];
+
+  if (redispatchSettlementSandboxSignals.some((signal) => haystack.includes(signal))) {
+    const rdssCapability = findCapabilityByName('redispatch_settlement_sandbox');
+    if (rdssCapability) {
+      return { capability: rdssCapability, score: 100, usedFallback: false };
+    }
+  }
+
+  // Redispatch Data Governance — owner model / deadline classes / source-of-record
+  const redispatchDataGovernanceSignals = [
+    'redispatch governance',
+    'führender datenpfad',
+    'source of record',
+    'fristenklasse',
+    'deadline klasse',
+    'stammdaten owner',
+    'owner klasse',
+    'governance policy redispatch',
+    'datenpfad governance',
+    'abrechnungsfrist redispatch',
+    'prozesskalender',
+  ];
+
+  if (redispatchDataGovernanceSignals.some((signal) => haystack.includes(signal))) {
+    const rdgCapability = findCapabilityByName('redispatch_data_governance');
+    if (rdgCapability) {
+      return { capability: rdgCapability, score: 100, usedFallback: false };
+    }
+  }
+
+  // Redispatch Asset Register — projections / relationships / co-location
+  const redispatchAssetRegisterSignals = [
+    'redispatch asset register',
+    'asset projektion',
+    'technische ressource',
+    'steuerbare ressource',
+    'ressourcenzuordnung',
+    'anlagenregister redispatch',
+    'identifier konflikt',
+    'asset beziehung',
+    'steuergruppe redispatch',
+  ];
+
+  if (redispatchAssetRegisterSignals.some((signal) => haystack.includes(signal))) {
+    const rdarCapability = findCapabilityByName('redispatch_asset_register');
+    if (rdarCapability) {
+      return { capability: rdarCapability, score: 100, usedFallback: false };
+    }
+  }
+
+  // File Ingest Monitor — generic CSV/file monitoring and schema registry
+  const fileIngestMonitorSignals = [
+    'file ingest',
+    'file monitor',
+    'csv monitor',
+    'datei monitoring',
+    'dateiimport',
+    'importpfad',
+    'error folder',
+    'fehlerordner',
+    'stammdaten import',
+    'datei governance',
+    'ingest monitor',
+    'stale file',
+    'importdatei',
+  ];
+
+  if (fileIngestMonitorSignals.some((signal) => haystack.includes(signal))) {
+    const fimCapability = findCapabilityByName('file_ingest_monitor');
+    if (fimCapability) {
+      return { capability: fimCapability, score: 95, usedFallback: false };
+    }
+  }
+
   // Pure VNB/Netzbetreiber identity/territory lookup — must not escalate to VDMI or fNAV.
   // Fires only when no higher-priority signal matched above.
   const pureVnbLookupSignals = [

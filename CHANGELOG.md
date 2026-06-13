@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `redispatch-settlement-sandbox` service: immutable append-only settlement scenario orchestration with kWh→EUR method variants, A96 reconciliation orchestration, and scenario download (issue #216)
 - `redispatch-special-case-gate` service: Speicher/Eigenverbrauch/Co-Location gate with per-criterion blocking/warning/info findings and overall ready/ready_with_warnings/blocked/insufficient_evidence status (issue #215)
 - 36 new finding codes across four new namespaces: `FIM_*`, `RDAR_*`, `RDG_*`, `RDSS_*`, `RSCG_*` — all registered in `src/validation-findings.js` and surfaced via `GET /api/dashboard/finding-codes` (issue #216 Deliverable 0)
+- **Capability Broker — Domain 8: Redispatch Readiness**: 5 new curated capabilities registered in `src/capability-catalog.js` (`file_ingest_monitor`, `redispatch_asset_register`, `redispatch_data_governance`, `redispatch_settlement_sandbox`, `redispatch_special_case_gate`) with domain-specific keywords, preferred/fallback actions, requiredInputs, and risksAndNotes. Matching high-priority signal arrays added to `capability-broker.service.js` so all 5 services are routable without falling through to general keyword scoring.
 
 ### Added
 
