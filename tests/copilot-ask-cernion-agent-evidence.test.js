@@ -331,7 +331,8 @@ describe('askCernionAgent evidence bundle', () => {
           return {
             results: [
               {
-                title: 'Netze BW GmbH',
+                title: '69256 Mauer, Baden',
+                subtitle: 'Mauer, Baden, Baden-Württemberg',
                 type: 'VNB',
                 profileUrl: 'https://www.vnbdigital.de/example',
               },
@@ -346,6 +347,7 @@ describe('askCernionAgent evidence bundle', () => {
               installations: [
                 {
                   name: 'PV Mauer Beispiel',
+                  gemeinde: 'Mauer',
                   capacityKW: 750,
                   gridOperatorName: 'Netze BW GmbH',
                 },
@@ -376,6 +378,7 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.groundingAnswer).toContain('Cernion Analysis Planner');
     expect(result.groundingAnswer).toContain('PLZ: 69256');
     expect(result.groundingAnswer).toContain('Leistung: 10 MW');
+    expect(result.groundingAnswer).toContain('Standortauflösung: 69256 Mauer');
     expect(result.groundingAnswer).toContain('VNBdigital-Suche zur PLZ 69256');
     expect(result.groundingAnswer).toContain('MaStR-Schnellcheck PLZ 69256');
     expect(result.evidenceBySource.planning.status).toBe('available');

@@ -760,6 +760,31 @@ function extractCopilotAnalysisSignals(question) {
   };
 }
 
+function extractCopilotLocationLabelFromText(value, postalCode) {
+  const text = compactString(value, 260);
+  if (!text || !postalCode || !text.includes(postalCode)) return null;
+  const afterPostal = text.match(new RegExp(`\\b${postalCode}\\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2})`));
+  if (afterPostal) return `${postalCode} ${afterPostal[1].trim()}`;
+  return null;
+}
+
+function extractCopilotLocationLabelFromObject(entry, postalCode) {
+  if (!entry || typeof entry !== 'object') return null;
+  const directCity =
+    entry.gemeinde ||
+    entry.Gemeinde ||
+    entry.ort ||
+    entry.Ort ||
+    entry.city ||
+    entry.municipality ||
+    entry.locationName;
+  if (postalCode && directCity) return `${postalCode} ${compactString(directCity, 80)}`;
+  return extractCopilotLocationLabelFromText(
+    [entry.title, entry.subtitle, entry.name, entry.location].filter(Boolean).join(' · '),
+    postalCode
+  );
+}
+
 function deriveCopilotSearchTerm(question) {
   const text = compactString(question, 200);
   if (isCopilotEnergySharingQuestion(text)) {
@@ -6094,11 +6119,24 @@ module.exports = {
 
         if (response.kind === 'vnbdigital') {
           const results = Array.isArray(response.result?.results) ? response.result.results : [];
+          const locationLabel = results
+            .map((entry) =>
+              extractCopilotLocationLabelFromObject(entry, analysisSignals.postalCode)
+            )
+            .find(Boolean);
+          if (locationLabel) {
+            addHit(`Standortauflösung: ${locationLabel}`, {
+              kind: response.kind,
+              field: 'locationLabel',
+            });
+          }
           const labels = results
             .slice(0, 3)
             .map((entry) =>
               compactString(
-                [entry.title || entry.name, entry.type, entry.profileUrl].filter(Boolean).join(' · '),
+                [entry.title || entry.name, entry.subtitle, entry.type, entry.profileUrl]
+                  .filter(Boolean)
+                  .join(' · '),
                 180
               )
             )
@@ -6121,6 +6159,17 @@ module.exports = {
                 : Array.isArray(response.result?.results)
                   ? response.result.results
                   : [];
+          const locationLabel = installations
+            .map((entry) =>
+              extractCopilotLocationLabelFromObject(entry, analysisSignals.postalCode)
+            )
+            .find(Boolean);
+          if (locationLabel) {
+            addHit(`Standortauflösung aus MaStR: ${locationLabel}`, {
+              kind: response.kind,
+              field: 'locationLabel',
+            });
+          }
           const total =
             response.result?.data?.total ??
             response.result?.total ??
