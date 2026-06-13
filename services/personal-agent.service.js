@@ -709,8 +709,26 @@ function normalizeCopilotArray(value) {
   return [];
 }
 
+function isCopilotEnergySharingQuestion(question) {
+  const text = String(question || '').toLowerCase();
+  return (
+    /energy\s*sharing|energiesharing|mieterstrom|gemeinschaftliche\s+geb[aä]udeversorgung|gemeinschaftliche\s+erzeugung/.test(
+      text
+    ) ||
+    /strom.*(?:nachbar|teilen|weitergeben|liefern)|(?:nachbar|teilen|weitergeben|liefern).*strom/.test(
+      text
+    ) ||
+    /pv.*(?:nachbar|teilen|weitergeben|liefern)|(?:nachbar|teilen|weitergeben|liefern).*pv/.test(
+      text
+    )
+  );
+}
+
 function deriveCopilotSearchTerm(question) {
   const text = compactString(question, 200);
+  if (isCopilotEnergySharingQuestion(text)) {
+    return 'Energy Sharing §42c EnWG Mieterstrom gemeinschaftliche Gebäudeversorgung Stromlieferung an Dritte PV Nachbar';
+  }
   const locationMatch = text.match(
     /\b(?:in|für|fuer|bei)\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}){0,2})/
   );

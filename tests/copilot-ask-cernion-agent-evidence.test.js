@@ -226,6 +226,70 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.shortAnswer).not.toContain('bundesnetzagentur.de/example.pdf');
   });
 
+  test('expands neighbor electricity sharing questions to Energy Sharing search context', async () => {
+    const service = buildServiceHarness();
+    const handler = PersonalAgentService.actions.askCernionAgent.handler;
+    const calls = [];
+    const ctx = {
+      meta: { tenantId: 'tenant-a' },
+      params: {
+        question: 'Was muss ich machen, um mit meinem Nachbarn Strom zu teilen?',
+        domain: 'auto',
+        maxEvidence: 3,
+        context: {},
+      },
+      call: jest.fn(async (action, params) => {
+        calls.push({ action, params });
+        if (action === 'query.search') {
+          return { query: params.q, domain: params.domain, totalResults: 0, results: [] };
+        }
+
+        if (action === 'knowledge-rag.query') {
+          return {
+            success: true,
+            data: {
+              results: [
+                {
+                  id: 'es-1',
+                  source: 'Cernion Knowledge',
+                  score: 0.91,
+                  referenceText_L0:
+                    'Energy Sharing ist fachlich von Mieterstrom und gemeinschaftlicher Gebäudeversorgung zu unterscheiden; für die Prüfung sind Marktrollen, Messung, Abrechnung und Netzgebiet einzuordnen.',
+                  vectorText:
+                    'Energy Sharing §42c EnWG Mieterstrom gemeinschaftliche Gebäudeversorgung Stromlieferung Nachbar',
+                  metadata: {
+                    docType: 'Cernion-Fachkontext',
+                  },
+                },
+              ],
+            },
+          };
+        }
+
+        if (action === 'datapoint.list') {
+          return { datapoints: [] };
+        }
+
+        if (action === 'object-store.query') {
+          return { docs: [] };
+        }
+
+        throw new Error(`unexpected action ${action}`);
+      }),
+    };
+
+    const result = await handler.call(service, ctx);
+    const knowledgeCall = calls.find((entry) => entry.action === 'knowledge-rag.query');
+
+    expect(knowledgeCall.params.query).toContain('Energy Sharing §42c EnWG');
+    expect(knowledgeCall.params.query).toContain('Stromlieferung an Dritte');
+    expect(result.groundingAnswer).toContain(
+      'Energy Sharing ist fachlich von Mieterstrom und gemeinschaftlicher Gebäudeversorgung zu unterscheiden'
+    );
+    expect(result.groundingAnswer).toContain('RETRIEVAL-HINWEISE');
+    expect(result.shortAnswer).not.toContain('keine belastbare Kurzantwort');
+  });
+
   test('uses evidence-bearing object-store namespaces by default', async () => {
     const service = buildServiceHarness();
     const handler = PersonalAgentService.actions.askCernionAgent.handler;
