@@ -893,6 +893,14 @@ function buildCopilotGroundingAnswer({
       return `${index + 1}. ${source}: ${value}`;
     })
     .filter(Boolean);
+  const retrievalHintLines = (Array.isArray(evidence) ? evidence : [])
+    .map((entry, index) => {
+      const source = compactString(entry?.source || 'Cernion', 120);
+      const hint = compactString(entry?.retrievalHint || '', 500);
+      if (!hint) return null;
+      return `${index + 1}. ${source}: ${hint}`;
+    })
+    .filter(Boolean);
 
   const section = (title, lines, fallback = 'Keine Angabe.') => {
     const safeLines = Array.isArray(lines)
@@ -917,6 +925,12 @@ function buildCopilotGroundingAnswer({
       '',
       section('EVIDENZ', evidenceLines, 'Keine belastbare Evidenz im Rueckgabeobjekt.'),
       '',
+      section(
+        'RETRIEVAL-HINWEISE',
+        retrievalHintLines,
+        'Keine separaten Retrieval-Hinweise im Rueckgabeobjekt.'
+      ),
+      '',
       section('PROZESSKONTEXT', processContext),
       '',
       section('GUARDRAILS', guardrails),
@@ -928,7 +942,7 @@ function buildCopilotGroundingAnswer({
       section('EMPFOHLENE NAECHSTE SCHRITTE', recommendedNextSteps),
       '',
       'ANTWORTREGEL:',
-      'Formuliere eine hilfreiche Antwort aus den vorhandenen Snippets. Bei niedriger Confidence oder unscharfer Evidenz: Unsicherheit sichtbar machen, aber verwertbare Snippet-Inhalte trotzdem zusammenfassen. Nicht aus Modellwissen auffuellen.',
+      'Formuliere eine hilfreiche Antwort aus den vorhandenen Snippets. Retrieval-Hinweise duerfen zur Themenorientierung genutzt werden, aber nicht als alleinige Quelle fuer fachliche Aussagen. Bei niedriger Confidence oder unscharfer Evidenz: Unsicherheit sichtbar machen, aber verwertbare Snippet-Inhalte trotzdem zusammenfassen. Nicht aus Modellwissen auffuellen.',
     ].join('\n'),
     6000
   );
@@ -1070,6 +1084,11 @@ module.exports = {
                         properties: {
                           source: { type: 'string' },
                           value: { type: 'string' },
+                          retrievalHint: {
+                            type: 'string',
+                            description:
+                              'Optional vector/retrieval text for topic orientation; not standalone answer evidence.',
+                          },
                         },
                       },
                     },
@@ -5798,6 +5817,7 @@ module.exports = {
                 .join(' · '),
               520
             ),
+            retrievalHint: compactString(hit.retrievalHint || '', 500) || undefined,
             metadata: {
               hitId: hit.hitId || null,
               timestamp: hit.timestamp || null,

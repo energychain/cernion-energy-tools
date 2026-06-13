@@ -160,7 +160,7 @@ describe('personal-agent-knowledge-rag adapter', () => {
               score: 0.91,
               summary: 'Kurzfassung zum Netzgebiet und VNB-Zuständigkeit.',
               referenceText: 'DO_NOT_EXPOSE_REFERENCE',
-              vectorText: 'DO_NOT_EXPOSE_VECTOR',
+              vectorText: 'Suchvektor: Netzgebiet VNB Zuständigkeit',
               metadata: {
                 docType: 'Festlegung',
                 publishedAt: '2026-01-02T00:00:00.000Z',
@@ -183,12 +183,12 @@ describe('personal-agent-knowledge-rag adapter', () => {
         source: 'BNetzA',
         score: 0.91,
         summary: 'Kurzfassung zum Netzgebiet und VNB-Zuständigkeit.',
+        retrievalHint: 'Suchvektor: Netzgebiet VNB Zuständigkeit',
         timestamp: '2026-01-02T00:00:00.000Z',
         documentType: 'Festlegung',
       },
     ]);
     expect(JSON.stringify(result)).not.toContain('DO_NOT_EXPOSE_REFERENCE');
-    expect(JSON.stringify(result)).not.toContain('DO_NOT_EXPOSE_VECTOR');
   });
 
   test('T-PA-KR-010: queryKnowledgeEvidence keeps canonical RAG snippets when summary is only a URL', async () => {
@@ -205,7 +205,7 @@ describe('personal-agent-knowledge-rag adapter', () => {
               referenceText_L0:
                 'Gemeinschaftliche Versorgungskonzepte muessen anhand Marktrollen, Messung und Abrechnung konkret geprueft werden.',
               referenceText: 'DO_NOT_EXPOSE_REFERENCE',
-              vectorText: 'DO_NOT_EXPOSE_VECTOR',
+              vectorText: 'Energy Sharing Mieterstrom gemeinschaftliche Gebaeudeversorgung',
               metadata: {
                 docType: 'Festlegung',
               },
@@ -222,9 +222,9 @@ describe('personal-agent-knowledge-rag adapter', () => {
 
     expect(result.status).toBe('available');
     expect(result.hits[0].summary).toContain('Gemeinschaftliche Versorgungskonzepte');
+    expect(result.hits[0].retrievalHint).toContain('Energy Sharing Mieterstrom');
     expect(result.hits[0].summary).not.toContain('https://www.bundesnetzagentur.de/example.pdf');
     expect(JSON.stringify(result)).not.toContain('DO_NOT_EXPOSE_REFERENCE');
-    expect(JSON.stringify(result)).not.toContain('DO_NOT_EXPOSE_VECTOR');
   });
 
   test('T-PA-KR-008: queryKnowledgeEvidence returns timeout as first-class status', async () => {

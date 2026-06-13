@@ -2194,6 +2194,10 @@
                           },
                           "value": {
                             "type": "string"
+                          },
+                          "retrievalHint": {
+                            "type": "string",
+                            "description": "Optional vector/retrieval text for topic orientation; not standalone answer evidence."
                           }
                         }
                       }

@@ -306,6 +306,14 @@ function buildSafeEvidenceSummary(
     .slice(0, clampSummaryMaxChars(maxChars));
 }
 
+function buildSafeRetrievalHint(hit = {}, metadata = {}, maxChars = 360) {
+  const hint = String(hit.vectorText || metadata.vectorText || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!hint) return null;
+  return hint.slice(0, Math.max(80, Math.min(600, Math.floor(Number(maxChars) || 360))));
+}
+
 function toSafeEvidenceHit(
   hit = {},
   { summaryMaxChars = DEFAULT_EVIDENCE_SUMMARY_MAX_CHARS } = {}
@@ -323,6 +331,10 @@ function toSafeEvidenceHit(
     score: Number.isFinite(Number(hit?.score)) ? Number(hit.score) : null,
     summary: buildSafeEvidenceSummary(hit, metadata, summaryMaxChars),
   };
+  const retrievalHint = buildSafeRetrievalHint(hit, metadata);
+  if (retrievalHint) {
+    safe.retrievalHint = retrievalHint;
+  }
 
   const timestamp = hit?.timestamp || metadata.timestamp || metadata.publishedAt;
   if (timestamp != null && String(timestamp).trim()) {

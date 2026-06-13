@@ -51,7 +51,7 @@ describe('askCernionAgent evidence bundle', () => {
                   referenceText_L0:
                     'Netzanschlussanfragen in Wiesloch muessen anhand dokumentierter Betreiber- und Prozess-Evidenz beantwortet werden.',
                   referenceText: 'DO_NOT_LEAK_REFERENCE',
-                  vectorText: 'DO_NOT_LEAK_VECTOR',
+                  vectorText: 'Netzanschluss Wiesloch Betreiber Prozess Evidence',
                   metadata: {
                     title: 'BNetzA Netzanschluss Guardrail',
                     docType: 'Festlegung',
@@ -115,6 +115,10 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.groundingAnswer).toContain(
       'Netzanschlussanfragen in Wiesloch muessen anhand dokumentierter Betreiber- und Prozess-Evidenz beantwortet werden.'
     );
+    expect(result.groundingAnswer).toContain('RETRIEVAL-HINWEISE');
+    expect(result.groundingAnswer).toContain(
+      'Netzanschluss Wiesloch Betreiber Prozess Evidence'
+    );
     expect(result.groundingAnswer).toContain('Evidence-Snippets als fachliche Grundlage');
     expect(result.groundingAnswer).toContain('Nicht aus Modellwissen auffuellen');
     expect(result.evidenceBySource.entities.status).toBe('available');
@@ -125,7 +129,6 @@ describe('askCernionAgent evidence bundle', () => {
     expect(JSON.stringify(result)).toContain('netzanschluss-wiesloch-kpi');
     expect(JSON.stringify(result)).toContain('guardrail-wiesloch');
     expect(JSON.stringify(result)).not.toContain('DO_NOT_LEAK_REFERENCE');
-    expect(JSON.stringify(result)).not.toContain('DO_NOT_LEAK_VECTOR');
   });
 
   test('degrades gracefully when supplemental evidence services are unavailable', async () => {
