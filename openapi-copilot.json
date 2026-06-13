@@ -2032,6 +2032,7 @@
                   "required": [
                     "success",
                     "shortAnswer",
+                    "groundingAnswer",
                     "evidence",
                     "processContext",
                     "openQuestions",
@@ -2048,6 +2049,10 @@
                     },
                     "shortAnswer": {
                       "type": "string"
+                    },
+                    "groundingAnswer": {
+                      "type": "string",
+                      "description": "Prompt-ready Cernion grounding package for Copilot composition. Contains user question, answer, evidence, guardrails, risks, open questions and answer rules in one text field."
                     },
                     "confidence": {
                       "type": "string",

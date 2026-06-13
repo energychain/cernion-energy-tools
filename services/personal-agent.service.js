@@ -873,6 +873,65 @@ function buildCopilotEvidenceShortAnswer({
   return compactString(`${answer}${caution}`, 900);
 }
 
+function buildCopilotGroundingAnswer({
+  question,
+  searchTerm,
+  shortAnswer,
+  confidence,
+  evidence = [],
+  processContext = [],
+  guardrails = [],
+  risks = [],
+  openQuestions = [],
+  recommendedNextSteps = [],
+} = {}) {
+  const evidenceLines = (Array.isArray(evidence) ? evidence : [])
+    .map((entry, index) => {
+      const source = compactString(entry?.source || 'Cernion', 120);
+      const value = compactString(entry?.value || '', 700);
+      if (!value) return null;
+      return `${index + 1}. ${source}: ${value}`;
+    })
+    .filter(Boolean);
+
+  const section = (title, lines, fallback = 'Keine Angabe.') => {
+    const safeLines = Array.isArray(lines)
+      ? lines.map((line) => compactString(line, 900)).filter(Boolean)
+      : [];
+    return [`${title}:`, safeLines.length > 0 ? safeLines.join('\n') : fallback].join('\n');
+  };
+
+  return compactString(
+    [
+      'GROUNDING ANSWER FUER COPILOT',
+      'Verwende diesen Cernion-Kontext als einzige fachliche Grundlage fuer die Antwort.',
+      'Du darfst umformulieren, aber keine Rechtsquellen, Termine, Prozessregeln oder Fakten ergaenzen, die hier nicht enthalten sind.',
+      '',
+      section('BENUTZERFRAGE', [question || searchTerm]),
+      '',
+      section('KERNANTWORT AUS CERNION', [shortAnswer]),
+      '',
+      section('CONFIDENCE', [confidence]),
+      '',
+      section('EVIDENZ', evidenceLines, 'Keine belastbare Evidenz im Rueckgabeobjekt.'),
+      '',
+      section('PROZESSKONTEXT', processContext),
+      '',
+      section('GUARDRAILS', guardrails),
+      '',
+      section('RISIKEN / UNSICHERHEITEN', risks, 'Keine zusaetzlichen Risiken gemeldet.'),
+      '',
+      section('OFFENE FRAGEN', openQuestions, 'Keine offenen Fragen gemeldet.'),
+      '',
+      section('EMPFOHLENE NAECHSTE SCHRITTE', recommendedNextSteps),
+      '',
+      'ANTWORTREGEL:',
+      'Wenn die Evidenz nicht reicht oder unscharf ist, sage das klar und frage nach Praezisierung. Nicht aus Modellwissen auffuellen.',
+    ].join('\n'),
+    6000
+  );
+}
+
 module.exports = {
   name: 'personal-agent',
 
@@ -984,6 +1043,7 @@ module.exports = {
                   required: [
                     'success',
                     'shortAnswer',
+                    'groundingAnswer',
                     'evidence',
                     'processContext',
                     'openQuestions',
@@ -995,6 +1055,11 @@ module.exports = {
                     success: { type: 'boolean' },
                     sessionId: { type: 'string' },
                     shortAnswer: { type: 'string' },
+                    groundingAnswer: {
+                      type: 'string',
+                      description:
+                        'Prompt-ready Cernion grounding package for Copilot composition. Contains user question, answer, evidence, guardrails, risks, open questions and answer rules in one text field.',
+                    },
                     confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
                     evidence: {
                       type: 'array',
@@ -5929,10 +5994,52 @@ module.exports = {
         'Bei fehlender oder widersprüchlicher Evidence muss Copilot Unsicherheit benennen und Rückfragen stellen.',
       ];
 
+      const risks = [
+        searchResult.error ? compactString(searchResult.error, 240) : null,
+        hasEvidence && !hasUsableShortAnswerEvidence
+          ? 'Treffer vorhanden, aber keine direkt verwertbare Kurzantwort-Evidenz zum Suchthema.'
+          : null,
+        knowledgeEvidence.status === 'timeout'
+          ? 'Knowledge-RAG Timeout: Antwort nicht ohne Hinweis finalisieren.'
+          : null,
+        knowledgeEvidence.status === 'unavailable'
+          ? 'Knowledge-RAG nicht verfügbar: zentrale Guardrails konnten nicht geladen werden.'
+          : null,
+        datapointEvidence.status === 'timeout_or_error'
+          ? 'Datapoint-Evidence konnte nicht vollständig geladen werden.'
+          : null,
+        objectEvidence.status === 'timeout_or_error'
+          ? 'Object-Store-Evidence konnte nicht vollständig geladen werden.'
+          : null,
+      ].filter(Boolean);
+      const openQuestions = hasUsableShortAnswerEvidence
+        ? []
+        : [
+            'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll geprüft werden?',
+          ];
+      const recommendedNextSteps = hasUsableShortAnswerEvidence
+        ? ['Copilot soll die Evidenztreffer fachlich einordnen und bei Bedarf nach Details fragen.']
+        : [
+            'Suchbegriff präzisieren oder Cernion-Kontext wie Kommune, VNB, Projekt oder Prozess ergänzen.',
+          ];
+      const groundingAnswer = buildCopilotGroundingAnswer({
+        question,
+        searchTerm,
+        shortAnswer,
+        confidence,
+        evidence,
+        processContext,
+        guardrails,
+        risks,
+        openQuestions,
+        recommendedNextSteps,
+      });
+
       return {
         success: true,
         sessionId,
         shortAnswer,
+        groundingAnswer,
         confidence,
         evidence,
         evidenceBySource: {
@@ -5954,36 +6061,9 @@ module.exports = {
           .slice(0, maxEvidence)
           .map((entry) => compactString(entry.title || entry.id, 160))
           .filter(Boolean),
-        risks: [
-          searchResult.error ? compactString(searchResult.error, 240) : null,
-          hasEvidence && !hasUsableShortAnswerEvidence
-            ? 'Treffer vorhanden, aber keine direkt verwertbare Kurzantwort-Evidenz zum Suchthema.'
-            : null,
-          knowledgeEvidence.status === 'timeout'
-            ? 'Knowledge-RAG Timeout: Antwort nicht ohne Hinweis finalisieren.'
-            : null,
-          knowledgeEvidence.status === 'unavailable'
-            ? 'Knowledge-RAG nicht verfügbar: zentrale Guardrails konnten nicht geladen werden.'
-            : null,
-          datapointEvidence.status === 'timeout_or_error'
-            ? 'Datapoint-Evidence konnte nicht vollständig geladen werden.'
-            : null,
-          objectEvidence.status === 'timeout_or_error'
-            ? 'Object-Store-Evidence konnte nicht vollständig geladen werden.'
-            : null,
-        ].filter(Boolean),
-        openQuestions: hasUsableShortAnswerEvidence
-          ? []
-          : [
-              'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll geprüft werden?',
-            ],
-        recommendedNextSteps: hasUsableShortAnswerEvidence
-          ? [
-              'Copilot soll die Evidenztreffer fachlich einordnen und bei Bedarf nach Details fragen.',
-            ]
-          : [
-              'Suchbegriff präzisieren oder Cernion-Kontext wie Kommune, VNB, Projekt oder Prozess ergänzen.',
-            ],
+        risks,
+        openQuestions,
+        recommendedNextSteps,
         allowedActions: ['explain', 'retrieve_evidence', 'prepare_intent'],
         forbiddenActions: ['execute', 'confirm', 'delete', 'override', 'sign', 'nominate'],
         routing: {

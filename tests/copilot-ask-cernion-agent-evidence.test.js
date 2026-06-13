@@ -103,6 +103,14 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.success).toBe(true);
     expect(result.shortAnswer).toContain('Netzanschluss-Validierung Wiesloch');
     expect(result.shortAnswer).not.toMatch(/Evidenztreffer .* gefunden/);
+    expect(result.groundingAnswer).toContain('GROUNDING ANSWER FUER COPILOT');
+    expect(result.groundingAnswer).toContain(
+      'Welche Guardrails gelten fuer Netzanschluss Wiesloch?'
+    );
+    expect(result.groundingAnswer).toContain('KERNANTWORT AUS CERNION');
+    expect(result.groundingAnswer).toContain('EVIDENZ');
+    expect(result.groundingAnswer).toContain('Copilot Guardrail Wiesloch');
+    expect(result.groundingAnswer).toContain('Nicht aus Modellwissen auffuellen');
     expect(result.evidenceBySource.entities.status).toBe('available');
     expect(result.evidenceBySource.knowledge.status).toBe('available');
     expect(result.evidenceBySource.datapoints.status).toBe('available');
@@ -188,6 +196,13 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.evidence).toHaveLength(4);
     expect(result.shortAnswer).toContain('Treffer gefunden');
     expect(result.shortAnswer).toContain('keine belastbare Kurzantwort');
+    expect(result.groundingAnswer).toContain('Wie ist Energy Sharing geregelt');
+    expect(result.groundingAnswer).toContain(
+      'Treffer vorhanden, aber keine direkt verwertbare Kurzantwort-Evidenz'
+    );
+    expect(result.groundingAnswer).toContain(
+      'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll geprüft werden?'
+    );
     expect(result.risks).toContain(
       'Treffer vorhanden, aber keine direkt verwertbare Kurzantwort-Evidenz zum Suchthema.'
     );
