@@ -163,6 +163,7 @@ const {
   buildDossierMarkdown,
   buildRendererSystemHint,
   buildReasoningSummary,
+  buildFollowUpMetadata,
   generateDossierId,
 } = require('../src/answer-dossier-builder'); // v0.63.0 #220
 
@@ -1538,11 +1539,15 @@ module.exports = {
                     sessionId: { type: 'string' },
                     dossierId: { type: 'string' },
                     mode: { type: 'string', enum: ['answer_dossier', 'answer_dossier_followup'] },
-                    answerMode: { type: 'string', enum: ['clarification_needed', 'management_brief', 'evidence_collection', 'prepare_intent'] },
-                    userContext: { type: 'string', enum: ['unknown', 'management', 'target_grid_planning', 'process_action'] },
-                    processStage: { type: 'string', enum: ['initial', 'evidence_collection', 'action_requested', 'completed'] },
+                    answerMode: { type: 'string', enum: ['clarification_needed', 'management_brief', 'evidence_collection', 'process_check', 'prepare_intent', 'partial_async', 'final_answer'] },
+                    userContext: { type: 'string', enum: ['unknown', 'mayor', 'management', 'target_grid_planning', 'regulatory', 'technical_operator', 'process_action'] },
+                    processStage: { type: 'string', enum: ['initial', 'context_clarification', 'evidence_collection', 'synthesis', 'async_pending', 'intent_prepared', 'action_requested', 'completed'] },
                     confidence: { type: 'string', enum: ['low', 'medium', 'high'] },
-                    completionState: { type: 'string', enum: ['completed', 'partial'] },
+                    completionState: { type: 'string', enum: ['completed', 'partial', 'async_pending'] },
+                    dossierVersion: { type: 'integer', description: 'Turn index within this session, starting at 1.' },
+                    parentDossierId: { type: 'string', nullable: true },
+                    latestDossierId: { type: 'string' },
+                    followUp: { type: 'object', nullable: true, description: 'Follow-up instructions for partial/async dossiers.' },
                     timeBudget: { type: 'object' },
                     timeoutWarning: { type: 'string', nullable: true },
                     dossierMarkdown: { type: 'string' },
@@ -1556,6 +1561,16 @@ module.exports = {
         },
       },
       async handler(ctx) {
+        // Auth guard — must have at least one auth signal from the request
+        const hasAuth = !!(ctx.meta.authUser || ctx.meta.apiToken || ctx.meta.cernionToken);
+        if (!hasAuth) {
+          throw new MoleculerClientError(
+            'Authentication required. Provide a valid API token or session token.',
+            401,
+            'AUTH_REQUIRED'
+          );
+        }
+
         const {
           question,
           domain = 'auto',
@@ -1566,8 +1581,14 @@ module.exports = {
           context = {},
         } = ctx.params;
 
+        // context.tenantId must never override the authenticated tenantId
         const tenantId = getTenantId(ctx);
-        const userId = ctx.meta?.userId || context?.userId || null;
+        if (context?.tenantId && context.tenantId !== tenantId) {
+          this.logger?.warn?.(
+            `answerDossier: context.tenantId (${context.tenantId}) differs from authenticated tenantId (${tenantId}) — ignoring context.tenantId`
+          );
+        }
+        const userId = ctx.meta?.authUser?.userId || ctx.meta?.userId || null;
 
         // generate or preserve sessionId
         const sessionId = ctx.params.sessionId || `dossier-${generateDossierId()}`;
@@ -1694,9 +1715,12 @@ module.exports = {
           question,
         });
 
+        const dossierVersion = priorTurnsCount + 1;
+
         // Compilation phase — always runs
         const dossierMarkdown = buildDossierMarkdown({
           dossierId,
+          dossierVersion,
           sessionId,
           question,
           dossierState: dossierContext,
@@ -1710,7 +1734,8 @@ module.exports = {
         });
 
         const elapsedMs = Date.now() - startTime;
-        const rendererSystemHint = buildRendererSystemHint(context?.channel || null);
+        const rendererSystemHint = buildRendererSystemHint();
+        const followUp = buildFollowUpMetadata({ completionState, sessionId, dossierId });
 
         // Persist dossier state to session
         const updatedDossierState = {
@@ -1727,7 +1752,7 @@ module.exports = {
         const newTurn = {
           dossierId,
           parentDossierId: parentDossierId || null,
-          version: priorTurnsCount + 1,
+          dossierVersion,
           question: compactString(question, 500),
           processStage: dossierContext.processStage,
           userContext: dossierContext.userContext,
@@ -1755,12 +1780,16 @@ module.exports = {
           success: true,
           sessionId,
           dossierId,
+          dossierVersion,
+          parentDossierId: parentDossierId || null,
+          latestDossierId: dossierId,
           mode,
           answerMode: dossierContext.answerMode,
           userContext: dossierContext.userContext,
           processStage: dossierContext.processStage,
           confidence: dossierContext.confidence,
           completionState,
+          followUp,
           timeBudget: { ...timeBudget, elapsedMs },
           timeoutWarning,
           dossierMarkdown,
@@ -1768,8 +1797,9 @@ module.exports = {
           auditTrail: {
             correlationId: dossierId,
             dossierId,
+            dossierVersion,
             parentDossierId: parentDossierId || null,
-            version: priorTurnsCount + 1,
+            version: dossierVersion,
             createdAt: new Date().toISOString(),
           },
         };

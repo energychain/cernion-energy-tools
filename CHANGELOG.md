@@ -5,6 +5,23 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.63.1] — 2026-06-14
+
+### Fixed
+- **Auth guard**: `POST /api/copilot/answer-dossier` now rejects unauthenticated calls with HTTP 401 (`AUTH_REQUIRED`). Previously the endpoint was callable without any auth token. `context.tenantId` is ignored if it differs from the authenticated tenant — a warning is logged instead.
+- **processStage regression**: When `userContext=target_grid_planning` (or any known context), `processStage` now correctly advances to `evidence_collection` even when evidence is thin. Previously it could remain `initial` on follow-up turns.
+
+### Added (enum extensions, backwards-compatible)
+- `userContext` new values: `mayor`, `regulatory`, `technical_operator`
+- `processStage` new values: `context_clarification` (replaces `initial` for unknown-context turns), `synthesis`, `async_pending`, `intent_prepared` (replaces `action_requested` for process-action turns); `action_requested` kept for session backwards-compatibility
+- `answerMode` new values: `process_check`, `partial_async`, `final_answer`
+- `completionState` new value: `async_pending` (for timeout/pending backend phases)
+- First-class response fields: `dossierVersion` (integer, 1-based per session), `parentDossierId`, `latestDossierId`
+- `followUp` response object for partial/async dossiers with `available`, `pollAfterMs`, `reason`, and `query` fields for n8n/Copilot follow-up workflows
+- `dossier_version` added to `## Metadata` section in dossier Markdown
+- `buildFollowUpMetadata()` exported from `src/answer-dossier-builder.js`
+- 15 contract/golden tests (up from 10), including auth guard, processStage correction, partial/async dossier, first-class version fields, two-turn session continuity
+
 ## [0.63.0] — 2026-06-14
 
 ### Added

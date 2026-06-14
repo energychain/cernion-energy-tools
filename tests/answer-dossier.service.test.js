@@ -1,5 +1,6 @@
 'use strict';
 
+const path = require('path');
 const PersonalAgentService = require('../services/personal-agent.service');
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
@@ -7,17 +8,16 @@ const PersonalAgentService = require('../services/personal-agent.service');
 function buildServiceHarness() {
   return {
     ...PersonalAgentService.methods,
+    logger: { warn: jest.fn(), debug: jest.fn(), info: jest.fn() },
   };
 }
 
 /**
- * Build a minimal ctx mock that stubs out all object-store / search / knowledge-rag calls
- * so the answerDossier handler runs deterministically without PouchDB or network access.
- *
- * @param {object} [overrides] - Optional per-action response overrides keyed by action name
- * @param {object} [meta]      - Optional ctx.meta fields
+ * Builds a minimal ctx mock. All tests run the handler directly (no HTTP layer),
+ * so we include a default authUser to pass the auth guard.
+ * Tests for the auth guard explicitly omit authUser/apiToken/cernionToken.
  */
-function buildCtx(params, overrides = {}, meta = { tenantId: 'test-tenant' }) {
+function buildCtx(params, overrides = {}, meta = { tenantId: 'test-tenant', authUser: { authType: 'test', userId: 'test-user' } }) {
   return {
     meta,
     params,
@@ -27,14 +27,12 @@ function buildCtx(params, overrides = {}, meta = { tenantId: 'test-tenant' }) {
           ? overrides[action](callParams)
           : overrides[action];
       }
-      // Default stubs — no real data, avoids PouchDB / network
       if (action === 'object-store.get') return null;
       if (action === 'object-store.put') return { ok: true };
       if (action === 'object-store.query') return { docs: [] };
       if (action === 'query.search') return { results: [], totalResults: 0 };
       if (action === 'knowledge-rag.query') return { success: true, data: { results: [] } };
       if (action === 'datapoint.list') return { datapoints: [] };
-      // Any other action → safely return empty
       return {};
     }),
   };
@@ -45,6 +43,7 @@ const handler = PersonalAgentService.actions.answerDossier.handler;
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('answerDossier action', () => {
+
   // 1. Mandatory sections present
   test('dossierMarkdown contains all 11 mandatory heading strings', async () => {
     const service = buildServiceHarness();
@@ -74,8 +73,6 @@ describe('answerDossier action', () => {
 
     const result = await handler.call(service, ctx);
 
-    expect(result.dossierMarkdown).toContain(question);
-    // Ensure it appears in the Final Renderer Instruction section
     const finalInstructionIdx = result.dossierMarkdown.indexOf('## Final Renderer Instruction');
     const questionIdx = result.dossierMarkdown.lastIndexOf(question);
     expect(finalInstructionIdx).toBeGreaterThan(-1);
@@ -104,8 +101,8 @@ describe('answerDossier action', () => {
     expect(result.dossierMarkdown).toContain('## Final Renderer Instruction');
   });
 
-  // 5. Unknown context → clarification_needed
-  test('unknown question → answerMode=clarification_needed and userContext=unknown', async () => {
+  // 5. Unknown context → clarification_needed, context_clarification processStage
+  test('unknown question → answerMode=clarification_needed, userContext=unknown, processStage=context_clarification', async () => {
     const service = buildServiceHarness();
     const ctx = buildCtx({ question: 'Was ist das?' });
 
@@ -113,10 +110,11 @@ describe('answerDossier action', () => {
 
     expect(result.answerMode).toBe('clarification_needed');
     expect(result.userContext).toBe('unknown');
+    expect(result.processStage).toBe('context_clarification');
   });
 
-  // 6. target_grid_planning → evidence_collection
-  test('Zielnetzplanung question → answerMode=evidence_collection and userContext=target_grid_planning', async () => {
+  // 6. target_grid_planning → evidence_collection answerMode AND processStage
+  test('Zielnetzplanung question → answerMode=evidence_collection, userContext=target_grid_planning, processStage=evidence_collection', async () => {
     const service = buildServiceHarness();
     const ctx = buildCtx({ question: 'Was ist der Status der Zielnetzplanung?' });
 
@@ -124,21 +122,22 @@ describe('answerDossier action', () => {
 
     expect(result.answerMode).toBe('evidence_collection');
     expect(result.userContext).toBe('target_grid_planning');
+    expect(result.processStage).toBe('evidence_collection');
   });
 
   // 7. Management context → management_brief
-  test('Bürgermeister-Überblick question → answerMode=management_brief', async () => {
+  test('Bürgermeister-Überblick question → answerMode=management_brief, userContext=mayor', async () => {
     const service = buildServiceHarness();
     const ctx = buildCtx({ question: 'Bürgermeister-Überblick: wie ist der aktuelle Stand?' });
 
     const result = await handler.call(service, ctx);
 
     expect(result.answerMode).toBe('management_brief');
-    expect(result.userContext).toBe('management');
+    expect(result.userContext).toBe('mayor');
   });
 
   // 8. Process action → prepare_intent
-  test('Process action question → answerMode=prepare_intent', async () => {
+  test('Process action question → answerMode=prepare_intent, userContext=process_action, processStage=intent_prepared', async () => {
     const service = buildServiceHarness();
     const ctx = buildCtx({ question: 'Bitte den Redispatch-Prozess einleiten' });
 
@@ -146,6 +145,7 @@ describe('answerDossier action', () => {
 
     expect(result.answerMode).toBe('prepare_intent');
     expect(result.userContext).toBe('process_action');
+    expect(result.processStage).toBe('intent_prepared');
   });
 
   // 9. timeoutWarning emitted when timeBudgetMs >= 25000
@@ -159,25 +159,83 @@ describe('answerDossier action', () => {
     expect(result.timeoutWarning.length).toBeGreaterThan(0);
   });
 
-  // 10. Two-turn session continuity
-  test('two-turn session: second turn with target_grid_planning context persists userContext', async () => {
+  // 10. dossierVersion, parentDossierId, latestDossierId are first-class response fields
+  test('dossierVersion, parentDossierId, latestDossierId are present as first-class fields', async () => {
     const service = buildServiceHarness();
-    const sessionId = 'test-session-continuity';
+    const ctx = buildCtx({ question: 'Test first-class version fields' });
+
+    const result = await handler.call(service, ctx);
+
+    expect(typeof result.dossierVersion).toBe('number');
+    expect(result.dossierVersion).toBe(1);
+    expect(result).toHaveProperty('parentDossierId');
+    expect(result).toHaveProperty('latestDossierId');
+    expect(result.latestDossierId).toBe(result.dossierId);
+  });
+
+  // 11. followUp is null for completed dossiers, present for partial
+  test('followUp is null when completionState=completed', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx({ question: 'Normales Dossier ohne Timeout' });
+
+    const result = await handler.call(service, ctx);
+
+    // With no actual evidence calls failing, completionState should be completed
+    expect(result.completionState).toBe('completed');
+    expect(result.followUp).toBeNull();
+  });
+
+  // 12. followUp metadata appears for partial dossiers (simulated timeout)
+  test('followUp metadata present when completionState=partial', async () => {
+    const service = buildServiceHarness();
+    // Simulate knowledge RAG returning timeout status
+    const ctx = buildCtx(
+      { question: 'Evidence Timeout Test' },
+      {
+        'knowledge-rag.query': async () => {
+          throw new Error('timeout');
+        },
+      }
+    );
+
+    // Force partial by making knowledge evidence throw; handler catches and sets partial
+    // We need to also make it fall into the partial path by overriding collectCopilotKnowledgeEvidence
+    const service2 = {
+      ...buildServiceHarness(),
+      async collectCopilotKnowledgeEvidence() {
+        return { status: 'timeout', hits: [] };
+      },
+      async searchCopilotEntities() {
+        return { results: [] };
+      },
+    };
+    const ctx2 = buildCtx({ question: 'Evidence Timeout Test' });
+    const result = await handler.call(service2, ctx2);
+
+    expect(result.dossierMarkdown).toBeTruthy();
+    expect(result.dossierMarkdown).toContain('## Final Renderer Instruction');
+    expect(result.completionState).toBe('partial');
+    expect(result.followUp).not.toBeNull();
+    expect(result.followUp.available).toBe(true);
+    expect(typeof result.followUp.pollAfterMs).toBe('number');
+    expect(result.followUp.query.mode).toBe('answer_dossier_followup');
+    expect(result.followUp.query.sessionId).toBe(result.sessionId);
+  });
+
+  // 13. Two-turn session continuity: processStage advances to evidence_collection
+  test('two-turn: turn 2 Zielnetzplanung → userContext=target_grid_planning, processStage=evidence_collection, dossierVersion=2', async () => {
+    const service = buildServiceHarness();
+    const sessionId = 'test-session-continuity-v2';
 
     // Turn 1 — unknown question
-    const ctx1 = buildCtx(
-      { question: 'Ich habe eine allgemeine Frage', sessionId },
-      {},
-      { tenantId: 'test-tenant' }
-    );
+    const ctx1 = buildCtx({ question: 'Ich habe eine allgemeine Frage', sessionId });
     const result1 = await handler.call(service, ctx1);
 
     expect(result1.userContext).toBe('unknown');
-    expect(result1.auditTrail.version).toBe(1);
+    expect(result1.processStage).toBe('context_clarification');
+    expect(result1.dossierVersion).toBe(1);
 
-    // Simulate session persistence: capture what was written in turn 1
-    // The handler calls object-store.get (to read) then persistSession which calls object-store.put
-    // We reconstruct the dossier session state from result1 to inject as prior state in turn 2
+    // Build prior session state from turn 1 result
     const savedDossierState = {
       processStage: result1.processStage,
       userContext: result1.userContext,
@@ -192,7 +250,7 @@ describe('answerDossier action', () => {
       {
         dossierId: result1.dossierId,
         parentDossierId: null,
-        version: 1,
+        dossierVersion: 1,
         question: 'Ich habe eine allgemeine Frage',
         processStage: result1.processStage,
         userContext: result1.userContext,
@@ -203,30 +261,56 @@ describe('answerDossier action', () => {
       },
     ];
 
-    // Turn 2 — Zielnetzplanung question in same session; mock object-store to return prior state
+    // Turn 2 — Zielnetzplanung, same sessionId, prior session state injected
     const ctx2 = buildCtx(
       { question: 'Es geht um Zielnetzplanung', sessionId },
       {
         'object-store.get': (p) => {
           if (p && p.key === sessionId) {
-            return {
-              payload: {
-                dossier: {
-                  state: savedDossierState,
-                  turns: savedDossierTurns,
-                },
-              },
-            };
+            return { payload: { dossier: { state: savedDossierState, turns: savedDossierTurns } } };
           }
           return null;
         },
-      },
-      { tenantId: 'test-tenant' }
+      }
     );
-
     const result2 = await handler.call(service, ctx2);
 
     expect(result2.userContext).toBe('target_grid_planning');
+    expect(result2.answerMode).toBe('evidence_collection');
+    expect(result2.processStage).toBe('evidence_collection');
+    expect(result2.dossierVersion).toBe(2);
     expect(result2.auditTrail.version).toBe(2);
   });
+
+  // 14. Auth guard — unauthenticated call throws AUTH_REQUIRED
+  test('call without authUser/apiToken/cernionToken throws AUTH_REQUIRED (401)', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx(
+      { question: 'Unauthenticated test' },
+      {},
+      { tenantId: null } // no auth signals
+    );
+    // Explicitly remove all auth signals
+    delete ctx.meta.authUser;
+    delete ctx.meta.apiToken;
+    delete ctx.meta.cernionToken;
+
+    await expect(handler.call(service, ctx)).rejects.toMatchObject({ code: 401, type: 'AUTH_REQUIRED' });
+  });
+
+  // 15. openapi-copilot.json does not expose answer-dossier
+  test('openapi-copilot.json does not contain answer-dossier path', () => {
+    const copilotPath = path.join(__dirname, '..', 'openapi-copilot.json');
+    let copilotSpec;
+    try {
+      copilotSpec = require(copilotPath);
+    } catch (_e) {
+      // File may not exist in all environments — skip if missing
+      return;
+    }
+    const specStr = JSON.stringify(copilotSpec);
+    expect(specStr).not.toContain('answer-dossier');
+    expect(specStr).not.toContain('answerDossier');
+  });
+
 });

@@ -1,17 +1,25 @@
 'use strict';
 
-const { v4: uuidv4 } = require('uuid'); // already a dependency
+const { v4: uuidv4 } = require('uuid');
 
 const DOSSIER_USER_CONTEXT = Object.freeze({
   UNKNOWN: 'unknown',
+  MAYOR: 'mayor',
   MANAGEMENT: 'management',
   TARGET_GRID_PLANNING: 'target_grid_planning',
+  REGULATORY: 'regulatory',
+  TECHNICAL_OPERATOR: 'technical_operator',
   PROCESS_ACTION: 'process_action',
 });
 
 const DOSSIER_PROCESS_STAGE = Object.freeze({
   INITIAL: 'initial',
+  CONTEXT_CLARIFICATION: 'context_clarification',
   EVIDENCE_COLLECTION: 'evidence_collection',
+  SYNTHESIS: 'synthesis',
+  ASYNC_PENDING: 'async_pending',
+  INTENT_PREPARED: 'intent_prepared',
+  // kept for session backwards-compatibility with v0.63.0 state
   ACTION_REQUESTED: 'action_requested',
   COMPLETED: 'completed',
 });
@@ -20,7 +28,10 @@ const DOSSIER_ANSWER_MODE = Object.freeze({
   CLARIFICATION_NEEDED: 'clarification_needed',
   MANAGEMENT_BRIEF: 'management_brief',
   EVIDENCE_COLLECTION: 'evidence_collection',
+  PROCESS_CHECK: 'process_check',
   PREPARE_INTENT: 'prepare_intent',
+  PARTIAL_ASYNC: 'partial_async',
+  FINAL_ANSWER: 'final_answer',
 });
 
 const DOSSIER_CONFIDENCE = Object.freeze({
@@ -32,6 +43,7 @@ const DOSSIER_CONFIDENCE = Object.freeze({
 const DOSSIER_COMPLETION_STATE = Object.freeze({
   COMPLETED: 'completed',
   PARTIAL: 'partial',
+  ASYNC_PENDING: 'async_pending',
 });
 
 const FORBIDDEN_CLAIM_TEXTS = [
@@ -63,40 +75,68 @@ function computeTimeBudget(totalBudgetMs) {
   }
 }
 
+// Maps userContext → default answerMode
+const USER_CONTEXT_TO_ANSWER_MODE = {
+  [DOSSIER_USER_CONTEXT.UNKNOWN]: DOSSIER_ANSWER_MODE.CLARIFICATION_NEEDED,
+  [DOSSIER_USER_CONTEXT.MAYOR]: DOSSIER_ANSWER_MODE.MANAGEMENT_BRIEF,
+  [DOSSIER_USER_CONTEXT.MANAGEMENT]: DOSSIER_ANSWER_MODE.MANAGEMENT_BRIEF,
+  [DOSSIER_USER_CONTEXT.TARGET_GRID_PLANNING]: DOSSIER_ANSWER_MODE.EVIDENCE_COLLECTION,
+  [DOSSIER_USER_CONTEXT.REGULATORY]: DOSSIER_ANSWER_MODE.PROCESS_CHECK,
+  [DOSSIER_USER_CONTEXT.TECHNICAL_OPERATOR]: DOSSIER_ANSWER_MODE.EVIDENCE_COLLECTION,
+  [DOSSIER_USER_CONTEXT.PROCESS_ACTION]: DOSSIER_ANSWER_MODE.PREPARE_INTENT,
+};
+
 function classifyDossierContext({ question = '', priorUserContext = null, priorProcessStage = null, domain = 'auto', evidenceCount = 0 }) {
-  // userContext — detect from question, preserve prior if already known
-  let userContext = priorUserContext && priorUserContext !== DOSSIER_USER_CONTEXT.UNKNOWN
-    ? priorUserContext
-    : DOSSIER_USER_CONTEXT.UNKNOWN;
+  // Preserve known prior userContext; re-detect only when unknown
+  let userContext =
+    priorUserContext && priorUserContext !== DOSSIER_USER_CONTEXT.UNKNOWN
+      ? priorUserContext
+      : DOSSIER_USER_CONTEXT.UNKNOWN;
 
   if (userContext === DOSSIER_USER_CONTEXT.UNKNOWN) {
     const q = question.toLowerCase();
     if (/zielnetz|netzplanung|netzentwicklung|netzausbau|trassen/.test(q)) {
       userContext = DOSSIER_USER_CONTEXT.TARGET_GRID_PLANNING;
-    } else if (/bürgermeister|management|vorstand|geschäftsführ|entscheid|überblick/.test(q)) {
+    } else if (/bürgermeister|buergermeister|mayor/.test(q)) {
+      userContext = DOSSIER_USER_CONTEXT.MAYOR;
+    } else if (/management|vorstand|geschäftsführ|entscheid|überblick/.test(q)) {
       userContext = DOSSIER_USER_CONTEXT.MANAGEMENT;
+    } else if (/regulier|bundesnetzagentur|behörde|aufsicht|compliance|genehmigung/.test(q)) {
+      userContext = DOSSIER_USER_CONTEXT.REGULATORY;
+    } else if (/technisch|betrieb|wartung|messung|schaltung|netzführung|dispatching/.test(q)) {
+      userContext = DOSSIER_USER_CONTEXT.TECHNICAL_OPERATOR;
     } else if (/prozess starten|auslösen|durchführen|beauftrag|freigeben|abschicken|anmelden|einleiten/.test(q)) {
       userContext = DOSSIER_USER_CONTEXT.PROCESS_ACTION;
     }
   }
 
-  // answerMode from userContext
-  const answerModeMap = {
-    [DOSSIER_USER_CONTEXT.UNKNOWN]: DOSSIER_ANSWER_MODE.CLARIFICATION_NEEDED,
-    [DOSSIER_USER_CONTEXT.MANAGEMENT]: DOSSIER_ANSWER_MODE.MANAGEMENT_BRIEF,
-    [DOSSIER_USER_CONTEXT.TARGET_GRID_PLANNING]: DOSSIER_ANSWER_MODE.EVIDENCE_COLLECTION,
-    [DOSSIER_USER_CONTEXT.PROCESS_ACTION]: DOSSIER_ANSWER_MODE.PREPARE_INTENT,
-  };
-  const answerMode = answerModeMap[userContext];
+  const answerMode = USER_CONTEXT_TO_ANSWER_MODE[userContext] || DOSSIER_ANSWER_MODE.CLARIFICATION_NEEDED;
 
-  // processStage
+  // processStage — derived from userContext; known context always advances beyond initial
   let processStage;
   if (userContext === DOSSIER_USER_CONTEXT.PROCESS_ACTION) {
-    processStage = DOSSIER_PROCESS_STAGE.ACTION_REQUESTED;
-  } else if (evidenceCount > 0 || (priorProcessStage && priorProcessStage !== DOSSIER_PROCESS_STAGE.INITIAL)) {
-    processStage = DOSSIER_PROCESS_STAGE.EVIDENCE_COLLECTION;
+    processStage = DOSSIER_PROCESS_STAGE.INTENT_PREPARED;
+  } else if (userContext === DOSSIER_USER_CONTEXT.UNKNOWN) {
+    processStage = DOSSIER_PROCESS_STAGE.CONTEXT_CLARIFICATION;
   } else {
-    processStage = DOSSIER_PROCESS_STAGE.INITIAL;
+    // All known user contexts → evidence_collection; never leave at initial
+    processStage = DOSSIER_PROCESS_STAGE.EVIDENCE_COLLECTION;
+  }
+
+  // Preserve prior stage if it's further along the pipeline (never regress)
+  const STAGE_ORDER = [
+    DOSSIER_PROCESS_STAGE.INITIAL,
+    DOSSIER_PROCESS_STAGE.CONTEXT_CLARIFICATION,
+    DOSSIER_PROCESS_STAGE.EVIDENCE_COLLECTION,
+    DOSSIER_PROCESS_STAGE.SYNTHESIS,
+    DOSSIER_PROCESS_STAGE.INTENT_PREPARED,
+    DOSSIER_PROCESS_STAGE.ACTION_REQUESTED, // v0.63.0 compat
+    DOSSIER_PROCESS_STAGE.COMPLETED,
+  ];
+  const priorIdx = STAGE_ORDER.indexOf(priorProcessStage);
+  const currentIdx = STAGE_ORDER.indexOf(processStage);
+  if (priorIdx > currentIdx && priorProcessStage !== DOSSIER_PROCESS_STAGE.ASYNC_PENDING) {
+    processStage = priorProcessStage;
   }
 
   // confidence
@@ -108,7 +148,7 @@ function classifyDossierContext({ question = '', priorUserContext = null, priorP
   return { userContext, processStage, answerMode, confidence };
 }
 
-function buildRequiredAnswerBehavior(answerMode, userContext) {
+function buildRequiredAnswerBehavior(answerMode) {
   const rules = [
     'Keine fachlichen Fakten hinzufügen, die nicht im Dossier enthalten sind.',
     'Unsicherheit und fehlende Evidence explizit benennen.',
@@ -123,9 +163,15 @@ function buildRequiredAnswerBehavior(answerMode, userContext) {
     rules.push('Keine finalen Planungsaussagen, solange Evidence unvollständig ist.');
     rules.push('Hypothesen und fehlende Datenpunkte explizit nennen.');
     rules.push('Evidence-Flow beschreiben, nicht abschließend bewerten.');
+  } else if (answerMode === DOSSIER_ANSWER_MODE.PROCESS_CHECK) {
+    rules.push('Regulatorische Anforderungen und Compliance-Stand benennen.');
+    rules.push('Keine verbindliche Rechtsauskunft — nur Prüfpunkte und Handlungshinweise.');
   } else if (answerMode === DOSSIER_ANSWER_MODE.PREPARE_INTENT) {
     rules.push('Nur Prepare Intent oder Draft formulieren — keine direkte Ausführung, Bestätigung oder Freigabe.');
     rules.push('Fehlende Voraussetzungen für die Aktion explizit benennen.');
+  } else if (answerMode === DOSSIER_ANSWER_MODE.PARTIAL_ASYNC) {
+    rules.push('Dieses Dossier ist vorläufig — einige Evidence-Phasen sind noch ausstehend.');
+    rules.push('Keine abschließende Antwort formulieren. Auf Aktualisierung hinweisen.');
   }
   return rules;
 }
@@ -137,14 +183,19 @@ function buildRecommendedAnswerStructure(answerMode) {
     return ['1. Kernantwort (1–3 Sätze)', '2. Wichtigster Evidenzhinweis', '3. Offene Risiken oder nächster Schritt'];
   } else if (answerMode === DOSSIER_ANSWER_MODE.EVIDENCE_COLLECTION) {
     return ['1. Aktueller Evidenzstand', '2. Fehlende Datenpunkte oder Quellen', '3. Nächste Sammelschritte'];
+  } else if (answerMode === DOSSIER_ANSWER_MODE.PROCESS_CHECK) {
+    return ['1. Regulatorischer Prüfstand', '2. Compliance-Lücken', '3. Empfohlene nächste Schritte'];
   } else if (answerMode === DOSSIER_ANSWER_MODE.PREPARE_INTENT) {
     return ['1. Beschreibung der gewünschten Aktion', '2. Fehlende Voraussetzungen', '3. Prepare-Intent-Formulierung (kein Execute)'];
+  } else if (answerMode === DOSSIER_ANSWER_MODE.PARTIAL_ASYNC) {
+    return ['1. Vorläufige Evidence', '2. Ausstehende Phasen benennen', '3. Follow-up-Hinweis'];
   }
   return ['1. Antwort auf Basis des Dossiers', '2. Unsicherheiten benennen'];
 }
 
 function buildDossierMarkdown({
   dossierId,
+  dossierVersion,
   sessionId,
   question,
   dossierState,
@@ -161,8 +212,9 @@ function buildDossierMarkdown({
     ...FORBIDDEN_CLAIM_TEXTS,
     ...(domain === 'redispatch' ? REDISPATCH_FORBIDDEN_CLAIMS : []),
   ];
-  const requiredBehavior = buildRequiredAnswerBehavior(answerMode, userContext);
+  const requiredBehavior = buildRequiredAnswerBehavior(answerMode);
   const recommendedStructure = buildRecommendedAnswerStructure(answerMode);
+  const isPartial = completionState !== DOSSIER_COMPLETION_STATE.COMPLETED;
 
   const lines = [
     '# CERNION ANSWER DOSSIER',
@@ -170,6 +222,7 @@ function buildDossierMarkdown({
     '## Metadata',
     `- session_id: ${sessionId || 'unknown'}`,
     `- dossier_id: ${dossierId}`,
+    `- dossier_version: ${dossierVersion || 1}`,
     `- process_stage: ${processStage}`,
     `- user_context: ${userContext}`,
     `- answer_mode: ${answerMode}`,
@@ -186,8 +239,8 @@ function buildDossierMarkdown({
     `- Process stage: ${processStage}`,
     `- User context: ${userContext}`,
     priorTurnsCount > 0
-      ? `- This is a follow-up turn in an ongoing conversation.`
-      : `- This is the first turn in this session.`,
+      ? '- This is a follow-up turn in an ongoing conversation.'
+      : '- This is the first turn in this session.',
     '',
     '## Required Answer Behavior',
     ...requiredBehavior.map((r) => `- ${r}`),
@@ -219,21 +272,25 @@ function buildDossierMarkdown({
     `Originalfrage des Nutzers:\n"${question}"`,
   ];
 
-  if (completionState === DOSSIER_COMPLETION_STATE.PARTIAL) {
+  if (isPartial) {
     lines.push('');
     lines.push('## Renderer Notes');
-    lines.push('Dieses Dossier ist vorläufig. Einige Evidence-Phasen haben das Zeitbudget überschritten.');
+    if (completionState === DOSSIER_COMPLETION_STATE.ASYNC_PENDING) {
+      lines.push('Dieses Dossier ist vorläufig. Backend-Evidence-Jobs sind noch ausstehend.');
+    } else {
+      lines.push('Dieses Dossier ist vorläufig. Einige Evidence-Phasen haben das Zeitbudget überschritten.');
+    }
     lines.push('Bitte keine abschließende Antwort formulieren. Weise auf eine mögliche Aktualisierung hin.');
   }
 
   return lines.join('\n');
 }
 
-function buildRendererSystemHint(channel) {
+function buildRendererSystemHint() {
   return 'Du bist nur der Prosa-Renderer. Nutze ausschliesslich das Cernion Answer Dossier. Fuege keine Fakten, Quellen, Bewertungen oder Prozessentscheidungen hinzu. Bewahre Unsicherheit, offene Fragen, Required Answer Behavior und Forbidden Claims. Wenn das Dossier eine Rueckfrage verlangt, formuliere diese Rueckfrage.';
 }
 
-function buildReasoningSummary({ userContext, answerMode, evidenceCount, domain, question }) {
+function buildReasoningSummary({ userContext, answerMode, evidenceCount, domain }) {
   const parts = [];
   if (evidenceCount > 0) {
     parts.push(`${evidenceCount} Evidence-Einheit(en) aus dem Cernion-Kontext gefunden.`);
@@ -243,16 +300,35 @@ function buildReasoningSummary({ userContext, answerMode, evidenceCount, domain,
   if (domain && domain !== 'auto') {
     parts.push(`Routing-Domäne: ${domain}.`);
   }
-  if (userContext === DOSSIER_USER_CONTEXT.UNKNOWN) {
-    parts.push('Nutzerkontext nicht eindeutig erkannt — Rückfrage empfohlen.');
-  } else if (userContext === DOSSIER_USER_CONTEXT.TARGET_GRID_PLANNING) {
-    parts.push('Zielnetzplanung erkannt — Evidence-Sammlung läuft, finale Planungsaussagen vermeiden.');
-  } else if (userContext === DOSSIER_USER_CONTEXT.MANAGEMENT) {
-    parts.push('Management-Kontext erkannt — kompakte Entscheidungsgrundlage formulieren.');
-  } else if (userContext === DOSSIER_USER_CONTEXT.PROCESS_ACTION) {
-    parts.push('Prozessaktion erkannt — Prepare Intent formulieren, keine direkte Ausführung.');
+  const summaryByContext = {
+    [DOSSIER_USER_CONTEXT.UNKNOWN]: 'Nutzerkontext nicht eindeutig erkannt — Rückfrage empfohlen.',
+    [DOSSIER_USER_CONTEXT.MAYOR]: 'Bürgermeister-Kontext erkannt — kompakte Entscheidungsgrundlage formulieren.',
+    [DOSSIER_USER_CONTEXT.MANAGEMENT]: 'Management-Kontext erkannt — kompakte Entscheidungsgrundlage formulieren.',
+    [DOSSIER_USER_CONTEXT.TARGET_GRID_PLANNING]: 'Zielnetzplanung erkannt — Evidence-Sammlung läuft, finale Planungsaussagen vermeiden.',
+    [DOSSIER_USER_CONTEXT.REGULATORY]: 'Regulatorischer Kontext erkannt — Compliance-Prüfpunkte zusammenstellen.',
+    [DOSSIER_USER_CONTEXT.TECHNICAL_OPERATOR]: 'Technischer Betrieb erkannt — operative Datenlage und Messwerte prüfen.',
+    [DOSSIER_USER_CONTEXT.PROCESS_ACTION]: 'Prozessaktion erkannt — Prepare Intent formulieren, keine direkte Ausführung.',
+  };
+  if (summaryByContext[userContext]) {
+    parts.push(summaryByContext[userContext]);
   }
   return parts.join(' ');
+}
+
+function buildFollowUpMetadata({ completionState, sessionId, dossierId, pollAfterMs = 10000 }) {
+  if (completionState === DOSSIER_COMPLETION_STATE.COMPLETED) return null;
+  return {
+    available: true,
+    pollAfterMs,
+    reason: completionState === DOSSIER_COMPLETION_STATE.ASYNC_PENDING
+      ? 'backend_jobs_pending'
+      : 'partial_evidence',
+    query: {
+      sessionId,
+      parentDossierId: dossierId,
+      mode: 'answer_dossier_followup',
+    },
+  };
 }
 
 function generateDossierId() {
@@ -266,10 +342,12 @@ module.exports = {
   DOSSIER_CONFIDENCE,
   DOSSIER_COMPLETION_STATE,
   FORBIDDEN_CLAIM_TEXTS,
+  USER_CONTEXT_TO_ANSWER_MODE,
   computeTimeBudget,
   classifyDossierContext,
   buildDossierMarkdown,
   buildRendererSystemHint,
   buildReasoningSummary,
+  buildFollowUpMetadata,
   generateDossierId,
 };
