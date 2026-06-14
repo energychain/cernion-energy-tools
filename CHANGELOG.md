@@ -5,6 +5,25 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.63.0] — 2026-06-14
+
+### Added
+- **Cernion Answer Dossier** (`POST /api/copilot/answer-dossier`): new renderer-neutral endpoint that produces a structured Markdown dossier containing domain reasoning, evidence, guardrails, and a final renderer instruction. External systems (n8n, AnythingLLM, MS365 Copilot) use the dossier to render prose answers without owning domain logic.
+- `src/answer-dossier-builder.js`: pure builder module with closed enums (`userContext`, `processStage`, `answerMode`, `confidence`, `completionState`), deterministic context classification, phase-aware time budget computation, and dossier Markdown assembly.
+- Phase-aware time budget (Fact Collection / Thinking / Compilation): Compilation always runs; evidence phases are soft-limited and produce `completionState: 'partial'` on timeout.
+- Session continuity for multi-turn dossier flows: dossier state namespaced under session `dossier.state` and `dossier.turns` — compatible with existing Personal Agent Chat sessions.
+- Follow-up mode (`mode: 'answer_dossier_followup'` + `parentDossierId`): continues an existing session, preserving prior user context and process stage.
+- `redispatch` added as valid domain value in `answerDossier` params.
+- Active `timeoutWarning` in response when `timeBudgetMs >= 25000ms` — n8n and other callers should set HTTP client timeout to at least `timeBudgetMs + 15000ms`.
+- Deterministic forbidden claims (5 guardrail codes translated to German readable text, plus redispatch-specific claim).
+- Dossier version lineage (`dossierId`, `parentDossierId`, `version`) stored in session for audit trail.
+- n8n timeout configuration documented in `docs/n8n-answer-dossier-test.md`.
+
+### Architecture
+- Cernion remains the sole domain orchestrator; external renderers receive only the Markdown dossier and a minimal system hint.
+- `askCernionAgent` compact evidence path unchanged; dossier is a separate heavier action.
+- `openapi-copilot.json` Copilot Studio export unchanged (dossier endpoint is Phase 2).
+
 ## [Unreleased]
 
 ### Added (v0.62.0)

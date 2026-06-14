@@ -152,6 +152,19 @@ const {
   validateReflectionPatch,
   hasScopeBlockedOrMissingSteps,
 } = require('../src/personal-agent-reflection'); // v0.57.5 #158
+const {
+  DOSSIER_USER_CONTEXT,
+  DOSSIER_PROCESS_STAGE,
+  DOSSIER_ANSWER_MODE,
+  DOSSIER_CONFIDENCE,
+  DOSSIER_COMPLETION_STATE,
+  computeTimeBudget,
+  classifyDossierContext,
+  buildDossierMarkdown,
+  buildRendererSystemHint,
+  buildReasoningSummary,
+  generateDossierId,
+} = require('../src/answer-dossier-builder'); // v0.63.0 #220
 
 const OPENAPI_TAG = 'Personal Agent';
 const SESSION_NAMESPACE = process.env.PERSONAL_AGENT_SESSION_NAMESPACE || 'personal_agent_sessions';
@@ -272,6 +285,8 @@ const COPILOT_DEFAULT_OBJECT_NAMESPACES = Object.freeze([
   'znp_projects',
   'vdmi_context',
 ]);
+const DOSSIER_TIMEOUT_WARNING_THRESHOLD_MS = 25000; // v0.63.0 #220
+const DOSSIER_SESSION_NAMESPACE = 'dossier'; // v0.63.0 #220
 
 function isNotFound(error) {
   return error?.code === 404 || error?.type === 'OBJECT_NOT_FOUND';
@@ -1433,6 +1448,331 @@ module.exports = {
         return await this.enhanceCopilotAnswerWithConsultingBrief(ctx, baseAnswer, {
           context,
         });
+      },
+    },
+
+    // v0.63.0 #220 — Cernion Answer Dossier / Babelfish prompt architecture
+    answerDossier: {
+      params: {
+        question: { type: 'string', min: 1, trim: true, max: 8000 },
+        sessionId: { type: 'string', optional: true, trim: true, max: 120 },
+        domain: {
+          type: 'enum',
+          optional: true,
+          values: ['auto', 'vnb', 'vdmi', 'znp', 'grid-connection', 'edm', 'finance', 'process', 'redispatch'],
+          default: 'auto',
+        },
+        mode: {
+          type: 'enum',
+          optional: true,
+          values: ['answer_dossier', 'answer_dossier_followup'],
+          default: 'answer_dossier',
+        },
+        maxEvidence: {
+          type: 'number',
+          optional: true,
+          integer: true,
+          min: 1,
+          max: 12,
+          default: 5,
+          convert: true,
+        },
+        timeBudgetMs: {
+          type: 'number',
+          optional: true,
+          integer: true,
+          min: 5000,
+          max: 60000,
+          default: 30000,
+          convert: true,
+        },
+        parentDossierId: { type: 'string', optional: true, trim: true, max: 120 },
+        context: { type: 'object', optional: true, default: {} },
+      },
+      openapi: {
+        operationId: 'answerDossier',
+        tags: ['Personal Agent'],
+        summary: 'Generate a Cernion Answer Dossier for external renderer consumption',
+        description:
+          'Produces a structured Markdown dossier containing domain reasoning, evidence, guardrails, and a final renderer instruction. External renderers (n8n, AnythingLLM) use only the dossierMarkdown to formulate prose answers — no domain knowledge required from the renderer. Maintains session state for multi-turn continuity.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['question'],
+                properties: {
+                  question: { type: 'string', minLength: 1, maxLength: 8000, description: 'User question or prompt.' },
+                  sessionId: { type: 'string', description: 'Stable session identifier for multi-turn continuity. Generated and returned if omitted.' },
+                  domain: {
+                    type: 'string',
+                    enum: ['auto', 'vnb', 'vdmi', 'znp', 'grid-connection', 'edm', 'finance', 'process', 'redispatch'],
+                    default: 'auto',
+                  },
+                  mode: {
+                    type: 'string',
+                    enum: ['answer_dossier', 'answer_dossier_followup'],
+                    default: 'answer_dossier',
+                    description: 'answer_dossier_followup continues an existing session; include parentDossierId.',
+                  },
+                  maxEvidence: { type: 'integer', minimum: 1, maximum: 12, default: 5 },
+                  timeBudgetMs: { type: 'integer', minimum: 5000, maximum: 60000, default: 30000, description: 'Total time budget in milliseconds for dossier generation.' },
+                  parentDossierId: { type: 'string', description: 'For follow-up mode: dossierId of the previous dossier in this session.' },
+                  context: { type: 'object', additionalProperties: true, description: 'Optional channel, surface, tenant, or user context.' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Cernion Answer Dossier with structured metadata and Markdown content',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['success', 'sessionId', 'dossierId', 'mode', 'answerMode', 'userContext', 'processStage', 'confidence', 'completionState', 'dossierMarkdown', 'rendererSystemHint'],
+                  properties: {
+                    success: { type: 'boolean' },
+                    sessionId: { type: 'string' },
+                    dossierId: { type: 'string' },
+                    mode: { type: 'string', enum: ['answer_dossier', 'answer_dossier_followup'] },
+                    answerMode: { type: 'string', enum: ['clarification_needed', 'management_brief', 'evidence_collection', 'prepare_intent'] },
+                    userContext: { type: 'string', enum: ['unknown', 'management', 'target_grid_planning', 'process_action'] },
+                    processStage: { type: 'string', enum: ['initial', 'evidence_collection', 'action_requested', 'completed'] },
+                    confidence: { type: 'string', enum: ['low', 'medium', 'high'] },
+                    completionState: { type: 'string', enum: ['completed', 'partial'] },
+                    timeBudget: { type: 'object' },
+                    timeoutWarning: { type: 'string', nullable: true },
+                    dossierMarkdown: { type: 'string' },
+                    rendererSystemHint: { type: 'string' },
+                    auditTrail: { type: 'object' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const {
+          question,
+          domain = 'auto',
+          mode = 'answer_dossier',
+          maxEvidence = 5,
+          timeBudgetMs = 30000,
+          parentDossierId = null,
+          context = {},
+        } = ctx.params;
+
+        const tenantId = getTenantId(ctx);
+        const userId = ctx.meta?.userId || context?.userId || null;
+
+        // generate or preserve sessionId
+        const sessionId = ctx.params.sessionId || `dossier-${generateDossierId()}`;
+        const dossierId = generateDossierId();
+        const startTime = Date.now();
+
+        // timeout warning
+        const timeoutWarning =
+          timeBudgetMs >= DOSSIER_TIMEOUT_WARNING_THRESHOLD_MS
+            ? `HTTP timeout risk: timeBudgetMs (${timeBudgetMs}) may exceed client timeout. Set HTTP client timeout to at least ${timeBudgetMs + 15000}ms.`
+            : null;
+
+        const timeBudget = computeTimeBudget(timeBudgetMs);
+
+        // load or create session (for auth/profile side-effects; dossier state read from raw payload below)
+        try {
+          await this.loadSession(ctx, tenantId, sessionId, userId, { createIfMissing: true });
+        } catch (_err) {
+          // non-fatal — dossier does not require a well-formed PA session
+        }
+
+        // Read raw session payload to extract prior dossier namespace (loadSession strips unknown keys)
+        let rawSessionPayload = {};
+        try {
+          const rawDoc = await ctx.call(
+            'object-store.get',
+            { namespace: tenantNamespace(SESSION_NAMESPACE, tenantId), key: sessionId },
+            { meta: ctx.meta }
+          );
+          rawSessionPayload = rawDoc?.payload || {};
+        } catch (_e) {
+          // no prior session — start fresh
+        }
+
+        const priorDossierState = rawSessionPayload[DOSSIER_SESSION_NAMESPACE]?.state || {};
+        const priorDossierTurns = Array.isArray(rawSessionPayload[DOSSIER_SESSION_NAMESPACE]?.turns)
+          ? rawSessionPayload[DOSSIER_SESSION_NAMESPACE].turns
+          : [];
+        const priorTurnsCount = priorDossierTurns.length;
+
+        // Fact Collection phase (with soft timeout)
+        let evidence = [];
+        let completionState = DOSSIER_COMPLETION_STATE.COMPLETED;
+
+        if (timeBudget.factCollectionMs > 0) {
+          try {
+            const searchDomain = domain !== 'auto' ? domain : undefined;
+
+            const [knowledgeResult, searchResult] = await Promise.allSettled([
+              (async () => {
+                try {
+                  return await this.collectCopilotKnowledgeEvidence(ctx, {
+                    question,
+                    searchTerm: question,
+                    maxEvidence,
+                  });
+                } catch (_e) {
+                  return { status: 'unavailable', hits: [] };
+                }
+              })(),
+              (async () => {
+                try {
+                  return await this.searchCopilotEntities(ctx, {
+                    searchTerm: question,
+                    searchDomain,
+                    maxEvidence,
+                  });
+                } catch (_e) {
+                  return { results: [] };
+                }
+              })(),
+            ]);
+
+            const knowledgeEvidence = knowledgeResult.status === 'fulfilled' ? knowledgeResult.value : { status: 'unavailable', hits: [] };
+            const searchEvidence = searchResult.status === 'fulfilled' ? searchResult.value : { results: [] };
+
+            const knowledgeHits = Array.isArray(knowledgeEvidence?.hits) ? knowledgeEvidence.hits : [];
+            const searchResults = Array.isArray(searchEvidence?.results) ? searchEvidence.results : [];
+
+            const searchMapped = searchResults.slice(0, maxEvidence).map((r) => ({
+              source: r.domain || r.type || 'cernion',
+              value: compactString([r.title, r.excerpt].filter(Boolean).join(' · '), 400),
+            }));
+
+            evidence = [...knowledgeHits, ...searchMapped].slice(0, maxEvidence * 2);
+
+            if (knowledgeEvidence?.status === 'timeout') {
+              completionState = DOSSIER_COMPLETION_STATE.PARTIAL;
+            }
+          } catch (_err) {
+            completionState = DOSSIER_COMPLETION_STATE.PARTIAL;
+          }
+        } else {
+          // no budget for collection — use prior evidence from session
+          evidence = Array.isArray(priorDossierState?.knownEvidence) ? priorDossierState.knownEvidence : [];
+        }
+
+        // Thinking phase — deterministic classification
+        const dossierContext = classifyDossierContext({
+          question,
+          priorUserContext: priorDossierState?.userContext || null,
+          priorProcessStage: priorDossierState?.processStage || null,
+          domain,
+          evidenceCount: evidence.length,
+        });
+
+        // Build missing evidence list
+        const missingEvidence = [];
+        if (evidence.length === 0) {
+          missingEvidence.push('Cernion-Kontext: Keine direkten Treffer gefunden — Suchbegriff präzisieren oder Domäne angeben.');
+        }
+        if (dossierContext.userContext === DOSSIER_USER_CONTEXT.UNKNOWN) {
+          missingEvidence.push('Nutzerkontext: Unklar wer fragt und mit welchem Ziel (Planung, Management, Prozessaktion).');
+        }
+        if (dossierContext.answerMode === DOSSIER_ANSWER_MODE.EVIDENCE_COLLECTION && evidence.length < 3) {
+          missingEvidence.push('Evidence-Basis: Für eine belastbare Planungsaussage sind weitere Datenpunkte erforderlich.');
+        }
+
+        const reasoningSummary = buildReasoningSummary({
+          userContext: dossierContext.userContext,
+          answerMode: dossierContext.answerMode,
+          evidenceCount: evidence.length,
+          domain,
+          question,
+        });
+
+        // Compilation phase — always runs
+        const dossierMarkdown = buildDossierMarkdown({
+          dossierId,
+          sessionId,
+          question,
+          dossierState: dossierContext,
+          evidence,
+          missingEvidence,
+          reasoningSummary,
+          timeBudget,
+          completionState,
+          domain,
+          priorTurnsCount,
+        });
+
+        const elapsedMs = Date.now() - startTime;
+        const rendererSystemHint = buildRendererSystemHint(context?.channel || null);
+
+        // Persist dossier state to session
+        const updatedDossierState = {
+          processStage: dossierContext.processStage,
+          userContext: dossierContext.userContext,
+          answerMode: dossierContext.answerMode,
+          confidence: dossierContext.confidence,
+          knownEvidence: evidence.slice(0, 10),
+          missingEvidence: missingEvidence.slice(0, 5),
+          lastDossierId: dossierId,
+          lastUpdatedAt: new Date().toISOString(),
+        };
+
+        const newTurn = {
+          dossierId,
+          parentDossierId: parentDossierId || null,
+          version: priorTurnsCount + 1,
+          question: compactString(question, 500),
+          processStage: dossierContext.processStage,
+          userContext: dossierContext.userContext,
+          answerMode: dossierContext.answerMode,
+          confidence: dossierContext.confidence,
+          completionState,
+          createdAt: new Date().toISOString(),
+        };
+
+        const updatedDossierTurns = [...priorDossierTurns, newTurn].slice(-20);
+
+        try {
+          await this.persistSession(ctx, tenantId, sessionId, {
+            ...rawSessionPayload,
+            [DOSSIER_SESSION_NAMESPACE]: {
+              state: updatedDossierState,
+              turns: updatedDossierTurns,
+            },
+          });
+        } catch (_err) {
+          // non-fatal — dossier still returned
+        }
+
+        return {
+          success: true,
+          sessionId,
+          dossierId,
+          mode,
+          answerMode: dossierContext.answerMode,
+          userContext: dossierContext.userContext,
+          processStage: dossierContext.processStage,
+          confidence: dossierContext.confidence,
+          completionState,
+          timeBudget: { ...timeBudget, elapsedMs },
+          timeoutWarning,
+          dossierMarkdown,
+          rendererSystemHint,
+          auditTrail: {
+            correlationId: dossierId,
+            dossierId,
+            parentDossierId: parentDossierId || null,
+            version: priorTurnsCount + 1,
+            createdAt: new Date().toISOString(),
+          },
+        };
       },
     },
 

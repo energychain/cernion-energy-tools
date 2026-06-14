@@ -456,6 +456,7 @@ function classifyEndpointClass(method, requestPath) {
   if (
     pathOnly === '/api/personal-agent/chat' ||
     pathOnly === '/api/copilot/ask-cernion-agent' ||
+    pathOnly === '/api/copilot/answer-dossier' || // v0.63.0 #220
     pathOnly.startsWith('/api/utility-report') ||
     pathOnly === '/api/mastr-quality/audit' ||
     pathOnly === '/api/finance-agent/analyze' ||
@@ -1293,6 +1294,7 @@ module.exports = {
           // Personal Agent (v0.52.0)
           'POST /personal-agent/chat': 'personal-agent.chat',
           'POST /copilot/ask-cernion-agent': 'personal-agent.askCernionAgent',
+          'POST /copilot/answer-dossier': 'personal-agent.answerDossier', // v0.63.0 #220
           'GET /personal-agent/session/:sessionId': 'personal-agent.getSession',
           'POST /personal-agent/session/:sessionId/reset': 'personal-agent.resetSession',
           'GET /personal-agent/session/:sessionId/dream-status': 'personal-agent.getDreamStatus',
