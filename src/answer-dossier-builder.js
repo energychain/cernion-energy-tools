@@ -216,7 +216,7 @@ function buildDossierMarkdown({
   const recommendedStructure = buildRecommendedAnswerStructure(answerMode);
   const isPartial = completionState !== DOSSIER_COMPLETION_STATE.COMPLETED;
 
-  const lines = [
+  const dossierLines = [
     '# CERNION ANSWER DOSSIER',
     '',
     '## Metadata',
@@ -266,28 +266,52 @@ function buildDossierMarkdown({
     '',
     '## Final Renderer Instruction',
     'Bitte beantworte die Frage des Nutzers ausschliesslich auf Basis dieses Cernion Answer Dossiers.',
-    'Fuege keine Fakten, Quellen, Bewertungen oder Prozessentscheidungen hinzu.',
+    'Fuege keine Fakten, Gesetze, Quellen, Beispiele, Bewertungen oder Prozessentscheidungen hinzu, die nicht im Dossier stehen.',
     'Bewahre Unsicherheit, Required Answer Behavior und Forbidden Claims.',
     '',
     `Originalfrage des Nutzers:\n"${question}"`,
   ];
 
   if (isPartial) {
-    lines.push('');
-    lines.push('## Renderer Notes');
+    dossierLines.push('');
+    dossierLines.push('## Renderer Notes');
     if (completionState === DOSSIER_COMPLETION_STATE.ASYNC_PENDING) {
-      lines.push('Dieses Dossier ist vorläufig. Backend-Evidence-Jobs sind noch ausstehend.');
+      dossierLines.push('Dieses Dossier ist vorläufig. Backend-Evidence-Jobs sind noch ausstehend.');
     } else {
-      lines.push('Dieses Dossier ist vorläufig. Einige Evidence-Phasen haben das Zeitbudget überschritten.');
+      dossierLines.push('Dieses Dossier ist vorläufig. Einige Evidence-Phasen haben das Zeitbudget überschritten.');
     }
-    lines.push('Bitte keine abschließende Antwort formulieren. Weise auf eine mögliche Aktualisierung hin.');
+    dossierLines.push('Bitte keine abschließende Antwort formulieren. Weise auf eine mögliche Aktualisierung hin.');
   }
 
-  return lines.join('\n');
+  return buildRendererPackageMarkdown({
+    rendererSystemHint: buildRendererSystemHint(),
+    question,
+    dossierMarkdown: dossierLines.join('\n'),
+  });
 }
 
 function buildRendererSystemHint() {
-  return 'Du bist nur der Prosa-Renderer. Nutze ausschliesslich das Cernion Answer Dossier. Fuege keine Fakten, Quellen, Bewertungen oder Prozessentscheidungen hinzu. Bewahre Unsicherheit, offene Fragen, Required Answer Behavior und Forbidden Claims. Wenn das Dossier eine Rueckfrage verlangt, formuliere diese Rueckfrage.';
+  return 'Du bist nur der Prosa-Renderer. Nutze ausschliesslich dieses Cernion Answer Dossier. Fuege keine Fakten, Gesetze, Quellen, Beispiele, Bewertungen oder Prozessentscheidungen hinzu, die nicht im Dossier stehen. Bewahre Unsicherheit, offene Fragen, Required Answer Behavior und Forbidden Claims. Wenn das Dossier eine Rueckfrage verlangt, formuliere diese Rueckfrage.';
+}
+
+function buildRendererPackageMarkdown({ rendererSystemHint, question, dossierMarkdown }) {
+  return [
+    '# CERNION RENDERER PACKAGE',
+    '',
+    '## Systemhinweis',
+    rendererSystemHint,
+    '',
+    '## Aufgabe',
+    'Formuliere eine Antwort auf die Originalfrage des Nutzers ausschliesslich aus dem nachfolgenden Dossier.',
+    'Wenn Evidence fehlt, der Nutzerkontext unklar ist oder Backend-Jobs noch ausstehen, stelle eine Rueckfrage oder formuliere die Antwort als vorlaeufig.',
+    'Ergaenze keine eigenen Gesetze, Quellen, Beispiele, Bewertungen oder Prozessentscheidungen.',
+    '',
+    'Originalfrage des Nutzers:',
+    `"${question}"`,
+    '',
+    '## Cernion Answer Dossier',
+    dossierMarkdown,
+  ].join('\n');
 }
 
 function buildReasoningSummary({ userContext, answerMode, evidenceCount, domain }) {
@@ -347,6 +371,7 @@ module.exports = {
   classifyDossierContext,
   buildDossierMarkdown,
   buildRendererSystemHint,
+  buildRendererPackageMarkdown,
   buildReasoningSummary,
   buildFollowUpMetadata,
   generateDossierId,

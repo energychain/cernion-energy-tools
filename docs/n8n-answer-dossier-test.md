@@ -62,34 +62,34 @@ For faster responses, pass a smaller `timeBudgetMs` (e.g. `8000` for minimal dos
 ```
 This produces a dossier using only session state, without running evidence collection.
 
-## Renderer System Instruction
+## Renderer Input
 
-```text
-Du bist nur der Prosa-Renderer. Nutze ausschliesslich das Cernion Answer Dossier.
-Fuege keine Fakten, Quellen, Bewertungen oder Prozessentscheidungen hinzu.
-Bewahre Unsicherheit, offene Fragen, Required Answer Behavior und Forbidden Claims.
-Wenn das Dossier eine Rueckfrage verlangt, formuliere diese Rueckfrage.
-```
-
-## Renderer User Message
+Cernion liefert `dossierMarkdown` als vollstaendiges Renderer Package. n8n soll keinen
+zusaetzlichen Fachprompt, Systemhinweis oder Aufgaben-Wrapper ergaenzen.
 
 ```text
 {{$json.dossierMarkdown}}
 ```
 
-Das Dossier muss am Ende selbst den finalen Auftrag enthalten:
+Cernion baut die Renderer-Anweisungen direkt in das Markdown ein:
 
 ```text
-Bitte beantworte die Frage des Nutzers ausschliesslich auf Basis dieses
-Cernion Answer Dossiers.
+# CERNION RENDERER PACKAGE
 
-Originalfrage des Nutzers:
-"..."
+## Systemhinweis
+...
+
+## Aufgabe
+...
+
+## Cernion Answer Dossier
+# CERNION ANSWER DOSSIER
+...
 ```
 
 ## Abnahmekriterien
 
-- n8n bekommt ein einzelnes Markdown-Dossier von Cernion.
+- n8n bekommt ein einzelnes Renderer Package von Cernion.
 - Der LLM Renderer erhaelt keine zusaetzlichen Fachprompts.
 - Die finale Antwort enthaelt keine Fakten ausserhalb des Dossiers.
 - Bei `user_context=unknown` wird eine Rueckfrage formuliert.

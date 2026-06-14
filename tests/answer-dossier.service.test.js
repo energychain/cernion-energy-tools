@@ -44,14 +44,18 @@ const handler = PersonalAgentService.actions.answerDossier.handler;
 
 describe('answerDossier action', () => {
 
-  // 1. Mandatory sections present
-  test('dossierMarkdown contains all 11 mandatory heading strings', async () => {
+  // 1. Renderer package and mandatory sections present
+  test('dossierMarkdown is a renderer package and contains all mandatory dossier headings', async () => {
     const service = buildServiceHarness();
     const ctx = buildCtx({ question: 'Was ist der aktuelle Status?' });
 
     const result = await handler.call(service, ctx);
 
     expect(result.success).toBe(true);
+    expect(result.dossierMarkdown).toMatch(/^# CERNION RENDERER PACKAGE/);
+    expect(result.dossierMarkdown).toContain('## Systemhinweis');
+    expect(result.dossierMarkdown).toContain('## Aufgabe');
+    expect(result.dossierMarkdown).toContain('## Cernion Answer Dossier');
     expect(result.dossierMarkdown).toContain('# CERNION ANSWER DOSSIER');
     expect(result.dossierMarkdown).toContain('## Metadata');
     expect(result.dossierMarkdown).toContain('## Original User Prompt');
@@ -63,6 +67,7 @@ describe('answerDossier action', () => {
     expect(result.dossierMarkdown).toContain('## Forbidden Claims');
     expect(result.dossierMarkdown).toContain('## Recommended Answer Structure');
     expect(result.dossierMarkdown).toContain('## Final Renderer Instruction');
+    expect(result.dossierMarkdown).toContain('Fuege keine Fakten, Gesetze, Quellen, Beispiele, Bewertungen oder Prozessentscheidungen hinzu');
   });
 
   // 2. Final Renderer Instruction contains original prompt verbatim
@@ -77,6 +82,19 @@ describe('answerDossier action', () => {
     const questionIdx = result.dossierMarkdown.lastIndexOf(question);
     expect(finalInstructionIdx).toBeGreaterThan(-1);
     expect(questionIdx).toBeGreaterThan(finalInstructionIdx);
+  });
+
+  test('renderer package contains original question before the embedded dossier', async () => {
+    const service = buildServiceHarness();
+    const question = 'Kann ich Strom an meinen Nachbarn verkaufen?';
+    const ctx = buildCtx({ question });
+
+    const result = await handler.call(service, ctx);
+
+    const packageQuestionIdx = result.dossierMarkdown.indexOf(`"${question}"`);
+    const embeddedDossierIdx = result.dossierMarkdown.indexOf('## Cernion Answer Dossier');
+    expect(packageQuestionIdx).toBeGreaterThan(-1);
+    expect(embeddedDossierIdx).toBeGreaterThan(packageQuestionIdx);
   });
 
   // 3. Time budget defaults applied
@@ -98,6 +116,7 @@ describe('answerDossier action', () => {
 
     expect(result.dossierMarkdown).toBeTruthy();
     expect(result.dossierMarkdown.length).toBeGreaterThan(50);
+    expect(result.dossierMarkdown).toContain('# CERNION RENDERER PACKAGE');
     expect(result.dossierMarkdown).toContain('## Final Renderer Instruction');
   });
 
