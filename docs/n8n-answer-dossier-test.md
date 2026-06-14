@@ -20,6 +20,7 @@ Webhook Trigger
 {
   "question": "Ist die aktuelle Antwort so belastbar?",
   "sessionId": "n8n-test-001",
+  "tenantId": "demo-tenant",
   "conversationId": "n8n-test-001",
   "userId": "test-user"
 }
@@ -36,6 +37,7 @@ Webhook Trigger
   "maxEvidence": 5,
   "timeBudgetMs": 30000,
   "context": {
+    "tenantId": "={{ $json.tenantId }}",
     "channel": "n8n",
     "surface": "external-renderer",
     "conversationId": "={{ $json.conversationId }}",
@@ -43,6 +45,11 @@ Webhook Trigger
   }
 }
 ```
+
+`context.tenantId` ist ein Wissensraum-/Audit-Hinweis fuer das Dossier. Der
+authentifizierte Tenant aus dem API-Token bleibt fuehrend. Wenn `context.tenantId`
+abweicht, wird der Wert im Dossier als `requested_context_tenant_id` sichtbar, aber
+fuer Zugriff und Session-Namespace ignoriert.
 
 ## Timeout Configuration
 
@@ -91,6 +98,8 @@ Cernion baut die Renderer-Anweisungen direkt in das Markdown ein:
 
 - n8n bekommt ein einzelnes Renderer Package von Cernion.
 - Der LLM Renderer erhaelt keine zusaetzlichen Fachprompts.
+- Das Dossier enthaelt `tenant_id`, `session_id`, `conversation_id`, `channel`,
+  `surface` und `tenant_scope_status`.
 - Die finale Antwort enthaelt keine Fakten ausserhalb des Dossiers.
 - Bei `user_context=unknown` wird eine Rueckfrage formuliert.
 - Bei `answer_mode=evidence_collection` wird keine finale Planungsaussage formuliert.

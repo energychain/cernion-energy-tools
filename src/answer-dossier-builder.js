@@ -193,6 +193,26 @@ function buildRecommendedAnswerStructure(answerMode) {
   return ['1. Antwort auf Basis des Dossiers', '2. Unsicherheiten benennen'];
 }
 
+function normalizeKnowledgeSpaceContext({
+  tenantId = null,
+  requestedTenantId = null,
+  tenantScopeStatus = null,
+  sessionId = null,
+  conversationId = null,
+  channel = null,
+  surface = null,
+} = {}) {
+  return {
+    tenantId: tenantId || 'default',
+    requestedTenantId: requestedTenantId || null,
+    tenantScopeStatus: tenantScopeStatus || 'auth_tenant_used',
+    sessionId: sessionId || null,
+    conversationId: conversationId || sessionId || null,
+    channel: channel || 'unknown',
+    surface: surface || 'unknown',
+  };
+}
+
 function buildDossierMarkdown({
   dossierId,
   dossierVersion,
@@ -206,8 +226,13 @@ function buildDossierMarkdown({
   completionState,
   domain,
   priorTurnsCount = 0,
+  knowledgeSpace = {},
 }) {
   const { userContext, processStage, answerMode, confidence } = dossierState;
+  const normalizedKnowledgeSpace = normalizeKnowledgeSpaceContext({
+    ...knowledgeSpace,
+    sessionId: knowledgeSpace.sessionId || sessionId,
+  });
   const forbiddenClaims = [
     ...FORBIDDEN_CLAIM_TEXTS,
     ...(domain === 'redispatch' ? REDISPATCH_FORBIDDEN_CLAIMS : []),
@@ -230,6 +255,12 @@ function buildDossierMarkdown({
     `- time_budget_ms: ${timeBudget.totalBudgetMs}`,
     `- completion_state: ${completionState}`,
     `- domain: ${domain || 'auto'}`,
+    `- tenant_id: ${normalizedKnowledgeSpace.tenantId}`,
+    `- requested_context_tenant_id: ${normalizedKnowledgeSpace.requestedTenantId || 'not_provided'}`,
+    `- tenant_scope_status: ${normalizedKnowledgeSpace.tenantScopeStatus}`,
+    `- conversation_id: ${normalizedKnowledgeSpace.conversationId || 'unknown'}`,
+    `- channel: ${normalizedKnowledgeSpace.channel}`,
+    `- surface: ${normalizedKnowledgeSpace.surface}`,
     '',
     '## Original User Prompt',
     question,
@@ -238,6 +269,8 @@ function buildDossierMarkdown({
     `- Turns in session: ${priorTurnsCount}`,
     `- Process stage: ${processStage}`,
     `- User context: ${userContext}`,
+    `- Knowledge space: tenant=${normalizedKnowledgeSpace.tenantId}, session=${sessionId || 'unknown'}, conversation=${normalizedKnowledgeSpace.conversationId || 'unknown'}`,
+    `- Tenant scope: ${normalizedKnowledgeSpace.tenantScopeStatus}`,
     priorTurnsCount > 0
       ? '- This is a follow-up turn in an ongoing conversation.'
       : '- This is the first turn in this session.',
@@ -372,6 +405,7 @@ module.exports = {
   buildDossierMarkdown,
   buildRendererSystemHint,
   buildRendererPackageMarkdown,
+  normalizeKnowledgeSpaceContext,
   buildReasoningSummary,
   buildFollowUpMetadata,
   generateDossierId,

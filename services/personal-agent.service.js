@@ -162,6 +162,7 @@ const {
   classifyDossierContext,
   buildDossierMarkdown,
   buildRendererSystemHint,
+  normalizeKnowledgeSpaceContext,
   buildReasoningSummary,
   buildFollowUpMetadata,
   generateDossierId,
@@ -1548,6 +1549,11 @@ module.exports = {
                     parentDossierId: { type: 'string', nullable: true },
                     latestDossierId: { type: 'string' },
                     followUp: { type: 'object', nullable: true, description: 'Follow-up instructions for partial/async dossiers.' },
+                    knowledgeSpace: {
+                      type: 'object',
+                      description:
+                        'Authenticated tenant/session/conversation scope used to build the dossier. context.tenantId is audit context only and cannot override the authenticated tenant.',
+                    },
                     timeBudget: { type: 'object' },
                     timeoutWarning: { type: 'string', nullable: true },
                     dossierMarkdown: { type: 'string' },
@@ -1583,15 +1589,34 @@ module.exports = {
 
         // context.tenantId must never override the authenticated tenantId
         const tenantId = getTenantId(ctx);
-        if (context?.tenantId && context.tenantId !== tenantId) {
+        const requestedTenantId =
+          typeof context?.tenantId === 'string' && context.tenantId.trim()
+            ? context.tenantId.trim()
+            : null;
+        const tenantScopeStatus =
+          requestedTenantId && requestedTenantId !== tenantId
+            ? 'context_tenant_ignored_auth_tenant_used'
+            : requestedTenantId
+              ? 'context_tenant_matches_auth_tenant'
+              : 'auth_tenant_used';
+        if (requestedTenantId && requestedTenantId !== tenantId) {
           this.logger?.warn?.(
-            `answerDossier: context.tenantId (${context.tenantId}) differs from authenticated tenantId (${tenantId}) — ignoring context.tenantId`
+            `answerDossier: context.tenantId (${requestedTenantId}) differs from authenticated tenantId (${tenantId}) — ignoring context.tenantId`
           );
         }
         const userId = ctx.meta?.authUser?.userId || ctx.meta?.userId || null;
 
         // generate or preserve sessionId
         const sessionId = ctx.params.sessionId || `dossier-${generateDossierId()}`;
+        const knowledgeSpace = normalizeKnowledgeSpaceContext({
+          tenantId,
+          requestedTenantId,
+          tenantScopeStatus,
+          sessionId,
+          conversationId: context?.conversationId || sessionId,
+          channel: context?.channel || null,
+          surface: context?.surface || null,
+        });
         const dossierId = generateDossierId();
         const startTime = Date.now();
 
@@ -1731,6 +1756,7 @@ module.exports = {
           completionState,
           domain,
           priorTurnsCount,
+          knowledgeSpace,
         });
 
         const elapsedMs = Date.now() - startTime;
@@ -1745,6 +1771,7 @@ module.exports = {
           confidence: dossierContext.confidence,
           knownEvidence: evidence.slice(0, 10),
           missingEvidence: missingEvidence.slice(0, 5),
+          knowledgeSpace,
           lastDossierId: dossierId,
           lastUpdatedAt: new Date().toISOString(),
         };
@@ -1759,6 +1786,7 @@ module.exports = {
           answerMode: dossierContext.answerMode,
           confidence: dossierContext.confidence,
           completionState,
+          knowledgeSpace,
           createdAt: new Date().toISOString(),
         };
 
@@ -1790,6 +1818,7 @@ module.exports = {
           confidence: dossierContext.confidence,
           completionState,
           followUp,
+          knowledgeSpace,
           timeBudget: { ...timeBudget, elapsedMs },
           timeoutWarning,
           dossierMarkdown,
@@ -1800,6 +1829,9 @@ module.exports = {
             dossierVersion,
             parentDossierId: parentDossierId || null,
             version: dossierVersion,
+            tenantId: knowledgeSpace.tenantId,
+            tenantScopeStatus: knowledgeSpace.tenantScopeStatus,
+            conversationId: knowledgeSpace.conversationId,
             createdAt: new Date().toISOString(),
           },
         };

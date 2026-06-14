@@ -97,6 +97,68 @@ describe('answerDossier action', () => {
     expect(embeddedDossierIdx).toBeGreaterThan(packageQuestionIdx);
   });
 
+  test('knowledgeSpace exposes authenticated tenant, session and renderer channel context', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx({
+      question: 'Wie ist der Zustand meiner Netzassets?',
+      sessionId: 'session-assets-001',
+      context: {
+        tenantId: 'test-tenant',
+        conversationId: 'conversation-assets-001',
+        channel: 'n8n',
+        surface: 'external-renderer',
+      },
+    });
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.knowledgeSpace).toMatchObject({
+      tenantId: 'test-tenant',
+      requestedTenantId: 'test-tenant',
+      tenantScopeStatus: 'context_tenant_matches_auth_tenant',
+      sessionId: 'session-assets-001',
+      conversationId: 'conversation-assets-001',
+      channel: 'n8n',
+      surface: 'external-renderer',
+    });
+    expect(result.dossierMarkdown).toContain('- tenant_id: test-tenant');
+    expect(result.dossierMarkdown).toContain('- requested_context_tenant_id: test-tenant');
+    expect(result.dossierMarkdown).toContain('- tenant_scope_status: context_tenant_matches_auth_tenant');
+    expect(result.dossierMarkdown).toContain('- conversation_id: conversation-assets-001');
+    expect(result.dossierMarkdown).toContain('- channel: n8n');
+    expect(result.dossierMarkdown).toContain('- surface: external-renderer');
+  });
+
+  test('context tenant hint is ignored when it differs from authenticated tenant', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx({
+      question: 'Bitte ein Dossier fuer Anschlussbegehren erstellen',
+      sessionId: 'session-grid-connection-001',
+      context: {
+        tenantId: 'other-tenant',
+        conversationId: 'conversation-grid-connection-001',
+        channel: 'n8n',
+        surface: 'external-renderer',
+      },
+    });
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.knowledgeSpace).toMatchObject({
+      tenantId: 'test-tenant',
+      requestedTenantId: 'other-tenant',
+      tenantScopeStatus: 'context_tenant_ignored_auth_tenant_used',
+      sessionId: 'session-grid-connection-001',
+      conversationId: 'conversation-grid-connection-001',
+    });
+    expect(service.logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('context.tenantId (other-tenant) differs from authenticated tenantId (test-tenant)')
+    );
+    expect(result.dossierMarkdown).toContain('- tenant_id: test-tenant');
+    expect(result.dossierMarkdown).toContain('- requested_context_tenant_id: other-tenant');
+    expect(result.dossierMarkdown).toContain('- tenant_scope_status: context_tenant_ignored_auth_tenant_used');
+  });
+
   // 3. Time budget defaults applied
   test('timeBudget.totalBudgetMs defaults to 30000 when timeBudgetMs is omitted', async () => {
     const service = buildServiceHarness();
