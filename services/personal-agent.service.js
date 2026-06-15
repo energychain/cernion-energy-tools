@@ -1022,7 +1022,7 @@ function copilotDossierEvidenceHasStrictQueryRelevance(entry = {}, query = '') {
   if (/anonymisierte\s+ableitung/.test(evidenceText) && /llm\s+generator|steuerimpuls/.test(evidenceText)) {
     return false;
   }
-  if (entry?.metadata?.kind === 'user_provided_project_fact') return true;
+  if (String(entry?.metadata?.kind || '').startsWith('user_provided_')) return true;
   if (!copilotQueryRequiresStrictEvidenceRelevance(query)) return true;
   return copilotKnowledgeHitHasStrictQueryRelevance(
     {
@@ -1045,6 +1045,13 @@ function hashDossierLowEvidence(value) {
 
 function buildDossierLowEvidenceKey(fact = {}) {
   return `dossier-low:${hashDossierLowEvidence([fact.factType, fact.normalizedValue || fact.value].join('|'))}`;
+}
+
+function detectDossierPreliminaryAnswerRequest(question = '') {
+  const text = normalizeCopilotSearchableText(question);
+  return /(?:trotz|auch wenn|obwohl).{0,80}(?:low evidence|niedriger evidence|geringer evidence|fehlender evidence|unvalidiert|nicht validiert)/.test(text) ||
+    /(?:vorlaeufige|vorlaeufigen|vorläufige|vorläufigen|indikative|indikativ|hypothetische|hypothetisch).{0,80}(?:aussage|einschaetzung|einschätzung|bewertung|einordnung)/.test(text) ||
+    /(?:arbeite|bewerte|schaetze|schätze).{0,80}(?:mit|auf basis).{0,80}(?:low evidence|nutzerangaben|annahmen|arbeitshypothese)/.test(text);
 }
 
 function findOeoMapping(list = [], id) {
@@ -1090,6 +1097,18 @@ function buildDossierFactOeoAnnotations(factType, value) {
     addGrid('grid-component');
     addGrid('voltage-level');
     semanticTags.push('oeo:electricity-grid', 'cernion:grid-connection-check');
+  } else if (factType === 'available_document') {
+    if (/lastprofil|zeitreihe|viertelstunden/i.test(value)) addEnergy('time-series');
+    if (/single[-\s]?line|netz|anschluss/i.test(value)) addGrid('grid-component');
+    semanticTags.push('cernion:evidence-document');
+  } else if (factType === 'missing_evidence_requirement') {
+    if (/netz|umspann|spannung|anschluss|tab/i.test(value)) {
+      addGrid('electricity-grid');
+      addGrid('grid-component');
+    }
+    semanticTags.push('cernion:evidence-requirement');
+  } else if (factType === 'project_timeline') {
+    semanticTags.push('cernion:project-timeline');
   } else if (factType === 'location' || factType === 'postal_code') {
     semanticTags.push('cernion:location', 'cernion:postal-code');
   }
@@ -1138,6 +1157,39 @@ function buildDossierProjectFactEntries(question = '', { sessionId = null, now =
     addFact('load_profile', 'Lastprofil', /24\s*\/\s*7/.test(text) ? 'kontinuierlicher Lastgang 24/7' : 'kontinuierlicher Lastgang');
   }
 
+  const commissioningMatch = text.match(/\b(?:inbetriebnahme|go[-\s]?live|betrieb(?:s)?start)\D{0,30}((?:20)\d{2})\b/i);
+  if (commissioningMatch) {
+    addFact('project_timeline', 'Geplante Inbetriebnahme', commissioningMatch[1]);
+  }
+
+  const availableDocuments = [
+    ['Lageplan', /lageplan/i],
+    ['vorläufiges Single-Line-Diagramm', /single[-\s]?line[-\s]?diagramm|einlinienschaltbild/i],
+    ['Lastprofil als Viertelstundenzeitreihe', /viertelstunden(?:zeitreihe|werte|lastprofil)|lastprofil.*viertelstunden|viertelstunden.*lastprofil/i],
+    ['Netzanschlussdokumente', /netzanschluss(?:anfrage|begehren|dokument|unterlage|daten)/i],
+    ['technisches Gutachten', /gutachten|machbarkeitsstudie|netzstudie/i],
+  ];
+  for (const [label, pattern] of availableDocuments) {
+    if (pattern.test(text) && /(?:vorhanden|liegt vor|kann.*nachreich|nachreichen|verf[üu]gbar|liefere|unterlage)/i.test(text)) {
+      addFact('available_document', 'Verfügbare Unterlage', label);
+    }
+  }
+
+  const missingRequirements = [
+    ['zuständiger Netzbetreiber', /zust[äa]ndiger\s+netzbetreiber|netzbetreiber\s+(?:unbekannt|fehlt|offen)/i],
+    ['verfügbarer Netzverknüpfungspunkt', /netzverkn[üu]pfungspunkt|anschlusspunkt/i],
+    ['Reserven im Umspannwerk', /(?:reserven|reserve|kapazit[äa]t).{0,40}umspannwerk|umspannwerk.{0,40}(?:reserven|reserve|kapazit[äa]t)/i],
+    ['verbindliche TAB', /\btab\b|technische anschlussbedingungen/i],
+    ['validierte Netzkapazität', /netzkapazit[äa]t|verf[üu]gbare anschlussleistung/i],
+    ['Spannungsebene', /spannungsebene|netzebene/i],
+  ];
+  const missingContext = /(?:unbekannt|offen|fehlt|fehlen|benötigt|benoetigt|noch zu kl[äa]ren|nicht bekannt|keine angaben)/i.test(text);
+  for (const [label, pattern] of missingRequirements) {
+    if (pattern.test(text) && missingContext) {
+      addFact('missing_evidence_requirement', 'Fehlende Evidence-Anforderung', label);
+    }
+  }
+
   const requestedChecks = [];
   const checkPatterns = [
     ['Netzebene', /netzebene/i],
@@ -1161,11 +1213,24 @@ function mapDossierLowEvidenceToEntry(fact = {}) {
   const label = compactString(fact.label || fact.factType || 'Nutzerangabe', 80);
   const value = compactString(fact.value || '', 240);
   if (!value) return null;
+  const factType = fact.factType || null;
   const oeoLabels = Array.isArray(fact.oeoClasses)
     ? fact.oeoClasses.map((entry) => entry.label || entry.id).filter(Boolean).slice(0, 4)
     : [];
+  const kind =
+    factType === 'available_document'
+      ? 'user_provided_evidence_availability'
+      : factType === 'missing_evidence_requirement'
+        ? 'user_provided_evidence_requirement'
+        : 'user_provided_project_fact';
+  const source =
+    factType === 'available_document'
+      ? 'user-provided evidence availability (low)'
+      : factType === 'missing_evidence_requirement'
+        ? 'user-provided evidence requirement (low)'
+        : 'user-provided project fact (low)';
   return {
-    source: 'user-provided project fact (low)',
+    source,
     value: `${label}: ${value} · Evidence-Qualität: low · Quelle: Nutzerangabe${oeoLabels.length ? ` · OEO: ${oeoLabels.join(', ')}` : ''}`,
     retrievalHint: [
       fact.normalizedValue,
@@ -1174,9 +1239,9 @@ function mapDossierLowEvidenceToEntry(fact = {}) {
       ...(Array.isArray(fact.oeoClasses) ? fact.oeoClasses.map((entry) => entry.label).filter(Boolean) : []),
     ].filter(Boolean).join(' '),
     metadata: {
-      kind: 'user_provided_project_fact',
+      kind,
       evidenceQuality: 'low',
-      factType: fact.factType || null,
+      factType,
       semanticTags: Array.isArray(fact.semanticTags) ? fact.semanticTags : [],
       oeoClasses: Array.isArray(fact.oeoClasses) ? fact.oeoClasses : [],
       sourceSessionId: fact.sourceSessionId || null,
@@ -1855,6 +1920,7 @@ module.exports = {
         );
         const evidenceSearchTerm = deriveCopilotSearchTerm(evidenceQuestion || question);
         const lowEvidenceNamespace = tenantNamespace(DOSSIER_LOW_EVIDENCE_NAMESPACE, tenantId);
+        const preliminaryAnswerRequested = detectDossierPreliminaryAnswerRequest(question);
         const userProvidedFacts = buildDossierProjectFactEntries(question, { sessionId });
         const userProvidedEvidence = userProvidedFacts
           .map(mapDossierLowEvidenceToEntry)
@@ -1984,6 +2050,9 @@ module.exports = {
         if (dossierContext.answerMode === DOSSIER_ANSWER_MODE.EVIDENCE_COLLECTION && confidenceEvidenceCount < 3) {
           missingEvidence.push('Evidence-Basis: Für eine belastbare Planungsaussage sind weitere Datenpunkte erforderlich.');
         }
+        if (preliminaryAnswerRequested && confidenceEvidenceCount === 0 && evidence.length > 0) {
+          missingEvidence.push('Vorläufige Aussage: Vom Nutzer ausdrücklich gewünscht, aber nur als nicht belastbare Arbeitshypothese auf Basis der Low-Evidence zulässig.');
+        }
 
         const reasoningSummary = buildReasoningSummary({
           userContext: dossierContext.userContext,
@@ -2010,6 +2079,7 @@ module.exports = {
           domain,
           priorTurnsCount,
           knowledgeSpace,
+          preliminaryAnswerRequested,
         });
 
         const elapsedMs = Date.now() - startTime;
@@ -2025,6 +2095,7 @@ module.exports = {
           knownEvidence: evidence.slice(0, 10),
           missingEvidence: missingEvidence.slice(0, 5),
           knowledgeSpace,
+          preliminaryAnswerRequested,
           lastDossierId: dossierId,
           lastUpdatedAt: new Date().toISOString(),
         };
@@ -2040,6 +2111,7 @@ module.exports = {
           confidence: dossierContext.confidence,
           completionState,
           knowledgeSpace,
+          preliminaryAnswerRequested,
           createdAt: new Date().toISOString(),
         };
 
@@ -2072,6 +2144,7 @@ module.exports = {
           completionState,
           followUp,
           knowledgeSpace,
+          preliminaryAnswerRequested,
           timeBudget: { ...timeBudget, elapsedMs },
           timeoutWarning,
           dossierMarkdown,

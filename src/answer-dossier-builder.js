@@ -231,6 +231,7 @@ function buildDossierMarkdown({
   domain,
   priorTurnsCount = 0,
   knowledgeSpace = {},
+  preliminaryAnswerRequested = false,
 }) {
   const { userContext, processStage, answerMode, confidence } = dossierState;
   const normalizedKnowledgeSpace = normalizeKnowledgeSpaceContext({
@@ -245,9 +246,16 @@ function buildDossierMarkdown({
   const requiredBehavior = buildRequiredAnswerBehavior(answerMode);
   if (!hasValidatedEvidence) {
     requiredBehavior.push('Ohne validierte Evidence keine Beispiele, Paragraphen, Behörden, Netzbetreiber, Fristen oder typischen Verfahren nennen.');
-    requiredBehavior.push('Nur benennen, welche Evidence fehlt, welche Rückfragen nötig sind und dass keine belastbare Bewertung möglich ist.');
+    if (preliminaryAnswerRequested && evidence.length > 0) {
+      requiredBehavior.push('Der Nutzer verlangt ausdrücklich eine vorläufige Aussage trotz Low-Evidence: Formuliere nur eine klar gekennzeichnete, nicht belastbare Arbeitshypothese auf Basis der Known Evidence.');
+      requiredBehavior.push('Keine Machbarkeitszusage, keine Netzanschlussbewertung und keine Handlungsempfehlung als gesichert darstellen.');
+    } else {
+      requiredBehavior.push('Nur benennen, welche Evidence fehlt, welche Rückfragen nötig sind und dass keine belastbare Bewertung möglich ist.');
+    }
   }
-  const recommendedStructure = !hasValidatedEvidence
+  const recommendedStructure = !hasValidatedEvidence && preliminaryAnswerRequested && evidence.length > 0
+    ? ['1. Vorläufige Arbeitshypothese deutlich als nicht belastbar kennzeichnen', '2. Low-Evidence-Basis nennen', '3. Fehlende validierte Evidence und nächste Rückfragen benennen']
+    : !hasValidatedEvidence
     ? ['1. Kurz sagen, dass keine belastbare Evidence verfügbar ist', '2. Fehlende Datenpunkte benennen', '3. Gezielt um die nächsten Evidence-Unterlagen bitten']
     : buildRecommendedAnswerStructure(answerMode);
   const isPartial = completionState !== DOSSIER_COMPLETION_STATE.COMPLETED;
@@ -265,6 +273,7 @@ function buildDossierMarkdown({
     `- confidence: ${confidence}`,
     `- time_budget_ms: ${timeBudget.totalBudgetMs}`,
     `- completion_state: ${completionState}`,
+    `- preliminary_answer_requested: ${preliminaryAnswerRequested ? 'true' : 'false'}`,
     `- domain: ${domain || 'auto'}`,
     `- tenant_id: ${normalizedKnowledgeSpace.tenantId}`,
     `- requested_context_tenant_id: ${normalizedKnowledgeSpace.requestedTenantId || 'not_provided'}`,

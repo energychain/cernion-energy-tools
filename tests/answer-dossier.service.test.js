@@ -476,6 +476,87 @@ describe('answerDossier action', () => {
     expect(result.dossierMarkdown).toContain('Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden');
   });
 
+  test('answer dossier stores available documents and missing requirements as tenant-scoped low evidence', async () => {
+    const puts = [];
+    const service = {
+      ...buildServiceHarness(),
+      async collectCopilotKnowledgeEvidence() {
+        return { status: 'missing', hits: [] };
+      },
+      async searchCopilotEntities() {
+        return { results: [] };
+      },
+    };
+    const ctx = buildCtx(
+      {
+        question:
+          'Weitere Angaben: Der Projektentwickler kann einen Lageplan, eine geplante Inbetriebnahme 2028, ein vorläufiges Single-Line-Diagramm und ein Lastprofil als Viertelstundenzeitreihe nachreichen. Noch unbekannt sind zuständiger Netzbetreiber, verfügbarer Netzverknüpfungspunkt, Reserven im Umspannwerk und verbindliche TAB.',
+        sessionId: 'tenant-low-evidence-docs-test',
+      },
+      {
+        'object-store.put': (p) => {
+          puts.push(p);
+          return { ok: true };
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    const payloads = puts
+      .filter((p) => p.namespace === 'tenant:test-tenant:answer_dossier_low_evidence')
+      .map((p) => p.payload);
+    expect(payloads.map((p) => p.factType)).toEqual(
+      expect.arrayContaining(['available_document', 'missing_evidence_requirement', 'project_timeline'])
+    );
+    expect(payloads.map((p) => p.value)).toEqual(
+      expect.arrayContaining([
+        'Lageplan',
+        'vorläufiges Single-Line-Diagramm',
+        'Lastprofil als Viertelstundenzeitreihe',
+        '2028',
+        'zuständiger Netzbetreiber',
+        'verfügbarer Netzverknüpfungspunkt',
+        'Reserven im Umspannwerk',
+        'verbindliche TAB',
+      ])
+    );
+    const requirement = payloads.find((p) => p.value === 'verfügbarer Netzverknüpfungspunkt');
+    expect(requirement?.semanticTags).toEqual(expect.arrayContaining(['cernion:evidence-requirement']));
+    expect(requirement?.oeoClasses?.map((entry) => entry.id)).toEqual(
+      expect.arrayContaining(['electricity-grid', 'grid-component'])
+    );
+    expect(result.dossierMarkdown).toContain('user-provided evidence availability (low)');
+    expect(result.dossierMarkdown).toContain('user-provided evidence requirement (low)');
+    expect(result.dossierMarkdown).toContain('Geplante Inbetriebnahme: 2028');
+  });
+
+  test('answer dossier permits explicit preliminary answer request without upgrading low evidence confidence', async () => {
+    const service = {
+      ...buildServiceHarness(),
+      async collectCopilotKnowledgeEvidence() {
+        return { status: 'missing', hits: [] };
+      },
+      async searchCopilotEntities() {
+        return { results: [] };
+      },
+    };
+    const ctx = buildCtx({
+      question:
+        'Ich weiß, dass es nur Low Evidence ist. Bitte gib trotzdem eine vorläufige Einschätzung auf Basis der Nutzerangaben: Rechenzentrum in 69256 Mauer mit 10 MW und 24/7 Lastprofil.',
+      sessionId: 'tenant-low-evidence-prelim-test',
+    });
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.confidence).toBe('low');
+    expect(result.preliminaryAnswerRequested).toBe(true);
+    expect(result.dossierMarkdown).toContain('- preliminary_answer_requested: true');
+    expect(result.dossierMarkdown).toContain('nicht belastbare Arbeitshypothese');
+    expect(result.dossierMarkdown).toContain('Low-Evidence-Basis');
+    expect(result.dossierMarkdown).toContain('Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden');
+  });
+
   test('answer dossier reuses only current-tenant low evidence in later sessions', async () => {
     const service = {
       ...buildServiceHarness(),
