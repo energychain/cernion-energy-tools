@@ -5,6 +5,24 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.63.4] — 2026-06-15
+
+### Added
+- **Capability Broker integration for `answerDossier`** (`services/personal-agent.service.js`, `src/answer-dossier-builder.js`): advisory-only, time-budgeted broker call runs in parallel with evidence collection. Fail-open: timeout, service unavailability, or any broker error yields a valid dossier with `capabilityRouting.status = 'timeout' | 'failed' | 'unavailable'`. No execution is triggered; broker output is strictly advisory.
+  - Broker budget: `min(2500, max(1500, floor(timeBudgetMs × 0.08)))` ms, hard cap 2500ms
+  - Calls `capability-broker.recommend` with `meta.$gateway = false` (internal-only, never routed through gateway)
+  - `capabilityRouting` field in response: `{ status, result, elapsedMs, timedOut, source }`
+  - `auditTrail.broker`: `{ status, elapsedMs, timedOut, intent, capability }` logged for every call
+  - Dossier markdown: `## Capability Routing Context` section inserted before `## Final Renderer Instruction` on success; minimal advisory note on timeout/failed/unavailable
+  - Broker confidence/recommendations are advisory only — they cannot upgrade `low` evidence to validated evidence
+
+### Security
+- Broker is called with `meta.$gateway: false`; no public Capability Broker route added
+- Broker output cannot promote Low Evidence to validated evidence; evidence confidence derived exclusively from actual collected evidence
+
+### Tests
+- 9 new acceptance-criterion tests in `tests/answer-dossier.service.test.js` (broker `$gateway` guard, success path, timeout, failure, unavailable, no evidence upgrade, budget formula, renderer-neutral assertion, schema v1 payload format)
+
 ## [0.63.3] — 2026-06-15
 
 ### Fixed

@@ -107,7 +107,9 @@ function classifyDossierContext({ question = '', priorUserContext = null, priorP
       userContext = DOSSIER_USER_CONTEXT.MANAGEMENT;
     } else if (/regulier|bundesnetzagentur|behörde|aufsicht|compliance|genehmigung/.test(q)) {
       userContext = DOSSIER_USER_CONTEXT.REGULATORY;
-    } else if (/technisch|betrieb|wartung|messung|schaltung|netzführung|dispatching/.test(q)) {
+    } else if (
+      /technisch|betrieb|wartung|messung|messwesen|messkonzept|mk10|mk40|schaltung|netzführung|dispatching|wärmepumpe|waermepumpe|speicher|pv[-\s]?anlage/.test(q)
+    ) {
       userContext = DOSSIER_USER_CONTEXT.TECHNICAL_OPERATOR;
     } else if (/prozess starten|auslösen|durchführen|beauftrag|freigeben|abschicken|anmelden|einleiten/.test(q)) {
       userContext = DOSSIER_USER_CONTEXT.PROCESS_ACTION;
@@ -217,6 +219,57 @@ function normalizeKnowledgeSpaceContext({
   };
 }
 
+function buildCapabilityRoutingSection(capabilityRouting) {
+  const status = capabilityRouting?.status || 'unavailable';
+  if (!capabilityRouting || status !== 'success' || !capabilityRouting.result) {
+    const elapsed = capabilityRouting?.elapsedMs != null ? `${capabilityRouting.elapsedMs}ms` : 'n/a';
+    return [
+      '## Capability Routing Context',
+      `- status: ${status}`,
+      `- elapsed_ms: ${elapsed}`,
+      '- note: Broker advisory not available for this dossier — proceed on Evidence basis only.',
+    ].join('\n');
+  }
+
+  const r = capabilityRouting.result;
+  const lines = [
+    '## Capability Routing Context',
+    `- status: ${status}`,
+    `- elapsed_ms: ${capabilityRouting.elapsedMs}`,
+    '- source: capability-broker (advisory only — does not upgrade evidence confidence)',
+  ];
+
+  if (r.intent) lines.push(`- intent: ${r.intent}`);
+  if (r.capability) lines.push(`- capability: ${r.capability}`);
+  if (typeof r.confidence === 'number') lines.push(`- confidence: ${r.confidence}`);
+  if (r.domain) lines.push(`- domain: ${r.domain}`);
+  if (r.routeLabel) lines.push(`- route_label: ${r.routeLabel}`);
+  if (Array.isArray(r.recommendedCapabilities) && r.recommendedCapabilities.length > 0) {
+    lines.push(`- recommended_capabilities: ${r.recommendedCapabilities.slice(0, 3).join(', ')}`);
+  }
+  if (Array.isArray(r.requiredInputs) && r.requiredInputs.length > 0) {
+    lines.push(`- required_inputs: ${r.requiredInputs.slice(0, 5).join(', ')}`);
+  }
+  if (Array.isArray(r.missingInputs) && r.missingInputs.length > 0) {
+    lines.push(`- missing_inputs: ${r.missingInputs.slice(0, 5).join(', ')}`);
+  }
+  if (Array.isArray(r.risks) && r.risks.length > 0) {
+    lines.push(`- risks: ${r.risks.slice(0, 3).join('; ')}`);
+  }
+  if (r.hitlRequired != null) lines.push(`- hitl_required: ${r.hitlRequired}`);
+  if (Array.isArray(r.preferredActions) && r.preferredActions.length > 0) {
+    lines.push(`- preferred_actions: ${r.preferredActions.slice(0, 3).join(', ')}`);
+  }
+  if (Array.isArray(r.fallbackActions) && r.fallbackActions.length > 0) {
+    lines.push(`- fallback_actions: ${r.fallbackActions.slice(0, 3).join(', ')}`);
+  }
+  if (r.summary) lines.push(`- summary: ${String(r.summary).slice(0, 200)}`);
+  lines.push('');
+  lines.push('**Advisory note**: This routing context is informational only. It does not constitute validated evidence and must not be used to promote Low Evidence to a higher confidence tier.');
+
+  return lines.join('\n');
+}
+
 function buildDossierMarkdown({
   dossierId,
   dossierVersion,
@@ -232,6 +285,7 @@ function buildDossierMarkdown({
   priorTurnsCount = 0,
   knowledgeSpace = {},
   preliminaryAnswerRequested = false,
+  capabilityRouting = null,
 }) {
   const { userContext, processStage, answerMode, confidence } = dossierState;
   const normalizedKnowledgeSpace = normalizeKnowledgeSpaceContext({
@@ -324,6 +378,13 @@ function buildDossierMarkdown({
     '',
     `Originalfrage des Nutzers:\n"${question}"`,
   ];
+
+  if (capabilityRouting) {
+    const rendIdx = dossierLines.indexOf('## Final Renderer Instruction');
+    if (rendIdx !== -1) {
+      dossierLines.splice(rendIdx, 0, buildCapabilityRoutingSection(capabilityRouting), '');
+    }
+  }
 
   if (isPartial) {
     dossierLines.push('');
@@ -422,6 +483,7 @@ module.exports = {
   USER_CONTEXT_TO_ANSWER_MODE,
   computeTimeBudget,
   classifyDossierContext,
+  buildCapabilityRoutingSection,
   buildDossierMarkdown,
   buildRendererSystemHint,
   buildRendererPackageMarkdown,

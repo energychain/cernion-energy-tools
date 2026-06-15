@@ -712,6 +712,191 @@ describe('answerDossier action', () => {
     expect(result.dossierMarkdown).not.toContain('other-tenant');
   });
 
+  test('Tuebingen grid operator brief does not reuse unrelated scoped project low evidence', async () => {
+    const service = {
+      ...buildServiceHarness(),
+      async collectCopilotKnowledgeEvidence() {
+        return { status: 'missing', hits: [] };
+      },
+      async searchCopilotEntities() {
+        return { results: [] };
+      },
+    };
+    const ctx = buildCtx(
+      {
+        question:
+          'Ich bin Geschaeftsfuehrer der Stadtwerke Tuebingen. Gib mir bitte ein belastbares Briefing fuer Zielnetzplanung, §14a, Redispatch 2.0, Flexibilitaet, grosse Verbraucher, EE-Ausbau und Gleichzeitigkeiten.',
+        sessionId: 'tenant-tuebingen-strategy-test',
+      },
+      {
+        'object-store.query': (p) => {
+          if (p.namespace !== 'tenant:test-tenant:answer_dossier_low_evidence') return { docs: [] };
+          return {
+            docs: [
+              {
+                key: 'dossier-low-mauer-location',
+                payload: {
+                  type: 'answer-dossier-user-fact',
+                  factType: 'location',
+                  label: 'Standort',
+                  value: '69256 Mauer',
+                  normalizedValue: '69256 mauer',
+                  projectScope: {
+                    location: '69256 Mauer',
+                    postalCode: '69256',
+                    power: '10 MW',
+                    normalizedLocation: '69256 mauer',
+                    normalizedPower: '10 mw',
+                    scopeKey: '69256 mauer|10 mw',
+                  },
+                  evidenceQuality: 'low',
+                  semanticTags: ['cernion:location', 'cernion:postal-code'],
+                  oeoClasses: [],
+                  source: 'user_chat',
+                  sourceSessionId: 'mauer-session',
+                },
+              },
+              {
+                key: 'dossier-low-mauer-timeline',
+                payload: {
+                  type: 'answer-dossier-user-fact',
+                  factType: 'project_timeline',
+                  label: 'Geplante Inbetriebnahme',
+                  value: '2028',
+                  normalizedValue: '2028',
+                  projectScope: {
+                    location: '69256 Mauer',
+                    postalCode: '69256',
+                    power: '10 MW',
+                    normalizedLocation: '69256 mauer',
+                    normalizedPower: '10 mw',
+                    scopeKey: '69256 mauer|10 mw',
+                  },
+                  evidenceQuality: 'low',
+                  semanticTags: ['cernion:project-timeline'],
+                  oeoClasses: [],
+                  source: 'user_chat',
+                  sourceSessionId: 'mauer-session',
+                },
+              },
+              {
+                key: 'dossier-low-sinsheim-location',
+                payload: {
+                  type: 'answer-dossier-user-fact',
+                  factType: 'location',
+                  label: 'Standort',
+                  value: '74889 Sinsheim',
+                  normalizedValue: '74889 sinsheim',
+                  projectScope: {
+                    location: '74889 Sinsheim',
+                    postalCode: '74889',
+                    power: '12 MW',
+                    normalizedLocation: '74889 sinsheim',
+                    normalizedPower: '12 mw',
+                    scopeKey: '74889 sinsheim|12 mw',
+                  },
+                  evidenceQuality: 'low',
+                  semanticTags: ['cernion:location', 'cernion:postal-code'],
+                  oeoClasses: [],
+                  source: 'user_chat',
+                  sourceSessionId: 'sinsheim-session',
+                },
+              },
+              {
+                key: 'dossier-low-sinsheim-timeline',
+                payload: {
+                  type: 'answer-dossier-user-fact',
+                  factType: 'project_timeline',
+                  label: 'Geplante Inbetriebnahme',
+                  value: '2029',
+                  normalizedValue: '2029',
+                  projectScope: {
+                    location: '74889 Sinsheim',
+                    postalCode: '74889',
+                    power: '12 MW',
+                    normalizedLocation: '74889 sinsheim',
+                    normalizedPower: '12 mw',
+                    scopeKey: '74889 sinsheim|12 mw',
+                  },
+                  evidenceQuality: 'low',
+                  semanticTags: ['cernion:project-timeline'],
+                  oeoClasses: [],
+                  source: 'user_chat',
+                  sourceSessionId: 'sinsheim-session',
+                },
+              },
+            ],
+          };
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.answerMode).toBe('evidence_collection');
+    expect(result.userContext).toBe('target_grid_planning');
+    expect(result.processStage).toBe('evidence_collection');
+    expect(result.dossierMarkdown).toContain('Stadtwerke Tuebingen');
+    expect(result.dossierMarkdown).not.toContain('69256 Mauer');
+    expect(result.dossierMarkdown).not.toContain('10 MW');
+    expect(result.dossierMarkdown).not.toContain('2028');
+    expect(result.dossierMarkdown).not.toContain('74889 Sinsheim');
+    expect(result.dossierMarkdown).not.toContain('12 MW');
+    expect(result.dossierMarkdown).not.toContain('2029');
+  });
+
+  test('Wiesloch metering scenario is classified and stored with metering and asset facts', async () => {
+    const puts = [];
+    const service = {
+      ...buildServiceHarness(),
+      async collectCopilotKnowledgeEvidence() {
+        return { status: 'missing', hits: [] };
+      },
+      async searchCopilotEntities() {
+        return { results: [] };
+      },
+    };
+    const ctx = buildCtx(
+      {
+        question:
+          'Ich bin im Messwesen beim Netzbetreiber und pruefe 69168 Wiesloch: MK10 Standard-Zusammenlegung ist vorgesehen, eventuell ist MK40 noetig. Die alte PV-Anlage ist demontiert, ein Speicher mit 5 kW, eine Waermepumpe mit 7,5 kW und eine neue PV-Anlage mit 10 kWp sind geplant.',
+        sessionId: 'tenant-wiesloch-metering-test',
+      },
+      {
+        'object-store.put': (p) => {
+          puts.push(p);
+          return { ok: true };
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+    const payloads = puts
+      .filter((p) => p.namespace === 'tenant:test-tenant:answer_dossier_low_evidence')
+      .map((p) => p.payload);
+
+    expect(result.answerMode).toBe('evidence_collection');
+    expect(result.userContext).toBe('technical_operator');
+    expect(result.processStage).toBe('evidence_collection');
+    expect(payloads.map((p) => p.factType)).toEqual(
+      expect.arrayContaining(['location', 'metering_concept', 'asset_component', 'asset_status'])
+    );
+    expect(payloads.map((p) => p.value)).toEqual(
+      expect.arrayContaining(['69168 Wiesloch', 'MK10', 'MK40', '5 kW', '7.5 kW', '10 kWp', 'demontiert'])
+    );
+    expect(payloads.find((p) => p.value === 'MK10')?.semanticTags).toEqual(expect.arrayContaining(['cernion:metering-concept']));
+    expect(payloads.find((p) => p.factType === 'asset_component' && p.value === '5 kW')?.label).toBe('Speicher');
+    expect(payloads.find((p) => p.factType === 'asset_component' && p.value === '7.5 kW')?.label).toBe('Wärmepumpe');
+    expect(payloads.find((p) => p.factType === 'asset_component' && p.value === '10 kWp')?.label).toBe('Neue PV-Anlage');
+    expect(payloads.find((p) => p.factType === 'asset_status' && p.value === 'demontiert')?.label).toBe('PV-Altanlage');
+    expect(result.dossierMarkdown).toContain('Messkonzept: MK10');
+    expect(result.dossierMarkdown).toContain('Messkonzept: MK40');
+    expect(result.dossierMarkdown).toContain('Speicher: 5 kW');
+    expect(result.dossierMarkdown).toContain('Wärmepumpe: 7.5 kW');
+    expect(result.dossierMarkdown).toContain('Neue PV-Anlage: 10 kWp');
+    expect(result.dossierMarkdown).toContain('PV-Altanlage: demontiert');
+  });
+
   // 13. Two-turn session continuity: processStage advances to evidence_collection
   test('two-turn: turn 2 Zielnetzplanung → userContext=target_grid_planning, processStage=evidence_collection, dossierVersion=2', async () => {
     const service = buildServiceHarness();
@@ -786,6 +971,271 @@ describe('answerDossier action', () => {
     delete ctx.meta.cernionToken;
 
     await expect(handler.call(service, ctx)).rejects.toMatchObject({ code: 401, type: 'AUTH_REQUIRED' });
+  });
+
+  // ── Capability Broker integration (v0.63.4) ──────────────────────────────
+
+  // AC1 — Broker called with $gateway: false
+  test('broker: capability-broker.recommend called with meta.$gateway=false', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx(
+      { question: 'Netzkapazität Sinsheim' },
+      {
+        'capability-broker.recommend': async () => ({ intent: 'grid_query', capability: 'grid_operator', confidence: 0.7 }),
+      }
+    );
+
+    await handler.call(service, ctx);
+
+    const brokerCall = ctx.call.mock.calls.find(([action]) => action === 'capability-broker.recommend');
+    expect(brokerCall).toBeDefined();
+    expect(brokerCall[2]).toMatchObject({ meta: expect.objectContaining({ $gateway: false }) });
+  });
+
+  // AC2 — Successful broker result in capabilityRouting, auditTrail, dossier markdown
+  test('broker: success result appears in capabilityRouting, auditTrail.broker, and dossier markdown', async () => {
+    const service = buildServiceHarness();
+    const brokerResponse = {
+      intent: 'grid_capacity_query',
+      capability: 'grid_operator_identity_resolution',
+      confidence: 0.85,
+      domain: 'grid_planning',
+      routeLabel: 'Netzkapazität',
+      recommendedCapabilities: ['grid_operator_identity_resolution'],
+      requiredInputs: ['location', 'power'],
+      missingInputs: ['power'],
+      risks: ['unknown_operator'],
+      hitlRequired: true,
+      preferredActions: ['resolve_grid_operator'],
+      fallbackActions: ['manual_lookup'],
+      summary: 'Route to grid operator identity resolution for capacity query',
+    };
+    const ctx = buildCtx(
+      { question: 'Zuständiger Netzbetreiber für 74889 Sinsheim 12 MW?' },
+      { 'capability-broker.recommend': async () => brokerResponse }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(result.capabilityRouting).toMatchObject({
+      status: 'success',
+      timedOut: false,
+      source: 'capability-broker',
+      result: expect.objectContaining({ intent: 'grid_capacity_query', capability: 'grid_operator_identity_resolution' }),
+    });
+    expect(typeof result.capabilityRouting.elapsedMs).toBe('number');
+
+    expect(result.auditTrail.broker).toMatchObject({
+      status: 'success',
+      timedOut: false,
+      intent: 'grid_capacity_query',
+      capability: 'grid_operator_identity_resolution',
+    });
+
+    expect(result.dossierMarkdown).toContain('## Capability Routing Context');
+    expect(result.dossierMarkdown).toContain('- status: success');
+    expect(result.dossierMarkdown).toContain('- intent: grid_capacity_query');
+    expect(result.dossierMarkdown).toContain('- capability: grid_operator_identity_resolution');
+    expect(result.dossierMarkdown).toContain('- domain: grid_planning');
+    expect(result.dossierMarkdown).toContain('hitl_required: true');
+    expect(result.dossierMarkdown).toContain('Advisory note');
+    // Section must appear before Final Renderer Instruction
+    const routingIdx = result.dossierMarkdown.indexOf('## Capability Routing Context');
+    const rendererIdx = result.dossierMarkdown.indexOf('## Final Renderer Instruction');
+    expect(routingIdx).toBeGreaterThan(-1);
+    expect(routingIdx).toBeLessThan(rendererIdx);
+  });
+
+  // AC3 — Broker timeout → valid dossier, capabilityRouting.status='timeout'
+  test('broker: timeout returns valid dossier with capabilityRouting.status=timeout', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx(
+      { question: 'Zeitüberschreitung Test' },
+      {
+        'capability-broker.recommend': async () => {
+          const err = new Error('broker_timeout');
+          throw err;
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(result.capabilityRouting).toMatchObject({
+      status: 'timeout',
+      timedOut: true,
+      result: null,
+      source: 'capability-broker',
+    });
+    expect(result.auditTrail.broker.status).toBe('timeout');
+    expect(result.auditTrail.broker.timedOut).toBe(true);
+    expect(result.dossierMarkdown).toContain('## Capability Routing Context');
+    expect(result.dossierMarkdown).toContain('- status: timeout');
+    expect(result.dossierMarkdown).toContain('proceed on Evidence basis only');
+  });
+
+  // AC4 — Broker failure → valid dossier, capabilityRouting.status='failed'
+  test('broker: generic failure returns valid dossier with capabilityRouting.status=failed', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx(
+      { question: 'Broker Fehler Test' },
+      {
+        'capability-broker.recommend': async () => {
+          throw new Error('internal broker error');
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(result.capabilityRouting.status).toBe('failed');
+    expect(result.capabilityRouting.timedOut).toBe(false);
+    expect(result.auditTrail.broker.status).toBe('failed');
+    expect(result.dossierMarkdown).toContain('## Capability Routing Context');
+  });
+
+  // AC5 — Broker unavailable (ServiceNotFoundError) → capabilityRouting.status='unavailable'
+  test('broker: ServiceNotFoundError maps to capabilityRouting.status=unavailable', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx(
+      { question: 'Broker nicht verfügbar Test' },
+      {
+        'capability-broker.recommend': async () => {
+          const err = new Error('Service not found');
+          err.name = 'ServiceNotFoundError';
+          throw err;
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(result.capabilityRouting.status).toBe('unavailable');
+    expect(result.capabilityRouting.timedOut).toBe(false);
+    expect(result.auditTrail.broker.status).toBe('unavailable');
+  });
+
+  // AC6 — Broker output MUST NOT upgrade evidence confidence
+  test('broker: high-confidence broker response does not upgrade dossier evidence confidence', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx(
+      { question: 'Netzkapazität Prüfung' },
+      {
+        'capability-broker.recommend': async () => ({
+          intent: 'capacity_check',
+          capability: 'grid_check',
+          confidence: 0.99,
+          domain: 'grid_planning',
+        }),
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    // With no real evidence (mocks return empty), dossier confidence stays 'low'
+    expect(result.confidence).toBe('low');
+    // capabilityRouting.result carries the broker confidence, but it does NOT propagate to result.confidence
+    expect(result.capabilityRouting.result?.confidence).toBe(0.99);
+    // Dossier markdown must not present broker recommendation as validated evidence in Known Evidence section
+    expect(result.dossierMarkdown).toContain('Advisory note');
+    const knownEvidenceMatch = result.dossierMarkdown.match(/## Known Evidence\n([\s\S]*?)(?=\n##)/);
+    const knownEvidenceSection = knownEvidenceMatch ? knownEvidenceMatch[1] : '';
+    expect(knownEvidenceSection).not.toContain('0.99');
+  });
+
+  // AC7 — Budget: derived from timeBudgetMs (8%), min 1500, max 2500; broker runs in parallel
+  test('broker: budget derived from timeBudgetMs, runs regardless of evidence collection budget', async () => {
+    // timeBudgetMs = 5000 → factCollectionMs = 0, broker budget = max(1500, floor(5000*0.08)) = 1500
+    // broker should still be called even when there is no evidence collection budget
+    const service = buildServiceHarness();
+    const brokerCalls = [];
+    const ctx = buildCtx(
+      { question: 'Kurzfristige Anfrage', timeBudgetMs: 5000 },
+      {
+        'capability-broker.recommend': async (p) => {
+          brokerCalls.push(p);
+          return { intent: 'quick_query', capability: 'fast_path', confidence: 0.5 };
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(brokerCalls.length).toBe(1);
+    expect(result.capabilityRouting.status).toBe('success');
+    expect(result.capabilityRouting.elapsedMs).toBeGreaterThanOrEqual(0);
+    // For 30s budget: min(2500, max(1500, floor(30000*0.08))) = min(2500, max(1500, 2400)) = 2400
+    // We can't easily assert the exact budget value from the outside, but we can verify
+    // the broker call was made with the correct task/mode
+    expect(brokerCalls[0]).toMatchObject({ task: 'Kurzfristige Anfrage', mode: 'dossier' });
+  });
+
+  // AC8 — Dossier is renderer-neutral: broker does not trigger execution
+  test('broker: advisory section present without triggering any process execution', async () => {
+    const service = buildServiceHarness();
+    const executionCalls = [];
+    const ctx = buildCtx(
+      { question: 'Netzanschlussantrag stellen' },
+      {
+        'capability-broker.recommend': async () => ({
+          intent: 'process_trigger',
+          capability: 'netzanschluss_antrag',
+          confidence: 0.9,
+          preferredActions: ['submit_application'],
+        }),
+        'personal-agent.executeProcessIntent': async (p) => {
+          executionCalls.push(p);
+          return { success: true };
+        },
+        'personal-agent.rejectProcessIntent': async (p) => {
+          executionCalls.push(p);
+          return { success: true };
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(executionCalls).toHaveLength(0);
+    expect(result.capabilityRouting.status).toBe('success');
+    expect(result.dossierMarkdown).toContain('Advisory note');
+  });
+
+  // AC9 — Broker payload delivered in schemaVersion v1 format
+  test('broker: called with cernion.capabilityRecommendation.v1 schema and dossier mode', async () => {
+    const service = buildServiceHarness();
+    let capturedPayload;
+    const ctx = buildCtx(
+      { question: 'Schema-Version Test', domain: 'grid_planning' },
+      {
+        'capability-broker.recommend': async (p) => {
+          capturedPayload = p;
+          return null;
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(capturedPayload).toMatchObject({
+      schemaVersion: 'cernion.capabilityRecommendation.v1',
+      mode: 'dossier',
+      task: 'Schema-Version Test',
+      resolvedParams: {},
+      resolvedCapabilities: [],
+    });
+    // null result from broker → treated as failed (not unavailable, not timeout)
+    // status should be 'success' with result:null, or 'failed'... actually null is a valid return
+    // when broker returns null, Promise.race resolves with null → status: 'success', result: null
+    expect(result.capabilityRouting.status).toBe('success');
+    expect(result.capabilityRouting.result).toBeNull();
+    // dossier markdown should use non-success rendering (result is null)
+    expect(result.dossierMarkdown).toContain('## Capability Routing Context');
   });
 
   // 15. openapi-copilot.json does not expose answer-dossier

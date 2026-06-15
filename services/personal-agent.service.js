@@ -1080,9 +1080,13 @@ function detectOpenEvidenceRequirementsQuery(text = '') {
 
 function dossierLowEvidenceMatchesProjectScope(entry = {}, query = '') {
   const queryScope = extractDossierProjectScope(query);
-  if (!queryScope.scopeKey) return true;
-
   const entryScope = entry?.metadata?.projectScope || {};
+  if (!queryScope.scopeKey) {
+    // Prior user-provided facts with a concrete project scope must not bleed into
+    // unrelated strategic questions such as a grid-operator-wide Tuebingen brief.
+    return !entryScope.scopeKey;
+  }
+
   if (entryScope.scopeKey) {
     const locationMatches =
       !queryScope.normalizedLocation ||
@@ -1163,6 +1167,13 @@ function buildDossierFactOeoAnnotations(factType, value) {
       addGrid('grid-component');
     }
     semanticTags.push('cernion:evidence-requirement');
+  } else if (factType === 'metering_concept') {
+    semanticTags.push('cernion:metering-concept');
+  } else if (factType === 'asset_component') {
+    if (/speicher|pv|waermepumpe|wärmepumpe/i.test(value)) addEnergy('electricity-demand');
+    semanticTags.push('cernion:asset-component');
+  } else if (factType === 'asset_status') {
+    semanticTags.push('cernion:asset-status');
   } else if (factType === 'project_timeline') {
     semanticTags.push('cernion:project-timeline');
   } else if (factType === 'location' || factType === 'postal_code') {
@@ -1231,6 +1242,25 @@ function buildDossierProjectFactEntries(question = '', { sessionId = null, now =
 
   if (signals.power) addFact('requested_power', 'Geplante Anschlussleistung', `${signals.power.value} ${signals.power.unit}`);
   if (signals.assetClass === 'data_center') addFact('asset_class', 'Nutzung/Asset', 'Rechenzentrum');
+  const meteringConcepts = text.match(/\bMK\s*(?:10|40)\b/gi) || [];
+  for (const concept of meteringConcepts) {
+    addFact('metering_concept', 'Messkonzept', concept.replace(/\s+/g, '').toUpperCase());
+  }
+  const storageMatch = text.match(/(?:speicher|batteriespeicher)\D{0,30}(\d+(?:[,.]\d+)?)\s*kW\b/i);
+  if (storageMatch) {
+    addFact('asset_component', 'Speicher', `${storageMatch[1].replace(',', '.')} kW`);
+  }
+  const heatPumpMatch = text.match(/(?:w[äa]rmepumpe|waermepumpe|heat\s*pump)\D{0,30}(\d+(?:[,.]\d+)?)\s*kW\b/i);
+  if (heatPumpMatch) {
+    addFact('asset_component', 'Wärmepumpe', `${heatPumpMatch[1].replace(',', '.')} kW`);
+  }
+  const newPvMatch = text.match(/(?:neue|neuer|geplante|geplanter|zus[aä]tzliche|zusaetzliche)\s+pv(?:[-\s]?anlage)?\D{0,40}(\d+(?:[,.]\d+)?)\s*kWp\b/i);
+  if (newPvMatch) {
+    addFact('asset_component', 'Neue PV-Anlage', `${newPvMatch[1].replace(',', '.')} kWp`);
+  }
+  if (/alte\s+pv(?:[-\s]?anlage)?.{0,40}demontiert|demontierte\s+alte\s+pv/i.test(text)) {
+    addFact('asset_status', 'PV-Altanlage', 'demontiert');
+  }
   if (/24\s*\/\s*7|kontinuierlich|dauerlast|lastgang/i.test(text)) {
     addFact('load_profile', 'Lastprofil', /24\s*\/\s*7/.test(text) ? 'kontinuierlicher Lastgang 24/7' : 'kontinuierlicher Lastgang');
   }
@@ -2061,6 +2091,53 @@ module.exports = {
           ).catch(() => {});
         }
 
+        // Advisory Capability Broker — time-budgeted, fail-open, runs in parallel with evidence collection
+        const _brokerBudgetMs = Math.min(2500, Math.max(1500, Math.floor(timeBudgetMs * 0.08)));
+        const _brokerStartMs = Date.now();
+        const _brokerResultPromise = (async () => {
+          try {
+            const _brokerRaw = await Promise.race([
+              ctx.call(
+                'capability-broker.recommend',
+                {
+                  schemaVersion: 'cernion.capabilityRecommendation.v1',
+                  task: question,
+                  mode: 'dossier',
+                  knownContext: { domain, sessionId },
+                  resolvedParams: {},
+                  resolvedCapabilities: [],
+                },
+                { meta: { ...ctx.meta, $gateway: false } }
+              ),
+              new Promise((_, reject) =>
+                setTimeout(
+                  () => reject(new Error('broker_timeout')),
+                  _brokerBudgetMs
+                )
+              ),
+            ]);
+            return {
+              status: 'success',
+              result: _brokerRaw,
+              elapsedMs: Date.now() - _brokerStartMs,
+              timedOut: false,
+              source: 'capability-broker',
+            };
+          } catch (_brokerErr) {
+            const elapsedMs = Date.now() - _brokerStartMs;
+            if (_brokerErr.message === 'broker_timeout') {
+              return { status: 'timeout', result: null, elapsedMs, timedOut: true, source: 'capability-broker' };
+            }
+            return {
+              status: isActionUnavailable(_brokerErr) ? 'unavailable' : 'failed',
+              result: null,
+              elapsedMs,
+              timedOut: false,
+              source: 'capability-broker',
+            };
+          }
+        })();
+
         let tenantLowEvidence = [];
         try {
           const lowEvidenceResult = await ctx.call(
@@ -2141,6 +2218,9 @@ module.exports = {
         }
         const confidenceEvidenceCount = evidence.filter((entry) => entry?.metadata?.evidenceQuality !== 'low').length;
 
+        // Resolve broker advisory (was running in parallel with evidence collection)
+        const capabilityRouting = await _brokerResultPromise;
+
         // Thinking phase — deterministic classification
         const dossierContext = classifyDossierContext({
           question,
@@ -2191,6 +2271,7 @@ module.exports = {
           priorTurnsCount,
           knowledgeSpace,
           preliminaryAnswerRequested,
+          capabilityRouting,
         });
 
         const elapsedMs = Date.now() - startTime;
@@ -2260,6 +2341,7 @@ module.exports = {
           timeoutWarning,
           dossierMarkdown,
           rendererSystemHint,
+          capabilityRouting,
           auditTrail: {
             correlationId: dossierId,
             dossierId,
@@ -2270,6 +2352,13 @@ module.exports = {
             tenantScopeStatus: knowledgeSpace.tenantScopeStatus,
             conversationId: knowledgeSpace.conversationId,
             createdAt: new Date().toISOString(),
+            broker: {
+              status: capabilityRouting.status,
+              elapsedMs: capabilityRouting.elapsedMs,
+              timedOut: capabilityRouting.timedOut,
+              intent: capabilityRouting.result?.intent || null,
+              capability: capabilityRouting.result?.capability || null,
+            },
           },
         };
       },
