@@ -206,6 +206,21 @@ describe('answerDossier action', () => {
     expect(result.processStage).toBe('evidence_collection');
   });
 
+  test('Projektentwickler data-center feasibility question → technical_operator evidence collection', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx({
+      question:
+        'Können wir in 69256 Mauer ein Rechenzentrum bauen, das 10 MW Strom benötigt? Wir sind Projektentwickler und prüfen Netzanschluss und Standortmachbarkeit.',
+    });
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.answerMode).toBe('evidence_collection');
+    expect(result.userContext).toBe('technical_operator');
+    expect(result.processStage).toBe('evidence_collection');
+    expect(result.dossierMarkdown).toContain('Bei leerer Evidence keine Beispiele, Paragraphen, Behörden, Netzbetreiber, Fristen oder typischen Verfahren nennen.');
+  });
+
   // 7. Management context → management_brief
   test('Bürgermeister-Überblick question → answerMode=management_brief, userContext=mayor', async () => {
     const service = buildServiceHarness();
@@ -301,6 +316,75 @@ describe('answerDossier action', () => {
     expect(typeof result.followUp.pollAfterMs).toBe('number');
     expect(result.followUp.query.mode).toBe('answer_dossier_followup');
     expect(result.followUp.query.sessionId).toBe(result.sessionId);
+  });
+
+  test('follow-up data-center dossier filters irrelevant generic regulatory evidence', async () => {
+    const sessionId = 'test-session-datacenter-evidence-filter';
+    const priorDossierState = {
+      processStage: 'evidence_collection',
+      userContext: 'technical_operator',
+      answerMode: 'evidence_collection',
+      confidence: 'low',
+      knownEvidence: [],
+      missingEvidence: [],
+      lastDossierId: 'prior-dossier-id',
+      lastUpdatedAt: new Date().toISOString(),
+    };
+    const priorDossierTurns = [
+      {
+        dossierId: 'prior-dossier-id',
+        parentDossierId: null,
+        dossierVersion: 1,
+        question:
+          'Können wir in 69256 Mauer ein Rechenzentrum bauen, das 10 MW Strom benötigt? Wir sind Projektentwickler und prüfen Netzanschluss.',
+        processStage: 'evidence_collection',
+        userContext: 'technical_operator',
+        answerMode: 'evidence_collection',
+        confidence: 'low',
+        completionState: 'completed',
+        createdAt: new Date().toISOString(),
+      },
+    ];
+    const service = {
+      ...buildServiceHarness(),
+      async collectCopilotKnowledgeEvidence() {
+        return {
+          status: 'available',
+          hits: [
+            {
+              source: 'BNetzA',
+              value:
+                'Antwort auf Bestellung spaetestens am 2. Werktag. Eigenkapitalzinssatz fuer Neuanlagen 4,23%.',
+            },
+          ],
+        };
+      },
+      async searchCopilotEntities() {
+        return { results: [] };
+      },
+    };
+    const ctx = buildCtx(
+      {
+        question:
+          'Bitte konkretisiere im zweiten Schritt nur, welche Daten wir fuer eine belastbare Netzanschlusspruefung erheben muessen.',
+        sessionId,
+      },
+      {
+        'object-store.get': (p) => {
+          if (p && p.key === sessionId) {
+            return { payload: { dossier: { state: priorDossierState, turns: priorDossierTurns } } };
+          }
+          return null;
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.userContext).toBe('technical_operator');
+    expect(result.confidence).toBe('low');
+    expect(result.dossierMarkdown).toContain('## Known Evidence\n_Keine Evidence verfügbar._');
+    expect(result.dossierMarkdown).toContain('Cernion-Kontext: Keine direkten Treffer gefunden');
   });
 
   // 13. Two-turn session continuity: processStage advances to evidence_collection

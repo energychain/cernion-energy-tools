@@ -1007,6 +1007,19 @@ function copilotKnowledgeHitHasStrictQueryRelevance(hit = {}, query = '') {
   return terms.some((term) => haystack.includes(term));
 }
 
+function copilotDossierEvidenceHasStrictQueryRelevance(entry = {}, query = '') {
+  if (!copilotQueryRequiresStrictEvidenceRelevance(query)) return true;
+  return copilotKnowledgeHitHasStrictQueryRelevance(
+    {
+      source: entry.source,
+      summary: entry.value,
+      retrievalHint: entry.retrievalHint,
+      documentType: entry.metadata?.documentType,
+    },
+    query
+  );
+}
+
 const COPILOT_SHORT_ANSWER_STOPWORDS = new Set([
   'bitte',
   'dazu',
@@ -1653,6 +1666,16 @@ module.exports = {
           ? rawSessionPayload[DOSSIER_SESSION_NAMESPACE].turns
           : [];
         const priorTurnsCount = priorDossierTurns.length;
+        const priorQuestionContext = priorDossierTurns
+          .slice(-2)
+          .map((turn) => turn?.question)
+          .filter(Boolean)
+          .join(' ');
+        const evidenceQuestion = compactString(
+          [priorQuestionContext, question].filter(Boolean).join(' '),
+          1200
+        );
+        const evidenceSearchTerm = deriveCopilotSearchTerm(evidenceQuestion || question);
 
         // Fact Collection phase (with soft timeout)
         let evidence = [];
@@ -1666,8 +1689,8 @@ module.exports = {
               (async () => {
                 try {
                   return await this.collectCopilotKnowledgeEvidence(ctx, {
-                    question,
-                    searchTerm: question,
+                    question: evidenceQuestion,
+                    searchTerm: evidenceSearchTerm,
                     maxEvidence,
                   });
                 } catch (_e) {
@@ -1677,7 +1700,7 @@ module.exports = {
               (async () => {
                 try {
                   return await this.searchCopilotEntities(ctx, {
-                    searchTerm: question,
+                    searchTerm: evidenceSearchTerm,
                     searchDomain,
                     maxEvidence,
                   });
@@ -1698,7 +1721,9 @@ module.exports = {
               value: compactString([r.title, r.excerpt].filter(Boolean).join(' · '), 400),
             }));
 
-            evidence = [...knowledgeHits, ...searchMapped].slice(0, maxEvidence * 2);
+            evidence = [...knowledgeHits, ...searchMapped]
+              .filter((entry) => copilotDossierEvidenceHasStrictQueryRelevance(entry, evidenceQuestion))
+              .slice(0, maxEvidence * 2);
 
             if (knowledgeEvidence?.status === 'timeout') {
               completionState = DOSSIER_COMPLETION_STATE.PARTIAL;
