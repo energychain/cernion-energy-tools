@@ -5,6 +5,27 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.63.5] — 2026-06-15
+
+### Added
+- **Read-only capability evidence hydration** (`services/personal-agent.service.js`): second optional phase after the advisory broker resolves. When the broker recommends a capability whose `preferredActions`/`fallbackActions` are on the explicit allowlist, `answerDossier` calls those read-only actions with inputs extracted from session facts/question and merges successful results into the dossier evidence. Fail-open: timeout or failure yields a valid dossier with no hydrated evidence.
+  - Hydration budget: 40% of `timeBudget.thinkingMs`, capped at 4000ms; skipped entirely when `thinkingMs ≤ 3000` (short-budget requests <~15s)
+  - Per-action cap: `min(3000ms, hydrationBudgetMs / actionsCount)`, all actions run concurrently via `Promise.allSettled`
+  - All calls use `meta.$gateway: false` (internal-only)
+  - `hydration` response field: `{ attempted, succeeded, failed, timedOut, evidenceAdded }`
+  - `auditTrail.hydration`: `{ attempted, evidenceAdded }` logged per request
+  - Hydrated evidence labeled with `source: actionName`, `metadata.evidenceQuality: 'validated'`, `metadata.hydratedBy`, `metadata.hydratedElapsedMs`
+- **`DOSSIER_HYDRATION_ALLOWLIST`** (`services/personal-agent.service.js`): explicit allowlist of safe read-only hydration actions; only actions registered here may be called during hydration:
+  - `energy-market.co2Intensity` — extracts postal code from session facts or question regex; formats `GrünstromIndex`, CO₂-Intensität, Erneuerbareanteil as evidence text
+
+### Security
+- Hydration is allowlist-gated: write actions, process execution, HITL-requiring actions, and any unregistered action are never called
+- Hydrated evidence counts toward `confidenceEvidenceCount` only when `evidenceQuality: 'validated'` (actual API data, not advisory)
+- Total endpoint budget remains ≤30s (hydration budget carved from thinking phase)
+
+### Tests
+- 8 new hydration tests in `tests/answer-dossier.service.test.js` (happy path, no postal code, allowlist gate, timeout/failure fail-open, budget skip, evidence labeling, write-action guard)
+
 ## [0.63.4] — 2026-06-15
 
 ### Added

@@ -1238,6 +1238,237 @@ describe('answerDossier action', () => {
     expect(result.dossierMarkdown).toContain('## Capability Routing Context');
   });
 
+  // ── Hydration phase tests (v0.63.4) ─────────────────────────────────────────
+
+  // H1 — Hydration: energy-market.co2Intensity called when postal code in question and broker recommends it
+  test('hydration: energy-market.co2Intensity called when broker recommends it and postal code is in question', async () => {
+    const service = buildServiceHarness();
+    const co2Calls = [];
+    const ctx = buildCtx(
+      { question: 'CO2-Intensität für 74889 Sinsheim bitte anzeigen', timeBudgetMs: 30000 },
+      {
+        'capability-broker.recommend': async () => ({
+          intent: 'co2_query',
+          capability: 'energy_market',
+          confidence: 0.8,
+          preferredActions: ['energy-market.co2Intensity'],
+          fallbackActions: [],
+        }),
+        'energy-market.co2Intensity': async (p) => {
+          co2Calls.push(p);
+          return { index: 42, co2: 210, renewable: 0.68, label: 'Sinsheim Netz' };
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(co2Calls).toHaveLength(1);
+    expect(co2Calls[0]).toMatchObject({ zip: '74889' });
+    expect(result.hydration.attempted).toContain('energy-market.co2Intensity');
+    expect(result.hydration.succeeded).toContain('energy-market.co2Intensity');
+    expect(result.hydration.evidenceAdded).toBe(1);
+    expect(result.auditTrail.hydration.evidenceAdded).toBe(1);
+    // Hydrated evidence must appear in Known Evidence section with source label
+    expect(result.dossierMarkdown).toContain('energy-market.co2Intensity');
+    expect(result.dossierMarkdown).toContain('GrünstromIndex: 42');
+    expect(result.dossierMarkdown).toContain('CO₂-Intensität: 210 g/kWh');
+    // Hydrated evidence lifts confidence evidence count (evidenceQuality=validated)
+    expect(result.confidence).not.toBe('low');
+  });
+
+  // H2 — Hydration: no postal code → action not called
+  test('hydration: energy-market.co2Intensity not called when no postal code extractable', async () => {
+    const service = buildServiceHarness();
+    const co2Calls = [];
+    const ctx = buildCtx(
+      { question: 'Zeig mir die CO2-Intensität bitte', timeBudgetMs: 30000 },
+      {
+        'capability-broker.recommend': async () => ({
+          intent: 'co2_query',
+          capability: 'energy_market',
+          confidence: 0.8,
+          preferredActions: ['energy-market.co2Intensity'],
+        }),
+        'energy-market.co2Intensity': async (p) => {
+          co2Calls.push(p);
+          return { index: 55, co2: 180 };
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(co2Calls).toHaveLength(0);
+    expect(result.hydration.attempted).toHaveLength(0);
+    expect(result.hydration.evidenceAdded).toBe(0);
+  });
+
+  // H3 — Hydration: action not on allowlist is never called
+  test('hydration: actions not on allowlist are not called even if broker recommends them', async () => {
+    const service = buildServiceHarness();
+    const forbiddenCalls = [];
+    const ctx = buildCtx(
+      { question: 'Netzplanung 74889 Sinsheim', timeBudgetMs: 30000 },
+      {
+        'capability-broker.recommend': async () => ({
+          intent: 'something',
+          capability: 'some_cap',
+          confidence: 0.9,
+          preferredActions: ['grid-operator.submitApplication', 'process.triggerWorkflow'],
+          fallbackActions: ['some-service.writeData'],
+        }),
+        'grid-operator.submitApplication': async (p) => { forbiddenCalls.push(p); return {}; },
+        'process.triggerWorkflow': async (p) => { forbiddenCalls.push(p); return {}; },
+        'some-service.writeData': async (p) => { forbiddenCalls.push(p); return {}; },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(forbiddenCalls).toHaveLength(0);
+    expect(result.hydration.attempted).toHaveLength(0);
+    expect(result.hydration.evidenceAdded).toBe(0);
+  });
+
+  // H4 — Hydration: action timeout → fail-open, dossier succeeds without hydrated evidence
+  test('hydration: timeout returns valid dossier with hydration.timedOut tracking', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx(
+      { question: 'CO2-Intensität für 69115 Heidelberg', timeBudgetMs: 30000 },
+      {
+        'capability-broker.recommend': async () => ({
+          intent: 'co2_query',
+          capability: 'energy_market',
+          confidence: 0.8,
+          preferredActions: ['energy-market.co2Intensity'],
+        }),
+        'energy-market.co2Intensity': async () => {
+          const err = new Error('hydration_timeout');
+          throw err;
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(result.hydration.timedOut).toContain('energy-market.co2Intensity');
+    expect(result.hydration.evidenceAdded).toBe(0);
+    expect(result.hydration.succeeded).toHaveLength(0);
+    // Dossier still valid
+    expect(result.dossierMarkdown).toContain('# CERNION ANSWER DOSSIER');
+  });
+
+  // H5 — Hydration: action failure → fail-open
+  test('hydration: action failure is captured in hydration.failed; dossier succeeds', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx(
+      { question: 'CO2-Daten für 70173 Stuttgart', timeBudgetMs: 30000 },
+      {
+        'capability-broker.recommend': async () => ({
+          intent: 'co2_query',
+          capability: 'energy_market',
+          confidence: 0.75,
+          preferredActions: ['energy-market.co2Intensity'],
+        }),
+        'energy-market.co2Intensity': async () => {
+          throw new Error('internal service error');
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(result.hydration.failed).toContain('energy-market.co2Intensity');
+    expect(result.hydration.evidenceAdded).toBe(0);
+  });
+
+  // H6 — Hydration: skipped when time budget is too small (timeBudgetMs < 12s → thinkingMs=0)
+  test('hydration: skipped when timeBudgetMs gives thinkingMs ≤ 3000 (< 12s budget)', async () => {
+    const service = buildServiceHarness();
+    const co2Calls = [];
+    const ctx = buildCtx(
+      { question: 'CO2 für 74889 Sinsheim', timeBudgetMs: 5000 },
+      {
+        'capability-broker.recommend': async () => ({
+          intent: 'co2_query',
+          capability: 'energy_market',
+          confidence: 0.9,
+          preferredActions: ['energy-market.co2Intensity'],
+        }),
+        'energy-market.co2Intensity': async (p) => {
+          co2Calls.push(p);
+          return { index: 30, co2: 250 };
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(co2Calls).toHaveLength(0);
+    expect(result.hydration.attempted).toHaveLength(0);
+    expect(result.hydration.evidenceAdded).toBe(0);
+  });
+
+  // H7 — Hydration: evidence carries source action name and validated quality
+  test('hydration: hydrated evidence entry has source=actionName and evidenceQuality=validated', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx(
+      { question: 'Grünstromindex für 80331 München', timeBudgetMs: 30000 },
+      {
+        'capability-broker.recommend': async () => ({
+          intent: 'co2_query',
+          capability: 'energy_market',
+          confidence: 0.8,
+          preferredActions: ['energy-market.co2Intensity'],
+        }),
+        'energy-market.co2Intensity': async () => ({ index: 75, co2: 120, renewable: 0.85 }),
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    // Known Evidence section should contain the action name as the source identifier
+    expect(result.dossierMarkdown).toContain('energy-market.co2Intensity');
+    expect(result.dossierMarkdown).toContain('GrünstromIndex: 75');
+    // Since evidenceQuality is 'validated', it counts toward confidence evidence count
+    expect(result.hydration.succeeded).toContain('energy-market.co2Intensity');
+  });
+
+  // H8 — Hydration: broker must not trigger write/consequential actions
+  test('hydration: write-style action in broker preferredActions is never called', async () => {
+    const service = buildServiceHarness();
+    const writeCalls = [];
+    const ctx = buildCtx(
+      { question: 'Bitte Netzanschluss beantragen 74889 Sinsheim', timeBudgetMs: 30000 },
+      {
+        'capability-broker.recommend': async () => ({
+          intent: 'application_submit',
+          capability: 'grid_connection',
+          confidence: 0.95,
+          preferredActions: ['grid-operator.submitApplication', 'process.createReceipt'],
+          fallbackActions: ['document.store'],
+        }),
+        'grid-operator.submitApplication': async (p) => { writeCalls.push(p); return { submitted: true }; },
+        'process.createReceipt': async (p) => { writeCalls.push(p); return { receipt: 'abc' }; },
+        'document.store': async (p) => { writeCalls.push(p); return { stored: true }; },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(writeCalls).toHaveLength(0);
+    expect(result.hydration.attempted).toHaveLength(0);
+  });
+
   // 15. openapi-copilot.json does not expose answer-dossier
   test('openapi-copilot.json does not contain answer-dossier path', () => {
     const copilotPath = path.join(__dirname, '..', 'openapi-copilot.json');

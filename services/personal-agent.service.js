@@ -296,6 +296,37 @@ const COPILOT_DEFAULT_OBJECT_NAMESPACES = Object.freeze([
 const DOSSIER_TIMEOUT_WARNING_THRESHOLD_MS = 25000; // v0.63.0 #220
 const DOSSIER_SESSION_NAMESPACE = 'dossier'; // v0.63.0 #220
 
+// Allowlist of read-only, non-consequential, non-HITL service actions safe for dossier hydration.
+// Each entry provides param extraction from session facts + question, and output → evidence formatting.
+// Only actions explicitly registered here may be called during hydration.
+const DOSSIER_HYDRATION_ALLOWLIST = {
+  'energy-market.co2Intensity': {
+    label: 'Stromnetz CO₂-Intensität / GrünstromIndex',
+    extractParams(userProvidedFacts, question) {
+      const locationFact = (userProvidedFacts || []).find(
+        (f) =>
+          (f.factType === 'location' || f.factType === 'postal_code') &&
+          f.projectScope?.postalCode
+      );
+      const postalCode =
+        locationFact?.projectScope?.postalCode ||
+        (question.match(/\b(\d{5})\b/) || [])[1];
+      return postalCode ? { zip: postalCode } : null;
+    },
+    formatEvidence(result) {
+      if (!result || typeof result !== 'object') return null;
+      const parts = [];
+      if (result.index != null) parts.push(`GrünstromIndex: ${result.index}`);
+      if (result.co2 != null) parts.push(`CO₂-Intensität: ${result.co2} g/kWh`);
+      if (result.renewable != null) parts.push(`Erneuerbare: ${Math.round(Number(result.renewable) * 100)}%`);
+      if (result.label) parts.push(String(result.label).slice(0, 120));
+      if (!parts.length && result.value != null) parts.push(String(result.value).slice(0, 200));
+      return parts.length ? parts.join(' · ') : null;
+    },
+    evidenceQuality: 'validated',
+  },
+};
+
 function isNotFound(error) {
   return error?.code === 404 || error?.type === 'OBJECT_NOT_FOUND';
 }
@@ -2216,10 +2247,75 @@ module.exports = {
             ...(Array.isArray(priorDossierState?.knownEvidence) ? priorDossierState.knownEvidence : []),
           ]);
         }
-        const confidenceEvidenceCount = evidence.filter((entry) => entry?.metadata?.evidenceQuality !== 'low').length;
-
         // Resolve broker advisory (was running in parallel with evidence collection)
         const capabilityRouting = await _brokerResultPromise;
+
+        // Read-only capability evidence hydration — fail-open, allowlist-gated, time-budgeted
+        // Budget: 40% of thinking phase (capped 4s), skipped when budget < 3s (short-budget requests)
+        const hydrationBudgetMs = timeBudget.thinkingMs > 3000
+          ? Math.min(4000, Math.floor(timeBudget.thinkingMs * 0.4))
+          : 0;
+        const _hydrationResult = { attempted: [], succeeded: [], failed: [], timedOut: [], evidenceAdded: 0 };
+
+        if (
+          hydrationBudgetMs > 0 &&
+          capabilityRouting.status === 'success' &&
+          capabilityRouting.result
+        ) {
+          const brokerCandidateActions = [
+            ...(Array.isArray(capabilityRouting.result.preferredActions) ? capabilityRouting.result.preferredActions : []),
+            ...(Array.isArray(capabilityRouting.result.fallbackActions) ? capabilityRouting.result.fallbackActions : []),
+          ].filter((a, i, arr) => arr.indexOf(a) === i && DOSSIER_HYDRATION_ALLOWLIST[a]);
+
+          if (brokerCandidateActions.length > 0) {
+            const perActionMs = Math.min(3000, Math.floor(hydrationBudgetMs / brokerCandidateActions.length));
+            const hydrationSettled = await Promise.allSettled(
+              brokerCandidateActions.map(async (actionName) => {
+                const actionDef = DOSSIER_HYDRATION_ALLOWLIST[actionName];
+                const params = actionDef.extractParams(userProvidedFacts, question);
+                if (!params) return null;
+                _hydrationResult.attempted.push(actionName);
+                const _hydrationCallStart = Date.now();
+                try {
+                  const rawResult = await Promise.race([
+                    ctx.call(actionName, params, { meta: { ...ctx.meta, $gateway: false } }),
+                    new Promise((_, reject) =>
+                      setTimeout(() => reject(new Error('hydration_timeout')), perActionMs)
+                    ),
+                  ]);
+                  const formattedValue = actionDef.formatEvidence(rawResult);
+                  if (!formattedValue) return null;
+                  _hydrationResult.succeeded.push(actionName);
+                  return {
+                    source: actionName,
+                    value: `${actionDef.label}: ${formattedValue}`,
+                    metadata: {
+                      evidenceQuality: actionDef.evidenceQuality,
+                      hydratedBy: actionName,
+                      hydratedElapsedMs: Date.now() - _hydrationCallStart,
+                    },
+                  };
+                } catch (_hydrationErr) {
+                  if (_hydrationErr.message === 'hydration_timeout') {
+                    _hydrationResult.timedOut.push(actionName);
+                  } else {
+                    _hydrationResult.failed.push(actionName);
+                  }
+                  return null;
+                }
+              })
+            );
+            const hydratedEntries = hydrationSettled
+              .filter((r) => r.status === 'fulfilled' && r.value != null)
+              .map((r) => r.value);
+            if (hydratedEntries.length > 0) {
+              evidence = dedupeDossierEvidence([...evidence, ...hydratedEntries]);
+              _hydrationResult.evidenceAdded = hydratedEntries.length;
+            }
+          }
+        }
+
+        const confidenceEvidenceCount = evidence.filter((entry) => entry?.metadata?.evidenceQuality !== 'low').length;
 
         // Thinking phase — deterministic classification
         const dossierContext = classifyDossierContext({
@@ -2342,6 +2438,7 @@ module.exports = {
           dossierMarkdown,
           rendererSystemHint,
           capabilityRouting,
+          hydration: _hydrationResult,
           auditTrail: {
             correlationId: dossierId,
             dossierId,
@@ -2358,6 +2455,10 @@ module.exports = {
               timedOut: capabilityRouting.timedOut,
               intent: capabilityRouting.result?.intent || null,
               capability: capabilityRouting.result?.capability || null,
+            },
+            hydration: {
+              attempted: _hydrationResult.attempted,
+              evidenceAdded: _hydrationResult.evidenceAdded,
             },
           },
         };
