@@ -593,6 +593,51 @@ describe('answerDossier action', () => {
                   sourceSessionId: 'older-session',
                 },
               },
+              {
+                key: 'dossier-low-document',
+                payload: {
+                  type: 'answer-dossier-user-fact',
+                  factType: 'available_document',
+                  label: 'Verfügbare Unterlage',
+                  value: 'Lastprofil als Viertelstundenzeitreihe',
+                  normalizedValue: 'lastprofil als viertelstundenzeitreihe',
+                  evidenceQuality: 'low',
+                  semanticTags: ['cernion:evidence-document'],
+                  oeoClasses: [{ id: 'time-series', label: 'time series' }],
+                  source: 'user_chat',
+                  sourceSessionId: 'older-session',
+                },
+              },
+              {
+                key: 'dossier-low-requirement-1',
+                payload: {
+                  type: 'answer-dossier-user-fact',
+                  factType: 'missing_evidence_requirement',
+                  label: 'Fehlende Evidence-Anforderung',
+                  value: 'verbindliche TAB',
+                  normalizedValue: 'verbindliche tab',
+                  evidenceQuality: 'low',
+                  semanticTags: ['cernion:evidence-requirement'],
+                  oeoClasses: [{ id: 'electricity-grid', label: 'electricity grid' }],
+                  source: 'user_chat',
+                  sourceSessionId: 'older-session',
+                },
+              },
+              {
+                key: 'dossier-low-requirement-2',
+                payload: {
+                  type: 'answer-dossier-user-fact',
+                  factType: 'missing_evidence_requirement',
+                  label: 'Fehlende Evidence-Anforderung',
+                  value: 'Reserven im Umspannwerk',
+                  normalizedValue: 'reserven im umspannwerk',
+                  evidenceQuality: 'low',
+                  semanticTags: ['cernion:evidence-requirement'],
+                  oeoClasses: [{ id: 'electricity-grid', label: 'electricity grid' }],
+                  source: 'user_chat',
+                  sourceSessionId: 'older-session',
+                },
+              },
             ],
           };
         },
@@ -603,6 +648,9 @@ describe('answerDossier action', () => {
 
     expect(result.confidence).toBe('low');
     expect(result.dossierMarkdown).toContain('Standort: 69256 Mauer');
+    expect(result.dossierMarkdown).toContain('Lastprofil als Viertelstundenzeitreihe');
+    expect(result.dossierMarkdown).toContain('verbindliche TAB');
+    expect(result.dossierMarkdown).toContain('Reserven im Umspannwerk');
     expect(result.dossierMarkdown).not.toContain('other-tenant');
   });
 

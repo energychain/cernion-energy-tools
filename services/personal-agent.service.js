@@ -1920,6 +1920,8 @@ module.exports = {
         );
         const evidenceSearchTerm = deriveCopilotSearchTerm(evidenceQuestion || question);
         const lowEvidenceNamespace = tenantNamespace(DOSSIER_LOW_EVIDENCE_NAMESPACE, tenantId);
+        const maxTenantLowEvidence = Math.max(maxEvidence * 4, 20);
+        const maxDossierEvidence = Math.max(maxEvidence * 4, 20);
         const preliminaryAnswerRequested = detectDossierPreliminaryAnswerRequest(question);
         const userProvidedFacts = buildDossierProjectFactEntries(question, { sessionId });
         const userProvidedEvidence = userProvidedFacts
@@ -1961,7 +1963,7 @@ module.exports = {
             .map((doc) => mapDossierLowEvidenceToEntry(doc?.payload || {}))
             .filter(Boolean)
             .filter((entry) => copilotDossierEvidenceHasStrictQueryRelevance(entry, evidenceQuestion))
-            .slice(0, maxEvidence);
+            .slice(0, maxTenantLowEvidence);
         } catch (_err) {
           tenantLowEvidence = [];
         }
@@ -2012,7 +2014,7 @@ module.exports = {
 
             evidence = dedupeDossierEvidence([...userProvidedEvidence, ...tenantLowEvidence, ...knowledgeHits, ...searchMapped])
               .filter((entry) => copilotDossierEvidenceHasStrictQueryRelevance(entry, evidenceQuestion))
-              .slice(0, maxEvidence * 2);
+              .slice(0, maxDossierEvidence);
 
             if (knowledgeEvidence?.status === 'timeout') {
               completionState = DOSSIER_COMPLETION_STATE.PARTIAL;
