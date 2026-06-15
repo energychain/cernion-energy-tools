@@ -5,6 +5,18 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.63.3] — 2026-06-15
+
+### Fixed
+- **Role inference from `requestedFact`** (`evidence-requirement.service.js`): `inferResponsibleRole()` now checks both `label` and `requestedFact` combined, so auto-synced dossier requirements with the generic label `"Fehlende Evidence-Anforderung"` are correctly assigned a role from the concrete fact value. `zuständiger Netzbetreiber`, `Netzverknüpfungspunkt`, `Reserven im Umspannwerk`, `verbindliche TAB` all resolve to `netzplanung`.
+- **`answerDossier` upsert label**: now passes `fact.value` (e.g. `"zuständiger Netzbetreiber"`) instead of `fact.label` (`"Fehlende Evidence-Anforderung"`) so the concrete requirement label is stored and searchable.
+- **`netzanschluss` heuristic gap**: added `netzanschluss`, `netzanschlusszusage`, `anschlusszusage`, `netzanschlussprüfung` to the `netzplanung` role pattern. `"Formale Netzanschlusszusage fehlt"` → `netzplanung`.
+- **Chat routing wired**: `detectOpenEvidenceRequirementsQuery` and `queryOpenEvidenceRequirements` are now invoked in `_executeChatCoreLogic` before the LLM routing path. Queries like `"Was braucht ihr aktuell von mir?"` return open requirements directly. Fail-open: if the service is unavailable the chat continues normally.
+
+### Tests
+- 9 new regression tests in `tests/evidence-requirement.service.test.js` (relay-gap suite: role inference, netzanschluss heuristic, project-scope isolation)
+- New `tests/evidence-requirement-relay.integration.test.js` with 8 end-to-end integration tests covering auto-sync, project-scope isolation, chat routing, tenant isolation, and no-auto-validate constraint
+
 ## [0.63.2] — 2026-06-15
 
 ### Added
