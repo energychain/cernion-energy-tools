@@ -1022,7 +1022,9 @@ function copilotDossierEvidenceHasStrictQueryRelevance(entry = {}, query = '') {
   if (/anonymisierte\s+ableitung/.test(evidenceText) && /llm\s+generator|steuerimpuls/.test(evidenceText)) {
     return false;
   }
-  if (String(entry?.metadata?.kind || '').startsWith('user_provided_')) return true;
+  if (String(entry?.metadata?.kind || '').startsWith('user_provided_')) {
+    return dossierLowEvidenceMatchesProjectScope(entry, query);
+  }
   if (!copilotQueryRequiresStrictEvidenceRelevance(query)) return true;
   return copilotKnowledgeHitHasStrictQueryRelevance(
     {
@@ -1044,7 +1046,7 @@ function hashDossierLowEvidence(value) {
 }
 
 function buildDossierLowEvidenceKey(fact = {}) {
-  return `dossier-low:${hashDossierLowEvidence([fact.factType, fact.normalizedValue || fact.value].join('|'))}`;
+  return `dossier-low:${hashDossierLowEvidence([fact.projectScope?.scopeKey, fact.factType, fact.normalizedValue || fact.value].filter(Boolean).join('|'))}`;
 }
 
 function detectDossierPreliminaryAnswerRequest(question = '') {
@@ -1052,6 +1054,38 @@ function detectDossierPreliminaryAnswerRequest(question = '') {
   return /(?:trotz|auch wenn|obwohl).{0,80}(?:low evidence|niedriger evidence|geringer evidence|fehlender evidence|unvalidiert|nicht validiert)/.test(text) ||
     /(?:vorlaeufige|vorlaeufigen|vorläufige|vorläufigen|indikative|indikativ|hypothetische|hypothetisch).{0,80}(?:aussage|einschaetzung|einschätzung|bewertung|einordnung)/.test(text) ||
     /(?:arbeite|bewerte|schaetze|schätze).{0,80}(?:mit|auf basis).{0,80}(?:low evidence|nutzerangaben|annahmen|arbeitshypothese)/.test(text);
+}
+
+function dossierLowEvidenceMatchesProjectScope(entry = {}, query = '') {
+  const queryScope = extractDossierProjectScope(query);
+  if (!queryScope.scopeKey) return true;
+
+  const entryScope = entry?.metadata?.projectScope || {};
+  if (entryScope.scopeKey) {
+    const locationMatches =
+      !queryScope.normalizedLocation ||
+      !entryScope.normalizedLocation ||
+      entryScope.normalizedLocation === queryScope.normalizedLocation;
+    const powerMatches =
+      !queryScope.normalizedPower ||
+      !entryScope.normalizedPower ||
+      entryScope.normalizedPower === queryScope.normalizedPower;
+    return locationMatches && powerMatches;
+  }
+
+  const factType = entry?.metadata?.factType || null;
+  const haystack = normalizeCopilotSearchableText([entry.value, entry.retrievalHint].filter(Boolean).join(' '));
+  if (factType === 'location') {
+    return Boolean(
+      (queryScope.normalizedLocation && haystack.includes(queryScope.normalizedLocation)) ||
+        (queryScope.postalCode && haystack.includes(queryScope.postalCode))
+    );
+  }
+  if (factType === 'requested_power') {
+    return Boolean(queryScope.normalizedPower && haystack.includes(queryScope.normalizedPower));
+  }
+
+  return false;
 }
 
 function findOeoMapping(list = [], id) {
@@ -1119,9 +1153,30 @@ function buildDossierFactOeoAnnotations(factType, value) {
   };
 }
 
+function extractDossierProjectScope(text = '') {
+  const safeText = compactString(text, 1200);
+  const signals = extractCopilotAnalysisSignals(safeText);
+  const locationMatch = safeText.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}){0,2})/);
+  const location = locationMatch ? `${locationMatch[1]} ${locationMatch[2].trim()}` : null;
+  const postalCode = locationMatch?.[1] || signals.postalCode || null;
+  const power = signals.power ? `${signals.power.value} ${signals.power.unit}` : null;
+  const normalizedLocation = location ? normalizeCopilotSearchableText(location) : null;
+  const normalizedPower = power ? normalizeCopilotSearchableText(power) : null;
+  const scopeParts = [normalizedLocation || postalCode, normalizedPower].filter(Boolean);
+  return {
+    location,
+    postalCode,
+    power,
+    normalizedLocation,
+    normalizedPower,
+    scopeKey: scopeParts.length > 0 ? scopeParts.join('|') : null,
+  };
+}
+
 function buildDossierProjectFactEntries(question = '', { sessionId = null, now = new Date().toISOString() } = {}) {
   const text = compactString(question, 1200);
   const signals = extractCopilotAnalysisSignals(text);
+  const projectScope = extractDossierProjectScope(text);
   const facts = [];
   const seen = new Set();
   const addFact = (factType, label, value) => {
@@ -1138,6 +1193,7 @@ function buildDossierProjectFactEntries(question = '', { sessionId = null, now =
       label,
       value: safeValue,
       normalizedValue,
+      projectScope,
       oeoClasses: semantic.oeoClasses,
       semanticTags: semantic.semanticTags,
       evidenceQuality: 'low',
@@ -1233,6 +1289,8 @@ function mapDossierLowEvidenceToEntry(fact = {}) {
     source,
     value: `${label}: ${value} · Evidence-Qualität: low · Quelle: Nutzerangabe${oeoLabels.length ? ` · OEO: ${oeoLabels.join(', ')}` : ''}`,
     retrievalHint: [
+      fact.projectScope?.normalizedLocation,
+      fact.projectScope?.normalizedPower,
       fact.normalizedValue,
       fact.factType,
       ...(Array.isArray(fact.semanticTags) ? fact.semanticTags : []),
@@ -1242,6 +1300,7 @@ function mapDossierLowEvidenceToEntry(fact = {}) {
       kind,
       evidenceQuality: 'low',
       factType,
+      projectScope: fact.projectScope || null,
       semanticTags: Array.isArray(fact.semanticTags) ? fact.semanticTags : [],
       oeoClasses: Array.isArray(fact.oeoClasses) ? fact.oeoClasses : [],
       sourceSessionId: fact.sourceSessionId || null,

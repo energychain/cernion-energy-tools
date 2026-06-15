@@ -458,6 +458,7 @@ describe('answerDossier action', () => {
       expect.arrayContaining(['location', 'requested_power', 'asset_class', 'load_profile', 'requested_check_scope'])
     );
     const powerFact = lowEvidencePuts.find((p) => p.payload.factType === 'requested_power')?.payload;
+    expect(powerFact?.projectScope?.scopeKey).toBe('69256 mauer|10 mw');
     expect(powerFact?.semanticTags).toEqual(expect.arrayContaining(['oeo:electricity-demand', 'oeo:power-unit']));
     expect(powerFact?.oeoClasses?.map((entry) => entry.id)).toEqual(
       expect.arrayContaining(['electricity-demand', 'electrical-energy', 'unit-megawatt'])
@@ -490,7 +491,7 @@ describe('answerDossier action', () => {
     const ctx = buildCtx(
       {
         question:
-          'Weitere Angaben: Der Projektentwickler kann einen Lageplan, eine geplante Inbetriebnahme 2028, ein vorläufiges Single-Line-Diagramm und ein Lastprofil als Viertelstundenzeitreihe nachreichen. Noch unbekannt sind zuständiger Netzbetreiber, verfügbarer Netzverknüpfungspunkt, Reserven im Umspannwerk und verbindliche TAB.',
+          'Weitere Angaben zum Rechenzentrum in 69256 Mauer mit 10 MW: Der Projektentwickler kann einen Lageplan, eine geplante Inbetriebnahme 2028, ein vorläufiges Single-Line-Diagramm und ein Lastprofil als Viertelstundenzeitreihe nachreichen. Noch unbekannt sind zuständiger Netzbetreiber, verfügbarer Netzverknüpfungspunkt, Reserven im Umspannwerk und verbindliche TAB.',
         sessionId: 'tenant-low-evidence-docs-test',
       },
       {
@@ -522,6 +523,7 @@ describe('answerDossier action', () => {
       ])
     );
     const requirement = payloads.find((p) => p.value === 'verfügbarer Netzverknüpfungspunkt');
+    expect(requirement?.projectScope?.scopeKey).toBe('69256 mauer|10 mw');
     expect(requirement?.semanticTags).toEqual(expect.arrayContaining(['cernion:evidence-requirement']));
     expect(requirement?.oeoClasses?.map((entry) => entry.id)).toEqual(
       expect.arrayContaining(['electricity-grid', 'grid-component'])
@@ -586,6 +588,14 @@ describe('answerDossier action', () => {
                   label: 'Standort',
                   value: '69256 Mauer',
                   normalizedValue: '69256 mauer',
+                  projectScope: {
+                    location: '69256 Mauer',
+                    postalCode: '69256',
+                    power: '10 MW',
+                    normalizedLocation: '69256 mauer',
+                    normalizedPower: '10 mw',
+                    scopeKey: '69256 mauer|10 mw',
+                  },
                   evidenceQuality: 'low',
                   semanticTags: ['cernion:location', 'cernion:postal-code'],
                   oeoClasses: [],
@@ -601,6 +611,14 @@ describe('answerDossier action', () => {
                   label: 'Verfügbare Unterlage',
                   value: 'Lastprofil als Viertelstundenzeitreihe',
                   normalizedValue: 'lastprofil als viertelstundenzeitreihe',
+                  projectScope: {
+                    location: '69256 Mauer',
+                    postalCode: '69256',
+                    power: '10 MW',
+                    normalizedLocation: '69256 mauer',
+                    normalizedPower: '10 mw',
+                    scopeKey: '69256 mauer|10 mw',
+                  },
                   evidenceQuality: 'low',
                   semanticTags: ['cernion:evidence-document'],
                   oeoClasses: [{ id: 'time-series', label: 'time series' }],
@@ -616,6 +634,14 @@ describe('answerDossier action', () => {
                   label: 'Fehlende Evidence-Anforderung',
                   value: 'verbindliche TAB',
                   normalizedValue: 'verbindliche tab',
+                  projectScope: {
+                    location: '69256 Mauer',
+                    postalCode: '69256',
+                    power: '10 MW',
+                    normalizedLocation: '69256 mauer',
+                    normalizedPower: '10 mw',
+                    scopeKey: '69256 mauer|10 mw',
+                  },
                   evidenceQuality: 'low',
                   semanticTags: ['cernion:evidence-requirement'],
                   oeoClasses: [{ id: 'electricity-grid', label: 'electricity grid' }],
@@ -631,11 +657,42 @@ describe('answerDossier action', () => {
                   label: 'Fehlende Evidence-Anforderung',
                   value: 'Reserven im Umspannwerk',
                   normalizedValue: 'reserven im umspannwerk',
+                  projectScope: {
+                    location: '69256 Mauer',
+                    postalCode: '69256',
+                    power: '10 MW',
+                    normalizedLocation: '69256 mauer',
+                    normalizedPower: '10 mw',
+                    scopeKey: '69256 mauer|10 mw',
+                  },
                   evidenceQuality: 'low',
                   semanticTags: ['cernion:evidence-requirement'],
                   oeoClasses: [{ id: 'electricity-grid', label: 'electricity grid' }],
                   source: 'user_chat',
                   sourceSessionId: 'older-session',
+                },
+              },
+              {
+                key: 'dossier-low-other-project-location',
+                payload: {
+                  type: 'answer-dossier-user-fact',
+                  factType: 'location',
+                  label: 'Standort',
+                  value: '74889 Sinsheim',
+                  normalizedValue: '74889 sinsheim',
+                  projectScope: {
+                    location: '74889 Sinsheim',
+                    postalCode: '74889',
+                    power: '12 MW',
+                    normalizedLocation: '74889 sinsheim',
+                    normalizedPower: '12 mw',
+                    scopeKey: '74889 sinsheim|12 mw',
+                  },
+                  evidenceQuality: 'low',
+                  semanticTags: ['cernion:location', 'cernion:postal-code'],
+                  oeoClasses: [],
+                  source: 'user_chat',
+                  sourceSessionId: 'other-session',
                 },
               },
             ],
@@ -651,6 +708,7 @@ describe('answerDossier action', () => {
     expect(result.dossierMarkdown).toContain('Lastprofil als Viertelstundenzeitreihe');
     expect(result.dossierMarkdown).toContain('verbindliche TAB');
     expect(result.dossierMarkdown).toContain('Reserven im Umspannwerk');
+    expect(result.dossierMarkdown).not.toContain('74889 Sinsheim');
     expect(result.dossierMarkdown).not.toContain('other-tenant');
   });
 
