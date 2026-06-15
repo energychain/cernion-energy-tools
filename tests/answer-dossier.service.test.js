@@ -218,7 +218,8 @@ describe('answerDossier action', () => {
     expect(result.answerMode).toBe('evidence_collection');
     expect(result.userContext).toBe('technical_operator');
     expect(result.processStage).toBe('evidence_collection');
-    expect(result.dossierMarkdown).toContain('Bei leerer Evidence keine Beispiele, Paragraphen, Behörden, Netzbetreiber, Fristen oder typischen Verfahren nennen.');
+    expect(result.dossierMarkdown).toContain('Ohne validierte Evidence keine Beispiele, Paragraphen, Behörden, Netzbetreiber, Fristen oder typischen Verfahren nennen.');
+    expect(result.dossierMarkdown).toContain('user-provided project fact (low)');
   });
 
   // 7. Management context → management_brief
@@ -384,7 +385,7 @@ describe('answerDossier action', () => {
     expect(result.userContext).toBe('technical_operator');
     expect(result.confidence).toBe('low');
     expect(result.dossierMarkdown).toContain('## Known Evidence\n_Keine Evidence verfügbar._');
-    expect(result.dossierMarkdown).toContain('Cernion-Kontext: Keine direkten Treffer gefunden');
+    expect(result.dossierMarkdown).toContain('Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden');
   });
 
   test('answer dossier ignores anonymized LLM generator derivations as usable evidence', async () => {
@@ -415,8 +416,100 @@ describe('answerDossier action', () => {
 
     expect(result.userContext).toBe('technical_operator');
     expect(result.confidence).toBe('low');
-    expect(result.dossierMarkdown).toContain('## Known Evidence\n_Keine Evidence verfügbar._');
+    expect(result.dossierMarkdown).toContain('user-provided project fact (low)');
     expect(result.dossierMarkdown).not.toContain('Anonymisierte Ableitung aus Thorstens Steuerimpuls-Routine');
+  });
+
+  test('answer dossier stores user-provided project facts as tenant-scoped low evidence', async () => {
+    const puts = [];
+    const queries = [];
+    const service = {
+      ...buildServiceHarness(),
+      async collectCopilotKnowledgeEvidence() {
+        return { status: 'missing', hits: [] };
+      },
+      async searchCopilotEntities() {
+        return { results: [] };
+      },
+    };
+    const ctx = buildCtx(
+      {
+        question:
+          'Für Turn 3 liefere ich folgende Datenpunkte: Standort 69256 Mauer; geplante Anschlussleistung 10 MW; Nutzung Rechenzentrum; kontinuierlicher Lastgang 24/7; gewünschte Netzanschlussprüfung inklusive Netzebene, verfügbarer Anschlussleistung, Transformatorreserve, N-1-Betrachtung und Zeitplan für Netzausbau.',
+        sessionId: 'tenant-low-evidence-store-test',
+      },
+      {
+        'object-store.put': (p) => {
+          puts.push(p);
+          return { ok: true };
+        },
+        'object-store.query': (p) => {
+          queries.push(p);
+          return { docs: [] };
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    const lowEvidencePuts = puts.filter((p) => p.namespace === 'tenant:test-tenant:answer_dossier_low_evidence');
+    expect(lowEvidencePuts.length).toBeGreaterThanOrEqual(4);
+    expect(lowEvidencePuts.map((p) => p.payload.factType)).toEqual(
+      expect.arrayContaining(['location', 'requested_power', 'asset_class', 'load_profile', 'requested_check_scope'])
+    );
+    expect(queries.some((p) => p.namespace === 'tenant:test-tenant:answer_dossier_low_evidence')).toBe(true);
+    expect(result.confidence).toBe('low');
+    expect(result.dossierMarkdown).toContain('user-provided project fact (low)');
+    expect(result.dossierMarkdown).toContain('Standort: 69256 Mauer');
+    expect(result.dossierMarkdown).toContain('Evidence-Qualität: low');
+    expect(result.dossierMarkdown).toContain('Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden');
+  });
+
+  test('answer dossier reuses only current-tenant low evidence in later sessions', async () => {
+    const service = {
+      ...buildServiceHarness(),
+      async collectCopilotKnowledgeEvidence() {
+        return { status: 'missing', hits: [] };
+      },
+      async searchCopilotEntities() {
+        return { results: [] };
+      },
+    };
+    const ctx = buildCtx(
+      {
+        question:
+          'Welche Daten kennen wir bereits für die Netzanschlussprüfung eines 10 MW Rechenzentrums in 69256 Mauer?',
+        sessionId: 'tenant-low-evidence-reuse-test',
+      },
+      {
+        'object-store.query': (p) => {
+          if (p.namespace !== 'tenant:test-tenant:answer_dossier_low_evidence') return { docs: [] };
+          return {
+            docs: [
+              {
+                key: 'dossier-low-location',
+                payload: {
+                  type: 'answer-dossier-user-fact',
+                  factType: 'location',
+                  label: 'Standort',
+                  value: '69256 Mauer',
+                  normalizedValue: '69256 mauer',
+                  evidenceQuality: 'low',
+                  source: 'user_chat',
+                  sourceSessionId: 'older-session',
+                },
+              },
+            ],
+          };
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.confidence).toBe('low');
+    expect(result.dossierMarkdown).toContain('Standort: 69256 Mauer');
+    expect(result.dossierMarkdown).not.toContain('other-tenant');
   });
 
   // 13. Two-turn session continuity: processStage advances to evidence_collection

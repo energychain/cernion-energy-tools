@@ -170,6 +170,7 @@ const {
 
 const OPENAPI_TAG = 'Personal Agent';
 const SESSION_NAMESPACE = process.env.PERSONAL_AGENT_SESSION_NAMESPACE || 'personal_agent_sessions';
+const DOSSIER_LOW_EVIDENCE_NAMESPACE = 'answer_dossier_low_evidence';
 const PROFILE_NAMESPACE =
   process.env.PERSONAL_AGENT_PROFILE_NAMESPACE || 'personal_agent_user_profiles';
 const DEFAULT_SYSTEM_PROMPT =
@@ -1016,6 +1017,7 @@ function copilotDossierEvidenceHasStrictQueryRelevance(entry = {}, query = '') {
   if (/anonymisierte\s+ableitung/.test(evidenceText) && /llm\s+generator|steuerimpuls/.test(evidenceText)) {
     return false;
   }
+  if (entry?.metadata?.kind === 'user_provided_project_fact') return true;
   if (!copilotQueryRequiresStrictEvidenceRelevance(query)) return true;
   return copilotKnowledgeHitHasStrictQueryRelevance(
     {
@@ -1026,6 +1028,103 @@ function copilotDossierEvidenceHasStrictQueryRelevance(entry = {}, query = '') {
     },
     query
   );
+}
+
+function hashDossierLowEvidence(value) {
+  return crypto
+    .createHash('sha256')
+    .update(String(value || ''), 'utf8')
+    .digest('hex')
+    .slice(0, 24);
+}
+
+function buildDossierLowEvidenceKey(fact = {}) {
+  return `dossier-low:${hashDossierLowEvidence([fact.factType, fact.normalizedValue || fact.value].join('|'))}`;
+}
+
+function buildDossierProjectFactEntries(question = '', { sessionId = null, now = new Date().toISOString() } = {}) {
+  const text = compactString(question, 1200);
+  const signals = extractCopilotAnalysisSignals(text);
+  const facts = [];
+  const seen = new Set();
+  const addFact = (factType, label, value) => {
+    const safeValue = compactString(value, 220);
+    if (!safeValue) return;
+    const normalizedValue = normalizeCopilotSearchableText(safeValue);
+    const key = `${factType}:${normalizedValue}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    facts.push({
+      type: 'answer-dossier-user-fact',
+      factType,
+      label,
+      value: safeValue,
+      normalizedValue,
+      evidenceQuality: 'low',
+      source: 'user_chat',
+      sourceSessionId: sessionId || null,
+      observedAt: now,
+    });
+  };
+
+  const locationMatch = text.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}){0,2})/);
+  if (locationMatch) addFact('location', 'Standort', `${locationMatch[1]} ${locationMatch[2].trim()}`);
+  else if (signals.postalCode) addFact('postal_code', 'Postleitzahl', signals.postalCode);
+
+  if (signals.power) addFact('requested_power', 'Geplante Anschlussleistung', `${signals.power.value} ${signals.power.unit}`);
+  if (signals.assetClass === 'data_center') addFact('asset_class', 'Nutzung/Asset', 'Rechenzentrum');
+  if (/24\s*\/\s*7|kontinuierlich|dauerlast|lastgang/i.test(text)) {
+    addFact('load_profile', 'Lastprofil', /24\s*\/\s*7/.test(text) ? 'kontinuierlicher Lastgang 24/7' : 'kontinuierlicher Lastgang');
+  }
+
+  const requestedChecks = [];
+  const checkPatterns = [
+    ['Netzebene', /netzebene/i],
+    ['verfügbare Anschlussleistung', /verf[üu]gbare\s+anschlussleistung|maximal\s+verf[üu]gbar/i],
+    ['Transformatorreserve', /transformator(?:reserve|auslegung)?/i],
+    ['N-1-Betrachtung', /\bn\s*-\s*1\b|n-1/i],
+    ['Zeitplan für Netzausbau', /zeitplan.*netzausbau|netzausbau.*zeitplan/i],
+    ['Netzanschlussprüfung', /netzanschlusspr[üu]fung/i],
+  ];
+  for (const [label, pattern] of checkPatterns) {
+    if (pattern.test(text)) requestedChecks.push(label);
+  }
+  if (requestedChecks.length > 0) {
+    addFact('requested_check_scope', 'Gewünschter Prüfumfang', requestedChecks.join(', '));
+  }
+
+  return facts;
+}
+
+function mapDossierLowEvidenceToEntry(fact = {}) {
+  const label = compactString(fact.label || fact.factType || 'Nutzerangabe', 80);
+  const value = compactString(fact.value || '', 240);
+  if (!value) return null;
+  return {
+    source: 'user-provided project fact (low)',
+    value: `${label}: ${value} · Evidence-Qualität: low · Quelle: Nutzerangabe`,
+    retrievalHint: [fact.normalizedValue, fact.factType].filter(Boolean).join(' '),
+    metadata: {
+      kind: 'user_provided_project_fact',
+      evidenceQuality: 'low',
+      factType: fact.factType || null,
+      sourceSessionId: fact.sourceSessionId || null,
+      observedAt: fact.observedAt || null,
+    },
+  };
+}
+
+function dedupeDossierEvidence(entries = []) {
+  const seen = new Set();
+  const result = [];
+  for (const entry of entries) {
+    if (!entry?.value) continue;
+    const key = normalizeCopilotSearchableText(`${entry.source || ''}|${entry.value}`);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(entry);
+  }
+  return result;
 }
 
 const COPILOT_SHORT_ANSWER_STOPWORDS = new Set([
@@ -1684,6 +1783,51 @@ module.exports = {
           1200
         );
         const evidenceSearchTerm = deriveCopilotSearchTerm(evidenceQuestion || question);
+        const lowEvidenceNamespace = tenantNamespace(DOSSIER_LOW_EVIDENCE_NAMESPACE, tenantId);
+        const userProvidedFacts = buildDossierProjectFactEntries(question, { sessionId });
+        const userProvidedEvidence = userProvidedFacts
+          .map(mapDossierLowEvidenceToEntry)
+          .filter(Boolean);
+        if (userProvidedFacts.length > 0) {
+          await Promise.all(
+            userProvidedFacts.map(async (fact) => {
+              const payload = {
+                ...fact,
+                tenantId,
+                updatedAt: new Date().toISOString(),
+              };
+              try {
+                await ctx.call(
+                  'object-store.put',
+                  {
+                    namespace: lowEvidenceNamespace,
+                    key: buildDossierLowEvidenceKey(fact),
+                    payload,
+                  },
+                  { meta: ctx.meta }
+                );
+              } catch (_err) {
+                // Learning is best-effort; dossier generation must still succeed.
+              }
+            })
+          );
+        }
+
+        let tenantLowEvidence = [];
+        try {
+          const lowEvidenceResult = await ctx.call(
+            'object-store.query',
+            { namespace: lowEvidenceNamespace, limit: 50 },
+            { meta: ctx.meta }
+          );
+          tenantLowEvidence = (Array.isArray(lowEvidenceResult?.docs) ? lowEvidenceResult.docs : [])
+            .map((doc) => mapDossierLowEvidenceToEntry(doc?.payload || {}))
+            .filter(Boolean)
+            .filter((entry) => copilotDossierEvidenceHasStrictQueryRelevance(entry, evidenceQuestion))
+            .slice(0, maxEvidence);
+        } catch (_err) {
+          tenantLowEvidence = [];
+        }
 
         // Fact Collection phase (with soft timeout)
         let evidence = [];
@@ -1729,7 +1873,7 @@ module.exports = {
               value: compactString([r.title, r.excerpt].filter(Boolean).join(' · '), 400),
             }));
 
-            evidence = [...knowledgeHits, ...searchMapped]
+            evidence = dedupeDossierEvidence([...userProvidedEvidence, ...tenantLowEvidence, ...knowledgeHits, ...searchMapped])
               .filter((entry) => copilotDossierEvidenceHasStrictQueryRelevance(entry, evidenceQuestion))
               .slice(0, maxEvidence * 2);
 
@@ -1741,8 +1885,13 @@ module.exports = {
           }
         } else {
           // no budget for collection — use prior evidence from session
-          evidence = Array.isArray(priorDossierState?.knownEvidence) ? priorDossierState.knownEvidence : [];
+          evidence = dedupeDossierEvidence([
+            ...userProvidedEvidence,
+            ...tenantLowEvidence,
+            ...(Array.isArray(priorDossierState?.knownEvidence) ? priorDossierState.knownEvidence : []),
+          ]);
         }
+        const confidenceEvidenceCount = evidence.filter((entry) => entry?.metadata?.evidenceQuality !== 'low').length;
 
         // Thinking phase — deterministic classification
         const dossierContext = classifyDossierContext({
@@ -1750,25 +1899,25 @@ module.exports = {
           priorUserContext: priorDossierState?.userContext || null,
           priorProcessStage: priorDossierState?.processStage || null,
           domain,
-          evidenceCount: evidence.length,
+          evidenceCount: confidenceEvidenceCount,
         });
 
         // Build missing evidence list
         const missingEvidence = [];
-        if (evidence.length === 0) {
-          missingEvidence.push('Cernion-Kontext: Keine direkten Treffer gefunden — Suchbegriff präzisieren oder Domäne angeben.');
+        if (confidenceEvidenceCount === 0) {
+          missingEvidence.push('Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden — Suchbegriff präzisieren, Domäne angeben oder Evidence nachreichen.');
         }
         if (dossierContext.userContext === DOSSIER_USER_CONTEXT.UNKNOWN) {
           missingEvidence.push('Nutzerkontext: Unklar wer fragt und mit welchem Ziel (Planung, Management, Prozessaktion).');
         }
-        if (dossierContext.answerMode === DOSSIER_ANSWER_MODE.EVIDENCE_COLLECTION && evidence.length < 3) {
+        if (dossierContext.answerMode === DOSSIER_ANSWER_MODE.EVIDENCE_COLLECTION && confidenceEvidenceCount < 3) {
           missingEvidence.push('Evidence-Basis: Für eine belastbare Planungsaussage sind weitere Datenpunkte erforderlich.');
         }
 
         const reasoningSummary = buildReasoningSummary({
           userContext: dossierContext.userContext,
           answerMode: dossierContext.answerMode,
-          evidenceCount: evidence.length,
+          evidenceCount: confidenceEvidenceCount,
           domain,
           question,
         });

@@ -241,12 +241,13 @@ function buildDossierMarkdown({
     ...FORBIDDEN_CLAIM_TEXTS,
     ...(domain === 'redispatch' ? REDISPATCH_FORBIDDEN_CLAIMS : []),
   ];
+  const hasValidatedEvidence = evidence.some((entry) => entry?.metadata?.evidenceQuality !== 'low');
   const requiredBehavior = buildRequiredAnswerBehavior(answerMode);
-  if (evidence.length === 0) {
-    requiredBehavior.push('Bei leerer Evidence keine Beispiele, Paragraphen, Behörden, Netzbetreiber, Fristen oder typischen Verfahren nennen.');
+  if (!hasValidatedEvidence) {
+    requiredBehavior.push('Ohne validierte Evidence keine Beispiele, Paragraphen, Behörden, Netzbetreiber, Fristen oder typischen Verfahren nennen.');
     requiredBehavior.push('Nur benennen, welche Evidence fehlt, welche Rückfragen nötig sind und dass keine belastbare Bewertung möglich ist.');
   }
-  const recommendedStructure = evidence.length === 0
+  const recommendedStructure = !hasValidatedEvidence
     ? ['1. Kurz sagen, dass keine belastbare Evidence verfügbar ist', '2. Fehlende Datenpunkte benennen', '3. Gezielt um die nächsten Evidence-Unterlagen bitten']
     : buildRecommendedAnswerStructure(answerMode);
   const isPartial = completionState !== DOSSIER_COMPLETION_STATE.COMPLETED;
