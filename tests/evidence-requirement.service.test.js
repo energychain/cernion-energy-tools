@@ -497,4 +497,154 @@ describe('evidence-requirement.service', () => {
     const ids = result.items.map((i) => i.requirementId);
     expect(ids).not.toContain('evreq:s-iso:req');
   });
+
+  // ── Relay-gap regression tests (v0.63.2 fix) ────────────────────────────
+
+  describe('Role inference from requestedFact (relay-gap 1)', () => {
+    test('generic label + concrete requestedFact infers netzplanung', async () => {
+      const tenantId = 'tenant-relay-infer-1';
+      const result = await broker.call(
+        'evidence-requirement.upsert',
+        {
+          requirementId: 'evreq:dossier-s:netzbetreiber',
+          label: 'Fehlende Evidence-Anforderung',
+          requestedFact: 'zustaendiger netzbetreiber',
+          originSessionId: 'dossier-session-1',
+        },
+        meta(tenantId)
+      );
+      expect(result.requirement.responsibleRole).toBe('netzplanung');
+    });
+
+    test('generic label + netzverknuepfungspunkt requestedFact infers netzplanung', async () => {
+      const tenantId = 'tenant-relay-infer-2';
+      const result = await broker.call(
+        'evidence-requirement.upsert',
+        {
+          requirementId: 'evreq:dossier-s:nvkp',
+          label: 'Fehlende Evidence-Anforderung',
+          requestedFact: 'verfuegbarer netzverknüpfungspunkt',
+          originSessionId: 'dossier-session-2',
+        },
+        meta(tenantId)
+      );
+      expect(result.requirement.responsibleRole).toBe('netzplanung');
+    });
+
+    test('generic label + umspannwerk requestedFact infers netzplanung', async () => {
+      const tenantId = 'tenant-relay-infer-3';
+      const result = await broker.call(
+        'evidence-requirement.upsert',
+        {
+          requirementId: 'evreq:dossier-s:umspann',
+          label: 'Fehlende Evidence-Anforderung',
+          requestedFact: 'reserven im umspannwerk',
+          originSessionId: 'dossier-session-3',
+        },
+        meta(tenantId)
+      );
+      expect(result.requirement.responsibleRole).toBe('netzplanung');
+    });
+
+    test('generic label + verbindliche TAB requestedFact infers netzplanung', async () => {
+      const tenantId = 'tenant-relay-infer-4';
+      const result = await broker.call(
+        'evidence-requirement.upsert',
+        {
+          requirementId: 'evreq:dossier-s:tab',
+          label: 'Fehlende Evidence-Anforderung',
+          requestedFact: 'verbindliche tab',
+          originSessionId: 'dossier-session-4',
+        },
+        meta(tenantId)
+      );
+      expect(result.requirement.responsibleRole).toBe('netzplanung');
+    });
+
+    test('dossier auto-synced requirements are visible via listOpenForRole netzplanung with projectScopeKey', async () => {
+      const tenantId = 'tenant-relay-scope-1';
+      // Simulate what answerDossier now writes (label = fact.value)
+      await broker.call(
+        'evidence-requirement.upsert',
+        {
+          requirementId: 'evreq:sinsheim-session:netzbetreiber',
+          label: 'zuständiger Netzbetreiber',
+          requestedFact: 'zustaendiger netzbetreiber',
+          originSessionId: 'sinsheim-session',
+          projectScope: { scopeKey: '74889 sinsheim|12 mw' },
+        },
+        meta(tenantId)
+      );
+      await broker.call(
+        'evidence-requirement.upsert',
+        {
+          requirementId: 'evreq:mauer-session:netzbetreiber',
+          label: 'zuständiger Netzbetreiber',
+          requestedFact: 'zustaendiger netzbetreiber',
+          originSessionId: 'mauer-session',
+          projectScope: { scopeKey: '69256 mauer|10 mw' },
+        },
+        meta(tenantId)
+      );
+
+      const sinsheimResult = await broker.call(
+        'evidence-requirement.listOpenForRole',
+        { role: 'netzplanung', projectScopeKey: '74889 sinsheim|12 mw' },
+        meta(tenantId)
+      );
+      expect(sinsheimResult.count).toBe(1);
+      expect(sinsheimResult.items[0].requirementId).toBe('evreq:sinsheim-session:netzbetreiber');
+
+      const mauerResult = await broker.call(
+        'evidence-requirement.listOpenForRole',
+        { role: 'netzplanung', projectScopeKey: '69256 mauer|10 mw' },
+        meta(tenantId)
+      );
+      expect(mauerResult.count).toBe(1);
+      expect(mauerResult.items[0].requirementId).toBe('evreq:mauer-session:netzbetreiber');
+    });
+  });
+
+  describe('netzanschluss heuristic (relay-gap 2)', () => {
+    test('Formale Netzanschlusszusage fehlt → netzplanung', async () => {
+      const result = await broker.call(
+        'evidence-requirement.inferRole',
+        { label: 'Formale Netzanschlusszusage fehlt' }
+      );
+      expect(result.responsibleRole).toBe('netzplanung');
+    });
+
+    test('fromVdmiEvidenceGaps: Netzanschlusszusage gap → netzplanung', async () => {
+      const tenantId = 'tenant-vdmi-netzanschluss';
+      const evidenceGaps = [
+        { requirementId: 'formal-netzanschlusszusage', label: 'Formale Netzanschlusszusage fehlt', reason: 'required_evidence_missing' },
+      ];
+      const result = await broker.call(
+        'evidence-requirement.fromVdmiEvidenceGaps',
+        { evidenceGaps, originSessionId: 'vdmi-uat-session' },
+        meta(tenantId)
+      );
+      expect(result.success).toBe(true);
+      expect(result.created).toBe(1);
+
+      const listed = await broker.call('evidence-requirement.listOpenForRole', { role: 'netzplanung' }, meta(tenantId));
+      expect(listed.count).toBeGreaterThanOrEqual(1);
+    });
+
+    test('netzanschlusspruefung label → netzplanung', async () => {
+      const result = await broker.call(
+        'evidence-requirement.inferRole',
+        { label: 'Netzanschlussprüfung ausstehend' }
+      );
+      expect(result.responsibleRole).toBe('netzplanung');
+    });
+
+    test('anschlusszusage label → netzplanung', async () => {
+      const result = await broker.call(
+        'evidence-requirement.inferRole',
+        { label: 'Anschlusszusage liegt nicht vor' }
+      );
+      expect(result.responsibleRole).toBe('netzplanung');
+    });
+  });
 });

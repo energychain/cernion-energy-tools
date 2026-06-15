@@ -31,15 +31,18 @@ const STATUS_VALIDATED = 'validated';
 // Role heuristic — map evidence label keywords to responsible roles.
 // Add/extend here; personal-agent routing and listOpenForRole both use this.
 const ROLE_HEURISTIC_PATTERNS = [
-  [/netzbetreiber|netzverkn[üu]pfungspunkt|umspannwerk|\btab\b|technische\s+anschlussbedingungen|netzkapazit[äa]t|spannungsebene/i, 'netzplanung'],
+  [/netzbetreiber|netzverkn[üu]pfungspunkt|umspannwerk|\btab\b|technische\s+anschlussbedingungen|netzkapazit[äa]t|spannungsebene|netzanschluss|netzanschlusszusage|anschlusszusage|netzanschlussprüfung|netzanschlusspr[üu]fung/i, 'netzplanung'],
   [/lastprofil|zeitreihe|viertelstunden|messung|smartmeter/i, 'messwesen'],
   [/genehmigung|baugenehmigung|recht|zulassung|behörde|beh[öo]rde|bebauungsplan/i, 'regulatory'],
   [/netzstudie|gutachten|machbarkeit/i, 'netzplanung'],
 ];
 
-function inferResponsibleRole(label = '') {
+// Check both label and requestedFact so auto-synced dossier requirements with generic
+// label ("Fehlende Evidence-Anforderung") can still be role-inferred from the concrete fact.
+function inferResponsibleRole(label = '', requestedFact = '') {
+  const combined = `${label} ${requestedFact}`;
   for (const [pattern, role] of ROLE_HEURISTIC_PATTERNS) {
-    if (pattern.test(label)) return role;
+    if (pattern.test(combined)) return role;
   }
   return null;
 }
@@ -330,7 +333,7 @@ module.exports = {
           if (!label || !requestedFact) continue;
 
           const requirementId = `vdmi:${originSessionId}:${requestedFact}`;
-          const role = responsibleRole || inferResponsibleRole(label);
+          const role = responsibleRole || inferResponsibleRole(label, requestedFact);
 
           const { doc, deduplicated } = await this.persistRequirement(tenantId, {
             requirementId,
@@ -354,9 +357,10 @@ module.exports = {
     inferRole: {
       params: {
         label: { type: 'string', min: 1 },
+        requestedFact: { type: 'string', optional: true },
       },
       async handler(ctx) {
-        const role = inferResponsibleRole(ctx.params.label);
+        const role = inferResponsibleRole(ctx.params.label, ctx.params.requestedFact || '');
         return { label: ctx.params.label, responsibleRole: role };
       },
     },
@@ -411,7 +415,7 @@ module.exports = {
       const label = trimString(params.label);
       const requestedFact = trimString(params.requestedFact);
       const originSessionId = trimString(params.originSessionId);
-      const responsibleRole = trimString(params.responsibleRole) || inferResponsibleRole(label) || null;
+      const responsibleRole = trimString(params.responsibleRole) || inferResponsibleRole(label, requestedFact) || null;
       const projectScope = params.projectScope || null;
       const projectScopeKey = normalizeProjectScope(projectScope);
       const waitingSessions = Array.isArray(params.waitingSessions)

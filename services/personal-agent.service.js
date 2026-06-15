@@ -2047,7 +2047,7 @@ module.exports = {
                   {
                     tenantId,
                     requirementId,
-                    label: fact.label || fact.value,
+                    label: fact.value || fact.label,
                     requestedFact: fact.normalizedValue || fact.value,
                     originSessionId: sessionId,
                     projectScope: fact.projectScope || null,
@@ -3426,6 +3426,47 @@ module.exports = {
           }
         }
         // ───────────────────────────────────────────────────────────────────────
+
+        // v0.63.2 — Evidence Requirement query routing (fail-open) #220
+        // Detect role-based open-requirements queries before the LLM routing path.
+        // If the service is unavailable, fall through silently to the normal path.
+        if (!hasApprovedHitlResumePlan) {
+          const _evReqDetection = detectOpenEvidenceRequirementsQuery(ctx.params.message);
+          if (_evReqDetection.isQuery) {
+            const _evReqRole = _evReqDetection.role || 'netzplanung';
+            const _evReqReply = await this.queryOpenEvidenceRequirements(ctx, {
+              role: _evReqRole,
+              tenantId,
+              projectScopeKey: rawKnownContext?.projectScopeKey || null,
+            });
+            if (_evReqReply) {
+              return {
+                success: true,
+                status: 'completed',
+                sessionId,
+                executionMode,
+                chatMode: 'consultation',
+                reply: _evReqReply,
+                execution: { status: 'completed', completedSteps: 0, steps: [], stopPoint: null, meta: null },
+                plan: { steps: [], onboardingHints: [] },
+                routing: {
+                  source: 'evidence-requirement',
+                  routeKey: 'open_requirements_query',
+                  routeLabel: `listOpenForRole:${_evReqRole}`,
+                  primaryIntent: 'open_evidence_requirements',
+                  requestedDomains: [],
+                  warnings: [],
+                },
+                layer4Purged: true,
+                l3Compressed: false,
+                historyCount: Array.isArray(session.l3?.history) ? session.l3.history.length : 0,
+                contextUsage: { totalTokens: 0, estimatedPromptTokens: 0, estimatedCompletionTokens: 0 },
+                fileProcessing,
+              };
+            }
+            // _evReqReply === null means service unavailable — fall through to normal path
+          }
+        }
 
         let knowledgeContext = hasApprovedHitlResumePlan
           ? { domainHint: null, styleHint: null }
