@@ -457,11 +457,22 @@ describe('answerDossier action', () => {
     expect(lowEvidencePuts.map((p) => p.payload.factType)).toEqual(
       expect.arrayContaining(['location', 'requested_power', 'asset_class', 'load_profile', 'requested_check_scope'])
     );
+    const powerFact = lowEvidencePuts.find((p) => p.payload.factType === 'requested_power')?.payload;
+    expect(powerFact?.semanticTags).toEqual(expect.arrayContaining(['oeo:electricity-demand', 'oeo:power-unit']));
+    expect(powerFact?.oeoClasses?.map((entry) => entry.id)).toEqual(
+      expect.arrayContaining(['electricity-demand', 'electrical-energy', 'unit-megawatt'])
+    );
+    const checkScopeFact = lowEvidencePuts.find((p) => p.payload.factType === 'requested_check_scope')?.payload;
+    expect(checkScopeFact?.semanticTags).toEqual(expect.arrayContaining(['oeo:electricity-grid']));
+    expect(checkScopeFact?.oeoClasses?.map((entry) => entry.id)).toEqual(
+      expect.arrayContaining(['electricity-grid', 'distribution-grid', 'grid-component', 'voltage-level'])
+    );
     expect(queries.some((p) => p.namespace === 'tenant:test-tenant:answer_dossier_low_evidence')).toBe(true);
     expect(result.confidence).toBe('low');
     expect(result.dossierMarkdown).toContain('user-provided project fact (low)');
     expect(result.dossierMarkdown).toContain('Standort: 69256 Mauer');
     expect(result.dossierMarkdown).toContain('Evidence-Qualität: low');
+    expect(result.dossierMarkdown).toContain('OEO: electricity demand');
     expect(result.dossierMarkdown).toContain('Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden');
   });
 
@@ -495,6 +506,8 @@ describe('answerDossier action', () => {
                   value: '69256 Mauer',
                   normalizedValue: '69256 mauer',
                   evidenceQuality: 'low',
+                  semanticTags: ['cernion:location', 'cernion:postal-code'],
+                  oeoClasses: [],
                   source: 'user_chat',
                   sourceSessionId: 'older-session',
                 },

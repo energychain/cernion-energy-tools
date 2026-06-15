@@ -99,6 +99,11 @@ const {
   buildGroundedReceiptReply: buildGroundedReceiptReplyAdapter,
 } = require('../src/ev-co2-synthesis');
 const {
+  GRID_CONCEPTS,
+  ENERGY_CONCEPTS,
+  UNITS,
+} = require('../src/oeo-mappings');
+const {
   extractBlueprintPolicy,
   checkStickinessRetain,
   buildSynthesisPolicyDirectives,
@@ -1042,6 +1047,59 @@ function buildDossierLowEvidenceKey(fact = {}) {
   return `dossier-low:${hashDossierLowEvidence([fact.factType, fact.normalizedValue || fact.value].join('|'))}`;
 }
 
+function findOeoMapping(list = [], id) {
+  return list.find((entry) => entry.id === id) || null;
+}
+
+function toOeoClass(id, entry) {
+  if (!entry?.iri) return null;
+  return {
+    id,
+    iri: entry.iri,
+    label: entry.label || id,
+    labelDe: entry.labelDe || entry.label || id,
+  };
+}
+
+function buildDossierFactOeoAnnotations(factType, value) {
+  const classes = [];
+  const semanticTags = [];
+  const add = (id, entry) => {
+    const mapped = toOeoClass(id, entry);
+    if (mapped && !classes.some((item) => item.iri === mapped.iri)) classes.push(mapped);
+  };
+  const addGrid = (id) => add(id, findOeoMapping(GRID_CONCEPTS, id));
+  const addEnergy = (id) => add(id, findOeoMapping(ENERGY_CONCEPTS, id));
+
+  if (factType === 'requested_power') {
+    addEnergy('electricity-demand');
+    addEnergy('electrical-energy');
+    if (/\bmw\b/i.test(value)) add('unit-megawatt', UNITS.MW);
+    if (/\bkw\b/i.test(value)) add('unit-kilowatt', UNITS.kW);
+    semanticTags.push('oeo:electricity-demand', 'oeo:power-unit');
+  } else if (factType === 'asset_class') {
+    addEnergy('electricity-demand');
+    semanticTags.push('cernion:asset:data-center');
+  } else if (factType === 'load_profile') {
+    addEnergy('time-series');
+    addEnergy('electricity-demand');
+    semanticTags.push('oeo:time-series', 'cernion:load-profile');
+  } else if (factType === 'requested_check_scope') {
+    addGrid('electricity-grid');
+    addGrid('distribution-grid');
+    addGrid('grid-component');
+    addGrid('voltage-level');
+    semanticTags.push('oeo:electricity-grid', 'cernion:grid-connection-check');
+  } else if (factType === 'location' || factType === 'postal_code') {
+    semanticTags.push('cernion:location', 'cernion:postal-code');
+  }
+
+  return {
+    oeoClasses: classes,
+    semanticTags: Array.from(new Set(semanticTags)),
+  };
+}
+
 function buildDossierProjectFactEntries(question = '', { sessionId = null, now = new Date().toISOString() } = {}) {
   const text = compactString(question, 1200);
   const signals = extractCopilotAnalysisSignals(text);
@@ -1054,12 +1112,15 @@ function buildDossierProjectFactEntries(question = '', { sessionId = null, now =
     const key = `${factType}:${normalizedValue}`;
     if (seen.has(key)) return;
     seen.add(key);
+    const semantic = buildDossierFactOeoAnnotations(factType, safeValue);
     facts.push({
       type: 'answer-dossier-user-fact',
       factType,
       label,
       value: safeValue,
       normalizedValue,
+      oeoClasses: semantic.oeoClasses,
+      semanticTags: semantic.semanticTags,
       evidenceQuality: 'low',
       source: 'user_chat',
       sourceSessionId: sessionId || null,
@@ -1100,14 +1161,24 @@ function mapDossierLowEvidenceToEntry(fact = {}) {
   const label = compactString(fact.label || fact.factType || 'Nutzerangabe', 80);
   const value = compactString(fact.value || '', 240);
   if (!value) return null;
+  const oeoLabels = Array.isArray(fact.oeoClasses)
+    ? fact.oeoClasses.map((entry) => entry.label || entry.id).filter(Boolean).slice(0, 4)
+    : [];
   return {
     source: 'user-provided project fact (low)',
-    value: `${label}: ${value} · Evidence-Qualität: low · Quelle: Nutzerangabe`,
-    retrievalHint: [fact.normalizedValue, fact.factType].filter(Boolean).join(' '),
+    value: `${label}: ${value} · Evidence-Qualität: low · Quelle: Nutzerangabe${oeoLabels.length ? ` · OEO: ${oeoLabels.join(', ')}` : ''}`,
+    retrievalHint: [
+      fact.normalizedValue,
+      fact.factType,
+      ...(Array.isArray(fact.semanticTags) ? fact.semanticTags : []),
+      ...(Array.isArray(fact.oeoClasses) ? fact.oeoClasses.map((entry) => entry.label).filter(Boolean) : []),
+    ].filter(Boolean).join(' '),
     metadata: {
       kind: 'user_provided_project_fact',
       evidenceQuality: 'low',
       factType: fact.factType || null,
+      semanticTags: Array.isArray(fact.semanticTags) ? fact.semanticTags : [],
+      oeoClasses: Array.isArray(fact.oeoClasses) ? fact.oeoClasses : [],
       sourceSessionId: fact.sourceSessionId || null,
       observedAt: fact.observedAt || null,
     },
