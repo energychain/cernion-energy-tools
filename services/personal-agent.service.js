@@ -1056,6 +1056,28 @@ function detectDossierPreliminaryAnswerRequest(question = '') {
     /(?:arbeite|bewerte|schaetze|schätze).{0,80}(?:mit|auf basis).{0,80}(?:low evidence|nutzerangaben|annahmen|arbeitshypothese)/.test(text);
 }
 
+/**
+ * Detect role-based open-requirements queries (v0.63.2 #220).
+ * Returns { isQuery, role } or { isQuery: false }.
+ */
+function detectOpenEvidenceRequirementsQuery(text = '') {
+  const normalized = normalizeCopilotSearchableText(text);
+  const isQuery =
+    /was\s+(?:braucht|ben[öo]tigt|erwartet|fehlt).{0,40}(?:von mir|von uns|euch|sie)/i.test(normalized) ||
+    /welche\s+(?:offenen|ausstehenden|fehlenden)\s+(?:entscheidungen|anforderungen|informationen|daten|unterlagen)/i.test(normalized) ||
+    /(?:offene|ausstehende|fehlende)\s+(?:evidence|anforderungen|entscheidungen)\s+(?:f[üu]r|meiner\s+rolle)/i.test(normalized) ||
+    /was\s+muss\s+(?:ich|meine\s+abteilung)\s+(?:liefern|beibringen|einreichen|kl[äa]ren)/i.test(normalized);
+
+  if (!isQuery) return { isQuery: false };
+
+  let role = null;
+  if (/netzplanung|netzbetreiber|netzanschluss|netzebene/i.test(normalized)) role = 'netzplanung';
+  else if (/messwesen|lastprofil|zeitreihe|smartmeter/i.test(normalized)) role = 'messwesen';
+  else if (/regulatory|genehmigung|recht|zulassung/i.test(normalized)) role = 'regulatory';
+
+  return { isQuery: true, role };
+}
+
 function dossierLowEvidenceMatchesProjectScope(entry = {}, query = '') {
   const queryScope = extractDossierProjectScope(query);
   if (!queryScope.scopeKey) return true;
@@ -2009,6 +2031,34 @@ module.exports = {
               }
             })
           );
+        }
+
+        // Sync missing_evidence_requirement facts to evidence-requirement.service (best-effort, v0.63.2 #220)
+        const missingRequirementFacts = userProvidedFacts.filter(
+          (fact) => fact.factType === 'missing_evidence_requirement' && fact.value
+        );
+        if (missingRequirementFacts.length > 0) {
+          Promise.all(
+            missingRequirementFacts.map(async (fact) => {
+              const requirementId = `evreq:${sessionId}:${fact.normalizedValue || fact.value}`;
+              try {
+                await ctx.call(
+                  'evidence-requirement.upsert',
+                  {
+                    tenantId,
+                    requirementId,
+                    label: fact.label || fact.value,
+                    requestedFact: fact.normalizedValue || fact.value,
+                    originSessionId: sessionId,
+                    projectScope: fact.projectScope || null,
+                  },
+                  { meta: { ...ctx.meta, tenantId, $gateway: false } }
+                );
+              } catch (_err) {
+                // best-effort
+              }
+            })
+          ).catch(() => {});
         }
 
         let tenantLowEvidence = [];
@@ -7864,6 +7914,38 @@ module.exports = {
             `evidence-revalidation.recordRequirement failed (non-blocking): ${error.message}`
           );
         }
+      }
+    },
+
+    /**
+     * Query open evidence requirements for a role, used when chat routing
+     * detects "Was braucht ihr von mir?" / "Welche offenen Anforderungen?" patterns.
+     * Returns a formatted reply string, or null if the service is unavailable.
+     * v0.63.2 #220
+     */
+    async queryOpenEvidenceRequirements(ctx, { role, tenantId, projectScopeKey = null } = {}) {
+      try {
+        const result = await ctx.call(
+          'evidence-requirement.listOpenForRole',
+          { tenantId, role: role || 'netzplanung', projectScopeKey },
+          { meta: { ...ctx.meta, tenantId, $gateway: false } }
+        );
+        const items = Array.isArray(result?.items) ? result.items : [];
+        if (items.length === 0) {
+          return `Für die Rolle **${role || 'netzplanung'}** liegen derzeit keine offenen Evidence-Anforderungen vor.`;
+        }
+        const lines = items.map(
+          (item) => `- **${item.label}** (ID: \`${item.requirementId}\`, seit ${item.createdAt?.slice(0, 10) || 'unbekannt'})`
+        );
+        return [
+          `Offene Evidence-Anforderungen für Rolle **${role || 'netzplanung'}** (${items.length}):`,
+          '',
+          ...lines,
+          '',
+          'Antworten Sie auf eine Anforderung mit: "Die Anforderung `<ID>` ist: <Ihre Antwort>"',
+        ].join('\n');
+      } catch (_err) {
+        return null;
       }
     },
 

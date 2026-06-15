@@ -5,6 +5,27 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.63.2] — 2026-06-15
+
+### Added
+- **Evidence Requirement Service** (`services/evidence-requirement.service.js`): multi-user lifecycle management for structured evidence requirements arising from Answer Dossier `missing_evidence_requirement` facts and VDMI evidence gaps.
+  - `upsert` — idempotent create/update per tenant + requirementId; merges `waitingSessions` on re-upsert
+  - `listOpenForRole(role, projectScopeKey?)` — tenant-scoped, optionally filtered by project scope key; prevents Sinsheim/Mauer mixing
+  - `answerRequirement(id, answer)` — transitions `open → answered`; dispatches `evidence_revalidated` to `originSessionId` and all `waitingSessions`; does NOT auto-promote to validated
+  - `markValidated(id, validatedBy?)` — explicit `answered → validated` path; dispatches `evidence_revalidated` with `revalidationStatus=validated`
+  - `listWaitingSessions(id)` — returns all sessions (origin + waiting) blocked on a requirement
+  - `fromVdmiEvidenceGaps(evidenceGaps, originSessionId, projectScope?)` — VDMI bridge adapter; normalizes `vdmi.dossier.evidenceGaps` into Requirements with inferred `responsibleRole`
+  - `inferRole(label)` — heuristic role routing (Netzbetreiber/Netzverknüpfungspunkt/Umspannwerk/TAB → `netzplanung`, Lastprofil/Zeitreihe → `messwesen`, Genehmigung/Recht → `regulatory`)
+- **Answer Dossier → Evidence Requirement auto-sync**: `answerDossier` action now fire-and-forgets `evidence-requirement.upsert` for each `missing_evidence_requirement` fact extracted from the user question (best-effort, non-blocking)
+- **Personal-Agent helper** `queryOpenEvidenceRequirements(ctx, { role, tenantId, projectScopeKey })`: formats open requirements as a Markdown reply for role-based queries ("Was braucht ihr von mir?")
+- Helper function `detectOpenEvidenceRequirementsQuery(text)` for chat routing detection in personal-agent
+- 26 unit tests in `tests/evidence-requirement.service.test.js` covering all actions, role inference, cross-tenant isolation, VDMI bridge, notification dispatch, and idempotency
+
+### Security
+- Cross-tenant access blocked with HTTP 403 (`EVIDENCE_REQUIREMENT_TENANT_FORBIDDEN`)
+- `ctx.meta.tenantId` always wins over payload `tenantId`; `projectScopeKey` enforces project isolation
+- `answerRequirement` explicitly cannot promote to `validated`; only `markValidated` may do so
+
 ## [0.63.1] — 2026-06-14
 
 ### Fixed
