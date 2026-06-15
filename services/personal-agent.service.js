@@ -1008,6 +1008,14 @@ function copilotKnowledgeHitHasStrictQueryRelevance(hit = {}, query = '') {
 }
 
 function copilotDossierEvidenceHasStrictQueryRelevance(entry = {}, query = '') {
+  const evidenceText = normalizeCopilotSearchableText(
+    [entry.source, entry.value, entry.retrievalHint, entry.metadata?.documentType]
+      .filter(Boolean)
+      .join(' ')
+  );
+  if (/anonymisierte\s+ableitung/.test(evidenceText) && /llm\s+generator|steuerimpuls/.test(evidenceText)) {
+    return false;
+  }
   if (!copilotQueryRequiresStrictEvidenceRelevance(query)) return true;
   return copilotKnowledgeHitHasStrictQueryRelevance(
     {

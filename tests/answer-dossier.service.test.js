@@ -387,6 +387,38 @@ describe('answerDossier action', () => {
     expect(result.dossierMarkdown).toContain('Cernion-Kontext: Keine direkten Treffer gefunden');
   });
 
+  test('answer dossier ignores anonymized LLM generator derivations as usable evidence', async () => {
+    const service = {
+      ...buildServiceHarness(),
+      async collectCopilotKnowledgeEvidence() {
+        return {
+          status: 'available',
+          hits: [
+            {
+              source: 'knowledge-rag',
+              value: 'Anonymisierte Ableitung aus Thorstens Steuerimpuls-Routine via LLM Generator.',
+              retrievalHint: 'Rechenzentrum Mauer Netzanschluss 10 MW',
+            },
+          ],
+        };
+      },
+      async searchCopilotEntities() {
+        return { results: [] };
+      },
+    };
+    const ctx = buildCtx({
+      question:
+        'Können wir in 69256 Mauer ein Rechenzentrum bauen, das 10 MW Strom benötigt? Wir sind Projektentwickler und prüfen Netzanschluss und Standortmachbarkeit.',
+    });
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.userContext).toBe('technical_operator');
+    expect(result.confidence).toBe('low');
+    expect(result.dossierMarkdown).toContain('## Known Evidence\n_Keine Evidence verfügbar._');
+    expect(result.dossierMarkdown).not.toContain('Anonymisierte Ableitung aus Thorstens Steuerimpuls-Routine');
+  });
+
   // 13. Two-turn session continuity: processStage advances to evidence_collection
   test('two-turn: turn 2 Zielnetzplanung → userContext=target_grid_planning, processStage=evidence_collection, dossierVersion=2', async () => {
     const service = buildServiceHarness();
