@@ -2430,6 +2430,28 @@ module.exports = {
           tenantLowEvidence = [];
         }
 
+        // Resolve broker before fact collection so entity search can be scoped correctly.
+        // The broker promise starts concurrently with this handler; in practice it resolves
+        // in < 5 ms (synchronous capability matching) and is already settled by the time
+        // the tenantLowEvidence fetch above completes.
+        const capabilityRouting = await _brokerResultPromise;
+
+        // Advisory-only capabilities (interface-placeholder.* plan) explicitly mark evidence
+        // gaps rather than hydrating from live sources.  For these:
+        //   • entity search is suppressed — prevents vdmi/znp/grid-connection query fanout
+        //   • tenant session history is cleared — prevents unrelated project fact pollution
+        const _isAdvisoryPlaceholderCapability =
+          capabilityRouting.status === 'success' &&
+          Array.isArray(capabilityRouting.result?.recommendedPlan) &&
+          capabilityRouting.result.recommendedPlan.length > 0 &&
+          capabilityRouting.result.recommendedPlan.every(
+            (step) => typeof step?.action === 'string' && step.action.startsWith('interface-placeholder.')
+          );
+
+        if (_isAdvisoryPlaceholderCapability) {
+          tenantLowEvidence = [];
+        }
+
         // Fact Collection phase (with soft timeout)
         let evidence = [];
         let completionState = DOSSIER_COMPLETION_STATE.COMPLETED;
@@ -2451,6 +2473,7 @@ module.exports = {
                 }
               })(),
               (async () => {
+                if (_isAdvisoryPlaceholderCapability) return { results: [] };
                 try {
                   return await this.searchCopilotEntities(ctx, {
                     searchTerm: evidenceSearchTerm,
@@ -2492,9 +2515,6 @@ module.exports = {
             ...(Array.isArray(priorDossierState?.knownEvidence) ? priorDossierState.knownEvidence : []),
           ]);
         }
-        // Resolve broker advisory (was running in parallel with evidence collection)
-        const capabilityRouting = await _brokerResultPromise;
-
         // Read-only capability evidence hydration — fail-open, allowlist-gated, time-budgeted.
         // Multi-source MCP hydration is concurrency-limited to avoid upstream session spikes.
         const hydrationBudgetMs = timeBudget.thinkingMs > 3000
