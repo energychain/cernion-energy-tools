@@ -303,6 +303,10 @@ const DOSSIER_HYDRATION_ALLOWLIST = {
   'energy-market.co2Intensity': {
     label: 'Stromnetz CO₂-Intensität / GrünstromIndex',
     extractParams(userProvidedFacts, question) {
+      const q = String(question || '');
+      // GrünstromIndex works with city names; extract city adjacent to PLZ in "74889 Sinsheim" pattern.
+      const plzCityMatch = q.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ](?:[A-Za-zäöüßÄÖÜ\-]{0,40})?)/);
+      const cityFromPrompt = plzCityMatch?.[2]?.trim() || null;
       const locationFact = (userProvidedFacts || []).find(
         (f) =>
           (f.factType === 'location' || f.factType === 'postal_code') &&
@@ -310,8 +314,10 @@ const DOSSIER_HYDRATION_ALLOWLIST = {
       );
       const postalCode =
         locationFact?.projectScope?.postalCode ||
-        (question.match(/\b(\d{5})\b/) || [])[1];
-      return postalCode ? { location: postalCode, forecast: true } : null;
+        plzCityMatch?.[1] ||
+        (q.match(/\b(\d{5})\b/) || [])[1];
+      const location = cityFromPrompt || postalCode;
+      return location ? { location, forecast: true } : null;
     },
     formatEvidence(result) {
       if (!result || typeof result !== 'object') return null;
@@ -459,15 +465,23 @@ const DOSSIER_HYDRATION_ALLOWLIST = {
       const data = result.data || result;
       const parts = [];
       const unit = data.unit || result.unit || 'EUR/MWh';
-      const avg = data.average ?? data.avg ?? data.averagePrice ?? data.average_price;
-      const min = data.min ?? data.minPrice ?? data.min_price;
-      const max = data.max ?? data.maxPrice ?? data.max_price;
-      const current = data.current ?? data.currentPrice ?? data.price;
-      if (current != null) parts.push(`Aktuell: ${Number(current).toFixed(2)} ${unit}`);
-      if (avg != null) parts.push(`Mittel: ${Number(avg).toFixed(2)} ${unit}`);
-      if (min != null && max != null) parts.push(`Bandbreite: ${Number(min).toFixed(2)}–${Number(max).toFixed(2)} ${unit}`);
+      // Actual response: data.prices = [{ timestamp, priceEURMWh }, ...]
+      const priceArray = Array.isArray(data.prices) ? data.prices : [];
+      const priceValues = priceArray
+        .map((p) => p.priceEURMWh ?? p.price ?? p.value)
+        .filter((n) => n != null && !isNaN(Number(n)))
+        .map(Number);
+      if (priceValues.length > 0) {
+        const avg = priceValues.reduce((a, b) => a + b, 0) / priceValues.length;
+        parts.push(`Mittel: ${avg.toFixed(2)} ${unit}`);
+        parts.push(`Bandbreite: ${Math.min(...priceValues).toFixed(2)}–${Math.max(...priceValues).toFixed(2)} ${unit}`);
+        parts.push(`${priceValues.length} Stunden`);
+      }
       if (data.market) parts.push(`Markt: ${String(data.market).slice(0, 40)}`);
-      if (!parts.length && data.prices) parts.push(`Preisdaten: ${JSON.stringify(data.prices).slice(0, 200)}`);
+      if (!parts.length) {
+        const scalar = data.average ?? data.avg ?? data.averagePrice ?? data.current ?? data.price;
+        if (scalar != null) parts.push(`Preis: ${Number(scalar).toFixed(2)} ${unit}`);
+      }
       return parts.length ? parts.join(' · ') : null;
     },
     evidenceQuality: 'validated',
@@ -476,41 +490,60 @@ const DOSSIER_HYDRATION_ALLOWLIST = {
     label: 'Residuallast / Flexibilitätsfenster DSO',
     extractParams(userProvidedFacts, question) {
       const q = String(question || '');
+      // The service region guard requires gemeinde/landkreis/bundesland — postleitzahl alone
+      // is NOT sufficient.  Extract city name from "74889 Sinsheim" pattern in the prompt.
+      const plzCityMatch = q.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ](?:[A-Za-zäöüßÄÖÜ\-]{0,40})?)/);
       const postalCode =
+        plzCityMatch?.[1] ||
         (q.match(/\b(\d{5})\b/) || [])[1] ||
         (userProvidedFacts || []).reduce(
           (acc, f) => acc || f.projectScope?.postalCode || null,
           null
         );
-      if (postalCode) {
-        return { postleitzahl: postalCode, forecastDays: 1, resolution: 'hourly' };
-      }
+      const cityFromPrompt = plzCityMatch?.[2]?.trim() || null;
       const locationFact = (userProvidedFacts || []).find(
         (f) =>
           (f.factType === 'location' || f.factType === 'city') &&
           (f.value || f.projectScope?.city)
       );
-      const region = locationFact?.value || locationFact?.projectScope?.city || null;
-      if (region) {
-        return { region, forecastDays: 1, resolution: 'hourly' };
+      const gemeinde = cityFromPrompt || locationFact?.value || locationFact?.projectScope?.city || null;
+      if (gemeinde) {
+        return {
+          gemeinde,
+          ...(postalCode ? { postleitzahl: postalCode } : {}),
+          forecastDays: 1,
+          resolution: 'hourly',
+        };
       }
-      return null; // no location available — skip, mark as missing evidence
+      return null; // no city/gemeinde — postleitzahl alone cannot satisfy region guard; skip
     },
     formatEvidence(result) {
       if (!result || typeof result !== 'object') return null;
-      const data = result.data || result;
       const parts = [];
-      const unit = data.unit || result.unit || 'MW';
-      const rl =
-        data.residualLoad ?? data.residual_load ?? data.netResidualLoad ?? data.net_residual_load;
-      const peak = data.peakResidualLoad ?? data.peak_residual_load;
-      const min = data.minResidualLoad ?? data.min_residual_load;
-      const region = data.region || data.postleitzahl || data.postalCode;
-      if (rl != null) parts.push(`Residuallast: ${Number(rl).toFixed(1)} ${unit}`);
-      if (peak != null) parts.push(`Peak: ${Number(peak).toFixed(1)} ${unit}`);
-      if (min != null) parts.push(`Min: ${Number(min).toFixed(1)} ${unit}`);
-      if (region) parts.push(`Gebiet: ${String(region).slice(0, 80)}`);
-      if (!parts.length && data.forecast) parts.push(`Forecast: ${JSON.stringify(data.forecast).slice(0, 200)}`);
+      // Actual response: result.forecast[].residualLoadMW, result.summary.kpis.{avg,peak}ResidualLoadMW
+      const summary = result.summary || {};
+      const kpis = summary.kpis || {};
+      const avgRL = kpis.avgResidualLoadMW ?? null;
+      const peakRL = kpis.peakResidualLoadMW ?? null;
+      if (avgRL != null) {
+        parts.push(`Residuallast Mittel: ${Number(avgRL).toFixed(1)} MW`);
+      } else {
+        const forecastArr = Array.isArray(result.forecast) ? result.forecast : [];
+        const vals = forecastArr
+          .map((p) => p.residualLoadMW)
+          .filter((n) => n != null && !isNaN(Number(n)))
+          .map(Number);
+        if (vals.length > 0) {
+          parts.push(`Residuallast Mittel: ${(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)} MW`);
+        }
+      }
+      if (peakRL != null) parts.push(`Peak: ${Number(peakRL).toFixed(1)} MW`);
+      if (summary.region) parts.push(`Gebiet: ${String(summary.region).slice(0, 80)}`);
+      if (summary.dataPoints) parts.push(`${summary.dataPoints} Datenpunkte`);
+      if (result.loadFallbackNote) parts.push(`Hinweis: ${String(result.loadFallbackNote).slice(0, 100)}`);
+      if (!parts.length && result.dataQualityWarning) {
+        parts.push(String(result.dataQualityMessage || 'Datenqualitäts-Warnung').slice(0, 200));
+      }
       return parts.length ? parts.join(' · ') : null;
     },
     evidenceQuality: 'validated',
@@ -2842,6 +2875,9 @@ module.exports = {
             },
             hydration: {
               attempted: _hydrationResult.attempted,
+              succeeded: _hydrationResult.succeeded,
+              failed: _hydrationResult.failed,
+              timedOut: _hydrationResult.timedOut,
               evidenceAdded: _hydrationResult.evidenceAdded,
             },
           },

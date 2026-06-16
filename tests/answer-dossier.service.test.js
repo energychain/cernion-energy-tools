@@ -1305,7 +1305,7 @@ describe('answerDossier action', () => {
 
     expect(result.success).toBe(true);
     expect(co2Calls).toHaveLength(1);
-    expect(co2Calls[0]).toMatchObject({ location: '74889', forecast: true });
+    expect(co2Calls[0]).toMatchObject({ location: 'Sinsheim', forecast: true });
     expect(result.hydration.attempted).toContain('energy-market.co2Intensity');
     expect(result.hydration.succeeded).toContain('energy-market.co2Intensity');
     expect(result.hydration.evidenceAdded).toBe(1);
@@ -1350,7 +1350,7 @@ describe('answerDossier action', () => {
 
     expect(result.success).toBe(true);
     expect(co2Calls).toHaveLength(1);
-    expect(co2Calls[0]).toMatchObject({ location: '74889', forecast: true });
+    expect(co2Calls[0]).toMatchObject({ location: 'Sinsheim', forecast: true });
     expect(result.hydration.succeeded).toContain('energy-market.co2Intensity');
     expect(result.hydration.evidenceAdded).toBe(1);
     expect(result.dossierMarkdown).toContain('GrünstromIndex: 42');
