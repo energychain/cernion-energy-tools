@@ -5,6 +5,14 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.63.6] — 2026-06-16
+
+### Fixed
+- **Answer Dossier broker contract** (`services/personal-agent.service.js`): `answerDossier` now calls `capability-broker.recommend` with the supported `mode: "initial"` instead of the unsupported `mode: "dossier"`. Production Jaeger traces showed the previous payload failed the broker parameter validator immediately (`VALIDATION_ERROR`), preventing read-only hydration from starting.
+
+### Tests
+- Updated broker payload assertions in `tests/answer-dossier.service.test.js` so the mocked broker path matches the real `capability-broker.recommend` contract.
+
 ## [0.63.5] — 2026-06-15
 
 ### Added

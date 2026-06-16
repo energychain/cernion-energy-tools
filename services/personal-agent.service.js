@@ -2133,7 +2133,7 @@ module.exports = {
                 {
                   schemaVersion: 'cernion.capabilityRecommendation.v1',
                   task: question,
-                  mode: 'dossier',
+                  mode: 'initial',
                   knownContext: { domain, sessionId },
                   resolvedParams: {},
                   resolvedCapabilities: [],

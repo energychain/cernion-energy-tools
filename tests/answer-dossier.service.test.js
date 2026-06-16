@@ -1171,7 +1171,7 @@ describe('answerDossier action', () => {
     // For 30s budget: min(2500, max(1500, floor(30000*0.08))) = min(2500, max(1500, 2400)) = 2400
     // We can't easily assert the exact budget value from the outside, but we can verify
     // the broker call was made with the correct task/mode
-    expect(brokerCalls[0]).toMatchObject({ task: 'Kurzfristige Anfrage', mode: 'dossier' });
+    expect(brokerCalls[0]).toMatchObject({ task: 'Kurzfristige Anfrage', mode: 'initial' });
   });
 
   // AC8 — Dossier is renderer-neutral: broker does not trigger execution
@@ -1207,7 +1207,7 @@ describe('answerDossier action', () => {
   });
 
   // AC9 — Broker payload delivered in schemaVersion v1 format
-  test('broker: called with cernion.capabilityRecommendation.v1 schema and dossier mode', async () => {
+  test('broker: called with cernion.capabilityRecommendation.v1 schema and initial mode', async () => {
     const service = buildServiceHarness();
     let capturedPayload;
     const ctx = buildCtx(
@@ -1224,7 +1224,7 @@ describe('answerDossier action', () => {
 
     expect(capturedPayload).toMatchObject({
       schemaVersion: 'cernion.capabilityRecommendation.v1',
-      mode: 'dossier',
+      mode: 'initial',
       task: 'Schema-Version Test',
       resolvedParams: {},
       resolvedCapabilities: [],

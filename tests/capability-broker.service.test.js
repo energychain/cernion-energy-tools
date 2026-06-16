@@ -14,6 +14,16 @@ describe('Capability Broker Service', () => {
     await broker.stop();
   });
 
+  it('rejects unsupported dossier mode at the service contract boundary', async () => {
+    await expect(
+      broker.call('capability-broker.recommend', {
+        schemaVersion: 'cernion.capabilityRecommendation.v1',
+        task: 'CO2-Intensität für 74889 Sinsheim bitte anzeigen',
+        mode: 'dossier',
+      })
+    ).rejects.toMatchObject({ type: 'VALIDATION_ERROR' });
+  });
+
   it('returns fixed response schemaVersion when request schemaVersion is missing', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Bewerte Residuallast für Stadtwerke München in 48h',
