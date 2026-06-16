@@ -465,9 +465,10 @@ const DOSSIER_HYDRATION_ALLOWLIST = {
       const data = result.data || result;
       const parts = [];
       const unit = data.unit || result.unit || 'EUR/MWh';
-      // Actual response: data.prices = [{ timestamp, priceEURMWh }, ...]
-      const priceArray = Array.isArray(data.prices) ? data.prices : [];
-      const priceValues = priceArray
+      // Support both data.prices (nested) and result.prices (root-level fallback)
+      const rawPriceArray = Array.isArray(data.prices) ? data.prices
+        : Array.isArray(result.prices) ? result.prices : [];
+      const priceValues = rawPriceArray
         .map((p) => p.priceEURMWh ?? p.price ?? p.value)
         .filter((n) => n != null && !isNaN(Number(n)))
         .map(Number);
@@ -481,6 +482,10 @@ const DOSSIER_HYDRATION_ALLOWLIST = {
       if (!parts.length) {
         const scalar = data.average ?? data.avg ?? data.averagePrice ?? data.current ?? data.price;
         if (scalar != null) parts.push(`Preis: ${Number(scalar).toFixed(2)} ${unit}`);
+      }
+      // Empty array: service reachable but no data for the requested period
+      if (!parts.length && (Array.isArray(data.prices) || Array.isArray(result.prices))) {
+        parts.push(`Keine Preisdaten für angefragten Zeitraum (Markt: ${String(data.market || 'day-ahead').slice(0, 30)})`);
       }
       return parts.length ? parts.join(' · ') : null;
     },
@@ -2637,7 +2642,10 @@ module.exports = {
         const hydrationBudgetMs = timeBudget.thinkingMs > 3000
           ? Math.min(10000, Math.floor(timeBudget.thinkingMs * 0.8))
           : 0;
-        const _hydrationResult = { attempted: [], succeeded: [], failed: [], timedOut: [], evidenceAdded: 0 };
+        const _hydrationResult = {
+          attempted: [], succeeded: [], failed: [], failedDetails: [],
+          timedOut: [], nullFormatted: [], evidenceAdded: 0,
+        };
 
         if (
           hydrationBudgetMs > 0 &&
@@ -2684,10 +2692,15 @@ module.exports = {
                     ),
                   ]);
                   if (rawResult?.success === false) {
-                    throw new Error(rawResult.error?.message || 'hydration_action_failed');
+                    const _err = new Error(rawResult.error?.message || 'hydration_action_failed');
+                    _err.code = rawResult.error?.code || rawResult.code || null;
+                    throw _err;
                   }
                   const formattedValue = actionDef.formatEvidence(rawResult);
-                  if (!formattedValue) return null;
+                  if (!formattedValue) {
+                    _hydrationResult.nullFormatted.push(actionName);
+                    return null;
+                  }
                   _hydrationResult.succeeded.push(actionName);
                   return {
                     source: actionName,
@@ -2703,6 +2716,11 @@ module.exports = {
                     _hydrationResult.timedOut.push(actionName);
                   } else {
                     _hydrationResult.failed.push(actionName);
+                    _hydrationResult.failedDetails.push({
+                      action: actionName,
+                      message: _hydrationErr.message || 'unknown',
+                      code: _hydrationErr.code || null,
+                    });
                   }
                   return null;
                 }
@@ -2877,7 +2895,9 @@ module.exports = {
               attempted: _hydrationResult.attempted,
               succeeded: _hydrationResult.succeeded,
               failed: _hydrationResult.failed,
+              failedDetails: _hydrationResult.failedDetails,
               timedOut: _hydrationResult.timedOut,
+              nullFormatted: _hydrationResult.nullFormatted,
               evidenceAdded: _hydrationResult.evidenceAdded,
             },
           },
