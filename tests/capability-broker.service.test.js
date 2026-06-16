@@ -453,4 +453,84 @@ describe('Capability Broker Service', () => {
     expect(codesStep).toBeDefined();
     expect(codesStep.params.bdewCode).toBe('9907473000008');
   });
+
+  // ── Non-VDMI Domain Routing Regression Tests (Issue #225) ──────────────────
+
+  it('routes EDM Move-Out / customer-service / billing dossier to edm_customer_moveout_billing_evidence, not VDMI', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ich bin im Kundenservice eines Stadtwerks in Heidelberg. Ein Kunde meldet seinen Auszug zum Monatsende, aber der plausibilisierte Schlusszaehlerstand liegt noch nicht vor. Bitte erstelle ein Cernion Answer Dossier: Welche Evidence brauchen Kundenservice, EDM und Abrechnung, was duerfen wir dem Kunden heute sagen, was darf erst nach EDM-Plausibilisierung und Abrechnungsfreigabe passieren? Bitte trenne bekannte Angaben, fehlende Evidence, Rollenverantwortung und Folgefragen.',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('edm_customer_moveout_billing_evidence');
+    expect(result.capability).toBe('edm_customer_moveout_billing_evidence');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
+  });
+
+  it('routes Energy Sharing / Prosumer Advisory dossier to energy_sharing_prosumer_advisory, not VDMI', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ich bin Prosumer und moechte mich unabhaengig informieren: Kann ich Strom aus meiner PV-Anlage an meinen Nachbarn verkaufen? Welche Voraussetzungen gelten fuer Energy Sharing und wie muesste ich dabei vorgehen? Bitte erstelle ein Cernion Answer Dossier und trenne Energy Sharing, Mieterstrom, Direktlieferung/Nachbarschaftsverkauf und Eigenversorgung. Bitte nenne benoetigte Evidence, Marktrollen, Messkonzept, Bilanzierung/Allokation, Vertrag/Abrechnung und offene Folgefragen. Keine verbindliche Rechtsberatung und kein automatisches NAP-Wallet-Onboarding.',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('energy_sharing_prosumer_advisory');
+    expect(result.capability).toBe('energy_sharing_prosumer_advisory');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
+  });
+
+  it('routes Redispatch/RCS special-case governance dossier to redispatch_rcs_special_case_governance, not VDMI', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ich bin in der Redispatch-Koordination eines Verteilnetzbetreibers. Bitte erstelle ein Cernion Answer Dossier fuer folgenden Sonderfall: Eine steuerbare Erzeugungsanlage wurde wegen lokaler Netzengpasslage abgeregelt, aber die Stammdatenlage ist unsicher und es ist unklar, ob der Fall in den normalen Redispatch-2.0-Prozess, einen RCS-Sonderfall oder eine Expost-/Settlement-Nachklaerung gehoert. Bitte trenne operative Massnahme, Datenqualitaet, Expost-Nachweis, Settlement-Risiko und Reporting-Governance. Nenne, welche Evidence aus Redispatch-Assetregister, Data Governance, Special-Case-Gate, RCS-Regelkatalog, Simulation und Settlement-Sandbox erforderlich waere. Keine Verguetungszusage ohne Expost-Evidence.',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('redispatch_rcs_special_case_governance');
+    expect(result.capability).toBe('redispatch_rcs_special_case_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
+  });
+
+  it('routes Datasource Registry / classification governance dossier to datasource_registry_classification_governance, not VDMI', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ich bin im Datenmanagement eines Stadtwerks. Wir wollen einen neuen Datenquellenbestand fuer Lastgaenge, MSCONS-Importe und Netzplanungsdaten in Cernion aufnehmen. Bitte erstelle ein Answer Dossier: Welche Evidence brauchen wir fuer Datasource Registry, Klassifikation, Cache-Status, Watcher/Monitoring und Data-Governance, bevor die Datenquelle fuer Netzplanung oder Abrechnung genutzt werden darf? Bitte trenne bekannte Angaben, Missing Evidence, technische Pruefschritte und Freigabepunkte. Keine produktive Ingest- oder Schreibaktion ausloesen.',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('datasource_registry_classification_governance');
+    expect(result.capability).toBe('datasource_registry_classification_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
+  });
+
+  it('routes HITL / notification / persona-inbox evidence request dossier to hitl_role_based_evidence_request, not VDMI', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ich bin im Kundenservice eines Stadtwerks und habe ein Dossier mit fehlender Evidence: Assetmanagement muss den Netzasset-Bezug bestaetigen, Netzplanung muss Kapazitaet pruefen und EDM muss den plausibilisierten Zaehlerstand nachliefern. Bitte erstelle ein Cernion Answer Dossier, das die Human-in-the-Loop-Nachforderungen rollenbasiert vorbereitet: Welche Persona/Rolle bekommt welche Evidence-Anforderung, welche Nachricht darf intern vorbereitet werden, was darf nicht extern gesendet werden, und wie soll die Ursprungssession informiert werden, sobald Evidence nachgeliefert wird? Keine externe Nachricht oder Webhook-Ausloesung ohne Freigabe.',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('hitl_role_based_evidence_request');
+    expect(result.capability).toBe('hitl_role_based_evidence_request');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
+  });
+
+  // ── Regression: Existing VDMI prompts must still route correctly after domain fixes ──
+
+  it('still routes formal §17 EnWG grid-connection decision prompt to VDMI decision governance after non-VDMI fixes', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Kann der Netzbetreiber ohne formales §17 EnWG Netzanschlussbegehren eine belastbare Anschlusszusage oder Kapazitaetszusage geben?',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('vdmi_grid_connection_decision_governance');
+  });
+
+  it('still routes asset-evidence validation prompt to VDMI asset-validation after non-VDMI fixes', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte Asset-Validierung für Anlage TR-17 durchführen, Evidence/Nachweise prüfen, Risikofaktoren und verbotene Annahmen offenlegen.',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('vdmi_asset_validation_governance');
+  });
 });

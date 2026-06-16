@@ -207,6 +207,27 @@ function findBestCapability(taskText, options = {}) {
     (vdmiDecisionContextSignals.some((signal) => haystack.includes(signal)) &&
       /(zusage|entscheidung|uebergabepunkt|übergabepunkt|kapazit[aä]t|anschluss)/i.test(haystack));
 
+  // ── Redispatch/RCS Special Case Governance — must precede VDMI decision check
+  // 'vergütungszusage' + 'netzbetreiber' combo would otherwise trigger VDMI grid-connection
+  // decision governance (score 130). RCS/Expost signals narrow the domain unambiguously.
+  const redispatchRcsSpecificSignals = [
+    'expost-nachweis', 'expost nachweis', 'expost-evidence', 'expost evidence',
+    'rcs-sonderfall', 'rcs sonderfall', 'rcs-regelkatalog', 'rcs regelkatalog',
+    'redispatch-koordination', 'redispatch-assetregister', 'redispatch assetregister',
+    'settlement-risiko', 'settlement risiko',
+  ];
+  const hasRedispatchRcsSignal =
+    redispatchRcsSpecificSignals.some((s) => haystack.includes(s)) ||
+    (/\bexpost\b/i.test(haystack) && /redispatch/i.test(haystack)) ||
+    (/(vergütungszusage|verguetungszusage)/i.test(haystack) && /redispatch/i.test(haystack));
+
+  if (hasRedispatchRcsSignal) {
+    const rdrcsCapability = findCapabilityByName('redispatch_rcs_special_case_governance');
+    if (rdrcsCapability) {
+      return { capability: rdrcsCapability, score: 132, usedFallback: false };
+    }
+  }
+
   if (hasVdmiDecisionSignal || hasVdmiDecisionCombo) {
     const vdmiDecisionCapability = findCapabilityByName('vdmi_grid_connection_decision_governance');
     if (vdmiDecisionCapability) {
@@ -256,6 +277,73 @@ function findBestCapability(taskText, options = {}) {
         score: 135,
         usedFallback: false,
       };
+    }
+  }
+
+  // ── EDM / Customer Service / Billing — Move-Out evidence dossier
+  // 'evidence' in the prompt matches vdmiAssetValidationSignals — intercept before VDMI.
+  const edmMoveoutSpecificSignals = [
+    'schlusszählerstand', 'schlusszaehlerstand', 'abrechnungsfreigabe', 'edm-plausibilisierung',
+    'plausibilisierter schlusszählerstand', 'plausibilisierter schlusszaehlerstand',
+  ];
+  const hasEdmMoveoutCombo =
+    /(auszug|einzug)/i.test(haystack) &&
+    /(edm|abrechnung|kundenservice|plausibilisierung)/i.test(haystack);
+
+  if (edmMoveoutSpecificSignals.some((s) => haystack.includes(s)) || hasEdmMoveoutCombo) {
+    const edmCap = findCapabilityByName('edm_customer_moveout_billing_evidence');
+    if (edmCap) {
+      return { capability: edmCap, score: 122, usedFallback: false };
+    }
+  }
+
+  // ── Energy Sharing / Prosumer Advisory
+  // 'evidence' in the prompt matches vdmiAssetValidationSignals — intercept before VDMI.
+  const energySharingSpecificSignals = [
+    'prosumer', 'energy sharing', 'mieterstrom', 'nachbarschaftsverkauf',
+    'nap-wallet', '§42c enwg', '42c enwg',
+    'gemeinschaftliche gebäudeversorgung', 'gemeinschaftliche gebaeudeversorgung',
+  ];
+
+  if (energySharingSpecificSignals.some((s) => haystack.includes(s))) {
+    const energySharingCap = findCapabilityByName('energy_sharing_prosumer_advisory');
+    if (energySharingCap) {
+      return { capability: energySharingCap, score: 122, usedFallback: false };
+    }
+  }
+
+  // ── Datasource Registry / Classification Governance
+  // 'evidence' in the prompt matches vdmiAssetValidationSignals — intercept before VDMI.
+  const datasourceRegistrySpecificSignals = [
+    'datasource registry', 'datasource-registry', 'datenquellenbestand',
+    'datasource-classifier', 'datasource-watcher', 'datasource-discovery',
+  ];
+  const hasDatasourceRegistryCombo =
+    /datasource/i.test(haystack) &&
+    /(registry|klassifikation|cache.?status|watcher|classifier|discovery)/i.test(haystack);
+
+  if (
+    datasourceRegistrySpecificSignals.some((s) => haystack.includes(s)) ||
+    hasDatasourceRegistryCombo
+  ) {
+    const datasourceCap = findCapabilityByName('datasource_registry_classification_governance');
+    if (datasourceCap) {
+      return { capability: datasourceCap, score: 122, usedFallback: false };
+    }
+  }
+
+  // ── HITL / Notification / Persona Inbox Evidence Request
+  // 'asset' + 'evidence' combo matches vdmiAssetValidationCombo — intercept before VDMI.
+  const hitlSpecificSignals = [
+    'human-in-the-loop', 'human in the loop', 'ursprungssession',
+    'persona-inbox', 'persona inbox', 'webhook-ausloesung', 'webhook-auslosung',
+    'hitl-nachforderung', 'hitl nachforderung', 'hitl-nachforderungen',
+  ];
+
+  if (hitlSpecificSignals.some((s) => haystack.includes(s))) {
+    const hitlCap = findCapabilityByName('hitl_role_based_evidence_request');
+    if (hitlCap) {
+      return { capability: hitlCap, score: 122, usedFallback: false };
     }
   }
 
