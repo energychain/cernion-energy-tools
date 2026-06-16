@@ -1227,13 +1227,63 @@ function buildDossierFactOeoAnnotations(factType, value) {
   };
 }
 
+function isDossierCandidateListHeading(line = '') {
+  const normalized = normalizeCopilotSearchableText(line);
+  if (!/:\s*$/.test(String(line || ''))) return false;
+  return (
+    /\b(?:mastr|marktstammdatenregister)\b/.test(normalized) &&
+    /\b(?:auszug|liste|kandidat|einheit|anlage|anlagen)\b/.test(normalized)
+  );
+}
+
+function isDossierSectionHeading(line = '') {
+  return /^\s*[A-Za-zÄÖÜäöüß][^:\n]{0,100}:\s*$/.test(String(line || ''));
+}
+
+function stripDossierCandidateListSections(text = '') {
+  const lines = String(text || '').split(/\r?\n/);
+  const kept = [];
+  let skippingCandidateSection = false;
+
+  for (const line of lines) {
+    if (isDossierCandidateListHeading(line)) {
+      skippingCandidateSection = true;
+      continue;
+    }
+
+    if (skippingCandidateSection && isDossierSectionHeading(line)) {
+      skippingCandidateSection = false;
+    }
+
+    if (!skippingCandidateSection) kept.push(line);
+  }
+
+  return kept.join('\n');
+}
+
+function extractDossierProjectPowerSignal(text = '', fallbackPower = null) {
+  const capacityMatch = String(text || '').match(
+    /\b(?:kapazit[aä]t|kapazitaet|anschlussleistung|leistung|capacity)(?:[_\s-]*(kwp|kw|mw|megawatt|kilowatt))?\s*[:=]\s*(\d+(?:[,.]\d+)?)(?:\s*(kwp|kw|mw|megawatt|kilowatt))?\b/i
+  );
+  if (capacityMatch) {
+    const rawUnit = (capacityMatch[1] || capacityMatch[3] || 'kW').toLowerCase();
+    const unit = rawUnit.startsWith('m') ? 'MW' : rawUnit === 'kwp' ? 'kWp' : 'kW';
+    return {
+      value: Number(String(capacityMatch[2]).replace(',', '.')),
+      unit,
+    };
+  }
+  return fallbackPower || null;
+}
+
 function extractDossierProjectScope(text = '') {
-  const safeText = compactString(text, 1200);
+  const safeText = compactString(stripDossierCandidateListSections(text), 1200);
   const signals = extractCopilotAnalysisSignals(safeText);
+  const projectPower = extractDossierProjectPowerSignal(safeText, signals.power);
   const locationMatch = safeText.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}){0,2})/);
   const location = locationMatch ? `${locationMatch[1]} ${locationMatch[2].trim()}` : null;
   const postalCode = locationMatch?.[1] || signals.postalCode || null;
-  const power = signals.power ? `${signals.power.value} ${signals.power.unit}` : null;
+  const power = projectPower ? `${projectPower.value} ${projectPower.unit}` : null;
   const normalizedLocation = location ? normalizeCopilotSearchableText(location) : null;
   const normalizedPower = power ? normalizeCopilotSearchableText(power) : null;
   const scopeParts = [normalizedLocation || postalCode, normalizedPower].filter(Boolean);
@@ -1248,8 +1298,9 @@ function extractDossierProjectScope(text = '') {
 }
 
 function buildDossierProjectFactEntries(question = '', { sessionId = null, now = new Date().toISOString() } = {}) {
-  const text = compactString(question, 1200);
+  const text = compactString(stripDossierCandidateListSections(question), 1200);
   const signals = extractCopilotAnalysisSignals(text);
+  const projectPower = extractDossierProjectPowerSignal(text, signals.power);
   const projectScope = extractDossierProjectScope(text);
   const facts = [];
   const seen = new Set();
@@ -1281,7 +1332,7 @@ function buildDossierProjectFactEntries(question = '', { sessionId = null, now =
   if (locationMatch) addFact('location', 'Standort', `${locationMatch[1]} ${locationMatch[2].trim()}`);
   else if (signals.postalCode) addFact('postal_code', 'Postleitzahl', signals.postalCode);
 
-  if (signals.power) addFact('requested_power', 'Geplante Anschlussleistung', `${signals.power.value} ${signals.power.unit}`);
+  if (projectPower) addFact('requested_power', 'Geplante Anschlussleistung', `${projectPower.value} ${projectPower.unit}`);
   if (signals.assetClass === 'data_center') addFact('asset_class', 'Nutzung/Asset', 'Rechenzentrum');
   const meteringConcepts = text.match(/\bMK\s*(?:10|40)\b/gi) || [];
   for (const concept of meteringConcepts) {

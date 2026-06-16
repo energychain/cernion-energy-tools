@@ -5,6 +5,14 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.63.9] — 2026-06-16
+
+### Fixed
+- **Answer Dossier project-fact extraction** (`services/personal-agent.service.js`): User-provided MaStR/candidate-list sections are ignored when learning project-scoped Low Evidence, so candidate rows such as `SAN... | Speicher | 6.8 kW` are no longer stored as project facts. Explicit project capacity fields such as `Kapazitaet_kW: 24.1` are now parsed as the project power signal.
+
+### Tests
+- Added a regression test that replays the complex MaStR context scenario and verifies the Dossier learns `24.1 kW` as project capacity while not learning `6.8 kW`/`8.9 kW` storage candidate rows as project components.
+
 ## [0.63.8] — 2026-06-16
 
 ### Fixed

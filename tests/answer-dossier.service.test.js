@@ -477,6 +477,46 @@ describe('answerDossier action', () => {
     expect(result.dossierMarkdown).toContain('Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden');
   });
 
+  test('answer dossier does not learn MaStR candidate-list rows as project facts', async () => {
+    const puts = [];
+    const service = {
+      ...buildServiceHarness(),
+      async collectCopilotKnowledgeEvidence() {
+        return { status: 'missing', hits: [] };
+      },
+      async searchCopilotEntities() {
+        return { results: [] };
+      },
+    };
+    const ctx = buildCtx(
+      {
+        question:
+          'Ich bin im Assetmanagement eines Netzbetreibers und prüfe einen Anschluss im Bereich Heidelberg Ost.\n\nKundenprojekt:\n- Projekt_ID: PRJ-1012\n- Kunde: Mayer Services\n- Projektart: PV Dachanlage\n- Kapazitaet_kW: 24.1\n- Status: Installation\n- Standortkontext: Heidelberg Ost / nahe Schaltanlage AST-1012\n\nMaStR-Auszug:\n- SEE100000000008 | Solar | 15.6 kWp | In Prüfung | MS\n- SAN100000000009 | Speicher | 6.8 kW | Geprüft | NS\n- SEE100000000010 | Solar | 24.0 kWp | In Prüfung | MS\n- SEE100000000011 | Solar | 10.2 kWp | Geprüft | NS\n- SAN100000000012 | Speicher | 8.9 kW | In Prüfung | NS\n\nNetzasset-Kontext:\n- AST-1012 | Schaltanlage | MS | Installationsjahr 2021 | Heidelberg Ost\n\nFrage: Welche MaStR-Einheit ist der wahrscheinlichste Kandidat?',
+        sessionId: 'tenant-mastr-candidate-list-test',
+      },
+      {
+        'object-store.put': (p) => {
+          puts.push(p);
+          return { ok: true };
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+    const payloads = puts
+      .filter((p) => p.namespace === 'tenant:test-tenant:answer_dossier_low_evidence')
+      .map((p) => p.payload);
+
+    expect(payloads.map((p) => p.factType)).toEqual(expect.arrayContaining(['requested_power']));
+    expect(payloads.find((p) => p.factType === 'requested_power')?.value).toBe('24.1 kW');
+    expect(payloads.find((p) => p.value === '6.8 kW')).toBeUndefined();
+    expect(payloads.find((p) => p.value === '8.9 kW')).toBeUndefined();
+    expect(payloads.find((p) => p.factType === 'asset_component' && p.label === 'Speicher')).toBeUndefined();
+    expect(payloads.find((p) => p.factType === 'requested_power')?.projectScope?.scopeKey).toBe('24.1 kw');
+    expect(result.dossierMarkdown).toContain('Geplante Anschlussleistung: 24.1 kW');
+    expect(result.dossierMarkdown).not.toContain('Speicher: 6.8 kW');
+  });
+
   test('answer dossier stores available documents and missing requirements as tenant-scoped low evidence', async () => {
     const puts = [];
     const service = {
