@@ -335,7 +335,191 @@ const DOSSIER_HYDRATION_ALLOWLIST = {
     },
     evidenceQuality: 'validated',
   },
+  'gas-storage.countryStorage': {
+    label: 'Gasspeicher Deutschland / AGSI',
+    extractParams() {
+      return { country: 'DE', includeOperators: false, includeFacilities: false };
+    },
+    formatEvidence(result) {
+      if (!result || typeof result !== 'object') return null;
+      const data = result.data || result;
+      const storage = data.storage || data;
+      const parts = [];
+      const country = data.country || result.country || storage.country;
+      const fill =
+        storage.fillPercentage ??
+        storage.gasInStoragePercentage ??
+        storage.full ??
+        data.fillLevel ??
+        data.full;
+      const gasInStorage = storage.gasInStorage ?? data.gasInStorage;
+      const workingGasVolume = storage.workingGasVolume ?? data.workingGasVolume;
+      const trend = storage.trend ?? data.trend;
+      const withdrawal = storage.withdrawal ?? data.withdrawal;
+      const coverage = storage.coverageDays ?? data.coverageDays ?? data.coverage;
+      const date = data.date || result.date || result.metadata?.timestamp;
+      if (country) parts.push(`Land: ${String(country).slice(0, 40)}`);
+      if (fill != null) parts.push(`Fuellstand: ${Number(fill).toFixed(1)}%`);
+      if (gasInStorage != null) parts.push(`Gas im Speicher: ${Number(gasInStorage).toFixed(1)} TWh`);
+      if (workingGasVolume != null) parts.push(`Arbeitsgasvolumen: ${Number(workingGasVolume).toFixed(1)} TWh`);
+      if (trend != null) parts.push(`Trend: ${String(trend).slice(0, 80)}`);
+      if (withdrawal != null) parts.push(`Entnahme: ${Number(withdrawal).toFixed(1)}`);
+      if (coverage != null) parts.push(`Abdeckung: ${Number(coverage).toFixed(1)} Tage`);
+      if (date) parts.push(`Stand: ${String(date).slice(0, 40)}`);
+      return parts.length ? parts.join(' · ') : null;
+    },
+    evidenceQuality: 'validated',
+  },
+  'gas-storage.supplySecurityCheck': {
+    label: 'Gas-Versorgungssicherheitscheck / AGSI',
+    extractParams() {
+      return { country: 'DE', winterMandateCheck: true };
+    },
+    formatEvidence(result) {
+      if (!result || typeof result !== 'object') return null;
+      const data = result.data || result;
+      const parts = [];
+      const status = data.status || data.securityStatus || data.level;
+      const fill = data.fillLevel ?? data.fillPercentage ?? data.storage?.fillPercentage;
+      const mandate = data.winterMandateStatus || data.mandateStatus || data.compliance;
+      const days = data.coverageDays ?? data.coverage;
+      const recommendation = data.recommendation || data.message;
+      if (status) parts.push(`Status: ${String(status).slice(0, 80)}`);
+      if (fill != null) parts.push(`Fuellstand: ${Number(fill).toFixed(1)}%`);
+      if (mandate) parts.push(`Mandat: ${String(mandate).slice(0, 100)}`);
+      if (days != null) parts.push(`Abdeckung: ${Number(days).toFixed(1)} Tage`);
+      if (recommendation) parts.push(`Hinweis: ${String(recommendation).slice(0, 160)}`);
+      return parts.length ? parts.join(' · ') : null;
+    },
+    evidenceQuality: 'validated',
+  },
+  'entsoe.loadForecast': {
+    label: 'ENTSO-E Lastprognose Deutschland',
+    extractParams(_userProvidedFacts, question) {
+      const range = extractDossierHydrationDateRange(question);
+      return {
+        region: 'Germany',
+        dateFrom: range.dateFrom,
+        dateTo: range.dateTo,
+        resolution: 'hourly',
+        includeStatistics: true,
+      };
+    },
+    formatEvidence(result) {
+      return formatEntsoeEvidence(result, 'Last');
+    },
+    evidenceQuality: 'validated',
+  },
+  'entsoe.windSolarForecast': {
+    label: 'ENTSO-E Wind-/Solar-Prognose Deutschland',
+    extractParams(_userProvidedFacts, question) {
+      const range = extractDossierHydrationDateRange(question);
+      return {
+        region: 'Germany',
+        dateFrom: range.dateFrom,
+        dateTo: range.dateTo,
+        forecastType: 'both',
+        includeStatistics: true,
+      };
+    },
+    formatEvidence(result) {
+      return formatEntsoeEvidence(result, 'Wind/Solar');
+    },
+    evidenceQuality: 'validated',
+  },
+  'entsoe.dayAheadPrices': {
+    label: 'ENTSO-E Day-Ahead-Preise Deutschland',
+    extractParams(_userProvidedFacts, question) {
+      const range = extractDossierHydrationDateRange(question);
+      return {
+        region: 'Germany',
+        dateFrom: range.dateFrom,
+        dateTo: range.dateTo,
+        includeStatistics: true,
+      };
+    },
+    formatEvidence(result) {
+      return formatEntsoeEvidence(result, 'Day-Ahead');
+    },
+    evidenceQuality: 'validated',
+  },
 };
+
+function toIsoDateOnly(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function extractDossierHydrationDateRange(question = '') {
+  const text = String(question || '').toLowerCase();
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  if (/mittwoch.*freitag|wednesday.*friday/.test(text)) {
+    const day = start.getUTCDay();
+    const daysUntilWednesday = (3 - day + 7) % 7 || 7;
+    const from = new Date(start);
+    from.setUTCDate(start.getUTCDate() + daysUntilWednesday);
+    const to = new Date(from);
+    to.setUTCDate(from.getUTCDate() + 2);
+    return { dateFrom: toIsoDateOnly(from), dateTo: toIsoDateOnly(to) };
+  }
+  const to = new Date(start);
+  to.setUTCDate(start.getUTCDate() + (/72h|72 h|72-hour|72 hour/.test(text) ? 2 : 1));
+  return { dateFrom: toIsoDateOnly(start), dateTo: toIsoDateOnly(to) };
+}
+
+function formatEntsoeEvidence(result, label) {
+  if (!result || typeof result !== 'object') return null;
+  const data = result.data || result;
+  const stats = data.statistics || result.statistics || {};
+  const points =
+    data.dataPoints ||
+    result.dataPoints ||
+    data.forecasts ||
+    result.forecasts ||
+    data.loadForecast ||
+    result.loadForecast ||
+    data.prices ||
+    result.prices ||
+    [];
+  const first = Array.isArray(points) ? points[0] : null;
+  const parts = [];
+  const region = data.region || result.region;
+  const eic = data.eicCode || result.eicCode;
+  const avg =
+    stats.average ??
+    stats.avg ??
+    stats.avgLoadMW ??
+    stats.avgForecastMW ??
+    stats.avgPriceEURperMWh ??
+    stats.averagePriceEURperMWh;
+  const max =
+    stats.max ??
+    stats.maxLoadMW ??
+    stats.maxForecastMW ??
+    stats.maxPriceEURperMWh;
+  const min =
+    stats.min ??
+    stats.minLoadMW ??
+    stats.minForecastMW ??
+    stats.minPriceEURperMWh;
+  const firstValue =
+    first?.value ??
+    first?.load ??
+    first?.loadMW ??
+    first?.total ??
+    first?.priceEURperMWh ??
+    first?.price;
+  if (region) parts.push(`Region: ${String(region).slice(0, 80)}`);
+  if (eic) parts.push(`EIC: ${String(eic).slice(0, 40)}`);
+  if (avg != null) parts.push(`${label} Durchschnitt: ${Number(avg).toFixed(1)}`);
+  if (max != null) parts.push(`${label} Max: ${Number(max).toFixed(1)}`);
+  if (min != null) parts.push(`${label} Min: ${Number(min).toFixed(1)}`);
+  if (firstValue != null) parts.push(`${label} erster Wert: ${Number(firstValue).toFixed(1)}`);
+  if (Array.isArray(points)) parts.push(`Datenpunkte: ${points.length}`);
+  const source = data.metadata?.source || result.metadata?.source;
+  if (source) parts.push(`Quelle: ${String(source).slice(0, 100)}`);
+  return parts.length ? parts.join(' · ') : null;
+}
 
 function isNotFound(error) {
   return error?.code === 404 || error?.type === 'OBJECT_NOT_FOUND';

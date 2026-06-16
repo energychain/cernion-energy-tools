@@ -168,6 +168,31 @@ function findBestCapability(taskText, options = {}) {
     'risikofaktoren',
     'grid-connection-asset-validation',
   ];
+  const crossCommoditySupplySignals = [
+    'gasspeicher',
+    'agsi',
+    'gie',
+    'entso-e',
+    'entsoe',
+    'lagebild',
+    'lage-/beschaffungsrunde',
+    'beschaffungsrunde',
+    'voralarm',
+    'beobachtungsmodus',
+    'fernwaerme',
+    'fernwärme',
+    'kwk',
+    'waermelast',
+    'wärmelast',
+    'windprognose',
+    'lastprognose',
+    'day-ahead',
+  ];
+
+  const hasCrossCommoditySupplyCombo =
+    /(gasspeicher|agsi|gie)/i.test(haystack) &&
+    /(entso-e|entsoe|lastprognose|windprognose|day-ahead)/i.test(haystack) &&
+    /(lagebild|versorgungssicherheit|beschaffung|voralarm|beobachtungsmodus|fernwaerme|fernwärme|kwk)/i.test(haystack);
 
   const hasVdmiBoundaryCombo =
     /(rollen|rolle|schnittstellen)/i.test(haystack) &&
@@ -217,6 +242,22 @@ function findBestCapability(taskText, options = {}) {
   const hasVdmiAssetValidationCombo =
     /(asset|anlage|anlagen|assetklasse|transformator|trafo)/i.test(haystack) &&
     /(evidence|evidenz|nachweis|beleg|risk|risiko|forbidden|verbotene annahme)/i.test(haystack);
+
+  if (
+    hasCrossCommoditySupplyCombo ||
+    crossCommoditySupplySignals.filter((signal) => haystack.includes(signal)).length >= 3
+  ) {
+    const crossCommodityCapability = findCapabilityByName(
+      'cross_commodity_supply_security_lagebild'
+    );
+    if (crossCommodityCapability) {
+      return {
+        capability: crossCommodityCapability,
+        score: 135,
+        usedFallback: false,
+      };
+    }
+  }
 
   if (
     vdmiAssetValidationSignals.some((signal) => haystack.includes(signal)) ||

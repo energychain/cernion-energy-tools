@@ -165,6 +165,26 @@ describe('Capability Broker Service', () => {
     expect(result.recommendedPlan[0].action).toBe('grid-connection.fnavValidate');
   });
 
+  it('routes AGSI plus ENTSO-E Lagebild prompts to cross-commodity supply security', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte erstelle ein 72h Lagebild fuer die Beschaffungsrunde mit Gasspeicher AGSI, ENTSO-E Lastprognose, Windprognose, Day-Ahead und Voralarm-Einordnung.',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'cross_commodity_supply_security_lagebild'
+    );
+    const actions = result.recommendedPlan.map((step) => step.action);
+    expect(actions).toEqual(
+      expect.arrayContaining([
+        'gas-storage.countryStorage',
+        'gas-storage.supplySecurityCheck',
+        'entsoe.loadForecast',
+        'entsoe.windSolarForecast',
+        'entsoe.dayAheadPrices',
+      ])
+    );
+  });
+
   it('routes Netzsignal-Vorrang Vertragsgate prompts to the Phase-5 fNAV capability', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Bitte fNAV Netzfahrplan mit Netzsignal Vorrang Vertragsgate für einen flexiblen Netzanschlussvertrag prüfen.',

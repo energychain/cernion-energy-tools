@@ -1385,6 +1385,115 @@ describe('answerDossier action', () => {
     expect(result.dossierMarkdown).toContain('Tagesmittel: 364.5 g/kWh');
   });
 
+  test('hydration: hydrates AGSI and ENTSO-E cross-commodity Lagebild actions', async () => {
+    const service = buildServiceHarness();
+    const calls = [];
+    const ctx = buildCtx(
+      {
+        question:
+          'Bitte 72h Lagebild fuer Beschaffung mit Gasspeicher AGSI und ENTSO-E Lastprognose, Windprognose und Day-Ahead Deutschland erstellen.',
+        timeBudgetMs: 30000,
+      },
+      {
+        'capability-broker.recommend': async () => ({
+          intent: 'cross_commodity_supply_security_lagebild',
+          capability: 'cross_commodity_supply_security_lagebild',
+          confidence: 0.91,
+          recommendedPlan: [
+            { step: 1, action: 'gas-storage.countryStorage' },
+            { step: 2, action: 'gas-storage.supplySecurityCheck' },
+            { step: 3, action: 'entsoe.loadForecast' },
+            { step: 4, action: 'entsoe.windSolarForecast' },
+            { step: 5, action: 'entsoe.dayAheadPrices' },
+          ],
+        }),
+        'gas-storage.countryStorage': async (p) => {
+          calls.push(['gas-storage.countryStorage', p]);
+          return {
+            data: {
+              country: 'DE',
+              storage: {
+                fillPercentage: 72.5,
+                gasInStorage: 180,
+                workingGasVolume: 248.2,
+                trend: 'falling',
+                coverageDays: 23.4,
+              },
+            },
+            metadata: { timestamp: '2026-06-16T10:00:00Z' },
+          };
+        },
+        'gas-storage.supplySecurityCheck': async (p) => {
+          calls.push(['gas-storage.supplySecurityCheck', p]);
+          return {
+            data: {
+              status: 'ADEQUATE',
+              fillLevel: 72.5,
+              winterMandateStatus: 'monitor',
+              coverageDays: 23.4,
+            },
+          };
+        },
+        'entsoe.loadForecast': async (p) => {
+          calls.push(['entsoe.loadForecast', p]);
+          return {
+            region: 'Germany',
+            eicCode: '10Y1001A1001A83F',
+            statistics: { avgLoadMW: 61234, maxLoadMW: 70123 },
+            dataPoints: [{ timestamp: '2026-06-17T00:00:00Z', loadMW: 58000 }],
+            metadata: { source: 'ENTSO-E Transparency Platform' },
+          };
+        },
+        'entsoe.windSolarForecast': async (p) => {
+          calls.push(['entsoe.windSolarForecast', p]);
+          return {
+            region: 'Germany',
+            statistics: { avgForecastMW: 9200, minForecastMW: 4100 },
+            forecasts: [{ timestamp: '2026-06-17T00:00:00Z', total: 5100 }],
+            metadata: { source: 'ENTSO-E Transparency Platform' },
+          };
+        },
+        'entsoe.dayAheadPrices': async (p) => {
+          calls.push(['entsoe.dayAheadPrices', p]);
+          return {
+            region: 'Germany',
+            statistics: { avgPriceEURperMWh: 118.4, maxPriceEURperMWh: 211.7 },
+            dataPoints: [{ timestamp: '2026-06-17T00:00:00Z', priceEURperMWh: 102.5 }],
+            metadata: { source: 'ENTSO-E Transparency Platform' },
+          };
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(calls.map(([action]) => action)).toEqual([
+      'gas-storage.countryStorage',
+      'gas-storage.supplySecurityCheck',
+      'entsoe.loadForecast',
+      'entsoe.windSolarForecast',
+      'entsoe.dayAheadPrices',
+    ]);
+    expect(calls[0][1]).toMatchObject({ country: 'DE' });
+    expect(calls[2][1]).toMatchObject({ region: 'Germany', resolution: 'hourly' });
+    expect(result.hydration.succeeded).toEqual(
+      expect.arrayContaining([
+        'gas-storage.countryStorage',
+        'gas-storage.supplySecurityCheck',
+        'entsoe.loadForecast',
+        'entsoe.windSolarForecast',
+        'entsoe.dayAheadPrices',
+      ])
+    );
+    expect(result.hydration.evidenceAdded).toBe(5);
+    expect(result.dossierMarkdown).toContain('Gasspeicher Deutschland / AGSI');
+    expect(result.dossierMarkdown).toContain('Fuellstand: 72.5%');
+    expect(result.dossierMarkdown).toContain('ENTSO-E Lastprognose Deutschland');
+    expect(result.dossierMarkdown).toContain('ENTSO-E Wind-/Solar-Prognose Deutschland');
+    expect(result.dossierMarkdown).toContain('ENTSO-E Day-Ahead-Preise Deutschland');
+  });
+
   // H2 — Hydration: no postal code → action not called
   test('hydration: energy-market.co2Intensity not called when no postal code extractable', async () => {
     const service = buildServiceHarness();

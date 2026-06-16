@@ -5,6 +5,16 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.63.10] — 2026-06-16
+
+### Added
+- **Cross-commodity Answer Dossier path** (`src/capability-catalog.js`, `services/capability-broker.service.js`): Added curated routing for Stadtwerk supply-security Lagebild prompts that explicitly combine AGSI/GIE gas storage data with ENTSO-E electricity-system data. This prevents generic `evidence` wording in such prompts from being captured by the VDMI asset-validation route.
+- **AGSI/ENTSO-E Dossier hydration** (`services/personal-agent.service.js`): Extended the explicit read-only hydration allowlist with `gas-storage.countryStorage`, `gas-storage.supplySecurityCheck`, `entsoe.loadForecast`, `entsoe.windSolarForecast`, and `entsoe.dayAheadPrices`. Hydrated outputs are source-labelled as validated evidence while remaining fail-open and time-budgeted.
+
+### Tests
+- Added broker routing coverage for AGSI + ENTSO-E Lagebild prompts.
+- Added Answer Dossier hydration coverage proving all five cross-commodity read-only actions can be called and rendered as Known Evidence.
+
 ## [0.63.9] — 2026-06-16
 
 ### Fixed
