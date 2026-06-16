@@ -443,6 +443,78 @@ const DOSSIER_HYDRATION_ALLOWLIST = {
     },
     evidenceQuality: 'validated',
   },
+  'energy-market.prices': {
+    label: 'Day-Ahead-Marktpreis Deutschland',
+    extractParams(_userProvidedFacts, question) {
+      const range = extractDossierHydrationDateRange(question);
+      return {
+        market: 'day-ahead',
+        region: 'Deutschland',
+        startDate: range.dateFrom,
+        endDate: range.dateTo,
+      };
+    },
+    formatEvidence(result) {
+      if (!result || typeof result !== 'object') return null;
+      const data = result.data || result;
+      const parts = [];
+      const unit = data.unit || result.unit || 'EUR/MWh';
+      const avg = data.average ?? data.avg ?? data.averagePrice ?? data.average_price;
+      const min = data.min ?? data.minPrice ?? data.min_price;
+      const max = data.max ?? data.maxPrice ?? data.max_price;
+      const current = data.current ?? data.currentPrice ?? data.price;
+      if (current != null) parts.push(`Aktuell: ${Number(current).toFixed(2)} ${unit}`);
+      if (avg != null) parts.push(`Mittel: ${Number(avg).toFixed(2)} ${unit}`);
+      if (min != null && max != null) parts.push(`Bandbreite: ${Number(min).toFixed(2)}–${Number(max).toFixed(2)} ${unit}`);
+      if (data.market) parts.push(`Markt: ${String(data.market).slice(0, 40)}`);
+      if (!parts.length && data.prices) parts.push(`Preisdaten: ${JSON.stringify(data.prices).slice(0, 200)}`);
+      return parts.length ? parts.join(' · ') : null;
+    },
+    evidenceQuality: 'validated',
+  },
+  'residual-load.netResidualLoad': {
+    label: 'Residuallast / Flexibilitätsfenster DSO',
+    extractParams(userProvidedFacts, question) {
+      const q = String(question || '');
+      const postalCode =
+        (q.match(/\b(\d{5})\b/) || [])[1] ||
+        (userProvidedFacts || []).reduce(
+          (acc, f) => acc || f.projectScope?.postalCode || null,
+          null
+        );
+      if (postalCode) {
+        return { postleitzahl: postalCode, forecastDays: 1, resolution: 'hourly' };
+      }
+      const locationFact = (userProvidedFacts || []).find(
+        (f) =>
+          (f.factType === 'location' || f.factType === 'city') &&
+          (f.value || f.projectScope?.city)
+      );
+      const region = locationFact?.value || locationFact?.projectScope?.city || null;
+      if (region) {
+        return { region, forecastDays: 1, resolution: 'hourly' };
+      }
+      return null; // no location available — skip, mark as missing evidence
+    },
+    formatEvidence(result) {
+      if (!result || typeof result !== 'object') return null;
+      const data = result.data || result;
+      const parts = [];
+      const unit = data.unit || result.unit || 'MW';
+      const rl =
+        data.residualLoad ?? data.residual_load ?? data.netResidualLoad ?? data.net_residual_load;
+      const peak = data.peakResidualLoad ?? data.peak_residual_load;
+      const min = data.minResidualLoad ?? data.min_residual_load;
+      const region = data.region || data.postleitzahl || data.postalCode;
+      if (rl != null) parts.push(`Residuallast: ${Number(rl).toFixed(1)} ${unit}`);
+      if (peak != null) parts.push(`Peak: ${Number(peak).toFixed(1)} ${unit}`);
+      if (min != null) parts.push(`Min: ${Number(min).toFixed(1)} ${unit}`);
+      if (region) parts.push(`Gebiet: ${String(region).slice(0, 80)}`);
+      if (!parts.length && data.forecast) parts.push(`Forecast: ${JSON.stringify(data.forecast).slice(0, 200)}`);
+      return parts.length ? parts.join(' · ') : null;
+    },
+    evidenceQuality: 'validated',
+  },
 };
 
 function toIsoDateOnly(date) {
@@ -2452,6 +2524,18 @@ module.exports = {
           tenantLowEvidence = [];
         }
 
+        // Entity search is also suppressed for capabilities whose service domains are outside
+        // query.search's valid domain set (companies, vnb, edm, vdmi, grid_connection, znp, all).
+        // residual_load_forecast_for_dso uses grid-operations which is not a valid query.search
+        // domain — suppressing prevents VDMI/ZNP/Grid-Connection fanout for DSO scenarios.
+        const _ENTITY_SEARCH_SUPPRESSED_CAPABILITIES = new Set(['residual_load_forecast_for_dso']);
+        const _isEntitySearchSuppressed =
+          _isAdvisoryPlaceholderCapability ||
+          (capabilityRouting.status === 'success' &&
+            !capabilityRouting.result?.scoringBreakdown?.usedFallback &&
+            typeof capabilityRouting.result?.capability === 'string' &&
+            _ENTITY_SEARCH_SUPPRESSED_CAPABILITIES.has(capabilityRouting.result.capability));
+
         // Fact Collection phase (with soft timeout)
         let evidence = [];
         let completionState = DOSSIER_COMPLETION_STATE.COMPLETED;
@@ -2473,7 +2557,7 @@ module.exports = {
                 }
               })(),
               (async () => {
-                if (_isAdvisoryPlaceholderCapability) return { results: [] };
+                if (_isEntitySearchSuppressed) return { results: [] };
                 try {
                   return await this.searchCopilotEntities(ctx, {
                     searchTerm: evidenceSearchTerm,

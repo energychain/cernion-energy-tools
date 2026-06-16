@@ -347,6 +347,35 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── DSO Residual Load / Flexibility Window
+  // 'evidence' in the prompt matches vdmiAssetValidationSignals — intercept before VDMI.
+  // Also catches prompts using the hyphenated 'residual-load' form not covered by catalog keywords.
+  const residualLoadDsoSpecificSignals = [
+    'residual-load',           // hyphenated form (Turn 1, 2, 3)
+    'residuallast',            // compound form (Turn 2, 4)
+    'residual load',           // space form, English (Turn 3)
+    'netresidualload',         // service action name form
+    'flexibility window',      // English equivalent (Turn 3)
+    'flexibilitaetsmanagement', // very specific (Turn 4)
+  ];
+  const hasResidualLoadDsoCombo =
+    // any residual-load concept + DSO/VNB/grid-ops context
+    (/residual.?load|residuallast/i.test(haystack) &&
+      /(dso|vnb|netzbetrieb|stadtwerk|netzbetreiber|lastverschieb|flexibilit)/i.test(haystack)) ||
+    // flexibility window concept + operational context (excludes energy-sharing / prosumer)
+    (/(flexibilitaetsfenster|flexibilitätsfenster|flexibility.?window)/i.test(haystack) &&
+      /(dso|vnb|netzbetrieb|stadtwerk|lastverschieb|residual|forecast|co2)/i.test(haystack));
+
+  if (
+    residualLoadDsoSpecificSignals.some((s) => haystack.includes(s)) ||
+    hasResidualLoadDsoCombo
+  ) {
+    const residualLoadCap = findCapabilityByName('residual_load_forecast_for_dso');
+    if (residualLoadCap) {
+      return { capability: residualLoadCap, score: 122, usedFallback: false };
+    }
+  }
+
   if (
     vdmiAssetValidationSignals.some((signal) => haystack.includes(signal)) ||
     hasVdmiAssetValidationCombo

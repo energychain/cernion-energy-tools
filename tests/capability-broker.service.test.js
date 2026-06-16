@@ -516,6 +516,52 @@ describe('Capability Broker Service', () => {
     expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
   });
 
+  // ── DSO Residual Load / Flexibility Window — issue #231 ──
+
+  it('routes Turn 1 DSO residual-load dossier (hyphenated form + Evidence keyword) to residual_load_forecast_for_dso, not VDMI', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ich bin im Netzbetrieb eines Stadtwerks und brauche ein Answer Dossier fuer morgen: Wie sieht die Residual-Load-Lage fuer unser DSO-Gebiet aus, welche Flexibilitaetsfenster sind aus CO2/GruenstromIndex, Day-Ahead-Preis, Forecast und ggf. German-Grid-/Netztransparenzdaten ableitbar? Bitte nutze wenn moeglich residual-load, forecast, german-grid und energy-market Evidence. Standort: 74889 Sinsheim. Keine Steueranweisung und keine MW-Zusage ohne belastbare Evidence.',
+    });
+
+    expect(result.capability).toBe('residual_load_forecast_for_dso');
+    expect(result.recommendedCapabilities[0].capability).toBe('residual_load_forecast_for_dso');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+  });
+
+  it('routes Turn 2 Beschaffungsplanung Residuallast/CO2 dossier to residual_load_forecast_for_dso, not VDMI', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ich bin in der Beschaffungsplanung eines Stadtwerks. Bitte erstelle ein Answer Dossier fuer morgen: Wie ist die Residuallast einzuschaetzen, welche CO2-/GruenstromIndex-Signale und Day-Ahead-Preise sprechen fuer oder gegen Lastverschiebung, und welche Evidence fehlt fuer ein belastbares Flexibilitaetsfenster? Bitte nutze residual-load und energy-market Evidence, wenn verfuegbar. Keine Steueranweisung und keine MW-Zusage.',
+    });
+
+    expect(result.capability).toBe('residual_load_forecast_for_dso');
+    expect(result.recommendedCapabilities[0].capability).toBe('residual_load_forecast_for_dso');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+  });
+
+  it('routes Turn 3 English DSO residual load forecast dossier to residual_load_forecast_for_dso, not VDMI', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'As a DSO operations analyst, I need an Answer Dossier for a residual load forecast and flexibility window assessment for the next 24 hours. Please consider residual-load, forecast, CO2 intensity and day-ahead price evidence. Separate validated evidence, missing evidence and operational constraints. Do not make switching instructions or MW commitments.',
+    });
+
+    expect(result.capability).toBe('residual_load_forecast_for_dso');
+    expect(result.recommendedCapabilities[0].capability).toBe('residual_load_forecast_for_dso');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+  });
+
+  it('routes Turn 4 VNB Flexibilitaetsfenster (no postal code, not grid-connection) to residual_load_forecast_for_dso, not VDMI', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ich bin beim VNB fuer Flexibilitaetsmanagement zustaendig. Bitte erstelle ein Dossier fuer ein Flexibilitaetsfenster morgen frueh: Residuallast, Forecast, GruenstromIndex/CO2 und Day-Ahead-Preis sollen gemeinsam bewertet werden. Es geht nicht um einen Netzanschlussantrag und nicht um Assetvalidierung, sondern um eine vorsichtige Lageeinschaetzung fuer Lastverschiebung.',
+    });
+
+    expect(result.capability).toBe('residual_load_forecast_for_dso');
+    expect(result.recommendedCapabilities[0].capability).toBe('residual_load_forecast_for_dso');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+  });
+
   // ── Regression: Existing VDMI prompts must still route correctly after domain fixes ──
 
   it('still routes formal §17 EnWG grid-connection decision prompt to VDMI decision governance after non-VDMI fixes', async () => {
