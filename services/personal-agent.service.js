@@ -311,15 +311,25 @@ const DOSSIER_HYDRATION_ALLOWLIST = {
       const postalCode =
         locationFact?.projectScope?.postalCode ||
         (question.match(/\b(\d{5})\b/) || [])[1];
-      return postalCode ? { zip: postalCode } : null;
+      return postalCode ? { location: postalCode, forecast: true } : null;
     },
     formatEvidence(result) {
       if (!result || typeof result !== 'object') return null;
       const parts = [];
+      const co2 =
+        result.co2 ??
+        result.co2_intensity_gco2eq_kwh ??
+        result.data?.co2_intensity_gco2eq_kwh;
+      const averageToday =
+        result.average_today_gco2eq_kwh ??
+        result.data?.average_today_gco2eq_kwh;
+      const location = result.data?.location || result.location;
       if (result.index != null) parts.push(`GrünstromIndex: ${result.index}`);
-      if (result.co2 != null) parts.push(`CO₂-Intensität: ${result.co2} g/kWh`);
+      if (co2 != null) parts.push(`CO₂-Intensität: ${co2} g/kWh`);
+      if (averageToday != null) parts.push(`Tagesmittel: ${averageToday} g/kWh`);
       if (result.renewable != null) parts.push(`Erneuerbare: ${Math.round(Number(result.renewable) * 100)}%`);
       if (result.label) parts.push(String(result.label).slice(0, 120));
+      if (location) parts.push(`Standort: ${String(location).slice(0, 120)}`);
       if (!parts.length && result.value != null) parts.push(String(result.value).slice(0, 200));
       return parts.length ? parts.join(' · ') : null;
     },

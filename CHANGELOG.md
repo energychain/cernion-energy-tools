@@ -5,6 +5,15 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.63.8] — 2026-06-16
+
+### Fixed
+- **Answer Dossier CO₂ hydration parameters** (`services/personal-agent.service.js`): `energy-market.co2Intensity` hydration now sends the action's real required parameter shape (`location`, plus `forecast: true`) instead of the invalid `{ zip }` payload. Production Jaeger traces showed the action was reached after v0.63.7 but failed validation because `location` was missing.
+- **Hydrated CO₂ evidence formatting**: Evidence formatting now supports the real `energy-market.co2Intensity` response fields (`co2_intensity_gco2eq_kwh`, `average_today_gco2eq_kwh`, `data.location`) in addition to the earlier unit-test stub fields.
+
+### Tests
+- Updated hydration parameter assertions and added a regression test for the real `energy-market.co2Intensity` response shape.
+
 ## [0.63.7] — 2026-06-16
 
 ### Fixed

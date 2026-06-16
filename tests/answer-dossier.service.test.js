@@ -1265,7 +1265,7 @@ describe('answerDossier action', () => {
 
     expect(result.success).toBe(true);
     expect(co2Calls).toHaveLength(1);
-    expect(co2Calls[0]).toMatchObject({ zip: '74889' });
+    expect(co2Calls[0]).toMatchObject({ location: '74889', forecast: true });
     expect(result.hydration.attempted).toContain('energy-market.co2Intensity');
     expect(result.hydration.succeeded).toContain('energy-market.co2Intensity');
     expect(result.hydration.evidenceAdded).toBe(1);
@@ -1310,10 +1310,39 @@ describe('answerDossier action', () => {
 
     expect(result.success).toBe(true);
     expect(co2Calls).toHaveLength(1);
-    expect(co2Calls[0]).toMatchObject({ zip: '74889' });
+    expect(co2Calls[0]).toMatchObject({ location: '74889', forecast: true });
     expect(result.hydration.succeeded).toContain('energy-market.co2Intensity');
     expect(result.hydration.evidenceAdded).toBe(1);
     expect(result.dossierMarkdown).toContain('GrünstromIndex: 42');
+  });
+
+  test('hydration: formats real energy-market.co2Intensity response shape', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx(
+      { question: 'CO2-Intensität für 74889 Sinsheim bitte anzeigen', timeBudgetMs: 30000 },
+      {
+        'capability-broker.recommend': async () => ({
+          intent: 'residual_load_forecast_for_dso',
+          capability: 'residual_load_forecast_for_dso',
+          confidence: 0.84,
+          recommendedPlan: [{ step: 1, action: 'energy-market.co2Intensity' }],
+        }),
+        'energy-market.co2Intensity': async () => ({
+          success: true,
+          co2_intensity_gco2eq_kwh: 380,
+          average_today_gco2eq_kwh: 364.5,
+          data: { location: '74889' },
+        }),
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(result.hydration.succeeded).toContain('energy-market.co2Intensity');
+    expect(result.hydration.evidenceAdded).toBe(1);
+    expect(result.dossierMarkdown).toContain('CO₂-Intensität: 380 g/kWh');
+    expect(result.dossierMarkdown).toContain('Tagesmittel: 364.5 g/kWh');
   });
 
   // H2 — Hydration: no postal code → action not called
