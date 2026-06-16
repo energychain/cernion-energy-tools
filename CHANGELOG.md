@@ -5,6 +5,14 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.63.11] — 2026-06-16
+
+### Fixed
+- **Answer Dossier multi-source hydration runtime** (`services/personal-agent.service.js`): Hydration now limits concurrent read-only evidence actions to two and gives MCP-backed external data sources a realistic per-action timeout. Production Jaeger traces for the AGSI/ENTSO-E Lagebild showed all five actions were selected, but the previous `hydrationBudget / actionCount` timeout caused the dossier to return before any external evidence could be formatted and increased MCP session pressure.
+
+### Tests
+- Updated AGSI/ENTSO-E hydration coverage so the assertion is stable under concurrency-limited execution.
+
 ## [0.63.10] — 2026-06-16
 
 ### Added

@@ -1468,15 +1468,20 @@ describe('answerDossier action', () => {
     const result = await handler.call(service, ctx);
 
     expect(result.success).toBe(true);
-    expect(calls.map(([action]) => action)).toEqual([
-      'gas-storage.countryStorage',
-      'gas-storage.supplySecurityCheck',
-      'entsoe.loadForecast',
-      'entsoe.windSolarForecast',
-      'entsoe.dayAheadPrices',
-    ]);
-    expect(calls[0][1]).toMatchObject({ country: 'DE' });
-    expect(calls[2][1]).toMatchObject({ region: 'Germany', resolution: 'hourly' });
+    expect(calls.map(([action]) => action)).toEqual(
+      expect.arrayContaining([
+        'gas-storage.countryStorage',
+        'gas-storage.supplySecurityCheck',
+        'entsoe.loadForecast',
+        'entsoe.windSolarForecast',
+        'entsoe.dayAheadPrices',
+      ])
+    );
+    expect(Object.fromEntries(calls)['gas-storage.countryStorage']).toMatchObject({ country: 'DE' });
+    expect(Object.fromEntries(calls)['entsoe.loadForecast']).toMatchObject({
+      region: 'Germany',
+      resolution: 'hourly',
+    });
     expect(result.hydration.succeeded).toEqual(
       expect.arrayContaining([
         'gas-storage.countryStorage',

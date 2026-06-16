@@ -2495,10 +2495,10 @@ module.exports = {
         // Resolve broker advisory (was running in parallel with evidence collection)
         const capabilityRouting = await _brokerResultPromise;
 
-        // Read-only capability evidence hydration — fail-open, allowlist-gated, time-budgeted
-        // Budget: 40% of thinking phase (capped 4s), skipped when budget < 3s (short-budget requests)
+        // Read-only capability evidence hydration — fail-open, allowlist-gated, time-budgeted.
+        // Multi-source MCP hydration is concurrency-limited to avoid upstream session spikes.
         const hydrationBudgetMs = timeBudget.thinkingMs > 3000
-          ? Math.min(4000, Math.floor(timeBudget.thinkingMs * 0.4))
+          ? Math.min(10000, Math.floor(timeBudget.thinkingMs * 0.8))
           : 0;
         const _hydrationResult = { attempted: [], succeeded: [], failed: [], timedOut: [], evidenceAdded: 0 };
 
@@ -2523,21 +2523,32 @@ module.exports = {
           ].filter((a, i, arr) => arr.indexOf(a) === i && DOSSIER_HYDRATION_ALLOWLIST[a]);
 
           if (brokerCandidateActions.length > 0) {
-            const perActionMs = Math.min(3000, Math.floor(hydrationBudgetMs / brokerCandidateActions.length));
-            const hydrationSettled = await Promise.allSettled(
-              brokerCandidateActions.map(async (actionName) => {
+            const hydrationStartMs = Date.now();
+            let hydrationCursor = 0;
+            const hydrationConcurrency = Math.min(2, brokerCandidateActions.length);
+            const hydrateOne = async (actionName) => {
+              const elapsed = Date.now() - hydrationStartMs;
+              const remainingMs = hydrationBudgetMs - elapsed;
+              if (remainingMs <= 500) {
+                _hydrationResult.timedOut.push(actionName);
+                return null;
+              }
                 const actionDef = DOSSIER_HYDRATION_ALLOWLIST[actionName];
                 const params = actionDef.extractParams(userProvidedFacts, question);
                 if (!params) return null;
                 _hydrationResult.attempted.push(actionName);
                 const _hydrationCallStart = Date.now();
                 try {
+                  const perActionMs = Math.min(7000, remainingMs);
                   const rawResult = await Promise.race([
                     ctx.call(actionName, params, { meta: { ...ctx.meta, $gateway: false } }),
                     new Promise((_, reject) =>
                       setTimeout(() => reject(new Error('hydration_timeout')), perActionMs)
                     ),
                   ]);
+                  if (rawResult?.success === false) {
+                    throw new Error(rawResult.error?.message || 'hydration_action_failed');
+                  }
                   const formattedValue = actionDef.formatEvidence(rawResult);
                   if (!formattedValue) return null;
                   _hydrationResult.succeeded.push(actionName);
@@ -2558,11 +2569,25 @@ module.exports = {
                   }
                   return null;
                 }
+            };
+
+            const hydrationSettled = await Promise.allSettled(
+              Array.from({ length: hydrationConcurrency }, async () => {
+                const entries = [];
+                while (
+                  hydrationCursor < brokerCandidateActions.length &&
+                  Date.now() - hydrationStartMs < hydrationBudgetMs
+                ) {
+                  const actionName = brokerCandidateActions[hydrationCursor++];
+                  const entry = await hydrateOne(actionName);
+                  if (entry) entries.push(entry);
+                }
+                return entries;
               })
             );
             const hydratedEntries = hydrationSettled
-              .filter((r) => r.status === 'fulfilled' && r.value != null)
-              .map((r) => r.value);
+              .filter((r) => r.status === 'fulfilled' && Array.isArray(r.value))
+              .flatMap((r) => r.value);
             if (hydratedEntries.length > 0) {
               evidence = dedupeDossierEvidence([...evidence, ...hydratedEntries]);
               _hydrationResult.evidenceAdded = hydratedEntries.length;
