@@ -2262,9 +2262,19 @@ module.exports = {
           capabilityRouting.status === 'success' &&
           capabilityRouting.result
         ) {
+          const brokerPlanActions = Array.isArray(capabilityRouting.result.recommendedPlan)
+            ? capabilityRouting.result.recommendedPlan.map((step) => step?.action).filter(Boolean)
+            : [];
+          const brokerCapabilityActions = Array.isArray(capabilityRouting.result.recommendedCapabilities)
+            ? capabilityRouting.result.recommendedCapabilities.flatMap((capability) =>
+                Array.isArray(capability?.actions) ? capability.actions : []
+              )
+            : [];
           const brokerCandidateActions = [
             ...(Array.isArray(capabilityRouting.result.preferredActions) ? capabilityRouting.result.preferredActions : []),
             ...(Array.isArray(capabilityRouting.result.fallbackActions) ? capabilityRouting.result.fallbackActions : []),
+            ...brokerPlanActions,
+            ...brokerCapabilityActions,
           ].filter((a, i, arr) => arr.indexOf(a) === i && DOSSIER_HYDRATION_ALLOWLIST[a]);
 
           if (brokerCandidateActions.length > 0) {

@@ -5,6 +5,14 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.63.7] — 2026-06-16
+
+### Fixed
+- **Answer Dossier hydration candidate extraction** (`services/personal-agent.service.js`): Hydration now reads allowlisted actions from the real `capability-broker.recommend` response shape (`recommendedPlan[].action` and `recommendedCapabilities[].actions`) in addition to legacy/mock `preferredActions`/`fallbackActions`. Production Jaeger traces showed the broker succeeded after v0.63.6 but no hydration action was attempted because the real broker does not expose top-level `preferredActions`.
+
+### Tests
+- Added an Answer Dossier regression test covering the real broker `recommendedPlan` action shape and verifying `energy-market.co2Intensity` hydration.
+
 ## [0.63.6] — 2026-06-16
 
 ### Fixed

@@ -1278,6 +1278,44 @@ describe('answerDossier action', () => {
     expect(result.confidence).not.toBe('low');
   });
 
+  test('hydration: supports real broker recommendedPlan action shape', async () => {
+    const service = buildServiceHarness();
+    const co2Calls = [];
+    const ctx = buildCtx(
+      { question: 'CO2-Intensität für 74889 Sinsheim bitte anzeigen', timeBudgetMs: 30000 },
+      {
+        'capability-broker.recommend': async () => ({
+          intent: 'residual_load_forecast_for_dso',
+          capability: 'residual_load_forecast_for_dso',
+          confidence: 0.84,
+          recommendedPlan: [
+            { step: 1, action: 'grid-operations.marketPartners' },
+            { step: 2, action: 'energy-market.co2Intensity' },
+          ],
+          recommendedCapabilities: [
+            {
+              capability: 'residual_load_forecast_for_dso',
+              actions: ['grid-operations.marketPartners', 'energy-market.co2Intensity'],
+            },
+          ],
+        }),
+        'energy-market.co2Intensity': async (p) => {
+          co2Calls.push(p);
+          return { index: 42, co2: 210, renewable: 0.68, label: 'Sinsheim Netz' };
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(co2Calls).toHaveLength(1);
+    expect(co2Calls[0]).toMatchObject({ zip: '74889' });
+    expect(result.hydration.succeeded).toContain('energy-market.co2Intensity');
+    expect(result.hydration.evidenceAdded).toBe(1);
+    expect(result.dossierMarkdown).toContain('GrünstromIndex: 42');
+  });
+
   // H2 — Hydration: no postal code → action not called
   test('hydration: energy-market.co2Intensity not called when no postal code extractable', async () => {
     const service = buildServiceHarness();
