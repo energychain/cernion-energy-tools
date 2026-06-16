@@ -483,11 +483,13 @@ const DOSSIER_HYDRATION_ALLOWLIST = {
         const scalar = data.average ?? data.avg ?? data.averagePrice ?? data.current ?? data.price;
         if (scalar != null) parts.push(`Preis: ${Number(scalar).toFixed(2)} ${unit}`);
       }
-      // Empty array: service reachable but no data for the requested period
-      if (!parts.length && (Array.isArray(data.prices) || Array.isArray(result.prices))) {
-        parts.push(`Keine Preisdaten für angefragten Zeitraum (Markt: ${String(data.market || 'day-ahead').slice(0, 30)})`);
+      // Unconditional fallback: service responded but no prices were extractable
+      if (!parts.length) {
+        const marketLabel = String(data.market || result.market || 'day-ahead').slice(0, 30);
+        const regionLabel = String(data.region || result.region || 'Deutschland').slice(0, 40);
+        parts.push(`Keine Preisdaten für angefragten Zeitraum (${regionLabel}, Markt: ${marketLabel})`);
       }
-      return parts.length ? parts.join(' · ') : null;
+      return parts.join(' · ');
     },
     evidenceQuality: 'validated',
   },
@@ -552,6 +554,7 @@ const DOSSIER_HYDRATION_ALLOWLIST = {
       return parts.length ? parts.join(' · ') : null;
     },
     evidenceQuality: 'validated',
+    timeoutMs: 14000,
   },
 };
 
@@ -2640,7 +2643,7 @@ module.exports = {
         // Read-only capability evidence hydration — fail-open, allowlist-gated, time-budgeted.
         // Multi-source MCP hydration is concurrency-limited to avoid upstream session spikes.
         const hydrationBudgetMs = timeBudget.thinkingMs > 3000
-          ? Math.min(10000, Math.floor(timeBudget.thinkingMs * 0.8))
+          ? Math.min(20000, Math.floor(timeBudget.thinkingMs * 0.8))
           : 0;
         const _hydrationResult = {
           attempted: [], succeeded: [], failed: [], failedDetails: [],
@@ -2684,7 +2687,7 @@ module.exports = {
                 _hydrationResult.attempted.push(actionName);
                 const _hydrationCallStart = Date.now();
                 try {
-                  const perActionMs = Math.min(7000, remainingMs);
+                  const perActionMs = Math.min(actionDef.timeoutMs || 7000, remainingMs);
                   const rawResult = await Promise.race([
                     ctx.call(actionName, params, { meta: { ...ctx.meta, $gateway: false } }),
                     new Promise((_, reject) =>
