@@ -211,6 +211,55 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule.formatEvidence({})).toBeNull();
     });
 
+    it('listSummary formats empty arrays as explicit negative evidence', () => {
+      const rule = compileRule(makeRule({
+        id: 'test.emptyList',
+        action: 'test.emptyList',
+        paramTemplate: {},
+        formatter: {
+          type: 'listSummary',
+          arrayPaths: ['items'],
+          itemLabelField: 'name',
+          countLabel: 'Testeintraege',
+        },
+      }));
+
+      expect(rule.formatEvidence({ items: [] })).toBe('Testeintraege: 0');
+    });
+
+    it('listSummary supports a custom emptyMessage', () => {
+      const rule = compileRule(makeRule({
+        id: 'test.emptyListMessage',
+        action: 'test.emptyListMessage',
+        paramTemplate: {},
+        formatter: {
+          type: 'listSummary',
+          arrayPaths: ['items'],
+          itemLabelField: 'name',
+          countLabel: 'Testeintraege',
+          emptyMessage: 'Keine aktiven Testeintraege gefunden',
+        },
+      }));
+
+      expect(rule.formatEvidence({ items: [] })).toBe('Keine aktiven Testeintraege gefunden');
+    });
+
+    it('listSummary still returns null when no configured array path exists', () => {
+      const rule = compileRule(makeRule({
+        id: 'test.missingList',
+        action: 'test.missingList',
+        paramTemplate: {},
+        formatter: {
+          type: 'listSummary',
+          arrayPaths: ['items'],
+          itemLabelField: 'name',
+          countLabel: 'Testeintraege',
+        },
+      }));
+
+      expect(rule.formatEvidence({ data: [] })).toBeNull();
+    });
+
     it('gas-storage.countryStorage formats nested storage data', () => {
       const rule = getRule('gas-storage.countryStorage');
       const formatted = rule.formatEvidence({

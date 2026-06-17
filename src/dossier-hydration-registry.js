@@ -336,9 +336,12 @@ function scalarValueFormatter(result, spec) {
 function listSummaryFormatter(result, spec) {
   if (!result || typeof result !== 'object') return null;
   const arr = resolveFirstPath(result, spec.arrayPaths || []);
-  if (!Array.isArray(arr) || arr.length === 0) return null;
+  if (!Array.isArray(arr)) return null;
   const labelField = spec.itemLabelField || 'name';
   const countLabel = spec.countLabel || 'Eintraege';
+  if (arr.length === 0) {
+    return spec.emptyMessage || `${countLabel}: 0`;
+  }
   const sample = arr
     .slice(0, spec.sampleCount || 3)
     .map((item) => resolvePath(item, labelField) || '?')
