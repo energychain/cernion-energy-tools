@@ -676,4 +676,38 @@ describe('Capability Broker Service', () => {
     expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
     expect(result.recommendedPlan[0].action).toBe('ewk-monitoring.benchmarkVnb');
   });
+
+  it('breadth-a96: A96 Settlement dossier routes to settlement_a96_reconciliation before Redispatch-RCS', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte erstelle ein Settlement A96 Reconciliation Dossier: A96-Abgleich, Bilanzierungsabweichung, Expost-Nachweis, Abrechnungsfreigabe und fehlende Settlement-Evidence.',
+    });
+
+    expect(result.capability).toBe('settlement_a96_reconciliation');
+    expect(result.recommendedCapabilities[0].capability).toBe('settlement_a96_reconciliation');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'redispatch_rcs_special_case_governance'
+    );
+  });
+
+  it('breadth-vdmi-role-boundary: role-boundary dossier routes to vdmi_role_boundary_governance before portfolio gatekeeping', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte erstelle ein VDMI Role Boundary Governance Dossier: Akteursrollen, Verantwortungsgrenzen, Evidence-Zustaendigkeit, Agentenrolle und verbotene Annahmen.',
+    });
+
+    expect(result.capability).toBe('vdmi_role_boundary_governance');
+    expect(result.recommendedCapabilities[0].capability).toBe('vdmi_role_boundary_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_portfolio_gatekeeping');
+  });
+
+  it('breadth-redispatch-settlement-sandbox: sandbox dossier routes before Redispatch-RCS', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte erstelle ein Redispatch Settlement Sandbox Dossier: Expost-Szenario, Redispatch-Abrechnung, Verguetungsrisiko, Plausibilitaet und offene Settlement-Nachweise.',
+    });
+
+    expect(result.capability).toBe('redispatch_settlement_sandbox');
+    expect(result.recommendedCapabilities[0].capability).toBe('redispatch_settlement_sandbox');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'redispatch_rcs_special_case_governance'
+    );
+  });
 });

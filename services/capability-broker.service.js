@@ -214,6 +214,44 @@ function findBestCapability(taskText, options = {}) {
     (vdmiDecisionContextSignals.some((signal) => haystack.includes(signal)) &&
       /(zusage|entscheidung|uebergabepunkt|übergabepunkt|kapazit[aä]t|anschluss)/i.test(haystack));
 
+  const hasSettlementA96SpecificSignal =
+    /\ba96\b/i.test(haystack) &&
+    /(settlement|reconciliation|reconcile|abgleich|bilanzierungsabweichung)/i.test(haystack);
+
+  if (hasSettlementA96SpecificSignal) {
+    const settlementA96Capability = findCapabilityByName('settlement_a96_reconciliation');
+    if (settlementA96Capability) {
+      return { capability: settlementA96Capability, score: 133, usedFallback: false };
+    }
+  }
+
+  const hasRedispatchSettlementSandboxSpecificSignal =
+    /redispatch/i.test(haystack) &&
+    /(settlement sandbox|expost.?szenario|abrechnung|vergütungsrisiko|verguetungsrisiko)/i.test(
+      haystack
+    );
+
+  if (hasRedispatchSettlementSandboxSpecificSignal) {
+    const rdssCapability = findCapabilityByName('redispatch_settlement_sandbox');
+    if (rdssCapability) {
+      return { capability: rdssCapability, score: 133, usedFallback: false };
+    }
+  }
+
+  const hasVdmiRoleBoundarySpecificSignal =
+    /vdmi/i.test(haystack) &&
+    /(role boundary|rollenverantwortung|akteursrollen|verantwortungsgrenzen|agentenrolle|rollengrenze)/i.test(
+      haystack
+    ) &&
+    !/(portfolio gate|portfolio gatekeeping|investitionsfreigabe)/i.test(haystack);
+
+  if (hasVdmiRoleBoundarySpecificSignal) {
+    const vdmiGovernanceCapability = findCapabilityByName('vdmi_role_boundary_governance');
+    if (vdmiGovernanceCapability) {
+      return { capability: vdmiGovernanceCapability, score: 133, usedFallback: false };
+    }
+  }
+
   // ── Redispatch/RCS Special Case Governance — must precede VDMI decision check
   // 'vergütungszusage' + 'netzbetreiber' combo would otherwise trigger VDMI grid-connection
   // decision governance (score 130). RCS/Expost signals narrow the domain unambiguously.
