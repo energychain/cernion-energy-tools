@@ -298,7 +298,7 @@ module.exports = {
         const tenantId = getTenantId(ctx);
         const { gridOperatorId, migrationProjectId, limit } = ctx.params;
 
-        const selector = { tenantId, type: 'altdaten-assessment' };
+        const selector = { tenantId, type: 'altdaten-assessment', createdAt: { $exists: true } };
         if (gridOperatorId) selector.gridOperatorId = gridOperatorId;
         if (migrationProjectId) selector.migrationProjectId = migrationProjectId;
 

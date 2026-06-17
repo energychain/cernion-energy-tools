@@ -278,7 +278,7 @@ module.exports = {
         const tenantId = getTenantId(ctx);
         const { gridOperatorId, limit } = ctx.params;
 
-        const selector = { tenantId, type: 'flexibilitaetskosten-raster' };
+        const selector = { tenantId, type: 'flexibilitaetskosten-raster', createdAt: { $exists: true } };
         if (gridOperatorId) selector.gridOperatorId = gridOperatorId;
 
         const result = await this.db.find({ selector, limit, sort: [{ createdAt: 'desc' }] });
