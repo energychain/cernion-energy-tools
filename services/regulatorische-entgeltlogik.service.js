@@ -118,6 +118,7 @@ module.exports = {
 
   async started() {
     await this.db.createIndex({ index: { fields: ['tenantId'] } });
+    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
     await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
     await this.db.createIndex({ index: { fields: ['ruleType'] } });
     await this.db.createIndex({ index: { fields: ['effectiveFrom'] } });
@@ -340,7 +341,7 @@ module.exports = {
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
         const { gridOperatorId, ruleType, limit } = ctx.params;
-        const selector = { tenantId, type: 'regulatorische-entgeltlogik' };
+        const selector = { tenantId, type: 'regulatorische-entgeltlogik', createdAt: { $exists: true } };
         if (gridOperatorId) selector.gridOperatorId = gridOperatorId;
         if (ruleType) selector.ruleType = ruleType;
         const result = await this.db.find({ selector, limit, sort: [{ createdAt: 'desc' }] });

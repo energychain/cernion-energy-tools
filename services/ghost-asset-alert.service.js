@@ -132,6 +132,7 @@ module.exports = {
 
   async started() {
     await this.db.createIndex({ index: { fields: ['tenantId'] } });
+    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
     await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
     await this.db.createIndex({ index: { fields: ['createdAt'] } });
     await this.db.createIndex({ index: { fields: ['status'] } });
@@ -349,7 +350,7 @@ module.exports = {
         const tenantId = getTenantId(ctx);
         const { gridOperatorId, limit } = ctx.params;
 
-        const selector = { tenantId, type: 'ghost-asset-scan' };
+        const selector = { tenantId, type: 'ghost-asset-scan', createdAt: { $exists: true } };
         if (gridOperatorId) selector.gridOperatorId = gridOperatorId;
 
         const result = await this.db.find({ selector, limit, sort: [{ createdAt: 'desc' }] });

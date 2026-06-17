@@ -122,6 +122,7 @@ module.exports = {
 
   async started() {
     await this.db.createIndex({ index: { fields: ['tenantId'] } });
+    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
     await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
     await this.db.createIndex({ index: { fields: ['createdAt'] } });
     this.logger.info(`CAPEX Prioritization DB initialized at ${this.settings.dbPath}`);
@@ -301,7 +302,7 @@ module.exports = {
         const tenantId = getTenantId(ctx);
         const { gridOperatorId, limit } = ctx.params;
 
-        const selector = { tenantId, type: 'capex-prioritization-analysis' };
+        const selector = { tenantId, type: 'capex-prioritization-analysis', createdAt: { $exists: true } };
         if (gridOperatorId) selector.gridOperatorId = gridOperatorId;
 
         const result = await this.db.find({ selector, limit, sort: [{ createdAt: 'desc' }] });

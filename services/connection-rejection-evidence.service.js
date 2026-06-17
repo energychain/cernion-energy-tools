@@ -92,6 +92,7 @@ module.exports = {
 
   async started() {
     await this.db.createIndex({ index: { fields: ['tenantId'] } });
+    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
     await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
     await this.db.createIndex({ index: { fields: ['createdAt'] } });
     await this.db.createIndex({ index: { fields: ['decision'] } });
@@ -259,7 +260,7 @@ module.exports = {
         const tenantId = getTenantId(ctx);
         const { gridOperatorId, decision, limit } = ctx.params;
 
-        const selector = { tenantId, type: 'connection-rejection-evidence-package' };
+        const selector = { tenantId, type: 'connection-rejection-evidence-package', createdAt: { $exists: true } };
         if (gridOperatorId) selector.gridOperatorId = gridOperatorId;
         if (decision) selector.decision = decision;
 

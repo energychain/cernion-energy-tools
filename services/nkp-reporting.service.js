@@ -216,6 +216,7 @@ module.exports = {
 
   async started() {
     await this.db.createIndex({ index: { fields: ['tenantId'] } });
+    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
     await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
     await this.db.createIndex({ index: { fields: ['createdAt'] } });
     await this.db.createIndex({ index: { fields: ['nkpId'] } });
@@ -365,7 +366,7 @@ module.exports = {
         const tenantId = getTenantId(ctx);
         const { gridOperatorId, nkpId, limit } = ctx.params;
 
-        const selector = { tenantId, type: 'nkp-report-import' };
+        const selector = { tenantId, type: 'nkp-report-import', createdAt: { $exists: true } };
         if (gridOperatorId) selector.gridOperatorId = gridOperatorId;
         if (nkpId) selector.nkpId = nkpId;
 

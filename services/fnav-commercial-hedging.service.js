@@ -101,6 +101,7 @@ module.exports = {
 
   async started() {
     await this.db.createIndex({ index: { fields: ['tenantId'] } });
+    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
     await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
     await this.db.createIndex({ index: { fields: ['createdAt'] } });
     await this.db.createIndex({ index: { fields: ['type'] } });
@@ -344,7 +345,7 @@ module.exports = {
         const tenantId = getTenantId(ctx);
         const { gridOperatorId, status, limit } = ctx.params;
 
-        const selector = { tenantId, type: 'fnav-contract' };
+        const selector = { tenantId, type: 'fnav-contract', createdAt: { $exists: true } };
         if (gridOperatorId) selector.gridOperatorId = gridOperatorId;
         if (status) selector.status = status;
 
@@ -386,7 +387,7 @@ module.exports = {
         const tenantId = getTenantId(ctx);
         const { gridOperatorId, contractId, limit } = ctx.params;
 
-        const selector = { tenantId, type: 'fnav-scenario' };
+        const selector = { tenantId, type: 'fnav-scenario', createdAt: { $exists: true } };
         if (gridOperatorId) selector.gridOperatorId = gridOperatorId;
         if (contractId) selector.contractId = contractId;
 
