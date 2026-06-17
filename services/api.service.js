@@ -432,6 +432,10 @@ function requiresFullAccess(method, requestPath) {
     if (pathOnly.endsWith('/subscribe')) return false;
     return true;
   }
+  // Domain Routes Registry management — write/lifecycle endpoints require full access
+  if (pathOnly === '/api/domain-routes/drafts' && m === 'POST') return true;
+  if (pathOnly === '/api/domain-routes/reload' && m === 'POST') return true;
+  if (/^\/api\/domain-routes\/[^/]+(\/validate|\/test|\/promote|\/rollback|\/deactivate)?$/.test(pathOnly) && m === 'POST') return true;
 
   return false;
 }
@@ -1299,6 +1303,17 @@ module.exports = {
           'POST /personal-agent/session/:sessionId/reset': 'personal-agent.resetSession',
           'GET /personal-agent/session/:sessionId/dream-status': 'personal-agent.getDreamStatus',
           'GET /personal-agent/dream-audit': 'personal-agent.getDreamAudit',
+          // Domain Routes Registry management (v0.63.x #233)
+          // NOTE: static /drafts and /reload must precede dynamic /:id routes.
+          'GET /domain-routes': 'domain-routes.list',
+          'POST /domain-routes/drafts': 'domain-routes.createDraft',
+          'POST /domain-routes/reload': 'domain-routes.reload',
+          'GET /domain-routes/:id': 'domain-routes.get',
+          'POST /domain-routes/:id/validate': 'domain-routes.validate',
+          'POST /domain-routes/:id/test': 'domain-routes.test',
+          'POST /domain-routes/:id/promote': 'domain-routes.promote',
+          'POST /domain-routes/:id/rollback': 'domain-routes.rollback',
+          'POST /domain-routes/:id/deactivate': 'domain-routes.deactivate',
           // Interface Placeholder (v0.51.0)
           'POST /interface-placeholder/mark-gap': 'interface-placeholder.markGap',
           'POST /interface-placeholder/request-evidence': 'interface-placeholder.requestEvidence',
