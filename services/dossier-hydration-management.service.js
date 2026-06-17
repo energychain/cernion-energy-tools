@@ -194,6 +194,16 @@ module.exports = {
         const { rule, testCases, version, createdBy, notes } = ctx.params;
 
         const validation = validateRule(rule);
+
+        const actionExists = await this._checkActionExists(rule?.action);
+        if (!actionExists) {
+          validation.warnings.push({
+            field: 'action',
+            message: `Action "${rule?.action}" is not currently registered in the broker. ` +
+              'Verify the service is running before relying on this rule.',
+          });
+        }
+
         const draftId = makeDraftId();
         const now = new Date().toISOString();
         const ruleId = rule.id || rule.action || 'unknown';
@@ -239,6 +249,18 @@ module.exports = {
       async handler(ctx) {
         const doc = await this._loadDraft(ctx.params.id);
         const validation = validateRule(doc.rule);
+
+        // Warn when the target action is not currently registered in the broker.
+        // Always a warning (not an error) because the service may not be deployed yet.
+        const actionExists = await this._checkActionExists(doc.rule?.action);
+        if (!actionExists) {
+          validation.warnings.push({
+            field: 'action',
+            message: `Action "${doc.rule?.action}" is not currently registered in the broker. ` +
+              'Verify the service is running before relying on this rule.',
+          });
+        }
+
         const now = new Date().toISOString();
 
         const updated = {
@@ -586,6 +608,16 @@ module.exports = {
         );
       }
       return doc;
+    },
+
+    async _checkActionExists(actionName) {
+      if (!actionName) return false;
+      try {
+        const list = this.broker.registry.getActionList({ onlyAvailable: true });
+        return list.some((a) => a.name === actionName);
+      } catch (_err) {
+        return true; // fail open — registry unavailable, don't block on this
+      }
     },
 
     async _restoreRuntimeOverlay() {

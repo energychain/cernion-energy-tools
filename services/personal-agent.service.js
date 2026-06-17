@@ -172,7 +172,10 @@ const {
   buildFollowUpMetadata,
   generateDossierId,
 } = require('../src/answer-dossier-builder'); // v0.63.0 #220
-const { getRule: getDossierHydrationRule } = require('../src/dossier-hydration-registry'); // v0.63.x #234
+const {
+  getRule: getDossierHydrationRule,
+  isSafetyRejectedAction: isDossierRuleSafetyRejected,
+} = require('../src/dossier-hydration-registry'); // v0.63.x #234
 
 const OPENAPI_TAG = 'Personal Agent';
 const SESSION_NAMESPACE = process.env.PERSONAL_AGENT_SESSION_NAMESPACE || 'personal_agent_sessions';
@@ -296,268 +299,6 @@ const COPILOT_DEFAULT_OBJECT_NAMESPACES = Object.freeze([
 ]);
 const DOSSIER_TIMEOUT_WARNING_THRESHOLD_MS = 25000; // v0.63.0 #220
 const DOSSIER_SESSION_NAMESPACE = 'dossier'; // v0.63.0 #220
-
-// Dossier hydration rules are now managed through the runtime registry.
-// See: src/dossier-hydration-registry.js and src/answer-dossier-hydration-rules.json
-// Legacy hardcoded allowlist removed in #234 — use getDossierHydrationRule(actionName) instead.
-const _LEGACY_HYDRATION_ALLOWLIST_REMOVED = {
-  'energy-market.co2Intensity': {
-    label: 'Stromnetz CO₂-Intensität / GrünstromIndex',
-    extractParams(userProvidedFacts, question) {
-      const q = String(question || '');
-      // GrünstromIndex works with city names; extract city adjacent to PLZ in "74889 Sinsheim" pattern.
-      const plzCityMatch = q.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ](?:[A-Za-zäöüßÄÖÜ\-]{0,40})?)/);
-      const cityFromPrompt = plzCityMatch?.[2]?.trim() || null;
-      const locationFact = (userProvidedFacts || []).find(
-        (f) =>
-          (f.factType === 'location' || f.factType === 'postal_code') &&
-          f.projectScope?.postalCode
-      );
-      const postalCode =
-        locationFact?.projectScope?.postalCode ||
-        plzCityMatch?.[1] ||
-        (q.match(/\b(\d{5})\b/) || [])[1];
-      const location = cityFromPrompt || postalCode;
-      return location ? { location, forecast: true } : null;
-    },
-    formatEvidence(result) {
-      if (!result || typeof result !== 'object') return null;
-      const parts = [];
-      const co2 =
-        result.co2 ??
-        result.co2_intensity_gco2eq_kwh ??
-        result.data?.co2_intensity_gco2eq_kwh;
-      const averageToday =
-        result.average_today_gco2eq_kwh ??
-        result.data?.average_today_gco2eq_kwh;
-      const location = result.data?.location || result.location;
-      if (result.index != null) parts.push(`GrünstromIndex: ${result.index}`);
-      if (co2 != null) parts.push(`CO₂-Intensität: ${co2} g/kWh`);
-      if (averageToday != null) parts.push(`Tagesmittel: ${averageToday} g/kWh`);
-      if (result.renewable != null) parts.push(`Erneuerbare: ${Math.round(Number(result.renewable) * 100)}%`);
-      if (result.label) parts.push(String(result.label).slice(0, 120));
-      if (location) parts.push(`Standort: ${String(location).slice(0, 120)}`);
-      if (!parts.length && result.value != null) parts.push(String(result.value).slice(0, 200));
-      return parts.length ? parts.join(' · ') : null;
-    },
-    evidenceQuality: 'validated',
-  },
-  'gas-storage.countryStorage': {
-    label: 'Gasspeicher Deutschland / AGSI',
-    extractParams() {
-      return { country: 'DE', includeOperators: false, includeFacilities: false };
-    },
-    formatEvidence(result) {
-      if (!result || typeof result !== 'object') return null;
-      const data = result.data || result;
-      const storage = data.storage || data;
-      const parts = [];
-      const country = data.country || result.country || storage.country;
-      const fill =
-        storage.fillPercentage ??
-        storage.gasInStoragePercentage ??
-        storage.full ??
-        data.fillLevel ??
-        data.full;
-      const gasInStorage = storage.gasInStorage ?? data.gasInStorage;
-      const workingGasVolume = storage.workingGasVolume ?? data.workingGasVolume;
-      const trend = storage.trend ?? data.trend;
-      const withdrawal = storage.withdrawal ?? data.withdrawal;
-      const coverage = storage.coverageDays ?? data.coverageDays ?? data.coverage;
-      const date = data.date || result.date || result.metadata?.timestamp;
-      if (country) parts.push(`Land: ${String(country).slice(0, 40)}`);
-      if (fill != null) parts.push(`Fuellstand: ${Number(fill).toFixed(1)}%`);
-      if (gasInStorage != null) parts.push(`Gas im Speicher: ${Number(gasInStorage).toFixed(1)} TWh`);
-      if (workingGasVolume != null) parts.push(`Arbeitsgasvolumen: ${Number(workingGasVolume).toFixed(1)} TWh`);
-      if (trend != null) parts.push(`Trend: ${String(trend).slice(0, 80)}`);
-      if (withdrawal != null) parts.push(`Entnahme: ${Number(withdrawal).toFixed(1)}`);
-      if (coverage != null) parts.push(`Abdeckung: ${Number(coverage).toFixed(1)} Tage`);
-      if (date) parts.push(`Stand: ${String(date).slice(0, 40)}`);
-      return parts.length ? parts.join(' · ') : null;
-    },
-    evidenceQuality: 'validated',
-  },
-  'gas-storage.supplySecurityCheck': {
-    label: 'Gas-Versorgungssicherheitscheck / AGSI',
-    extractParams() {
-      return { country: 'DE', winterMandateCheck: true };
-    },
-    formatEvidence(result) {
-      if (!result || typeof result !== 'object') return null;
-      const data = result.data || result;
-      const parts = [];
-      const status = data.status || data.securityStatus || data.level;
-      const fill = data.fillLevel ?? data.fillPercentage ?? data.storage?.fillPercentage;
-      const mandate = data.winterMandateStatus || data.mandateStatus || data.compliance;
-      const days = data.coverageDays ?? data.coverage;
-      const recommendation = data.recommendation || data.message;
-      if (status) parts.push(`Status: ${String(status).slice(0, 80)}`);
-      if (fill != null) parts.push(`Fuellstand: ${Number(fill).toFixed(1)}%`);
-      if (mandate) parts.push(`Mandat: ${String(mandate).slice(0, 100)}`);
-      if (days != null) parts.push(`Abdeckung: ${Number(days).toFixed(1)} Tage`);
-      if (recommendation) parts.push(`Hinweis: ${String(recommendation).slice(0, 160)}`);
-      return parts.length ? parts.join(' · ') : null;
-    },
-    evidenceQuality: 'validated',
-  },
-  'entsoe.loadForecast': {
-    label: 'ENTSO-E Lastprognose Deutschland',
-    extractParams(_userProvidedFacts, question) {
-      const range = extractDossierHydrationDateRange(question);
-      return {
-        region: 'Germany',
-        dateFrom: range.dateFrom,
-        dateTo: range.dateTo,
-        resolution: 'hourly',
-        includeStatistics: true,
-      };
-    },
-    formatEvidence(result) {
-      return formatEntsoeEvidence(result, 'Last');
-    },
-    evidenceQuality: 'validated',
-  },
-  'entsoe.windSolarForecast': {
-    label: 'ENTSO-E Wind-/Solar-Prognose Deutschland',
-    extractParams(_userProvidedFacts, question) {
-      const range = extractDossierHydrationDateRange(question);
-      return {
-        region: 'Germany',
-        dateFrom: range.dateFrom,
-        dateTo: range.dateTo,
-        forecastType: 'both',
-        includeStatistics: true,
-      };
-    },
-    formatEvidence(result) {
-      return formatEntsoeEvidence(result, 'Wind/Solar');
-    },
-    evidenceQuality: 'validated',
-  },
-  'entsoe.dayAheadPrices': {
-    label: 'ENTSO-E Day-Ahead-Preise Deutschland',
-    extractParams(_userProvidedFacts, question) {
-      const range = extractDossierHydrationDateRange(question);
-      return {
-        region: 'Germany',
-        dateFrom: range.dateFrom,
-        dateTo: range.dateTo,
-        includeStatistics: true,
-      };
-    },
-    formatEvidence(result) {
-      return formatEntsoeEvidence(result, 'Day-Ahead');
-    },
-    evidenceQuality: 'validated',
-  },
-  'energy-market.prices': {
-    label: 'Day-Ahead-Marktpreis Deutschland',
-    extractParams(_userProvidedFacts, question) {
-      const range = extractDossierHydrationDateRange(question);
-      return {
-        market: 'day-ahead',
-        region: 'Deutschland',
-        startDate: range.dateFrom,
-        endDate: range.dateTo,
-      };
-    },
-    formatEvidence(result) {
-      if (!result || typeof result !== 'object') return null;
-      const data = result.data || result;
-      const parts = [];
-      const unit = data.unit || result.unit || 'EUR/MWh';
-      // Support both data.prices (nested) and result.prices (root-level fallback)
-      const rawPriceArray = Array.isArray(data.prices) ? data.prices
-        : Array.isArray(result.prices) ? result.prices : [];
-      const priceValues = rawPriceArray
-        .map((p) => p.priceEURMWh ?? p.price ?? p.value)
-        .filter((n) => n != null && !isNaN(Number(n)))
-        .map(Number);
-      if (priceValues.length > 0) {
-        const avg = priceValues.reduce((a, b) => a + b, 0) / priceValues.length;
-        parts.push(`Mittel: ${avg.toFixed(2)} ${unit}`);
-        parts.push(`Bandbreite: ${Math.min(...priceValues).toFixed(2)}–${Math.max(...priceValues).toFixed(2)} ${unit}`);
-        parts.push(`${priceValues.length} Stunden`);
-      }
-      if (data.market) parts.push(`Markt: ${String(data.market).slice(0, 40)}`);
-      if (!parts.length) {
-        const scalar = data.average ?? data.avg ?? data.averagePrice ?? data.current ?? data.price;
-        if (scalar != null) parts.push(`Preis: ${Number(scalar).toFixed(2)} ${unit}`);
-      }
-      // Unconditional fallback: service responded but no prices were extractable
-      if (!parts.length) {
-        const marketLabel = String(data.market || result.market || 'day-ahead').slice(0, 30);
-        const regionLabel = String(data.region || result.region || 'Deutschland').slice(0, 40);
-        parts.push(`Keine Preisdaten für angefragten Zeitraum (${regionLabel}, Markt: ${marketLabel})`);
-      }
-      return parts.join(' · ');
-    },
-    evidenceQuality: 'validated',
-  },
-  'residual-load.netResidualLoad': {
-    label: 'Residuallast / Flexibilitätsfenster DSO',
-    extractParams(userProvidedFacts, question) {
-      const q = String(question || '');
-      // The service region guard requires gemeinde/landkreis/bundesland — postleitzahl alone
-      // is NOT sufficient.  Extract city name from "74889 Sinsheim" pattern in the prompt.
-      const plzCityMatch = q.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ](?:[A-Za-zäöüßÄÖÜ\-]{0,40})?)/);
-      const postalCode =
-        plzCityMatch?.[1] ||
-        (q.match(/\b(\d{5})\b/) || [])[1] ||
-        (userProvidedFacts || []).reduce(
-          (acc, f) => acc || f.projectScope?.postalCode || null,
-          null
-        );
-      const cityFromPrompt = plzCityMatch?.[2]?.trim() || null;
-      const locationFact = (userProvidedFacts || []).find(
-        (f) =>
-          (f.factType === 'location' || f.factType === 'city') &&
-          (f.value || f.projectScope?.city)
-      );
-      const gemeinde = cityFromPrompt || locationFact?.value || locationFact?.projectScope?.city || null;
-      if (gemeinde) {
-        return {
-          gemeinde,
-          ...(postalCode ? { postleitzahl: postalCode } : {}),
-          forecastDays: 1,
-          resolution: 'hourly',
-        };
-      }
-      return null; // no city/gemeinde — postleitzahl alone cannot satisfy region guard; skip
-    },
-    formatEvidence(result) {
-      if (!result || typeof result !== 'object') return null;
-      const parts = [];
-      // Actual response: result.forecast[].residualLoadMW, result.summary.kpis.{avg,peak}ResidualLoadMW
-      const summary = result.summary || {};
-      const kpis = summary.kpis || {};
-      const avgRL = kpis.avgResidualLoadMW ?? null;
-      const peakRL = kpis.peakResidualLoadMW ?? null;
-      if (avgRL != null) {
-        parts.push(`Residuallast Mittel: ${Number(avgRL).toFixed(1)} MW`);
-      } else {
-        const forecastArr = Array.isArray(result.forecast) ? result.forecast : [];
-        const vals = forecastArr
-          .map((p) => p.residualLoadMW)
-          .filter((n) => n != null && !isNaN(Number(n)))
-          .map(Number);
-        if (vals.length > 0) {
-          parts.push(`Residuallast Mittel: ${(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)} MW`);
-        }
-      }
-      if (peakRL != null) parts.push(`Peak: ${Number(peakRL).toFixed(1)} MW`);
-      if (summary.region) parts.push(`Gebiet: ${String(summary.region).slice(0, 80)}`);
-      if (summary.dataPoints) parts.push(`${summary.dataPoints} Datenpunkte`);
-      if (result.loadFallbackNote) parts.push(`Hinweis: ${String(result.loadFallbackNote).slice(0, 100)}`);
-      if (!parts.length && result.dataQualityWarning) {
-        parts.push(String(result.dataQualityMessage || 'Datenqualitäts-Warnung').slice(0, 200));
-      }
-      return parts.length ? parts.join(' · ') : null;
-    },
-    evidenceQuality: 'validated',
-    timeoutMs: 14000,
-  },
-};
 
 function toIsoDateOnly(date) {
   return date.toISOString().slice(0, 10);
@@ -2685,7 +2426,11 @@ module.exports = {
               }
                 const actionDef = getDossierHydrationRule(actionName);
                 if (!actionDef) {
-                  _hydrationResult.skippedNoRule.push(actionName);
+                  if (isDossierRuleSafetyRejected(actionName)) {
+                    _hydrationResult.skippedUnsafe.push(actionName);
+                  } else {
+                    _hydrationResult.skippedNoRule.push(actionName);
+                  }
                   return null;
                 }
                 const params = actionDef.extractParams(userProvidedFacts, question);

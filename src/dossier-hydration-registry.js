@@ -514,18 +514,23 @@ function validateRule(rule) {
   return { valid: errors.length === 0, errors, warnings };
 }
 
+// ── Safety predicate (shared by compileRule and _buildCompiledRules) ─────────
+
+function _isSafetyRejected(rule) {
+  if (!rule || !rule.action) return false;
+  return (
+    rule.safety?.readOnly !== true ||
+    rule.safety?.allowsMutation === true ||
+    rule.safety?.hitlRequired === true ||
+    isBlockedAction(rule.action)
+  );
+}
+
 // ── Compile rule ──────────────────────────────────────────────────────────────
 
 function compileRule(rawRule) {
   if (!rawRule || rawRule.enabled === false) return null;
-  // Safety gate — silently skip unsafe static rules rather than crashing
-  if (
-    rawRule.safety?.readOnly !== true ||
-    rawRule.safety?.allowsMutation === true ||
-    rawRule.safety?.hitlRequired === true
-  ) {
-    return null;
-  }
+  if (_isSafetyRejected(rawRule)) return null;
 
   try {
     const extractParams = compileParamExtractor(rawRule.paramTemplate);
@@ -550,6 +555,7 @@ function compileRule(rawRule) {
 let _staticRulesCache = null;
 const _runtimeRuleOverlay = new Map(); // action/id → raw rule
 let _compiledRulesCache = null; // action → compiled rule
+const _safetyRejectedSet = new Set(); // actions that are enabled but blocked by safety gate
 
 // ── Static rule loader ────────────────────────────────────────────────────────
 
@@ -577,8 +583,14 @@ function _buildCompiledRules() {
     merged.set(action, rule);
   }
 
+  _safetyRejectedSet.clear();
   const compiled = new Map();
   for (const [action, rule] of merged) {
+    if (!rule || rule.enabled === false) continue;
+    if (_isSafetyRejected(rule)) {
+      _safetyRejectedSet.add(action);
+      continue;
+    }
     const c = compileRule(rule);
     if (c) compiled.set(action, c);
   }
@@ -630,11 +642,17 @@ function getRuntimeRules() {
   return Array.from(_runtimeRuleOverlay.values());
 }
 
+function isSafetyRejectedAction(actionName) {
+  if (_compiledRulesCache === null) _compiledRulesCache = _buildCompiledRules();
+  return _safetyRejectedSet.has(actionName);
+}
+
 // Clears all in-memory state. Intended for test isolation only.
 function _resetRegistry() {
   _staticRulesCache = null;
   _compiledRulesCache = null;
   _runtimeRuleOverlay.clear();
+  _safetyRejectedSet.clear();
 }
 
 module.exports = {
@@ -649,6 +667,7 @@ module.exports = {
   validateRule,
   compileRule,
   isBlockedAction,
+  isSafetyRejectedAction,
   KNOWN_EXTRACTORS,
   KNOWN_FORMATTERS,
   _resetRegistry,

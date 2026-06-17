@@ -8,6 +8,7 @@ const {
   validateRule,
   compileRule,
   isBlockedAction,
+  isSafetyRejectedAction,
   getStaticRules,
   getRuntimeRules,
   getRuntimeRule,
@@ -402,6 +403,63 @@ describe('dossier-hydration-registry (unit)', () => {
     it('allows gas-storage.countryStorage', () => expect(isBlockedAction('gas-storage.countryStorage')).toBe(false));
   });
 
+  // ── compileRule safety gate includes isBlockedAction ─────────────────────
+
+  describe('compileRule blocked-action gate', () => {
+    it('rejects a rule whose action matches a blocked verb', () => {
+      const rule = makeRule({ id: 'my-svc.delete', action: 'my-svc.delete' });
+      expect(compileRule(rule)).toBeNull();
+    });
+
+    it('rejects a rule from a blocked service prefix', () => {
+      const rule = makeRule({ id: 'hitl.query', action: 'hitl.query' });
+      expect(compileRule(rule)).toBeNull();
+    });
+
+    it('accepts a safe read action through compileRule', () => {
+      const rule = makeRule();
+      expect(compileRule(rule)).not.toBeNull();
+    });
+  });
+
+  // ── isSafetyRejectedAction ────────────────────────────────────────────────
+
+  describe('isSafetyRejectedAction', () => {
+    it('returns false for an unknown action (no rule defined)', () => {
+      expect(isSafetyRejectedAction('nonexistent.xyz')).toBe(false);
+    });
+
+    it('returns false for a valid compiled rule', () => {
+      expect(isSafetyRejectedAction('energy-market.co2Intensity')).toBe(false);
+    });
+
+    it('returns true for a runtime rule with blocked action verb', () => {
+      const unsafeRule = makeRule({ id: 'foo.delete', action: 'foo.delete' });
+      setRuntimeRule('foo.delete', unsafeRule);
+      expect(isSafetyRejectedAction('foo.delete')).toBe(true);
+      removeRuntimeRule('foo.delete');
+    });
+
+    it('returns true for a runtime rule with readOnly:false', () => {
+      const unsafeRule = makeRule({
+        id: 'my-svc.getData',
+        action: 'my-svc.getData',
+        safety: { readOnly: false, allowsMutation: false, hitlRequired: false },
+      });
+      setRuntimeRule('my-svc.getData', unsafeRule);
+      expect(isSafetyRejectedAction('my-svc.getData')).toBe(true);
+      removeRuntimeRule('my-svc.getData');
+    });
+
+    it('returns false (not safety-rejected) for a disabled rule', () => {
+      const disabledRule = makeRule({ id: 'disabled.action', action: 'disabled.action', enabled: false });
+      setRuntimeRule('disabled.action', disabledRule);
+      // disabled rules are not compiled but also not "safety-rejected"
+      expect(isSafetyRejectedAction('disabled.action')).toBe(false);
+      removeRuntimeRule('disabled.action');
+    });
+  });
+
   // ── Runtime overlay ───────────────────────────────────────────────────────
 
   describe('runtime overlay', () => {
@@ -705,6 +763,52 @@ describe('dossier-hydration-management.service', () => {
         safety: { readOnly: true, allowsMutation: false, hitlRequired: true },
       });
       expect(compileRule(rule)).toBeNull();
+    });
+
+    it('compileRule returns null for blocked action verb (regression: was only checking safety flags)', () => {
+      const rule = makeRule({ id: 'legit-svc.delete', action: 'legit-svc.delete' });
+      expect(compileRule(rule)).toBeNull();
+    });
+
+    it('compileRule returns null for blocked service prefix (regression)', () => {
+      const rule = makeRule({ id: 'hitl.query', action: 'hitl.query' });
+      expect(compileRule(rule)).toBeNull();
+    });
+  });
+
+  // ── Known action validation (action-exists warning) ────────────────────────
+
+  describe('known action validation', () => {
+    it('createDraft adds a warning when action is not registered in the broker', async () => {
+      const rule = makeRule({
+        id: 'unregistered.service.getData',
+        action: 'unregistered.service.getData',
+        paramTemplate: { country: 'DE' },
+      });
+      const result = await broker.call('dossier-hydration.createDraft', { rule });
+      expect(result.validationWarnings.some((w) => w.field === 'action')).toBe(true);
+      expect(result.validationWarnings.some((w) => w.message.includes('not currently registered'))).toBe(true);
+    });
+
+    it('validate adds a warning when action is not registered in the broker', async () => {
+      const rule = makeRule({
+        id: 'another.unregistered.getData',
+        action: 'another.unregistered.getData',
+        paramTemplate: { country: 'DE' },
+      });
+      const { draftId } = await broker.call('dossier-hydration.createDraft', { rule });
+      const result = await broker.call('dossier-hydration.validate', { id: draftId });
+      expect(result.validationWarnings.some((w) => w.field === 'action')).toBe(true);
+    });
+
+    it('validationStatus remains valid despite action-not-registered warning', async () => {
+      const rule = makeRule({
+        id: 'yet.another.unregistered.getData',
+        action: 'yet.another.unregistered.getData',
+        paramTemplate: { country: 'DE' },
+      });
+      const result = await broker.call('dossier-hydration.createDraft', { rule });
+      expect(result.validationStatus).toBe('valid');
     });
   });
 });
