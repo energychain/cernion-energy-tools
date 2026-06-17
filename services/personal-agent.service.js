@@ -172,6 +172,7 @@ const {
   buildFollowUpMetadata,
   generateDossierId,
 } = require('../src/answer-dossier-builder'); // v0.63.0 #220
+const { getRule: getDossierHydrationRule } = require('../src/dossier-hydration-registry'); // v0.63.x #234
 
 const OPENAPI_TAG = 'Personal Agent';
 const SESSION_NAMESPACE = process.env.PERSONAL_AGENT_SESSION_NAMESPACE || 'personal_agent_sessions';
@@ -296,10 +297,10 @@ const COPILOT_DEFAULT_OBJECT_NAMESPACES = Object.freeze([
 const DOSSIER_TIMEOUT_WARNING_THRESHOLD_MS = 25000; // v0.63.0 #220
 const DOSSIER_SESSION_NAMESPACE = 'dossier'; // v0.63.0 #220
 
-// Allowlist of read-only, non-consequential, non-HITL service actions safe for dossier hydration.
-// Each entry provides param extraction from session facts + question, and output → evidence formatting.
-// Only actions explicitly registered here may be called during hydration.
-const DOSSIER_HYDRATION_ALLOWLIST = {
+// Dossier hydration rules are now managed through the runtime registry.
+// See: src/dossier-hydration-registry.js and src/answer-dossier-hydration-rules.json
+// Legacy hardcoded allowlist removed in #234 — use getDossierHydrationRule(actionName) instead.
+const _LEGACY_HYDRATION_ALLOWLIST_REMOVED = {
   'energy-market.co2Intensity': {
     label: 'Stromnetz CO₂-Intensität / GrünstromIndex',
     extractParams(userProvidedFacts, question) {
@@ -2648,6 +2649,7 @@ module.exports = {
         const _hydrationResult = {
           attempted: [], succeeded: [], failed: [], failedDetails: [],
           timedOut: [], nullFormatted: [], evidenceAdded: 0,
+          skippedNoRule: [], skippedMissingParams: [], skippedUnsafe: [],
         };
 
         if (
@@ -2668,7 +2670,7 @@ module.exports = {
             ...(Array.isArray(capabilityRouting.result.fallbackActions) ? capabilityRouting.result.fallbackActions : []),
             ...brokerPlanActions,
             ...brokerCapabilityActions,
-          ].filter((a, i, arr) => arr.indexOf(a) === i && DOSSIER_HYDRATION_ALLOWLIST[a]);
+          ].filter((a, i, arr) => arr.indexOf(a) === i);
 
           if (brokerCandidateActions.length > 0) {
             const hydrationStartMs = Date.now();
@@ -2681,9 +2683,16 @@ module.exports = {
                 _hydrationResult.timedOut.push(actionName);
                 return null;
               }
-                const actionDef = DOSSIER_HYDRATION_ALLOWLIST[actionName];
+                const actionDef = getDossierHydrationRule(actionName);
+                if (!actionDef) {
+                  _hydrationResult.skippedNoRule.push(actionName);
+                  return null;
+                }
                 const params = actionDef.extractParams(userProvidedFacts, question);
-                if (!params) return null;
+                if (!params) {
+                  _hydrationResult.skippedMissingParams.push(actionName);
+                  return null;
+                }
                 _hydrationResult.attempted.push(actionName);
                 const _hydrationCallStart = Date.now();
                 try {
@@ -2712,6 +2721,8 @@ module.exports = {
                       evidenceQuality: actionDef.evidenceQuality,
                       hydratedBy: actionName,
                       hydratedElapsedMs: Date.now() - _hydrationCallStart,
+                      ruleId: actionDef.id,
+                      ruleVersion: actionDef.version || null,
                     },
                   };
                 } catch (_hydrationErr) {
@@ -2902,6 +2913,9 @@ module.exports = {
               timedOut: _hydrationResult.timedOut,
               nullFormatted: _hydrationResult.nullFormatted,
               evidenceAdded: _hydrationResult.evidenceAdded,
+              skippedNoRule: _hydrationResult.skippedNoRule,
+              skippedMissingParams: _hydrationResult.skippedMissingParams,
+              skippedUnsafe: _hydrationResult.skippedUnsafe,
             },
           },
         };

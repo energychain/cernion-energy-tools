@@ -432,6 +432,10 @@ function requiresFullAccess(method, requestPath) {
     if (pathOnly.endsWith('/subscribe')) return false;
     return true;
   }
+  // Dossier Hydration Registry management — write/lifecycle endpoints require full access
+  if (pathOnly === '/api/dossier-hydration/drafts' && m === 'POST') return true;
+  if (pathOnly === '/api/dossier-hydration/reload' && m === 'POST') return true;
+  if (/^\/api\/dossier-hydration\/[^/]+(\/validate|\/test|\/promote|\/rollback|\/deactivate)?$/.test(pathOnly) && m === 'POST') return true;
   // Domain Routes Registry management — write/lifecycle endpoints require full access
   if (pathOnly === '/api/domain-routes/drafts' && m === 'POST') return true;
   if (pathOnly === '/api/domain-routes/reload' && m === 'POST') return true;
@@ -1303,6 +1307,17 @@ module.exports = {
           'POST /personal-agent/session/:sessionId/reset': 'personal-agent.resetSession',
           'GET /personal-agent/session/:sessionId/dream-status': 'personal-agent.getDreamStatus',
           'GET /personal-agent/dream-audit': 'personal-agent.getDreamAudit',
+          // Dossier Hydration Registry management (v0.63.x #234)
+          // NOTE: static /drafts and /reload must precede dynamic /:id routes.
+          'GET /dossier-hydration': 'dossier-hydration.list',
+          'POST /dossier-hydration/drafts': 'dossier-hydration.createDraft',
+          'POST /dossier-hydration/reload': 'dossier-hydration.reload',
+          'GET /dossier-hydration/:id': 'dossier-hydration.get',
+          'POST /dossier-hydration/:id/validate': 'dossier-hydration.validate',
+          'POST /dossier-hydration/:id/test': 'dossier-hydration.test',
+          'POST /dossier-hydration/:id/promote': 'dossier-hydration.promote',
+          'POST /dossier-hydration/:id/rollback': 'dossier-hydration.rollback',
+          'POST /dossier-hydration/:id/deactivate': 'dossier-hydration.deactivate',
           // Domain Routes Registry management (v0.63.x #233)
           // NOTE: static /drafts and /reload must precede dynamic /:id routes.
           'GET /domain-routes': 'domain-routes.list',

@@ -1,0 +1,262 @@
+[
+  {
+    "id": "energy-market.co2Intensity",
+    "action": "energy-market.co2Intensity",
+    "label": "Stromnetz CO2-Intensitaet / GruenstromIndex",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "location": { "extractor": "locationFromPromptOrFacts", "required": true },
+      "forecast": true
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["index"], "label": "GruenstromIndex" },
+        { "paths": ["co2", "co2_intensity_gco2eq_kwh", "data.co2_intensity_gco2eq_kwh"], "label": "CO2-Intensitaet", "suffix": "g/kWh" },
+        { "paths": ["average_today_gco2eq_kwh", "data.average_today_gco2eq_kwh"], "label": "Tagesmittel", "suffix": "g/kWh" },
+        { "paths": ["renewable"], "label": "Erneuerbare", "format": "percent" },
+        { "paths": ["label"], "label": null, "maxLen": 120 },
+        { "paths": ["data.location", "location"], "label": "Standort", "maxLen": 120 }
+      ],
+      "fallbackPaths": ["value", "data.value"]
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 234
+  },
+  {
+    "id": "gas-storage.countryStorage",
+    "action": "gas-storage.countryStorage",
+    "label": "Gasspeicher Deutschland / AGSI",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "country": "DE",
+      "includeOperators": false,
+      "includeFacilities": false
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["data.country", "storage.country", "country"], "label": "Land", "maxLen": 40 },
+        { "paths": ["data.storage.fillPercentage", "data.storage.gasInStoragePercentage", "data.storage.full", "data.fillLevel", "data.full", "storage.fillPercentage", "storage.full"], "label": "Fuellstand", "suffix": "%", "precision": 1 },
+        { "paths": ["data.storage.gasInStorage", "data.gasInStorage", "storage.gasInStorage"], "label": "Gas im Speicher", "suffix": "TWh", "precision": 1 },
+        { "paths": ["data.storage.workingGasVolume", "data.workingGasVolume", "storage.workingGasVolume"], "label": "Arbeitsgasvolumen", "suffix": "TWh", "precision": 1 },
+        { "paths": ["data.storage.trend", "data.trend", "storage.trend"], "label": "Trend", "maxLen": 80 },
+        { "paths": ["data.storage.withdrawal", "data.withdrawal", "storage.withdrawal"], "label": "Entnahme", "precision": 1 },
+        { "paths": ["data.storage.coverageDays", "data.coverageDays", "data.coverage", "storage.coverageDays"], "label": "Abdeckung", "suffix": "Tage", "precision": 1 },
+        { "paths": ["data.date", "date", "metadata.timestamp"], "label": "Stand", "maxLen": 40 }
+      ]
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 234
+  },
+  {
+    "id": "gas-storage.supplySecurityCheck",
+    "action": "gas-storage.supplySecurityCheck",
+    "label": "Gas-Versorgungssicherheitscheck / AGSI",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "country": "DE",
+      "winterMandateCheck": true
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["data.status", "data.securityStatus", "data.level", "status", "securityStatus"], "label": "Status", "maxLen": 80 },
+        { "paths": ["data.fillLevel", "data.fillPercentage", "data.storage.fillPercentage", "fillLevel", "fillPercentage"], "label": "Fuellstand", "suffix": "%", "precision": 1 },
+        { "paths": ["data.winterMandateStatus", "data.mandateStatus", "data.compliance", "winterMandateStatus", "mandateStatus"], "label": "Mandat", "maxLen": 100 },
+        { "paths": ["data.coverageDays", "data.coverage", "coverageDays", "coverage"], "label": "Abdeckung", "suffix": "Tage", "precision": 1 },
+        { "paths": ["data.recommendation", "data.message", "recommendation", "message"], "label": "Hinweis", "maxLen": 160 }
+      ]
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 234
+  },
+  {
+    "id": "entsoe.loadForecast",
+    "action": "entsoe.loadForecast",
+    "label": "ENTSO-E Lastprognose Deutschland",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "_dateRange": { "extractor": "dateRangeFromPrompt", "spread": true },
+      "region": "Germany",
+      "resolution": "hourly",
+      "includeStatistics": true
+    },
+    "formatter": {
+      "type": "timeseriesStats",
+      "label": "Last",
+      "dataPaths": ["data.dataPoints", "dataPoints", "data.forecasts", "forecasts", "data.loadForecast", "loadForecast"],
+      "statsPaths": ["data.statistics", "statistics"],
+      "regionPaths": ["data.region", "region"],
+      "eicPaths": ["data.eicCode", "eicCode"],
+      "sourcePaths": ["data.metadata.source", "metadata.source"]
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 234
+  },
+  {
+    "id": "entsoe.windSolarForecast",
+    "action": "entsoe.windSolarForecast",
+    "label": "ENTSO-E Wind-/Solar-Prognose Deutschland",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "_dateRange": { "extractor": "dateRangeFromPrompt", "spread": true },
+      "region": "Germany",
+      "forecastType": "both",
+      "includeStatistics": true
+    },
+    "formatter": {
+      "type": "timeseriesStats",
+      "label": "Wind/Solar",
+      "dataPaths": ["data.dataPoints", "dataPoints", "data.forecasts", "forecasts"],
+      "statsPaths": ["data.statistics", "statistics"],
+      "regionPaths": ["data.region", "region"],
+      "eicPaths": ["data.eicCode", "eicCode"],
+      "sourcePaths": ["data.metadata.source", "metadata.source"]
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 234
+  },
+  {
+    "id": "entsoe.dayAheadPrices",
+    "action": "entsoe.dayAheadPrices",
+    "label": "ENTSO-E Day-Ahead-Preise Deutschland",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "_dateRange": { "extractor": "dateRangeFromPrompt", "spread": true },
+      "region": "Germany",
+      "includeStatistics": true
+    },
+    "formatter": {
+      "type": "timeseriesStats",
+      "label": "Day-Ahead",
+      "dataPaths": ["data.dataPoints", "dataPoints", "data.prices", "prices"],
+      "statsPaths": ["data.statistics", "statistics"],
+      "regionPaths": ["data.region", "region"],
+      "eicPaths": ["data.eicCode", "eicCode"],
+      "sourcePaths": ["data.metadata.source", "metadata.source"]
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 234
+  },
+  {
+    "id": "energy-market.prices",
+    "action": "energy-market.prices",
+    "label": "Day-Ahead-Marktpreis Deutschland",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "_dateRange": {
+        "extractor": "dateRangeFromPrompt",
+        "spread": true,
+        "config": { "keyMap": { "dateFrom": "startDate", "dateTo": "endDate" } }
+      },
+      "market": "day-ahead",
+      "region": "Deutschland"
+    },
+    "formatter": {
+      "type": "priceArrayStats",
+      "priceArrayPaths": ["data.prices", "prices"],
+      "priceValueFields": ["priceEURMWh", "price", "value"],
+      "unitPaths": ["data.unit", "unit"],
+      "marketPaths": ["data.market", "market"],
+      "regionPaths": ["data.region", "region"],
+      "scalarPaths": ["data.average", "data.avg", "data.averagePrice", "data.current", "data.price"]
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 234
+  },
+  {
+    "id": "residual-load.netResidualLoad",
+    "action": "residual-load.netResidualLoad",
+    "label": "Residuallast / Flexibilitaetsfenster DSO",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "gemeinde": { "extractor": "cityFromPromptOrFacts", "required": true },
+      "postleitzahl": { "extractor": "postalCodeFromPromptOrFacts", "required": false },
+      "forecastDays": 1,
+      "resolution": "hourly"
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["summary.kpis.avgResidualLoadMW"], "label": "Residuallast Mittel", "suffix": "MW", "precision": 1 },
+        { "paths": ["summary.kpis.peakResidualLoadMW"], "label": "Peak", "suffix": "MW", "precision": 1 },
+        { "paths": ["summary.region"], "label": "Gebiet", "maxLen": 80 },
+        { "paths": ["summary.dataPoints"], "label": null, "suffix": "Datenpunkte" },
+        { "paths": ["loadFallbackNote"], "label": "Hinweis", "maxLen": 100 }
+      ],
+      "arrayFallback": {
+        "arrayPath": "forecast",
+        "itemValuePath": "residualLoadMW",
+        "stat": "avg",
+        "label": "Residuallast Mittel",
+        "suffix": "MW",
+        "precision": 1,
+        "condition": "firstFieldNull"
+      },
+      "errorFallback": {
+        "paths": ["dataQualityMessage"],
+        "condition": "allFieldsNull",
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 14000,
+    "sourceIssue": 234
+  }
+]
