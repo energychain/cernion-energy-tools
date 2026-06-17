@@ -1636,6 +1636,119 @@ const CURATED_CAPABILITIES = [
     ],
     routingPattern: 'redispatch_special_case_gate',
   },
+
+  // ── Domain Routes Registry gap-marker capabilities (answer-dossier-domain-routes.json) ──
+  // These are declared-gap capabilities with no live implementation yet.
+  // Routing is driven by the declarative registry; the catalog entry provides
+  // the recommended plan (interface-placeholder.markGap) and metadata.
+
+  {
+    capability: 'edm_metering_concept_evidence',
+    domain: 'edm',
+    abstractionLevel: 'domain_gap_marker',
+    intent: 'edm_metering_concept_evidence',
+    keywords: ['mk40', 'mscons', 'messkonzept', 'edm metering', 'metering concept', 'edm plausibilisierung'],
+    preferredActions: ['interface-placeholder.markGap', 'interface-placeholder.requestEvidence'],
+    fallbackActions: ['interface-placeholder.markGap'],
+    avoid: ['query.ask', 'query.askLearned', 'vdmi.dossier'],
+    requiredInputs: [],
+    risksAndNotes: [
+      'MSCONS/MK40 Messkonzept-Evidence nicht über VDMI-Asset-Validierungspfad ableiten.',
+    ],
+    routingPattern: 'edm_metering_concept_evidence',
+  },
+  {
+    capability: 'flex_forecast_bess_grid_operations_advisory',
+    domain: 'forecast',
+    abstractionLevel: 'domain_gap_marker',
+    intent: 'flex_forecast_bess_grid_operations_advisory',
+    keywords: ['bess', 'flexibilitätsprognose', 'flex forecast', 'battery energy storage', 'bess grid'],
+    preferredActions: ['interface-placeholder.markGap', 'interface-placeholder.requestEvidence'],
+    fallbackActions: ['interface-placeholder.markGap'],
+    avoid: ['query.ask', 'query.askLearned', 'vdmi.dossier'],
+    requiredInputs: [],
+    risksAndNotes: [
+      'BESS/Flex-Forecast ist kein VDMI-Asset-Validierungskontext.',
+      'Keine Schaltanweisung oder MW-Zusage ohne belastbare Forecast-Evidence.',
+    ],
+    routingPattern: 'flex_forecast_bess_grid_operations_advisory',
+  },
+  {
+    capability: 'finance_nkp_capex_reinvest_governance',
+    domain: 'finance',
+    abstractionLevel: 'domain_gap_marker',
+    intent: 'finance_nkp_capex_reinvest_governance',
+    keywords: ['nkp', 'netzkostenpauschale', 'capex', 'reinvestitionsplanung', 'regulatorische kapitalkosten'],
+    preferredActions: ['interface-placeholder.markGap', 'interface-placeholder.requestEvidence'],
+    fallbackActions: ['interface-placeholder.markGap'],
+    avoid: ['query.ask', 'query.askLearned', 'vdmi.dossier'],
+    requiredInputs: [],
+    risksAndNotes: [
+      'NKP/CAPEX-Governance nicht über VDMI-Asset-Validierungs- oder Netzanschluss-Pfade ableiten.',
+    ],
+    routingPattern: 'finance_nkp_capex_reinvest_governance',
+  },
+  {
+    capability: 'bilanzkreis_slp_edm_operations',
+    domain: 'edm',
+    abstractionLevel: 'domain_gap_marker',
+    intent: 'bilanzkreis_slp_edm_operations',
+    keywords: ['bilanzkreis', 'bilanzgruppe', 'slp', 'standardlastprofil', 'fahrplanabgleich', 'bilanzkreisausgleich'],
+    preferredActions: ['interface-placeholder.markGap', 'interface-placeholder.requestEvidence'],
+    fallbackActions: ['interface-placeholder.markGap'],
+    avoid: ['query.ask', 'query.askLearned', 'vdmi.dossier'],
+    requiredInputs: [],
+    risksAndNotes: [
+      'Bilanzkreis-/SLP-Abweichungen nicht über VDMI-Governance-Pfade ableiten.',
+    ],
+    routingPattern: 'bilanzkreis_slp_edm_operations',
+  },
+  {
+    capability: 'connection_rejection_fnav_14a_evidence',
+    domain: 'grid-operations',
+    abstractionLevel: 'domain_gap_marker',
+    intent: 'connection_rejection_fnav_14a_evidence',
+    keywords: ['§14a', '14a enwg', 'anschlussablehnung', 'steuerbare verbrauchseinrichtung', 'connection rejection'],
+    preferredActions: ['interface-placeholder.markGap', 'interface-placeholder.requestEvidence'],
+    fallbackActions: ['interface-placeholder.markGap'],
+    avoid: ['query.ask', 'query.askLearned', 'vdmi.dossier'],
+    requiredInputs: [],
+    risksAndNotes: [
+      '§14a-Anschlussablehnung ist kein §17-EnWG-Netzanschlussbegehren-Kontext.',
+      'Evidence für Widerspruch muss technisch und regulatorisch getrennt dokumentiert werden.',
+    ],
+    routingPattern: 'connection_rejection_fnav_14a_evidence',
+  },
+  {
+    capability: 'gasnetz_waermeplanung_assessment',
+    domain: 'gas',
+    abstractionLevel: 'domain_gap_marker',
+    intent: 'gasnetz_waermeplanung_assessment',
+    keywords: ['wärmeplanung', 'waermeplanung', 'gasnetz', 'kommunale wärmeplanung', 'gasinfrastruktur transformation'],
+    preferredActions: ['interface-placeholder.markGap', 'interface-placeholder.requestEvidence'],
+    fallbackActions: ['interface-placeholder.markGap'],
+    avoid: ['query.ask', 'query.askLearned', 'vdmi.dossier'],
+    requiredInputs: [],
+    risksAndNotes: [
+      'Kommunale Wärmeplanung / Gasnetz-Transformation nicht über VDMI-Asset-Validierungspfade ableiten.',
+    ],
+    routingPattern: 'gasnetz_waermeplanung_assessment',
+  },
+  {
+    capability: 'eeg_clawback_ewk_monitoring',
+    domain: 'regulatory',
+    abstractionLevel: 'domain_gap_marker',
+    intent: 'eeg_clawback_ewk_monitoring',
+    keywords: ['eeg clawback', 'eeg-clawback', 'clawback', 'ewk monitoring', 'eeg rückforderung', 'eeg rueckforderung'],
+    preferredActions: ['interface-placeholder.markGap', 'interface-placeholder.requestEvidence'],
+    fallbackActions: ['interface-placeholder.markGap'],
+    avoid: ['query.ask', 'query.askLearned', 'vdmi.dossier'],
+    requiredInputs: [],
+    risksAndNotes: [
+      'EEG-Clawback-Monitoring und EWK-Bewertung nicht über VDMI-Governance-Pfade ableiten.',
+    ],
+    routingPattern: 'eeg_clawback_ewk_monitoring',
+  },
 ];
 
 const GLOBAL_DO_NOT_USE = [

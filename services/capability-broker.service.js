@@ -6,6 +6,14 @@ const {
 } = require('../src/capability-catalog');
 const { buildServiceCatalogue } = require('../src/agent-planning-utils');
 
+const _DOMAIN_ROUTES_RAW = require('../src/answer-dossier-domain-routes.json');
+const DOMAIN_ROUTES = _DOMAIN_ROUTES_RAW.map((route) => ({
+  ...route,
+  _compiledCombos: (route.combos || []).map((combo) => ({
+    all: combo.all.map((pattern) => new RegExp(pattern, 'i')),
+  })),
+}));
+
 const MODES = new Set(['initial', 'next_step', 'repair', 'compare']);
 
 function normalizeRequestSchemaVersion(schemaVersion, warnings) {
@@ -373,6 +381,23 @@ function findBestCapability(taskText, options = {}) {
     const residualLoadCap = findCapabilityByName('residual_load_forecast_for_dso');
     if (residualLoadCap) {
       return { capability: residualLoadCap, score: 122, usedFallback: false };
+    }
+  }
+
+  // ── Declarative domain routes registry (score 121, before VDMI asset-validation at 120)
+  // New non-VDMI domains are added to src/answer-dossier-domain-routes.json without
+  // touching service code. Each entry fires when any trigger phrase matches OR any
+  // combo (all-AND regex group) matches.
+  for (const route of DOMAIN_ROUTES) {
+    const triggerMatch = (route.triggers || []).some((t) => haystack.includes(t));
+    const comboMatch = route._compiledCombos.some((combo) =>
+      combo.all.every((rx) => rx.test(haystack))
+    );
+    if (triggerMatch || comboMatch) {
+      const domainCap = findCapabilityByName(route.capability);
+      if (domainCap) {
+        return { capability: domainCap, score: route.score || 121, usedFallback: false };
+      }
     }
   }
 

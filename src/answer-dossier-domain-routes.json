@@ -1,0 +1,70 @@
+[
+  {
+    "id": "edm_metering_concept_evidence",
+    "label": "EDM Messkonzept / MSCONS Evidence",
+    "capability": "edm_metering_concept_evidence",
+    "triggers": ["mk40", "mscons messkonzept", "messkonzept mk", "edm messkonzept"],
+    "combos": [
+      { "all": ["mscons", "messkonzept|metering.?concept|mk40|mk 4"] }
+    ],
+    "score": 121
+  },
+  {
+    "id": "flex_forecast_bess_grid_operations_advisory",
+    "label": "Flex / Forecast / BESS Grid Operations Advisory",
+    "capability": "flex_forecast_bess_grid_operations_advisory",
+    "triggers": ["flex forecast bess", "bess flex forecast", "bess prognose", "bess forecast", "flexibilitätsprognose bess", "flexibilitaetsprognose bess"],
+    "combos": [
+      { "all": ["bess", "flex|prognose|forecast|advisory"] }
+    ],
+    "score": 121
+  },
+  {
+    "id": "finance_nkp_capex_reinvest_governance",
+    "label": "Finance NKP / CAPEX Reinvestitionsplanung Regulatory",
+    "capability": "finance_nkp_capex_reinvest_governance",
+    "triggers": ["nkp", "netzkostenpauschale", "netzkosten-pauschale"],
+    "combos": [
+      { "all": ["capex", "regulat|nkp|netzkostenpauschale|reinvest"] },
+      { "all": ["reinvest", "regulat|netzentgelt|kapitalkosten"] }
+    ],
+    "score": 121
+  },
+  {
+    "id": "bilanzkreis_slp_edm_operations",
+    "label": "Bilanzkreis / SLP / EDM Operations",
+    "capability": "bilanzkreis_slp_edm_operations",
+    "triggers": ["bilanzkreis", "bilanzgruppe", "fahrplanabgleich"],
+    "combos": [],
+    "score": 121
+  },
+  {
+    "id": "connection_rejection_fnav_14a_evidence",
+    "label": "§14a EnWG Anschlussablehnung / Connection Rejection Evidence",
+    "capability": "connection_rejection_fnav_14a_evidence",
+    "triggers": ["§14a", "14a enwg", "anschlussablehnung", "steuerbare verbrauchseinrichtung", "ablehnungsbescheid netzanschluss"],
+    "combos": [],
+    "score": 121
+  },
+  {
+    "id": "gasnetz_waermeplanung_assessment",
+    "label": "Gasnetz / Kommunale Wärmeplanung Assessment",
+    "capability": "gasnetz_waermeplanung_assessment",
+    "triggers": ["wärmeplanung", "waermeplanung", "kommunale wärme", "kommunale waerme"],
+    "combos": [
+      { "all": ["gasnetz|gasinfrastruktur|gasversorgung", "wärme|waerme|transform|kommunal"] }
+    ],
+    "score": 121
+  },
+  {
+    "id": "eeg_clawback_ewk_monitoring",
+    "label": "EEG Clawback / EWK Monitoring",
+    "capability": "eeg_clawback_ewk_monitoring",
+    "triggers": ["eeg clawback", "eeg-clawback", "clawback eeg", "eeg rückforderung", "eeg rueckforderung", "eeg-rückforderung"],
+    "combos": [
+      { "all": ["ewk", "monitoring|clawback|rückforderung|rueckforderung|eeg"] },
+      { "all": ["eeg", "clawback|rückforderung|rueckforderung|überzahlung"] }
+    ],
+    "score": 121
+  }
+]

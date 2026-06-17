@@ -579,4 +579,101 @@ describe('Capability Broker Service', () => {
 
     expect(result.recommendedCapabilities[0].capability).toBe('vdmi_asset_validation_governance');
   });
+
+  // ── Issue #232 — VDMI positive controls and non-VDMI domain route regression tests ──
+
+  it('control-vdmi-asset-project-evidence: multi-role asset-validation Evidence dossier still routes to vdmi_asset_validation_governance', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle ein VDMI Evidence-Governance-Dossier fuer die Asset-Validierung eines Netzanschlussprojekts: Mehrere Rollen muessen Evidence beisteuern, Nachweise pruefen und Risikofaktoren sowie verbotene Annahmen dokumentieren. Keine Freigabe ohne vollstaendige Evidenz-Matrix.',
+    });
+
+    expect(result.capability).toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).toBe('vdmi_asset_validation_governance');
+  });
+
+  it('control-vdmi-ad-hoc-responsibility: ad-hoc Stadtwerk asset-evidence responsibility dossier still routes to vdmi_asset_validation_governance', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Mehrere Rollen im Stadtwerk muessen fuer die Entscheidung Evidence und Nachweise beisteuern. Wer ist zustaendig fuer die Asset-Validierung und welche Belege und Risikofaktoren muss jede Rolle dokumentieren?',
+    });
+
+    expect(result.capability).toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).toBe('vdmi_asset_validation_governance');
+  });
+
+  it('edm-metering-mk40: MSCONS/MK40 Messkonzept Evidence dossier routes to edm_metering_concept_evidence, not VDMI', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ich bin im EDM-Team eines Stadtwerks und bearbeite einen MSCONS-Fall fuer das Messkonzept MK40. Bitte erstelle ein Answer Dossier: Welche MSCONS-Meldungen liegen vor, welche EDM-Qualitaetspruefschritte sind noch offen, und welche Evidence und Nachweise fehlen fuer die Messkonzept-Freigabe? Kein produktiver Schreibzugriff ohne Freigabe.',
+    });
+
+    expect(result.capability).toBe('edm_metering_concept_evidence');
+    expect(result.recommendedCapabilities[0].capability).toBe('edm_metering_concept_evidence');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
+  });
+
+  it('forecast-flex-bess: BESS Flex-Prognose Grid-Operations Evidence dossier routes to flex_forecast_bess_grid_operations_advisory, not VDMI', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ich bin im Grid-Operations-Team eines Verteilnetzbetreibers. Bitte erstelle ein Answer Dossier fuer die BESS-Flex-Prognose fuer morgen: Welche Forecast-Evidence liegt vor, welche Flex-Kapazitaet ist verfuegbar, und welche Nachweise fehlen fuer eine belastbare Prognose? Keine Schaltanweisung ohne Evidence.',
+    });
+
+    expect(result.capability).toBe('flex_forecast_bess_grid_operations_advisory');
+    expect(result.recommendedCapabilities[0].capability).toBe('flex_forecast_bess_grid_operations_advisory');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
+  });
+
+  it('finance-nkp-regulatory: NKP/CAPEX Reinvestitionsplanung Governance dossier routes to finance_nkp_capex_reinvest_governance, not VDMI', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ich bin im Regulierungsmanagement eines Verteilnetzbetreibers. Bitte erstelle ein Answer Dossier fuer die NKP-Kalkulation und den CAPEX-Reinvestitionsplan: Welche regulatorischen Anforderungen gelten, welche Nachweise fehlen fuer die Genehmigung, und welche Governance-Schritte sind erforderlich? Bitte trenne vorhandene Evidence, Missing Evidence und regulatorische Pruefpflichten.',
+    });
+
+    expect(result.capability).toBe('finance_nkp_capex_reinvest_governance');
+    expect(result.recommendedCapabilities[0].capability).toBe('finance_nkp_capex_reinvest_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
+  });
+
+  it('bilanzkreis-slp-edm: Bilanzkreis/SLP Fahrplanabgleich Evidence dossier routes to bilanzkreis_slp_edm_operations, not VDMI', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ich bin im Bilanzkreis-Management eines Stadtwerks. Bitte erstelle ein Answer Dossier fuer den Fahrplanabgleich unserer SLP-Kunden mit den EDM-Daten: Welche Abweichungen liegen vor, welche Evidence fehlt fuer den Bilanzkreisausgleich, und welche Freigabeschritte sind erforderlich? Kein produktiver Eingriff ohne Evidenz.',
+    });
+
+    expect(result.capability).toBe('bilanzkreis_slp_edm_operations');
+    expect(result.recommendedCapabilities[0].capability).toBe('bilanzkreis_slp_edm_operations');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
+  });
+
+  it('connection-rejection-fnav-14a: §14a EnWG Anschlussablehnung Evidence dossier routes to connection_rejection_fnav_14a_evidence, not VDMI', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Unser Stadtwerk hat eine Anschlussablehnung fuer eine steuerbare Verbrauchseinrichtung nach §14a EnWG erhalten. Bitte erstelle ein Answer Dossier: Welche Evidence liegt vor, welche Nachweise fehlen fuer den Widerspruch, und welche technischen Pruefschritte sind erforderlich? Bitte trenne Known Evidence, Missing Evidence und moegliche Widerspruchsgruende.',
+    });
+
+    expect(result.capability).toBe('connection_rejection_fnav_14a_evidence');
+    expect(result.recommendedCapabilities[0].capability).toBe('connection_rejection_fnav_14a_evidence');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
+  });
+
+  it('gasnetz-waermeplanung: Gasnetz kommunale Waermeplanung Assessment dossier routes to gasnetz_waermeplanung_assessment, not VDMI', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ich bin in der Netzplanung eines Gasnetzbetreibers. Im Rahmen der kommunalen Wärmeplanung muessen wir Gasnetz-Abschnitte fuer die Transformation evaluieren. Bitte erstelle ein Answer Dossier: Welche Evidence liegt zur Leitungslage vor, welche Nachweise fehlen fuer die Umplanung, und welche Governance-Schritte sind erforderlich?',
+    });
+
+    expect(result.capability).toBe('gasnetz_waermeplanung_assessment');
+    expect(result.recommendedCapabilities[0].capability).toBe('gasnetz_waermeplanung_assessment');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
+  });
+
+  it('eeg-clawback-ewk-monitoring: EEG-Clawback EWK-Monitoring Evidence dossier routes to eeg_clawback_ewk_monitoring, not VDMI', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ich bin im Regulierungsmanagement eines Verteilnetzbetreibers. Bitte erstelle ein Answer Dossier fuer das EEG-Clawback-Monitoring: Welche EWK-Bewertungen und Evidence liegen vor, welche Nachweise fuer eine moegliche EEG-Rueckforderung fehlen, und welche Governance-Schritte sind erforderlich?',
+    });
+
+    expect(result.capability).toBe('eeg_clawback_ewk_monitoring');
+    expect(result.recommendedCapabilities[0].capability).toBe('eeg_clawback_ewk_monitoring');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
+  });
 });
