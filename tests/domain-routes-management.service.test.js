@@ -6,7 +6,9 @@ const {
   reloadDomainRoutes,
   getStaticRoutes,
   getRuntimeRoutes,
+  getRuntimeRoute,
   findRuntimeCapability,
+  _resetRegistry,
 } = require('../src/domain-routes-registry');
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -27,18 +29,31 @@ function makeRoute(overrides = {}) {
   };
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Test Setup ────────────────────────────────────────────────────────────────
+
+const TEST_DB_PATH = `./data/domain-routes-registry-test-${Date.now()}`;
 
 function makeBroker() {
   const broker = new ServiceBroker({ logger: false });
 
-  // Minimal capability-broker mock for test runner
+  // Capability-broker mock that inspects current runtime routes so we can verify
+  // that the test endpoint temporarily installs the draft route.
   broker.createService({
     name: 'capability-broker',
     actions: {
       recommend: {
         handler(ctx) {
           const task = String(ctx.params.task || '').toLowerCase();
+
+          // Check runtime routes so temporary-install tests can pass/fail correctly
+          const runtimeIds = new Set(getRuntimeRoutes().map((r) => r.id));
+
+          if (
+            (task.includes('mk40') || task.includes('messkonzept-qualitaetspruefung')) &&
+            runtimeIds.has('draft_only_test_route')
+          ) {
+            return { capability: 'draft_only_gap_capability', score: 121 };
+          }
           if (task.includes('mk40') || task.includes('messkonzept-qualitaetspruefung')) {
             return { capability: 'edm_metering_concept_evidence', score: 121 };
           }
@@ -51,11 +66,16 @@ function makeBroker() {
     },
   });
 
-  broker.createService(DomainRoutesManagementService);
+  broker.createService({
+    ...DomainRoutesManagementService,
+    settings: {
+      ...DomainRoutesManagementService.settings,
+      dbPath: TEST_DB_PATH,
+    },
+  });
+
   return broker;
 }
-
-// ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('domain-routes-management.service', () => {
   let broker;
@@ -67,6 +87,11 @@ describe('domain-routes-management.service', () => {
 
   afterAll(async () => {
     await broker.stop();
+    _resetRegistry();
+  });
+
+  beforeEach(() => {
+    _resetRegistry();
   });
 
   // ── createDraft ─────────────────────────────────────────────────────────────
@@ -117,12 +142,26 @@ describe('domain-routes-management.service', () => {
       expect(result.validationErrors.some((e) => e.field === 'triggers')).toBe(true);
     });
 
-    it('fails validation for unsafe regex in combo', async () => {
+    it('fails validation for unsafe regex .* in combo', async () => {
       const route = makeRoute({ combos: [{ all: ['.*'] }] });
       const result = await broker.call('domain-routes.createDraft', { route });
 
       expect(result.validationStatus).toBe('invalid');
       expect(result.validationErrors.some((e) => e.field.startsWith('combos'))).toBe(true);
+    });
+
+    it('fails validation for unsafe regex .+ in combo', async () => {
+      const route = makeRoute({ combos: [{ all: ['.+'] }] });
+      const result = await broker.call('domain-routes.createDraft', { route });
+
+      expect(result.validationStatus).toBe('invalid');
+    });
+
+    it('fails validation for single-dot regex in combo', async () => {
+      const route = makeRoute({ combos: [{ all: ['.'] }] });
+      const result = await broker.call('domain-routes.createDraft', { route });
+
+      expect(result.validationStatus).toBe('invalid');
     });
 
     it('fails validation for invalid regex in combo', async () => {
@@ -156,6 +195,20 @@ describe('domain-routes-management.service', () => {
 
     it('combos-only route (no triggers) is valid', async () => {
       const route = makeRoute({ triggers: [] });
+      const result = await broker.call('domain-routes.createDraft', { route });
+
+      expect(result.validationStatus).toBe('valid');
+    });
+
+    it('accepts two-character pattern (not too broad)', async () => {
+      const route = makeRoute({ combos: [{ all: ['mk'] }] });
+      const result = await broker.call('domain-routes.createDraft', { route });
+
+      expect(result.validationStatus).toBe('valid');
+    });
+
+    it('accepts complex regex that compiles', async () => {
+      const route = makeRoute({ combos: [{ all: ['edm-(mk40|mk50)', 'netzanschluss'] }] });
       const result = await broker.call('domain-routes.createDraft', { route });
 
       expect(result.validationStatus).toBe('valid');
@@ -239,6 +292,60 @@ describe('domain-routes-management.service', () => {
       expect(result.success).toBe(false);
       expect(result.testStatus).toBe('failed');
     });
+
+    it('temporarily installs draft route so broker sees it during test run', async () => {
+      // draft_only_test_route is NOT in static routes and NOT in the registry.
+      // The mock capability-broker returns 'draft_only_gap_capability' only when
+      // 'draft_only_test_route' is present in getRuntimeRoutes() during the call.
+      const route = makeRoute({
+        id: 'draft_only_test_route',
+        capability: 'draft_only_gap_capability',
+        triggers: ['messkonzept-qualitaetspruefung'],
+        combos: [],
+      });
+      const testCases = [
+        {
+          name: 'draft-only route visible during test',
+          prompt: 'EDM Messkonzept-Qualitaetspruefung Netzanschluss',
+          expectedCapability: 'draft_only_gap_capability',
+        },
+      ];
+      const { draftId } = await broker.call('domain-routes.createDraft', { route, testCases });
+
+      // Verify route is NOT in runtime before the test call
+      expect(getRuntimeRoute('draft_only_test_route')).toBeNull();
+
+      const result = await broker.call('domain-routes.test', { id: draftId });
+
+      // Draft-only route was installed during test → test case should pass
+      expect(result.testStatus).toBe('passed');
+
+      // After test completes, route must NOT remain in the runtime overlay
+      expect(getRuntimeRoute('draft_only_test_route')).toBeNull();
+    });
+
+    it('cleans up runtime overlay even when test cases fail', async () => {
+      const route = makeRoute({
+        id: 'cleanup_on_fail_test_route',
+        capability: 'some_gap_cap',
+        triggers: ['unique-cleanup-trigger'],
+        combos: [],
+      });
+      const testCases = [
+        {
+          name: 'expected to fail',
+          prompt: 'something unrelated',
+          expectedCapability: 'this_will_not_match',
+        },
+      ];
+      const { draftId } = await broker.call('domain-routes.createDraft', { route, testCases });
+
+      const result = await broker.call('domain-routes.test', { id: draftId });
+
+      expect(result.testStatus).toBe('failed');
+      // Cleanup still happens
+      expect(getRuntimeRoute('cleanup_on_fail_test_route')).toBeNull();
+    });
   });
 
   // ── promote ─────────────────────────────────────────────────────────────────
@@ -257,7 +364,7 @@ describe('domain-routes-management.service', () => {
       expect(result.routeId).toBe('promote_test_route');
       expect(result.promotedBy).toBe('test-runner');
 
-      // Verify runtime route is now registered
+      // Runtime route is now registered
       const compiledRoutes = reloadDomainRoutes();
       const found = compiledRoutes.find((r) => r.id === 'promote_test_route');
       expect(found).toBeTruthy();
@@ -273,22 +380,49 @@ describe('domain-routes-management.service', () => {
     });
 
     it('archives previous active when re-promoting', async () => {
-      const route = makeRoute({ id: 'repromote_test_route', version: '1.0.0' });
+      const route = makeRoute({ id: 'repromote_test_route' });
       const { draftId: d1 } = await broker.call('domain-routes.createDraft', {
         route,
         version: '1.0.0',
       });
       await broker.call('domain-routes.promote', { id: d1, promotedBy: 'v1-promoter' });
 
-      const route2 = makeRoute({ id: 'repromote_test_route' });
       const { draftId: d2 } = await broker.call('domain-routes.createDraft', {
-        route: route2,
+        route: makeRoute({ id: 'repromote_test_route' }),
         version: '2.0.0',
       });
       const result = await broker.call('domain-routes.promote', { id: d2, promotedBy: 'v2-promoter' });
 
       expect(result.success).toBe(true);
       expect(result.previousVersion).toBeTruthy();
+      expect(result.data.rollbackTarget).toBeTruthy(); // rollbackTarget is set
+    });
+
+    it('re-promoting the same version still sets rollbackTarget (no archive collision)', async () => {
+      // This tests the fix for finding #1: archive ID collision.
+      const routeId = 'same_version_repromote_route';
+      const routeV1 = makeRoute({ id: routeId });
+
+      // Promote v1 twice with the same version string
+      const { draftId: d1 } = await broker.call('domain-routes.createDraft', {
+        route: routeV1,
+        version: '1.0.0',
+      });
+      await broker.call('domain-routes.promote', { id: d1, promotedBy: 'first' });
+
+      const { draftId: d2 } = await broker.call('domain-routes.createDraft', {
+        route: routeV1,
+        version: '1.0.0', // same version — used to cause archive collision
+      });
+      const result = await broker.call('domain-routes.promote', { id: d2, promotedBy: 'second' });
+
+      // Must have a rollback target despite same version
+      expect(result.success).toBe(true);
+      expect(result.data.rollbackTarget).toBeTruthy();
+
+      // Rollback must succeed
+      const rbResult = await broker.call('domain-routes.rollback', { id: routeId });
+      expect(rbResult.success).toBe(true);
     });
   });
 
@@ -298,21 +432,18 @@ describe('domain-routes-management.service', () => {
     it('restores previous version after rollback', async () => {
       const routeId = 'rollback_test_route';
 
-      // Promote v1
       const { draftId: d1 } = await broker.call('domain-routes.createDraft', {
         route: makeRoute({ id: routeId }),
         version: '1.0.0',
       });
       await broker.call('domain-routes.promote', { id: d1, promotedBy: 'v1' });
 
-      // Promote v2
       const { draftId: d2 } = await broker.call('domain-routes.createDraft', {
         route: makeRoute({ id: routeId, label: 'v2 label' }),
         version: '2.0.0',
       });
       await broker.call('domain-routes.promote', { id: d2, promotedBy: 'v2' });
 
-      // Rollback to v1
       const result = await broker.call('domain-routes.rollback', {
         id: routeId,
         rolledBackBy: 'test-rollback',
@@ -389,7 +520,6 @@ describe('domain-routes-management.service', () => {
       expect(Array.isArray(result.data)).toBe(true);
 
       const staticRoutes = getStaticRoutes();
-      // Each static route should appear
       for (const sr of staticRoutes) {
         expect(result.data.some((r) => r.id === sr.id)).toBe(true);
       }
@@ -440,7 +570,7 @@ describe('domain-routes-management.service', () => {
 
     it('retrieves a static route by id when no active override', async () => {
       const staticRoutes = getStaticRoutes();
-      if (staticRoutes.length === 0) return; // skip if no static routes
+      if (staticRoutes.length === 0) return;
 
       const staticId = staticRoutes[0].id;
       const result = await broker.call('domain-routes.get', { id: staticId });
@@ -457,38 +587,80 @@ describe('domain-routes-management.service', () => {
     });
   });
 
-  // ── validation guardrails ────────────────────────────────────────────────────
+  // ── runtime gap capability constraints ───────────────────────────────────────
 
-  describe('validation guardrails', () => {
-    it('rejects empty string trigger', async () => {
-      const route = makeRoute({ triggers: [''] });
+  describe('runtime gap capability action constraints', () => {
+    it('warns on non-placeholder preferredActions', async () => {
+      const route = makeRoute({
+        id: 'unsafe_actions_test_route',
+        preferredActions: ['vdmi.dossier', 'interface-placeholder.markGap'],
+      });
       const result = await broker.call('domain-routes.createDraft', { route });
-      // empty triggers are filtered; combos still present so valid
+
+      const hasActionWarning = result.validationWarnings.some(
+        (w) => w.field === 'preferredActions' && w.message.includes('vdmi.dossier')
+      );
+      expect(hasActionWarning).toBe(true);
+      // Should still be valid (warning, not error)
       expect(result.validationStatus).toBe('valid');
     });
 
-    it('rejects .+ unsafe regex pattern', async () => {
-      const route = makeRoute({ combos: [{ all: ['.+'] }] });
+    it('warns on non-placeholder fallbackActions', async () => {
+      const route = makeRoute({
+        id: 'unsafe_fallback_test_route',
+        fallbackActions: ['query.ask'],
+      });
       const result = await broker.call('domain-routes.createDraft', { route });
-      expect(result.validationStatus).toBe('invalid');
+
+      const hasActionWarning = result.validationWarnings.some(
+        (w) => w.field === 'fallbackActions'
+      );
+      expect(hasActionWarning).toBe(true);
     });
 
-    it('rejects single-dot unsafe regex pattern', async () => {
-      const route = makeRoute({ combos: [{ all: ['.'] }] });
-      const result = await broker.call('domain-routes.createDraft', { route });
-      expect(result.validationStatus).toBe('invalid');
+    it('buildGapMarkerCapability drops non-placeholder actions and uses safe fallback', async () => {
+      const routeId = 'gap_cap_action_filter_route';
+      const route = makeRoute({
+        id: routeId,
+        capability: 'gap_cap_action_filter_capability',
+        // This non-placeholder action must be dropped by buildGapMarkerCapability
+        preferredActions: ['vdmi.dossier', 'query.ask'],
+        fallbackActions: ['interface-placeholder.requestEvidence'],
+      });
+
+      const { draftId } = await broker.call('domain-routes.createDraft', { route });
+      await broker.call('domain-routes.promote', { id: draftId });
+
+      // Runtime capability should have been materialized (capability not in static catalog)
+      const runtimeCap = findRuntimeCapability('gap_cap_action_filter_capability');
+      expect(runtimeCap).toBeTruthy();
+
+      // Non-placeholder actions must have been dropped → fallback to safe default
+      expect(
+        runtimeCap.preferredActions.every((a) => a.startsWith('interface-placeholder.'))
+      ).toBe(true);
+
+      // fallbackActions kept the one safe entry
+      expect(runtimeCap.fallbackActions).toEqual(['interface-placeholder.requestEvidence']);
     });
 
-    it('accepts two-character pattern (not too broad)', async () => {
-      const route = makeRoute({ combos: [{ all: ['mk'] }] });
-      const result = await broker.call('domain-routes.createDraft', { route });
-      expect(result.validationStatus).toBe('valid');
-    });
+    it('buildGapMarkerCapability keeps all-placeholder preferredActions unchanged', async () => {
+      const routeId = 'gap_cap_safe_actions_route';
+      const route = makeRoute({
+        id: routeId,
+        capability: 'gap_cap_safe_actions_capability',
+        preferredActions: ['interface-placeholder.markGap', 'interface-placeholder.requestEvidence'],
+      });
 
-    it('accepts complex regex that compiles', async () => {
-      const route = makeRoute({ combos: [{ all: ['edm-(mk40|mk50)', 'netzanschluss'] }] });
-      const result = await broker.call('domain-routes.createDraft', { route });
-      expect(result.validationStatus).toBe('valid');
+      const { draftId } = await broker.call('domain-routes.createDraft', { route });
+      await broker.call('domain-routes.promote', { id: draftId });
+
+      const runtimeCap = findRuntimeCapability('gap_cap_safe_actions_capability');
+      expect(runtimeCap).toBeTruthy();
+      expect(runtimeCap.preferredActions).toEqual([
+        'interface-placeholder.markGap',
+        'interface-placeholder.requestEvidence',
+      ]);
     });
   });
 
@@ -523,7 +695,6 @@ describe('domain-routes-management.service', () => {
     it('createDraft → validate → test → promote → get → deactivate', async () => {
       const routeId = 'lifecycle_full_test_route';
 
-      // 1. Create draft
       const { draftId } = await broker.call('domain-routes.createDraft', {
         route: makeRoute({ id: routeId }),
         testCases: [
@@ -535,26 +706,21 @@ describe('domain-routes-management.service', () => {
         ],
       });
 
-      // 2. Validate
       const validateResult = await broker.call('domain-routes.validate', { id: draftId });
       expect(validateResult.validationStatus).toBe('valid');
 
-      // 3. Test
       const testResult = await broker.call('domain-routes.test', { id: draftId });
       expect(testResult.testStatus).toBe('passed');
 
-      // 4. Promote
       const promoteResult = await broker.call('domain-routes.promote', {
         id: draftId,
         promotedBy: 'lifecycle-test',
       });
       expect(promoteResult.success).toBe(true);
 
-      // 5. Get active
       const getResult = await broker.call('domain-routes.get', { id: routeId });
       expect(getResult.data.routeId).toBe(routeId);
 
-      // 6. Deactivate
       const deactivateResult = await broker.call('domain-routes.deactivate', { id: routeId });
       expect(deactivateResult.success).toBe(true);
     });

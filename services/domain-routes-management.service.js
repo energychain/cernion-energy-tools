@@ -12,8 +12,10 @@ const {
   reloadDomainRoutes,
   getStaticRoutes,
   getRuntimeRoutes,
+  getRuntimeRoute,
   setRuntimeCapability,
   removeRuntimeCapability,
+  findRuntimeCapability,
   buildGapMarkerCapability,
   isUnsafePattern,
 } = require('../src/domain-routes-registry');
@@ -34,8 +36,9 @@ function activeDocId(routeId) {
   return `domain-route-active:${routeId}`;
 }
 
-function archiveDocId(routeId, version) {
-  return `domain-route-archive:${routeId}:${version}`;
+function archiveDocId(routeId, version, uniqueSuffix) {
+  // Include a unique suffix so re-promoting the same version never collides.
+  return `domain-route-archive:${routeId}:${version}:${uniqueSuffix}`;
 }
 
 // ── Validation ────────────────────────────────────────────────────────────────
@@ -144,6 +147,26 @@ function validateRoute(route) {
     }
   }
 
+  // warn: preferredActions / fallbackActions contain non-placeholder actions
+  // (runtime-materialized gap capabilities are restricted to interface-placeholder.*)
+  const actionFields = [
+    { field: 'preferredActions', value: route.preferredActions },
+    { field: 'fallbackActions', value: route.fallbackActions },
+  ];
+  for (const { field, value } of actionFields) {
+    if (Array.isArray(value) && value.length > 0) {
+      const nonPlaceholder = value.filter(
+        (a) => typeof a === 'string' && !a.startsWith('interface-placeholder.')
+      );
+      if (nonPlaceholder.length > 0) {
+        warnings.push({
+          field,
+          message: `${field} contains non-placeholder actions: ${nonPlaceholder.join(', ')}. Runtime-materialized gap capabilities will only use interface-placeholder.* actions; others are dropped.`,
+        });
+      }
+    }
+  }
+
   return { valid: errors.length === 0, errors, warnings };
 }
 
@@ -192,6 +215,7 @@ function toActivePublic(doc) {
     promotedAt: doc.promotedAt,
     promotedBy: doc.promotedBy || null,
     previousVersion: doc.previousVersion || null,
+    rollbackTarget: doc.rollbackTarget || null,
     runtimeCapabilityMaterialized: doc.runtimeCapabilityMaterialized || false,
     source: 'runtime',
     route: doc.route,
@@ -412,7 +436,38 @@ module.exports = {
         }
 
         const testCases = Array.isArray(doc.testCases) ? doc.testCases : [];
-        const testResults = await this._runTestMatrix(testCases);
+        const routeId = doc.routeId;
+        const capabilityName = doc.route?.capability;
+        const capInCatalog = capabilityName ? capabilityExistsInCatalog(capabilityName) : true;
+
+        // Snapshot current runtime state so we can restore it after the test run.
+        const previousRoute = getRuntimeRoute(routeId); // null if not currently overridden
+        const previousCap = capabilityName ? findRuntimeCapability(capabilityName) : null;
+
+        let testResults;
+        try {
+          // Temporarily install draft route so the broker sees it during this test run.
+          setRuntimeRoute(routeId, doc.route);
+          if (!capInCatalog && capabilityName) {
+            setRuntimeCapability(capabilityName, buildGapMarkerCapability(doc.route));
+          }
+
+          testResults = await this._runTestMatrix(testCases);
+        } finally {
+          // Always restore previous overlay state, whether tests passed, failed, or threw.
+          if (previousRoute !== null) {
+            setRuntimeRoute(routeId, previousRoute);
+          } else {
+            removeRuntimeRoute(routeId);
+          }
+          if (capabilityName && !capInCatalog) {
+            if (previousCap !== null) {
+              setRuntimeCapability(capabilityName, previousCap);
+            } else {
+              removeRuntimeCapability(capabilityName);
+            }
+          }
+        }
 
         const allPassed = testResults.length === 0 || testResults.every((r) => r.passed);
         const testStatus = allPassed ? 'passed' : 'failed';
@@ -474,15 +529,16 @@ module.exports = {
         try {
           const prevActive = await this.db.get(activeDocId(routeId));
           previousVersion = prevActive.version;
-          const archiveId = archiveDocId(routeId, prevActive.version || now);
+          // Use a timestamp-based unique suffix so re-promoting the same version never collides.
+          const archiveId = archiveDocId(
+            routeId,
+            prevActive.version || 'unknown',
+            Date.now().toString(36)
+          );
           const archiveDoc = { ...prevActive, _id: archiveId, type: 'domain-route-archive', archivedAt: now };
           delete archiveDoc._rev;
-          try {
-            await this.db.put(archiveDoc);
-            rollbackTarget = archiveId;
-          } catch (_archErr) {
-            // Non-fatal: archive collision
-          }
+          await this.db.put(archiveDoc);
+          rollbackTarget = archiveId;
           await this.db.remove(prevActive);
         } catch (err) {
           if (err?.status !== 404) throw err;

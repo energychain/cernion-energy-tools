@@ -112,6 +112,10 @@ function getRuntimeRoutes() {
   return Array.from(_runtimeRouteOverlay.values());
 }
 
+function getRuntimeRoute(id) {
+  return _runtimeRouteOverlay.get(id) || null;
+}
+
 // ── Runtime capability overlay (Option B: gap-marker materialization) ─────────
 
 function setRuntimeCapability(capabilityName, capabilityObject) {
@@ -130,15 +134,31 @@ function listRuntimeCapabilities() {
   return Array.from(_runtimeCapabilities.values());
 }
 
+const SAFE_ACTION_PREFIX = 'interface-placeholder.';
+
+function _filterSafeActions(actions) {
+  if (!Array.isArray(actions) || actions.length === 0) return null;
+  const safe = actions.filter((a) => typeof a === 'string' && a.startsWith(SAFE_ACTION_PREFIX));
+  return safe.length > 0 ? safe : null;
+}
+
 function buildGapMarkerCapability(route) {
+  // Runtime-materialized capabilities are constrained to interface-placeholder actions only.
+  // Any non-placeholder actions passed via route fields are silently dropped; if nothing
+  // remains after filtering the safe fallback is used.
+  const preferredActions =
+    _filterSafeActions(route.preferredActions) || ['interface-placeholder.markGap'];
+  const fallbackActions =
+    _filterSafeActions(route.fallbackActions) || ['interface-placeholder.markGap'];
+
   return {
     capability: route.capability,
     domain: route.coverageCluster || 'gap-marker',
     abstractionLevel: 'domain_gap_marker',
     intent: route.capability,
     keywords: (route.triggers || []).slice(0, 10),
-    preferredActions: route.preferredActions || ['interface-placeholder.markGap'],
-    fallbackActions: route.fallbackActions || ['interface-placeholder.markGap'],
+    preferredActions,
+    fallbackActions,
     avoid: ['query.ask', 'query.askLearned', 'vdmi.dossier'],
     requiredInputs: [],
     risksAndNotes: [
@@ -149,6 +169,14 @@ function buildGapMarkerCapability(route) {
   };
 }
 
+// Clears all in-memory state. Intended for test isolation only.
+function _resetRegistry() {
+  _staticRoutesCache = null;
+  _compiledRoutesCache = null;
+  _runtimeRouteOverlay.clear();
+  _runtimeCapabilities.clear();
+}
+
 module.exports = {
   listCompiledDomainRoutes,
   reloadDomainRoutes,
@@ -156,6 +184,7 @@ module.exports = {
   removeRuntimeRoute,
   getStaticRoutes,
   getRuntimeRoutes,
+  getRuntimeRoute,
   setRuntimeCapability,
   removeRuntimeCapability,
   findRuntimeCapability,
@@ -163,4 +192,5 @@ module.exports = {
   buildGapMarkerCapability,
   isUnsafePattern,
   safeCompileRegex,
+  _resetRegistry,
 };
