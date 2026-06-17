@@ -608,7 +608,7 @@ describe('Capability Broker Service', () => {
     expect(result.capability).toBe('edm_metering_concept_evidence');
     expect(result.recommendedCapabilities[0].capability).toBe('edm_metering_concept_evidence');
     expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
-    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
+    expect(result.recommendedPlan[0].action).toBe('edm-messkonzept.list');
   });
 
   it('forecast-flex-bess: BESS Flex-Prognose Grid-Operations Evidence dossier routes to flex_forecast_bess_grid_operations_advisory, not VDMI', async () => {
@@ -641,7 +641,7 @@ describe('Capability Broker Service', () => {
     expect(result.capability).toBe('bilanzkreis_slp_edm_operations');
     expect(result.recommendedCapabilities[0].capability).toBe('bilanzkreis_slp_edm_operations');
     expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
-    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
+    expect(result.recommendedPlan[0].action).toBe('bilanzkreis.list');
   });
 
   it('connection-rejection-fnav-14a: §14a EnWG Anschlussablehnung Evidence dossier routes to connection_rejection_fnav_14a_evidence, not VDMI', async () => {
@@ -674,6 +674,6 @@ describe('Capability Broker Service', () => {
     expect(result.capability).toBe('eeg_clawback_ewk_monitoring');
     expect(result.recommendedCapabilities[0].capability).toBe('eeg_clawback_ewk_monitoring');
     expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
-    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
+    expect(result.recommendedPlan[0].action).toBe('ewk-monitoring.benchmarkVnb');
   });
 });
