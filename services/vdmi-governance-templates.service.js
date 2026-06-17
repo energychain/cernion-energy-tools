@@ -199,6 +199,7 @@ module.exports = {
     await this.db.createIndex({ index: { fields: ['tenantId'] } });
     await this.db.createIndex({ index: { fields: ['templateType'] } });
     await this.db.createIndex({ index: { fields: ['createdAt'] } });
+    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
     this.logger.info(`VDMI Governance Templates DB initialized at ${this.settings.dbPath}`);
   },
 
