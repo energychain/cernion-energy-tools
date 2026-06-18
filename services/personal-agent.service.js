@@ -1218,6 +1218,148 @@ function buildDossierPriorConversationContext(priorTurns = [], priorDossierState
   };
 }
 
+function detectDossierEvCo2ChargingRequest(text = '') {
+  const haystack = String(text || '').toLowerCase();
+  const hasChargingIntent =
+    /\b(?:ev|e-?auto|elektroauto|wallbox|laden|ladezeit|ladung|charging)\b/i.test(haystack);
+  const hasCarbonIntent =
+    /(?:\b(?:co2|kohlenstoff|emission|emissions|grünstrom|gruenstrom|gsi|strommix|klima)\b|co₂)/i.test(
+      haystack
+    );
+  return hasChargingIntent && hasCarbonIntent;
+}
+
+function parseDossierRequestedChargingHours(text = '') {
+  const match = String(text || '').match(/\b(?:beste[nr]?|optimal(?:e|en)?)\s+(\d{1,2})\s*(?:h|std\.?|stunden?)\b/i) ||
+    String(text || '').match(/\b(\d{1,2})\s*(?:h|std\.?|stunden?)\b/i);
+  const hours = Number(match?.[1] || 0);
+  if (Number.isFinite(hours) && hours >= 1 && hours <= 12) return hours;
+  return 3;
+}
+
+function extractDossierCo2ForecastPoints(result = {}) {
+  const parseDate = (value) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+  const extractValue = (item) => {
+    if (typeof item === 'number' && Number.isFinite(item)) return item;
+    if (!item || typeof item !== 'object') return null;
+    const value =
+      item.gCO2eqPerKWh ??
+      item.gco2eqPerKWh ??
+      item.gco2eq_kwh ??
+      item.gCO2eq_kWh ??
+      item.co2_intensity_gco2eq_kwh ??
+      item.co2gPerKWh ??
+      item.avgCo2gPerKWh ??
+      item.value ??
+      null;
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  };
+  const baseTimestamp = result?.data?.timestamp || result?.timestamp || result?.generatedAt || null;
+  const baseDate = parseDate(baseTimestamp);
+  const forecasts = [
+    result?.data?.forecast,
+    result?.forecast,
+    result?.data?.forecast_next_24h_gco2eq_kwh,
+    result?.forecast_next_24h_gco2eq_kwh,
+    result?.data?.forecastNext24h,
+    result?.forecastNext24h,
+  ].filter(Array.isArray);
+  const points = [];
+  forecasts.forEach((forecast) => {
+    forecast.forEach((item, index) => {
+      const value = extractValue(item);
+      if (value == null) return;
+      const timestamp =
+        item && typeof item === 'object'
+          ? item.timestamp || item.time || item.validFrom || item.from || item.start || null
+          : null;
+      const start = parseDate(timestamp) ||
+        (baseDate ? new Date(baseDate.getTime() + index * 60 * 60 * 1000) : null);
+      if (!start) return;
+      points.push({ start, value });
+    });
+  });
+  return points.sort((left, right) => left.start.getTime() - right.start.getTime());
+}
+
+function formatDossierBerlinWindow(start, end) {
+  const format = (date) => {
+    const parts = new Intl.DateTimeFormat('de-DE', {
+      timeZone: 'Europe/Berlin',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(date)
+      .reduce((acc, part) => ({ ...acc, [part.type]: part.value }), {});
+    return {
+      date: `${parts.day}.${parts.month}.${parts.year}`,
+      time: `${parts.hour}:${parts.minute}`,
+    };
+  };
+  const startParts = format(start);
+  const endParts = format(end);
+  const dateSuffix =
+    startParts.date === endParts.date
+      ? ` (${startParts.date})`
+      : ` (${startParts.date}-${endParts.date})`;
+  return `${startParts.time}-${endParts.time} Europe/Berlin${dateSuffix}`;
+}
+
+function formatDossierBerlinDateKey(date) {
+  const parts = new Intl.DateTimeFormat('de-DE', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+    .formatToParts(date)
+    .reduce((acc, part) => ({ ...acc, [part.type]: part.value }), {});
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function filterDossierChargingPointsByRequestedDay(points = [], rawResult = {}, text = '', hours = 3) {
+  const normalized = normalizeCopilotSearchableText(text);
+  const dayOffset = /\bmorgen\b/.test(normalized) ? 1 : /\bheute\b/.test(normalized) ? 0 : null;
+  if (dayOffset == null) return points;
+  const referenceValue = rawResult?.data?.timestamp || rawResult?.timestamp || rawResult?.generatedAt || null;
+  const referenceDate = referenceValue ? new Date(referenceValue) : new Date();
+  if (Number.isNaN(referenceDate.getTime())) return points;
+  const targetKey = formatDossierBerlinDateKey(new Date(referenceDate.getTime() + dayOffset * 24 * 60 * 60 * 1000));
+  const filtered = points.filter((point) => formatDossierBerlinDateKey(point.start) === targetKey);
+  return filtered.length >= hours ? filtered : points;
+}
+
+function buildDossierCo2ChargingWindowEvidence(rawResult = {}, text = '') {
+  if (!detectDossierEvCo2ChargingRequest(text)) return null;
+  const hours = parseDossierRequestedChargingHours(text);
+  const points = filterDossierChargingPointsByRequestedDay(
+    extractDossierCo2ForecastPoints(rawResult),
+    rawResult,
+    text,
+    hours
+  );
+  if (points.length < hours) return null;
+  let best = null;
+  for (let index = 0; index <= points.length - hours; index += 1) {
+    const window = points.slice(index, index + hours);
+    const avg = window.reduce((sum, point) => sum + point.value, 0) / hours;
+    if (!best || avg < best.avg) {
+      best = { start: window[0].start, end: new Date(window[hours - 1].start.getTime() + 60 * 60 * 1000), avg };
+    }
+  }
+  if (!best) return null;
+  return `Bestes ${hours}h-Ladefenster: ${formatDossierBerlinWindow(best.start, best.end)} · Durchschnitt: ${best.avg.toFixed(1)} g CO2/kWh`;
+}
+
 /**
  * Detect role-based open-requirements queries (v0.63.2 #220).
  * Returns { isQuery, role } or { isQuery: false }.
@@ -1338,7 +1480,7 @@ function buildDossierFactOeoAnnotations(factType, value) {
     semanticTags.push('cernion:asset-status');
   } else if (factType === 'project_timeline') {
     semanticTags.push('cernion:project-timeline');
-  } else if (factType === 'location' || factType === 'postal_code') {
+  } else if (factType === 'location' || factType === 'postal_code' || factType === 'city') {
     semanticTags.push('cernion:location', 'cernion:postal-code');
   }
 
@@ -1397,12 +1539,31 @@ function extractDossierProjectPowerSignal(text = '', fallbackPower = null) {
   return fallbackPower || null;
 }
 
+function extractDossierCitySignal(text = '') {
+  const safeText = stripDossierCandidateListSections(text);
+  const match = safeText.match(
+    /\b(?:ich\s+wohne\s+in|wohne\s+in|wohnort\s+ist|standort\s+ist|ort\s+ist|lade\s+in|laden\s+in|in|bei|f[üu]r|fuer)\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}){0,2})\b/
+  );
+  const value = match?.[1]?.trim() || null;
+  if (!value) return null;
+  const normalized = normalizeCopilotSearchableText(value);
+  if (
+    /^(morgen|heute|nacht|stunden|stunde|co2|neutral|möglichst|moeglichst|auto|e-auto|elektroauto)$/.test(
+      normalized
+    )
+  ) {
+    return null;
+  }
+  return value;
+}
+
 function extractDossierProjectScope(text = '') {
   const safeText = compactString(stripDossierCandidateListSections(text), 1200);
   const signals = extractCopilotAnalysisSignals(safeText);
   const projectPower = extractDossierProjectPowerSignal(safeText, signals.power);
   const locationMatch = safeText.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}){0,2})/);
-  const location = locationMatch ? `${locationMatch[1]} ${locationMatch[2].trim()}` : null;
+  const citySignal = locationMatch ? null : extractDossierCitySignal(safeText);
+  const location = locationMatch ? `${locationMatch[1]} ${locationMatch[2].trim()}` : citySignal;
   const postalCode = locationMatch?.[1] || signals.postalCode || null;
   const power = projectPower ? `${projectPower.value} ${projectPower.unit}` : null;
   const normalizedLocation = location ? normalizeCopilotSearchableText(location) : null;
@@ -1452,6 +1613,10 @@ function buildDossierProjectFactEntries(question = '', { sessionId = null, now =
   const locationMatch = text.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}){0,2})/);
   if (locationMatch) addFact('location', 'Standort', `${locationMatch[1]} ${locationMatch[2].trim()}`);
   else if (signals.postalCode) addFact('postal_code', 'Postleitzahl', signals.postalCode);
+  else {
+    const citySignal = extractDossierCitySignal(text);
+    if (citySignal) addFact('city', 'Standort', citySignal);
+  }
 
   if (projectPower) addFact('requested_power', 'Geplante Anschlussleistung', `${projectPower.value} ${projectPower.unit}`);
   if (signals.assetClass === 'data_center') addFact('asset_class', 'Nutzung/Asset', 'Rechenzentrum');
@@ -2251,6 +2416,7 @@ module.exports = {
           [priorQuestionContext, question].filter(Boolean).join(' '),
           1200
         );
+        const dossierTask = evidenceQuestion || question;
         const evidenceSearchTerm = deriveCopilotSearchTerm(evidenceQuestion || question);
         const lowEvidenceNamespace = tenantNamespace(DOSSIER_LOW_EVIDENCE_NAMESPACE, tenantId);
         const maxTenantLowEvidence = Math.max(maxEvidence * 4, 20);
@@ -2323,7 +2489,7 @@ module.exports = {
                 'capability-broker.recommend',
                 {
                   schemaVersion: 'cernion.capabilityRecommendation.v1',
-                  task: question,
+                  task: dossierTask,
                   mode: 'initial',
                   knownContext: { domain, sessionId },
                   resolvedParams: {},
@@ -2503,6 +2669,12 @@ module.exports = {
             ...brokerPlanActions,
             ...brokerCapabilityActions,
           ].filter((a, i, arr) => arr.indexOf(a) === i);
+          if (
+            detectDossierEvCo2ChargingRequest(dossierTask) &&
+            !brokerCandidateActions.includes('energy-market.co2Intensity')
+          ) {
+            brokerCandidateActions.unshift('energy-market.co2Intensity');
+          }
 
           if (brokerCandidateActions.length > 0) {
             const hydrationStartMs = Date.now();
@@ -2524,7 +2696,7 @@ module.exports = {
                   }
                   return null;
                 }
-                const params = actionDef.extractParams(userProvidedFacts, question);
+                const params = actionDef.extractParams(userProvidedFacts, dossierTask);
                 if (!params) {
                   _hydrationResult.skippedMissingParams.push(actionName);
                   return null;
@@ -2544,7 +2716,12 @@ module.exports = {
                     _err.code = rawResult.error?.code || rawResult.code || null;
                     throw _err;
                   }
-                  const formattedValue = actionDef.formatEvidence(rawResult);
+                  const windowEvidence = actionName === 'energy-market.co2Intensity'
+                    ? buildDossierCo2ChargingWindowEvidence(rawResult, dossierTask)
+                    : null;
+                  const formattedValue = [actionDef.formatEvidence(rawResult), windowEvidence]
+                    .filter(Boolean)
+                    .join(' · ');
                   if (!formattedValue) {
                     _hydrationResult.nullFormatted.push(actionName);
                     return null;
@@ -2623,7 +2800,14 @@ module.exports = {
         if (dossierContext.userContext === DOSSIER_USER_CONTEXT.UNKNOWN) {
           missingEvidence.push('Nutzerkontext: Unklar wer fragt und mit welchem Ziel (Planung, Management, Prozessaktion).');
         }
-        if (dossierContext.answerMode === DOSSIER_ANSWER_MODE.EVIDENCE_COLLECTION && confidenceEvidenceCount < 3) {
+        const evCo2ForecastEvidenceSufficient =
+          detectDossierEvCo2ChargingRequest(dossierTask) &&
+          evidence.some((entry) => entry?.metadata?.hydratedBy === 'energy-market.co2Intensity');
+        if (
+          dossierContext.answerMode === DOSSIER_ANSWER_MODE.EVIDENCE_COLLECTION &&
+          confidenceEvidenceCount < 3 &&
+          !evCo2ForecastEvidenceSufficient
+        ) {
           missingEvidence.push('Evidence-Basis: Für eine belastbare Planungsaussage sind weitere Datenpunkte erforderlich.');
         }
         if (preliminaryAnswerRequested && confidenceEvidenceCount === 0 && evidence.length > 0) {

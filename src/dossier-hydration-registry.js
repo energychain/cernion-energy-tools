@@ -71,22 +71,30 @@ const EXTRACTORS = {
   locationFromPromptOrFacts(facts, question, _config = {}) {
     const q = String(question || '');
     const plzCityMatch = q.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ](?:[A-Za-zäöüßÄÖÜ\-]{0,40})?)/);
+    const cityOnlyMatch = q.match(
+      /\b(?:ich\s+wohne\s+in|wohne\s+in|wohnort\s+ist|standort\s+ist|ort\s+ist|lade\s+in|laden\s+in|in|bei|f[üu]r|fuer)\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ\-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zäöüßÄÖÜ\-]{2,}){0,2})\b/
+    );
     const cityFromPrompt = plzCityMatch?.[2]?.trim() || null;
     const locationFact = (facts || []).find(
-      (f) => (f.factType === 'location' || f.factType === 'postal_code') && f.projectScope?.postalCode
+      (f) =>
+        (f.factType === 'location' || f.factType === 'postal_code' || f.factType === 'city') &&
+        (f.projectScope?.postalCode || f.value)
     );
     const postalCode =
       locationFact?.projectScope?.postalCode ||
       plzCityMatch?.[1] ||
       (q.match(/\b(\d{5})\b/) || [])[1] ||
       null;
-    return cityFromPrompt || postalCode || null;
+    return cityFromPrompt || locationFact?.value || cityOnlyMatch?.[1]?.trim() || postalCode || null;
   },
 
   cityFromPromptOrFacts(facts, question, _config = {}) {
     const q = String(question || '');
     const plzCityMatch = q.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ](?:[A-Za-zäöüßÄÖÜ\-]{0,40})?)/);
-    const cityFromPrompt = plzCityMatch?.[2]?.trim() || null;
+    const cityOnlyMatch = q.match(
+      /\b(?:ich\s+wohne\s+in|wohne\s+in|wohnort\s+ist|standort\s+ist|ort\s+ist|lade\s+in|laden\s+in|in|bei|f[üu]r|fuer)\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ\-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zäöüßÄÖÜ\-]{2,}){0,2})\b/
+    );
+    const cityFromPrompt = plzCityMatch?.[2]?.trim() || cityOnlyMatch?.[1]?.trim() || null;
     const locationFact = (facts || []).find(
       (f) => (f.factType === 'location' || f.factType === 'city') && (f.value || f.projectScope?.city)
     );

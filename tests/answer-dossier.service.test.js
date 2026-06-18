@@ -1040,6 +1040,86 @@ describe('answerDossier action', () => {
     expect(result2.dossierMarkdown).toContain('Nutzerkontext: Unklar wer fragt');
   });
 
+  test('two-turn: EV CO2 follow-up uses prior charging intent and city-only Heidelberg for concrete GSI evidence', async () => {
+    const service = buildServiceHarness();
+    const sessionId = 'test-session-ev-co2-heidelberg-v1';
+    const store = new Map();
+    const brokerTasks = [];
+    const co2Calls = [];
+    const overrides = {
+      'object-store.get': (p) => {
+        const key = `${p.namespace}:${p.key}`;
+        return store.has(key) ? { payload: store.get(key) } : null;
+      },
+      'object-store.put': (p) => {
+        store.set(`${p.namespace}:${p.key}`, p.payload);
+        return { ok: true };
+      },
+      'capability-broker.recommend': async (p) => {
+        brokerTasks.push(p.task);
+        if (/e-auto|laden|co2/i.test(p.task)) {
+          return {
+            intent: 'ev_co2_charging_window',
+            capability: 'energy_market',
+            confidence: 0.9,
+            recommendedPlan: [{ step: 1, action: 'energy-market.co2Intensity' }],
+          };
+        }
+        return { intent: 'unknown', capability: 'unknown', confidence: 0.1 };
+      },
+      'energy-market.co2Intensity': async (p) => {
+        co2Calls.push(p);
+        return {
+          co2_intensity_gco2eq_kwh: 180,
+          average_today_gco2eq_kwh: 220,
+          data: {
+            location: p.location,
+            timestamp: '2026-06-17T00:00:00.000Z',
+            forecast: [
+              { timestamp: '2026-06-18T00:00:00.000Z', gCO2eqPerKWh: 300 },
+              { timestamp: '2026-06-18T01:00:00.000Z', gCO2eqPerKWh: 250 },
+              { timestamp: '2026-06-18T02:00:00.000Z', gCO2eqPerKWh: 100 },
+              { timestamp: '2026-06-18T03:00:00.000Z', gCO2eqPerKWh: 90 },
+              { timestamp: '2026-06-18T04:00:00.000Z', gCO2eqPerKWh: 95 },
+              { timestamp: '2026-06-18T05:00:00.000Z', gCO2eqPerKWh: 200 },
+            ],
+          },
+        };
+      },
+    };
+
+    await handler.call(
+      service,
+      buildCtx(
+        {
+          question: 'Ich möchte morgen mein E-Auto möglichst CO2 Neutral laden. Wann sind die besten 3 Stunden hierfür?',
+          sessionId,
+          timeBudgetMs: 30000,
+        },
+        overrides
+      )
+    );
+
+    const result2 = await handler.call(
+      service,
+      buildCtx({ question: 'Ich wohne in Heidelberg', sessionId, timeBudgetMs: 30000 }, overrides)
+    );
+
+    expect(brokerTasks[1]).toContain('E-Auto');
+    expect(brokerTasks[1]).toContain('Heidelberg');
+    expect(co2Calls).toEqual(expect.arrayContaining([expect.objectContaining({ location: 'Heidelberg', forecast: true })]));
+    expect(result2.userContext).toBe('technical_operator');
+    expect(result2.answerMode).toBe('evidence_collection');
+    expect(result2.hydration.succeeded).toContain('energy-market.co2Intensity');
+    expect(result2.dossierMarkdown).toContain('## Prior Conversation Context');
+    expect(result2.dossierMarkdown).toContain('E-Auto möglichst CO2 Neutral laden');
+    expect(result2.dossierMarkdown).toContain('energy-market.co2Intensity');
+    expect(result2.dossierMarkdown).toContain('Standort: Heidelberg');
+    expect(result2.dossierMarkdown).toContain('Bestes 3h-Ladefenster');
+    expect(result2.dossierMarkdown).toContain('Durchschnitt: 95.0 g CO2/kWh');
+    expect(result2.dossierMarkdown).not.toContain('Nutzerkontext: Unklar wer fragt');
+  });
+
   // 14. Auth guard — unauthenticated call throws AUTH_REQUIRED
   test('call without authUser/apiToken/cernionToken throws AUTH_REQUIRED (401)', async () => {
     const service = buildServiceHarness();

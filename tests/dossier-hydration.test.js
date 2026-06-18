@@ -127,6 +127,15 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(params.location).toBe('69115');
     });
 
+    it('co2Intensity extracts city-only follow-up location facts', () => {
+      const rule = getRule('energy-market.co2Intensity');
+      const facts = [{ factType: 'city', value: 'Heidelberg', projectScope: { location: 'Heidelberg' } }];
+      const params = rule.extractParams(facts, 'Ich wohne in Heidelberg');
+      expect(params).not.toBeNull();
+      expect(params.location).toBe('Heidelberg');
+      expect(params.forecast).toBe(true);
+    });
+
     it('co2Intensity returns null when no location available', () => {
       const rule = getRule('energy-market.co2Intensity');
       const params = rule.extractParams([], 'Was ist die aktuelle CO2-Intensität?');

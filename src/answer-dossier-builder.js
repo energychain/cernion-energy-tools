@@ -95,7 +95,12 @@ function classifyDossierContext({ question = '', priorUserContext = null, priorP
 
   if (userContext === DOSSIER_USER_CONTEXT.UNKNOWN) {
     const q = question.toLowerCase();
-    if (/zielnetz|netzplanung|netzentwicklung|netzausbau|trassen/.test(q)) {
+    if (
+      /\b(?:ev|e-?auto|elektroauto|wallbox|laden|ladezeit|ladung|charging)\b/i.test(q) &&
+      /(?:\b(?:co2|kohlenstoff|emission|emissions|grünstrom|gruenstrom|gsi|strommix|klima)\b|co₂)/i.test(q)
+    ) {
+      userContext = DOSSIER_USER_CONTEXT.TECHNICAL_OPERATOR;
+    } else if (/zielnetz|netzplanung|netzentwicklung|netzausbau|trassen/.test(q)) {
       userContext = DOSSIER_USER_CONTEXT.TARGET_GRID_PLANNING;
     } else if (
       /projektentwickl|machbarkeit|standortmachbarkeit|netzanschluss|anschlussleistung|rechenzentrum|data\s*center|grossverbrauch|großverbrauch|10\s*mw/.test(q)
