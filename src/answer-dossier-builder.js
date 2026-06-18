@@ -159,7 +159,7 @@ function classifyDossierContext({ question = '', priorUserContext = null, priorP
   return { userContext, processStage, answerMode, confidence };
 }
 
-function buildRequiredAnswerBehavior(answerMode, { finalMode = false } = {}) {
+function buildRequiredAnswerBehavior(answerMode, { finalMode = false, evidenceFirst = false } = {}) {
   const rules = [
     'Keine fachlichen Fakten hinzufügen, die nicht im Dossier enthalten sind.',
     'Unsicherheit und fehlende Evidence explizit benennen.',
@@ -167,6 +167,9 @@ function buildRequiredAnswerBehavior(answerMode, { finalMode = false } = {}) {
   if (answerMode === DOSSIER_ANSWER_MODE.CLARIFICATION_NEEDED) {
     if (finalMode) {
       rules.push('Nutzerkontext ist unklar, aber der Nutzer verlangt eine finale Antwort ohne weitere Rückfrage — gib eine bestmögliche Einschätzung und benenne die Kontextunsicherheit als Einschränkung.');
+    } else if (evidenceFirst) {
+      rules.push('Vorhandene Evidence reicht für eine substantielle Antwort: Beantworte die Frage zuerst auf Basis der Evidence, benenne den unklaren Nutzerkontext erst danach als Einschränkung.');
+      rules.push('Eine Rückfrage ist optional für eine genauere oder andere Antwort — sie darf die aktuelle Antwort nicht ersetzen oder blockieren.');
     } else {
       rules.push('Nutzerkontext ist unklar — eine gezielte Rückfrage formulieren statt einer abschließenden Antwort.');
       rules.push('Keine finalen Planungs- oder Prozessaussagen ohne bekannten Kontext.');
@@ -177,6 +180,9 @@ function buildRequiredAnswerBehavior(answerMode, { finalMode = false } = {}) {
   } else if (answerMode === DOSSIER_ANSWER_MODE.EVIDENCE_COLLECTION) {
     if (finalMode) {
       rules.push('Trotz unvollständiger Evidence eine bestmögliche finale Einschätzung geben; Evidence-Lücken klar als Einschränkung/Annahme benennen statt eine Rückfrage zu stellen.');
+    } else if (evidenceFirst) {
+      rules.push('Vorhandene Evidence reicht für eine substantielle Antwort: Beantworte die Frage zuerst auf Basis der vorhandenen Evidence.');
+      rules.push('Fehlende zusätzliche Datenpunkte erst nach der Antwort als optionale Vertiefung benennen, nicht als Voraussetzung für die Antwort.');
     } else {
       rules.push('Keine finalen Planungsaussagen, solange Evidence unvollständig ist.');
     }
@@ -184,6 +190,8 @@ function buildRequiredAnswerBehavior(answerMode, { finalMode = false } = {}) {
     rules.push(
       finalMode
         ? 'Evidence-Flow knapp einordnen und mit der finalen Einschätzung abschließen.'
+        : evidenceFirst
+        ? 'Evidence-Flow knapp einordnen und die Antwort darauf stützen.'
         : 'Evidence-Flow beschreiben, nicht abschließend bewerten.'
     );
   } else if (answerMode === DOSSIER_ANSWER_MODE.PROCESS_CHECK) {
@@ -199,14 +207,15 @@ function buildRequiredAnswerBehavior(answerMode, { finalMode = false } = {}) {
   return rules;
 }
 
-function buildRecommendedAnswerStructure(answerMode, { finalMode = false } = {}) {
+function buildRecommendedAnswerStructure(answerMode, { finalMode = false, evidenceFirst = false } = {}) {
   if (answerMode === DOSSIER_ANSWER_MODE.CLARIFICATION_NEEDED) {
-    return finalMode
-      ? ['1. Bestmögliche finale Einschätzung trotz unklarem Kontext', '2. Kontext-Einschränkung als Caveat benennen']
-      : ['1. Kurzer Kontextvorbehalt (1–2 Sätze)', '2. Gezielte Rückfrage an den Nutzer'];
+    if (finalMode) return ['1. Bestmögliche finale Einschätzung trotz unklarem Kontext', '2. Kontext-Einschränkung als Caveat benennen'];
+    if (evidenceFirst) return ['1. Substantielle Antwort auf Basis der vorhandenen Evidence', '2. Unklarer Nutzerkontext als Einschränkung benennen', '3. Optionale Rückfrage für eine genauere oder andere Antwort'];
+    return ['1. Kurzer Kontextvorbehalt (1–2 Sätze)', '2. Gezielte Rückfrage an den Nutzer'];
   } else if (answerMode === DOSSIER_ANSWER_MODE.MANAGEMENT_BRIEF) {
     return ['1. Kernantwort (1–3 Sätze)', '2. Wichtigster Evidenzhinweis', '3. Offene Risiken oder nächster Schritt'];
   } else if (answerMode === DOSSIER_ANSWER_MODE.EVIDENCE_COLLECTION) {
+    if (evidenceFirst) return ['1. Substantielle Antwort auf Basis der vorhandenen Evidence', '2. Fehlende Datenpunkte als optionale Vertiefung benennen', '3. Nächste Sammelschritte (optional)'];
     return ['1. Aktueller Evidenzstand', '2. Fehlende Datenpunkte oder Quellen', '3. Nächste Sammelschritte'];
   } else if (answerMode === DOSSIER_ANSWER_MODE.PROCESS_CHECK) {
     return ['1. Regulatorischer Prüfstand', '2. Compliance-Lücken', '3. Empfohlene nächste Schritte'];
@@ -406,7 +415,7 @@ function buildDossierMarkdown({
     ...(domain === 'redispatch' ? REDISPATCH_FORBIDDEN_CLAIMS : []),
   ];
   const hasValidatedEvidence = evidence.some((entry) => entry?.metadata?.evidenceQuality !== 'low');
-  const requiredBehavior = buildRequiredAnswerBehavior(answerMode, { finalMode });
+  const requiredBehavior = buildRequiredAnswerBehavior(answerMode, { finalMode, evidenceFirst: hasValidatedEvidence });
   if (!hasValidatedEvidence) {
     requiredBehavior.push('Ohne validierte Evidence keine Beispiele, Paragraphen, Behörden, Netzbetreiber, Fristen oder typischen Verfahren nennen.');
     if (finalMode) {
@@ -425,7 +434,7 @@ function buildDossierMarkdown({
     ? ['1. Vorläufige Arbeitshypothese deutlich als nicht belastbar kennzeichnen', '2. Low-Evidence-Basis nennen', '3. Fehlende validierte Evidence und nächste Rückfragen benennen']
     : !hasValidatedEvidence
     ? ['1. Kurz sagen, dass keine belastbare Evidence verfügbar ist', '2. Fehlende Datenpunkte benennen', '3. Gezielt um die nächsten Evidence-Unterlagen bitten']
-    : buildRecommendedAnswerStructure(answerMode, { finalMode });
+    : buildRecommendedAnswerStructure(answerMode, { finalMode, evidenceFirst: hasValidatedEvidence });
   const isPartial = completionState !== DOSSIER_COMPLETION_STATE.COMPLETED;
 
   const dossierLines = [
@@ -450,6 +459,10 @@ function buildDossierMarkdown({
     `- conversation_id: ${normalizedKnowledgeSpace.conversationId || 'unknown'}`,
     `- channel: ${normalizedKnowledgeSpace.channel}`,
     `- surface: ${normalizedKnowledgeSpace.surface}`,
+    '',
+    '## Response Policy',
+    'Evidence-first: Wenn relevante Evidence im Dossier vorhanden ist, beantworte die Frage zuerst auf dieser Basis.',
+    'Fehlende zusätzliche Evidence, unklarer Kontext oder Rückfragen folgen danach als Ergänzung — sie ersetzen oder blockieren die Antwort nicht.',
     '',
     '## Original User Prompt',
     question,
@@ -526,7 +539,7 @@ function buildRendererSystemHint({ finalMode = false } = {}) {
   if (finalMode) {
     return 'Du bist nur der Prosa-Renderer. Nutze ausschliesslich dieses Cernion Answer Dossier. Fuege keine Fakten, Gesetze, Quellen, Beispiele, Bewertungen oder Prozessentscheidungen hinzu, die nicht im Dossier stehen. Formuliere eine abschliessende Antwort. Benenne Unsicherheit, Annahmen und fehlende Evidence als Einschraenkungen, aber stelle KEINE Rueckfrage an den Nutzer.';
   }
-  return 'Du bist nur der Prosa-Renderer. Nutze ausschliesslich dieses Cernion Answer Dossier. Fuege keine Fakten, Gesetze, Quellen, Beispiele, Bewertungen oder Prozessentscheidungen hinzu, die nicht im Dossier stehen. Bewahre Unsicherheit, offene Fragen, Required Answer Behavior und Forbidden Claims. Wenn das Dossier eine Rueckfrage verlangt, formuliere diese Rueckfrage.';
+  return 'Du bist nur der Prosa-Renderer. Nutze ausschliesslich dieses Cernion Answer Dossier. Fuege keine Fakten, Gesetze, Quellen, Beispiele, Bewertungen oder Prozessentscheidungen hinzu, die nicht im Dossier stehen. Evidence-first: Wenn das Dossier relevante Evidence enthaelt, beantworte die Frage zuerst auf dieser Basis. Bewahre Unsicherheit, offene Fragen, Required Answer Behavior und Forbidden Claims. Wenn das Dossier eine Rueckfrage verlangt, formuliere diese Rueckfrage erst nach der Antwort und nur als optionale Ergaenzung.';
 }
 
 function buildRendererPackageMarkdown({ rendererSystemHint, question, dossierMarkdown, finalMode = false }) {
@@ -539,10 +552,10 @@ function buildRendererPackageMarkdown({ rendererSystemHint, question, dossierMar
     '## Aufgabe',
     finalMode
       ? 'Formuliere eine abschliessende Antwort auf die Originalfrage des Nutzers ausschliesslich aus dem nachfolgenden Dossier.'
-      : 'Formuliere eine Antwort auf die Originalfrage des Nutzers ausschliesslich aus dem nachfolgenden Dossier.',
+      : 'Formuliere eine Antwort auf die Originalfrage des Nutzers ausschliesslich aus dem nachfolgenden Dossier. Wenn relevante Evidence vorhanden ist, beantworte die Frage zuerst auf dieser Basis.',
     finalMode
       ? 'Fehlende Evidence oder ein unklarer Nutzerkontext werden als Einschraenkung/Annahme benannt — stelle KEINE Rueckfrage.'
-      : 'Wenn Evidence fehlt, der Nutzerkontext unklar ist oder Backend-Jobs noch ausstehen, stelle eine Rueckfrage oder formuliere die Antwort als vorlaeufig.',
+      : 'Fehlende Evidence, unklarer Nutzerkontext oder ausstehende Backend-Jobs folgen danach als Einschraenkung oder optionale Rueckfrage — sie ersetzen oder blockieren die Antwort nicht, sofern relevante Evidence vorhanden ist. Ohne verwertbare Evidence stelle eine Rueckfrage oder formuliere die Antwort als vorlaeufig.',
     'Ergaenze keine eigenen Gesetze, Quellen, Beispiele, Bewertungen oder Prozessentscheidungen.',
     '',
     'Originalfrage des Nutzers:',
@@ -553,7 +566,7 @@ function buildRendererPackageMarkdown({ rendererSystemHint, question, dossierMar
   ].join('\n');
 }
 
-function buildReasoningSummary({ userContext, answerMode, evidenceCount, domain, finalMode = false }) {
+function buildReasoningSummary({ userContext, answerMode, evidenceCount, domain, finalMode = false, evidenceFirst = false }) {
   const parts = [];
   if (evidenceCount > 0) {
     parts.push(`${evidenceCount} Evidence-Einheit(en) aus dem Cernion-Kontext gefunden.`);
@@ -566,11 +579,15 @@ function buildReasoningSummary({ userContext, answerMode, evidenceCount, domain,
   const summaryByContext = {
     [DOSSIER_USER_CONTEXT.UNKNOWN]: finalMode
       ? 'Nutzerkontext nicht eindeutig erkannt — finale Einschätzung trotzdem mit Einschränkung formuliert.'
+      : evidenceFirst
+      ? 'Nutzerkontext nicht eindeutig erkannt — Antwort zuerst auf Basis der Evidence, Rückfrage nur optional.'
       : 'Nutzerkontext nicht eindeutig erkannt — Rückfrage empfohlen.',
     [DOSSIER_USER_CONTEXT.MAYOR]: 'Bürgermeister-Kontext erkannt — kompakte Entscheidungsgrundlage formulieren.',
     [DOSSIER_USER_CONTEXT.MANAGEMENT]: 'Management-Kontext erkannt — kompakte Entscheidungsgrundlage formulieren.',
     [DOSSIER_USER_CONTEXT.TARGET_GRID_PLANNING]: finalMode
       ? 'Zielnetzplanung erkannt — finale Einschätzung trotz laufender Evidence-Sammlung formuliert, Lücken benannt.'
+      : evidenceFirst
+      ? 'Zielnetzplanung erkannt — vorhandene Evidence reicht für eine substantielle Antwort, weitere Sammlung optional.'
       : 'Zielnetzplanung erkannt — Evidence-Sammlung läuft, finale Planungsaussagen vermeiden.',
     [DOSSIER_USER_CONTEXT.REGULATORY]: 'Regulatorischer Kontext erkannt — Compliance-Prüfpunkte zusammenstellen.',
     [DOSSIER_USER_CONTEXT.TECHNICAL_OPERATOR]: 'Technischer Betrieb erkannt — operative Datenlage und Messwerte prüfen.',
@@ -602,6 +619,21 @@ function generateDossierId() {
   return uuidv4();
 }
 
+/**
+ * Single source of truth for whether the dossier's instructions actually force a substantive,
+ * evidence-derived answer rather than a defensive non-answer. Mirrors the exact conditions that
+ * select the answer-first branches in buildDossierMarkdown's recommendedStructure, so the signal
+ * can never drift from the generated Required Answer Behavior / Recommended Answer Structure text.
+ */
+function resolveDossierSubstantiveAnswer({
+  hasValidatedEvidence = false,
+  finalMode = false,
+  preliminaryAnswerRequested = false,
+  evidenceCount = 0,
+} = {}) {
+  return Boolean(hasValidatedEvidence) || Boolean(finalMode) || (Boolean(preliminaryAnswerRequested) && evidenceCount > 0);
+}
+
 module.exports = {
   DOSSIER_USER_CONTEXT,
   DOSSIER_PROCESS_STAGE,
@@ -621,4 +653,5 @@ module.exports = {
   buildReasoningSummary,
   buildFollowUpMetadata,
   generateDossierId,
+  resolveDossierSubstantiveAnswer,
 };

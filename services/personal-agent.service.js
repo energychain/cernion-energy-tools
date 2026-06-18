@@ -171,6 +171,7 @@ const {
   buildReasoningSummary,
   buildFollowUpMetadata,
   generateDossierId,
+  resolveDossierSubstantiveAnswer,
 } = require('../src/answer-dossier-builder'); // v0.63.0 #220
 const {
   getRule: getDossierHydrationRule,
@@ -2288,7 +2289,7 @@ module.exports = {
               'application/json': {
                 schema: {
                   type: 'object',
-                  required: ['success', 'sessionId', 'dossierId', 'mode', 'answerMode', 'userContext', 'processStage', 'confidence', 'completionState', 'dossierMarkdown', 'rendererSystemHint', 'clarificationQuestions', 'finalDossierRequested'],
+                  required: ['success', 'sessionId', 'dossierId', 'mode', 'answerMode', 'userContext', 'processStage', 'confidence', 'completionState', 'dossierMarkdown', 'rendererSystemHint', 'clarificationQuestions', 'finalDossierRequested', 'answerQuality'],
                   properties: {
                     success: { type: 'boolean' },
                     sessionId: { type: 'string' },
@@ -2329,6 +2330,15 @@ module.exports = {
                       type: 'string',
                       nullable: true,
                       description: 'Renderer package variant that suppresses clarification-question instructions while still surfacing evidence gaps as caveats. Null unless finalDossierRequested is true.',
+                    },
+                    answerQuality: {
+                      type: 'object',
+                      description: 'Evidence-first policy signals (#238) describing what the dossier instructions require, not a verified property of any rendered prose answer.',
+                      properties: {
+                        usedRetrievedEvidence: { type: 'boolean', description: 'Whether relevant tool/MCP evidence was retrieved for this turn.' },
+                        substantiveAnswerInstructed: { type: 'boolean', description: 'Whether the dossier instructs an answer-first response (evidence-derived, final-mode, or flagged preliminary) rather than a defensive non-answer.' },
+                        defensiveNonAnswer: { type: 'boolean', description: 'Complement of substantiveAnswerInstructed — true when the dossier falls back to asking for more before answering.' },
+                      },
                     },
                     rendererSystemHint: { type: 'string' },
                     auditTrail: { type: 'object' },
@@ -2857,12 +2867,30 @@ module.exports = {
           ? []
           : evidenceGaps.map((gap) => gap.question).filter(Boolean);
 
+        // Evidence-first answer-quality signals (#238). usedRetrievedEvidence reflects whether
+        // relevant tool/MCP evidence was actually retrieved; substantiveAnswerInstructed mirrors
+        // the exact conditions buildDossierMarkdown uses to pick an answer-first vs. defensive
+        // Recommended Answer Structure, so this can't drift from the generated dossier text.
+        const usedRetrievedEvidence = confidenceEvidenceCount > 0;
+        const substantiveAnswerInstructed = resolveDossierSubstantiveAnswer({
+          hasValidatedEvidence: usedRetrievedEvidence,
+          finalMode: finalDossierRequested,
+          preliminaryAnswerRequested,
+          evidenceCount: evidence.length,
+        });
+        const answerQuality = {
+          usedRetrievedEvidence,
+          substantiveAnswerInstructed,
+          defensiveNonAnswer: !substantiveAnswerInstructed,
+        };
+
         const reasoningSummary = buildReasoningSummary({
           userContext: dossierContext.userContext,
           answerMode: dossierContext.answerMode,
           evidenceCount: confidenceEvidenceCount,
           domain,
           question,
+          evidenceFirst: usedRetrievedEvidence,
         });
 
         const dossierVersion = priorTurnsCount + 1;
@@ -2897,6 +2925,7 @@ module.exports = {
                 domain,
                 question,
                 finalMode: true,
+                evidenceFirst: usedRetrievedEvidence,
               }),
               finalMode: true,
             })
@@ -2983,6 +3012,7 @@ module.exports = {
           preliminaryAnswerRequested,
           finalDossierRequested,
           clarificationQuestions,
+          answerQuality,
           timeBudget: { ...timeBudget, elapsedMs },
           timeoutWarning,
           dossierMarkdown,
@@ -3000,6 +3030,7 @@ module.exports = {
             tenantScopeStatus: knowledgeSpace.tenantScopeStatus,
             conversationId: knowledgeSpace.conversationId,
             finalDossierRequested,
+            answerQuality,
             createdAt: new Date().toISOString(),
             broker: {
               status: capabilityRouting.status,
