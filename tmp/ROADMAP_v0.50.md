@@ -3,13 +3,13 @@
 
 **Datum:** 2026-05-12
 **Anforderer:** Thorsten Zoerner / STROMDAO GmbH
-**Ziel:** Führungsmandate aus dem TWL-Mandatsblatt in operative Entscheidungslogik und validierbare Umsetzung übersetzen.
+**Ziel:** Führungsmandate aus dem STROMDAO-Mandatsblatt in operative Entscheidungslogik und validierbare Umsetzung übersetzen.
 **Codebasis:** Cernion Energy Tools v0.50.2 (71 Services, Moleculer.js)
 **Constraint:** Maximale Wiederverwendung, keine doppelte Implementierung.
 
 ---
 
-## 0. Kontext: Das TWL-Mandatsblatt
+## 0. Kontext: Das STROMDAO-Mandatsblatt
 
 Das Mandatsblatt validiert Leistung an 6 Dimensionen:
 1. Operative Stabilität
@@ -183,7 +183,7 @@ Deckt Dimension 4 (Schutz vor kaufmännischen Risiken) und 5 (Portfolio-Steuerun
     {"from": "grid_expansion", "to": "redispatch_buffer", "amountEUR": 250000, "trigger": "STOERUNG_Q2_2026", "approvedBy": "userId | null"}
   ],
   "mandateAlignment": {
-    "mandateId": "twl-netze-2026",
+    "mandateId": "stromdao-netze-2026",
     "aligned": true,
     "checkDate": "ISO8601"
   }
