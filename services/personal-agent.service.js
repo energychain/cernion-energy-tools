@@ -172,6 +172,9 @@ const {
   buildFollowUpMetadata,
   generateDossierId,
   resolveDossierSubstantiveAnswer,
+  resolveDossierContract,
+  describeDossierContract,
+  buildSlimDossierMarkdown,
 } = require('../src/answer-dossier-builder'); // v0.63.0 #220
 const {
   getRule: getDossierHydrationRule,
@@ -2245,6 +2248,12 @@ module.exports = {
         },
         parentDossierId: { type: 'string', optional: true, trim: true, max: 120 },
         context: { type: 'object', optional: true, default: {} },
+        dossierContract: {
+          type: 'enum',
+          optional: true,
+          values: ['rich', 'slim'],
+          default: 'rich',
+        },
       },
       openapi: {
         operationId: 'answerDossier',
@@ -2277,6 +2286,13 @@ module.exports = {
                   timeBudgetMs: { type: 'integer', minimum: 5000, maximum: 60000, default: 30000, description: 'Total time budget in milliseconds for dossier generation.' },
                   parentDossierId: { type: 'string', description: 'For follow-up mode: dossierId of the previous dossier in this session.' },
                   context: { type: 'object', additionalProperties: true, description: 'Optional channel, surface, tenant, or user context.' },
+                  dossierContract: {
+                    type: 'string',
+                    enum: ['rich', 'slim'],
+                    default: 'rich',
+                    description:
+                      "Default 'rich' preserves the existing full governance/policy dossier — no caller needs to change anything. 'slim' (#242) opts into a compact answer-payload contract (Question/Consulting Interpretation/Reasoning/Evidence/Answer Constraints/Possible Follow-Up/Renderer Instruction) for evidence-backed, non-process-risk dossiers; process-action or incomplete-evidence dossiers are always served as 'rich' regardless of this value. This is a backend contract only — existing callers (e.g. n8n flows) keep seeing 'rich' output until they explicitly set dossierContract: \"slim\".",
+                  },
                 },
               },
             },
@@ -2368,6 +2384,7 @@ module.exports = {
           timeBudgetMs = 30000,
           parentDossierId = null,
           context = {},
+          dossierContract: requestedDossierContract = 'rich',
         } = ctx.params;
 
         // context.tenantId must never override the authenticated tenantId
@@ -2834,12 +2851,14 @@ module.exports = {
           evidenceGaps.push({
             statement: 'Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden — Suchbegriff präzisieren, Domäne angeben oder Evidence nachreichen.',
             question: 'Welche zusätzliche Evidence oder Quellenangabe können Sie zu dieser Frage liefern?',
+            enablesDossierAddition: 'Mit zusätzlicher Evidence oder einer präziseren Quellenangabe kann das Dossier eine belastbare statt vorläufige Antwort liefern.',
           });
         }
         if (dossierContext.userContext === DOSSIER_USER_CONTEXT.UNKNOWN) {
           evidenceGaps.push({
             statement: 'Nutzerkontext: Unklar wer fragt und mit welchem Ziel (Planung, Management, Prozessaktion).',
             question: 'Für wen erstellen wir dieses Dossier und mit welchem Ziel (z. B. Planung, Management, Prozessaktion)?',
+            enablesDossierAddition: 'Mit Angabe des Nutzerkontexts kann das Dossier eine zielgruppengerechtere Antwort liefern.',
           });
         }
         const evCo2ForecastEvidenceSufficient =
@@ -2853,6 +2872,7 @@ module.exports = {
           evidenceGaps.push({
             statement: 'Evidence-Basis: Für eine belastbare Planungsaussage sind weitere Datenpunkte erforderlich.',
             question: 'Welche weiteren Datenpunkte oder Belege liegen vor, um die Planungsaussage zu stützen?',
+            enablesDossierAddition: 'Mit weiteren Datenpunkten kann das Dossier die Planungsaussage breiter absichern.',
           });
         }
         if (preliminaryAnswerRequested && confidenceEvidenceCount === 0 && evidence.length > 0) {
@@ -2866,6 +2886,13 @@ module.exports = {
         const clarificationQuestions = finalDossierRequested
           ? []
           : evidenceGaps.map((gap) => gap.question).filter(Boolean);
+        // Positive framing for the slim contract's Possible Follow-Up section (#242): each gap
+        // becomes "missing data point -> what it would enable", not just a blocker/question.
+        const possibleFollowUp = finalDossierRequested
+          ? []
+          : evidenceGaps
+              .filter((gap) => gap.question && gap.enablesDossierAddition)
+              .map((gap) => ({ question: gap.question, enablesDossierAddition: gap.enablesDossierAddition }));
 
         // Evidence-first answer-quality signals (#238). usedRetrievedEvidence reflects whether
         // relevant tool/MCP evidence was actually retrieved; substantiveAnswerInstructed mirrors
@@ -2895,6 +2922,15 @@ module.exports = {
 
         const dossierVersion = priorTurnsCount + 1;
 
+        // Dossier contract decision (#242) — default 'rich' is byte-for-byte today's behavior;
+        // 'slim' is opt-in only and is itself routed back to 'rich' for process-risk or
+        // not-yet-complete dossiers regardless of what the caller requested.
+        const resolvedDossierContract = resolveDossierContract({
+          requestedContract: requestedDossierContract,
+          answerMode: dossierContext.answerMode,
+          completionState,
+        });
+
         // Compilation phase — always runs
         const dossierMarkdownArgs = {
           dossierId,
@@ -2913,7 +2949,16 @@ module.exports = {
           capabilityRouting,
           priorConversationContext,
         };
-        const dossierMarkdown = buildDossierMarkdown({ ...dossierMarkdownArgs, reasoningSummary });
+        const dossierMarkdown = resolvedDossierContract.contract === 'slim'
+          ? buildSlimDossierMarkdown({
+              question,
+              dossierState: dossierContext,
+              evidence,
+              reasoningSummary,
+              domain,
+              possibleFollowUp,
+            })
+          : buildDossierMarkdown({ ...dossierMarkdownArgs, reasoningSummary });
 
         const finalDossierMarkdown = finalDossierRequested
           ? buildDossierMarkdown({
@@ -3031,6 +3076,7 @@ module.exports = {
             conversationId: knowledgeSpace.conversationId,
             finalDossierRequested,
             answerQuality,
+            dossierContract: describeDossierContract(resolvedDossierContract),
             createdAt: new Date().toISOString(),
             broker: {
               status: capabilityRouting.status,

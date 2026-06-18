@@ -2121,4 +2121,140 @@ describe('answerDossier action', () => {
     expect(result.finalDossierMarkdown).toContain('## Missing Evidence');
   });
 
+  // ── Slim dossier contract (issue #242) ──────────────────────────────────────
+  // Opt-in only: default stays 'rich' (proven above by the unmodified #237/#238 tests, none of
+  // which pass dossierContract). Validated across the same non-EV domains as #238, plus the
+  // EV/CO2 case kept as one regression among several, not the root case.
+
+  test('dossierContract=slim (list/inventory domain) yields the compact answer-payload contract', async () => {
+    const service = {
+      ...buildServiceHarness(),
+      async collectCopilotKnowledgeEvidence() {
+        return {
+          status: 'available',
+          hits: [
+            { source: 'Netzdokumentation', value: 'Trasse A12: Mittelspannung, Baujahr 2010, Status aktiv' },
+            { source: 'Netzdokumentation', value: 'Trasse B7: Mittelspannung, Baujahr 2015, Status aktiv' },
+            { source: 'Netzdokumentation', value: 'Trasse C3: Niederspannung, Baujahr 2019, Status geplant' },
+          ],
+        };
+      },
+      async searchCopilotEntities() {
+        return { results: [] };
+      },
+    };
+    const ctx = buildCtx({
+      question: 'Welche Trassen sind für die Netzplanung in unserem Gebiet bereits erfasst?',
+      dossierContract: 'slim',
+    });
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.auditTrail.dossierContract).toBe('slim_v1');
+    expect(result.dossierMarkdown).toContain('# CERNION ANSWER DOSSIER (SLIM)');
+    expect(result.dossierMarkdown).toContain('## Question');
+    expect(result.dossierMarkdown).toContain('## Consulting Interpretation');
+    expect(result.dossierMarkdown).toContain('## Reasoning');
+    expect(result.dossierMarkdown).toContain('## Evidence');
+    expect(result.dossierMarkdown).toContain('## Answer Constraints');
+    expect(result.dossierMarkdown).toContain('## Possible Follow-Up');
+    expect(result.dossierMarkdown).toContain('## Renderer Instruction');
+    // Rich-only scaffolding must not leak into the slim contract.
+    expect(result.dossierMarkdown).not.toContain('# CERNION RENDERER PACKAGE');
+    expect(result.dossierMarkdown).not.toContain('## Metadata');
+    expect(result.dossierMarkdown).not.toContain('## Required Answer Behavior');
+    expect(result.dossierMarkdown).not.toContain('## Recommended Answer Structure');
+    expect(result.dossierMarkdown).not.toContain('## Known Evidence');
+    expect(result.dossierMarkdown).not.toContain('## Forbidden Claims');
+    // Evidence is densified into per-fact bullets, not one long concatenated line.
+    expect(result.dossierMarkdown).toContain('Trasse A12: Mittelspannung, Baujahr 2010, Status aktiv');
+  });
+
+  test('dossierContract=slim (validation/check domain) frames missing evidence positively', async () => {
+    const service = {
+      ...buildServiceHarness(),
+      async collectCopilotKnowledgeEvidence() {
+        return {
+          status: 'available',
+          hits: [
+            { source: 'EDM-Validator', value: 'Plausibilitätsprüfung Zählerstand 2026-06-01: bestanden, Abweichung 0.4% zum Vormonat' },
+          ],
+        };
+      },
+      async searchCopilotEntities() {
+        return { results: [] };
+      },
+    };
+    const ctx = buildCtx({
+      question: 'Sind die übermittelten Zählerstände für unsere Lieferstelle plausibel?',
+      dossierContract: 'slim',
+    });
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.userContext).toBe('unknown');
+    expect(result.auditTrail.dossierContract).toBe('slim_v1');
+    // Positive framing: "missingDataPoint -> enablesDossierAddition", not just a question.
+    expect(result.dossierMarkdown).toMatch(/Für wen erstellen wir dieses Dossier.*→.*zielgruppengerechtere Antwort/);
+    expect(result.dossierMarkdown).not.toContain('## Missing Evidence');
+  });
+
+  // EV/CO2 case kept as one regression among three (#238 already covers the answer-first
+  // policy itself); here it specifically proves the slim contract doesn't pull in DSO/VNB/TAB/
+  // grid-connection evidence the PLZ-based CO2 time-window answer never needed.
+  test('dossierContract=slim (PLZ/CO2 charging-window regression) excludes unrelated DSO/VNB evidence', async () => {
+    const service = buildServiceHarness();
+    const co2Calls = [];
+    const ctx = buildCtx(
+      {
+        question:
+          'Ich bin in 69256 Mauer und möchte mein Auto für 4 Stunden möglichst CO2 neutral laden. Wann ist der beste Zeitpunkt hierfür?',
+        dossierContract: 'slim',
+        timeBudgetMs: 30000,
+      },
+      {
+        'capability-broker.recommend': async () => ({ intent: 'co2_query', capability: 'energy_market' }),
+        'energy-market.co2Intensity': async (p) => {
+          co2Calls.push(p);
+          return {
+            timestamp: '2026-06-18T06:00:00+02:00',
+            forecast: [180, 160, 90, 70, 60, 65, 150].map((value) => ({ value })),
+          };
+        },
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(co2Calls).toHaveLength(1);
+    expect(result.auditTrail.dossierContract).toBe('slim_v1');
+    expect(result.dossierMarkdown).toContain('Bestes 4h-Ladefenster');
+    expect(result.dossierMarkdown.toLowerCase()).not.toMatch(/netzbetreiber|vnb\b|\btab\b|netzanschluss|dso/);
+  });
+
+  test('dossierContract=slim is overridden back to rich for process-action (prepare_intent) dossiers', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx({
+      question: 'Bitte den Prozess für unser Vorhaben jetzt einleiten.',
+      dossierContract: 'slim',
+    });
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.answerMode).toBe('prepare_intent');
+    expect(result.auditTrail.dossierContract).toBe('rich_v1 (slim_requested_overridden_process_risk)');
+    expect(result.dossierMarkdown).toContain('# CERNION RENDERER PACKAGE');
+    expect(result.dossierMarkdown).toContain('## Recommended Answer Structure');
+  });
+
+  test('dossierContract default (no param) stays rich — confirms zero behavior change for existing callers', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx({ question: 'Was ist der aktuelle Status?' });
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.auditTrail.dossierContract).toBe('rich_v1');
+    expect(result.dossierMarkdown).toContain('# CERNION RENDERER PACKAGE');
+  });
+
 });

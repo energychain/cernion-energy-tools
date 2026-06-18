@@ -634,6 +634,139 @@ function resolveDossierSubstantiveAnswer({
   return Boolean(hasValidatedEvidence) || Boolean(finalMode) || (Boolean(preliminaryAnswerRequested) && evidenceCount > 0);
 }
 
+const DOSSIER_CONTRACT = Object.freeze({
+  RICH: 'rich',
+  SLIM: 'slim',
+});
+
+/**
+ * Decides the effective dossier contract (#242). Default stays 'rich' — today's full
+ * governance/policy package — unless the caller explicitly opts into 'slim'. Process-action
+ * and not-yet-complete dossiers are routed back to 'rich' regardless of the request: a slim,
+ * answer-dense payload is the wrong shape when the answer is itself a consequential process
+ * step, or when backend evidence collection genuinely hasn't finished yet.
+ */
+function resolveDossierContract({
+  requestedContract = DOSSIER_CONTRACT.RICH,
+  answerMode,
+  completionState,
+} = {}) {
+  if (requestedContract !== DOSSIER_CONTRACT.SLIM) {
+    return { contract: DOSSIER_CONTRACT.RICH, overridden: false, reason: null };
+  }
+  if (answerMode === DOSSIER_ANSWER_MODE.PREPARE_INTENT) {
+    return { contract: DOSSIER_CONTRACT.RICH, overridden: true, reason: 'process_risk' };
+  }
+  if (completionState && completionState !== DOSSIER_COMPLETION_STATE.COMPLETED) {
+    return { contract: DOSSIER_CONTRACT.RICH, overridden: true, reason: 'incomplete_evidence' };
+  }
+  return { contract: DOSSIER_CONTRACT.SLIM, overridden: false, reason: null };
+}
+
+function describeDossierContract({ contract, overridden, reason }) {
+  if (!overridden) return `${contract}_v1`;
+  return `${contract}_v1 (slim_requested_overridden_${reason})`;
+}
+
+/**
+ * Breaks a "Label: Value · Label2: Value2" evidence string (the formatting convention every
+ * hydration rule already uses) into individual answer-ready facts, instead of repeating the
+ * whole concatenated line. Domain-agnostic — relies only on that existing separator, not on
+ * which capability produced the value.
+ */
+function splitDossierEvidenceFacts(value = '') {
+  return String(value || '')
+    .split(' · ')
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function buildSlimEvidenceSection(evidence = []) {
+  if (evidence.length === 0) {
+    return ['## Evidence', '_Keine Evidence verfügbar._'];
+  }
+  const lines = ['## Evidence'];
+  evidence.forEach((entry, index) => {
+    const source = entry?.source || 'Cernion';
+    const facts = splitDossierEvidenceFacts(entry?.value);
+    if (facts.length > 1) {
+      lines.push(`${index + 1}. **${source}**`);
+      facts.forEach((fact) => lines.push(`   - ${fact}`));
+    } else {
+      lines.push(`${index + 1}. **${source}**: ${entry?.value || ''}`);
+    }
+  });
+  return lines;
+}
+
+function buildSlimAnswerConstraintsSection({ domain, blockingConstraints = [] } = {}) {
+  const lines = [
+    '## Answer Constraints',
+    '- Nur Fakten aus Evidence und Reasoning verwenden — keine zusätzlichen Annahmen, Gesetze, Fristen oder Verfahren ergänzen.',
+  ];
+  if (domain === 'redispatch') {
+    REDISPATCH_FORBIDDEN_CLAIMS.forEach((claim) => lines.push(`- ${claim}`));
+  }
+  blockingConstraints.forEach((constraint) => lines.push(`- ${constraint}`));
+  return lines;
+}
+
+function buildSlimFollowUpSection(possibleFollowUp = []) {
+  if (!Array.isArray(possibleFollowUp) || possibleFollowUp.length === 0) {
+    return ['## Possible Follow-Up', '_Keine zusätzlichen Rückfragen — die Antwort oben ist vollständig auf Basis der Evidence._'];
+  }
+  const lines = ['## Possible Follow-Up'];
+  possibleFollowUp.forEach(({ question, enablesDossierAddition }) => {
+    lines.push(`- ${question} → ${enablesDossierAddition}`);
+  });
+  return lines;
+}
+
+/**
+ * Slim answer-payload dossier (#242): maximizes answer-relevant facts, reasoning, and evidence
+ * per token instead of the full rich governance/policy package. Returned as a standalone
+ * markdown document — no outer "CERNION RENDERER PACKAGE" wrapper — since its own Renderer
+ * Instruction section already covers what the wrapper's Systemhinweis/Aufgabe did.
+ */
+function buildSlimDossierMarkdown({
+  question,
+  dossierState,
+  evidence = [],
+  reasoningSummary = '',
+  domain,
+  possibleFollowUp = [],
+  blockingConstraints = [],
+}) {
+  const { userContext, answerMode, confidence } = dossierState;
+  const lines = [
+    '# CERNION ANSWER DOSSIER (SLIM)',
+    '',
+    '## Question',
+    question,
+    '',
+    '## Consulting Interpretation',
+    `- Nutzerkontext: ${userContext}`,
+    `- Antwortmodus: ${answerMode}`,
+    `- Konfidenz: ${confidence} (${evidence.length} Evidence-Einheit(en))`,
+    '- Diese Antwort stützt sich ausschließlich auf die unten gelistete Evidence; weitere Evidence-Typen wurden nicht angefordert, da sie für diese konkrete Frage nicht erforderlich sind.',
+    '',
+    '## Reasoning',
+    reasoningSummary || '_Keine Zusammenfassung verfügbar._',
+    '',
+    ...buildSlimEvidenceSection(evidence),
+    '',
+    ...buildSlimAnswerConstraintsSection({ domain, blockingConstraints }),
+    '',
+    ...buildSlimFollowUpSection(possibleFollowUp),
+    '',
+    '## Renderer Instruction',
+    'Beantworte die Frage ausschließlich auf Basis von Evidence und Reasoning oben. Antworte zuerst substantiell aus der Evidence; nenne Answer Constraints danach als Einschränkung.',
+    'Stelle Rückfragen aus "Possible Follow-Up" nur, wenn sie für eine bessere Antwort hilfreich sind — sie sind optional und blockieren diese Antwort nicht.',
+    'Füge keine Fakten, Gesetze, Quellen oder Bewertungen hinzu, die nicht oben stehen.',
+  ];
+  return lines.join('\n');
+}
+
 module.exports = {
   DOSSIER_USER_CONTEXT,
   DOSSIER_PROCESS_STAGE,
@@ -654,4 +787,8 @@ module.exports = {
   buildFollowUpMetadata,
   generateDossierId,
   resolveDossierSubstantiveAnswer,
+  DOSSIER_CONTRACT,
+  resolveDossierContract,
+  describeDossierContract,
+  buildSlimDossierMarkdown,
 };
