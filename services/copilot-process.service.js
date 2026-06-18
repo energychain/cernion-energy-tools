@@ -852,7 +852,7 @@ The consequential execute action (\`POST /api/grid-connection/validate\`) is Pha
                 properties: {
                   gridOperatorId: { type: 'string', example: 'SNB935578300972' },
                   gridOperatorBdew: { type: 'string', example: '9907473000008' },
-                  gridOperatorName: { type: 'string', example: 'TWL Netze' },
+                  gridOperatorName: { type: 'string', example: 'STROMDAO Netze' },
                   reason: {
                     type: 'string',
                     minLength: 1,
@@ -861,7 +861,7 @@ The consequential execute action (\`POST /api/grid-connection/validate\`) is Pha
                   },
                   includeCapacityCheck: { type: 'boolean', default: false },
                   correlationId: { type: 'string', example: 'req-2026-001' },
-                  idempotencyKey: { type: 'string', example: 'idem-twl-20260611' },
+                  idempotencyKey: { type: 'string', example: 'idem-stromdao-20260611' },
                 },
               },
             },

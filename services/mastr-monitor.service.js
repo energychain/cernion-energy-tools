@@ -178,7 +178,7 @@ module.exports = {
               examples: {
                 default: {
                   value: {
-                    name: 'TWL Solar >100kW Monitoring',
+                    name: 'STROMDAO Solar >100kW Monitoring',
                     query: {
                       gridOperatorMastrId: 'SNB935578300972',
                       type: 'solar',
@@ -316,7 +316,7 @@ module.exports = {
             name: 'email',
             in: 'query',
             required: false,
-            schema: { type: 'string', format: 'email', example: 'netzplanung@twl.de' },
+            schema: { type: 'string', format: 'email', example: 'netzplanung@stromdao.de' },
           },
           {
             name: 'limit',
@@ -392,7 +392,7 @@ module.exports = {
             name: 'watchId',
             in: 'path',
             required: true,
-            schema: { type: 'string', example: 'twl-solar-monitor_ab12cd34' },
+            schema: { type: 'string', example: 'stromdao-solar-monitor_ab12cd34' },
           },
           {
             name: 'limit',
@@ -485,7 +485,7 @@ module.exports = {
                 properties: {
                   watchId: {
                     type: 'string',
-                    example: 'twl-solar-monitor_ab12cd34',
+                    example: 'stromdao-solar-monitor_ab12cd34',
                     nullable: true,
                   },
                 },
@@ -519,7 +519,7 @@ module.exports = {
             name: 'watchId',
             in: 'path',
             required: true,
-            schema: { type: 'string', example: 'twl-solar-monitor_ab12cd34' },
+            schema: { type: 'string', example: 'stromdao-solar-monitor_ab12cd34' },
           },
           {
             name: 'limit',
@@ -594,7 +594,7 @@ module.exports = {
             name: 'watchId',
             in: 'path',
             required: true,
-            schema: { type: 'string', example: 'twl-solar-monitor_ab12cd34' },
+            schema: { type: 'string', example: 'stromdao-solar-monitor_ab12cd34' },
           },
           {
             name: 'deltaId',
@@ -628,7 +628,7 @@ module.exports = {
             name: 'watchId',
             in: 'path',
             required: true,
-            schema: { type: 'string', example: 'twl-solar-monitor_ab12cd34' },
+            schema: { type: 'string', example: 'stromdao-solar-monitor_ab12cd34' },
           },
           {
             name: 'format',
@@ -688,10 +688,10 @@ module.exports = {
                 properties: {
                   watchId: {
                     type: 'string',
-                    example: 'twl-solar-monitor_ab12cd34',
+                    example: 'stromdao-solar-monitor_ab12cd34',
                     nullable: true,
                   },
-                  email: { type: 'string', format: 'email', example: 'netzplanung@twl.de' },
+                  email: { type: 'string', format: 'email', example: 'netzplanung@stromdao.de' },
                   onlyOnChanges: { type: 'boolean', default: true },
                   language: { type: 'string', enum: ['de', 'en'], default: 'de' },
                 },
@@ -699,7 +699,7 @@ module.exports = {
               examples: {
                 default: {
                   value: {
-                    email: 'netzplanung@twl.de',
+                    email: 'netzplanung@stromdao.de',
                     onlyOnChanges: true,
                     language: 'de',
                   },

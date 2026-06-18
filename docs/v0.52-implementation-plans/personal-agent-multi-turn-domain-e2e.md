@@ -95,7 +95,7 @@ do not change → mode always `append`.
 
 | Turn | Message | Context Mutation | Expected Behaviour |
 |------|---------|------------------|--------------------|
-| 1 | „Wir prüfen ein Anschlussbegehren für ein Rechenzentrum mit fNAV…" | — (new session, gridOperatorName: TWL Netze) | `netzfahrplan_fnav_assessment` + `assess_fnav_as_kupferalternative` in routing |
+| 1 | „Wir prüfen ein Anschlussbegehren für ein Rechenzentrum mit fNAV…" | — (new session, gridOperatorName: STROMDAO Netze) | `netzfahrplan_fnav_assessment` + `assess_fnav_as_kupferalternative` in routing |
 | 2 | „Was bedeutet das für unsere N-1-Reserve?" | append | N-1/reserve mentioned; no invented % if Turn 1 had none |
 | 3 | „Projiziere den fNAV für die nächsten 5 Jahre." | append | Year range 2026–2031 only; digits present |
 | 4 | „Wir verlagern das Projekt nach München." | **replace** (location changed) | Reply mentions München; no Frankfurt; fNAV context present |
@@ -130,7 +130,7 @@ Requires `RUN_PERSONAL_AGENT_E2E_VDMI_STEP3=true`.
 
 | Turn | Message | Expected Behaviour |
 |------|---------|-------------------|
-| 1 | „Projekt in Frankenthal, Netzbetreiber soll TWL Netze sein, 12 MW" | Reply contains due-diligence/Netzanschlusszusage/assumption language |
+| 1 | „Projekt in Frankenthal, Netzbetreiber soll STROMDAO Netze sein, 12 MW" | Reply contains due-diligence/Netzanschlusszusage/assumption language |
 | 2 | „Arbeite mit der vorläufigen Annahme weiter…" | Does NOT repeat the VNB-uncertainty question from Turn 1 |
 | 3 | „Welche Markt- und Regulatorik-Methodik würdest du anwenden?" | Methodology/data-source language; no stale turn-1 disclaimer |
 | 4 | „Erstelle ein vorläufiges Risk Assessment für den Kreditausschuss." | Risk Assessment / Condition Precedent / Risikoampel language |
@@ -151,7 +151,7 @@ Requires `RUN_PERSONAL_AGENT_E2E_VDMI_STEP3=true`.
 | Turn | Message | Expected Behaviour |
 |------|---------|-------------------|
 | 1 | Vague start as bank analyst | `execution.status = awaiting-onboarding`; `presentationType = conversational_onboarding` |
-| 2 | „Standort Frankenthal, 12 MW, TWL Netze…" | `execution.status = completed`; Betreiber-Mismatch (Stadtwerke Frankenthal vs TWL) surfaced |
+| 2 | „Standort Frankenthal, 12 MW, STROMDAO Netze…" | `execution.status = completed`; Betreiber-Mismatch (Stadtwerke Frankenthal vs STROMDAO) surfaced |
 | 3 | „Was ist der nächste formale EnWG-Schritt?" | `presentationType = vdmi_matrix_table`; RACI (Verantwortlich/Durchführend/Mitwirkend/Informiert) in reply |
 | 4 | „One-Pager Risk Assessment für den Kreditausschuss" | `presentationType = decision_brief`; Condition Precedent / BKZ in reply |
 

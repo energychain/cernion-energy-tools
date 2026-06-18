@@ -6,7 +6,7 @@ module.exports = {
   preferredFormat: 'auto',
   context: {
     location: 'Frankenthal / Rhein-Neckar',
-    assertedGridOperator: 'TWL Netze GmbH',
+    assertedGridOperator: 'STROMDAO Netze GmbH',
   },
   domainResult: {
     project: {

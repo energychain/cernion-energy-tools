@@ -184,11 +184,11 @@ describe('extractFacts', () => {
   test('extracts Netzbetreiber fact from user messages', () => {
     const session = {
       l3: {
-        history: [{ role: 'user', text: 'Netzbetreiber: TWL Netze Ludwigshafen' }],
+        history: [{ role: 'user', text: 'Netzbetreiber: STROMDAO Netze Ludwigshafen' }],
       },
     };
     const result = extractFacts(session);
-    expect(result.tenantFacts.some((f) => f.includes('TWL Netze Ludwigshafen'))).toBe(true);
+    expect(result.tenantFacts.some((f) => f.includes('STROMDAO Netze Ludwigshafen'))).toBe(true);
   });
 
   test('extracts capacity fact from user messages', () => {
@@ -252,13 +252,13 @@ describe('extractFacts', () => {
     const session = {
       l3: {
         history: [
-          { role: 'user', text: 'Netzbetreiber: TWL Netze' },
-          { role: 'user', text: 'Netzbetreiber: TWL Netze' },
+          { role: 'user', text: 'Netzbetreiber: STROMDAO Netze' },
+          { role: 'user', text: 'Netzbetreiber: STROMDAO Netze' },
         ],
       },
     };
     const result = extractFacts(session);
-    const matching = result.tenantFacts.filter((f) => f.includes('TWL Netze'));
+    const matching = result.tenantFacts.filter((f) => f.includes('STROMDAO Netze'));
     expect(matching.length).toBe(1);
   });
 
@@ -465,7 +465,7 @@ describe('AK2 — enrichL1TenantMemory', () => {
   test('adds new facts when store is empty', async () => {
     mockEmbeddings.mockResolvedValue([]);
     const ctx = makeCtx();
-    const result = await enrichL1TenantMemory(ctx, 'tenant1', ['Netzbetreiber: TWL Netze']);
+    const result = await enrichL1TenantMemory(ctx, 'tenant1', ['Netzbetreiber: STROMDAO Netze']);
     expect(result.added).toBe(1);
     expect(result.skipped).toBe(0);
   });
@@ -478,13 +478,13 @@ describe('AK2 — enrichL1TenantMemory', () => {
       namespace: ns,
       key: 'fact:abc',
       payload: {
-        text: 'Netzbetreiber: TWL Netze',
+        text: 'Netzbetreiber: STROMDAO Netze',
         addedAt: '2026-01-01T00:00:00Z',
         source: 'dream-pipeline',
       },
     });
     mockEmbeddings.mockResolvedValue([[1, 0, 0]]);
-    const result = await enrichL1TenantMemory(ctx, 'tenant1', ['Netzbetreiber: TWL Netze']);
+    const result = await enrichL1TenantMemory(ctx, 'tenant1', ['Netzbetreiber: STROMDAO Netze']);
     expect(result.skipped).toBe(1);
     expect(result.added).toBe(0);
   });
@@ -633,7 +633,7 @@ describe('runDreamPipeline', () => {
     const session = {
       l3: {
         history: [
-          { role: 'user', text: 'Netzbetreiber: TWL Netze' },
+          { role: 'user', text: 'Netzbetreiber: STROMDAO Netze' },
           { role: 'user', text: 'Bitte auf deutsch.' },
         ],
       },

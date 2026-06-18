@@ -88,7 +88,7 @@ Detects both **DEFINITIVE_MISASSIGNMENT** (L1 mismatch, authoritative) and **LIK
                   registeredGridOperatorName: {
                     type: 'string',
                     description: 'Registered VNB name for the L1 comparison.',
-                    example: 'TWL Netze GmbH',
+                    example: 'STROMDAO Netze GmbH',
                   },
                   gridOperatorId: {
                     type: 'string',
@@ -135,7 +135,7 @@ Detects both **DEFINITIVE_MISASSIGNMENT** (L1 mismatch, authoritative) and **LIK
                   value: {
                     latitude: 49.481,
                     longitude: 8.432,
-                    registeredGridOperatorName: 'TWL Netze GmbH',
+                    registeredGridOperatorName: 'STROMDAO Netze GmbH',
                     radiusMeters: 800,
                     includeInfrastructureDetails: true,
                   },
@@ -157,7 +157,7 @@ Detects both **DEFINITIVE_MISASSIGNMENT** (L1 mismatch, authoritative) and **LIK
                       location: { lat: 49.481, lon: 8.432 },
                       installationType: 'solar',
                       bruttoleistungKW: 9.9,
-                      registeredGridOperator: 'TWL Netze GmbH',
+                      registeredGridOperator: 'STROMDAO Netze GmbH',
                       registeredGridOperatorId: 'SNB935578300972',
                     },
                     validation: {
@@ -167,7 +167,7 @@ Detects both **DEFINITIVE_MISASSIGNMENT** (L1 mismatch, authoritative) and **LIK
                       layer1_vnbdigital: {
                         queried: true,
                         status: 'QUERIED_SUCCESS',
-                        vnbFound: 'TWL Netze GmbH',
+                        vnbFound: 'STROMDAO Netze GmbH',
                         match: true,
                         authoritative: true,
                       },
@@ -178,9 +178,9 @@ Detects both **DEFINITIVE_MISASSIGNMENT** (L1 mismatch, authoritative) and **LIK
                           osmId: 'node/123456789',
                           distanceMeters: 184,
                           type: 'distribution',
-                          operatorTag: 'TWL',
+                          operatorTag: 'STROMDAO',
                         },
-                        dominantOperator: 'TWL',
+                        dominantOperator: 'STROMDAO',
                         dominantOperatorShare: 1.0,
                         radiusMeters: 500,
                       },
@@ -369,7 +369,7 @@ Use \`constrainToBbox\` (directly from a \`vnbdigital_lookup\` bbox field) to re
                       nearestSubstationMeters: 184,
                       nearestNSConnectionMeters: 184,
                       nearestMSConnectionMeters: 430,
-                      dominantOperator: 'TWL',
+                      dominantOperator: 'STROMDAO',
                       substationsFound: 4,
                       osmCoverageQuality: 'MEDIUM',
                     },
@@ -383,7 +383,7 @@ Use \`constrainToBbox\` (directly from a \`vnbdigital_lookup\` bbox field) to re
                         voltageLevel: 'NS',
                         voltageIn: '20000',
                         voltageOut: '400',
-                        operator: 'TWL',
+                        operator: 'STROMDAO',
                         name: 'UW Innenstadt',
                         connectionSuitability: 'SUITABLE_NS',
                       },
@@ -480,7 +480,7 @@ Returns both a detail list and **aggregated statistics**:
                   gridOperator: {
                     type: 'string',
                     description: 'VNB name — used as OSM area name fallback.',
-                    example: 'TWL Netze GmbH',
+                    example: 'STROMDAO Netze GmbH',
                   },
                   gridOperatorId: {
                     type: 'string',
@@ -517,7 +517,7 @@ Returns both a detail list and **aggregated statistics**:
                   summary: 'All substations in a VNB territory (via bbox)',
                   value: {
                     boundingBox: { north: 49.548, south: 49.427, east: 8.477, west: 8.298 },
-                    gridOperator: 'TWL Netze GmbH',
+                    gridOperator: 'STROMDAO Netze GmbH',
                   },
                 },
                 hsMunich: {
@@ -550,7 +550,7 @@ Returns both a detail list and **aggregated statistics**:
                   data: {
                     query: {
                       scopeSource: 'boundingBox',
-                      gridOperator: 'TWL Netze GmbH',
+                      gridOperator: 'STROMDAO Netze GmbH',
                       bbox: [8.298, 49.427, 8.477, 49.548],
                       voltageLevel: 'ALL',
                       substationType: 'ALL',
@@ -560,10 +560,10 @@ Returns both a detail list and **aggregated statistics**:
                       returnedSubstations: 200,
                       byVoltageLevel: { NS_MS: 289, MS_HS: 21, HS_EHS: 2, UNKNOWN: 0 },
                       byOperator: [
-                        { operator: 'TWL', count: 287, share: 0.92 },
+                        { operator: 'STROMDAO', count: 287, share: 0.92 },
                         { operator: 'Stadtwerke Ludwigshafen', count: 14, share: 0.04 },
                       ],
-                      dominantOperator: 'TWL',
+                      dominantOperator: 'STROMDAO',
                       dominantOperatorShare: 0.92,
                       areaKm2: 85.4,
                       densityAssessment: { substationsPerKm2: 3.65, label: 'URBAN' },
@@ -575,7 +575,7 @@ Returns both a detail list and **aggregated statistics**:
                         subtype: 'distribution',
                         location: { lat: 49.487, lon: 8.451 },
                         voltageLevel: 'NS',
-                        operator: 'TWL',
+                        operator: 'STROMDAO',
                         name: 'TUS Oggersheim',
                       },
                     ],
@@ -672,7 +672,7 @@ Returns both a detail list and **aggregated statistics**:
                   gridOperator: {
                     type: 'string',
                     description: 'VNB name — used as OSM area name.',
-                    example: 'TWL Netze GmbH',
+                    example: 'STROMDAO Netze GmbH',
                   },
                   voltageLevel: {
                     type: 'string',

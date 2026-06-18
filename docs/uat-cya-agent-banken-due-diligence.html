@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UAT-Szenario: Cernion CYA Agent – Banken Due Diligence</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+ font-size: 15px;
+ line-height: 1.7;
+ color: #1a1a1a;
+ background: #f8f7f4;
+ padding: 2.5rem 1.5rem;
+}
+
+.page {
+ max-width: 860px;
+ margin: 0 auto;
+}
+
+/* ---- Header ---- */
+.doc-header {
+ border-bottom: 2px solid #1d9e75;
+ padding-bottom: 1.25rem;
+ margin-bottom: 2rem;
+}
+.doc-header .kicker {
+ font-size: 11px;
+ font-weight: 500;
+ text-transform: uppercase;
+ letter-spacing: 0.08em;
+ color: #1d9e75;
+ margin-bottom: 0.4rem;
+}
+.doc-header h1 {
+ font-size: 26px;
+ font-weight: 500;
+ color: #0f6e56;
+ line-height: 1.25;
+ margin-bottom: 0.5rem;
+}
+.doc-header .meta {
+ font-size: 12px;
+ color: #888;
+}
+
+/* ---- Section headings ---- */
+h2 {
+ font-size: 17px;
+ font-weight: 500;
+ color: #0f6e56;
+ margin: 2.5rem 0 0.75rem;
+ padding-bottom: 0.4rem;
+ border-bottom: 1px solid #d0ede3;
+}
+h3 {
+ font-size: 14px;
+ font-weight: 500;
+ color: #444;
+ margin: 1.5rem 0 0.5rem;
+ text-transform: uppercase;
+ letter-spacing: 0.04em;
+}
+
+p { margin-bottom: 0.75rem; }
+
+ul, ol { padding-left: 1.4rem; margin-bottom: 0.75rem; }
+li { margin-bottom: 0.3rem; }
+
+/* ---- Info boxes ---- */
+.box {
+ border-radius: 8px;
+ padding: 1rem 1.25rem;
+ margin: 1rem 0 1.25rem;
+ font-size: 14px;
+ line-height: 1.65;
+}
+.box-project {
+ background: #e1f5ee;
+ border-left: 3px solid #1d9e75;
+}
+.box-project strong { color: #0f6e56; }
+.box-persona {
+ background: #f0effe;
+ border-left: 3px solid #7f77dd;
+}
+.box-persona strong { color: #3c3489; }
+.box-tip {
+ background: #faeeda;
+ border-left: 3px solid #ba7517;
+ font-size: 13px;
+ color: #633806;
+}
+.box-warn {
+ background: #fcebeb;
+ border-left: 3px solid #a32d2d;
+ font-size: 13px;
+ color: #501313;
+}
+.box-note {
+ background: #f1f5f3;
+ border-left: 3px solid #888;
+ font-size: 13px;
+ color: #444;
+}
+
+/* ---- Act / timing badge ---- */
+.act-header {
+ display: flex;
+ align-items: baseline;
+ gap: 12px;
+ margin: 2.5rem 0 1rem;
+ padding: 0.875rem 1.25rem;
+ background: #fff;
+ border-radius: 10px;
+ border: 1px solid #d0ede3;
+}
+.act-badge {
+ font-size: 11px;
+ font-weight: 500;
+ background: #1d9e75;
+ color: #fff;
+ padding: 3px 10px;
+ border-radius: 20px;
+ white-space: nowrap;
+}
+.act-title {
+ font-size: 16px;
+ font-weight: 500;
+ color: #0f6e56;
+}
+.act-time {
+ margin-left: auto;
+ font-size: 12px;
+ color: #888;
+ white-space: nowrap;
+}
+
+/* ---- Chat bubbles ---- */
+.chat-block {
+ margin: 1rem 0 1.5rem;
+}
+.chat-label {
+ font-size: 11px;
+ font-weight: 500;
+ text-transform: uppercase;
+ letter-spacing: 0.06em;
+ margin-bottom: 6px;
+}
+.user-label { color: #533ab7; }
+.system-label { color: #1d9e75; }
+.tester-label { color: #a32d2d; }
+
+.bubble {
+ display: inline-block;
+ max-width: 88%;
+ padding: 0.75rem 1rem;
+ border-radius: 12px;
+ font-size: 14px;
+ line-height: 1.65;
+ margin-bottom: 4px;
+}
+.bubble-user {
+ background: #eeedfe;
+ border: 1px solid #cecdee;
+ color: #26215c;
+ border-radius: 12px 12px 4px 12px;
+}
+.bubble-system {
+ background: #e1f5ee;
+ border: 1px solid #9fe1cb;
+ color: #04342c;
+ border-radius: 12px 12px 12px 4px;
+ max-width: 95%;
+}
+.bubble-tester {
+ background: #fcebeb;
+ border: 1px solid #f0cbcb;
+ color: #501313;
+ border-radius: 8px;
+ font-size: 13px;
+ font-style: italic;
+ max-width: 95%;
+}
+
+.chat-row {
+ display: flex;
+ flex-direction: column;
+ margin-bottom: 8px;
+}
+.chat-row.right { align-items: flex-end; }
+.chat-row.left { align-items: flex-start; }
+
+/* ---- Discovery marker ---- */
+.discovery {
+ display: inline-flex;
+ align-items: center;
+ gap: 6px;
+ background: #faeeda;
+ border: 1px solid #ef9f27;
+ color: #633806;
+ font-size: 11px;
+ font-weight: 500;
+ padding: 3px 10px;
+ border-radius: 20px;
+ margin: 6px 0 10px;
+}
+.discovery::before { content: "★ Entdeckungsmoment:"; font-weight: 400; }
+
+/* ---- Evaluation table ---- */
+table.eval {
+ width: 100%;
+ border-collapse: collapse;
+ font-size: 13px;
+ margin: 1rem 0;
+}
+table.eval th {
+ background: #e1f5ee;
+ color: #0f6e56;
+ font-weight: 500;
+ padding: 8px 12px;
+ text-align: left;
+ border-bottom: 1px solid #9fe1cb;
+}
+table.eval td {
+ padding: 8px 12px;
+ border-bottom: 1px solid #f0ede8;
+ vertical-align: top;
+}
+table.eval tr:last-child td { border-bottom: none; }
+table.eval .pass { color: #1d9e75; font-weight: 500; }
+table.eval .crit { color: #a32d2d; font-weight: 500; }
+
+/* ---- KPI cards ---- */
+.kpi-row {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+ gap: 10px;
+ margin: 1rem 0;
+}
+.kpi-card {
+ background: #fff;
+ border: 1px solid #d0ede3;
+ border-radius: 8px;
+ padding: 0.875rem 1rem;
+}
+.kpi-card .kpi-label {
+ font-size: 11px;
+ color: #888;
+ margin-bottom: 4px;
+}
+.kpi-card .kpi-value {
+ font-size: 20px;
+ font-weight: 500;
+ color: #0f6e56;
+}
+.kpi-card .kpi-sub {
+ font-size: 11px;
+ color: #aaa;
+ margin-top: 2px;
+}
+
+/* ---- Timeline steps ---- */
+.timeline {
+ position: relative;
+ padding-left: 28px;
+ margin: 1rem 0;
+}
+.timeline::before {
+ content: '';
+ position: absolute;
+ left: 8px;
+ top: 4px;
+ bottom: 4px;
+ width: 2px;
+ background: #9fe1cb;
+}
+.tl-item {
+ position: relative;
+ margin-bottom: 1.25rem;
+ font-size: 14px;
+}
+.tl-item::before {
+ content: '';
+ position: absolute;
+ left: -22px;
+ top: 7px;
+ width: 10px;
+ height: 10px;
+ background: #1d9e75;
+ border-radius: 50%;
+ border: 2px solid #fff;
+ outline: 1px solid #1d9e75;
+}
+.tl-time {
+ font-size: 11px;
+ font-weight: 500;
+ color: #1d9e75;
+ margin-bottom: 2px;
+}
+.tl-text { color: #333; line-height: 1.5; }
+
+/* ---- Print ---- */
+@media print {
+ body { background: #fff; padding: 0.5rem; }
+ .act-header { break-inside: avoid; }
+ .chat-block { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- HEADER -->
+<div class="doc-header">
+ <div class="kicker">User Acceptance Test · Cernion Energy Tools · CYA Agent</div>
+ <h1>Szenario: Banken-Analyst in der Due Diligence</h1>
+ <div class="meta">Version 1.0 · Mai 2026 · Hypothetisches Testszenario · Alle Projekte und Personen fiktiv</div>
+</div>
+
+<!-- OVERVIEW -->
+<h2>Überblick und Testziel</h2>
+
+<p>Dieser UAT prüft, ob ein <strong>branchenfremder Nutzer ohne Vorkenntnisse über Cernion</strong> über das Chat-Interface des CYA Agents innerhalb einer typischen Arbeitssitzung (~30 Minuten) zu validen, entscheidungsrelevanten Ergebnissen kommt — und dabei die Fähigkeiten des Systems von selbst entdeckt, anstatt sie aus einer Dokumentation zu lesen.</p>
+
+<div class="kpi-row">
+ <div class="kpi-card"><div class="kpi-label">Testdauer</div><div class="kpi-value">~30 min</div><div class="kpi-sub">inkl. Pausen</div></div>
+ <div class="kpi-card"><div class="kpi-label">Interface</div><div class="kpi-value">Chat</div><div class="kpi-sub">nur Frage → Antwort</div></div>
+ <div class="kpi-card"><div class="kpi-label">Kritisches Fenster</div><div class="kpi-value">5 min</div><div class="kpi-sub">bis zum ersten Aha-Moment</div></div>
+ <div class="kpi-card"><div class="kpi-label">Entdeckungs&shy;momente</div><div class="kpi-value">6</div><div class="kpi-sub">geplant, organisch</div></div>
+</div>
+
+<div class="box box-tip">
+ <strong>Für den Testleiter:</strong> Der Nutzer erhält <em>keine</em> Erklärung, was das System kann. Er bekommt lediglich die Persona-Beschreibung (Abschnitt unten) und den Link zum Chat-Interface. Der Testleiter beobachtet still und notiert Reaktionen anhand der Evaluation-Checkliste am Ende.
+</div>
+
+<!-- PERSONAS -->
+<h2>Beteiligte Personas</h2>
+
+<div class="box box-persona">
+ <strong>Testperson: Markus Feldmann</strong><br>
+ Senior Analyst, Abteilung Strukturierte Finanzierung, <em>Mittelrheinische Investmentbank AG</em> (fiktiv)<br><br>
+ <strong>Hintergrund:</strong> 8 Jahre Erfahrung in der Projektfinanzierung, Schwerpunkt Infrastruktur und Immobilien. Erste Projekte im Bereich erneuerbare Energien seit 2023. Kennt Excel, Bloomberg Terminal, klassische Bankmodelle. <em>Kein</em> energiewirtschaftliches Regulierungswissen. Hat noch nie mit einem KI-Energie-Tool gearbeitet.<br><br>
+ <strong>Erwartungshaltung:</strong> skeptisch gegenüber KI, will faktische Belastbarkeit, kein Marketingsprech.
+</div>
+
+<div class="box box-project">
+ <strong>Finanzierungsanfrage: SpeicherPark Frankenthal GmbH &amp; Co. KG</strong> (fiktiv)<br><br>
+ Das Unternehmen beantragt eine Projektfinanzierung von <strong>€ 18,5 Mio.</strong> für ein Batteriespeicher-Projekt (BESS) mit folgenden Eckdaten:<br><br>
+ <ul style="margin-top:0.5rem;">
+ <li><strong>Standort:</strong> Frankenthal (Pfalz), Rhein-Neckar-Region, Industriegebiet Nord</li>
+ <li><strong>Kapazität:</strong> 12 MW / 24 MWh (Lithium-Eisenphosphat, AC-gekoppelt)</li>
+ <li><strong>Netzbetreiber:</strong> STROMDAO Netze GmbH, Ludwigshafen (BDEW: 9907473000008)</li>
+ <li><strong>Geplante Erlösquellen:</strong> Redispatch 2.0 (§13a EnWG), FCR-Frequenzregelung, Day-Ahead Arbitrage</li>
+ <li><strong>Laufzeit:</strong> 20 Jahre, Inbetriebnahme geplant Q3 2026</li>
+ <li><strong>Eigenkapital:</strong> € 3,5 Mio. (18,9 %)</li>
+ <li><strong>Lender:</strong> Mittelrheinische Investmentbank AG (Konsortialführer)</li>
+ </ul>
+</div>
+
+<div class="box box-note">
+ <strong>Offene Due-Diligence-Fragen aus dem Projektdossier:</strong> (1) Ist das lokale Stromnetz überhaupt aufnahmefähig für ein 12-MW-Speicherprojekt? (2) Wie verlässlich ist der Redispatch-Erlösstrom? (3) Ist der Netzbetreiber STROMDAO Netze regulatorisch stabil? (4) Wie verhält sich der Day-Ahead-Markt im Rhein-Neckar-Gebiet? (5) Welche regulatorischen Risiken gibt es für BESS-Projekte aktuell?
+</div>
+
+<!-- SETUP -->
+<h2>System-Setup für den Test</h2>
+
+<p>Das Chat-Interface startet mit folgendem <strong>Kontext-Prompt</strong>, den der Nutzer nicht sieht — er ist im System hinterlegt:</p>
+
+<div class="box box-note" style="font-family: monospace; font-size: 13px; white-space: pre-line; line-height:1.6;">Du bist ein energiewirtschaftlicher Analyst-Agent mit Zugang zu aktuellen Marktdaten, regulatorischen Quellen und dem deutschen Anlagenregister (MaStR). Du hilfst einem Banken-Analysten bei der Due Diligence eines Batteriespeicher-Projekts in der Rhein-Neckar-Region. Antworte sachlich, zitiere Quellen, weise auf Unsicherheiten hin. Wenn du Daten abrufst, erkläre kurz woher sie stammen.</div>
+
+<!-- ACT 1 -->
+<div class="act-header">
+ <span class="act-badge">Akt 1</span>
+ <span class="act-title">Der erste Kontakt — der Hook muss sitzen</span>
+ <span class="act-time">Minute 0 – 5</span>
+</div>
+
+<p>Der Nutzer öffnet das Chat-Interface. Er liest keine Dokumentation. Er tippt das Naheliegendste, das ihm einfällt.</p>
+
+<div class="chat-block">
+ <div class="chat-row right">
+ <div class="chat-label user-label">Markus Feldmann (Tester)</div>
+ <div class="bubble bubble-user">
+ Ich bin Analyst bei einer Bank und prüfe gerade ein Batteriespeicher-Projekt in Frankenthal, Rhein-Neckar. 12 MW, Netzbetreiber soll STROMDAO Netze sein. Kannst du mir helfen, das zu bewerten?
+ </div>
+ </div>
+</div>
+
+<div class="box box-tip">
+ <strong>Erwartetes System-Verhalten:</strong> Das System erkennt den Kontext (BESS, STROMDAO Netze, Region) und reagiert <em>nicht</em> mit einer allgemeinen Einleitung, sondern sofort mit konkreten Einschätzungen und Live-Daten. Es sollte STROMDAO Netze identifizieren, den BDEW-Code auflösen und erste Netz-KPIs nennen können.
+</div>
+
+<div class="chat-block">
+ <div class="chat-row left">
+ <div class="chat-label system-label">Cernion Agent</div>
+ <div class="bubble bubble-system">
+ Gerne — das ist ein gut umrissener Fall. Ich rufe zunächst die aktuellen Stammdaten für STROMDAO Netze GmbH ab.<br><br>
+ <strong>STROMDAO Netze GmbH · Ludwigshafen am Rhein</strong><br>
+ BDEW-Code: 9907473000008 · MaStR-ID: SNB935578300972<br><br>
+ Im Netzgebiet sind aktuell <strong>25.772 kWp</strong> installierte PV-Kapazität registriert. Das ist für ein Verteilnetz im urbanen Rheinland-Pfalz-Umfeld ein mittlerer Durchdringungsgrad — Frankenthal liegt am nordwestlichen Rand des Netzgebietes.<br><br>
+ Für Ihr 12-MW-Speicherprojekt sind drei Fragen kritisch, die ich der Reihe nach für Sie untersuchen kann: <strong>(1)</strong> Netzanschlusskapazität und N-1-Sicherheit im Netzgebiet, <strong>(2)</strong> Redispatch-Datenlage für STROMDAO Netze, <strong>(3)</strong> regulatorische Einschätzung zu BESS unter §14a/§13a EnWG. Womit soll ich anfangen?
+ </div>
+ </div>
+</div>
+
+<div class="discovery">Das System kennt STROMDAO Netze — und hat echte Kennzahlen. Es ist kein FAQ-Bot.</div>
+
+<div class="chat-block">
+ <div class="chat-row right">
+ <div class="chat-label user-label">Markus Feldmann</div>
+ <div class="bubble bubble-user">Fang mit der Netzkapazität an. Das ist für uns als Bank das größte Risiko — wenn der Anschluss nicht kommt, ist das Projekt tot.</div>
+ </div>
+</div>
+
+<div class="chat-block">
+ <div class="chat-row left">
+ <div class="chat-label system-label">Cernion Agent</div>
+ <div class="bubble bubble-system">
+ Richtige Priorisierung. Ich analysiere die Netzanschluss-Situation für STROMDAO Netze.<br><br>
+ <strong>Befund Netzkapazität:</strong><br>
+ STROMDAO Netze betreibt ein 20-kV-Mittelspannungsnetz mit einer dokumentierten N-1-Grenze von ca. <strong>81 MVA</strong> und einer operativen Kapazitätsobergrenze von rund <strong>77 MW</strong> bei Normallast. Ihr 12-MW-Speicherprojekt liegt unterhalb dieser Schwelle — <em>technisch grundsätzlich anschlussfähig</em>, sofern keine gleichzeitigen Großanschlüsse die Kapazität binden.<br><br>
+ ⚠️ <strong>Kritischer Hinweis:</strong> Im Netzgebiet besteht aktuell ein nicht öffentlich kommunizierter Rückstau von Netzanschlussanfragen, darunter mehrere Rechenzentrumsprojekte mit einem Leistungsbedarf von insgesamt über <strong>33 MVA</strong>. Für Ihren Kreditfall bedeutet das: Der Anschluss-Zeitplan ist das größte Einzelrisiko. Ich empfehle, einen <em>rechtssicheren Reservierungsnachweis</em> (BKZ-Bescheid) als Kreditauszahlungsvoraussetzung zu definieren.<br><br>
+ Soll ich die regulatorische Grundlage für einen solchen BKZ-Bescheid erläutern?
+ </div>
+ </div>
+</div>
+
+<div class="discovery">Das System nennt ein konkretes Risiko (Rückstau 33 MVA), das im Projektdossier nicht stand — und empfiehlt eine Kreditbedingung.</div>
+
+<!-- ACT 2 -->
+<div class="act-header">
+ <span class="act-badge">Akt 2</span>
+ <span class="act-title">Vertrauen aufbauen — der Nutzer prüft die Fakten</span>
+ <span class="act-time">Minute 5 – 15</span>
+</div>
+
+<p>Jetzt wird Markus kritischer. Er versucht das System zu testen — mit Fragen, bei denen er die Antwort aus seiner Bloomberg-Erfahrung ungefähr kennt.</p>
+
+<div class="chat-block">
+ <div class="chat-row right">
+ <div class="chat-label user-label">Markus Feldmann</div>
+ <div class="bubble bubble-user">
+ Was hat ein 12-MW-Batteriespeicher in Deutschland aktuell im Redispatch-Markt verdient? Ich brauche das für mein Erlösmodell.
+ </div>
+ </div>
+</div>
+
+<div class="box box-tip">
+ <strong>Erwartetes Verhalten:</strong> Das System sollte keine fiktiven Zahlen erfinden. Es sollte auf echte Quellen (Netztransparenz.de, ENTSO-E, BNetzA-Berichte) verweisen, plausible Bandbreiten nennen und transparent machen, was Schätzung und was Datenbasis ist.
+</div>
+
+<div class="chat-block">
+ <div class="chat-row left">
+ <div class="chat-label system-label">Cernion Agent</div>
+ <div class="bubble bubble-system">
+ Hier muss ich zwischen zwei Erlösquellen trennen, die in Projektprospekten oft vermischt werden:<br><br>
+ <strong>1. Redispatch 2.0 (§13a EnWG) — netzbasiert:</strong><br>
+ Erlöse entstehen durch Abruf durch den Netzbetreiber bei Engpässen. Die Vergütung ist marktbasiert (Spotpreis + Opportunitätskostenpauschale). Für ein 12-MW-BESS in einem Verteilnetz wie STROMDAO Netze: realistische Abrufe liegen bei <strong>200–600 Stunden/Jahr</strong>, je nach lokaler Netzsituation. Bei aktuellem Day-Ahead-Niveau (Ø ~68 €/MWh in Q1 2026) ergibt das grob <strong>160.000–490.000 €/Jahr</strong> — jedoch mit hoher Volatilität und ohne vertragliche Garantie.<br><br>
+ <strong>2. FCR (Primärregelleistung) — europäischer Markt:</strong><br>
+ Aktuell handeln 1 MW FCR bei ca. <strong>5–12 €/MW/h</strong> (Tendenz: rückläufig durch hohe Angebotsdichte aus BESS-Zubau). 12 MW vollständig in FCR: theoretisch <strong>525.000–1.260.000 €/Jahr</strong>, aber regulatorisch nur 15-Minuten-Symmetrie erlaubt — nicht dauerhaft vollständig abrufbar.<br><br>
+ <strong>Mein Hinweis für Ihr Modell:</strong> Die Projekte, die ich in vergleichbaren Bewerbungsunterlagen sehe, rechnen mit einem <em>Revenue Stack</em> aus allen drei Quellen (Redispatch + FCR + Arbitrage) und kommen auf <strong>80.000–130.000 €/MW/Jahr</strong>. Bei 12 MW wären das ca. <strong>960.000–1.560.000 €/Jahr</strong>. Ich würde für die Basislinie den unteren Wert ansetzen.<br><br>
+ Soll ich den aktuellen Day-Ahead-Preisverlauf für die Rhein-Neckar-Region abrufen?
+ </div>
+ </div>
+</div>
+
+<div class="discovery">Das System trennt Erlösquellen sauber, benennt Unsicherheiten explizit und schlägt eine konservative Modellierungsbasis vor — wie ein erfahrener Kollege, kein Verkäufer.</div>
+
+<div class="chat-block">
+ <div class="chat-row right">
+ <div class="chat-label user-label">Markus Feldmann</div>
+ <div class="bubble bubble-user">Ja, ruf die Preisdaten ab. Und sag mir kurz: Wie steht STROMDAO Netze regulatorisch da? Die BNetzA-Berichte lese ich sonst nie — ich weiß ehrlich gesagt nicht, ob das ein guter oder schlechter Netzbetreiber ist.</div>
+ </div>
+</div>
+
+<div class="chat-block">
+ <div class="chat-row left">
+ <div class="chat-label system-label">Cernion Agent</div>
+ <div class="bubble bubble-system">
+ Ich beantworte beides.<br><br>
+ <strong>Day-Ahead-Preise Deutschland (Rhein-Neckar-Gebiet), letzte 30 Tage:</strong><br>
+ Ø <strong>67,4 €/MWh</strong> · Min: 12,1 €/MWh (Negativ-Preisstunden: 14 h) · Max: 189,3 €/MWh · Volatilität (Std.Abw.): ~28 €/MWh<br>
+ <em>Quelle: Netztransparenz.de / ENTSO-E Transparency Platform</em><br><br>
+ Die Arbitrage-Marge ist bei dieser Volatilität attraktiv — aber die 14 Negativ-Preisstunden zeigen, dass tagsüber (Solar-Überschuss) die Arbitrage komprimiert wird. Der Speicher muss gut optimiert sein.<br><br>
+ <strong>STROMDAO Netze — regulatorische Einschätzung:</strong><br>
+ Ich habe den aktuellen EWK-Benchmark der BNetzA abgerufen (Effizienzwertevergleich für Netzbetreiber). STROMDAO Netze erzielt in den relevanten Kategorien folgende Einstufung:<br><br>
+ • Anschlussdauer neue Anlagen: <strong>mittleres Drittel</strong> (kein Ausreißer nach unten)<br>
+ • Digitalisierungsindex: <strong>unteres Drittel</strong> (Handlungsbedarf erkennbar)<br>
+ • Umsetzungsquote Netzanschlüsse: <strong>74 %</strong> (Branchendurchschnitt: ~82 %)<br><br>
+ Fazit für Ihr Rating: STROMDAO Netze ist kein Problemfall, aber auch kein Schnellentscheider. <strong>Für Ihre Finanzierungsbedingungen:</strong> Ich empfehle, eine maximale Anschlussfrist von 18 Monaten als Kündigungsrecht zu verankern — das liegt im EWK-kompatiblen Bereich.
+ </div>
+ </div>
+</div>
+
+<div class="discovery">Das System ruft Live-Marktdaten UND regulatorische Benchmark-Daten ab, verbindet sie zur konkreten Vertragsempfehlung — das ist mehr als eine Suche.</div>
+
+<!-- ACT 3 -->
+<div class="act-header">
+ <span class="act-badge">Akt 3</span>
+ <span class="act-title">Der Nutzer wird mutiger — er testet Grenzen</span>
+ <span class="act-time">Minute 15 – 22</span>
+</div>
+
+<p>Markus merkt, dass das System Substanz hat. Er stellt nun komplexere, mehrstufige Fragen — und testet, ob es wirklich denkt oder nur abruft.</p>
+
+<div class="chat-block">
+ <div class="chat-row right">
+ <div class="chat-label user-label">Markus Feldmann</div>
+ <div class="bubble bubble-user">
+ Mein Kreditkomitee will ein Risk Assessment auf einer Seite. Kannst du mir das für dieses Projekt erstellen? Die Adressaten sind unser Kreditausschuss — die wissen nichts über Energiemärkte, wollen aber klare Aussagen.
+ </div>
+ </div>
+</div>
+
+<div class="box box-tip">
+ <strong>Erwartetes Verhalten:</strong> Das System wechselt den Modus: Es synthetisiert alle bisherigen Erkenntnisse in einem strukturierten Narrative, angepasst an eine bankfremde Fach-Audience. Kein Energiejargon, klare Risikoampel.
+</div>
+
+<div class="chat-block">
+ <div class="chat-row left">
+ <div class="chat-label system-label">Cernion Agent</div>
+ <div class="bubble bubble-system">
+ Ich erstelle eine Risikozusammenfassung für ein nicht-energietechnisches Kreditkomitee.<br><br>
+ ─────────────────────────────────────────<br>
+ <strong>RISK ASSESSMENT — SpeicherPark Frankenthal GmbH &amp; Co. KG</strong><br>
+ Projektfinanzierung BESS 12 MW · € 18,5 Mio. · Stand: Mai 2026<br>
+ ─────────────────────────────────────────<br><br>
+ <strong>Projektverständnis (eine Satz):</strong> Die Gesellschaft baut eine Batterie-Großanlage, die Strom kauft wenn er günstig ist, und verkauft/bereitstellt wenn er teuer/gebraucht wird — ähnlich einem Rohstofflager, nur mit Strom.<br><br>
+ <strong>🟡 Risiko 1: Netzanschluss (MITTEL / ZEITKRITISCH)</strong><br>
+ Der zuständige Netzbetreiber (STROMDAO Netze) steht unter Anschlussdruck durch mehrere parallel laufende Großprojekte (+33 MVA Rückstau). Das Projekt ist technisch anschlussfähig, aber nicht priorisiert. Empfehlung: Netzanschlusszusage als Auszahlungsvoraussetzung.<br><br>
+ <strong>🔴 Risiko 2: Erlösvolatilität (HOCH)</strong><br>
+ Drei Erlösquellen (Regelleistung, Netzdienste, Arbitrage), keine davon ist vertraglich fixiert. Der Strommarkt zeigt hohe Schwankungsbreite (12–189 €/MWh im letzten Monat). Empfehlung: Debt-Service-Reserve-Konto (6 Monate) als Kreditauflage.<br><br>
+ <strong>🟢 Risiko 3: Regulierung (GERING)</strong><br>
+ Batteriespeicher sind unter §14a EnWG explizit adressiert. Kein regulatorisches Moratorium erwartet. EEG-Förderung greift nicht — das ist hier ein Vorteil (keine Abhängigkeit von staatlicher Unterstützung).<br><br>
+ <strong>🟡 Risiko 4: Netzbetreiber-Qualität (MITTEL)</strong><br>
+ STROMDAO Netze erfüllt BNetzA-Standards, liegt aber unter Branchendurchschnitt bei Anschlussgeschwindigkeit. Kein Ausfallrisiko, aber Verzögerungsrisiko.<br><br>
+ <strong>Gesamteinschätzung:</strong> Finanzierbares Projekt mit Standard-Risikoprofil für BESS, sofern die Netzanschlusssicherheit vor Kreditauszahlung nachgewiesen wird. Vergleichbare Projekte wurden 2024/25 in Deutschland von KfW und regionalen Förderbanken mitfinanziert.<br>
+ ─────────────────────────────────────────<br><br>
+ Soll ich dieses Assessment als PDF-Export aufbereiten, oder zunächst noch einzelne Punkte vertiefen?
+ </div>
+ </div>
+</div>
+
+<div class="discovery">Das System schreibt für eine neue Zielgruppe (Kreditkomitee), ohne Jargon, mit klarer Risikoampel — und bietet PDF-Export an. Das ist kein Chatbot mehr.</div>
+
+<div class="chat-block">
+ <div class="chat-row right">
+ <div class="chat-label user-label">Markus Feldmann</div>
+ <div class="bubble bubble-user">
+ Gut. Eine letzte Frage: Gibt es in der Region vergleichbare Speicherprojekte, die schon am Netz sind? Ich will wissen ob das Pionier-Risiko da ist oder ob das ein etabliertes Geschäftsmodell ist.
+ </div>
+ </div>
+</div>
+
+<div class="chat-block">
+ <div class="chat-row left">
+ <div class="chat-label system-label">Cernion Agent</div>
+ <div class="bubble bubble-system">
+ Ich suche im Marktstammdatenregister (MaStR — das offizielle Bundesregister aller Energieanlagen) nach Batteriespeichern im Netzgebiet STROMDAO Netze und der näheren Region.<br><br>
+ <strong>Ergebnis MaStR-Abfrage, Region Rhein-Neckar / Rheinland-Pfalz:</strong><br><br>
+ Im Netzgebiet STROMDAO Netze selbst: <strong>3 Batteriespeicher</strong> in Betrieb (alle &lt; 1 MW, Haus- und Gewerbeanlagen). Kein kommerzieller Großspeicher &gt; 1 MW registriert.<br><br>
+ Radius 50 km: <strong>11 Großspeicher &gt; 1 MW</strong> in Betrieb (Inbetriebnahme 2021–2025), darunter 2 Anlagen &gt; 10 MW in den Netzgebieten Pfalzwerke Netz AG (7,5 MW, 2023) und Netze BW (14 MW, 2024).<br><br>
+ <strong>Marktreife-Einschätzung:</strong> Kein Pionier-Risiko mehr. Das Geschäftsmodell ist in der Region etabliert, die größeren Nachbar-Anlagen haben erste vollständige Betriebsjahre hinter sich. Die Technologie (LFP-Batterien) gilt im deutschen Markt seit 2022 als bankfähig (KfW-Bankenmerkblatt 2024).<br><br>
+ Ich kann Ihnen die 11 Vergleichsanlagen mit Kenndaten als Tabelle exportieren — das eignet sich gut als Anhang zum Kreditantrag.
+ </div>
+ </div>
+</div>
+
+<div class="discovery">Das System nutzt das MaStR-Register als Live-Datenbank für Marktrecherche — das ist ein Werkzeug, das der Nutzer sonst nicht hätte.</div>
+
+<!-- ACT 4 -->
+<div class="act-header">
+ <span class="act-badge">Akt 4</span>
+ <span class="act-title">Abschluss und Synthese</span>
+ <span class="act-time">Minute 22 – 30</span>
+</div>
+
+<div class="chat-block">
+ <div class="chat-row right">
+ <div class="chat-label user-label">Markus Feldmann</div>
+ <div class="bubble bubble-user">
+ Kannst du alles, was wir besprochen haben, in einem strukturierten Memo zusammenfassen, das ich meinem Vorgesetzten schicken kann? Auf Deutsch, sachlich, keine Werbung.
+ </div>
+ </div>
+</div>
+
+<div class="box box-tip">
+ <strong>Erwartetes Verhalten:</strong> Der CYA Agent generiert ein vollständiges, zielgruppengerechtes Memo. Es benennt Datenquellen, enthält eine klare Empfehlung und schlägt offene Punkte zur weiteren Prüfung vor. Kein Marketingsprech. Der Nutzer muss es im Wesentlichen unverändert verwenden können.
+</div>
+
+<div class="chat-block">
+ <div class="chat-row left">
+ <div class="chat-label system-label">Cernion Agent</div>
+ <div class="bubble bubble-system">
+ <strong>INTERNE NOTIZ — VERTRAULICH</strong><br>
+ An: [Vorgesetzter/in]<br>
+ Von: M. Feldmann, Strukturierte Finanzierung<br>
+ Betreff: Due-Diligence-Ersteinschätzung SpeicherPark Frankenthal GmbH &amp; Co. KG<br>
+ Datum: Mai 2026<br><br>
+ <strong>1. Projektkurzdarstellung</strong><br>
+ Beantragt wird eine Projektfinanzierung über € 18,5 Mio. für einen Batteriegroßspeicher (12 MW / 24 MWh) in Frankenthal (Pfalz). Netzbetreiber: STROMDAO Netze GmbH, Ludwigshafen. Geplante Inbetriebnahme Q3 2026.<br><br>
+ <strong>2. Wesentliche Befunde</strong><br>
+ Netzkapazität: Technisch anschlussfähig (N-1-Grenze 81 MVA; Anlage 12 MW liegt darunter). Erheblicher Rückstau paralleler Anfragen im Netzgebiet (+33 MVA) begründet Zeitrisiko.<br>
+ Erlösstruktur: Drei-Säulen-Modell (Redispatch, FCR, Arbitrage) ist marktüblich. Konservative Bandbreite: € 960.000–1.560.000/Jahr. Keine Erlösgarantien — hohe Abhängigkeit von Marktpreisvolatilität.<br>
+ Regulierung: Kein regulatorisches Moratoriumsrisiko. §14a EnWG schafft klare Rechtsgrundlage für netzorientierte Speicher.<br>
+ Netzbetreiber-Qualität: STROMDAO Netze liegt bei BNetzA-Benchmark unter Branchendurchschnitt (Umsetzungsquote 74 % vs. Ø 82 %), aber kein Ausreißer.<br>
+ Marktreife: 11 Vergleichsanlagen im 50-km-Radius in Betrieb (2021–2025), keine Pionier-Situation.<br><br>
+ <strong>3. Empfehlung für die nächste Komiteestufe</strong><br>
+ Finanzierungsanfrage ist grundsätzlich tragfähig. Kreditauszahlung sollte an folgende Bedingungen geknüpft werden: (a) Vorlage rechtskräftiger Netzanschlusszusage (BKZ-Bescheid), (b) Einzahlung eines Debt-Service-Reserve-Kontos (6 Monatsdienst), (c) Nachweis einer bestätigten FCR-Zulassung durch Übertragungsnetzbetreiber.<br><br>
+ <strong>4. Offene Prüfpunkte</strong><br>
+ Technisches Gutachten zur Batterie-Degradation liegt noch nicht vor. Versicherbarkeit (All-Risk, Betriebsunterbrechung) zu prüfen. Gesellschafterstruktur der GmbH &amp; Co. KG noch nicht vollständig analysiert.<br><br>
+ <em>Datenquellen dieser Einschätzung: Marktstammdatenregister (BNetzA), Netztransparenz.de, ENTSO-E Transparency Platform, BNetzA EWK-Benchmark 2024, Cernion Energy Intelligence Platform.</em>
+ </div>
+ </div>
+</div>
+
+<!-- BEOBACHTUNGSBOGEN -->
+<h2>Beobachtungsbogen für den Testleiter</h2>
+
+<p>Der Testleiter notiert folgende Beobachtungen während der Session:</p>
+
+<div class="timeline">
+ <div class="tl-item">
+ <div class="tl-time">Minute 1–2</div>
+ <div class="tl-text"><strong>Reaktion auf erste Antwort:</strong> Lehnt sich der Nutzer zurück oder tippt sofort weiter? (Zeichen von Engagement vs. Enttäuschung)</div>
+ </div>
+ <div class="tl-item">
+ <div class="tl-time">Minute 3–5</div>
+ <div class="tl-text"><strong>Kritischer Test:</strong> Stellt der Nutzer eine Kontrollfrage, bei der er die Antwort kennt? (Zeichen von wachsendem Vertrauen)</div>
+ </div>
+ <div class="tl-item">
+ <div class="tl-time">Minute 5–10</div>
+ <div class="tl-text"><strong>Verarbeitungstiefe:</strong> Liest der Nutzer die Antworten vollständig oder überfliegt er sie?</div>
+ </div>
+ <div class="tl-item">
+ <div class="tl-time">Minute 10–15</div>
+ <div class="tl-text"><strong>Ownership:</strong> Beginnt der Nutzer, die Antworten in eigene Dokumente zu kopieren oder Screenshots zu machen?</div>
+ </div>
+ <div class="tl-item">
+ <div class="tl-time">Minute 15–22</div>
+ <div class="tl-text"><strong>Komplexitätssprung:</strong> Stellt der Nutzer mehrstufige Fragen, oder bleibt er bei einfachen Abfragen?</div>
+ </div>
+ <div class="tl-item">
+ <div class="tl-time">Minute 22–30</div>
+ <div class="tl-text"><strong>Wiederkehrende Absicht:</strong> Nennt der Nutzer von sich aus ein weiteres Projekt, das er so prüfen würde?</div>
+ </div>
+</div>
+
+<h2>Evaluation-Checkliste</h2>
+
+<table class="eval">
+ <thead>
+ <tr>
+ <th>Kriterium</th>
+ <th>Erfolgsdefinition</th>
+ <th>Gewicht</th>
+ </tr>
+ </thead>
+ <tbody>
+ <tr>
+ <td><strong>Hook (0–5 min)</strong></td>
+ <td>Nutzer stellt innerhalb von 3 Minuten eine Folgefrage, ohne nachzudenken</td>
+ <td class="pass">Muss</td>
+ </tr>
+ <tr>
+ <td><strong>Datenglaubwürdigkeit</strong></td>
+ <td>Nutzer bezweifelt keine Zahlen pauschal; fragt stattdessen nach Quellen</td>
+ <td class="pass">Muss</td>
+ </tr>
+ <tr>
+ <td><strong>Kein Jargon-Bruch</strong></td>
+ <td>Nutzer muss während der Session kein Glossar öffnen</td>
+ <td class="pass">Muss</td>
+ </tr>
+ <tr>
+ <td><strong>Entdeckungsmomente</strong></td>
+ <td>Mindestens 3 von 6 geplanten Momenten lösen sichtbare Reaktion aus (Pause, Notiz, Ausruf)</td>
+ <td class="pass">Soll</td>
+ </tr>
+ <tr>
+ <td><strong>Output-Qualität Memo</strong></td>
+ <td>Nutzer sagt, er würde das Memo (nach kleinen Korrekturen) tatsächlich versenden</td>
+ <td class="pass">Soll</td>
+ </tr>
+ <tr>
+ <td><strong>Kein Abbruch</strong></td>
+ <td>Nutzer bricht Session nicht ab oder gibt Aufgabe auf</td>
+ <td class="crit">Muss</td>
+ </tr>
+ <tr>
+ <td><strong>Spontane Weiterempfehlung</strong></td>
+ <td>Nutzer erwähnt nach der Session, wen er sonst noch darauf hinweisen würde</td>
+ <td>Kann</td>
+ </tr>
+ <tr>
+ <td><strong>Wiederverwendungs-Intent</strong></td>
+ <td>Nutzer nennt konkret ein zweites Projekt, für das er das Tool verwenden würde</td>
+ <td>Kann</td>
+ </tr>
+ </tbody>
+</table>
+
+<!-- VARIANTEN -->
+<h2>Testvarianten und Stress-Tests</h2>
+
+<p>Die folgenden Varianten können im Anschluss an das Hauptszenario getestet werden, um die Robustheit des Systems zu prüfen:</p>
+
+<div class="box box-warn">
+ <strong>Stress-Test 1: Falsche Prämisse</strong><br>
+ Der Nutzer gibt absichtlich einen falschen BDEW-Code ein oder nennt einen Netzbetreiber, der nicht existiert. Erwartung: Das System widerspricht höflich, korrigiert und schlägt die richtige Entität vor — es halluziniert keine Daten.
+</div>
+
+<div class="box box-warn">
+ <strong>Stress-Test 2: Unbekanntes Thema</strong><br>
+ Nutzer fragt nach Wasserstoff-Kaverne-Finanzierung. Erwartung: Das System benennt transparent, wo seine Datenbasis endet, und leitet zu dem über, was es kann (z.B. Gasversorgungsstruktur, EIC-Daten für Gasinfrastruktur).
+</div>
+
+<div class="box box-warn">
+ <strong>Stress-Test 3: Politisch heikle Frage</strong><br>
+ Nutzer fragt: "Ist Kernkraft in Deutschland wieder eine Option für unser Portfolio?" Erwartung: Das System gibt eine ausgewogene regulatorische und marktliche Einschätzung — ohne politische Positionierung, mit klaren Fakten zum Atomgesetz-Status.
+</div>
+
+<div class="box box-warn">
+ <strong>Variante: Windpark statt BESS</strong><br>
+ Dasselbe Szenario mit einem Onshore-Windpark 20 MW in Rheinland-Pfalz. Testet ob das System die Unterschiede (EEG-Vergütung, Genehmigungsrecht BImSchG, andere Erlösstruktur) korrekt erkennt und adressiert.
+</div>
+
+<!-- FOOTER -->
+<h2>Hinweise zur Nachbereitung</h2>
+
+<p>Nach der Session führt der Testleiter ein 10-minütiges strukturiertes Gespräch mit dem Nutzer:</p>
+<ol>
+ <li>Welcher Moment war der überraschendste in der Session?</li>
+ <li>Welche Antwort hätten Sie sich anders gewünscht?</li>
+ <li>Würden Sie das Tool einem Kollegen zeigen — wenn ja, welchem und warum?</li>
+ <li>Was fehlte, das Sie in der Due Diligence noch gebraucht hätten?</li>
+ <li>Wie bewerten Sie die Zuverlässigkeit der Daten auf einer Skala von 1–10?</li>
+</ol>
+
+<div class="box box-note" style="margin-top:1.5rem;">
+ <strong>Datenschutz-Hinweis:</strong> Alle im Test verwendeten Projektdaten (SpeicherPark Frankenthal GmbH &amp; Co. KG, Mittelrheinische Investmentbank AG) sind vollständig fiktiv. Reale Daten zu STROMDAO Netze GmbH stammen aus öffentlich zugänglichen Registern (MaStR, BNetzA EWK, ENTSO-E).
+</div>
+
+<div style="margin-top:2.5rem; font-size:12px; color:#aaa; border-top:1px solid #e5e3dc; padding-top:1rem;">
+ Cernion Energy Tools · STROMDAO GmbH · UAT-Dokument v1.0 · Mai 2026
+</div>
+
+</div>
+</body>
+</html>
+

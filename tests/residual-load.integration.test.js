@@ -139,9 +139,9 @@ describe('Residual Load Service — Integration Tests', () => {
     });
   });
 
-  // ── §12 StromNZV: 15-min day-ahead procurement (TWL Ludwigshafen) ────────────
+  // ── §12 StromNZV: 15-min day-ahead procurement (STROMDAO Ludwigshafen) ────────────
 
-  describe('Day-ahead procurement scenario (TWL Ludwigshafen, 15-min)', () => {
+  describe('Day-ahead procurement scenario (STROMDAO Ludwigshafen, 15-min)', () => {
     let result;
     beforeEach(async () => {
       result = await broker.call('residual-load.netResidualLoad', {

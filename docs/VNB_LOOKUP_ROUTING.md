@@ -78,4 +78,4 @@ Kein Governance-Workflow, keine VDMI-Eskalation.
 | „Residuallast für Stadtwerke München analysieren" | `residual_load_forecast_for_dso` |
 | „Kann der Netzbetreiber ohne §17-Begehren zusagen?" | `vdmi_grid_connection_decision_governance` |
 | „fNAV-Prüfung für Rechenzentrum als Alternative zu Kupfer" | `netzfahrplan_fnav_assessment` |
-| „Benchmark Netze BW vs. TWL KPI-Vergleich" | `vnb_kpi_benchmark_comparison` |
+| „Benchmark Netze BW vs. STROMDAO KPI-Vergleich" | `vnb_kpi_benchmark_comparison` |

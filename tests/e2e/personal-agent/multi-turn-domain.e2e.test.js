@@ -24,14 +24,14 @@ const VORSTAND_ROUTING_TOKENS = [
 
 const BENCHMARK_KNOWN_CONTEXT = Object.freeze({
   vnb1Name: 'Stadtwerke Troisdorf',
-  vnb2Name: 'TWL Netze',
+  vnb2Name: 'STROMDAO Netze',
 });
 
 const VORSTAND_KNOWN_CONTEXT = Object.freeze({
   requestedCapacityKW: 10000,
   voltageLevel: 'MS',
-  gridOperatorName: 'TWL Netze',
-  ownerContact: 'netzplanung@twl.de',
+  gridOperatorName: 'STROMDAO Netze',
+  ownerContact: 'netzplanung@stromdao.de',
 });
 
 function checkServerAvailableSync(baseUrl) {
@@ -703,7 +703,7 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
 
     it('Turn 1: erzeugt Due-Diligence-Evidenzfrage mit Working Assumption', async () => {
       const { response, payload } = await client.chat(
-        'Projekt in Frankenthal, Netzbetreiber soll TWL Netze sein, 12 MW',
+        'Projekt in Frankenthal, Netzbetreiber soll STROMDAO Netze sein, 12 MW',
         sessionId
       );
 
@@ -815,9 +815,9 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
       expectNoReplyLeaks(reply);
     });
 
-    it('Turn 2: location/capacity/operator completes and exposes Frankenthal/TWL mismatch', async () => {
+    it('Turn 2: location/capacity/operator completes and exposes Frankenthal/STROMDAO mismatch', async () => {
       const { response, payload } = await client.chat(
-        'Standort Frankenthal, 12 MW Speicherpark, benannter Betreiber TWL Netze. Bitte Due-Diligence-Risiken bewerten.',
+        'Standort Frankenthal, 12 MW Speicherpark, benannter Betreiber STROMDAO Netze. Bitte Due-Diligence-Risiken bewerten.',
         sessionId
       );
 
@@ -830,7 +830,7 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
 
       const reply = extractReply(payload);
       expect(reply).toMatch(/Frankenthal/i);
-      expect(reply).toMatch(/TWL/i);
+      expect(reply).toMatch(/STROMDAO/i);
       expect(reply).toMatch(/Stadtwerke Frankenthal|Betreiber-Mismatch|Zuständigkeit/i);
       expectNoInternalErrorCodes(reply);
       expectNoReplyLeaks(reply);
@@ -861,7 +861,7 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
 
     it('Turn 4: one-pager risk assessment completes with decision_brief and finance next actions', async () => {
       const { response, payload } = await client.chat(
-        'Erstelle einen One-Pager Risk Assessment für den Kreditausschuss zu Frankenthal (12 MW, TWL Netze).',
+        'Erstelle einen One-Pager Risk Assessment für den Kreditausschuss zu Frankenthal (12 MW, STROMDAO Netze).',
         sessionId
       );
 

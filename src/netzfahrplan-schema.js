@@ -17,7 +17,7 @@ const { NETZFAHRPLAN_DEFAULTS } = require('./domain-config');
  *     resultingEffectiveCapacity — what the grid operator can actually rely on
  *
  * Option C — Hybrid N-1 threshold (default + override):
- *   A domain-config default (e.g. 81 MVA for TWL / Pfalzwerke-typical topologies)
+ *   A domain-config default (e.g. 81 MVA for STROMDAO / Pfalzwerke-typical topologies)
  *   is used when no tenant/project/scenario override is present.  Every result
  *   carries { thresholdMVA, thresholdSource, overrideApplied } for transparency.
  *
@@ -87,7 +87,7 @@ const N1_SOURCE = Object.freeze({
  * Default N-1 capacity thresholds by voltage level.
  *
  * These are typical values for medium-sized German DSO topologies
- * (e.g. TWL / Pfalzwerke-class operators).  Any production deployment
+ * (e.g. STROMDAO / Pfalzwerke-class operators).  Any production deployment
  * MUST validate against the actual network planning data.
  *
  * Env override: N1_THRESHOLD_HS_MVA, N1_THRESHOLD_MS_MVA, N1_THRESHOLD_NS_MVA

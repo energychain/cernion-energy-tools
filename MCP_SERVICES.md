@@ -250,7 +250,7 @@ consistency proofs for agent pipelines (v0.13).
 - Snapshot `createdBy` field (`manual` / `agent` / `scheduler`) is an optional parameter for forward-compatibility with the v0.14 Agent Layer
 
 **Tag-based filtering (AP3, v0.13):**
-`GET /api/datapoints?tags=solar,twl-netze` returns only datapoints that have **all** specified tags (case-insensitive AND semantics, comma-separated). Works for both direct listing and as input to `createSnapshot`.
+`GET /api/datapoints?tags=solar,stromdao-netze` returns only datapoints that have **all** specified tags (case-insensitive AND semantics, comma-separated). Works for both direct listing and as input to `createSnapshot`.
 
 **Snapshot creation — three phases:**
 1. **Freshness-Check** — datapoints with `lastRun.status === 'success'` and age ≤ `maxAgeMinutes` are marked `fresh` (no refresh triggered).
@@ -264,20 +264,20 @@ curl -X POST http://localhost:3000/api/datapoints/promote \
   -H 'Content-Type: application/json' \
   -d '{
     "sessionId": "9209aa45-93f7-471c-8883-76326c4083f1",
-    "name": "pv-portfolio-twl-netze",
-    "tags": ["solar", "twl-netze"],
-    "fixedParams": { "query": "TWL Netze" },
+    "name": "pv-portfolio-stromdao-netze",
+    "tags": ["solar", "stromdao-netze"],
+    "fixedParams": { "query": "STROMDAO Netze" },
     "refresh": { "strategy": "interval", "intervalMinutes": 60 }
   }'
 
-curl -X POST http://localhost:3000/api/datapoints/pv-portfolio-twl-netze/refresh
+curl -X POST http://localhost:3000/api/datapoints/pv-portfolio-stromdao-netze/refresh
 curl http://localhost:3000/api/datapoints/health/overview
 ```
 
 **Example — OEMetadata v2.0 with validation:**
 
 ```bash
-curl "http://localhost:3000/api/datapoints/pv-portfolio-twl-netze/oemetadata?validate=true"
+curl "http://localhost:3000/api/datapoints/pv-portfolio-stromdao-netze/oemetadata?validate=true"
 ```
 
 **Example — create and validate a consistency snapshot:**
@@ -287,15 +287,15 @@ curl "http://localhost:3000/api/datapoints/pv-portfolio-twl-netze/oemetadata?val
 curl -X POST http://localhost:3000/api/datapoints/snapshot \
   -H 'Content-Type: application/json' \
   -d '{
-    "datapointNames": ["pv-portfolio-twl-netze", "redispatch-anlagen-twl-netze"],
+    "datapointNames": ["pv-portfolio-stromdao-netze", "redispatch-anlagen-stromdao-netze"],
     "maxAgeMinutes": 60,
-    "name": "twl-validierung-q1-2026"
+    "name": "stromdao-validierung-q1-2026"
   }'
 
 # By tag filter
 curl -X POST http://localhost:3000/api/datapoints/snapshot \
   -H 'Content-Type: application/json' \
-  -d '{ "tags": "twl-netze,redispatch-pipeline" }'
+  -d '{ "tags": "stromdao-netze,redispatch-pipeline" }'
 
 # Validate consistency (after running a pipeline)
 curl -X POST http://localhost:3000/api/datapoints/snapshot/<id>/validate

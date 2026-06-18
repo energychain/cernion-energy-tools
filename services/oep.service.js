@@ -587,8 +587,8 @@ module.exports = {
                 },
               },
               examples: {
-                twlNetze: {
-                  summary: 'Compare OEP renewable plants with TWL Netze MaStR data',
+                stromdaoNetze: {
+                  summary: 'Compare OEP renewable plants with STROMDAO Netze MaStR data',
                   value: {
                     gridOperatorId: 'SNB924510006275',
                     oepSchema: 'supply',

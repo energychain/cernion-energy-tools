@@ -863,7 +863,7 @@ headers: {
   "bdew": "9900992720003",
   "mastrId": "SNB935578300972",
   "mastrIds": ["SNB935578300972"],
-  "name": "TWL Netze GmbH",
+  "name": "STROMDAO Netze GmbH",
   "source": "market_partners"
 }
 ```

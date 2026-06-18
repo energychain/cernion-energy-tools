@@ -16,7 +16,7 @@ const EWKMonitoringService = require('../services/ewk-monitoring.service');
 
 // ─── Shared mock factories ────────────────────────────────────────────────────
 
-function makeAnschlussdauerResult(vnbName = 'TWL Netze GmbH') {
+function makeAnschlussdauerResult(vnbName = 'STROMDAO Netze GmbH') {
   return {
     success: true,
     data: {
@@ -58,7 +58,7 @@ function makeDigitalisierungsindexResult(vnbName = 'Bayernwerk Netz GmbH') {
   };
 }
 
-function makeUmsetzungsquoteResult(vnbName = 'TWL Netze GmbH') {
+function makeUmsetzungsquoteResult(vnbName = 'STROMDAO Netze GmbH') {
   return {
     success: true,
     data: {
@@ -81,7 +81,7 @@ function makeUmsetzungsquoteResult(vnbName = 'TWL Netze GmbH') {
   };
 }
 
-function makeBenchmarkResult(vnbName = 'TWL Netze GmbH') {
+function makeBenchmarkResult(vnbName = 'STROMDAO Netze GmbH') {
   return {
     success: true,
     data: {
@@ -162,10 +162,10 @@ describe('EWK Monitoring Service', () => {
 
     it('should accept vnbName filter', async () => {
       const result = await broker.call('ewk-monitoring.anschlussdauer', {
-        vnbName: 'TWL Netze',
+        vnbName: 'STROMDAO Netze',
       });
       expect(result.success).toBe(true);
-      expect(result.data.results[0].vnbName).toBe('TWL Netze');
+      expect(result.data.results[0].vnbName).toBe('STROMDAO Netze');
     });
 
     it('should accept voltageLevel enum values', async () => {
@@ -225,7 +225,7 @@ describe('EWK Monitoring Service', () => {
         data: {
           results: [
             {
-              vnbName: 'TWL Netze GmbH',
+              vnbName: 'STROMDAO Netze GmbH',
               bnr: '10002345',
               anschlussdauer_ee_ns_total_weeks: 35,
             },
@@ -234,7 +234,7 @@ describe('EWK Monitoring Service', () => {
         },
       });
       const result = await broker.call('ewk-monitoring.anschlussdauer', {
-        vnbName: 'TWL Netze',
+        vnbName: 'STROMDAO Netze',
         format: 'csv',
       });
       expect(typeof result === 'string' || Buffer.isBuffer(result)).toBe(true);
@@ -373,7 +373,7 @@ describe('EWK Monitoring Service', () => {
 
     it('should return combined benchmark profile', async () => {
       const result = await broker.call('ewk-monitoring.benchmarkVnb', {
-        vnbName: 'TWL Netze',
+        vnbName: 'STROMDAO Netze',
       });
       expect(result.success).toBe(true);
       expect(result.data.anschlussdauer).toBeDefined();
@@ -407,7 +407,7 @@ describe('EWK Monitoring Service', () => {
     it('should NOT forward format to MCP tool', async () => {
       callWithNewSession.mockClear();
       await broker.call('ewk-monitoring.benchmarkVnb', {
-        vnbName: 'TWL Netze',
+        vnbName: 'STROMDAO Netze',
         format: 'csv',
       });
       const calledParams = callWithNewSession.mock.calls[0][1];

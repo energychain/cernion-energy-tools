@@ -558,9 +558,9 @@ describe('personal-agent.service', () => {
             });
             return {
               success: true,
-              gridOperatorName: ctx.params.gridOperatorName || 'TWL Netze',
+              gridOperatorName: ctx.params.gridOperatorName || 'STROMDAO Netze',
               voltageLevel: ctx.params.voltageLevel || 'MS',
-              ownerContact: ctx.params.ownerContact || 'netzplanung@twl.de',
+              ownerContact: ctx.params.ownerContact || 'netzplanung@stromdao.de',
               fnavProfile: ctx.params.fnavProfile,
             };
           },
@@ -624,14 +624,14 @@ describe('personal-agent.service', () => {
             if (!query || query.includes('unbekannt') || query.includes('nonexistent')) {
               return { data: { results: [] } };
             }
-            if (query.includes('twl')) {
+            if (query.includes('stromdao')) {
               return {
                 data: {
                   results: [
                     {
                       bdewCode: '9904350000002',
                       contacts: [{ city: 'Ludwigshafen' }],
-                      name: 'TWL Netze GmbH',
+                      name: 'STROMDAO Netze GmbH',
                     },
                   ],
                 },
@@ -729,7 +729,7 @@ describe('personal-agent.service', () => {
               };
             }
             const operatorName =
-              ctx.params.vnbName || (isVerifiedPath ? 'Stadtwerk Trier' : 'TWL Netze');
+              ctx.params.vnbName || (isVerifiedPath ? 'Stadtwerk Trier' : 'STROMDAO Netze');
             return {
               success: true,
               operator: {
@@ -1064,11 +1064,11 @@ describe('personal-agent.service', () => {
     const result = await broker.call(
       'personal-agent.chat',
       {
-        message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+        message: 'Bitte fNAV und Finance für STROMDAO Netze bewerten',
         chatMode: 'execution',
         executionMode: 'hitl',
         knownContext: {
-          gridOperatorName: 'TWL Netze',
+          gridOperatorName: 'STROMDAO Netze',
           fnavProfile: { requestedCapacity: 5000, flexibleCapacity: 2000 },
         },
       },
@@ -1089,13 +1089,13 @@ describe('personal-agent.service', () => {
     const result = await broker.call(
       'personal-agent.chat',
       {
-        message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+        message: 'Bitte fNAV und Finance für STROMDAO Netze bewerten',
         chatMode: 'execution',
         executionMode: 'auto',
         knownContext: {
-          gridOperatorName: 'TWL Netze',
+          gridOperatorName: 'STROMDAO Netze',
           voltageLevel: 'MS',
-          ownerContact: 'netzplanung@twl.de',
+          ownerContact: 'netzplanung@stromdao.de',
           fnavProfile: { requestedCapacity: 5000, flexibleCapacity: 2000 },
           annualFeeEur: 12000,
         },
@@ -1118,13 +1118,13 @@ describe('personal-agent.service', () => {
     await broker.call(
       'personal-agent.chat',
       {
-        message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+        message: 'Bitte fNAV und Finance für STROMDAO Netze bewerten',
         chatMode: 'execution',
         executionMode: 'auto',
         knownContext: {
-          gridOperatorName: 'TWL Netze',
+          gridOperatorName: 'STROMDAO Netze',
           voltageLevel: 'MS',
-          ownerContact: 'netzplanung@twl.de',
+          ownerContact: 'netzplanung@stromdao.de',
           signalPriorityPolicy: 'Netzsignal Vorrang vor Vermarktungs- und Fahrplanoptimierung',
           controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
           fnavProfile: { requestedCapacity: 5000, flexibleCapacity: 2000 },
@@ -1203,7 +1203,7 @@ describe('personal-agent.service', () => {
         knownContext: {
           query: 'unbekannt',
           location: 'Frankenthal',
-          gridOperatorName: 'TWL Netze',
+          gridOperatorName: 'STROMDAO Netze',
         },
       },
       { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
@@ -1225,7 +1225,7 @@ describe('personal-agent.service', () => {
     const result = await broker.call(
       'personal-agent.chat',
       {
-        message: 'Projekt in Frankenthal, Netzbetreiber soll TWL Netze sein, 12 MW',
+        message: 'Projekt in Frankenthal, Netzbetreiber soll STROMDAO Netze sein, 12 MW',
         chatMode: 'execution',
         executionMode: 'auto',
       },
@@ -1257,13 +1257,13 @@ describe('personal-agent.service', () => {
     const result = await broker.call(
       'personal-agent.chat',
       {
-        message: 'Bitte fNAV, Finance und Redispatch für TWL Netze bewerten',
+        message: 'Bitte fNAV, Finance und Redispatch für STROMDAO Netze bewerten',
         chatMode: 'execution',
         executionMode: 'auto',
         knownContext: {
-          gridOperatorName: 'TWL Netze',
+          gridOperatorName: 'STROMDAO Netze',
           voltageLevel: 'MS',
-          ownerContact: 'netzplanung@twl.de',
+          ownerContact: 'netzplanung@stromdao.de',
           fnavProfile: { requestedCapacity: 5000, flexibleCapacity: 2000 },
           annualFeeEur: 12000,
         },
@@ -1377,13 +1377,13 @@ describe('personal-agent.service', () => {
     const first = await broker.call(
       'personal-agent.chat',
       {
-        message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+        message: 'Bitte fNAV und Finance für STROMDAO Netze bewerten',
         chatMode: 'execution',
         executionMode: 'auto',
         knownContext: {
-          gridOperatorName: 'TWL Netze',
+          gridOperatorName: 'STROMDAO Netze',
           voltageLevel: 'MS',
-          ownerContact: 'netzplanung@twl.de',
+          ownerContact: 'netzplanung@stromdao.de',
         },
       },
       { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
@@ -1526,13 +1526,13 @@ describe('personal-agent.service', () => {
     const first = await broker.call(
       'personal-agent.chat',
       {
-        message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+        message: 'Bitte fNAV und Finance für STROMDAO Netze bewerten',
         chatMode: 'execution',
         executionMode: 'auto',
         knownContext: {
-          gridOperatorName: 'TWL Netze',
+          gridOperatorName: 'STROMDAO Netze',
           voltageLevel: 'MS',
-          ownerContact: 'netzplanung@twl.de',
+          ownerContact: 'netzplanung@stromdao.de',
         },
       },
       { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
@@ -1581,7 +1581,7 @@ describe('personal-agent.service', () => {
     const first = await broker.call(
       'personal-agent.chat',
       {
-        message: 'Projekt in Frankenthal, Netzbetreiber soll TWL Netze sein, 12 MW',
+        message: 'Projekt in Frankenthal, Netzbetreiber soll STROMDAO Netze sein, 12 MW',
         chatMode: 'execution',
         executionMode: 'auto',
       },
@@ -1594,7 +1594,7 @@ describe('personal-agent.service', () => {
         expect.objectContaining({
           type: 'location_operator_unverified',
           location: 'Frankenthal',
-          assertedGridOperatorName: 'TWL Netze',
+          assertedGridOperatorName: 'STROMDAO Netze',
         }),
       ])
     );
@@ -1642,7 +1642,7 @@ describe('personal-agent.service', () => {
     const first = await broker.call(
       'personal-agent.chat',
       {
-        message: 'Projekt in Frankenthal, Netzbetreiber soll TWL Netze sein, 12 MW',
+        message: 'Projekt in Frankenthal, Netzbetreiber soll STROMDAO Netze sein, 12 MW',
         chatMode: 'execution',
         executionMode: 'auto',
       },
@@ -1855,7 +1855,7 @@ describe('personal-agent.service', () => {
                   {
                     bdewCode: '9904350000002',
                     contacts: [{ city: 'Ludwigshafen' }],
-                    name: 'TWL Netze GmbH',
+                    name: 'STROMDAO Netze GmbH',
                   },
                 ],
               },
@@ -1928,7 +1928,7 @@ describe('personal-agent.service', () => {
             step: 1,
             action: 'grid-operations.marketPartners',
             status: 'completed',
-            result: { data: { results: [{ name: 'TWL Netze GmbH' }] } },
+            result: { data: { results: [{ name: 'STROMDAO Netze GmbH' }] } },
             label: 'Netzbetreiber-Zuordnung',
           },
           {
@@ -2245,13 +2245,13 @@ describe('personal-agent.service', () => {
     const result = await broker.call(
       'personal-agent.chat',
       {
-        message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+        message: 'Bitte fNAV und Finance für STROMDAO Netze bewerten',
         chatMode: 'execution',
         executionMode: 'hitl',
         knownContext: {
-          gridOperatorName: 'TWL Netze',
+          gridOperatorName: 'STROMDAO Netze',
           voltageLevel: 'MS',
-          ownerContact: 'netzplanung@twl.de',
+          ownerContact: 'netzplanung@stromdao.de',
         },
       },
       { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
@@ -2363,7 +2363,7 @@ describe('personal-agent.service', () => {
         l2: { userProfile: { userId: 'user-1', preferences: {} } },
         l3: {
           history: [
-            { role: 'user', text: 'Netzbetreiber: TWL Netze', ts: new Date().toISOString() },
+            { role: 'user', text: 'Netzbetreiber: STROMDAO Netze', ts: new Date().toISOString() },
           ],
           summary: null,
           compressed: false,
@@ -2486,13 +2486,13 @@ describe('personal-agent.service', () => {
           step: 1,
           action: 'grid-operations.marketPartners',
           status: 'completed',
-          result: { data: { results: [{ name: 'TWL Netze GmbH', bdewCode: '9904350000002' }] } },
+          result: { data: { results: [{ name: 'STROMDAO Netze GmbH', bdewCode: '9904350000002' }] } },
         },
         {
           step: 2,
           action: 'grid-operations.vnbLookup',
           status: 'completed',
-          result: { operator: { name: 'TWL Netze', city: 'Ludwigshafen' } },
+          result: { operator: { name: 'STROMDAO Netze', city: 'Ludwigshafen' } },
         },
       ],
       stopPoint: {
@@ -2504,7 +2504,7 @@ describe('personal-agent.service', () => {
         {
           type: 'location_operator_unverified',
           location: 'Frankenthal',
-          assertedGridOperatorName: 'TWL Netze',
+          assertedGridOperatorName: 'STROMDAO Netze',
           status: 'unverified',
           requiredEvidence: [
             'Netzanschlusszusage/BKZ',
@@ -2518,7 +2518,7 @@ describe('personal-agent.service', () => {
     };
 
     const reply = svc.schema.methods.buildRecoveryReply.call(svc, {
-      message: 'Projekt Frankenthal mit TWL Netze prüfen',
+      message: 'Projekt Frankenthal mit STROMDAO Netze prüfen',
       plan: {
         steps: [
           { step: 1, action: 'grid-operations.marketPartners' },
@@ -2567,13 +2567,13 @@ describe('personal-agent.service', () => {
 
     const assumption = {
       type: 'location_operator_unverified',
-      assertedGridOperatorName: 'TWL Netze',
+      assertedGridOperatorName: 'STROMDAO Netze',
       location: 'Frankenthal',
       status: 'unverified',
     };
 
     const reply = svc.schema.methods.buildRecoveryReply.call(svc, {
-      message: 'Preisdaten von ENTSO-E für TWL Netze abrufen?',
+      message: 'Preisdaten von ENTSO-E für STROMDAO Netze abrufen?',
       plan,
       execution,
       assumptions: [assumption],
@@ -2611,13 +2611,13 @@ describe('personal-agent.service', () => {
           step: 1,
           action: 'grid-operations.marketPartners',
           status: 'completed',
-          result: { data: { results: [{ name: 'TWL Netze GmbH' }] } },
+          result: { data: { results: [{ name: 'STROMDAO Netze GmbH' }] } },
         },
         {
           step: 2,
           action: 'grid-operations.vnbLookup',
           status: 'completed',
-          result: { operator: { name: 'TWL Netze', city: 'Ludwigshafen' } },
+          result: { operator: { name: 'STROMDAO Netze', city: 'Ludwigshafen' } },
         },
       ],
       stopPoint: {
@@ -2630,7 +2630,7 @@ describe('personal-agent.service', () => {
 
     const assumption = {
       type: 'location_operator_unverified',
-      assertedGridOperatorName: 'TWL Netze',
+      assertedGridOperatorName: 'STROMDAO Netze',
       location: 'Frankenthal',
       status: 'unverified',
     };
@@ -2649,7 +2649,7 @@ describe('personal-agent.service', () => {
     expect(reply).toMatch(/BKZ|BDEW|Netzanschlusszusage/i);
     expect(reply).not.toMatch(/interface_placeholder|execute curated capability|ACTION_FAILED/i);
     // Should include completed step summaries
-    expect(reply).toMatch(/Prüfschritt|abgeschlossen|TWL|Netzbetreiber/i);
+    expect(reply).toMatch(/Prüfschritt|abgeschlossen|STROMDAO|Netzbetreiber/i);
   });
 
   // Regression: T1 Standort/VNB verification still works correctly
@@ -2660,11 +2660,11 @@ describe('personal-agent.service', () => {
     const consistency = svc.schema.methods.classifyLocationOperatorConsistency.call(svc, {
       knownContext: {
         location: 'Ludwigshafen',
-        gridOperatorName: 'TWL Netze',
+        gridOperatorName: 'STROMDAO Netze',
       },
       promptHints: {
         location: 'Ludwigshafen',
-        gridOperatorName: 'TWL Netze',
+        gridOperatorName: 'STROMDAO Netze',
       },
       steps: [
         {
@@ -2675,7 +2675,7 @@ describe('personal-agent.service', () => {
             data: {
               results: [
                 {
-                  name: 'TWL Netze GmbH',
+                  name: 'STROMDAO Netze GmbH',
                   bdewCode: '9904350000002',
                   contacts: [{ city: 'Ludwigshafen' }],
                 },
@@ -2687,7 +2687,7 @@ describe('personal-agent.service', () => {
           step: 2,
           action: 'grid-operations.vnbLookup',
           status: 'completed',
-          result: { operator: { name: 'TWL Netze', city: 'Ludwigshafen' } },
+          result: { operator: { name: 'STROMDAO Netze', city: 'Ludwigshafen' } },
         },
       ],
     });
@@ -2741,7 +2741,7 @@ describe('personal-agent.service', () => {
     const enriched = svc.schema.methods.attachKnowledgeHintsToKnownContext.call(
       svc,
       {
-        gridOperatorName: 'TWL Netze',
+        gridOperatorName: 'STROMDAO Netze',
       },
       {
         domainHint: 'market-regulatory',
@@ -2750,7 +2750,7 @@ describe('personal-agent.service', () => {
       }
     );
 
-    expect(enriched.gridOperatorName).toBe('TWL Netze');
+    expect(enriched.gridOperatorName).toBe('STROMDAO Netze');
     expect(enriched._knowledgeHints).toEqual({
       domainHint: 'market-regulatory',
       regulatoryFrame: 'EnWG-Rahmen',
@@ -3059,7 +3059,7 @@ describe('personal-agent.service', () => {
             'Ein Netzbetreibername liegt vor, daher starte ich mit der Marktpartner-Auflösung.',
           toolCall: {
             action: 'grid-operations.marketPartners',
-            params: { query: 'TWL Netze', limit: 5 },
+            params: { query: 'STROMDAO Netze', limit: 5 },
           },
         }),
       },
@@ -3072,8 +3072,8 @@ describe('personal-agent.service', () => {
             params: {
               bdew: '9904350000002',
               city: 'Burgbernheim',
-              query: 'TWL Netze',
-              vnbName: 'TWL Netze GmbH',
+              query: 'STROMDAO Netze',
+              vnbName: 'STROMDAO Netze GmbH',
             },
           },
         }),
@@ -3087,7 +3087,7 @@ describe('personal-agent.service', () => {
       },
     ];
     const parameterResponses = [
-      { text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) },
+      { text: JSON.stringify({ query: 'STROMDAO Netze', limit: 5 }) },
       { text: JSON.stringify({ bdew: '9904350000002', city: 'Burgbernheim', limit: 5 }) },
     ];
     const llmResponses = [
@@ -3096,7 +3096,7 @@ describe('personal-agent.service', () => {
           reply: 'Die Zuständigkeit ist nun über die Toolkette eingeordnet.',
           hypotheses: [
             {
-              statement: 'TWL Netze ist der relevante Netzbetreiber für den angefragten Kontext.',
+              statement: 'STROMDAO Netze ist der relevante Netzbetreiber für den angefragten Kontext.',
               confidence: 'high',
               evidence: 'Tool-basierte Marktpartner- und VNB-Auflösung.',
             },
@@ -3116,7 +3116,7 @@ describe('personal-agent.service', () => {
           factsUsed: [
             {
               source: 'tool:marketPartners',
-              value: 'TWL Netze GmbH',
+              value: 'STROMDAO Netze GmbH',
             },
             {
               source: 'tool:vnbLookup',
@@ -3151,11 +3151,11 @@ describe('personal-agent.service', () => {
 
     try {
       const result = await svc.handleConsultationTurn(mockCtx, {
-        message: 'TWL Netze in Burgbernheim: Wie belastbar ist die Zuständigkeitslage?',
+        message: 'STROMDAO Netze in Burgbernheim: Wie belastbar ist die Zuständigkeitslage?',
         brokerRecommendation: { intent: 'consultation' },
-        resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
-        knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
-        knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        resolvedParams: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
+        knowledgeContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
+        knownContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
       });
 
       expect(result.reply).toContain('Toolkette eingeordnet');
@@ -3258,7 +3258,7 @@ describe('personal-agent.service', () => {
           thought: 'Ein Netzbetreibername liegt vor, daher starte ich mit marketPartners.',
           toolCall: {
             action: 'grid-operations.marketPartners',
-            params: { query: 'TWL Netze', limit: 5 },
+            params: { query: 'STROMDAO Netze', limit: 5 },
           },
         }),
       },
@@ -3270,7 +3270,7 @@ describe('personal-agent.service', () => {
         }),
       },
     ];
-    const parameterResponses = [{ text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) }];
+    const parameterResponses = [{ text: JSON.stringify({ query: 'STROMDAO Netze', limit: 5 }) }];
     const synthesisResponse = {
       data: {
         reply: 'Die Zuständigkeit wurde anhand der Tool-Evidenz vorläufig eingeordnet.',
@@ -3311,11 +3311,11 @@ describe('personal-agent.service', () => {
 
     try {
       const result = await svc.handleConsultationTurn(mockCtx, {
-        message: 'TWL Netze in Burgbernheim: Wie belastbar ist die Zuständigkeitslage?',
+        message: 'STROMDAO Netze in Burgbernheim: Wie belastbar ist die Zuständigkeitslage?',
         brokerRecommendation: { intent: 'consultation' },
-        resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
-        knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
-        knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        resolvedParams: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
+        knowledgeContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
+        knownContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
       });
 
       expect(result.reply).toContain('Tool-Evidenz');
@@ -3348,7 +3348,7 @@ describe('personal-agent.service', () => {
       .spyOn(svc, 'callLlmGenerate')
       .mockImplementation(async (_ctx, payload) => {
         if (String(payload?.system || '').includes('API-Parameter-Generator')) {
-          return { text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) };
+          return { text: JSON.stringify({ query: 'STROMDAO Netze', limit: 5 }) };
         }
 
         return {
@@ -3357,7 +3357,7 @@ describe('personal-agent.service', () => {
             thought: 'Ich starte mit der Marktpartner-Auflösung.',
             toolCall: {
               action: 'grid-operations.marketPartners',
-              params: { query: 'TWL Netze', limit: 5 },
+              params: { query: 'STROMDAO Netze', limit: 5 },
             },
           }),
         };
@@ -3373,15 +3373,15 @@ describe('personal-agent.service', () => {
 
     try {
       const result = await svc.handleConsultationTurn(mockCtx, {
-        message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
+        message: 'STROMDAO Netze in Burgbernheim: Bitte Beratung einordnen.',
         brokerRecommendation: {
           intent: 'consultation',
           capability: 'grid-operations.marketPartners',
         },
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
-        resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
-        knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
-        knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim', debugTrace: true },
+        resolvedParams: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
+        knowledgeContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
+        knownContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim', debugTrace: true },
       });
 
       expect(
@@ -3424,7 +3424,7 @@ describe('personal-agent.service', () => {
         }
 
         if (String(payload?.system || '').includes('API-Parameter-Generator')) {
-          return { text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) };
+          return { text: JSON.stringify({ query: 'STROMDAO Netze', limit: 5 }) };
         }
 
         return {
@@ -3433,7 +3433,7 @@ describe('personal-agent.service', () => {
             thought: 'Ich starte mit einer Tool-Abfrage.',
             toolCall: {
               action: 'grid-operations.marketPartners',
-              params: { query: 'TWL Netze', limit: 5 },
+              params: { query: 'STROMDAO Netze', limit: 5 },
             },
           }),
         };
@@ -3449,15 +3449,15 @@ describe('personal-agent.service', () => {
 
     try {
       const result = await svc.handleConsultationTurn(mockCtx, {
-        message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
+        message: 'STROMDAO Netze in Burgbernheim: Bitte Beratung einordnen.',
         brokerRecommendation: {
           intent: 'consultation',
           capability: 'grid-operations.marketPartners',
         },
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
-        resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
-        knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
-        knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        resolvedParams: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
+        knowledgeContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
+        knownContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
       });
 
       expect(result.reply).toContain('Synthetisierte Antwort');
@@ -3490,7 +3490,7 @@ describe('personal-agent.service', () => {
         }
 
         if (String(payload?.system || '').includes('API-Parameter-Generator')) {
-          return { text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) };
+          return { text: JSON.stringify({ query: 'STROMDAO Netze', limit: 5 }) };
         }
 
         return {
@@ -3499,7 +3499,7 @@ describe('personal-agent.service', () => {
             thought: 'Tool zuerst.',
             toolCall: {
               action: 'grid-operations.marketPartners',
-              params: { query: 'TWL Netze', limit: 5 },
+              params: { query: 'STROMDAO Netze', limit: 5 },
             },
           }),
         };
@@ -3515,15 +3515,15 @@ describe('personal-agent.service', () => {
 
     try {
       const result = await svc.handleConsultationTurn(mockCtx, {
-        message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
+        message: 'STROMDAO Netze in Burgbernheim: Bitte Beratung einordnen.',
         brokerRecommendation: {
           intent: 'consultation',
           capability: 'grid-operations.marketPartners',
         },
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
-        resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
-        knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
-        knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim', debugTrace: true },
+        resolvedParams: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
+        knowledgeContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
+        knownContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim', debugTrace: true },
       });
 
       const timeoutEvent = (result.debugTrace || []).find(
@@ -3554,7 +3554,7 @@ describe('personal-agent.service', () => {
           thought: 'Marktpartner recherchieren.',
           toolCall: {
             action: 'grid-operations.marketPartners',
-            params: { query: 'TWL Netze', limit: 5 },
+            params: { query: 'STROMDAO Netze', limit: 5 },
           },
         }),
       },
@@ -3567,7 +3567,7 @@ describe('personal-agent.service', () => {
       },
     ];
 
-    const parameterResponses = [{ text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) }];
+    const parameterResponses = [{ text: JSON.stringify({ query: 'STROMDAO Netze', limit: 5 }) }];
 
     const callLlmSpy = jest
       .spyOn(svc, 'callLlmGenerate')
@@ -3605,15 +3605,15 @@ describe('personal-agent.service', () => {
 
     try {
       const result = await svc.handleConsultationTurn(mockCtx, {
-        message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
+        message: 'STROMDAO Netze in Burgbernheim: Bitte Beratung einordnen.',
         brokerRecommendation: {
           intent: 'consultation',
           capability: 'grid-operations.marketPartners',
         },
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
-        resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
-        knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
-        knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim', debugTrace: true },
+        resolvedParams: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
+        knowledgeContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
+        knownContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim', debugTrace: true },
       });
 
       expect(
@@ -3692,7 +3692,7 @@ describe('personal-agent.service', () => {
           thought: 'Marktpartner recherchieren.',
           toolCall: {
             action: 'grid-operations.marketPartners',
-            params: { query: 'TWL Netze', limit: 5 },
+            params: { query: 'STROMDAO Netze', limit: 5 },
           },
         }),
       },
@@ -3705,7 +3705,7 @@ describe('personal-agent.service', () => {
       },
     ];
 
-    const parameterResponses = [{ text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) }];
+    const parameterResponses = [{ text: JSON.stringify({ query: 'STROMDAO Netze', limit: 5 }) }];
 
     const callLlmSpy = jest
       .spyOn(svc, 'callLlmGenerate')
@@ -3733,15 +3733,15 @@ describe('personal-agent.service', () => {
 
     try {
       const result = await svc.handleConsultationTurn(mockCtx, {
-        message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
+        message: 'STROMDAO Netze in Burgbernheim: Bitte Beratung einordnen.',
         brokerRecommendation: {
           intent: 'consultation',
           capability: 'grid-operations.marketPartners',
         },
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
-        resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
-        knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
-        knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim', debugTrace: true },
+        resolvedParams: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
+        knowledgeContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
+        knownContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim', debugTrace: true },
       });
 
       expect(result.reply).toContain('Kurzfazit auf Basis der erhobenen Tool-Evidenz');
@@ -3784,7 +3784,7 @@ describe('personal-agent.service', () => {
           thought: 'Marktpartner recherchieren.',
           toolCall: {
             action: 'grid-operations.marketPartners',
-            params: { query: 'TWL Netze', limit: 5 },
+            params: { query: 'STROMDAO Netze', limit: 5 },
           },
         }),
       },
@@ -3796,7 +3796,7 @@ describe('personal-agent.service', () => {
         }),
       },
     ];
-    const parameterResponses = [{ text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) }];
+    const parameterResponses = [{ text: JSON.stringify({ query: 'STROMDAO Netze', limit: 5 }) }];
 
     const callLlmSpy = jest
       .spyOn(svc, 'callLlmGenerate')
@@ -3826,15 +3826,15 @@ describe('personal-agent.service', () => {
 
     try {
       const result = await svc.handleConsultationTurn(mockCtx, {
-        message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
+        message: 'STROMDAO Netze in Burgbernheim: Bitte Beratung einordnen.',
         brokerRecommendation: {
           intent: 'consultation',
           capability: 'grid-operations.marketPartners',
         },
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
-        resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
-        knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
-        knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim', debugTrace: true },
+        resolvedParams: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
+        knowledgeContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
+        knownContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim', debugTrace: true },
       });
 
       expect(result.reply).toContain('Kurzfazit auf Basis der erhobenen Tool-Evidenz');
@@ -4191,7 +4191,7 @@ describe('personal-agent.service', () => {
         executionMode: 'auto',
         chatMode: 'execution',
         knownContext: {
-          query: 'TWL Netze',
+          query: 'STROMDAO Netze',
         },
       },
       { meta: { tenantId: 'tenant-chatmode-exec', authUser: { userId: 'user-1' } } }
@@ -4267,7 +4267,7 @@ describe('personal-agent.service', () => {
             municipality: 'Arnstadt',
             powerMW: 20,
             capacityMWh: 40,
-            gridOperatorName: 'TWL Netze',
+            gridOperatorName: 'STROMDAO Netze',
           },
         },
         { meta: { tenantId: 'tenant-workflow-reconcile', authUser: { userId: 'user-1' } } }
@@ -4366,7 +4366,7 @@ describe('personal-agent.service', () => {
         message: 'Wie hoch ist die Redispatch-Wahrscheinlichkeit für mein Projekt?',
         executionMode: 'auto',
         knownContext: {
-          query: 'TWL Netze',
+          query: 'STROMDAO Netze',
         },
       },
       {
@@ -6935,7 +6935,7 @@ describe('personal-agent.service', () => {
                 source: 'knownContext',
                 status: 'confirmed',
                 updatedAt: '2026-05-28T10:00:00.000Z',
-                value: 'TWL Netze',
+                value: 'STROMDAO Netze',
               },
               {
                 key: 'bdewCode',
@@ -7199,9 +7199,9 @@ describe('personal-agent.service', () => {
           sessionId,
           knownContext: {
             gridOperatorId: 'op-123',
-            gridOperatorName: 'TWL Netze',
+            gridOperatorName: 'STROMDAO Netze',
             bdew: '9907473000008',
-            vnbName: 'TWL Netze GmbH',
+            vnbName: 'STROMDAO Netze GmbH',
             postalCode: '69115',
             city: 'Heidelberg',
             voltageLevel: 'MS',

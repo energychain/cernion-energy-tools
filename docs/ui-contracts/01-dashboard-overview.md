@@ -30,7 +30,7 @@ GET /api/dashboard/vnb-overview?bdewCode={bdewCode}
 ```json
 {
   "identity": {
-    "name":    "TWL Netze GmbH",
+    "name":    "STROMDAO Netze GmbH",
     "mastrId": "SNB935578300972",
     "bdew":    "9907473000008",
     "bnr":     "10002345"

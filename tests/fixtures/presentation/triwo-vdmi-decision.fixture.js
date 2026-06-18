@@ -13,8 +13,8 @@ module.exports = {
         {
           taskId: 'triwo-step-3-network-operator-decision',
           taskName: 'Netzbetreiberentscheidung zum Anschlussbegehren',
-          verantwortlich: [{ actorId: 'TWL_Netze', displayName: 'TWL Netze' }],
-          durchfuehrend: [{ actorId: 'TWL_AG_TE', displayName: 'TWL AG TE' }],
+          verantwortlich: [{ actorId: 'STROMDAO_Netze', displayName: 'STROMDAO Netze' }],
+          durchfuehrend: [{ actorId: 'STROMDAO_AG_TE', displayName: 'STROMDAO AG TE' }],
           mitwirkend: [{ actorId: 'MVV', displayName: 'MVV' }],
           information: [{ actorId: 'TRIWO', displayName: 'TRIWO (Applicant)' }],
           evidenceRequirements: [
@@ -33,7 +33,7 @@ module.exports = {
             {
               id: 'na-1',
               type: 'formal_request',
-              label: 'Formalen Antrag bei TWL Netze einreichen',
+              label: 'Formalen Antrag bei STROMDAO Netze einreichen',
             },
           ],
         },

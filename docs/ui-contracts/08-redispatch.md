@@ -49,7 +49,7 @@ Returns the full audit result immediately. Execution may take up to 180 seconds 
 {
   "id":           "550e8400-e29b-41d4-a716-446655440003",
   "success":      true,
-  "gridOperator": { "name": "TWL Netze GmbH", "mastrId": "SNB935578300972", "bdew": "9907473000008" },
+  "gridOperator": { "name": "STROMDAO Netze GmbH", "mastrId": "SNB935578300972", "bdew": "9907473000008" },
   "period":       { "dateFrom": "2025-01-01", "dateTo": "2025-12-31" },
   "settlementReadiness": {
     "totalInstallations":  59,

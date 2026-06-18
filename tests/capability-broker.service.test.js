@@ -105,7 +105,7 @@ describe('Capability Broker Service', () => {
 
   it('routes VNB KPI benchmark comparison queries to correct capability', async () => {
     const result = await broker.call('capability-broker.recommend', {
-      task: 'Erstelle einen Potenzialvergleich zwischen Netze BW und TWL Netze anhand der EWK KPI-Kennzahlen (Anschlussdauer, Digitalisierungsindex, Umsetzungsquote)',
+      task: 'Erstelle einen Potenzialvergleich zwischen Netze BW und STROMDAO Netze anhand der EWK KPI-Kennzahlen (Anschlussdauer, Digitalisierungsindex, Umsetzungsquote)',
     });
 
     expect(result.schemaVersion).toBe('cernion.capabilityRecommendation.v1');

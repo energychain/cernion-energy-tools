@@ -24,7 +24,7 @@ process.env.DATAPOINT_SCHEDULER_ENABLED = 'false';
 // ---------------------------------------------------------------------------
 const MOCK_OPERATOR = {
   mastrId: 'SNB935578300972',
-  name: 'TWL Netze GmbH',
+  name: 'STROMDAO Netze GmbH',
   bdew: '9907473000008',
   bnr: '10002977',
 };
@@ -548,7 +548,7 @@ describe('grid-connection service', () => {
           results: [
             {
               mastrId: 'SNB935578300972 (strom, 100% Match)',
-              companyName: 'TWL Netze GmbH',
+              companyName: 'STROMDAO Netze GmbH',
               bdewCode: null,
             },
           ],
@@ -556,7 +556,7 @@ describe('grid-connection service', () => {
       }),
       meta: {},
     };
-    const op = await gcService.resolveOperator(ctx, { gridOperatorName: 'TWL Netze' });
+    const op = await gcService.resolveOperator(ctx, { gridOperatorName: 'STROMDAO Netze' });
     expect(op.mastrId).toBe('SNB935578300972');
   });
 

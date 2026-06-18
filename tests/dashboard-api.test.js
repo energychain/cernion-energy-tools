@@ -22,7 +22,7 @@ const { FINDING_CODE_METADATA } = require('../src/validation-findings');
 const MOCK_VNB_IDENTITY = {
   results: [
     {
-      name: 'TWL Netze GmbH',
+      name: 'STROMDAO Netze GmbH',
       mastrId: 'SNB935578300972',
       bdew: '9907473000008',
       bnr: '10002345',
@@ -31,7 +31,7 @@ const MOCK_VNB_IDENTITY = {
 };
 
 const MOCK_VNB_MONITOR = {
-  identity: { name: 'TWL Netze GmbH', mastrId: 'SNB935578300972', bdewCode: '9907473000008' },
+  identity: { name: 'STROMDAO Netze GmbH', mastrId: 'SNB935578300972', bdewCode: '9907473000008' },
   // Real structure from vnb-monitor.service.js fetchMastrData / fetchEwkData
   mastr: {
     inBetrieb: {
@@ -545,7 +545,7 @@ describe('dashboard-api.service', () => {
 
     it('populates identity from vnbLookupCodes response', async () => {
       const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: '9907473000008' });
-      expect(result.identity.name).toBe('TWL Netze GmbH');
+      expect(result.identity.name).toBe('STROMDAO Netze GmbH');
       expect(result.identity.mastrId).toBe('SNB935578300972');
       expect(result.identity.bdew).toBe('9907473000008');
     });

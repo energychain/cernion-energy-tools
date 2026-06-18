@@ -2,7 +2,7 @@
 
 **Reference:** `src/domain-config.js` → `HOTSPOT_THRESHOLDS`
 
-Grid operators use two-tier alert systems to detect and prioritize network congestion. Cernion implements standardized thresholds aligned with BNetzA requirements and TWL Netze special cases.
+Grid operators use two-tier alert systems to detect and prioritize network congestion. Cernion implements standardized thresholds aligned with BNetzA requirements and STROMDAO Netze special cases.
 
 ## Thermal Loading (Kabel & Transformatoren)
 
@@ -23,7 +23,7 @@ Grid operators use two-tier alert systems to detect and prioritize network conge
 
 ### Example
 
-TWL Netze operates 110 kV cable with 95 MW capacity. At 76 MW load:
+STROMDAO Netze operates 110 kV cable with 95 MW capacity. At 76 MW load:
 - Utilization = 76/95 = 80% → Warning issued
 - Recommendation: Plan alternative routing or capacity expansion
 - Target: Complete work before 95 MW threshold (100% utilization)
@@ -74,11 +74,11 @@ if (simulatedVoltage < voltageMin || simulatedVoltage > voltageMax) {
 }
 ```
 
-## TWL Netze N-1 Security Margin
+## STROMDAO Netze N-1 Security Margin
 
 ### Special Case: Interconnection Capacity
 
-**Grid Operator:** TWL Netze (Taunuswerke, Mittelspannung/Hochspannung level)
+**Grid Operator:** STROMDAO Netze (Taunuswerke, Mittelspannung/Hochspannung level)
 
 **Hard Threshold:** 81 MVA
 

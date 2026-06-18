@@ -13,20 +13,20 @@ const {
 describe('personal-agent-routing', () => {
   it('extracts location and asserted grid operator separately from natural language', () => {
     const plan = buildExecutionPlan({
-      message: 'Frankenthal, Netzbetreiber soll TWL Netze sein, 12 MW',
+      message: 'Frankenthal, Netzbetreiber soll STROMDAO Netze sein, 12 MW',
       brokerRecommendation: null,
     });
 
     expect(plan.promptHints.location).toBe('Frankenthal');
-    expect(plan.promptHints.gridOperatorName).toBe('TWL Netze');
+    expect(plan.promptHints.gridOperatorName).toBe('STROMDAO Netze');
     expect(plan.promptHints.gridOperatorName).not.toBe('Frankenthal');
     expect(plan.promptHints.requestedCapacityKW).toBe(12000);
-    expect(plan.promptHints.query).toBe('TWL Netze');
+    expect(plan.promptHints.query).toBe('STROMDAO Netze');
   });
 
   it('does not treat natural language location phrases as project IDs', () => {
     const plan = buildExecutionPlan({
-      message: 'Projekt in Frankenthal, Netzbetreiber soll TWL Netze sein',
+      message: 'Projekt in Frankenthal, Netzbetreiber soll STROMDAO Netze sein',
       brokerRecommendation: null,
     });
 
@@ -45,7 +45,7 @@ describe('personal-agent-routing', () => {
   });
 
   it('prefers extracted operator hints over full prompt text for market partner lookup', () => {
-    const message = 'Projekt in Frankenthal, Netzbetreiber soll TWL Netze sein, 12 MW';
+    const message = 'Projekt in Frankenthal, Netzbetreiber soll STROMDAO Netze sein, 12 MW';
     const plan = buildExecutionPlan({
       message,
       brokerRecommendation: null,
@@ -59,7 +59,7 @@ describe('personal-agent-routing', () => {
       { stepResults: {} }
     );
 
-    expect(params.query).toBe('TWL Netze');
+    expect(params.query).toBe('STROMDAO Netze');
   });
 
   it('treats unresolved __step dependencies as missing inputs for dependent lookup steps', () => {
@@ -191,7 +191,7 @@ describe('personal-agent-routing', () => {
 
   it('adds regulatory contextNote on relevant steps when knowledgeContext provides a regulatory frame', () => {
     const plan = buildExecutionPlan({
-      message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+      message: 'Bitte fNAV und Finance für STROMDAO Netze bewerten',
       brokerRecommendation: null,
       knowledgeContext: {
         regulatoryFrame: 'EnWG-Rahmen',
@@ -420,14 +420,14 @@ describe('personal-agent-routing', () => {
 
   it('injects a MISSING_CONTEXT routing control step in AUTO mode when required inputs are missing', () => {
     const plan = buildExecutionPlan({
-      message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+      message: 'Bitte fNAV und Finance für STROMDAO Netze bewerten',
       brokerRecommendation: null,
     });
 
     const routed = applyMissingContextFallback(plan, {
       executionMode: 'auto',
       knownContext: {
-        gridOperatorName: 'TWL Netze',
+        gridOperatorName: 'STROMDAO Netze',
         voltageLevel: 'MS',
       },
     });

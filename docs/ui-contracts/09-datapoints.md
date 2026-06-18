@@ -10,7 +10,7 @@
 
 | Method | URL | Purpose |
 |--------|-----|---------|
-| `GET`    | `/api/datapoints`              | List all datapoints (optional `?tags=solar,twl-netze`) |
+| `GET`    | `/api/datapoints`              | List all datapoints (optional `?tags=solar,stromdao-netze`) |
 | `POST`   | `/api/datapoints`              | Create a new datapoint |
 | `GET`    | `/api/datapoints/:name`        | Get a datapoint by name |
 | `PUT`    | `/api/datapoints/:name`        | Update a datapoint |
@@ -28,10 +28,10 @@
 
 ```json
 {
-  "name":            "solar-assets-twl",
-  "description":     "Solar installations for TWL Netze GmbH",
+  "name":            "solar-assets-stromdao",
+  "description":     "Solar installations for STROMDAO Netze GmbH",
   "source":          "mastr",
-  "tags":            ["solar", "twl-netze"],
+  "tags":            ["solar", "stromdao-netze"],
   "schedule":        "0 */6 * * *",
   "lastRefreshed":   "2026-03-31T06:00:00Z",
   "status":          "healthy",
@@ -69,7 +69,7 @@ Table with sortable columns:
 
 ### Tag Filter
 
-Chip input above the table: `?tags=solar,twl-netze` (AND semantics).
+Chip input above the table: `?tags=solar,stromdao-netze` (AND semantics).
 Clear button resets to unfiltered list.
 
 ### Health Overview (top of panel)

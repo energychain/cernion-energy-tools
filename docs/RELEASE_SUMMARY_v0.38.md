@@ -112,7 +112,7 @@ VNB-Anpassungen. Shared dependency von edm-virtual, forecast-engine, settlement.
 
 Alle neuen Contracts (22–27) folgen dem etablierten Muster:
 - Endpoint-Tabellen mit Auth-Anforderungen (Bearer / full-access)
-- Request/Response-Shapes mit realistischen Beispieldaten (Solarpark Höheinöd / TWL)
+- Request/Response-Shapes mit realistischen Beispieldaten (Solarpark Höheinöd / STROMDAO)
 - `Verwandte Services`-Sektion mit Contract-Querverweisen
 - Open Points explizit markiert mit `[OFFEN-N]` inkl. Zielversion
 - Keine TypeScript-Definitionen (bewusst — bleibt im UI-Team)

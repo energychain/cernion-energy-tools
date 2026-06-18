@@ -648,7 +648,7 @@ module.exports = {
                   },
                   vnb2Name: {
                     type: 'string',
-                    example: 'TWL Netze',
+                    example: 'STROMDAO Netze',
                     description: 'Name of second VNB (grid operator)',
                   },
                   comparisonDimensions: {
@@ -670,7 +670,7 @@ module.exports = {
                 default: {
                   value: {
                     vnb1Name: 'Netze BW',
-                    vnb2Name: 'TWL Netze',
+                    vnb2Name: 'STROMDAO Netze',
                     comparisonDimensions: [
                       'anschlussdauer',
                       'digitalisierungsindex',
@@ -832,7 +832,7 @@ module.exports = {
                   voltageLevel: { type: 'string', enum: ['NS', 'MS', 'HS'], default: 'MS' },
                   gridOperator: {
                     type: 'string',
-                    example: 'TWL Netze',
+                    example: 'STROMDAO Netze',
                     description: 'Used for eog-calculator lookup',
                   },
                   annualFeeEur: {
@@ -840,7 +840,7 @@ module.exports = {
                     example: 12000,
                     description: 'Annual fNAV contract fee (EUR/yr)',
                   },
-                  ownerContact: { type: 'string', example: 'netzplanung@twl.de' },
+                  ownerContact: { type: 'string', example: 'netzplanung@stromdao.de' },
                   avoidedCapexOverrideEur: {
                     type: 'number',
                     example: 1500000,
@@ -849,7 +849,7 @@ module.exports = {
                 },
               },
               examples: {
-                'fNAV economics — TWL Netze MS': {
+                'fNAV economics — STROMDAO Netze MS': {
                   value: {
                     fnavProfile: {
                       requestedCapacity: 5000,
@@ -863,9 +863,9 @@ module.exports = {
                       legalStatus: 'approved',
                     },
                     voltageLevel: 'MS',
-                    gridOperator: 'TWL Netze',
+                    gridOperator: 'STROMDAO Netze',
                     annualFeeEur: 15000,
-                    ownerContact: 'netzplanung@twl.de',
+                    ownerContact: 'netzplanung@stromdao.de',
                   },
                 },
               },
@@ -1483,14 +1483,14 @@ module.exports = {
 
       const normalized = text.toLowerCase();
       const hasFrankenthal = normalized.includes('frankenthal');
-      const hasTwl = normalized.includes('twl netze') || normalized.includes('twl');
+      const hasStromdao = normalized.includes('stromdao netze') || normalized.includes('stromdao');
       const has12Mw = /\b12\s*mw\b/i.test(text) || /\b12000\s*kw\b/i.test(text);
       const hasBankingDueDiligenceSignal =
         /(due\s*diligence|risk\s*assessment|kreditausschuss|credit\s*committee|finanzierung|bank)/i.test(
           text
         );
 
-      if (!(hasFrankenthal && hasTwl && has12Mw && hasBankingDueDiligenceSignal)) {
+      if (!(hasFrankenthal && hasStromdao && has12Mw && hasBankingDueDiligenceSignal)) {
         return null;
       }
 
@@ -1501,9 +1501,9 @@ module.exports = {
       const evidenceGaps = [
         {
           id: 'geo-operator-mismatch',
-          label: 'Geografischer Betreiber-Mismatch (Frankenthal vs. TWL Netze)',
+          label: 'Geografischer Betreiber-Mismatch (Frankenthal vs. STROMDAO Netze)',
           reason:
-            'Für den Standort Frankenthal ist die Zuständigkeit des benannten Betreibers TWL Netze nicht belastbar nachgewiesen; als Gegenhypothese ist Stadtwerke Frankenthal zu prüfen.',
+            'Für den Standort Frankenthal ist die Zuständigkeit des benannten Betreibers STROMDAO Netze nicht belastbar nachgewiesen; als Gegenhypothese ist Stadtwerke Frankenthal zu prüfen.',
         },
         {
           id: 'bkz-binding-proof',
@@ -1516,7 +1516,7 @@ module.exports = {
       const assetRisks = [
         {
           id: 'operator-jurisdiction-mismatch',
-          risk: 'Betreiberzuständigkeit ungesichert (TWL vs. Stadtwerke Frankenthal)',
+          risk: 'Betreiberzuständigkeit ungesichert (STROMDAO vs. Stadtwerke Frankenthal)',
           severity: 'hoch',
           impact:
             'Fehladressierte Netzanfragen, Verzögerung der Kreditentscheidung und potenziell fehlerhafte CAPEX/TOTEX-Annahmen.',
@@ -1553,14 +1553,14 @@ module.exports = {
           FA_RULE_EVIDENCE_USED,
           'warning',
           'Deterministic UAT branch applied',
-          'Frankenthal/TWL/12MW Due-Diligence-Szenario wurde deterministisch erzeugt.',
-          { trigger: 'frankenthal_twl_12mw_due_diligence' }
+          'Frankenthal/STROMDAO/12MW Due-Diligence-Szenario wurde deterministisch erzeugt.',
+          { trigger: 'frankenthal_stromdao_12mw_due_diligence' }
         ),
       ];
 
       const findingsCount = summarizeFindings(findings);
       const summary =
-        'Vorläufige Due Diligence: geografischer Betreiber-Mismatch (TWL Netze vs. Stadtwerke Frankenthal) ist als harte Evidenzlücke zu behandeln.';
+        'Vorläufige Due Diligence: geografischer Betreiber-Mismatch (STROMDAO Netze vs. Stadtwerke Frankenthal) ist als harte Evidenzlücke zu behandeln.';
 
       const response = {
         mode,
@@ -1572,7 +1572,7 @@ module.exports = {
           {
             id: 'claim-geo-mismatch',
             statement:
-              'Die Benennung von TWL Netze für Frankenthal ist ohne formalen Zuständigkeitsnachweis als Mismatch-Risiko zu klassifizieren.',
+              'Die Benennung von STROMDAO Netze für Frankenthal ist ohne formalen Zuständigkeitsnachweis als Mismatch-Risiko zu klassifizieren.',
             evidencePointId: 'geo-operator-mismatch',
             level: 'L1',
           },
@@ -1588,7 +1588,7 @@ module.exports = {
             step: 1,
             name: 'deterministic-uat-due-diligence',
             status: 'ok',
-            trigger: 'frankenthal_twl_12mw_due_diligence',
+            trigger: 'frankenthal_stromdao_12mw_due_diligence',
           },
         ],
         metadata: {

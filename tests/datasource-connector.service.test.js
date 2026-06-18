@@ -129,7 +129,7 @@ describe('Datasource Connector Service', () => {
     const tmpFile = path.join(os.tmpdir(), `cernion-ds-skip-${Date.now()}.csv`);
     fs.writeFileSync(
       tmpFile,
-      ['Export erstellt am 2026-03-14', 'Mandant: TWL', 'name;value', 'A;1', 'B;2'].join('\n'),
+      ['Export erstellt am 2026-03-14', 'Mandant: STROMDAO', 'name;value', 'A;1', 'B;2'].join('\n'),
       'utf-8'
     );
 
@@ -207,7 +207,7 @@ describe('Datasource Connector Service', () => {
         {
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [8.47, 49.49] },
-          properties: { anschlussnummer: 'TWL-1', leistung_kw: 12.5 },
+          properties: { anschlussnummer: 'STROMDAO-1', leistung_kw: 12.5 },
         },
       ],
     };
@@ -222,7 +222,7 @@ describe('Datasource Connector Service', () => {
 
     expect(result.success).toBe(true);
     expect(result.rows).toHaveLength(1);
-    expect(result.rows[0].anschlussnummer).toBe('TWL-1');
+    expect(result.rows[0].anschlussnummer).toBe('STROMDAO-1');
     expect(result.rows[0].longitude).toBe(8.47);
 
     fs.unlinkSync(tmpFile);
@@ -231,8 +231,8 @@ describe('Datasource Connector Service', () => {
   it('should read rows from xlsx connector', async () => {
     const tmpFile = path.join(os.tmpdir(), `cernion-ds-xlsx-${Date.now()}.xlsx`);
     const worksheet = XLSX.utils.json_to_sheet([
-      { anschlussnummer: 'TWL-100', leistung_kw: 22 },
-      { anschlussnummer: 'TWL-101', leistung_kw: 31 },
+      { anschlussnummer: 'STROMDAO-100', leistung_kw: 22 },
+      { anschlussnummer: 'STROMDAO-101', leistung_kw: 31 },
     ]);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
@@ -251,7 +251,7 @@ describe('Datasource Connector Service', () => {
 
     expect(result.success).toBe(true);
     expect(result.rows).toHaveLength(1);
-    expect(result.rows[0].anschlussnummer).toBe('TWL-100');
+    expect(result.rows[0].anschlussnummer).toBe('STROMDAO-100');
 
     fs.unlinkSync(tmpFile);
   });

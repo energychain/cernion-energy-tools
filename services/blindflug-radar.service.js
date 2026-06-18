@@ -101,7 +101,7 @@ module.exports = {
                   watchIds: {
                     type: 'array',
                     default: [],
-                    items: { type: 'string', example: 'twl-monitor-main' },
+                    items: { type: 'string', example: 'stromdao-monitor-main' },
                   },
                   timeWindowDays: { type: 'number', default: 90 },
                   minEvents: { type: 'number', default: 3 },
@@ -113,7 +113,7 @@ module.exports = {
                   value: {
                     gridOperatorId: 'SNB123456789000',
                     projectId: 'a1b2c3d4-0000-0000-0000-000000000001',
-                    watchIds: ['twl-monitor-main'],
+                    watchIds: ['stromdao-monitor-main'],
                     timeWindowDays: 90,
                     minEvents: 3,
                     confidenceThreshold: 0.72,

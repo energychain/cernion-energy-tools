@@ -1843,7 +1843,7 @@ CRITICAL RULES — you MUST follow every rule below:
 
 RULE 1 — DSO/Grid operator name resolution (MANDATORY 3-STEP PIPELINE):
 Whenever the user mentions a grid operator, DSO, utility, or energy company by
-NAME (e.g. "Enercity", "Stadtwerke München", "TWL Netze", "E.ON", "Bayernwerk"),
+NAME (e.g. "Enercity", "Stadtwerke München", "STROMDAO Netze", "E.ON", "Bayernwerk"),
 you MUST use this EXACT three-step pipeline — no shortcuts:
 
   STEP 1  grid-operations.marketPartners

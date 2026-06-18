@@ -1614,8 +1614,8 @@ module.exports = {
                   information: [
                     {
                       actorType: 'org',
-                      actorId: 'TWL_NETZE',
-                      displayName: 'TWL Netze (angegeben)',
+                      actorId: 'STROMDAO_NETZE',
+                      displayName: 'STROMDAO Netze (angegeben)',
                     },
                   ],
                 },
@@ -1641,7 +1641,7 @@ module.exports = {
                 assetRisks: [
                   {
                     id: 'geo-operator-mismatch',
-                    risk: 'Betreiber-Mismatch zwischen benanntem TWL Netze und Standort Frankenthal',
+                    risk: 'Betreiber-Mismatch zwischen benanntem STROMDAO Netze und Standort Frankenthal',
                     severity: 'hoch',
                     impact: 'Formeller Anschluss- und Finanzierungsentscheid nicht belastbar.',
                     mitigation: 'Zuständigkeit und formale Zusage dokumentiert nachweisen.',

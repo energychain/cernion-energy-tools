@@ -189,7 +189,7 @@ module.exports = {
                     type: 'array',
                     items: { type: 'string' },
                     description: 'Tags for datapoint snapshot (Weg B fallback)',
-                    example: ['twl-netze'],
+                    example: ['stromdao-netze'],
                   },
                 },
               },

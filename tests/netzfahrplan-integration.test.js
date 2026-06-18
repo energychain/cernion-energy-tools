@@ -66,7 +66,7 @@ describe('netzfahrplan integration — netzfahrplanGenerate', () => {
 
   it('returns FLEX_NAV_FEASIBLE for a valid hybrid profile that passes N-1', async () => {
     const result = await broker.call('grid-operations.netzfahrplanGenerate', {
-      gridOperatorName: 'TWL Netze',
+      gridOperatorName: 'STROMDAO Netze',
       voltageLevel: 'MS',
       requestedCapacityKW: 5000,
       firmCapacityKW: 3000,
@@ -76,7 +76,7 @@ describe('netzfahrplan integration — netzfahrplanGenerate', () => {
       controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
       contractStatus: 'signed',
       legalStatus: 'approved',
-      ownerContact: 'netzplanung@twl.de',
+      ownerContact: 'netzplanung@stromdao.de',
     });
 
     expect(result.feasibility).toBe('feasible');
@@ -99,7 +99,7 @@ describe('netzfahrplan integration — netzfahrplanGenerate', () => {
       curtailmentWindow: 4,
       contractStatus: 'signed',
       legalStatus: 'pending', // NOT approved
-      ownerContact: 'netzplanung@twl.de',
+      ownerContact: 'netzplanung@stromdao.de',
     });
 
     expect(result.governanceStatus).toBe('requires_governance_decision');
@@ -116,7 +116,7 @@ describe('netzfahrplan integration — netzfahrplanGenerate', () => {
       curtailmentWindow: 4,
       contractStatus: 'signed',
       legalStatus: 'approved',
-      ownerContact: 'netzplanung@twl.de',
+      ownerContact: 'netzplanung@stromdao.de',
     });
 
     expect(result.contractGate.satisfied).toBe(false);
@@ -176,7 +176,7 @@ describe('netzfahrplan integration — netzfahrplanGenerate', () => {
     const result = await broker.call(
       'grid-operations.netzfahrplanGenerate',
       {
-        gridOperatorName: 'TWL Netze',
+        gridOperatorName: 'STROMDAO Netze',
         voltageLevel: 'MS',
         requestedCapacityKW: 5000,
         firmCapacityKW: 3000,
@@ -241,7 +241,7 @@ describe('netzfahrplan integration — grid-connection.fnavValidate', () => {
 
   it('delegates to netzfahrplanGenerate and returns source tag', async () => {
     const result = await broker.call('grid-connection.fnavValidate', {
-      gridOperatorName: 'TWL Netze',
+      gridOperatorName: 'STROMDAO Netze',
       voltageLevel: 'MS',
       fnavProfile: {
         requestedCapacity: 4000,
@@ -253,7 +253,7 @@ describe('netzfahrplan integration — grid-connection.fnavValidate', () => {
         contractStatus: 'signed',
         legalStatus: 'approved',
       },
-      ownerContact: 'netzplanung@twl.de',
+      ownerContact: 'netzplanung@stromdao.de',
     });
 
     expect(result.source).toBe('grid-connection.fnavValidate');
@@ -267,7 +267,7 @@ describe('netzfahrplan integration — grid-connection.fnavValidate', () => {
     const result = await broker.call(
       'grid-connection.fnavValidate',
       {
-        gridOperatorName: 'TWL Netze',
+        gridOperatorName: 'STROMDAO Netze',
         voltageLevel: 'MS',
         fnavProfile: {
           requestedCapacity: 4000,
@@ -376,9 +376,9 @@ describe('netzfahrplan integration — finance-agent.fnavEconomics', () => {
         legalStatus: 'approved',
       },
       voltageLevel: 'MS',
-      gridOperator: 'TWL Netze',
+      gridOperator: 'STROMDAO Netze',
       annualFeeEur: 15000,
-      ownerContact: 'netzplanung@twl.de',
+      ownerContact: 'netzplanung@stromdao.de',
     });
 
     expect(result.capexSource).toBe('eog_calculator');

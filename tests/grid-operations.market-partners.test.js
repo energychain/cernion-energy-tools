@@ -18,7 +18,7 @@ const MOCK_MARKET_PARTNERS = {
   results: [
     {
       bdew: '9900992720003',
-      name: 'TWL Netz GmbH',
+      name: 'STROMDAO Netz GmbH',
       address: 'Industriestraße 7, 67063 Ludwigshafen',
       city: 'Ludwigshafen',
       postalCode: '67063',
@@ -45,9 +45,9 @@ describe('Grid Operations Service - Market Partners', () => {
   afterAll(() => broker.stop());
 
   describe('marketPartners action', () => {
-    it('should search for TWL Netze by name', async () => {
+    it('should search for STROMDAO Netze by name', async () => {
       const result = await broker.call('grid-operations.marketPartners', {
-        query: 'TWL Netze',
+        query: 'STROMDAO Netze',
         limit: 5,
       });
 
@@ -76,7 +76,7 @@ describe('Grid Operations Service - Market Partners', () => {
     it('should validate limit parameter', async () => {
       await expect(
         broker.call('grid-operations.marketPartners', {
-          query: 'TWL',
+          query: 'STROMDAO',
           limit: 25, // exceeds max 20
         })
       ).rejects.toThrow();
@@ -89,7 +89,7 @@ describe('Grid Operations Service - Market Partners', () => {
     it('should not pass format param to MCP tool', async () => {
       callWithNewSession.mockClear();
       await broker.call('grid-operations.marketPartners', {
-        query: 'TWL',
+        query: 'STROMDAO',
         format: 'csv',
       });
       const [, params] = callWithNewSession.mock.calls[0];
@@ -100,7 +100,7 @@ describe('Grid Operations Service - Market Partners', () => {
   describe('marketPartners format parameter', () => {
     it('should accept format=json and return raw result', async () => {
       const result = await broker.call('grid-operations.marketPartners', {
-        query: 'TWL',
+        query: 'STROMDAO',
         format: 'json',
       });
       expect(result).toEqual(MOCK_MARKET_PARTNERS);
@@ -108,7 +108,7 @@ describe('Grid Operations Service - Market Partners', () => {
 
     it('should return CSV string for format=csv', async () => {
       const result = await broker.call('grid-operations.marketPartners', {
-        query: 'TWL',
+        query: 'STROMDAO',
         format: 'csv',
       });
       expect(typeof result).toBe('string');
@@ -117,7 +117,7 @@ describe('Grid Operations Service - Market Partners', () => {
 
     it('should return Buffer for format=xlsx', async () => {
       const result = await broker.call('grid-operations.marketPartners', {
-        query: 'TWL',
+        query: 'STROMDAO',
         format: 'xlsx',
       });
       expect(result).toBeInstanceOf(Buffer);
@@ -125,7 +125,7 @@ describe('Grid Operations Service - Market Partners', () => {
 
     it('should return Buffer for format=xls', async () => {
       const result = await broker.call('grid-operations.marketPartners', {
-        query: 'TWL',
+        query: 'STROMDAO',
         format: 'xls',
       });
       expect(result).toBeInstanceOf(Buffer);
@@ -133,7 +133,7 @@ describe('Grid Operations Service - Market Partners', () => {
 
     it('should reject invalid format value', async () => {
       await expect(
-        broker.call('grid-operations.marketPartners', { query: 'TWL', format: 'pdf' })
+        broker.call('grid-operations.marketPartners', { query: 'STROMDAO', format: 'pdf' })
       ).rejects.toThrow();
     });
   });

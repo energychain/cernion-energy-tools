@@ -175,7 +175,7 @@ function normalizeOperatorName(value) {
  * (Netzbetreibernummer) — the identifier the EWK tools use.
  *
  * BNRs are short numeric codes (observed range: 5–10 digits, e.g.
- * 10002977 for TWL Netze GmbH).  They are completely different from
+ * 10002977 for STROMDAO Netze GmbH).  They are completely different from
  * 13-digit BDEW market-partner codes (9904350000002, 9907473000008, …).
  *
  * Passing a 13-digit BDEW code as `bnr` to ewk_anschlussdauer /
@@ -321,10 +321,10 @@ async function findAlternateBdewCodes(ctx, identity, primaryBdewCode) {
       : [];
     const lookupCodes = extractLookupBdewCodes(lookupPayload, primaryBdewCode);
 
-    // Extract the canonical BNr (e.g. "10002977" for TWL Netze GmbH).
+    // Extract the canonical BNr (e.g. "10002977" for STROMDAO Netze GmbH).
     // It is a direct, unambiguous identifier — safe to use regardless of
     // conflict flags.  Place it first in the returned array so fetchEwkData
-    // tries { bnr: "10002977" } before { vnbName: "TWL Netze GmbH" }.
+    // tries { bnr: "10002977" } before { vnbName: "STROMDAO Netze GmbH" }.
     const rawBnr = lookupPayload?.canonical?.bnr;
     if (rawBnr && isBnrFormat(rawBnr)) {
       canonicalBnrCodes = [String(rawBnr).trim()];

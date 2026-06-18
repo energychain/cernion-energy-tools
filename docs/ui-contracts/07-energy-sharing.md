@@ -63,7 +63,7 @@ UI MUST validate that `sum(consumers[].sharePercent) === 100` before submission.
   "success":       true,
   "communityName": "Solargemeinschaft Rheinallee",
   "communityId":   "ES-2026-001",
-  "gridOperator":  { "name": "TWL Netze GmbH", "mastrId": "SNB935578300972" },
+  "gridOperator":  { "name": "STROMDAO Netze GmbH", "mastrId": "SNB935578300972" },
   "decision":      "APPROVED_WITH_CONDITIONS",
   "summary": {
     "generatorsSubmitted": 1,

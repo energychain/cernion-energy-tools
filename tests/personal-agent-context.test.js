@@ -603,7 +603,7 @@ describe('resolveContextMutation', () => {
 
   it('PA-CM-004: replace when gridOperatorName changes', () => {
     const result = resolveContextMutation(
-      { municipality: 'Troisdorf', gridOperatorName: 'TWL Netze' },
+      { municipality: 'Troisdorf', gridOperatorName: 'STROMDAO Netze' },
       { gridOperatorName: 'Stadtwerke Düsseldorf' }
     );
     expect(result.mode).toBe('replace');

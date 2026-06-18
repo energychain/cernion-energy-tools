@@ -26,7 +26,7 @@
   "operator": {
     "gridOperatorId": "SNB935578300972",
     "bdewCode": "9907473000008",
-    "name": "TWL Netze GmbH"
+    "name": "STROMDAO Netze GmbH"
   },
   "decisionReadiness": {
     "signal": "yellow",

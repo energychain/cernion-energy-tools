@@ -35,7 +35,7 @@ describe('OSM Geo Service', () => {
               queryCenter: { lat: 49.481, lon: 8.432 },
               radiusMeters: 1000,
               totalFound: 4,
-              summary: { nearestSubstationMeters: 184, dominantOperator: 'TWL' },
+              summary: { nearestSubstationMeters: 184, dominantOperator: 'STROMDAO' },
               infrastructure: [],
               dataQuality: { coverageLabel: 'MEDIUM' },
             },
@@ -47,7 +47,7 @@ describe('OSM Geo Service', () => {
               summary: {
                 totalSubstations: 312,
                 returnedSubstations: 200,
-                dominantOperator: 'TWL',
+                dominantOperator: 'STROMDAO',
                 dominantOperatorShare: 0.92,
                 densityAssessment: { label: 'URBAN' },
               },
@@ -118,7 +118,7 @@ describe('OSM Geo Service', () => {
       const result = await broker.call('osm-geo.validate', {
         latitude: 49.481,
         longitude: 8.432,
-        registeredGridOperatorName: 'TWL Netze GmbH',
+        registeredGridOperatorName: 'STROMDAO Netze GmbH',
       });
       expect(result.success).toBe(true);
       expect(callWithNewSession).toHaveBeenCalledWith(
@@ -287,14 +287,14 @@ describe('OSM Geo Service', () => {
     it('should accept boundingBox scope', async () => {
       const result = await broker.call('osm-geo.substationFinder', {
         boundingBox: { north: 49.548, south: 49.427, east: 8.477, west: 8.298 },
-        gridOperator: 'TWL Netze GmbH',
+        gridOperator: 'STROMDAO Netze GmbH',
       });
       expect(result.success).toBe(true);
     });
 
     it('should accept gridOperator as sole scope parameter', async () => {
       const result = await broker.call('osm-geo.substationFinder', {
-        gridOperator: 'TWL Netze GmbH',
+        gridOperator: 'STROMDAO Netze GmbH',
       });
       expect(result.success).toBe(true);
     });
@@ -365,7 +365,7 @@ describe('OSM Geo Service', () => {
 
     it('should accept gridOperator as sole scope parameter', async () => {
       const result = await broker.call('osm-geo.gridTopology', {
-        gridOperator: 'TWL Netze GmbH',
+        gridOperator: 'STROMDAO Netze GmbH',
       });
       expect(result.success).toBe(true);
     });

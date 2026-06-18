@@ -86,8 +86,8 @@ module.exports = {
                   vnbName: {
                     type: 'string',
                     description:
-                      'Partial VNB name search (case-insensitive, e.g. "Netze BW", "TWL Netze")',
-                    example: 'TWL Netze',
+                      'Partial VNB name search (case-insensitive, e.g. "Netze BW", "STROMDAO Netze")',
+                    example: 'STROMDAO Netze',
                   },
                   bnr: {
                     type: 'string',
@@ -152,9 +152,9 @@ module.exports = {
                     limit: 10,
                   },
                 },
-                twlNetze: {
+                stromdaoNetze: {
                   summary: 'Anschlussdauer for a specific VNB',
-                  value: { vnbName: 'TWL Netze' },
+                  value: { vnbName: 'STROMDAO Netze' },
                 },
                 wallboxWaiting: {
                   summary: '§14a-relevant: wallbox connection times NS',
@@ -182,7 +182,7 @@ module.exports = {
                   data: {
                     results: [
                       {
-                        vnbName: 'TWL Netze GmbH',
+                        vnbName: 'STROMDAO Netze GmbH',
                         bnr: '10002345',
                         anschlussdauer_ee_ns_phase1_weeks: 14,
                         anschlussdauer_ee_ns_phase2_weeks: 21,
@@ -563,7 +563,7 @@ module.exports = {
                   data: {
                     results: [
                       {
-                        vnbName: 'TWL Netze GmbH',
+                        vnbName: 'STROMDAO Netze GmbH',
                         bnr: '10002345',
                         umsetzungsquote_ee_ns_pct: 100.0,
                         antraege_ee_ns: 37,
@@ -645,8 +645,8 @@ module.exports = {
                   vnbName: {
                     type: 'string',
                     description:
-                      'VNB name – partial match accepted (e.g. "TWL Netze GmbH" or "TWL Netze")',
-                    example: 'TWL Netze',
+                      'VNB name – partial match accepted (e.g. "STROMDAO Netze GmbH" or "STROMDAO Netze")',
+                    example: 'STROMDAO Netze',
                   },
                   bnr: {
                     type: 'string',
@@ -657,9 +657,9 @@ module.exports = {
                 },
               },
               examples: {
-                twlNetze: {
-                  summary: 'Full EWK profile for TWL Netze',
-                  value: { vnbName: 'TWL Netze' },
+                stromdaoNetze: {
+                  summary: 'Full EWK profile for STROMDAO Netze',
+                  value: { vnbName: 'STROMDAO Netze' },
                 },
                 byBnr: {
                   summary: 'Exact lookup via BNetzA operator number',
@@ -681,7 +681,7 @@ module.exports = {
                 example: {
                   success: true,
                   data: {
-                    vnbName: 'TWL Netze GmbH',
+                    vnbName: 'STROMDAO Netze GmbH',
                     bnr: '10002345',
                     anschlussdauer: {
                       rank: '234 / 739',

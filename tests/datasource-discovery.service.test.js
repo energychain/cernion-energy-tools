@@ -21,7 +21,7 @@ describe('Datasource Discovery Service', () => {
               data: [
                 {
                   id: 'source-fresh',
-                  name: 'Netzanschlüsse TWL 2025',
+                  name: 'Netzanschlüsse STROMDAO 2025',
                   description: 'Interne Liste aller Netzanschlüsse GW29',
                   tags: ['netz', 'gis'],
                   connectorConfig: { path: '/uploads/GW29_metering_2026.csv' },
@@ -129,7 +129,7 @@ describe('Datasource Discovery Service', () => {
     expect(stale.cacheStatus).toBe('stale');
 
     expect(fresh.privacyFlaggedFields).toContain('kundennummer');
-    expect(fresh.aliases).toContain('Netzanschlüsse TWL 2025');
+    expect(fresh.aliases).toContain('Netzanschlüsse STROMDAO 2025');
     expect(fresh.aliases).toContain('GW29');
     expect(fresh.aliases).toContain('2026');
     expect(fresh.capabilities).toContain('timeseries');

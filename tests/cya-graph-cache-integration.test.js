@@ -13,7 +13,7 @@ const { buildOntologyGraph } = require('../src/cya-ontology-graph');
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
 const VNB_A = 'Pfalzwerke Netz AG';
-const VNB_B = 'TWL Netze GmbH';
+const VNB_B = 'STROMDAO Netze GmbH';
 
 function makeInstallation(mastrNr, opts = {}) {
   return {

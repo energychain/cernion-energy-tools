@@ -323,13 +323,13 @@ describe('askCernionAgent evidence bundle', () => {
                   metadata: { docType: 'Cernion-Fachkontext' },
                 },
                 {
-                  id: 'twl-leak',
+                  id: 'stromdao-leak',
                   source: 'knowledge-rag',
                   score: 0.91,
                   referenceText_L0:
                     'Anonymisierte Pattern-Card fuer N-1-Kapazitaetslogik, Headroom und Reserve.',
                   vectorText:
-                    'N-1, 81 MVA, Kopplungspunkt, vorgelagertes Netz, TWL Netze, Headroom',
+                    'N-1, 81 MVA, Kopplungspunkt, vorgelagertes Netz, STROMDAO Netze, Headroom',
                   metadata: { docType: 'Pattern-Card' },
                 },
                 {
@@ -404,7 +404,7 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.groundingAnswer).toContain('keine Netzkapazitätsprüfung');
     expect(result.groundingAnswer).toContain('MaStR-Schnellcheck PLZ 69256');
     expect(result.groundingAnswer).not.toContain('81 MVA');
-    expect(result.groundingAnswer).not.toContain('TWL Netze');
+    expect(result.groundingAnswer).not.toContain('STROMDAO Netze');
     expect(result.groundingAnswer).not.toContain('Kopplungspunkt');
     expect(result.groundingAnswer).not.toContain('Elektrolyseure');
     expect(result.groundingAnswer).not.toContain('NEP Szenariorahmen');

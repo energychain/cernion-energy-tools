@@ -60,7 +60,7 @@ Returns the full validation result immediately. Execution may take up to 180 sec
 {
   "id":           "550e8400-e29b-41d4-a716-446655440001",
   "success":      true,
-  "gridOperator": { "name": "TWL Netze GmbH", "mastrId": "SNB935578300972" },
+  "gridOperator": { "name": "STROMDAO Netze GmbH", "mastrId": "SNB935578300972" },
   "decision":     "GO_CONDITIONAL",
   "summary": {
     "totalInstallations": 59,

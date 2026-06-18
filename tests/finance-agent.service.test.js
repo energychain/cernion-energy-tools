@@ -361,7 +361,7 @@ describe('finance-agent service', () => {
               count: 2,
               datapoints: [
                 {
-                  name: 'dp_finance_capex_twl',
+                  name: 'dp_finance_capex_stromdao',
                   description: 'Finance Datapoint for CAPEX benchmarking',
                   tags: ['finance', 'capex'],
                 },
@@ -649,7 +649,7 @@ describe('finance-agent service', () => {
     await broker.call('finance-agent.remember', {
       sessionId: 'finance-session-empty-rag',
       memory: {
-        summary: 'Vorherige Sitzung mit TWL-Kontext',
+        summary: 'Vorherige Sitzung mit STROMDAO-Kontext',
         legalReferences: ['§21a EnWG'],
       },
     });
@@ -731,7 +731,7 @@ describe('finance-agent service', () => {
                   bdewCode: '9900599000003',
                 },
                 {
-                  name: 'TWL Netze',
+                  name: 'STROMDAO Netze',
                   mastrNummer: 'GNB98765432109876543210987654',
                   bdewCode: '9900599000004',
                 },
@@ -782,10 +782,10 @@ describe('finance-agent service', () => {
                     national: { min: 60, max: 98, avg: 80 },
                   },
                 };
-              } else if (vnbName.includes('twl')) {
+              } else if (vnbName.includes('stromdao')) {
                 return {
                   success: true,
-                  vnbName: 'TWL Netze',
+                  vnbName: 'STROMDAO Netze',
                   anschlussdauer: {
                     value: 55,
                     rank: 200,
@@ -844,7 +844,7 @@ describe('finance-agent service', () => {
     it('returns evidence_based benchmark comparison for two valid VNBs', async () => {
       const res = await broker.call('finance-agent.benchmarkComparison', {
         vnb1Name: 'Netze BW',
-        vnb2Name: 'TWL Netze',
+        vnb2Name: 'STROMDAO Netze',
         comparisonDimensions: ['anschlussdauer', 'digitalisierungsindex', 'umsetzungsquote'],
       });
 
@@ -854,7 +854,7 @@ describe('finance-agent service', () => {
       expect(res.synthesis.status).toBe('evidence_based');
       expect(res.comparison).toBeDefined();
       expect(res.comparison.vnb1.name).toBe('Netze BW');
-      expect(res.comparison.vnb2.name).toBe('TWL Netze');
+      expect(res.comparison.vnb2.name).toBe('STROMDAO Netze');
       expect(res.comparison.dimensionComparison).toBeDefined();
       expect(res.comparison.dimensionComparison.anschlussdauer).toBeDefined();
       expect(res.comparison.dimensionComparison.digitalisierungsindex).toBeDefined();
@@ -864,7 +864,7 @@ describe('finance-agent service', () => {
     it('compares anschlussdauer correctly (lower is better)', async () => {
       const res = await broker.call('finance-agent.benchmarkComparison', {
         vnb1Name: 'Netze BW',
-        vnb2Name: 'TWL Netze',
+        vnb2Name: 'STROMDAO Netze',
         comparisonDimensions: ['anschlussdauer'],
       });
 
@@ -880,7 +880,7 @@ describe('finance-agent service', () => {
     it('compares digitalisierungsindex correctly (higher is better)', async () => {
       const res = await broker.call('finance-agent.benchmarkComparison', {
         vnb1Name: 'Netze BW',
-        vnb2Name: 'TWL Netze',
+        vnb2Name: 'STROMDAO Netze',
         comparisonDimensions: ['digitalisierungsindex'],
       });
 
@@ -896,7 +896,7 @@ describe('finance-agent service', () => {
     it('compares umsetzungsquote correctly (higher is better)', async () => {
       const res = await broker.call('finance-agent.benchmarkComparison', {
         vnb1Name: 'Netze BW',
-        vnb2Name: 'TWL Netze',
+        vnb2Name: 'STROMDAO Netze',
         comparisonDimensions: ['umsetzungsquote'],
       });
 
@@ -912,7 +912,7 @@ describe('finance-agent service', () => {
     it('includes asset context when includeAssetContext=true', async () => {
       const res = await broker.call('finance-agent.benchmarkComparison', {
         vnb1Name: 'Netze BW',
-        vnb2Name: 'TWL Netze',
+        vnb2Name: 'STROMDAO Netze',
         includeAssetContext: true,
       });
 
@@ -927,7 +927,7 @@ describe('finance-agent service', () => {
     it('excludes asset context when includeAssetContext=false', async () => {
       const res = await broker.call('finance-agent.benchmarkComparison', {
         vnb1Name: 'Netze BW',
-        vnb2Name: 'TWL Netze',
+        vnb2Name: 'STROMDAO Netze',
         includeAssetContext: false,
       });
 
@@ -941,7 +941,7 @@ describe('finance-agent service', () => {
       // benchmarkVnb mock throws for unknown VNB names → handler returns status: 'error'
       const res = await broker.call('finance-agent.benchmarkComparison', {
         vnb1Name: 'Unbekannter VNB XYZ',
-        vnb2Name: 'TWL Netze',
+        vnb2Name: 'STROMDAO Netze',
       });
 
       expect(res.status).toBe('error');
@@ -964,7 +964,7 @@ describe('finance-agent service', () => {
     it('uses default comparisonDimensions when not provided', async () => {
       const res = await broker.call('finance-agent.benchmarkComparison', {
         vnb1Name: 'Netze BW',
-        vnb2Name: 'TWL Netze',
+        vnb2Name: 'STROMDAO Netze',
       });
 
       expect(res.success).toBe(true);
@@ -976,7 +976,7 @@ describe('finance-agent service', () => {
     it('persists benchmark comparison result to PouchDB', async () => {
       const res = await broker.call('finance-agent.benchmarkComparison', {
         vnb1Name: 'Netze BW',
-        vnb2Name: 'TWL Netze',
+        vnb2Name: 'STROMDAO Netze',
       });
 
       expect(res.success).toBe(true);
@@ -986,14 +986,14 @@ describe('finance-agent service', () => {
       const retrieved = await broker.call('finance-agent.get', { id });
       expect(retrieved.type).toBe('vnb-benchmark-comparison');
       expect(retrieved.vnb1Name).toBe('Netze BW');
-      expect(retrieved.vnb2Name).toBe('TWL Netze');
+      expect(retrieved.vnb2Name).toBe('STROMDAO Netze');
       expect(retrieved.status).toBe('ok');
     });
 
     it('does not include asset context in request body when omitted', async () => {
       const res = await broker.call('finance-agent.benchmarkComparison', {
         vnb1Name: 'Netze BW',
-        vnb2Name: 'TWL Netze',
+        vnb2Name: 'STROMDAO Netze',
         comparisonDimensions: ['anschlussdauer'],
       });
 

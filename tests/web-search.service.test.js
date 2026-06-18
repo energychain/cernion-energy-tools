@@ -73,7 +73,7 @@ describe('Web Search Service', () => {
       axios.get.mockResolvedValueOnce({ data: { results: [] } });
 
       await broker.call('web-search.query', {
-        query: 'TWL Netze Netzausbau',
+        query: 'STROMDAO Netze Netzausbau',
         language: 'de',
         numResults: 5,
       });
@@ -82,7 +82,7 @@ describe('Web Search Service', () => {
         'https://search.corrently.cloud/search',
         expect.objectContaining({
           params: expect.objectContaining({
-            q: 'TWL Netze Netzausbau',
+            q: 'STROMDAO Netze Netzausbau',
             format: 'json',
             language: 'de',
             pageno: 1,

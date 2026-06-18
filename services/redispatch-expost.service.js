@@ -147,7 +147,7 @@ module.exports = {
                   gridOperatorName: {
                     type: 'string',
                     description: 'Grid operator name (fuzzy match)',
-                    example: 'TWL Netze',
+                    example: 'STROMDAO Netze',
                   },
                   dateFrom: {
                     type: 'string',
@@ -165,7 +165,7 @@ module.exports = {
                     type: 'array',
                     items: { type: 'string' },
                     description: 'Tags for Weg B datapoint fallback (portfolio data)',
-                    example: ['twl-netze', 'redispatch-portfolio'],
+                    example: ['stromdao-netze', 'redispatch-portfolio'],
                   },
                   maxAgeMinutes: {
                     type: 'integer',
@@ -200,7 +200,7 @@ module.exports = {
                 'Weg B — use tagged datapoint': {
                   value: {
                     gridOperatorId: 'SNB935578300972',
-                    datapointTags: ['twl-netze', 'redispatch-portfolio'],
+                    datapointTags: ['stromdao-netze', 'redispatch-portfolio'],
                     maxAgeMinutes: 60,
                     dateFrom: '2026-01-01',
                     dateTo: '2026-03-31',
@@ -423,7 +423,7 @@ module.exports = {
                   audits: [
                     {
                       id: '...',
-                      gridOperator: { name: 'TWL Netze' },
+                      gridOperator: { name: 'STROMDAO Netze' },
                       settlementReadiness: { readinessPercent: 88.1 },
                       riskAssessment: { riskLevel: 'medium' },
                       createdAt: '2026-03-31T...',
@@ -878,7 +878,7 @@ module.exports = {
                 'error',
                 `${mastr}: NAP belongs to different VNB (${napVnb} ≠ ${operator.mastrId})`,
                 'The NAP is registered under a different grid operator than the audited VNB. ' +
-                  'This causes incorrect assignment in the A96 settlement chain (e.g., TWL KOM vs TWL Netze).',
+                  'This causes incorrect assignment in the A96 settlement chain (e.g., STROMDAO KOM vs STROMDAO Netze).',
                 { mastrNummer: mastr, napMastrId: nap, napVnb, expectedVnb: operator.mastrId },
                 'Correct NAP ownership in MaStR or re-assign installation to the correct VNB.',
                 idx++

@@ -98,7 +98,7 @@ describe('Assets Service - XLSX Export', () => {
       }
 
       // Mock market partners lookup — must return a resolved MaStR ID so the
-      // new VNB_NOT_FOUND guard does not fire for 'TWL Netze' in these tests.
+      // new VNB_NOT_FOUND guard does not fire for 'STROMDAO Netze' in these tests.
       if (toolName === 'cernion_market_partners') {
         return {
           success: true,
@@ -106,7 +106,7 @@ describe('Assets Service - XLSX Export', () => {
             count: 1,
             results: [
               {
-                name: 'TWL Netze GmbH',
+                name: 'STROMDAO Netze GmbH',
                 mastrNetzbetreiberId: 'SNB900012345',
                 bdew: '1234567890123',
               },
@@ -121,7 +121,7 @@ describe('Assets Service - XLSX Export', () => {
           success: true,
           data: [
             {
-              name: 'TWL Netze',
+              name: 'STROMDAO Netze',
               bdewCode: '1234567890123',
               mastrId: 'SNB900012345',
             },
@@ -213,7 +213,7 @@ describe('Assets Service - XLSX Export', () => {
   describe('XLSX export via API', () => {
     it('should return XLSX buffer when format=xlsx', async () => {
       const result = await broker.call('assets.solar', {
-        vnbName: 'TWL Netze',
+        vnbName: 'STROMDAO Netze',
         format: 'xlsx',
       });
 
@@ -228,7 +228,7 @@ describe('Assets Service - XLSX Export', () => {
     it('should set correct response headers for XLSX', async () => {
       const ctx = {
         params: {
-          vnbName: 'TWL Netze',
+          vnbName: 'STROMDAO Netze',
           format: 'xlsx',
         },
         meta: {},
@@ -250,7 +250,7 @@ describe('Assets Service - XLSX Export', () => {
 
       for (const assetType of assetTypes) {
         const result = await broker.call(`assets.${assetType}`, {
-          vnbName: 'TWL Netze',
+          vnbName: 'STROMDAO Netze',
           format: 'xlsx',
         });
 
@@ -264,7 +264,7 @@ describe('Assets Service - XLSX Export', () => {
     it('should validate format enum correctly', async () => {
       await expect(
         broker.call('assets.solar', {
-          vnbName: 'TWL Netze',
+          vnbName: 'STROMDAO Netze',
           format: 'invalid',
         })
       ).rejects.toThrow();
@@ -272,7 +272,7 @@ describe('Assets Service - XLSX Export', () => {
 
     it('should default to JSON when format not specified', async () => {
       const result = await broker.call('assets.solar', {
-        vnbName: 'TWL Netze',
+        vnbName: 'STROMDAO Netze',
       });
 
       // Should return JSON object, not Buffer
@@ -284,7 +284,7 @@ describe('Assets Service - XLSX Export', () => {
   describe('XLSX content verification', () => {
     it('should create valid XLSX file with worksheet', async () => {
       const result = await broker.call('assets.solar', {
-        vnbName: 'TWL Netze',
+        vnbName: 'STROMDAO Netze',
         format: 'xlsx',
       });
 
@@ -309,7 +309,7 @@ describe('Assets Service - XLSX Export', () => {
           success: true,
           data: {
             count: 1,
-            results: [{ name: 'TWL Netze GmbH', mastrNetzbetreiberId: 'SNB900012345' }],
+            results: [{ name: 'STROMDAO Netze GmbH', mastrNetzbetreiberId: 'SNB900012345' }],
           },
         }))
         .mockImplementationOnce(async () => ({
@@ -329,7 +329,7 @@ describe('Assets Service - XLSX Export', () => {
         }));
 
       const result = await broker.call('assets.solar', {
-        vnbName: 'TWL Netze',
+        vnbName: 'STROMDAO Netze',
         format: 'xlsx',
       });
 

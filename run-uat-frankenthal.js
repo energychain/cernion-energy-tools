@@ -50,7 +50,7 @@ async function runUAT() {
   );
   await runTurn(
     2,
-    'Standort ist Frankenthal (Pfalz), Industriegebiet. Kapazität 12 MW. Netzbetreiber soll laut Prospekt TWL Netze sein.'
+    'Standort ist Frankenthal (Pfalz), Industriegebiet. Kapazität 12 MW. Netzbetreiber soll laut Prospekt STROMDAO Netze sein.'
   );
   await runTurn(
     3,

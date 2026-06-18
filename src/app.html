@@ -1744,7 +1744,7 @@
         <div class="report-form-grid">
           <div>
             <label>Versorger / Netzbetreiber <span style="color: var(--danger)">*</span></label>
-            <input id="rpt-utility" type="text" placeholder="z.B. TWL Netze GmbH" />
+            <input id="rpt-utility" type="text" placeholder="z.B. STROMDAO Netze GmbH" />
             <div class="field-hint">Name des Stadtwerks oder Netzbetreibers</div>
           </div>
           <div>
@@ -1808,7 +1808,7 @@
           Created via "Promote to Datapoint" after a research analysis.
         </p>
         <div class="dp-tag-filter-row">
-          <input id="dp-tag-filter" type="text" placeholder="🏷️  Filter by tags (comma-separated, e.g. solar,twl-netze)" />
+          <input id="dp-tag-filter" type="text" placeholder="🏷️  Filter by tags (comma-separated, e.g. solar,stromdao-netze)" />
         </div>
         <div id="dp-health-bar" class="dp-health-bar"></div>
         <div id="dp-content"></div>
@@ -1822,11 +1822,11 @@
           <div class="dp-snap-form">
             <div>
               <label for="dp-snap-names">Datapoint names (comma-separated, or leave blank for all)</label>
-              <input id="dp-snap-names" type="text" placeholder="e.g. solar-assets-twl, wind-forecast" style="min-width:280px" />
+              <input id="dp-snap-names" type="text" placeholder="e.g. solar-assets-stromdao, wind-forecast" style="min-width:280px" />
             </div>
             <div>
               <label for="dp-snap-tags">Or filter by tags</label>
-              <input id="dp-snap-tags" type="text" placeholder="e.g. solar,twl-netze" style="min-width:180px" />
+              <input id="dp-snap-tags" type="text" placeholder="e.g. solar,stromdao-netze" style="min-width:180px" />
             </div>
             <div>
               <label for="dp-snap-age">Max age (minutes)</label>
@@ -1913,7 +1913,7 @@
               </div>
               <div class="form-field">
                 <label>Datapoint-Tags (optional)</label>
-                <input id="gc-dp-tags" type="text" placeholder="z.B. twl-netze,solar" />
+                <input id="gc-dp-tags" type="text" placeholder="z.B. stromdao-netze,solar" />
               </div>
             </div>
             <div class="ih-inline" style="margin-bottom:12px">
@@ -2436,7 +2436,7 @@
             <label style="font-size:.82rem;color:var(--text-muted);">Datapoint name (URL-safe, lowercase)</label>
             <input type="text" id="dp-name-input" value="${esc(slug)}"
               pattern="^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$"
-              placeholder="e.g. pv-portfolio-twl-netze" />
+              placeholder="e.g. pv-portfolio-stromdao-netze" />
             <label style="font-size:.82rem;color:var(--text-muted);">Description (optional)</label>
             <input type="text" id="dp-desc-input" value="${esc(rawText.slice(0, 120))}"
               placeholder="Short description of the datapoint" />

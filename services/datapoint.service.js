@@ -28,7 +28,7 @@ const {
   resolveTenantId,
 } = require('../src/pagination');
 
-const EXAMPLE_DATAPOINT_NAME = 'pv-portfolio-twl-netze';
+const EXAMPLE_DATAPOINT_NAME = 'pv-portfolio-stromdao-netze';
 const DATAPOINT_NAME_PATTERN = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;
 
 module.exports = {
@@ -275,9 +275,9 @@ module.exports = {
                   value: {
                     sessionId: '9209aa45-93f7-471c-8883-76326c4083f1',
                     name: EXAMPLE_DATAPOINT_NAME,
-                    description: 'PV generation forecast for TWL Netze',
-                    tags: ['solar', 'forecast', 'twl'],
-                    fixedParams: { query: 'TWL Netze', forecastDays: 3 },
+                    description: 'PV generation forecast for STROMDAO Netze',
+                    tags: ['solar', 'forecast', 'stromdao'],
+                    fixedParams: { query: 'STROMDAO Netze', forecastDays: 3 },
                     refresh: { strategy: 'manual' },
                   },
                 },
@@ -389,7 +389,7 @@ module.exports = {
             name: 'tags',
             in: 'query',
             required: false,
-            schema: { type: 'string', example: 'solar,twl-netze' },
+            schema: { type: 'string', example: 'solar,stromdao-netze' },
             description:
               'Comma-separated tag filter. Returns only datapoints that have ALL specified tags (case-insensitive AND match).',
           },
@@ -1122,11 +1122,11 @@ module.exports = {
                   datapointNames: {
                     type: 'array',
                     items: { type: 'string' },
-                    example: [EXAMPLE_DATAPOINT_NAME, 'redispatch-anlagen-twl-netze'],
+                    example: [EXAMPLE_DATAPOINT_NAME, 'redispatch-anlagen-stromdao-netze'],
                   },
                   tags: {
                     type: 'string',
-                    example: 'twl-netze,redispatch-pipeline',
+                    example: 'stromdao-netze,redispatch-pipeline',
                     description:
                       'Comma-separated tag filter. Mutually exclusive with datapointNames.',
                   },
@@ -1135,7 +1135,7 @@ module.exports = {
                     default: 60,
                     description: 'Maximum age of a datapoint before a refresh is triggered.',
                   },
-                  name: { type: 'string', example: 'twl-validierung-q1-2026' },
+                  name: { type: 'string', example: 'stromdao-validierung-q1-2026' },
                   description: { type: 'string', default: '' },
                   createdBy: {
                     type: 'string',
@@ -1148,15 +1148,15 @@ module.exports = {
                 byNames: {
                   summary: 'Snapshot by datapoint names',
                   value: {
-                    datapointNames: [EXAMPLE_DATAPOINT_NAME, 'ewk-benchmark-twl'],
+                    datapointNames: [EXAMPLE_DATAPOINT_NAME, 'ewk-benchmark-stromdao'],
                     maxAgeMinutes: 60,
-                    name: 'twl-validierung-q1-2026',
-                    description: 'Consistency check TWL Netze Q1 2026',
+                    name: 'stromdao-validierung-q1-2026',
+                    description: 'Consistency check STROMDAO Netze Q1 2026',
                   },
                 },
                 byTags: {
                   summary: 'Snapshot by tag filter',
-                  value: { tags: 'twl-netze,redispatch-pipeline', maxAgeMinutes: 30 },
+                  value: { tags: 'stromdao-netze,redispatch-pipeline', maxAgeMinutes: 30 },
                 },
               },
             },

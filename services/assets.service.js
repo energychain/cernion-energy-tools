@@ -1040,7 +1040,7 @@ module.exports = {
           {
             name: 'vnbName',
             in: 'query',
-            schema: { type: 'string', example: 'TWL Netze' },
+            schema: { type: 'string', example: 'STROMDAO Netze' },
           },
           {
             name: 'bdewCode',

@@ -21,7 +21,7 @@ process.env.DATAPOINT_DB_PATH = TEST_DB_PATH;
 process.env.DATAPOINT_SCHEDULER_ENABLED = 'false';
 
 const DatapointService = require('../services/datapoint.service');
-const SESSION_FIXTURE = require('./fixtures/session-pv-twl.json');
+const SESSION_FIXTURE = require('./fixtures/session-pv-stromdao.json');
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -177,12 +177,12 @@ describe('datapoint.service — Snapshot Semantik (v0.13)', () => {
     });
 
     it('resolves datapoints by tags (AP3 integration)', async () => {
-      await promoteDatapoint(broker, 'dp-tagged-1', ['solar', 'twl-netze']);
-      await promoteDatapoint(broker, 'dp-tagged-2', ['solar', 'twl-netze']);
+      await promoteDatapoint(broker, 'dp-tagged-1', ['solar', 'stromdao-netze']);
+      await promoteDatapoint(broker, 'dp-tagged-2', ['solar', 'stromdao-netze']);
       await promoteDatapoint(broker, 'dp-other-tag', ['wind']);
 
       const snap = await broker.call('datapoint.createSnapshot', {
-        tags: 'solar,twl-netze',
+        tags: 'solar,stromdao-netze',
       });
 
       expect(snap.status).toBe('complete');

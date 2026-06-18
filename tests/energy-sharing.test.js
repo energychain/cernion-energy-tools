@@ -24,7 +24,7 @@ process.env.DATAPOINT_SCHEDULER_ENABLED = 'false';
 // ---------------------------------------------------------------------------
 const MOCK_IDENTITY = {
   mastrId: 'SNB935578300972',
-  name: 'TWL Netze GmbH',
+  name: 'STROMDAO Netze GmbH',
   bdew: '9907473000008',
   bnr: null,
 };

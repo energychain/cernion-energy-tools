@@ -186,7 +186,7 @@ describe('agent.executePlan', () => {
           step: 1,
           action: 'lookup-ep1.marketPartners',
           description: 'Lookup',
-          params: { query: 'TWL' },
+          params: { query: 'STROMDAO' },
         },
         {
           step: 2,

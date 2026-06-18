@@ -506,7 +506,7 @@ async function gated(availableTools, toolNames, fn) {
  * Examples:
  *   "Stadtwerke Eberbach"     → ["Stadtwerke Eberbach", "Eberbach"]
  *   "Eberbach"                → ["Eberbach", "Stadtwerke Eberbach"]
- *   "TWL Netz GmbH"           → ["TWL Netz GmbH", "TWL"]
+ *   "STROMDAO Netz GmbH"           → ["STROMDAO Netz GmbH", "STROMDAO"]
  */
 function buildVnbSearchQueries(name) {
   const queries = [name];
@@ -985,10 +985,10 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
                     bdew: '9907462000006',
                   },
                 },
-                twlNetze: {
-                  summary: 'TWL Netze GmbH',
+                stromdaoNetze: {
+                  summary: 'STROMDAO Netze GmbH',
                   value: {
-                    utilityName: 'TWL Netze GmbH',
+                    utilityName: 'STROMDAO Netze GmbH',
                     region: 'Ludwigshafen',
                     bdew: '9907462000013',
                   },

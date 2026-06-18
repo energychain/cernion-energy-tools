@@ -82,7 +82,7 @@ describe('GraphCache — buildKey', () => {
   });
 
   test('special characters are replaced with underscores', () => {
-    expect(c.buildKey('TWL-Netze GmbH')).toBe('ontology_twl_netze_gmbh');
+    expect(c.buildKey('STROMDAO-Netze GmbH')).toBe('ontology_stromdao_netze_gmbh');
   });
 
   test('dots and dashes are replaced', () => {

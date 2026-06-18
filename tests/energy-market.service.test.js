@@ -1327,7 +1327,7 @@ describe('Energy Market Service', () => {
 
     // Bug 3 ─────────────────────────────────────────────────────────────────
     it('Bug 3: gridOperatorName triggers market_partners resolution, not a static SNB', async () => {
-      // Simulate market_partners returning TWL's MaStR ID
+      // Simulate market_partners returning STROMDAO's MaStR ID
       callWithNewSession
         .mockResolvedValueOnce({
           // First call → cernion_market_partners
@@ -1349,13 +1349,13 @@ describe('Energy Market Service', () => {
 
       await broker.call('energy-market.installations', {
         installationType: 'solar',
-        gridOperatorName: 'TWL Netze',
+        gridOperatorName: 'STROMDAO Netze',
         limit: 5,
       });
 
       // First call must be to market_partners for name resolution
       expect(callWithNewSession.mock.calls[0][0]).toBe('cernion_market_partners');
-      expect(callWithNewSession.mock.calls[0][1].query).toBe('TWL Netze');
+      expect(callWithNewSession.mock.calls[0][1].query).toBe('STROMDAO Netze');
 
       // Second call (installations) must use the resolved MaStR ID, NOT the name
       const [, installationParams] = callWithNewSession.mock.calls[1];
@@ -1383,7 +1383,7 @@ describe('Energy Market Service', () => {
 
       await broker.call('energy-market.installations', {
         installationType: 'solar',
-        gridOperatorName: 'TWL',
+        gridOperatorName: 'STROMDAO',
         limit: 5,
       });
 

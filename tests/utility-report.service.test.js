@@ -72,7 +72,7 @@ const DEFAULT_MOCK_RESULT = { success: true, data: { results: [], total: 0, coun
 const DEFAULT_SERVICE_MOCKS = {
   'grid-operations': {
     marketPartners: async () => ({
-      results: [{ name: 'TWL Netze GmbH', bdewCode: '10002345', mastrId: 'SNB123' }],
+      results: [{ name: 'STROMDAO Netze GmbH', bdewCode: '10002345', mastrId: 'SNB123' }],
     }),
     vnbLookup: async () => DEFAULT_MOCK_RESULT,
     vnbLookupCodes: async () => ({
@@ -84,12 +84,12 @@ const DEFAULT_SERVICE_MOCKS = {
       aliases: [],
     }),
     vnbdigitalSearch: async () => ({
-      searchTerm: 'TWL Netze GmbH',
+      searchTerm: 'STROMDAO Netze GmbH',
       total: 1,
       results: [
         {
           _id: 'DEBWhk01000gMZ1V',
-          title: 'TWL Netze GmbH',
+          title: 'STROMDAO Netze GmbH',
           type: 'vnb',
           profileUrl: 'https://www.vnbdigital.de/vnb/DEBWhk01000gMZ1V',
         },
@@ -97,7 +97,7 @@ const DEFAULT_SERVICE_MOCKS = {
     }),
     vnbdigitalLookup: async () => ({
       searchType: 'postcode',
-      result: { vnbs: [{ _id: 'DEBWhk01000gMZ1V', name: 'TWL Netze GmbH' }] },
+      result: { vnbs: [{ _id: 'DEBWhk01000gMZ1V', name: 'STROMDAO Netze GmbH' }] },
     }),
     controlMeasures: async () => ({ result: { items: [] } }),
     capacityUtilization: async () => DEFAULT_MOCK_RESULT,

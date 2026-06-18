@@ -34,8 +34,8 @@ const HOTSPOT_THRESHOLDS = {
     commonLocation: 'end of long PV-heavy stub lines (Stichleitungen)',
   },
 
-  // TWL Netze specific (N-1 security)
-  twlNetze: {
+  // STROMDAO Netze specific (N-1 security)
+  stromdaoNetze: {
     operatingLimit: 81, // MVA
     level: 'Mittelspannung / Hochspannung',
     criterion: 'N-1 safe operating margin',

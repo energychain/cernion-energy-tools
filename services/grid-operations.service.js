@@ -198,7 +198,7 @@ module.exports = {
                 byName: {
                   summary: 'Lookup by operator name',
                   value: {
-                    vnbName: 'TWL Netze GmbH',
+                    vnbName: 'STROMDAO Netze GmbH',
                     includeAliases: true,
                   },
                 },
@@ -216,7 +216,7 @@ module.exports = {
                 byName: {
                   summary: 'Lookup via VNB name',
                   value: {
-                    vnbName: 'TWL Netze GmbH',
+                    vnbName: 'STROMDAO Netze GmbH',
                     includeAliases: true,
                   },
                 },
@@ -1038,7 +1038,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                 properties: {
                   bdewCode: { type: 'string', example: '9907473000008' },
                   bnr: { type: 'string', example: '99074730' },
-                  vnbName: { type: 'string', example: 'TWL Netze GmbH' },
+                  vnbName: { type: 'string', example: 'STROMDAO Netze GmbH' },
                   mastrId: { type: 'string', example: 'SNB935578300972' },
                   includeAliases: { type: 'boolean', default: true },
                   includeTrace: { type: 'boolean', default: false },
@@ -1063,7 +1063,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                 byName: {
                   summary: 'Lookup via operator name',
                   value: {
-                    vnbName: 'TWL Netze GmbH',
+                    vnbName: 'STROMDAO Netze GmbH',
                     includeAliases: true,
                   },
                 },
@@ -1268,7 +1268,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                 capacityMapping: {
                   summary: 'Capacity distribution mapping',
                   value: {
-                    gridOperator: 'TWL Netze',
+                    gridOperator: 'STROMDAO Netze',
                     includeCapacityMap: true,
                     includeFeedInPatterns: true,
                   },
@@ -1405,7 +1405,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                 lowVoltageOnly: {
                   summary: 'Low voltage network analysis',
                   value: {
-                    gridOperator: 'TWL Netze',
+                    gridOperator: 'STROMDAO Netze',
                     startDate: '2026-02-01',
                     endDate: '2026-02-07',
                     voltageLevel: 'NS',
@@ -1560,7 +1560,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                 largeInstallations: {
                   summary: 'Large installations (>500kW)',
                   value: {
-                    gridOperator: 'TWL Netze',
+                    gridOperator: 'STROMDAO Netze',
                     minCapacity: 500,
                     autoConfirm: true,
                   },
@@ -1843,7 +1843,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                 heatPump: {
                   summary: 'Heat pump (15kW)',
                   value: {
-                    gridOperator: 'TWL Netze',
+                    gridOperator: 'STROMDAO Netze',
                     location: '67059',
                     installationType: 'heat-pump',
                     capacityKW: 15,
@@ -1908,7 +1908,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
 
 **Search Types**:
 - **BDEW Code**: 13-digit code (e.g., "9900992720003")
-- **Company Name**: Full or partial name (e.g., "TWL", "Stadtwerke Heidelberg")
+- **Company Name**: Full or partial name (e.g., "STROMDAO", "Stadtwerke Heidelberg")
 - **City**: Location-based search (e.g., "Heidelberg", "München")
 
 **Use Cases**:
@@ -1926,7 +1926,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
 - MaStR IDs (SNB, GNB, etc.)
 
 **Example Queries**:
-- "TWL Netze" → TWL Netz GmbH with BDEW code
+- "STROMDAO Netze" → STROMDAO Netz GmbH with BDEW code
 - "9900992720003" → Specific market partner details
 - "Heidelberg" → All market partners in Heidelberg`,
         parameters: [
@@ -1937,7 +1937,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
             schema: {
               type: 'string',
               description: 'Search term: BDEW code, company name, or city',
-              example: 'TWL Netze',
+              example: 'STROMDAO Netze',
             },
           },
           {
@@ -1998,13 +1998,13 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                   },
                 },
                 examples: {
-                  twlNetze: {
-                    summary: 'Search for TWL Netze',
+                  stromdaoNetze: {
+                    summary: 'Search for STROMDAO Netze',
                     value: {
                       results: [
                         {
                           bdew: '9900992720003',
-                          name: 'TWL Netz GmbH',
+                          name: 'STROMDAO Netz GmbH',
                           address: 'Industriestraße 7, 67063 Ludwigshafen',
                           city: 'Ludwigshafen',
                           postalCode: '67063',
@@ -2136,7 +2136,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                   gridOperatorName: {
                     type: 'string',
                     description: 'Grid operator name',
-                    example: 'TWL Netze',
+                    example: 'STROMDAO Netze',
                   },
                   voltageLevel: {
                     type: 'string',
@@ -2197,7 +2197,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                   ownerContact: {
                     type: 'string',
                     description: 'Responsible owner or contact (required for governance approval)',
-                    example: 'netzplanung@twl.de',
+                    example: 'netzplanung@stromdao.de',
                   },
                   n1ThresholdOverride: {
                     type: 'object',
@@ -2214,7 +2214,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
               examples: {
                 'fNAV hybrid MS': {
                   value: {
-                    gridOperatorName: 'TWL Netze',
+                    gridOperatorName: 'STROMDAO Netze',
                     voltageLevel: 'MS',
                     requestedCapacityKW: 5000,
                     firmCapacityKW: 3000,
@@ -2226,7 +2226,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                     controlEvidenceRef: 'SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05',
                     contractStatus: 'negotiating',
                     legalStatus: 'pending',
-                    ownerContact: 'netzplanung@twl.de',
+                    ownerContact: 'netzplanung@stromdao.de',
                   },
                 },
                 'static cap HS with override': {

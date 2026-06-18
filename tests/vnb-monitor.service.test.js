@@ -648,7 +648,7 @@ describe('vnb-monitor.service', () => {
       probeBroker.createService({
         name: 'grid-operations',
         actions: {
-          // vnbLookup resolves the primary code to TWL Netze GmbH so that
+          // vnbLookup resolves the primary code to STROMDAO Netze GmbH so that
           // providerName is set and a clean { vnbName } query reaches EWK.
           // The stale alternate code 9904350000002 is still added via
           // marketPartners but is now rejected by isBnrFormat (13 digits)
@@ -659,7 +659,7 @@ describe('vnb-monitor.service', () => {
               data: {
                 bdew: '9907473000008',
                 mastrId: 'SNB935578300972',
-                companyName: 'TWL Netze GmbH',
+                companyName: 'STROMDAO Netze GmbH',
                 source: 'mock',
               },
             }),
@@ -676,16 +676,16 @@ describe('vnb-monitor.service', () => {
             }),
           },
           // marketPartners returns one stale alternate: 9904350000002 appears
-          // under "TWL Netze GmbH" even though the EWK DB maps it to Freiberger.
+          // under "STROMDAO Netze GmbH" even though the EWK DB maps it to Freiberger.
           marketPartners: {
             handler(ctx) {
-              if (ctx.params.query && ctx.params.query.includes('TWL')) {
+              if (ctx.params.query && ctx.params.query.includes('STROMDAO')) {
                 return {
                   success: true,
                   data: {
                     results: [
                       {
-                        companyName: 'TWL Netze GmbH',
+                        companyName: 'STROMDAO Netze GmbH',
                         bdewCode: '9904350000002', // stale – actually Freiberger
                         mastrNetzbetreiberId: null,
                         contacts: [{ city: 'Ludwigshafen' }],
@@ -728,7 +728,7 @@ describe('vnb-monitor.service', () => {
                   ],
                 };
               }
-              // Primary TWL code or name-based query → no data
+              // Primary STROMDAO code or name-based query → no data
               return {
                 success: true,
                 data: [{ type: 'text', json: { stats: {}, rows: [] } }],
@@ -840,7 +840,7 @@ describe('vnb-monitor.service', () => {
               data: {
                 bdew: '9907473000008',
                 mastrId: null,
-                companyName: 'TWL Netze GmbH',
+                companyName: 'STROMDAO Netze GmbH',
                 source: 'mock',
               },
             }),
@@ -851,7 +851,7 @@ describe('vnb-monitor.service', () => {
               success: true,
               data: {
                 canonical: {
-                  name: 'TWL Netze GmbH',
+                  name: 'STROMDAO Netze GmbH',
                   bdewCodePrimary: '9907473000008',
                 },
                 aliases: [
@@ -876,7 +876,7 @@ describe('vnb-monitor.service', () => {
                 data: {
                   results: [
                     {
-                      companyName: 'TWL Netze GmbH',
+                      companyName: 'STROMDAO Netze GmbH',
                       bdewCode: '9904350000002', // stale code (must be ignored)
                     },
                   ],
@@ -954,7 +954,7 @@ describe('vnb-monitor.service', () => {
       expect(marketPartnersCalls).toBe(0);
       // 13-digit BDEW codes are blocked by isBnrFormat before reaching EWK tools.
       // Only the resolved operator name reaches anschlussdauer as a vnbName query.
-      expect(anschlussdauerCalls).toContain('TWL Netze GmbH');
+      expect(anschlussdauerCalls).toContain('STROMDAO Netze GmbH');
       expect(anschlussdauerCalls).not.toContain('9907473000008'); // 13-digit → blocked
       expect(anschlussdauerCalls).not.toContain('9907473000999'); // 13-digit → blocked
       expect(anschlussdauerCalls).not.toContain('9904350000002'); // 13-digit → blocked
@@ -969,7 +969,7 @@ describe('vnb-monitor.service', () => {
   //
   // Note: 13-digit BDEW market-partner codes (e.g. 9904350000002) are rejected
   // by isBnrFormat before reaching EWK, so this scenario requires a genuine
-  // BNR-format code (e.g. TWL's BNR 10002977).  Once CR-MCP-01 is fixed,
+  // BNR-format code (e.g. STROMDAO's BNR 10002977).  Once CR-MCP-01 is fixed,
   // 9904350000002 will be resolved correctly by cernion_vnb_lookup before EWK.
   describe('EWK identity back-fill when upstream lookups fail for BNR-format code', () => {
     let ewkBackfillBroker;
@@ -1007,7 +1007,7 @@ describe('vnb-monitor.service', () => {
       ewkBackfillBroker.createService({
         name: 'ewk-monitoring',
         actions: {
-          // EWK probe resolves BNR 10002977 directly to TWL Netze GmbH.
+          // EWK probe resolves BNR 10002977 directly to STROMDAO Netze GmbH.
           anschlussdauer: {
             handler: () => ({
               success: true,
@@ -1021,7 +1021,7 @@ describe('vnb-monitor.service', () => {
                     },
                     rows: [
                       {
-                        firmenname: 'TWL Netze GmbH',
+                        firmenname: 'STROMDAO Netze GmbH',
                         ee_ns_gesamt_wochen: 31,
                         ee_ns_phase1_wochen: 11,
                         ee_ns_phase2_wochen: 20,
@@ -1042,7 +1042,7 @@ describe('vnb-monitor.service', () => {
               data: [
                 {
                   type: 'text',
-                  json: { rows: [{ firmenname: 'TWL Netze GmbH', umsetzungsquote_ee_ns: 75 }] },
+                  json: { rows: [{ firmenname: 'STROMDAO Netze GmbH', umsetzungsquote_ee_ns: 75 }] },
                 },
               ],
             }),
@@ -1055,7 +1055,7 @@ describe('vnb-monitor.service', () => {
                   type: 'text',
                   json: {
                     stats: { gesamtscore: { median: 35, n: 789 } },
-                    rows: [{ firmenname: 'TWL Netze GmbH' }],
+                    rows: [{ firmenname: 'STROMDAO Netze GmbH' }],
                   },
                 },
               ],
@@ -1106,13 +1106,13 @@ describe('vnb-monitor.service', () => {
 
     it('should back-fill identity from EWK probe when upstream lookups return nothing for BNR-format code', async () => {
       const result = await ewkBackfillBroker.call('vnb-monitor.snapshot', {
-        bdewCode: '10002977', // TWL's actual BNR (8 digits, passes isBnrFormat)
+        bdewCode: '10002977', // STROMDAO's actual BNR (8 digits, passes isBnrFormat)
         refresh: true,
         alerts: false,
       });
 
       // Identity must be resolved from EWK probe, not left as "Unknown"
-      expect(result.identity.name).toBe('TWL Netze GmbH');
+      expect(result.identity.name).toBe('STROMDAO Netze GmbH');
       expect(result.identity.name).not.toBe('Unknown');
     });
 

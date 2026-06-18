@@ -29,7 +29,7 @@ const jobStore = require('../src/job-store');
 // ---------------------------------------------------------------------------
 const MOCK_OPERATOR = {
   mastrId: 'SNB935578300972',
-  name: 'TWL Netze GmbH',
+  name: 'STROMDAO Netze GmbH',
   bdew: '9907473000008',
   bnr: '10002977',
 };

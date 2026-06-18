@@ -23,7 +23,7 @@ process.env.DATAPOINT_DB_PATH = TEST_DB_PATH;
 const DatapointService = require('../services/datapoint.service');
 
 // Minimal fixture session (mirrors .sessions/9209aa45-*.json shape)
-const SESSION_FIXTURE = require('./fixtures/session-pv-twl.json');
+const SESSION_FIXTURE = require('./fixtures/session-pv-stromdao.json');
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -182,7 +182,7 @@ describe('datapoint.service', () => {
 
     // AP3 (v0.13): tag-based filtering
     it('filters by a single tag (case-insensitive)', async () => {
-      await promoteFixture(broker, { name: 'dp-solar-a', tags: ['Solar', 'twl-netze'] });
+      await promoteFixture(broker, { name: 'dp-solar-a', tags: ['Solar', 'stromdao-netze'] });
       await promoteFixture(broker, { name: 'dp-wind-b', tags: ['wind'] });
 
       const result = await broker.call('datapoint.list', { tags: 'solar' });
@@ -192,14 +192,14 @@ describe('datapoint.service', () => {
     });
 
     it('filters by multiple comma-separated tags (AND semantics)', async () => {
-      await promoteFixture(broker, { name: 'dp-solar-twl', tags: ['solar', 'twl-netze'] });
+      await promoteFixture(broker, { name: 'dp-solar-stromdao', tags: ['solar', 'stromdao-netze'] });
       await promoteFixture(broker, { name: 'dp-solar-only', tags: ['solar'] });
-      await promoteFixture(broker, { name: 'dp-wind-twl', tags: ['wind', 'twl-netze'] });
+      await promoteFixture(broker, { name: 'dp-wind-stromdao', tags: ['wind', 'stromdao-netze'] });
 
-      const result = await broker.call('datapoint.list', { tags: 'solar,twl-netze' });
+      const result = await broker.call('datapoint.list', { tags: 'solar,stromdao-netze' });
 
       expect(result.count).toBe(1);
-      expect(result.datapoints[0].name).toBe('dp-solar-twl');
+      expect(result.datapoints[0].name).toBe('dp-solar-stromdao');
     });
 
     it('returns empty list when no datapoints match the tag filter', async () => {

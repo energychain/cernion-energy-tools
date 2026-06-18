@@ -29,7 +29,7 @@ describe('presentation fixtures (#CETview Prompt 7)', () => {
     expect(result.markdown).toContain(
       '| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |'
     );
-    expect(result.markdown).toContain('TWL Netze');
+    expect(result.markdown).toContain('STROMDAO Netze');
   });
 
   test('PRES-TRIWO-02: includes evidence gaps and forbidden assumptions sections', async () => {

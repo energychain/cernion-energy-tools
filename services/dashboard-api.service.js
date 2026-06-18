@@ -120,7 +120,7 @@ module.exports = {
                       nullable: true,
                       description: 'VNB identity from grid-operations.vnbLookupCodes',
                       properties: {
-                        name: { type: 'string', example: 'TWL Netze GmbH' },
+                        name: { type: 'string', example: 'STROMDAO Netze GmbH' },
                         mastrId: { type: 'string', example: 'SNB935578300972' },
                         bdew: { type: 'string', example: '9907473000008' },
                         bnr: { type: 'string', nullable: true },

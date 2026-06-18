@@ -114,9 +114,9 @@ Der Token Manager unterstützt jetzt optionale Tenant-Isolation.
 
 ```json
 {
-  "name": "ui-prod-twl",
+  "name": "ui-prod-stromdao",
   "scope": "full-access",
-  "tenantId": "twl-netze"
+  "tenantId": "stromdao-netze"
 }
 ```
 
@@ -132,7 +132,7 @@ Die `verify`-Action gibt jetzt `tenantId: string | null` zurück:
 {
   "valid": true,
   "scope": "full-access",
-  "tenantId": "twl-netze"
+  "tenantId": "stromdao-netze"
 }
 ```
 
@@ -142,7 +142,7 @@ Die `verify`-Action gibt jetzt `tenantId: string | null` zurück:
 
 - Listet alle bekannten (unique) `tenantId`s aus gespeicherten Tokens
 - Erfordert `full-access`-Token
-- Response: `{ "tenants": ["twl-netze", "wsw", "default"], "total": 3 }`
+- Response: `{ "tenants": ["stromdao-netze", "wsw", "default"], "total": 3 }`
 
 **API Gateway — automatische `ctx.meta.tenantId`-Propagation:**
 

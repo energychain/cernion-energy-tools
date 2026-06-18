@@ -350,7 +350,7 @@ npm run release:check        # Full release gate
 `cernion_installations_local` löst `gridOperatorBdewCode` server-seitig im MCP-Tool
 auf — nicht lokal via `vnbLookupCodes`. Es ist nicht verifiziert, ob der MCP-Server
 dieselbe Mapping-Collection nutzt. Bei BDEW-Codes mit Alias-Konflikten könnte der
-v0.20.0-Bug (falscher Code für TWL Netze) auf dem `bdewCode`-Pfad wieder auftreten.
+v0.20.0-Bug (falscher Code für STROMDAO Netze) auf dem `bdewCode`-Pfad wieder auftreten.
 Muss vor der nächsten Operator-Onboarding-Welle untersucht werden.
 
 **CR-0003 — Drei fehlende Agent-Response-Felder:**

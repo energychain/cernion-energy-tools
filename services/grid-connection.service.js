@@ -128,13 +128,13 @@ module.exports = {
                   gridOperatorName: {
                     type: 'string',
                     description: 'Grid operator name (fuzzy match via marketPartners)',
-                    example: 'TWL Netze',
+                    example: 'STROMDAO Netze',
                   },
                   datapointTags: {
                     type: 'array',
                     items: { type: 'string' },
                     description: 'Tags for datapoint snapshot creation (Weg B)',
-                    example: ['twl-netze'],
+                    example: ['stromdao-netze'],
                   },
                   maxAgeMinutes: {
                     type: 'integer',
@@ -183,7 +183,7 @@ module.exports = {
                 'By MaStR ID': {
                   value: {
                     gridOperatorId: 'SNB935578300972',
-                    datapointTags: ['twl-netze'],
+                    datapointTags: ['stromdao-netze'],
                     maxAgeMinutes: 120,
                   },
                 },
@@ -191,7 +191,7 @@ module.exports = {
                   value: { gridOperatorBdew: '9907473000008' },
                 },
                 'By name': {
-                  value: { gridOperatorName: 'TWL Netze', skipSteps: [4] },
+                  value: { gridOperatorName: 'STROMDAO Netze', skipSteps: [4] },
                 },
                 'What-If scenario': {
                   value: {
@@ -348,7 +348,7 @@ module.exports = {
                   validations: [
                     {
                       id: '...',
-                      gridOperator: { name: 'TWL Netze' },
+                      gridOperator: { name: 'STROMDAO Netze' },
                       decision: 'GO_CONDITIONAL',
                       createdAt: '2026-03-30T...',
                     },
@@ -609,7 +609,7 @@ module.exports = {
                 type: 'object',
                 required: ['fnavProfile'],
                 properties: {
-                  gridOperatorName: { type: 'string', example: 'TWL Netze' },
+                  gridOperatorName: { type: 'string', example: 'STROMDAO Netze' },
                   voltageLevel: {
                     type: 'string',
                     enum: ['NS', 'MS', 'HS'],
@@ -676,7 +676,7 @@ module.exports = {
                   },
                   ownerContact: {
                     type: 'string',
-                    example: 'netzplanung@twl.de',
+                    example: 'netzplanung@stromdao.de',
                     description: 'Responsible owner — required for governance approval',
                   },
                 },
@@ -684,7 +684,7 @@ module.exports = {
               examples: {
                 'fNAV hybrid MS': {
                   value: {
-                    gridOperatorName: 'TWL Netze',
+                    gridOperatorName: 'STROMDAO Netze',
                     voltageLevel: 'MS',
                     fnavProfile: {
                       requestedCapacity: 5000,
@@ -697,7 +697,7 @@ module.exports = {
                       contractStatus: 'signed',
                       legalStatus: 'approved',
                     },
-                    ownerContact: 'netzplanung@twl.de',
+                    ownerContact: 'netzplanung@stromdao.de',
                   },
                 },
               },

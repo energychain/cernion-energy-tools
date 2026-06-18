@@ -590,7 +590,7 @@ module.exports = {
                   input: { type: 'object', default: {}, example: {} },
                   city: { type: 'string', example: 'Wiesloch' },
                   bdewCode: { type: 'string', example: '9900992720003' },
-                  vnbName: { type: 'string', example: 'TWL Netze GmbH' },
+                  vnbName: { type: 'string', example: 'STROMDAO Netze GmbH' },
                   forceReceipt: { type: 'string', example: 'vnb-lookup-v1' },
                   preferredReceipts: {
                     type: 'array',

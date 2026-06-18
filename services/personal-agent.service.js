@@ -996,14 +996,14 @@ function copilotKnowledgeHitIsAllowedForQuery(hit = {}, query = '') {
     .toLowerCase();
   const normalizedQuery = String(query || '').toLowerCase();
 
-  const containsTwlContext = /\btwl\b|twl\s+netze/.test(haystack);
-  if (containsTwlContext && !/\btwl\b|twl\s+netze/.test(normalizedQuery)) return false;
+  const containsStromdaoContext = /\bstromdao\b|stromdao\s+netze/.test(haystack);
+  if (containsStromdaoContext && !/\bstromdao\b|stromdao\s+netze/.test(normalizedQuery)) return false;
 
   const containsLocalCapacityAnchor = /\b81\s*mva\b/.test(haystack);
   if (containsLocalCapacityAnchor && !/\b81\s*mva\b/.test(normalizedQuery)) return false;
 
   const containsCouplingPoint =
-    /kopplungspunkt/.test(haystack) && (containsLocalCapacityAnchor || containsTwlContext);
+    /kopplungspunkt/.test(haystack) && (containsLocalCapacityAnchor || containsStromdaoContext);
   if (containsCouplingPoint && !/kopplungspunkt/.test(normalizedQuery)) return false;
 
   return true;
@@ -3316,7 +3316,7 @@ module.exports = {
                             stepId: 1,
                             action: 'finance-agent.analyze',
                             label: 'NPV Analysis',
-                            params: { gridOperator: 'TWL Netze', investmentType: 'transformer' },
+                            params: { gridOperator: 'STROMDAO Netze', investmentType: 'transformer' },
                             dependencies: [],
                           },
                           {

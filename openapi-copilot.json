@@ -974,7 +974,7 @@
                   },
                   "gridOperatorName": {
                     "type": "string",
-                    "example": "TWL Netze"
+                    "example": "STROMDAO Netze"
                   },
                   "reason": {
                     "type": "string",
@@ -992,7 +992,7 @@
                   },
                   "idempotencyKey": {
                     "type": "string",
-                    "example": "idem-twl-20260611"
+                    "example": "idem-stromdao-20260611"
                   }
                 }
               }
@@ -1552,7 +1552,7 @@
                     {
                       "id": "...",
                       "gridOperator": {
-                        "name": "TWL Netze"
+                        "name": "STROMDAO Netze"
                       },
                       "decision": "GO_CONDITIONAL",
                       "createdAt": "2026-03-30T..."

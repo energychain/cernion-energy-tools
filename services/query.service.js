@@ -624,20 +624,20 @@ Each result carries **domain**, **type**, **id**, **title**, **excerpt**, **stat
                   gridConnectionHit: {
                     summary: 'Grid connection validation result',
                     value: {
-                      query: 'TWL Netze',
+                      query: 'STROMDAO Netze',
                       domain: 'grid_connection',
                       totalResults: 1,
                       results: [
                         {
                           id: 'a1b2c3d4-1234-5678-90ab-cdef12345678',
-                          title: 'Netzanschluss-Validierung · TWL Netze',
+                          title: 'Netzanschluss-Validierung · STROMDAO Netze',
                           excerpt: 'Entscheidung: GO_CONDITIONAL · 2026-03-30',
                           domain: 'grid_connection',
                           type: 'validation',
                           status: 'GO_CONDITIONAL',
                           url: '/api/grid-connection/validations/a1b2c3d4-1234-5678-90ab-cdef12345678',
                           metadata: {
-                            gridOperatorName: 'TWL Netze',
+                            gridOperatorName: 'STROMDAO Netze',
                             findingsCount: 3,
                             createdAt: '2026-03-30T10:00:00Z',
                           },

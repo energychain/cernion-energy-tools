@@ -319,7 +319,7 @@ describe('Query Service', () => {
                 validations: [
                   {
                     id: 'gc-report-1',
-                    gridOperator: { name: 'TWL Netze', mastrId: 'SNB123' },
+                    gridOperator: { name: 'STROMDAO Netze', mastrId: 'SNB123' },
                     decision: 'GO_CONDITIONAL',
                     createdAt: '2026-03-30T10:00:00Z',
                     findingsCount: 3,
@@ -333,7 +333,7 @@ describe('Query Service', () => {
       await fakeBroker.start();
       try {
         const result = await fakeBroker.call('query.search', {
-          q: 'TWL',
+          q: 'STROMDAO',
           domain: 'grid_connection',
         });
         expect(result.totalResults).toBe(1);
@@ -343,7 +343,7 @@ describe('Query Service', () => {
         expect(item).toHaveProperty('type', 'validation');
         expect(item).toHaveProperty('status', 'GO_CONDITIONAL');
         expect(item.url).toBe('/api/grid-connection/validations/gc-report-1');
-        expect(item.metadata).toMatchObject({ gridOperatorName: 'TWL Netze', findingsCount: 3 });
+        expect(item.metadata).toMatchObject({ gridOperatorName: 'STROMDAO Netze', findingsCount: 3 });
       } finally {
         await fakeBroker.stop();
       }

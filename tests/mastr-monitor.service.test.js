@@ -210,7 +210,7 @@ describe('mastr-monitor.service', () => {
 
   it('createWatch stores watch and returns watchId format', async () => {
     const result = await broker.call('mastr-monitor.createWatch', {
-      name: 'TWL Solar >100kW Monitoring',
+      name: 'STROMDAO Solar >100kW Monitoring',
       query: {
         gridOperatorMastrId: 'SNB935578300972',
         type: 'solar',
@@ -219,7 +219,7 @@ describe('mastr-monitor.service', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.watchId).toMatch(/^twl-solar-100kw-monitoring_[a-f0-9]{8}$/);
+    expect(result.watchId).toMatch(/^stromdao-solar-100kw-monitoring_[a-f0-9]{8}$/);
     expect(result.status).toBe('pending_baseline');
   });
 

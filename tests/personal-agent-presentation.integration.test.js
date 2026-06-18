@@ -395,7 +395,7 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
     expect(result.reply).toContain(
       '| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |'
     );
-    expect(result.reply).toContain('TWL Netze');
+    expect(result.reply).toContain('STROMDAO Netze');
   });
 
   test('PA-PRES-COMP-01: completed comparison execution returns comparison presentation metadata', async () => {

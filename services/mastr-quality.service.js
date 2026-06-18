@@ -141,7 +141,7 @@ module.exports = {
                   gridOperatorName: {
                     type: 'string',
                     description: 'Grid operator name (fuzzy match)',
-                    example: 'TWL Netze',
+                    example: 'STROMDAO Netze',
                   },
                   bdewCode: {
                     type: 'string',
@@ -162,7 +162,7 @@ module.exports = {
                     type: 'array',
                     items: { type: 'string' },
                     description: 'Tags for datapoint snapshot (Weg B)',
-                    example: ['twl-netze'],
+                    example: ['stromdao-netze'],
                   },
                   maxAgeMinutes: {
                     type: 'integer',
@@ -185,13 +185,13 @@ module.exports = {
               },
               examples: {
                 'By MaStR ID': {
-                  value: { gridOperatorId: 'SNB935578300972', datapointTags: ['twl-netze'] },
+                  value: { gridOperatorId: 'SNB935578300972', datapointTags: ['stromdao-netze'] },
                 },
                 'By BDEW code, skip geo': {
                   value: { gridOperatorBdew: '9907473000008', skipSteps: [7] },
                 },
                 'By name, full audit': {
-                  value: { gridOperatorName: 'TWL Netze', geoSampleSize: 20 },
+                  value: { gridOperatorName: 'STROMDAO Netze', geoSampleSize: 20 },
                 },
               },
             },
@@ -319,7 +319,7 @@ module.exports = {
                   audits: [
                     {
                       id: '...',
-                      gridOperator: { name: 'TWL Netze' },
+                      gridOperator: { name: 'STROMDAO Netze' },
                       qualityScore: 82,
                       createdAt: '2026-03-31T...',
                     },

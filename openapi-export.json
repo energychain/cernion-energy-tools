@@ -582,7 +582,7 @@
                   },
                   "vnbName": {
                     "type": "string",
-                    "example": "TWL Netze GmbH"
+                    "example": "STROMDAO Netze GmbH"
                   },
                   "forceReceipt": {
                     "type": "string",
@@ -1748,7 +1748,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "example": "TWL Netze"
+              "example": "STROMDAO Netze"
             }
           },
           {
@@ -5008,7 +5008,7 @@
                     "default": [],
                     "items": {
                       "type": "string",
-                      "example": "twl-monitor-main"
+                      "example": "stromdao-monitor-main"
                     }
                   },
                   "timeWindowDays": {
@@ -5031,7 +5031,7 @@
                     "gridOperatorId": "SNB123456789000",
                     "projectId": "a1b2c3d4-0000-0000-0000-000000000001",
                     "watchIds": [
-                      "twl-monitor-main"
+                      "stromdao-monitor-main"
                     ],
                     "timeWindowDays": 90,
                     "minEvents": 3,
@@ -7331,7 +7331,7 @@
                   },
                   "gridOperatorName": {
                     "type": "string",
-                    "example": "TWL Netze"
+                    "example": "STROMDAO Netze"
                   },
                   "reason": {
                     "type": "string",
@@ -7349,7 +7349,7 @@
                   },
                   "idempotencyKey": {
                     "type": "string",
-                    "example": "idem-twl-20260611"
+                    "example": "idem-stromdao-20260611"
                   }
                 }
               }
@@ -10439,7 +10439,7 @@
                       "properties": {
                         "name": {
                           "type": "string",
-                          "example": "TWL Netze GmbH"
+                          "example": "STROMDAO Netze GmbH"
                         },
                         "mastrId": {
                           "type": "string",
@@ -11315,7 +11315,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "example": "solar,twl-netze"
+              "example": "solar,stromdao-netze"
             },
             "description": "Comma-separated tag filter. Returns only datapoints that have ALL specified tags (case-insensitive AND match)."
           },
@@ -11388,7 +11388,7 @@
                   },
                   "name": {
                     "type": "string",
-                    "example": "pv-portfolio-twl-netze"
+                    "example": "pv-portfolio-stromdao-netze"
                   },
                   "description": {
                     "type": "string",
@@ -11425,15 +11425,15 @@
                   "summary": "Promote a PV forecast session",
                   "value": {
                     "sessionId": "9209aa45-93f7-471c-8883-76326c4083f1",
-                    "name": "pv-portfolio-twl-netze",
-                    "description": "PV generation forecast for TWL Netze",
+                    "name": "pv-portfolio-stromdao-netze",
+                    "description": "PV generation forecast for STROMDAO Netze",
                     "tags": [
                       "solar",
                       "forecast",
-                      "twl"
+                      "stromdao"
                     ],
                     "fixedParams": {
-                      "query": "TWL Netze",
+                      "query": "STROMDAO Netze",
                       "forecastDays": 3
                     },
                     "refresh": {
@@ -11510,7 +11510,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "pv-portfolio-twl-netze"
+              "example": "pv-portfolio-stromdao-netze"
             }
           },
           {
@@ -11539,7 +11539,7 @@
             "content": {
               "application/json": {
                 "example": {
-                  "name": "pv-portfolio-twl-netze",
+                  "name": "pv-portfolio-stromdao-netze",
                   "total": 2,
                   "interventions": [
                     {
@@ -11563,7 +11563,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "pv-portfolio-twl-netze"
+              "example": "pv-portfolio-stromdao-netze"
             }
           },
           {
@@ -11643,7 +11643,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "pv-portfolio-twl-netze"
+              "example": "pv-portfolio-stromdao-netze"
             }
           }
         ]
@@ -11714,7 +11714,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "pv-portfolio-twl-netze"
+              "example": "pv-portfolio-stromdao-netze"
             }
           }
         ],
@@ -11765,7 +11765,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "pv-portfolio-twl-netze"
+              "example": "pv-portfolio-stromdao-netze"
             }
           },
           {
@@ -11817,13 +11817,13 @@
                       "type": "string"
                     },
                     "example": [
-                      "pv-portfolio-twl-netze",
-                      "redispatch-anlagen-twl-netze"
+                      "pv-portfolio-stromdao-netze",
+                      "redispatch-anlagen-stromdao-netze"
                     ]
                   },
                   "tags": {
                     "type": "string",
-                    "example": "twl-netze,redispatch-pipeline",
+                    "example": "stromdao-netze,redispatch-pipeline",
                     "description": "Comma-separated tag filter. Mutually exclusive with datapointNames."
                   },
                   "maxAgeMinutes": {
@@ -11833,7 +11833,7 @@
                   },
                   "name": {
                     "type": "string",
-                    "example": "twl-validierung-q1-2026"
+                    "example": "stromdao-validierung-q1-2026"
                   },
                   "description": {
                     "type": "string",
@@ -11855,18 +11855,18 @@
                   "summary": "Snapshot by datapoint names",
                   "value": {
                     "datapointNames": [
-                      "pv-portfolio-twl-netze",
-                      "ewk-benchmark-twl"
+                      "pv-portfolio-stromdao-netze",
+                      "ewk-benchmark-stromdao"
                     ],
                     "maxAgeMinutes": 60,
-                    "name": "twl-validierung-q1-2026",
-                    "description": "Consistency check TWL Netze Q1 2026"
+                    "name": "stromdao-validierung-q1-2026",
+                    "description": "Consistency check STROMDAO Netze Q1 2026"
                   }
                 },
                 "byTags": {
                   "summary": "Snapshot by tag filter",
                   "value": {
-                    "tags": "twl-netze,redispatch-pipeline",
+                    "tags": "stromdao-netze,redispatch-pipeline",
                     "maxAgeMinutes": 30
                   }
                 }
@@ -16396,7 +16396,7 @@
                     },
                     "description": "Tags for datapoint snapshot (Weg B fallback)",
                     "example": [
-                      "twl-netze"
+                      "stromdao-netze"
                     ]
                   }
                 }
@@ -18663,7 +18663,7 @@
                   "data": {
                     "results": [
                       {
-                        "vnbName": "TWL Netze GmbH",
+                        "vnbName": "STROMDAO Netze GmbH",
                         "bnr": "10002345",
                         "anschlussdauer_ee_ns_phase1_weeks": 14,
                         "anschlussdauer_ee_ns_phase2_weeks": 21,
@@ -18708,8 +18708,8 @@
                 "properties": {
                   "vnbName": {
                     "type": "string",
-                    "description": "Partial VNB name search (case-insensitive, e.g. \"Netze BW\", \"TWL Netze\")",
-                    "example": "TWL Netze"
+                    "description": "Partial VNB name search (case-insensitive, e.g. \"Netze BW\", \"STROMDAO Netze\")",
+                    "example": "STROMDAO Netze"
                   },
                   "bnr": {
                     "type": "string",
@@ -18794,10 +18794,10 @@
                     "limit": 10
                   }
                 },
-                "twlNetze": {
+                "stromdaoNetze": {
                   "summary": "Anschlussdauer for a specific VNB",
                   "value": {
-                    "vnbName": "TWL Netze"
+                    "vnbName": "STROMDAO Netze"
                   }
                 },
                 "wallboxWaiting": {
@@ -19002,7 +19002,7 @@
                   "data": {
                     "results": [
                       {
-                        "vnbName": "TWL Netze GmbH",
+                        "vnbName": "STROMDAO Netze GmbH",
                         "bnr": "10002345",
                         "umsetzungsquote_ee_ns_pct": 100,
                         "antraege_ee_ns": 37,
@@ -19176,7 +19176,7 @@
                 "example": {
                   "success": true,
                   "data": {
-                    "vnbName": "TWL Netze GmbH",
+                    "vnbName": "STROMDAO Netze GmbH",
                     "bnr": "10002345",
                     "anschlussdauer": {
                       "rank": "234 / 739",
@@ -19228,8 +19228,8 @@
                 "properties": {
                   "vnbName": {
                     "type": "string",
-                    "description": "VNB name – partial match accepted (e.g. \"TWL Netze GmbH\" or \"TWL Netze\")",
-                    "example": "TWL Netze"
+                    "description": "VNB name – partial match accepted (e.g. \"STROMDAO Netze GmbH\" or \"STROMDAO Netze\")",
+                    "example": "STROMDAO Netze"
                   },
                   "bnr": {
                     "type": "string",
@@ -19250,10 +19250,10 @@
                 }
               },
               "examples": {
-                "twlNetze": {
-                  "summary": "Full EWK profile for TWL Netze",
+                "stromdaoNetze": {
+                  "summary": "Full EWK profile for STROMDAO Netze",
                   "value": {
-                    "vnbName": "TWL Netze"
+                    "vnbName": "STROMDAO Netze"
                   }
                 },
                 "byBnr": {
@@ -19667,7 +19667,7 @@
                   },
                   "vnb2Name": {
                     "type": "string",
-                    "example": "TWL Netze",
+                    "example": "STROMDAO Netze",
                     "description": "Name of second VNB (grid operator)"
                   },
                   "comparisonDimensions": {
@@ -19693,7 +19693,7 @@
                 "default": {
                   "value": {
                     "vnb1Name": "Netze BW",
-                    "vnb2Name": "TWL Netze",
+                    "vnb2Name": "STROMDAO Netze",
                     "comparisonDimensions": [
                       "anschlussdauer",
                       "digitalisierungsindex",
@@ -19863,7 +19863,7 @@
                   },
                   "gridOperator": {
                     "type": "string",
-                    "example": "TWL Netze",
+                    "example": "STROMDAO Netze",
                     "description": "Used for eog-calculator lookup"
                   },
                   "annualFeeEur": {
@@ -19873,7 +19873,7 @@
                   },
                   "ownerContact": {
                     "type": "string",
-                    "example": "netzplanung@twl.de"
+                    "example": "netzplanung@stromdao.de"
                   },
                   "avoidedCapexOverrideEur": {
                     "type": "number",
@@ -19883,7 +19883,7 @@
                 }
               },
               "examples": {
-                "fNAV economics — TWL Netze MS": {
+                "fNAV economics — STROMDAO Netze MS": {
                   "value": {
                     "fnavProfile": {
                       "requestedCapacity": 5000,
@@ -19896,9 +19896,9 @@
                       "legalStatus": "approved"
                     },
                     "voltageLevel": "MS",
-                    "gridOperator": "TWL Netze",
+                    "gridOperator": "STROMDAO Netze",
                     "annualFeeEur": 15000,
-                    "ownerContact": "netzplanung@twl.de"
+                    "ownerContact": "netzplanung@stromdao.de"
                   }
                 }
               }
@@ -23005,7 +23005,7 @@
                   "gridOperatorName": {
                     "type": "string",
                     "description": "Grid operator name (fuzzy match via marketPartners)",
-                    "example": "TWL Netze"
+                    "example": "STROMDAO Netze"
                   },
                   "datapointTags": {
                     "type": "array",
@@ -23014,7 +23014,7 @@
                     },
                     "description": "Tags for datapoint snapshot creation (Weg B)",
                     "example": [
-                      "twl-netze"
+                      "stromdao-netze"
                     ]
                   },
                   "maxAgeMinutes": {
@@ -23088,7 +23088,7 @@
                   "value": {
                     "gridOperatorId": "SNB935578300972",
                     "datapointTags": [
-                      "twl-netze"
+                      "stromdao-netze"
                     ],
                     "maxAgeMinutes": 120
                   }
@@ -23100,7 +23100,7 @@
                 },
                 "By name": {
                   "value": {
-                    "gridOperatorName": "TWL Netze",
+                    "gridOperatorName": "STROMDAO Netze",
                     "skipSteps": [
                       4
                     ]
@@ -23144,7 +23144,7 @@
                     {
                       "id": "...",
                       "gridOperator": {
-                        "name": "TWL Netze"
+                        "name": "STROMDAO Netze"
                       },
                       "decision": "GO_CONDITIONAL",
                       "createdAt": "2026-03-30T..."
@@ -23338,7 +23338,7 @@
                 "properties": {
                   "gridOperatorName": {
                     "type": "string",
-                    "example": "TWL Netze"
+                    "example": "STROMDAO Netze"
                   },
                   "voltageLevel": {
                     "type": "string",
@@ -23431,7 +23431,7 @@
                   },
                   "ownerContact": {
                     "type": "string",
-                    "example": "netzplanung@twl.de",
+                    "example": "netzplanung@stromdao.de",
                     "description": "Responsible owner — required for governance approval"
                   }
                 }
@@ -23439,7 +23439,7 @@
               "examples": {
                 "fNAV hybrid MS": {
                   "value": {
-                    "gridOperatorName": "TWL Netze",
+                    "gridOperatorName": "STROMDAO Netze",
                     "voltageLevel": "MS",
                     "fnavProfile": {
                       "requestedCapacity": 5000,
@@ -23451,7 +23451,7 @@
                       "contractStatus": "signed",
                       "legalStatus": "approved"
                     },
-                    "ownerContact": "netzplanung@twl.de"
+                    "ownerContact": "netzplanung@stromdao.de"
                   }
                 }
               }
@@ -23537,7 +23537,7 @@
                 "byName": {
                   "summary": "Lookup via VNB name",
                   "value": {
-                    "vnbName": "TWL Netze GmbH",
+                    "vnbName": "STROMDAO Netze GmbH",
                     "includeAliases": true
                   }
                 }
@@ -24080,7 +24080,7 @@
                   },
                   "vnbName": {
                     "type": "string",
-                    "example": "TWL Netze GmbH"
+                    "example": "STROMDAO Netze GmbH"
                   },
                   "mastrId": {
                     "type": "string",
@@ -24115,7 +24115,7 @@
                 "byName": {
                   "summary": "Lookup via operator name",
                   "value": {
-                    "vnbName": "TWL Netze GmbH",
+                    "vnbName": "STROMDAO Netze GmbH",
                     "includeAliases": true
                   }
                 }
@@ -24229,7 +24229,7 @@
                 "capacityMapping": {
                   "summary": "Capacity distribution mapping",
                   "value": {
-                    "gridOperator": "TWL Netze",
+                    "gridOperator": "STROMDAO Netze",
                     "includeCapacityMap": true,
                     "includeFeedInPatterns": true
                   }
@@ -24343,7 +24343,7 @@
                 "lowVoltageOnly": {
                   "summary": "Low voltage network analysis",
                   "value": {
-                    "gridOperator": "TWL Netze",
+                    "gridOperator": "STROMDAO Netze",
                     "startDate": "2026-02-01",
                     "endDate": "2026-02-07",
                     "voltageLevel": "NS",
@@ -24507,7 +24507,7 @@
                 "largeInstallations": {
                   "summary": "Large installations (>500kW)",
                   "value": {
-                    "gridOperator": "TWL Netze",
+                    "gridOperator": "STROMDAO Netze",
                     "minCapacity": 500,
                     "autoConfirm": true
                   }
@@ -24626,7 +24626,7 @@
                 "heatPump": {
                   "summary": "Heat pump (15kW)",
                   "value": {
-                    "gridOperator": "TWL Netze",
+                    "gridOperator": "STROMDAO Netze",
                     "location": "67059",
                     "installationType": "heat-pump",
                     "capacityKW": 15,
@@ -24712,13 +24712,13 @@
                   }
                 },
                 "examples": {
-                  "twlNetze": {
-                    "summary": "Search for TWL Netze",
+                  "stromdaoNetze": {
+                    "summary": "Search for STROMDAO Netze",
                     "value": {
                       "results": [
                         {
                           "bdew": "9900992720003",
-                          "name": "TWL Netz GmbH",
+                          "name": "STROMDAO Netz GmbH",
                           "address": "Industriestraße 7, 67063 Ludwigshafen",
                           "city": "Ludwigshafen",
                           "postalCode": "67063",
@@ -24752,7 +24752,7 @@
             }
           }
         },
-        "description": "Search for German energy market participants including grid operators, suppliers, and balancing responsible parties.\n\n**Search Types**:\n- **BDEW Code**: 13-digit code (e.g., \"9900992720003\")\n- **Company Name**: Full or partial name (e.g., \"TWL\", \"Stadtwerke Heidelberg\")\n- **City**: Location-based search (e.g., \"Heidelberg\", \"München\")\n\n**Use Cases**:\n- Resolve VNB names to BDEW codes for installations queries\n- Find grid operator contact details\n- Identify market partner roles (VNB, ÜNB, supplier, BKV)\n- Data integration and mapping\n\n**Response Fields**:\n- BDEW code (13 digits)\n- Company name and address\n- Market partner roles\n- Software systems in use\n- Contact information\n- MaStR IDs (SNB, GNB, etc.)\n\n**Example Queries**:\n- \"TWL Netze\" → TWL Netz GmbH with BDEW code\n- \"9900992720003\" → Specific market partner details\n- \"Heidelberg\" → All market partners in Heidelberg",
+        "description": "Search for German energy market participants including grid operators, suppliers, and balancing responsible parties.\n\n**Search Types**:\n- **BDEW Code**: 13-digit code (e.g., \"9900992720003\")\n- **Company Name**: Full or partial name (e.g., \"STROMDAO\", \"Stadtwerke Heidelberg\")\n- **City**: Location-based search (e.g., \"Heidelberg\", \"München\")\n\n**Use Cases**:\n- Resolve VNB names to BDEW codes for installations queries\n- Find grid operator contact details\n- Identify market partner roles (VNB, ÜNB, supplier, BKV)\n- Data integration and mapping\n\n**Response Fields**:\n- BDEW code (13 digits)\n- Company name and address\n- Market partner roles\n- Software systems in use\n- Contact information\n- MaStR IDs (SNB, GNB, etc.)\n\n**Example Queries**:\n- \"STROMDAO Netze\" → STROMDAO Netz GmbH with BDEW code\n- \"9900992720003\" → Specific market partner details\n- \"Heidelberg\" → All market partners in Heidelberg",
         "parameters": [
           {
             "name": "query",
@@ -24761,7 +24761,7 @@
             "schema": {
               "type": "string",
               "description": "Search term: BDEW code, company name, or city",
-              "example": "TWL Netze"
+              "example": "STROMDAO Netze"
             }
           },
           {
@@ -24894,7 +24894,7 @@
                   "gridOperatorName": {
                     "type": "string",
                     "description": "Grid operator name",
-                    "example": "TWL Netze"
+                    "example": "STROMDAO Netze"
                   },
                   "voltageLevel": {
                     "type": "string",
@@ -24956,7 +24956,7 @@
                   "ownerContact": {
                     "type": "string",
                     "description": "Responsible owner or contact (required for governance approval)",
-                    "example": "netzplanung@twl.de"
+                    "example": "netzplanung@stromdao.de"
                   },
                   "n1ThresholdOverride": {
                     "type": "object",
@@ -24984,7 +24984,7 @@
               "examples": {
                 "fNAV hybrid MS": {
                   "value": {
-                    "gridOperatorName": "TWL Netze",
+                    "gridOperatorName": "STROMDAO Netze",
                     "voltageLevel": "MS",
                     "requestedCapacityKW": 5000,
                     "firmCapacityKW": 3000,
@@ -24995,7 +24995,7 @@
                     "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
                     "contractStatus": "negotiating",
                     "legalStatus": "pending",
-                    "ownerContact": "netzplanung@twl.de"
+                    "ownerContact": "netzplanung@stromdao.de"
                   }
                 },
                 "static cap HS with override": {
@@ -28957,7 +28957,7 @@
               "examples": {
                 "default": {
                   "value": {
-                    "name": "TWL Solar >100kW Monitoring",
+                    "name": "STROMDAO Solar >100kW Monitoring",
                     "query": {
                       "gridOperatorMastrId": "SNB935578300972",
                       "type": "solar",
@@ -28996,7 +28996,7 @@
             "schema": {
               "type": "string",
               "format": "email",
-              "example": "netzplanung@twl.de"
+              "example": "netzplanung@stromdao.de"
             }
           },
           {
@@ -29057,7 +29057,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "twl-solar-monitor_ab12cd34"
+              "example": "stromdao-solar-monitor_ab12cd34"
             }
           },
           {
@@ -29142,7 +29142,7 @@
                 "properties": {
                   "watchId": {
                     "type": "string",
-                    "example": "twl-solar-monitor_ab12cd34",
+                    "example": "stromdao-solar-monitor_ab12cd34",
                     "nullable": true
                   }
                 }
@@ -29183,7 +29183,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "twl-solar-monitor_ab12cd34"
+              "example": "stromdao-solar-monitor_ab12cd34"
             }
           },
           {
@@ -29244,7 +29244,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "twl-solar-monitor_ab12cd34"
+              "example": "stromdao-solar-monitor_ab12cd34"
             }
           },
           {
@@ -29285,7 +29285,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "twl-solar-monitor_ab12cd34"
+              "example": "stromdao-solar-monitor_ab12cd34"
             }
           },
           {
@@ -29337,13 +29337,13 @@
                 "properties": {
                   "watchId": {
                     "type": "string",
-                    "example": "twl-solar-monitor_ab12cd34",
+                    "example": "stromdao-solar-monitor_ab12cd34",
                     "nullable": true
                   },
                   "email": {
                     "type": "string",
                     "format": "email",
-                    "example": "netzplanung@twl.de"
+                    "example": "netzplanung@stromdao.de"
                   },
                   "onlyOnChanges": {
                     "type": "boolean",
@@ -29362,7 +29362,7 @@
               "examples": {
                 "default": {
                   "value": {
-                    "email": "netzplanung@twl.de",
+                    "email": "netzplanung@stromdao.de",
                     "onlyOnChanges": true,
                     "language": "de"
                   }
@@ -29570,7 +29570,7 @@
                   "gridOperatorName": {
                     "type": "string",
                     "description": "Grid operator name (fuzzy match)",
-                    "example": "TWL Netze"
+                    "example": "STROMDAO Netze"
                   },
                   "bdewCode": {
                     "type": "string",
@@ -29594,7 +29594,7 @@
                     },
                     "description": "Tags for datapoint snapshot (Weg B)",
                     "example": [
-                      "twl-netze"
+                      "stromdao-netze"
                     ]
                   },
                   "maxAgeMinutes": {
@@ -29625,7 +29625,7 @@
                   "value": {
                     "gridOperatorId": "SNB935578300972",
                     "datapointTags": [
-                      "twl-netze"
+                      "stromdao-netze"
                     ]
                   }
                 },
@@ -29639,7 +29639,7 @@
                 },
                 "By name, full audit": {
                   "value": {
-                    "gridOperatorName": "TWL Netze",
+                    "gridOperatorName": "STROMDAO Netze",
                     "geoSampleSize": 20
                   }
                 }
@@ -29667,7 +29667,7 @@
                     {
                       "id": "...",
                       "gridOperator": {
-                        "name": "TWL Netze"
+                        "name": "STROMDAO Netze"
                       },
                       "qualityScore": 82,
                       "createdAt": "2026-03-31T..."
@@ -31859,8 +31859,8 @@
                 }
               },
               "examples": {
-                "twlNetze": {
-                  "summary": "Compare OEP renewable plants with TWL Netze MaStR data",
+                "stromdaoNetze": {
+                  "summary": "Compare OEP renewable plants with STROMDAO Netze MaStR data",
                   "value": {
                     "gridOperatorId": "SNB924510006275",
                     "oepSchema": "supply",
@@ -31970,7 +31970,7 @@
                       },
                       "installationType": "solar",
                       "bruttoleistungKW": 9.9,
-                      "registeredGridOperator": "TWL Netze GmbH",
+                      "registeredGridOperator": "STROMDAO Netze GmbH",
                       "registeredGridOperatorId": "SNB935578300972"
                     },
                     "validation": {
@@ -31980,7 +31980,7 @@
                       "layer1_vnbdigital": {
                         "queried": true,
                         "status": "QUERIED_SUCCESS",
-                        "vnbFound": "TWL Netze GmbH",
+                        "vnbFound": "STROMDAO Netze GmbH",
                         "match": true,
                         "authoritative": true
                       },
@@ -31991,9 +31991,9 @@
                           "osmId": "node/123456789",
                           "distanceMeters": 184,
                           "type": "distribution",
-                          "operatorTag": "TWL"
+                          "operatorTag": "STROMDAO"
                         },
-                        "dominantOperator": "TWL",
+                        "dominantOperator": "STROMDAO",
                         "dominantOperatorShare": 1,
                         "radiusMeters": 500
                       }
@@ -32034,7 +32034,7 @@
                   "registeredGridOperatorName": {
                     "type": "string",
                     "description": "Registered VNB name for the L1 comparison.",
-                    "example": "TWL Netze GmbH"
+                    "example": "STROMDAO Netze GmbH"
                   },
                   "gridOperatorId": {
                     "type": "string",
@@ -32086,7 +32086,7 @@
                   "value": {
                     "latitude": 49.481,
                     "longitude": 8.432,
-                    "registeredGridOperatorName": "TWL Netze GmbH",
+                    "registeredGridOperatorName": "STROMDAO Netze GmbH",
                     "radiusMeters": 800,
                     "includeInfrastructureDetails": true
                   }
@@ -32123,7 +32123,7 @@
                       "nearestSubstationMeters": 184,
                       "nearestNSConnectionMeters": 184,
                       "nearestMSConnectionMeters": 430,
-                      "dominantOperator": "TWL",
+                      "dominantOperator": "STROMDAO",
                       "substationsFound": 4,
                       "osmCoverageQuality": "MEDIUM"
                     },
@@ -32140,7 +32140,7 @@
                         "voltageLevel": "NS",
                         "voltageIn": "20000",
                         "voltageOut": "400",
-                        "operator": "TWL",
+                        "operator": "STROMDAO",
                         "name": "UW Innenstadt",
                         "connectionSuitability": "SUITABLE_NS"
                       }
@@ -32304,7 +32304,7 @@
                   "data": {
                     "query": {
                       "scopeSource": "boundingBox",
-                      "gridOperator": "TWL Netze GmbH",
+                      "gridOperator": "STROMDAO Netze GmbH",
                       "bbox": [
                         8.298,
                         49.427,
@@ -32325,7 +32325,7 @@
                       },
                       "byOperator": [
                         {
-                          "operator": "TWL",
+                          "operator": "STROMDAO",
                           "count": 287,
                           "share": 0.92
                         },
@@ -32335,7 +32335,7 @@
                           "share": 0.04
                         }
                       ],
-                      "dominantOperator": "TWL",
+                      "dominantOperator": "STROMDAO",
                       "dominantOperatorShare": 0.92,
                       "areaKm2": 85.4,
                       "densityAssessment": {
@@ -32353,7 +32353,7 @@
                           "lon": 8.451
                         },
                         "voltageLevel": "NS",
-                        "operator": "TWL",
+                        "operator": "STROMDAO",
                         "name": "TUS Oggersheim"
                       }
                     ],
@@ -32406,7 +32406,7 @@
                   "gridOperator": {
                     "type": "string",
                     "description": "VNB name — used as OSM area name fallback.",
-                    "example": "TWL Netze GmbH"
+                    "example": "STROMDAO Netze GmbH"
                   },
                   "gridOperatorId": {
                     "type": "string",
@@ -32448,7 +32448,7 @@
                       "east": 8.477,
                       "west": 8.298
                     },
-                    "gridOperator": "TWL Netze GmbH"
+                    "gridOperator": "STROMDAO Netze GmbH"
                   }
                 },
                 "hsMunich": {
@@ -32571,7 +32571,7 @@
                   "gridOperator": {
                     "type": "string",
                     "description": "VNB name — used as OSM area name.",
-                    "example": "TWL Netze GmbH"
+                    "example": "STROMDAO Netze GmbH"
                   },
                   "voltageLevel": {
                     "type": "string",
@@ -32829,7 +32829,7 @@
                             "action": "finance-agent.analyze",
                             "label": "NPV Analysis",
                             "params": {
-                              "gridOperator": "TWL Netze",
+                              "gridOperator": "STROMDAO Netze",
                               "investmentType": "transformer"
                             },
                             "dependencies": []
@@ -34290,20 +34290,20 @@
                   "gridConnectionHit": {
                     "summary": "Grid connection validation result",
                     "value": {
-                      "query": "TWL Netze",
+                      "query": "STROMDAO Netze",
                       "domain": "grid_connection",
                       "totalResults": 1,
                       "results": [
                         {
                           "id": "a1b2c3d4-1234-5678-90ab-cdef12345678",
-                          "title": "Netzanschluss-Validierung · TWL Netze",
+                          "title": "Netzanschluss-Validierung · STROMDAO Netze",
                           "excerpt": "Entscheidung: GO_CONDITIONAL · 2026-03-30",
                           "domain": "grid_connection",
                           "type": "validation",
                           "status": "GO_CONDITIONAL",
                           "url": "/api/grid-connection/validations/a1b2c3d4-1234-5678-90ab-cdef12345678",
                           "metadata": {
-                            "gridOperatorName": "TWL Netze",
+                            "gridOperatorName": "STROMDAO Netze",
                             "findingsCount": 3,
                             "createdAt": "2026-03-30T10:00:00Z"
                           }
@@ -34978,7 +34978,7 @@
                   "gridOperatorName": {
                     "type": "string",
                     "description": "Grid operator name (fuzzy match)",
-                    "example": "TWL Netze"
+                    "example": "STROMDAO Netze"
                   },
                   "dateFrom": {
                     "type": "string",
@@ -34999,7 +34999,7 @@
                     },
                     "description": "Tags for Weg B datapoint fallback (portfolio data)",
                     "example": [
-                      "twl-netze",
+                      "stromdao-netze",
                       "redispatch-portfolio"
                     ]
                   },
@@ -35045,7 +35045,7 @@
                   "value": {
                     "gridOperatorId": "SNB935578300972",
                     "datapointTags": [
-                      "twl-netze",
+                      "stromdao-netze",
                       "redispatch-portfolio"
                     ],
                     "maxAgeMinutes": 60,
@@ -35077,7 +35077,7 @@
                     {
                       "id": "...",
                       "gridOperator": {
-                        "name": "TWL Netze"
+                        "name": "STROMDAO Netze"
                       },
                       "settlementReadiness": {
                         "readinessPercent": 88.1
@@ -35699,7 +35699,7 @@
               },
               "examples": {
                 "dayAheadProcurement": {
-                  "summary": "TWL day-ahead procurement (15-min, tomorrow)",
+                  "summary": "STROMDAO day-ahead procurement (15-min, tomorrow)",
                   "value": {
                     "region": "Ludwigshafen",
                     "gridOperatorMastrId": "SNB935578300972",
@@ -37659,10 +37659,10 @@
                     "bdew": "9907462000006"
                   }
                 },
-                "twlNetze": {
-                  "summary": "TWL Netze GmbH",
+                "stromdaoNetze": {
+                  "summary": "STROMDAO Netze GmbH",
                   "value": {
-                    "utilityName": "TWL Netze GmbH",
+                    "utilityName": "STROMDAO Netze GmbH",
                     "region": "Ludwigshafen",
                     "bdew": "9907462000013"
                   }
@@ -39652,7 +39652,7 @@
                 "utilityNews": {
                   "summary": "News about a utility operator",
                   "value": {
-                    "query": "TWL Netze GmbH Netzausbau 2026",
+                    "query": "STROMDAO Netze GmbH Netzausbau 2026",
                     "language": "de",
                     "numResults": 5
                   }
@@ -41436,7 +41436,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "example": "solar,twl-netze"
+              "example": "solar,stromdao-netze"
             },
             "description": "Comma-separated tag filter. Returns only datapoints that have ALL specified tags (case-insensitive AND match)."
           },
@@ -41509,7 +41509,7 @@
                   },
                   "name": {
                     "type": "string",
-                    "example": "pv-portfolio-twl-netze"
+                    "example": "pv-portfolio-stromdao-netze"
                   },
                   "description": {
                     "type": "string",
@@ -41546,15 +41546,15 @@
                   "summary": "Promote a PV forecast session",
                   "value": {
                     "sessionId": "9209aa45-93f7-471c-8883-76326c4083f1",
-                    "name": "pv-portfolio-twl-netze",
-                    "description": "PV generation forecast for TWL Netze",
+                    "name": "pv-portfolio-stromdao-netze",
+                    "description": "PV generation forecast for STROMDAO Netze",
                     "tags": [
                       "solar",
                       "forecast",
-                      "twl"
+                      "stromdao"
                     ],
                     "fixedParams": {
-                      "query": "TWL Netze",
+                      "query": "STROMDAO Netze",
                       "forecastDays": 3
                     },
                     "refresh": {
@@ -41658,13 +41658,13 @@
                       "type": "string"
                     },
                     "example": [
-                      "pv-portfolio-twl-netze",
-                      "redispatch-anlagen-twl-netze"
+                      "pv-portfolio-stromdao-netze",
+                      "redispatch-anlagen-stromdao-netze"
                     ]
                   },
                   "tags": {
                     "type": "string",
-                    "example": "twl-netze,redispatch-pipeline",
+                    "example": "stromdao-netze,redispatch-pipeline",
                     "description": "Comma-separated tag filter. Mutually exclusive with datapointNames."
                   },
                   "maxAgeMinutes": {
@@ -41674,7 +41674,7 @@
                   },
                   "name": {
                     "type": "string",
-                    "example": "twl-validierung-q1-2026"
+                    "example": "stromdao-validierung-q1-2026"
                   },
                   "description": {
                     "type": "string",
@@ -41696,18 +41696,18 @@
                   "summary": "Snapshot by datapoint names",
                   "value": {
                     "datapointNames": [
-                      "pv-portfolio-twl-netze",
-                      "ewk-benchmark-twl"
+                      "pv-portfolio-stromdao-netze",
+                      "ewk-benchmark-stromdao"
                     ],
                     "maxAgeMinutes": 60,
-                    "name": "twl-validierung-q1-2026",
-                    "description": "Consistency check TWL Netze Q1 2026"
+                    "name": "stromdao-validierung-q1-2026",
+                    "description": "Consistency check STROMDAO Netze Q1 2026"
                   }
                 },
                 "byTags": {
                   "summary": "Snapshot by tag filter",
                   "value": {
-                    "tags": "twl-netze,redispatch-pipeline",
+                    "tags": "stromdao-netze,redispatch-pipeline",
                     "maxAgeMinutes": 30
                   }
                 }
@@ -41895,7 +41895,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "pv-portfolio-twl-netze"
+              "example": "pv-portfolio-stromdao-netze"
             }
           },
           {
@@ -41924,7 +41924,7 @@
             "content": {
               "application/json": {
                 "example": {
-                  "name": "pv-portfolio-twl-netze",
+                  "name": "pv-portfolio-stromdao-netze",
                   "total": 2,
                   "interventions": [
                     {
@@ -41948,7 +41948,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "pv-portfolio-twl-netze"
+              "example": "pv-portfolio-stromdao-netze"
             }
           },
           {
@@ -42007,7 +42007,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "pv-portfolio-twl-netze"
+              "example": "pv-portfolio-stromdao-netze"
             }
           }
         ]
@@ -42078,7 +42078,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "pv-portfolio-twl-netze"
+              "example": "pv-portfolio-stromdao-netze"
             }
           }
         ],
@@ -42129,7 +42129,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "pv-portfolio-twl-netze"
+              "example": "pv-portfolio-stromdao-netze"
             }
           },
           {
@@ -43409,7 +43409,7 @@
                   "gridOperatorName": {
                     "type": "string",
                     "description": "Grid operator name (fuzzy match)",
-                    "example": "TWL Netze"
+                    "example": "STROMDAO Netze"
                   },
                   "dateFrom": {
                     "type": "string",
@@ -43430,7 +43430,7 @@
                     },
                     "description": "Tags for Weg B datapoint fallback (portfolio data)",
                     "example": [
-                      "twl-netze",
+                      "stromdao-netze",
                       "redispatch-portfolio"
                     ]
                   },
@@ -43476,7 +43476,7 @@
                   "value": {
                     "gridOperatorId": "SNB935578300972",
                     "datapointTags": [
-                      "twl-netze",
+                      "stromdao-netze",
                       "redispatch-portfolio"
                     ],
                     "maxAgeMinutes": 60,
@@ -43508,7 +43508,7 @@
                     {
                       "id": "...",
                       "gridOperator": {
-                        "name": "TWL Netze"
+                        "name": "STROMDAO Netze"
                       },
                       "settlementReadiness": {
                         "readinessPercent": 88.1
@@ -43693,7 +43693,7 @@
                   "gridOperatorName": {
                     "type": "string",
                     "description": "Grid operator name",
-                    "example": "TWL Netze"
+                    "example": "STROMDAO Netze"
                   },
                   "voltageLevel": {
                     "type": "string",
@@ -43755,7 +43755,7 @@
                   "ownerContact": {
                     "type": "string",
                     "description": "Responsible owner or contact (required for governance approval)",
-                    "example": "netzplanung@twl.de"
+                    "example": "netzplanung@stromdao.de"
                   },
                   "n1ThresholdOverride": {
                     "type": "object",
@@ -43783,7 +43783,7 @@
               "examples": {
                 "fNAV hybrid MS": {
                   "value": {
-                    "gridOperatorName": "TWL Netze",
+                    "gridOperatorName": "STROMDAO Netze",
                     "voltageLevel": "MS",
                     "requestedCapacityKW": 5000,
                     "firmCapacityKW": 3000,
@@ -43794,7 +43794,7 @@
                     "controlEvidenceRef": "SCADA-ATTACHMENT-42 / Fernwirknachweis 2026-05",
                     "contractStatus": "negotiating",
                     "legalStatus": "pending",
-                    "ownerContact": "netzplanung@twl.de"
+                    "ownerContact": "netzplanung@stromdao.de"
                   }
                 },
                 "static cap HS with override": {
@@ -44430,7 +44430,7 @@
                       "properties": {
                         "name": {
                           "type": "string",
-                          "example": "TWL Netze GmbH"
+                          "example": "STROMDAO Netze GmbH"
                         },
                         "mastrId": {
                           "type": "string",

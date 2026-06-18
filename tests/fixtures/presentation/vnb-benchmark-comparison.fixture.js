@@ -7,7 +7,7 @@ module.exports = {
   domainResult: {
     peers: [
       {
-        name: 'TWL Netze',
+        name: 'STROMDAO Netze',
         value: 'Umsetzungsquote 0.82 | Digitalisierungsindex 0.76',
         implementationRate: 0.82,
         digitalizationIndex: 0.76,

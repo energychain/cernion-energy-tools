@@ -500,7 +500,7 @@ All fields are optional. An empty body is a valid no-op (increments `profileVers
 
 ```json
 {
-  "id": "vnb_twl",
+  "id": "vnb_stromdao",
   "profile": {
     "actor": "vnb",
     "explicitPreferences": { "language": "de", "detailLevel": "technical" },

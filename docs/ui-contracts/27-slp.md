@@ -66,10 +66,10 @@ und Fallback-Basis genutzt.
     },
     {
       "profileId": "custom-vnb-1",
-      "name": "TWL Custom Gewerbe",
+      "name": "STROMDAO Custom Gewerbe",
       "category": "commercial",
       "source": "custom",
-      "description": "Angepasstes Profil für TWL-Gewerbekunden"
+      "description": "Angepasstes Profil für STROMDAO-Gewerbekunden"
     }
   ],
   "total": 4
@@ -158,9 +158,9 @@ und Fallback-Basis genutzt.
 ```json
 {
   "profileId": "custom-vnb-1",
-  "name": "TWL Custom Gewerbe",
+  "name": "STROMDAO Custom Gewerbe",
   "category": "commercial",
-  "description": "Angepasstes Profil für TWL-Gewerbekunden",
+  "description": "Angepasstes Profil für STROMDAO-Gewerbekunden",
   "quarterHourFactors": {
     "weekday": [0.42, 0.38, 0.35, 0.33],
     "saturday": [0.55, 0.52, 0.48, 0.44],
@@ -178,7 +178,7 @@ und Fallback-Basis genutzt.
 ```json
 {
   "profileId": "custom-vnb-1",
-  "name": "TWL Custom Gewerbe",
+  "name": "STROMDAO Custom Gewerbe",
   "source": "custom",
   "createdAt": "2026-05-01T10:00:00Z"
 }

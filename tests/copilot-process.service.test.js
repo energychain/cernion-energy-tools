@@ -44,7 +44,7 @@ const MOCK_ZNP_PROJECT = {
 const MOCK_GRID_REPORT = {
   success: true,
   id: 'gc-report-1',
-  gridOperator: { name: 'TWL Netze', mastrId: 'SNB123' },
+  gridOperator: { name: 'STROMDAO Netze', mastrId: 'SNB123' },
   decision: 'GO_CONDITIONAL',
   findings: [{ code: 'CAP_WARN' }, { code: 'DELTA_MISS' }],
   createdAt: '2026-03-30T10:00:00Z',
@@ -283,7 +283,7 @@ describe('copilot-process service', () => {
 
       expect(result).toHaveProperty('validationId', 'gc-report-1');
       expect(result).toHaveProperty('decision', 'GO_CONDITIONAL');
-      expect(result).toHaveProperty('gridOperatorName', 'TWL Netze');
+      expect(result).toHaveProperty('gridOperatorName', 'STROMDAO Netze');
       expect(result).toHaveProperty('gridOperatorId', 'SNB123');
       expect(result).toHaveProperty('findingsCount', 2);
       expect(result).toHaveProperty('summary');
@@ -475,7 +475,7 @@ describe('copilot-process service', () => {
     it('requires reason', async () => {
       await expect(
         broker.call('copilot-process.prepareGridConnectionValidation', {
-          gridOperatorName: 'TWL Netze',
+          gridOperatorName: 'STROMDAO Netze',
         })
       ).rejects.toThrow();
     });
@@ -488,7 +488,7 @@ describe('copilot-process service', () => {
 
     it('returns draft validation proposal with all fields', async () => {
       const result = await broker.call('copilot-process.prepareGridConnectionValidation', {
-        gridOperatorName: 'TWL Netze',
+        gridOperatorName: 'STROMDAO Netze',
         gridOperatorId: 'SNB935578300972',
         reason: 'Jahresprüfung Q2 2026',
       });
@@ -496,13 +496,13 @@ describe('copilot-process service', () => {
       expect(result).toHaveProperty('draftId');
       expect(result).toHaveProperty('action', 'run_grid_connection_validation');
       expect(result.target).toMatchObject({
-        gridOperatorName: 'TWL Netze',
+        gridOperatorName: 'STROMDAO Netze',
         gridOperatorId: 'SNB935578300972',
       });
       expect(result).toHaveProperty('proposedValidation');
-      expect(result.proposedValidation).toHaveProperty('gridOperatorName', 'TWL Netze');
+      expect(result.proposedValidation).toHaveProperty('gridOperatorName', 'STROMDAO Netze');
       expect(result).toHaveProperty('summary');
-      expect(result.summary).toMatch(/TWL Netze/);
+      expect(result.summary).toMatch(/STROMDAO Netze/);
       expect(result).toHaveProperty('confirmationMessage');
       expect(result).toHaveProperty('requiredConfirmation', true);
       expect(result.consequentialAction).toHaveProperty('operationId', 'executeProcessIntent');
@@ -519,12 +519,12 @@ describe('copilot-process service', () => {
 
     it('includes audit trail and idempotencyKey', async () => {
       const result = await broker.call('copilot-process.prepareGridConnectionValidation', {
-        gridOperatorName: 'TWL Netze',
+        gridOperatorName: 'STROMDAO Netze',
         reason: 'Test',
-        idempotencyKey: 'idem-twl-001',
+        idempotencyKey: 'idem-stromdao-001',
         correlationId: 'corr-gc-1',
       });
-      expect(result.auditTrail.idempotencyKey).toBe('idem-twl-001');
+      expect(result.auditTrail.idempotencyKey).toBe('idem-stromdao-001');
       expect(result.auditTrail.correlationId).toBe('corr-gc-1');
       expect(result.auditTrail).toHaveProperty('requestedAt');
       expect(result.auditTrail.reason).toBe('Test');
@@ -532,7 +532,7 @@ describe('copilot-process service', () => {
 
     it('includeCapacityCheck defaults to false', async () => {
       const result = await broker.call('copilot-process.prepareGridConnectionValidation', {
-        gridOperatorName: 'TWL',
+        gridOperatorName: 'STROMDAO',
         reason: 'Test',
       });
       expect(result.proposedValidation.includeCapacityCheck).toBe(false);
@@ -540,7 +540,7 @@ describe('copilot-process service', () => {
 
     it('includes includeCapacityCheck when true', async () => {
       const result = await broker.call('copilot-process.prepareGridConnectionValidation', {
-        gridOperatorName: 'TWL',
+        gridOperatorName: 'STROMDAO',
         reason: 'Test',
         includeCapacityCheck: true,
       });

@@ -79,7 +79,7 @@ describe('Grid Operations Service', () => {
 
       await broker.call('grid-operations.vnbLookupCodes', {
         bdewCode: '9907473000008',
-        vnbName: 'TWL Netze GmbH',
+        vnbName: 'STROMDAO Netze GmbH',
         includeAliases: true,
         includeTrace: false,
         limitCandidates: 5,
@@ -89,7 +89,7 @@ describe('Grid Operations Service', () => {
         'vnb_lookup_codes',
         expect.objectContaining({
           bdewCode: '9907473000008',
-          vnbName: 'TWL Netze GmbH',
+          vnbName: 'STROMDAO Netze GmbH',
           includeAliases: true,
           includeTrace: false,
           limitCandidates: 5,
@@ -117,7 +117,7 @@ describe('Grid Operations Service', () => {
         });
 
       const result = await broker.call('grid-operations.vnbLookupCodes', {
-        vnbName: 'TWL Netze',
+        vnbName: 'STROMDAO Netze',
       });
 
       expect(result.canonical.bdewCodePrimary).toBe(BDEW_WITH_MASTR);
@@ -148,7 +148,7 @@ describe('Grid Operations Service', () => {
         .mockResolvedValueOnce({ data: { bdew: BDEW_WITH_MASTR, mastrId: MASTR_ID } }); // promoted
 
       const result = await broker.call('grid-operations.vnbLookupCodes', {
-        vnbName: 'TWL Netze',
+        vnbName: 'STROMDAO Netze',
       });
 
       const oldAlias = result.aliases.find((a) => a.code === BDEW_NO_MASTR);
@@ -168,7 +168,7 @@ describe('Grid Operations Service', () => {
         });
 
       const result = await broker.call('grid-operations.vnbLookupCodes', {
-        vnbName: 'TWL Netze',
+        vnbName: 'STROMDAO Netze',
       });
 
       expect(result.canonical.bnr).toBe('10002345');
@@ -197,7 +197,7 @@ describe('Grid Operations Service', () => {
         .mockResolvedValueOnce({ data: { bdew: '9904350000003', mastrId: null } });
 
       const result = await broker.call('grid-operations.vnbLookupCodes', {
-        vnbName: 'TWL Netze',
+        vnbName: 'STROMDAO Netze',
       });
 
       expect(result.canonical.bdewCodePrimary).toBe(BDEW_NO_MASTR);
@@ -216,7 +216,7 @@ describe('Grid Operations Service', () => {
         .mockResolvedValueOnce({ data: { bdew: BDEW_WITH_MASTR, mastrId: MASTR_ID } });
 
       const result = await broker.call('grid-operations.vnbLookupCodes', {
-        vnbName: 'TWL Netze',
+        vnbName: 'STROMDAO Netze',
       });
 
       expect(result.canonical.bdewCodePrimary).toBe(BDEW_WITH_MASTR);
@@ -237,7 +237,7 @@ describe('Grid Operations Service', () => {
         .mockResolvedValueOnce({ data: { bdew: BDEW_WITH_MASTR, mastrId: MASTR_ID } });
 
       const result = await broker.call('grid-operations.vnbLookupCodes', {
-        vnbName: 'TWL Netze',
+        vnbName: 'STROMDAO Netze',
       });
 
       // First alias threw → continues to second alias which resolves
@@ -245,7 +245,7 @@ describe('Grid Operations Service', () => {
     });
 
     it('is a no-op when result has no canonical property', async () => {
-      const rawResult = { results: [{ name: 'TWL Netze', mastrId: MASTR_ID }] };
+      const rawResult = { results: [{ name: 'STROMDAO Netze', mastrId: MASTR_ID }] };
       callWithNewSession.mockResolvedValueOnce(rawResult);
 
       const result = await broker.call('grid-operations.vnbLookupCodes', {
@@ -442,7 +442,7 @@ describe('Grid Operations Service', () => {
     it('should return CSV with full installation data from local lookup for format=csv', async () => {
       const narrative = [
         '🔍 **Grid Operator Found**:',
-        '   Name: TWL Netze GmbH',
+        '   Name: STROMDAO Netze GmbH',
         '   MaStR Number(s): SNB935578300972',
         '**Quality Report**:',
         '   Total Installations: 59',
@@ -504,7 +504,7 @@ describe('Grid Operations Service', () => {
 
       expect(typeof result).toBe('string');
       expect(result).toMatch(/^# Redispatch 2\.0 Export/);
-      expect(result).toContain('# Grid Operator: TWL Netze GmbH');
+      expect(result).toContain('# Grid Operator: STROMDAO Netze GmbH');
       expect(result).toContain('# Total: 3 installations');
       expect(result).toContain('# Generated:');
       expect(result).toContain(

@@ -45,24 +45,24 @@ describe('mastr-monitor-notify', () => {
   } = notify;
 
   const watch = {
-    watchId: 'twl-solar_abc',
-    name: 'TWL Solar Monitoring',
+    watchId: 'stromdao-solar_abc',
+    name: 'STROMDAO Solar Monitoring',
     installationCount: 42,
     lastRun: '2026-04-17T06:00:00.000Z',
   };
 
   const sub = {
-    email: 'netzplanung@twl.de',
+    email: 'netzplanung@stromdao.de',
     language: 'de',
     onlyOnChanges: true,
     tokenHash: 'abc123',
     token: 'raw-token-abc',
-    watchId: 'twl-solar_abc',
+    watchId: 'stromdao-solar_abc',
     status: 'confirmed',
   };
 
   const delta = {
-    watchId: 'twl-solar_abc',
+    watchId: 'stromdao-solar_abc',
     deltaId: '2026-04-17',
     summary: { added: 2, changed: 1, removed: 0 },
     added: [{ mastrNummer: 'SEE900000001' }, { mastrNummer: 'SEE900000002' }],
@@ -100,8 +100,8 @@ describe('mastr-monitor-notify', () => {
 
     expect(sendMailMock).toHaveBeenCalledTimes(1);
     const mail = sendMailMock.mock.calls[0][0];
-    expect(mail.to).toBe('netzplanung@twl.de');
-    expect(mail.subject).toContain('TWL Solar Monitoring');
+    expect(mail.to).toBe('netzplanung@stromdao.de');
+    expect(mail.subject).toContain('STROMDAO Solar Monitoring');
     expect(mail.subject).toContain('+2 neu');
     expect(mail.subject).toContain('1 geändert');
   });
@@ -124,10 +124,10 @@ describe('mastr-monitor-notify', () => {
 
     const body = sendMailMock.mock.calls[0][0].text;
     expect(body).toContain(
-      'https://test.cernion.de/api/mastr-monitor/watches/twl-solar_abc/deltas/2026-04-17'
+      'https://test.cernion.de/api/mastr-monitor/watches/stromdao-solar_abc/deltas/2026-04-17'
     );
     expect(body).toContain(
-      'https://test.cernion.de/api/mastr-monitor/watches/twl-solar_abc/snapshot?format=csv'
+      'https://test.cernion.de/api/mastr-monitor/watches/stromdao-solar_abc/snapshot?format=csv'
     );
   });
 
@@ -177,8 +177,8 @@ describe('mastr-monitor-notify', () => {
     await sendConfirmationEmail(sub, watch, 'https://test.cernion.de');
 
     const mail = sendMailMock.mock.calls[0][0];
-    expect(mail.to).toBe('netzplanung@twl.de');
-    expect(mail.subject).toContain('TWL Solar Monitoring');
+    expect(mail.to).toBe('netzplanung@stromdao.de');
+    expect(mail.subject).toContain('STROMDAO Solar Monitoring');
     expect(mail.text).toContain('https://test.cernion.de/api/mastr-monitor/confirm/raw-token-abc');
   });
 

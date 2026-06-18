@@ -205,7 +205,7 @@ module.exports = {
               },
               examples: {
                 dayAheadProcurement: {
-                  summary: 'TWL day-ahead procurement (15-min, tomorrow)',
+                  summary: 'STROMDAO day-ahead procurement (15-min, tomorrow)',
                   value: {
                     region: 'Ludwigshafen',
                     gridOperatorMastrId: 'SNB935578300972',

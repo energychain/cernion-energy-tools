@@ -426,7 +426,7 @@ describeBlackbox('v0.52.5 TDD matrix multi-turn HTTP blackbox coverage', () => {
             'Vergleiche zwei VNB hinsichtlich Benchmark, KPI, Anschlussdauer, Digitalisierungsindex und Umsetzungsquote.';
           knownContext = {
             vnb1Name: 'Stadtwerke Troisdorf',
-            vnb2Name: 'TWL Netze',
+            vnb2Name: 'STROMDAO Netze',
           };
         }
 
@@ -436,8 +436,8 @@ describeBlackbox('v0.52.5 TDD matrix multi-turn HTTP blackbox coverage', () => {
           knownContext = {
             requestedCapacityKW: 10000,
             voltageLevel: 'MS',
-            gridOperatorName: 'TWL Netze',
-            ownerContact: 'netzplanung@twl.de',
+            gridOperatorName: 'STROMDAO Netze',
+            ownerContact: 'netzplanung@stromdao.de',
           };
         }
 

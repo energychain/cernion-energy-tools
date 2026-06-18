@@ -161,12 +161,12 @@ describe('Agent Service', () => {
           success: true,
           data: [
             {
-              name: 'inhouse__netzanschluesse_twl',
+              name: 'inhouse__netzanschluesse_stromdao',
               sourceId: 'source-123',
               description:
-                'Internal grid connection list (TWL 2025). Contains: anschlussnummer, kundennummer, plz.',
+                'Internal grid connection list (STROMDAO 2025). Contains: anschlussnummer, kundennummer, plz.',
               privacyFlaggedFields: ['kundennummer'],
-              aliases: ['GW29', 'Netzanschlüsse TWL 2025', 'netzanschluesse_twl_2025', '2025'],
+              aliases: ['GW29', 'Netzanschlüsse STROMDAO 2025', 'netzanschluesse_stromdao_2025', '2025'],
               capabilities: ['timeseries', 'timeseries_cost_enrichment'],
               semanticHints: {
                 domain: 'metering',
@@ -179,7 +179,7 @@ describe('Agent Service', () => {
                 },
               },
               __sourceMeta: {
-                sourceName: 'Netzanschlüsse TWL 2025',
+                sourceName: 'Netzanschlüsse STROMDAO 2025',
                 sourceDescription: 'Interne Liste aller Netzanschlüsse GW29',
                 tags: ['netz', 'gis'],
                 dictionaryFields: ['Zeit', 'Leistung Bezug (W)', 'Leistung Einspeisung (W)'],
@@ -414,8 +414,8 @@ describe('Agent Service', () => {
       });
 
       const prompt = _mockGenerateContent.mock.calls[0][0];
-      expect(prompt).toContain('inhouse__netzanschluesse_twl');
-      expect(prompt).toContain('Internal grid connection list (TWL 2025)');
+      expect(prompt).toContain('inhouse__netzanschluesse_stromdao');
+      expect(prompt).toContain('Internal grid connection list (STROMDAO 2025)');
       expect(prompt).toContain('Privacy-flagged fields: kundennummer');
     });
 
@@ -765,7 +765,7 @@ describe('Agent Service', () => {
       });
 
       const result = await broker.call('agent.analyze', {
-        problem: 'Wie ist die TWL Netze GmbH hinsichtlich der EWK aufgestellt?',
+        problem: 'Wie ist die STROMDAO Netze GmbH hinsichtlich der EWK aufgestellt?',
       });
 
       expect(_mockGenerateContent).toHaveBeenCalled();
@@ -774,9 +774,9 @@ describe('Agent Service', () => {
 
       const vnbInput = result.requiredInputs.find((item) => item.name === 'vnbName');
       expect(vnbInput).toBeDefined();
-      expect(vnbInput.default).toBe('TWL Netze GmbH');
+      expect(vnbInput.default).toBe('STROMDAO Netze GmbH');
       expect(vnbInput.required).toBe(false);
-      expect(result.steps[0].params.vnbName).toBe('TWL Netze GmbH');
+      expect(result.steps[0].params.vnbName).toBe('STROMDAO Netze GmbH');
     });
 
     it('should shortcut actual-vs-forecast comparisons to compareForecastActual intent class', async () => {
@@ -828,7 +828,7 @@ describe('Agent Service', () => {
     it('should handle datasource-discovery.list responses returned as a plain array', async () => {
       broker._discoveryListMock.mockResolvedValueOnce([
         {
-          name: 'inhouse__netzanschluesse_twl',
+          name: 'inhouse__netzanschluesse_stromdao',
           sourceId: 'source-123',
           aliases: ['GW29'],
           capabilities: ['timeseries_cost_enrichment'],
@@ -1038,7 +1038,7 @@ describe('Agent Service', () => {
           success: true,
           data: [
             {
-              name: 'inhouse__netzanschluesse_twl',
+              name: 'inhouse__netzanschluesse_stromdao',
               sourceId: 'source-123',
               aliases: ['GW29', 'LPTest'],
               capabilities: ['timeseries_cost_enrichment'],

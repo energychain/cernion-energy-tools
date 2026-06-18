@@ -152,7 +152,7 @@ describe('personal-agent-reflection', () => {
       expect(src).not.toMatch(/69256/);
       expect(src).not.toMatch(/Mauer/);
       expect(src).not.toMatch(/ev-charging/i);
-      expect(src).not.toMatch(/TWL/);
+      expect(src).not.toMatch(/STROMDAO/);
     });
 
     it('truncates very long user messages to prevent prompt overflow', () => {

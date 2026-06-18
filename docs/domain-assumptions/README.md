@@ -13,7 +13,7 @@ Grid congestion alerts and emergency protocols.
 
 - **Thermal loading:** 80% warning, 100% hard alert
 - **Voltage band:** ±10% tolerance (LV)
-- **N-1 security:** TWL Netze 81 MVA case study
+- **N-1 security:** STROMDAO Netze 81 MVA case study
 
 **Used by:** `vnb-monitor`, `cybergrid-counter-location-scout`, `mastr-quality`
 
