@@ -5,6 +5,14 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.63.12] — 2026-06-18
+
+### Added
+- **Answer Dossier clarification & final-mode response fields** (`services/personal-agent.service.js`, `src/answer-dossier-builder.js`, #237): `answerDossier` now returns `clarificationQuestions`, `finalDossierRequested`, and `finalDossierMarkdown` so downstream systems (n8n, AnythingLLM) can drive clarification/final-answer workflows without parsing `dossierMarkdown`. `finalDossierRequested` is detected deterministically (regex, no LLM) and is also exposed in `auditTrail` for tracing. `clarificationQuestions` is derived from the same structured evidence-gap conditions that already produce `missingEvidence` — not from Markdown parsing — and is suppressed to `[]` once a final dossier is requested. `finalDossierMarkdown` reuses `buildDossierMarkdown` in a new `finalMode` that suppresses every clarification-seeking instruction (Required Answer Behavior, Recommended Answer Structure, renderer system hint, renderer task, reasoning summary) while still surfacing evidence gaps as caveats/limitations rather than hiding them. The existing `dossierMarkdown` output is unchanged for the default (non-final) path. OpenAPI response schema documents the three new fields.
+
+### Tests
+- Added 8 tests covering clarification-question extraction, all 5 final-intent phrasings from the issue plus a negative case, full suppression of clarification instructions in final mode, low-evidence final-answer caveat handling, and non-final defaults.
+
 ## [0.63.11] — 2026-06-16
 
 ### Fixed
