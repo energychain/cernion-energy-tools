@@ -558,6 +558,69 @@ describe('consultation-execution-bridge', () => {
       expect(coordsMissingGate).toBeUndefined();
     });
 
+    // ── Capability-broker execution fallback (#150) ─────────────────────────
+
+    it('PA-CEB-035: VDMI grid-connection governance executes broker recommendedPlan when local heuristics yield nothing', () => {
+      const plan = buildConsultationExecutionPlan({
+        message:
+          'Kann der Netzbetreiber ohne formales §17-EnWG-Netzanschlussbegehren eine belastbare Anschluss- oder Kapazitätszusage geben?',
+        knownContext: {
+          processType: 'grid-connection-governance',
+          taskId: 'network-operator-decision',
+        },
+        brokerRecommendation: {
+          intent: 'vdmi_grid_connection_decision_governance',
+          capability: 'vdmi_grid_connection_decision_governance',
+          recommendedPlan: [
+            { step: 1, action: 'vdmi.dossier', purpose: 'Dossier aufbauen', params: { taskId: 'network-operator-decision' } },
+            { step: 2, action: 'vdmi.negotiationTrace', purpose: 'Verhandlungs-Trace prüfen', params: {} },
+            { step: 3, action: 'vdmi.agentRole', purpose: 'V-Akteur-Rolle auflösen', params: {} },
+          ],
+        },
+        executionMode: 'auto',
+      });
+
+      expect(plan.workflowType).toBe(WORKFLOW_TYPES.CAPABILITY_BROKER_EXECUTION);
+      expect(plan.canExecuteNow).toBe(true);
+      expect(plan.readiness).toBe(EXECUTION_READINESS.READY);
+      expect(plan.executableSteps.map((s) => s.action)).toEqual([
+        'vdmi.dossier',
+        'vdmi.negotiationTrace',
+        'vdmi.agentRole',
+      ]);
+      expect(plan.executableSteps.every((s) => s.canExecute)).toBe(true);
+    });
+
+    it('PA-CEB-036: capability-broker fallback is skipped when a local workflow already produced steps', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'Batteriespeicher planen',
+        knownContext: { state: 'Thüringen', municipality: 'Troisdorf', powerMW: 15 },
+        brokerRecommendation: {
+          intent: 'vdmi_grid_connection_decision_governance',
+          recommendedPlan: [{ step: 1, action: 'vdmi.dossier', purpose: 'x', params: {} }],
+        },
+        executionMode: 'auto',
+      });
+
+      expect(plan.workflowType).toBe(WORKFLOW_TYPES.BESS_SCREENING);
+      expect(plan.executableSteps.map((s) => s.action)).not.toContain('vdmi.dossier');
+    });
+
+    it('PA-CEB-037: capability-broker fallback ignores interface-placeholder-only recommendedPlan', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'Wie transparent ist euer KI-Governance-Framework für den Aufsichtsrat?',
+        brokerRecommendation: {
+          intent: 'some_unmapped_domain',
+          recommendedPlan: [{ step: 1, action: 'interface-placeholder.markGap', purpose: 'x', params: {} }],
+        },
+        executionMode: 'auto',
+      });
+
+      expect(plan.workflowType).toBe(WORKFLOW_TYPES.ADVISORY_ONLY);
+      expect(plan.executableSteps).toHaveLength(0);
+      expect(plan.canExecuteNow).toBe(false);
+    });
+
     // ── blueprint-policy constraints ───────────────────────────────────────
 
     describe('blueprint-policy constraints', () => {

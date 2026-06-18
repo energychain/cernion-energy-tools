@@ -10,8 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Answer Dossier clarification & final-mode response fields** (`services/personal-agent.service.js`, `src/answer-dossier-builder.js`, #237): `answerDossier` now returns `clarificationQuestions`, `finalDossierRequested`, and `finalDossierMarkdown` so downstream systems (n8n, AnythingLLM) can drive clarification/final-answer workflows without parsing `dossierMarkdown`. `finalDossierRequested` is detected deterministically (regex, no LLM) and is also exposed in `auditTrail` for tracing. `clarificationQuestions` is derived from the same structured evidence-gap conditions that already produce `missingEvidence` — not from Markdown parsing — and is suppressed to `[]` once a final dossier is requested. `finalDossierMarkdown` reuses `buildDossierMarkdown` in a new `finalMode` that suppresses every clarification-seeking instruction (Required Answer Behavior, Recommended Answer Structure, renderer system hint, renderer task, reasoning summary) while still surfacing evidence gaps as caveats/limitations rather than hiding them. The existing `dossierMarkdown` output is unchanged for the default (non-final) path. OpenAPI response schema documents the three new fields.
 
+### Fixed
+- **Personal Agent broker-recommended execution bridge** (`src/consultation-execution-bridge.js`, #150): when the local consultation workflow heuristics produce no executable steps but the Capability Broker already returned a safe `recommendedPlan`, the bridge now adopts those broker-recommended actions as a generic `capability_broker_execution` workflow. This lets VDMI governance and future broker-routed capabilities execute their selected action plan instead of falling back to advisory-only behavior, while still filtering interface placeholders and blocked actions.
+
 ### Tests
 - Added 8 tests covering clarification-question extraction, all 5 final-intent phrasings from the issue plus a negative case, full suppression of clarification instructions in final mode, low-evidence final-answer caveat handling, and non-final defaults.
+- Added consultation-execution bridge regressions for broker-recommended execution fallback, including the VDMI governance path and guard cases where local workflows or placeholder-only broker plans must not be overridden.
 
 ## [0.63.11] — 2026-06-16
 

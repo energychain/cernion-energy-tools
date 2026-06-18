@@ -2,9 +2,15 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.60.8",
+    "version": "0.63.12",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
+  "servers": [
+    {
+      "url": "https://api.cernion.de",
+      "description": "Cernion API Server"
+    }
+  ],
   "tags": [
     {
       "name": "Energy",
@@ -3939,7 +3945,44 @@
             }
           }
         },
-        "description": "Queries MaStR installations for the given PLZ / municipality and aggregates the Netzbetreiber (grid operator) from those assets. ⚠️ NOT authoritative: derives candidates only — does not confirm the grid area boundary. A formal Netzanschlussanfrage is required for binding VNB attribution."
+        "description": "Queries MaStR installations for the given PLZ / municipality and aggregates the Netzbetreiber (grid operator) from those assets. ⚠️ NOT authoritative: derives candidates only — does not confirm the grid area boundary. A formal Netzanschlussanfrage is required for binding VNB attribution.",
+        "parameters": [
+          {
+            "name": "postalCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "municipality",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 60,
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        ]
       }
     },
     "/api/auth/oidc/login": {
@@ -13035,7 +13078,52 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "linkedEntityId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ]
       }
     },
     "/api/decision-frame/:frameId": {
@@ -13056,7 +13144,18 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "frameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "df-aabbccddeeff"
+            }
+          }
+        ]
       },
       "put": {
         "operationId": "decision-frame_update",
@@ -13127,6 +13226,408 @@
         "summary": "Export a SCQA frame as Markdown or JSON document",
         "tags": [
           "Decision Frame"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "frameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "df-aabbccddeeff"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "markdown",
+                "json"
+              ],
+              "default": "markdown"
+            }
+          }
+        ]
+      }
+    },
+    "/api/domain-routes/": {
+      "get": {
+        "operationId": "domain-routes_list",
+        "summary": "domain-routes.list",
+        "tags": [
+          "domain-routes"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/domain-routes/:id": {
+      "get": {
+        "operationId": "domain-routes_get",
+        "summary": "domain-routes.get",
+        "tags": [
+          "domain-routes"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/domain-routes/drafts": {
+      "post": {
+        "operationId": "domain-routes_createDraft",
+        "summary": "domain-routes.createDraft",
+        "tags": [
+          "domain-routes"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/domain-routes/:id/validate": {
+      "post": {
+        "operationId": "domain-routes_validate",
+        "summary": "domain-routes.validate",
+        "tags": [
+          "domain-routes"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/domain-routes/:id/test": {
+      "post": {
+        "operationId": "domain-routes_test",
+        "summary": "domain-routes.test",
+        "tags": [
+          "domain-routes"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/domain-routes/:id/promote": {
+      "post": {
+        "operationId": "domain-routes_promote",
+        "summary": "domain-routes.promote",
+        "tags": [
+          "domain-routes"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/domain-routes/:id/rollback": {
+      "post": {
+        "operationId": "domain-routes_rollback",
+        "summary": "domain-routes.rollback",
+        "tags": [
+          "domain-routes"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/domain-routes/:id/deactivate": {
+      "post": {
+        "operationId": "domain-routes_deactivate",
+        "summary": "domain-routes.deactivate",
+        "tags": [
+          "domain-routes"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/domain-routes/reload": {
+      "post": {
+        "operationId": "domain-routes_reload",
+        "summary": "domain-routes.reload",
+        "tags": [
+          "domain-routes"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dossier-hydration/": {
+      "get": {
+        "operationId": "dossier-hydration_list",
+        "summary": "dossier-hydration.list",
+        "tags": [
+          "dossier-hydration"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dossier-hydration/:id": {
+      "get": {
+        "operationId": "dossier-hydration_get",
+        "summary": "dossier-hydration.get",
+        "tags": [
+          "dossier-hydration"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dossier-hydration/drafts": {
+      "post": {
+        "operationId": "dossier-hydration_createDraft",
+        "summary": "dossier-hydration.createDraft",
+        "tags": [
+          "dossier-hydration"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dossier-hydration/:id/validate": {
+      "post": {
+        "operationId": "dossier-hydration_validate",
+        "summary": "dossier-hydration.validate",
+        "tags": [
+          "dossier-hydration"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dossier-hydration/:id/test": {
+      "post": {
+        "operationId": "dossier-hydration_test",
+        "summary": "dossier-hydration.test",
+        "tags": [
+          "dossier-hydration"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dossier-hydration/:id/promote": {
+      "post": {
+        "operationId": "dossier-hydration_promote",
+        "summary": "dossier-hydration.promote",
+        "tags": [
+          "dossier-hydration"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dossier-hydration/:id/rollback": {
+      "post": {
+        "operationId": "dossier-hydration_rollback",
+        "summary": "dossier-hydration.rollback",
+        "tags": [
+          "dossier-hydration"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dossier-hydration/:id/deactivate": {
+      "post": {
+        "operationId": "dossier-hydration_deactivate",
+        "summary": "dossier-hydration.deactivate",
+        "tags": [
+          "dossier-hydration"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dossier-hydration/reload": {
+      "post": {
+        "operationId": "dossier-hydration_reload",
+        "summary": "dossier-hydration.reload",
+        "tags": [
+          "dossier-hydration"
         ],
         "responses": {
           "200": {
@@ -15521,6 +16022,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "location"
+                ],
                 "properties": {
                   "location": {
                     "type": "string",
@@ -19269,6 +19773,231 @@
                     "vnbName": "Bayernwerk Netz",
                     "format": "csv"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-ingest-monitor/schemas": {
+      "post": {
+        "operationId": "file-ingest-monitor_createSchema",
+        "summary": "Create a CSV/file schema definition",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "file-ingest-monitor_listSchemas",
+        "summary": "List file ingest schemas",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-ingest-monitor/schemas/:schemaId": {
+      "get": {
+        "operationId": "file-ingest-monitor_getSchema",
+        "summary": "Get schema by ID",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-ingest-monitor/monitors": {
+      "post": {
+        "operationId": "file-ingest-monitor_createMonitor",
+        "summary": "Register a file ingest monitor",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "file-ingest-monitor_listMonitors",
+        "summary": "List file ingest monitors",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-ingest-monitor/monitors/:id": {
+      "get": {
+        "operationId": "file-ingest-monitor_getMonitor",
+        "summary": "Get monitor by ID",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "file-ingest-monitor_deleteMonitor",
+        "summary": "Delete monitor by ID",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-ingest-monitor/monitors/:id/scan": {
+      "post": {
+        "operationId": "file-ingest-monitor_scan",
+        "summary": "Run a scan on the monitored path",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-ingest-monitor/monitors/:id/status": {
+      "get": {
+        "operationId": "file-ingest-monitor_getStatus",
+        "summary": "Get latest scan status for a monitor",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-ingest-monitor/monitors/:id/files": {
+      "get": {
+        "operationId": "file-ingest-monitor_getFiles",
+        "summary": "Get file list from last scan",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-ingest-monitor/monitors/:id/findings": {
+      "get": {
+        "operationId": "file-ingest-monitor_getFindings",
+        "summary": "Get findings from last scan",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
                 }
               }
             }
@@ -34903,6 +35632,288 @@
         }
       }
     },
+    "/api/redispatch-asset-register/projections": {
+      "post": {
+        "operationId": "redispatch-asset-register_createProjection",
+        "summary": "Create an asset projection with deterministic finding checks",
+        "tags": [
+          "Redispatch Asset Register"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "redispatch-asset-register_listProjections",
+        "summary": "List asset projections",
+        "tags": [
+          "Redispatch Asset Register"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redispatch-asset-register/projections/:id": {
+      "get": {
+        "operationId": "redispatch-asset-register_getProjection",
+        "summary": "Get asset projection by ID",
+        "tags": [
+          "Redispatch Asset Register"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redispatch-asset-register/relationships": {
+      "post": {
+        "operationId": "redispatch-asset-register_createRelationship",
+        "summary": "Create an asset relationship",
+        "tags": [
+          "Redispatch Asset Register"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "redispatch-asset-register_listRelationships",
+        "summary": "List asset relationships",
+        "tags": [
+          "Redispatch Asset Register"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redispatch-asset-register/relationships/:id": {
+      "get": {
+        "operationId": "redispatch-asset-register_getRelationship",
+        "summary": "Get relationship by ID",
+        "tags": [
+          "Redispatch Asset Register"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "redispatch-asset-register_deleteRelationship",
+        "summary": "Delete relationship by ID",
+        "tags": [
+          "Redispatch Asset Register"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redispatch-data-governance/policies": {
+      "post": {
+        "operationId": "redispatch-data-governance_createPolicy",
+        "summary": "Create a governance policy",
+        "tags": [
+          "Redispatch Data Governance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "redispatch-data-governance_listPolicies",
+        "summary": "List governance policies",
+        "tags": [
+          "Redispatch Data Governance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redispatch-data-governance/policies/:id": {
+      "get": {
+        "operationId": "redispatch-data-governance_getPolicy",
+        "summary": "Get policy by ID",
+        "tags": [
+          "Redispatch Data Governance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "redispatch-data-governance_updatePolicy",
+        "summary": "Update policy by ID",
+        "tags": [
+          "Redispatch Data Governance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "redispatch-data-governance_deletePolicy",
+        "summary": "Delete policy by ID",
+        "tags": [
+          "Redispatch Data Governance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redispatch-data-governance/evaluate": {
+      "post": {
+        "operationId": "redispatch-data-governance_evaluate",
+        "summary": "Evaluate governance status for a data class and process",
+        "tags": [
+          "Redispatch Data Governance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redispatch-data-governance/evaluations": {
+      "get": {
+        "operationId": "redispatch-data-governance_listEvaluations",
+        "summary": "List governance evaluations",
+        "tags": [
+          "Redispatch Data Governance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/redispatch-expost/audit": {
       "post": {
         "operationId": "redispatch-expost_audit",
@@ -35164,6 +36175,172 @@
             "description": "Audit report UUID"
           }
         ]
+      }
+    },
+    "/api/redispatch-settlement-sandbox/scenarios": {
+      "post": {
+        "operationId": "redispatch-settlement-sandbox_createScenario",
+        "summary": "Create a settlement scenario",
+        "tags": [
+          "Redispatch Settlement Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "redispatch-settlement-sandbox_listScenarios",
+        "summary": "List settlement scenarios",
+        "tags": [
+          "Redispatch Settlement Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redispatch-settlement-sandbox/scenarios/:id": {
+      "get": {
+        "operationId": "redispatch-settlement-sandbox_getScenario",
+        "summary": "Get scenario by ID",
+        "tags": [
+          "Redispatch Settlement Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redispatch-settlement-sandbox/scenarios/:id/reconcile": {
+      "post": {
+        "operationId": "redispatch-settlement-sandbox_reconcile",
+        "summary": "Reconcile a settlement scenario",
+        "tags": [
+          "Redispatch Settlement Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redispatch-settlement-sandbox/scenarios/:id/download": {
+      "get": {
+        "operationId": "redispatch-settlement-sandbox_downloadScenario",
+        "summary": "Download scenario as JSON or text summary",
+        "tags": [
+          "Redispatch Settlement Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redispatch-special-case-gate/evaluate": {
+      "post": {
+        "operationId": "redispatch-special-case-gate_evaluate",
+        "summary": "Evaluate special case gate for an asset",
+        "tags": [
+          "Redispatch Special Case Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redispatch-special-case-gate/runs": {
+      "get": {
+        "operationId": "redispatch-special-case-gate_listRuns",
+        "summary": "List gate evaluation runs",
+        "tags": [
+          "Redispatch Special Case Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redispatch-special-case-gate/runs/:id": {
+      "get": {
+        "operationId": "redispatch-special-case-gate_getRun",
+        "summary": "Get gate run by ID",
+        "tags": [
+          "Redispatch Special Case Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/regulatorische-entgeltlogik/rule-sets": {
@@ -40666,6 +41843,16 @@
               "type": "string",
               "example": "a1b2c3d4-0000-0000-0000-000000000001"
             }
+          },
+          {
+            "name": "questionSeed",
+            "in": "query",
+            "required": false,
+            "description": "SCQA Kernfrage as seed to orient generated planning questions",
+            "schema": {
+              "type": "string",
+              "maxLength": 500
+            }
           }
         ]
       }
@@ -43837,6 +45024,7 @@
                   "required": [
                     "success",
                     "shortAnswer",
+                    "groundingAnswer",
                     "evidence",
                     "processContext",
                     "openQuestions",
@@ -43851,8 +45039,19 @@
                     "sessionId": {
                       "type": "string"
                     },
+                    "question": {
+                      "type": "string"
+                    },
                     "shortAnswer": {
                       "type": "string"
+                    },
+                    "groundingAnswer": {
+                      "type": "string",
+                      "description": "Prompt-ready Cernion grounding package for Copilot composition. Contains user question, answer, evidence, guardrails, risks, open questions and answer rules in one text field."
+                    },
+                    "consultingBrief": {
+                      "type": "string",
+                      "description": "Optional backend-generated consulting brief for Copilot. It structures the evidence but is not a standalone source of facts."
                     },
                     "confidence": {
                       "type": "string",
@@ -43872,6 +45071,10 @@
                           },
                           "value": {
                             "type": "string"
+                          },
+                          "retrievalHint": {
+                            "type": "string",
+                            "description": "Optional vector/retrieval text for topic orientation; not standalone answer evidence."
                           }
                         }
                       }
@@ -44000,6 +45203,311 @@
                     "default": 5,
                     "description": "Maximum number of evidence items returned."
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/copilot/answer-dossier": {
+      "post": {
+        "operationId": "answerDossier",
+        "summary": "Generate a Cernion Answer Dossier for external renderer consumption",
+        "tags": [
+          "Personal Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Cernion Answer Dossier with structured metadata and Markdown content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "sessionId",
+                    "dossierId",
+                    "mode",
+                    "answerMode",
+                    "userContext",
+                    "processStage",
+                    "confidence",
+                    "completionState",
+                    "dossierMarkdown",
+                    "rendererSystemHint",
+                    "clarificationQuestions",
+                    "finalDossierRequested",
+                    "answerQuality"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "dossierId": {
+                      "type": "string"
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "answer_dossier",
+                        "answer_dossier_followup"
+                      ]
+                    },
+                    "answerMode": {
+                      "type": "string",
+                      "enum": [
+                        "clarification_needed",
+                        "management_brief",
+                        "evidence_collection",
+                        "process_check",
+                        "prepare_intent",
+                        "partial_async",
+                        "final_answer"
+                      ]
+                    },
+                    "userContext": {
+                      "type": "string",
+                      "enum": [
+                        "unknown",
+                        "mayor",
+                        "management",
+                        "target_grid_planning",
+                        "regulatory",
+                        "technical_operator",
+                        "process_action"
+                      ]
+                    },
+                    "processStage": {
+                      "type": "string",
+                      "enum": [
+                        "initial",
+                        "context_clarification",
+                        "evidence_collection",
+                        "synthesis",
+                        "async_pending",
+                        "intent_prepared",
+                        "action_requested",
+                        "completed"
+                      ]
+                    },
+                    "confidence": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                      ]
+                    },
+                    "completionState": {
+                      "type": "string",
+                      "enum": [
+                        "completed",
+                        "partial",
+                        "async_pending"
+                      ]
+                    },
+                    "dossierVersion": {
+                      "type": "integer",
+                      "description": "Turn index within this session, starting at 1."
+                    },
+                    "parentDossierId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "latestDossierId": {
+                      "type": "string"
+                    },
+                    "followUp": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Follow-up instructions for partial/async dossiers."
+                    },
+                    "priorConversationContext": {
+                      "type": "object",
+                      "description": "Compact carry-forward context from previous Answer Dossier turns in the same session."
+                    },
+                    "knowledgeSpace": {
+                      "type": "object",
+                      "description": "Authenticated tenant/session/conversation scope used to build the dossier. context.tenantId is audit context only and cannot override the authenticated tenant."
+                    },
+                    "timeBudget": {
+                      "type": "object"
+                    },
+                    "timeoutWarning": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "dossierMarkdown": {
+                      "type": "string"
+                    },
+                    "clarificationQuestions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Focused clarification questions derived from the same evidence-gap signals as dossierMarkdown's Missing Evidence section. Empty when no clarification is needed or when finalDossierRequested is true."
+                    },
+                    "finalDossierRequested": {
+                      "type": "boolean",
+                      "description": "Deterministic detection of whether the user asked for a final answer instead of another clarification turn."
+                    },
+                    "finalDossierMarkdown": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Renderer package variant that suppresses clarification-question instructions while still surfacing evidence gaps as caveats. Null unless finalDossierRequested is true."
+                    },
+                    "answerQuality": {
+                      "type": "object",
+                      "description": "Evidence-first policy signals (#238) describing what the dossier instructions require, not a verified property of any rendered prose answer.",
+                      "properties": {
+                        "usedRetrievedEvidence": {
+                          "type": "boolean",
+                          "description": "Whether relevant tool/MCP evidence was retrieved for this turn."
+                        },
+                        "substantiveAnswerInstructed": {
+                          "type": "boolean",
+                          "description": "Whether the dossier instructs an answer-first response (evidence-derived, final-mode, or flagged preliminary) rather than a defensive non-answer."
+                        },
+                        "defensiveNonAnswer": {
+                          "type": "boolean",
+                          "description": "Complement of substantiveAnswerInstructed — true when the dossier falls back to asking for more before answering."
+                        }
+                      }
+                    },
+                    "rendererSystemHint": {
+                      "type": "string"
+                    },
+                    "auditTrail": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Produces a structured Markdown dossier containing domain reasoning, evidence, guardrails, and a final renderer instruction. External renderers (n8n, AnythingLLM) use only the dossierMarkdown to formulate prose answers — no domain knowledge required from the renderer. Maintains session state for multi-turn continuity.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "question"
+                ],
+                "properties": {
+                  "question": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 8000,
+                    "description": "User question or prompt."
+                  },
+                  "sessionId": {
+                    "type": "string",
+                    "description": "Stable session identifier for multi-turn continuity. Generated and returned if omitted."
+                  },
+                  "domain": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "vnb",
+                      "vdmi",
+                      "znp",
+                      "grid-connection",
+                      "edm",
+                      "finance",
+                      "process",
+                      "redispatch"
+                    ],
+                    "default": "auto"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "answer_dossier",
+                      "answer_dossier_followup"
+                    ],
+                    "default": "answer_dossier",
+                    "description": "answer_dossier_followup continues an existing session; include parentDossierId."
+                  },
+                  "maxEvidence": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12,
+                    "default": 5
+                  },
+                  "timeBudgetMs": {
+                    "type": "integer",
+                    "minimum": 5000,
+                    "maximum": 60000,
+                    "default": 30000,
+                    "description": "Total time budget in milliseconds for dossier generation."
+                  },
+                  "parentDossierId": {
+                    "type": "string",
+                    "description": "For follow-up mode: dossierId of the previous dossier in this session."
+                  },
+                  "context": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Optional channel, surface, tenant, or user context."
+                  },
+                  "dossierContract": {
+                    "type": "string",
+                    "enum": [
+                      "rich",
+                      "slim"
+                    ],
+                    "default": "rich",
+                    "description": "Default 'rich' preserves the existing full governance/policy dossier — no caller needs to change anything. 'slim' (#242) opts into a compact answer-payload contract (Question/Consulting Interpretation/Reasoning/Evidence/Answer Constraints/Possible Follow-Up/Renderer Instruction) for evidence-backed, non-process-risk dossiers; process-action or incomplete-evidence dossiers are always served as 'rich' regardless of this value. This is a backend contract only — existing callers (e.g. n8n flows) keep seeing 'rich' output until they explicitly set dossierContract: \"slim\"."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dossier-hydration": {
+      "get": {
+        "operationId": "dossier-hydration_list",
+        "summary": "dossier-hydration.list",
+        "tags": [
+          "dossier-hydration"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/domain-routes": {
+      "get": {
+        "operationId": "domain-routes_list",
+        "summary": "domain-routes.list",
+        "tags": [
+          "domain-routes"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
                 }
               }
             }
@@ -49637,8 +51145,233 @@
           }
         }
       }
+    },
+    "/api/file-ingest-schemas": {
+      "post": {
+        "operationId": "file-ingest-monitor_createSchema",
+        "summary": "Create a CSV/file schema definition",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "file-ingest-monitor_listSchemas",
+        "summary": "List file ingest schemas",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-ingest-schemas/:schemaId": {
+      "get": {
+        "operationId": "file-ingest-monitor_getSchema",
+        "summary": "Get schema by ID",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-ingest-monitors": {
+      "post": {
+        "operationId": "file-ingest-monitor_createMonitor",
+        "summary": "Register a file ingest monitor",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "file-ingest-monitor_listMonitors",
+        "summary": "List file ingest monitors",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-ingest-monitors/:id": {
+      "get": {
+        "operationId": "file-ingest-monitor_getMonitor",
+        "summary": "Get monitor by ID",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "file-ingest-monitor_deleteMonitor",
+        "summary": "Delete monitor by ID",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-ingest-monitors/:id/scan": {
+      "post": {
+        "operationId": "file-ingest-monitor_scan",
+        "summary": "Run a scan on the monitored path",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-ingest-monitors/:id/status": {
+      "get": {
+        "operationId": "file-ingest-monitor_getStatus",
+        "summary": "Get latest scan status for a monitor",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-ingest-monitors/:id/files": {
+      "get": {
+        "operationId": "file-ingest-monitor_getFiles",
+        "summary": "Get file list from last scan",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-ingest-monitors/:id/findings": {
+      "get": {
+        "operationId": "file-ingest-monitor_getFindings",
+        "summary": "Get findings from last scan",
+        "tags": [
+          "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.60.8"
+  "x-version": "0.63.12"
 }

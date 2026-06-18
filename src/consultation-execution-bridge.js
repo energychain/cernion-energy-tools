@@ -22,6 +22,7 @@ const {
 } = require('./query-scope-classifier');
 
 const { LOCATION_PRECISION } = require('./location-resolution');
+const { isBlockedAction } = require('./dossier-hydration-registry');
 
 const WORKFLOW_TYPES = Object.freeze({
   BESS_SCREENING: 'bess_screening',
@@ -37,6 +38,9 @@ const WORKFLOW_TYPES = Object.freeze({
   EDM_MARKET_COMMUNICATION_DIAGNOSTICS: 'edm_market_communication_diagnostics',
   SUPPLIER_PORTFOLIO_FLEX_ASSESSMENT: 'supplier_portfolio_flex_assessment',
   PROSUMER_NAP_WALLET_ONBOARDING: 'prosumer_nap_wallet_onboarding',
+  // Generic fallback for any capability the broker has confidently routed to
+  // (e.g. VDMI governance) when no local text-heuristic workflow applies (#150)
+  CAPABILITY_BROKER_EXECUTION: 'capability_broker_execution',
 });
 
 const EXECUTION_READINESS = Object.freeze({
@@ -1246,6 +1250,38 @@ function _filterSuppressedInputs(missingInputs, doNotAskFor) {
 }
 
 /**
+ * Derives executable steps directly from the capability broker's own
+ * recommendedPlan when the local text-heuristic workflow produced nothing.
+ *
+ * Generic by design: works for any capability with preferredActions
+ * (VDMI governance included), not a VDMI-specific shortcut (#150).
+ *
+ * @param {object[]} recommendedPlan - brokerRecommendation.recommendedPlan
+ * @returns {object[]} executableSteps in the bridge's own step shape
+ */
+function _buildStepsFromBrokerRecommendation(recommendedPlan) {
+  if (!Array.isArray(recommendedPlan) || recommendedPlan.length === 0) return [];
+
+  return recommendedPlan
+    .filter(
+      (step) =>
+        typeof step?.action === 'string' &&
+        step.action.trim().length > 0 &&
+        !step.action.startsWith('interface-placeholder.') &&
+        !isBlockedAction(step.action)
+    )
+    .map((step, index) => ({
+      step: index + 1,
+      action: step.action,
+      label: step.purpose || step.action,
+      params: step.params && typeof step.params === 'object' ? step.params : {},
+      canExecute: true,
+      purpose: step.purpose || 'capability_broker_recommended_action',
+      source: 'capability_broker',
+    }));
+}
+
+/**
  * Builds the complete consultation execution plan artifact.
  *
  * @param {object} input
@@ -1322,22 +1358,58 @@ function buildConsultationExecutionPlan({
     ...knownContext,
   };
 
-  const { executableSteps, evidenceGates, assumptions } = buildExecutablePlan({
+  const localPlan = buildExecutablePlan({
     workflowType: effectiveWorkflowType,
     knownContext: effectiveKnownContext,
     missingInputs: filteredMissingInputs,
   });
 
+  // Generic capability-broker fallback (#150): when the local text-heuristic
+  // workflow produced no executable steps, but the broker already computed a
+  // confident, capability-filtered recommendedPlan (e.g. VDMI governance's
+  // vdmi.dossier/vdmi.negotiationTrace/vdmi.agentRole), use that instead of
+  // leaving the turn advisory-only. Generic for any future capability with
+  // preferredActions — not a VDMI-only shortcut.
+  const brokerDrivenSteps =
+    localPlan.executableSteps.length === 0
+      ? _buildStepsFromBrokerRecommendation(brokerRecommendation?.recommendedPlan)
+      : [];
+
+  const usingBrokerDrivenPlan = brokerDrivenSteps.length > 0;
+  const plannedWorkflowType = usingBrokerDrivenPlan
+    ? WORKFLOW_TYPES.CAPABILITY_BROKER_EXECUTION
+    : effectiveWorkflowType;
+  const executableSteps = usingBrokerDrivenPlan ? brokerDrivenSteps : localPlan.executableSteps;
+  const evidenceGates = localPlan.evidenceGates;
+  const assumptions = usingBrokerDrivenPlan
+    ? [
+        ...localPlan.assumptions,
+        {
+          type: 'working_assumption',
+          statement:
+            `Ausführungsplan aus Capability-Broker-Empfehlung übernommen (` +
+            `${brokerRecommendation?.capability || brokerRecommendation?.intent || 'unbekannt'}` +
+            `), da keine lokale Workflow-Heuristik einen Plan liefert.`,
+          basis: 'capability_broker_recommendation',
+          status: 'explicit',
+        },
+      ]
+    : localPlan.assumptions;
+
+  // The broker already validated/interpolated its own plan's params upstream —
+  // the discarded local workflow type's missingInputs requirements don't apply to it.
+  const plannedMissingInputs = usingBrokerDrivenPlan ? [] : filteredMissingInputs;
+
   // Only allow auto-execution when: mode is auto, no critical missing inputs, steps available
-  const criticalMissing = filteredMissingInputs.filter((m) => m.priority === 'critical');
+  const criticalMissing = plannedMissingInputs.filter((m) => m.priority === 'critical');
   const canAutoExecute =
     executionMode === 'auto' &&
     criticalMissing.length === 0 &&
     executableSteps.some((s) => s.canExecute);
 
   const { readiness, canExecuteNow, nextUserQuestion } = assessExecutionReadiness({
-    workflowType: effectiveWorkflowType,
-    missingInputs: filteredMissingInputs,
+    workflowType: plannedWorkflowType,
+    missingInputs: plannedMissingInputs,
     executableSteps,
     canAutoExecute,
   });
@@ -1346,10 +1418,10 @@ function buildConsultationExecutionPlan({
   const scopeClassification = classifyQueryScope(message, knownContext);
 
   return {
-    workflowType: effectiveWorkflowType,
+    workflowType: plannedWorkflowType,
     readiness,
     availableInputs,
-    missingInputs: filteredMissingInputs,
+    missingInputs: plannedMissingInputs,
     assumptions,
     executableSteps,
     evidenceGates,
