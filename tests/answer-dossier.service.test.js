@@ -1828,4 +1828,135 @@ describe('answerDossier action', () => {
     expect(specStr).not.toContain('answerDossier');
   });
 
+  // ── clarificationQuestions / finalDossierRequested / finalDossierMarkdown (issue #237) ──
+
+  test('clarificationQuestions is non-empty for unknown user context', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx({ question: 'Was ist der aktuelle Status?' });
+
+    const result = await handler.call(service, ctx);
+
+    expect(Array.isArray(result.clarificationQuestions)).toBe(true);
+    expect(result.clarificationQuestions.length).toBeGreaterThan(0);
+    expect(result.clarificationQuestions.some((q) => /f(ü|u)r wen/i.test(q))).toBe(true);
+  });
+
+  test('clarificationQuestions is empty once user context and evidence are known', async () => {
+    const service = {
+      ...buildServiceHarness(),
+      async collectCopilotKnowledgeEvidence() {
+        return {
+          status: 'available',
+          hits: [
+            { source: 'BNetzA', value: 'Evidence A' },
+            { source: 'BNetzA', value: 'Evidence B' },
+            { source: 'BNetzA', value: 'Evidence C' },
+          ],
+        };
+      },
+      async searchCopilotEntities() {
+        return { results: [] };
+      },
+    };
+    const ctx = buildCtx({
+      question: 'Management Überblick: Status der Versorgungssicherheit für unser Netzgebiet.',
+    });
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.userContext).toBe('management');
+    expect(result.clarificationQuestions).toEqual([]);
+  });
+
+  // Five phrasings from the issue + one normal question that must not trigger detection.
+  test.each([
+    ['Bitte gib mir das finale Dossier zu unserem Netzanschluss.', true],
+    ['Wir benötigen die abschließende Fassung des Dossiers.', true],
+    ['Bitte antworte ohne Rückfragen mit der besten verfügbaren Einschätzung.', true],
+    ['Gib die bestmögliche finale Einschätzung auf Basis der vorliegenden Daten.', true],
+    ['Formuliere final mit den vorhandenen Informationen eine Antwort.', true],
+    ['Was ist der aktuelle Status unserer Netzanschlussprüfung?', false],
+  ])('finalDossierRequested detection: "%s" → %s', async (question, expected) => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx({ question });
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.finalDossierRequested).toBe(expected);
+    expect(result.auditTrail.finalDossierRequested).toBe(expected);
+  });
+
+  test('non-final request returns finalDossierMarkdown=null and dossierMarkdown unaffected', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx({ question: 'Was ist der aktuelle Status?' });
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.finalDossierRequested).toBe(false);
+    expect(result.finalDossierMarkdown).toBeNull();
+    expect(result.dossierMarkdown).toContain('- final_dossier_mode: false');
+    expect(result.dossierMarkdown).toContain('Nutzerkontext ist unklar — eine gezielte Rückfrage formulieren');
+  });
+
+  test('final request suppresses every clarification instruction (not just one phrase) while keeping evidence gaps visible', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx({
+      question: 'Was ist der aktuelle Status? Bitte antworte ohne Rückfragen.',
+    });
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.finalDossierRequested).toBe(true);
+    expect(typeof result.finalDossierMarkdown).toBe('string');
+    // None of the affirmative "ask the user" instructions may survive in any section
+    // (Package-Aufgabe, Systemhinweis, Required Answer Behavior, Recommended Answer Structure).
+    // Checked as literal anti-patterns rather than a bare /rueckfrage/ scan, because the
+    // verbatim user question ("... ohne Rückfragen.") is legitimately echoed in the dossier.
+    expect(result.finalDossierMarkdown).not.toContain('eine gezielte Rückfrage formulieren');
+    expect(result.finalDossierMarkdown).not.toContain('Gezielte Rückfrage an den Nutzer');
+    expect(result.finalDossierMarkdown).not.toContain('welche Rückfragen nötig sind');
+    expect(result.finalDossierMarkdown).not.toContain('Wenn das Dossier eine Rueckfrage verlangt');
+    expect(result.finalDossierMarkdown).not.toContain('stelle eine Rueckfrage oder formuliere');
+    expect(result.finalDossierMarkdown).not.toContain('Rückfrage empfohlen');
+    // The final-mode suppression instructions are present instead.
+    expect(result.finalDossierMarkdown).toContain('stelle KEINE Rueckfrage an den Nutzer');
+    expect(result.finalDossierMarkdown).toContain('stelle KEINE Rueckfrage');
+    expect(result.finalDossierMarkdown).toContain('- final_dossier_mode: true');
+    // Evidence gaps must still be visible as caveats, not hidden.
+    expect(result.finalDossierMarkdown).toContain('## Missing Evidence');
+    expect(result.finalDossierMarkdown).toContain('Nutzerkontext: Unklar wer fragt');
+    // clarificationQuestions are suppressed for final requests even though gaps exist.
+    expect(result.clarificationQuestions).toEqual([]);
+    // The default (non-final) dossierMarkdown for the same turn must stay untouched.
+    expect(result.dossierMarkdown).toContain('eine gezielte Rückfrage formulieren');
+    expect(result.dossierMarkdown).not.toContain('final_dossier_mode: true');
+  });
+
+  test('low-evidence final answer keeps forbidden-claims guardrails and does not claim validated evidence', async () => {
+    const service = {
+      ...buildServiceHarness(),
+      async collectCopilotKnowledgeEvidence() {
+        return { status: 'missing', hits: [] };
+      },
+      async searchCopilotEntities() {
+        return { results: [] };
+      },
+    };
+    const ctx = buildCtx({
+      question:
+        'Ich weiß, dass es nur Low Evidence ist. Bitte formuliere final mit den vorhandenen Informationen eine bestmögliche finale Einschätzung ohne Rückfragen: Rechenzentrum in 69256 Mauer mit 10 MW.',
+    });
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.confidence).toBe('low');
+    expect(result.finalDossierRequested).toBe(true);
+    expect(result.finalDossierMarkdown).not.toContain('Nur benennen, welche Evidence fehlt, welche Rückfragen nötig sind');
+    expect(result.finalDossierMarkdown).not.toContain('Wenn das Dossier eine Rueckfrage verlangt');
+    expect(result.finalDossierMarkdown).not.toContain('stelle eine Rueckfrage oder formuliere');
+    expect(result.finalDossierMarkdown).toContain('Keine Machbarkeitszusage');
+    expect(result.finalDossierMarkdown).toContain('## Forbidden Claims');
+    expect(result.finalDossierMarkdown).toContain('Evidence-Lücken klar als Einschränkung/Annahme benennen');
+  });
+
 });

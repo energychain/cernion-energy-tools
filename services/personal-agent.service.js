@@ -1136,6 +1136,15 @@ function detectDossierPreliminaryAnswerRequest(question = '') {
     /(?:arbeite|bewerte|schaetze|schätze).{0,80}(?:mit|auf basis).{0,80}(?:low evidence|nutzerangaben|annahmen|arbeitshypothese)/.test(text);
 }
 
+function detectDossierFinalAnswerRequest(question = '') {
+  const text = normalizeCopilotSearchableText(question);
+  return /finale[ns]?\s+dossier/.test(text) ||
+    /abschliessende[n]?\s+fassung/.test(text) ||
+    /ohne\s+rueckfragen?/.test(text) ||
+    /bestmoeglich\w*\s+finale[n]?\s+(?:einschaetzung|bewertung|antwort)/.test(text) ||
+    /formuliere\s+final\b.{0,80}vorhandenen\s+informationen/.test(text);
+}
+
 function buildDossierTurnSummary({
   question = '',
   dossierContext = {},
@@ -2279,7 +2288,7 @@ module.exports = {
               'application/json': {
                 schema: {
                   type: 'object',
-                  required: ['success', 'sessionId', 'dossierId', 'mode', 'answerMode', 'userContext', 'processStage', 'confidence', 'completionState', 'dossierMarkdown', 'rendererSystemHint'],
+                  required: ['success', 'sessionId', 'dossierId', 'mode', 'answerMode', 'userContext', 'processStage', 'confidence', 'completionState', 'dossierMarkdown', 'rendererSystemHint', 'clarificationQuestions', 'finalDossierRequested'],
                   properties: {
                     success: { type: 'boolean' },
                     sessionId: { type: 'string' },
@@ -2307,6 +2316,20 @@ module.exports = {
                     timeBudget: { type: 'object' },
                     timeoutWarning: { type: 'string', nullable: true },
                     dossierMarkdown: { type: 'string' },
+                    clarificationQuestions: {
+                      type: 'array',
+                      items: { type: 'string' },
+                      description: 'Focused clarification questions derived from the same evidence-gap signals as dossierMarkdown\'s Missing Evidence section. Empty when no clarification is needed or when finalDossierRequested is true.',
+                    },
+                    finalDossierRequested: {
+                      type: 'boolean',
+                      description: 'Deterministic detection of whether the user asked for a final answer instead of another clarification turn.',
+                    },
+                    finalDossierMarkdown: {
+                      type: 'string',
+                      nullable: true,
+                      description: 'Renderer package variant that suppresses clarification-question instructions while still surfacing evidence gaps as caveats. Null unless finalDossierRequested is true.',
+                    },
                     rendererSystemHint: { type: 'string' },
                     auditTrail: { type: 'object' },
                   },
@@ -2422,6 +2445,7 @@ module.exports = {
         const maxTenantLowEvidence = Math.max(maxEvidence * 4, 20);
         const maxDossierEvidence = Math.max(maxEvidence * 4, 20);
         const preliminaryAnswerRequested = detectDossierPreliminaryAnswerRequest(question);
+        const finalDossierRequested = detectDossierFinalAnswerRequest(question);
         const userProvidedFacts = buildDossierProjectFactEntries(question, { sessionId });
         const userProvidedEvidence = userProvidedFacts
           .map(mapDossierLowEvidenceToEntry)
@@ -2792,13 +2816,21 @@ module.exports = {
           evidenceCount: confidenceEvidenceCount,
         });
 
-        // Build missing evidence list
-        const missingEvidence = [];
+        // Build missing evidence list. Each gap carries both a Markdown statement (unchanged
+        // wording, persisted in missingEvidence) and a renderer-safe question derived from the
+        // same structured condition — clarificationQuestions never parses dossierMarkdown.
+        const evidenceGaps = [];
         if (confidenceEvidenceCount === 0) {
-          missingEvidence.push('Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden — Suchbegriff präzisieren, Domäne angeben oder Evidence nachreichen.');
+          evidenceGaps.push({
+            statement: 'Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden — Suchbegriff präzisieren, Domäne angeben oder Evidence nachreichen.',
+            question: 'Welche zusätzliche Evidence oder Quellenangabe können Sie zu dieser Frage liefern?',
+          });
         }
         if (dossierContext.userContext === DOSSIER_USER_CONTEXT.UNKNOWN) {
-          missingEvidence.push('Nutzerkontext: Unklar wer fragt und mit welchem Ziel (Planung, Management, Prozessaktion).');
+          evidenceGaps.push({
+            statement: 'Nutzerkontext: Unklar wer fragt und mit welchem Ziel (Planung, Management, Prozessaktion).',
+            question: 'Für wen erstellen wir dieses Dossier und mit welchem Ziel (z. B. Planung, Management, Prozessaktion)?',
+          });
         }
         const evCo2ForecastEvidenceSufficient =
           detectDossierEvCo2ChargingRequest(dossierTask) &&
@@ -2808,11 +2840,22 @@ module.exports = {
           confidenceEvidenceCount < 3 &&
           !evCo2ForecastEvidenceSufficient
         ) {
-          missingEvidence.push('Evidence-Basis: Für eine belastbare Planungsaussage sind weitere Datenpunkte erforderlich.');
+          evidenceGaps.push({
+            statement: 'Evidence-Basis: Für eine belastbare Planungsaussage sind weitere Datenpunkte erforderlich.',
+            question: 'Welche weiteren Datenpunkte oder Belege liegen vor, um die Planungsaussage zu stützen?',
+          });
         }
         if (preliminaryAnswerRequested && confidenceEvidenceCount === 0 && evidence.length > 0) {
-          missingEvidence.push('Vorläufige Aussage: Vom Nutzer ausdrücklich gewünscht, aber nur als nicht belastbare Arbeitshypothese auf Basis der Low-Evidence zulässig.');
+          // Disclosure, not a gap to ask the user about — no corresponding clarification question.
+          evidenceGaps.push({
+            statement: 'Vorläufige Aussage: Vom Nutzer ausdrücklich gewünscht, aber nur als nicht belastbare Arbeitshypothese auf Basis der Low-Evidence zulässig.',
+            question: null,
+          });
         }
+        const missingEvidence = evidenceGaps.map((gap) => gap.statement);
+        const clarificationQuestions = finalDossierRequested
+          ? []
+          : evidenceGaps.map((gap) => gap.question).filter(Boolean);
 
         const reasoningSummary = buildReasoningSummary({
           userContext: dossierContext.userContext,
@@ -2825,7 +2868,7 @@ module.exports = {
         const dossierVersion = priorTurnsCount + 1;
 
         // Compilation phase — always runs
-        const dossierMarkdown = buildDossierMarkdown({
+        const dossierMarkdownArgs = {
           dossierId,
           dossierVersion,
           sessionId,
@@ -2833,7 +2876,6 @@ module.exports = {
           dossierState: dossierContext,
           evidence,
           missingEvidence,
-          reasoningSummary,
           timeBudget,
           completionState,
           domain,
@@ -2842,7 +2884,23 @@ module.exports = {
           preliminaryAnswerRequested,
           capabilityRouting,
           priorConversationContext,
-        });
+        };
+        const dossierMarkdown = buildDossierMarkdown({ ...dossierMarkdownArgs, reasoningSummary });
+
+        const finalDossierMarkdown = finalDossierRequested
+          ? buildDossierMarkdown({
+              ...dossierMarkdownArgs,
+              reasoningSummary: buildReasoningSummary({
+                userContext: dossierContext.userContext,
+                answerMode: dossierContext.answerMode,
+                evidenceCount: confidenceEvidenceCount,
+                domain,
+                question,
+                finalMode: true,
+              }),
+              finalMode: true,
+            })
+          : null;
 
         const elapsedMs = Date.now() - startTime;
         const rendererSystemHint = buildRendererSystemHint();
@@ -2923,9 +2981,12 @@ module.exports = {
           knowledgeSpace,
           priorConversationContext,
           preliminaryAnswerRequested,
+          finalDossierRequested,
+          clarificationQuestions,
           timeBudget: { ...timeBudget, elapsedMs },
           timeoutWarning,
           dossierMarkdown,
+          finalDossierMarkdown,
           rendererSystemHint,
           capabilityRouting,
           hydration: _hydrationResult,
@@ -2938,6 +2999,7 @@ module.exports = {
             tenantId: knowledgeSpace.tenantId,
             tenantScopeStatus: knowledgeSpace.tenantScopeStatus,
             conversationId: knowledgeSpace.conversationId,
+            finalDossierRequested,
             createdAt: new Date().toISOString(),
             broker: {
               status: capabilityRouting.status,
