@@ -1586,6 +1586,8 @@ const COOKBOOK_RECIPES = [
         params: {
           name: 'Self-Healing Data Campaign',
           scope: 'read-only',
+          tenantId: 'public',
+          userId: 'svc:data-quality-campaign',
         },
         description:
           'Issue scoped integration token for automation flows and auditable campaign execution.',

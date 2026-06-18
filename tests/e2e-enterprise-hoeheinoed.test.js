@@ -516,6 +516,8 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
       const result = await broker.call('token-manager.create', {
         name: 'Höheinöd Portal Read',
         scope: 'read-only',
+        tenantId: 'hoeheinoed',
+        userId: 'portal-readonly-tester',
       });
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
@@ -562,6 +564,8 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
       const result = await broker.call('token-manager.create', {
         name: 'Höheinöd Admin Full',
         scope: 'full-access',
+        tenantId: 'hoeheinoed',
+        userId: 'admin-full-tester',
       });
       expect(result.success).toBe(true);
       fullAccessTokenId = result.data.id;

@@ -38448,7 +38448,9 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "name"
+                  "name",
+                  "tenantId",
+                  "userId"
                 ],
                 "properties": {
                   "name": {
@@ -38463,6 +38465,14 @@
                     ],
                     "default": "read-only",
                     "example": "read-only"
+                  },
+                  "tenantId": {
+                    "type": "string",
+                    "example": "stadtwerk-a"
+                  },
+                  "userId": {
+                    "type": "string",
+                    "example": "svc:powerbi-connector"
                   }
                 }
               },
@@ -38471,14 +38481,18 @@
                   "summary": "Create a read-only token",
                   "value": {
                     "name": "Power BI Connector",
-                    "scope": "read-only"
+                    "scope": "read-only",
+                    "tenantId": "stadtwerk-a",
+                    "userId": "svc:powerbi-connector"
                   }
                 },
                 "fullAccess": {
                   "summary": "Create a full-access token",
                   "value": {
                     "name": "Admin Token",
-                    "scope": "full-access"
+                    "scope": "full-access",
+                    "tenantId": "stadtwerk-a",
+                    "userId": "admin"
                   }
                 }
               }

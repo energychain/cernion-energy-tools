@@ -8,9 +8,14 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { Errors } = require('moleculer');
+const { validateTenantId, isTenantAllowed } = require('../src/tenant-context');
 
 const DEFAULT_STORAGE_FILE = process.env.TOKEN_STORAGE_FILE || './uploads/.api-tokens.json';
 const MAX_NAME_LENGTH = 60;
+// Free-form user identity for token binding: letters, digits, and . _ @ : - separators
+// (e.g. "thorsten", "svc:data-quality-campaign"), max 120 chars.
+const USER_ID_PATTERN = /^[a-zA-Z0-9_.@:-]{1,120}$/;
 
 function ensureDirForFile(filePath) {
   const dir = path.dirname(filePath);
@@ -45,6 +50,12 @@ function isWriteMethod(method) {
   return m !== 'GET' && m !== 'HEAD' && m !== 'OPTIONS';
 }
 
+// Tokens created before Issue #157 (tenant/user binding) have no userId on
+// record. They keep working but are flagged so callers can sunset them.
+function isLegacyToken(record) {
+  return !record?.tenantId || !record?.userId;
+}
+
 module.exports = {
   name: 'token-manager',
 
@@ -72,6 +83,9 @@ module.exports = {
             lastUsedAt: entry.lastUsedAt || null,
             usageCount: entry.usageCount || 0,
             scopes: entry.scopes || [entry.scope || 'read-only'],
+            tenantId: entry.tenantId || null,
+            userId: entry.userId || null,
+            legacy: isLegacyToken(entry),
             active: entry.active !== false,
           })),
         };
@@ -88,12 +102,8 @@ module.exports = {
           optional: true,
           default: 'read-only',
         },
-        tenantId: {
-          type: 'string',
-          optional: true,
-          pattern: /^[a-z0-9-]{1,64}$/,
-          max: 64,
-        },
+        tenantId: { type: 'string', min: 1, max: 64, trim: true },
+        userId: { type: 'string', min: 1, max: 120, pattern: USER_ID_PATTERN, trim: true },
       },
       openapi: {
         summary: 'Create API token',
@@ -103,7 +113,7 @@ module.exports = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['name'],
+                required: ['name', 'tenantId', 'userId'],
                 properties: {
                   name: { type: 'string', example: 'Power BI Connector' },
                   scope: {
@@ -112,16 +122,28 @@ module.exports = {
                     default: 'read-only',
                     example: 'read-only',
                   },
+                  tenantId: { type: 'string', example: 'stadtwerk-a' },
+                  userId: { type: 'string', example: 'svc:powerbi-connector' },
                 },
               },
               examples: {
                 readOnly: {
                   summary: 'Create a read-only token',
-                  value: { name: 'Power BI Connector', scope: 'read-only' },
+                  value: {
+                    name: 'Power BI Connector',
+                    scope: 'read-only',
+                    tenantId: 'stadtwerk-a',
+                    userId: 'svc:powerbi-connector',
+                  },
                 },
                 fullAccess: {
                   summary: 'Create a full-access token',
-                  value: { name: 'Admin Token', scope: 'full-access' },
+                  value: {
+                    name: 'Admin Token',
+                    scope: 'full-access',
+                    tenantId: 'stadtwerk-a',
+                    userId: 'admin',
+                  },
                 },
               },
             },
@@ -129,8 +151,43 @@ module.exports = {
         },
       },
       handler(ctx) {
-        const { name } = ctx.params;
+        const { name, tenantId, userId } = ctx.params;
         const scope = normaliseScope(ctx.params.scope);
+
+        // Explicit checks (not just the params schema) so direct handler
+        // invocation — bypassing the moleculer-web validator — still rejects
+        // unbound tokens. Issue #157: no new token may be created without
+        // an explicit tenant/user binding.
+        if (!tenantId) {
+          throw new Errors.MoleculerClientError(
+            'tenantId is required to create a token.',
+            422,
+            'TENANT_ID_REQUIRED'
+          );
+        }
+        if (!userId) {
+          throw new Errors.MoleculerClientError(
+            'userId is required to create a token.',
+            422,
+            'USER_ID_REQUIRED'
+          );
+        }
+
+        validateTenantId(tenantId);
+        if (!isTenantAllowed(tenantId)) {
+          throw new Errors.MoleculerClientError(
+            `Tenant '${tenantId}' is not in the allowed tenant list.`,
+            403,
+            'TENANT_NOT_ALLOWED'
+          );
+        }
+        if (!USER_ID_PATTERN.test(userId)) {
+          throw new Errors.MoleculerClientError(
+            `userId '${userId}' does not match the allowed pattern.`,
+            422,
+            'INVALID_USER_ID'
+          );
+        }
 
         const tokens = this.loadTokens();
         const activeCount = tokens.filter((entry) => entry.active !== false).length;
@@ -154,7 +211,8 @@ module.exports = {
           usageCount: 0,
           scope,
           scopes: [scope, 'vnb-monitor'],
-          tenantId: ctx.params.tenantId || null,
+          tenantId,
+          userId,
           active: true,
         };
 
@@ -170,6 +228,9 @@ module.exports = {
             createdAt: record.createdAt,
             scope: record.scope,
             scopes: record.scopes,
+            tenantId: record.tenantId,
+            userId: record.userId,
+            legacy: false,
             active: true,
           },
           message:
@@ -288,6 +349,8 @@ module.exports = {
           scope,
           scopes: record.scopes || [scope],
           tenantId: record.tenantId ?? null,
+          userId: record.userId ?? null,
+          legacy: isLegacyToken(record),
           active: true,
         };
       },

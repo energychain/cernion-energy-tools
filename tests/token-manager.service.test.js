@@ -2,6 +2,7 @@ const { ServiceBroker } = require('moleculer');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const crypto = require('crypto');
 
 const TokenManagerService = require('../services/token-manager.service');
 
@@ -32,6 +33,8 @@ describe('token-manager.service', () => {
     const created = await broker.call('token-manager.create', {
       name: 'Power BI',
       scope: 'read-only',
+      tenantId: 'stadtwerk-a',
+      userId: 'thorsten',
     });
 
     expect(created.success).toBe(true);
@@ -47,6 +50,8 @@ describe('token-manager.service', () => {
     const created = await broker.call('token-manager.create', {
       name: 'Automate',
       scope: 'read-only',
+      tenantId: 'stadtwerk-a',
+      userId: 'svc:automate',
     });
 
     const validRead = await broker.call('token-manager.verify', {
@@ -71,6 +76,8 @@ describe('token-manager.service', () => {
     const created = await broker.call('token-manager.create', {
       name: 'Admin',
       scope: 'full-access',
+      tenantId: 'stadtwerk-a',
+      userId: 'admin',
     });
 
     const revoke = await broker.call('token-manager.revoke', { id: created.data.id });
@@ -82,5 +89,86 @@ describe('token-manager.service', () => {
       path: '/api/tokens',
     });
     expect(verify.valid).toBe(false);
+  });
+
+  it('rejects create when tenantId is missing', async () => {
+    await expect(
+      broker.call('token-manager.create', {
+        name: 'No Tenant',
+        scope: 'read-only',
+        userId: 'thorsten',
+      })
+    ).rejects.toThrow();
+  });
+
+  it('rejects create when userId is missing', async () => {
+    await expect(
+      broker.call('token-manager.create', {
+        name: 'No User',
+        scope: 'read-only',
+        tenantId: 'stadtwerk-a',
+      })
+    ).rejects.toThrow();
+  });
+
+  it('exposes tenantId, userId, and legacy:false for a new bound token in list and verify', async () => {
+    const created = await broker.call('token-manager.create', {
+      name: 'Bound Token',
+      scope: 'read-only',
+      tenantId: 'stadtwerk-b',
+      userId: 'svc:bound-token-test',
+    });
+    expect(created.data.tenantId).toBe('stadtwerk-b');
+    expect(created.data.userId).toBe('svc:bound-token-test');
+    expect(created.data.legacy).toBe(false);
+
+    const listed = await broker.call('token-manager.list');
+    const entry = listed.data.find((t) => t.id === created.data.id);
+    expect(entry.tenantId).toBe('stadtwerk-b');
+    expect(entry.userId).toBe('svc:bound-token-test');
+    expect(entry.legacy).toBe(false);
+
+    const verified = await broker.call('token-manager.verify', {
+      token: created.data.token,
+      method: 'GET',
+    });
+    expect(verified.tenantId).toBe('stadtwerk-b');
+    expect(verified.userId).toBe('svc:bound-token-test');
+    expect(verified.legacy).toBe(false);
+  });
+
+  it('marks a pre-existing unbound token as legacy:true in list and verify', async () => {
+    // Simulates a token created before Issue #157 (no tenantId/userId on record).
+    const rawToken = 'ck_preexistingunboundlegacytoken1';
+    const legacyHash = crypto.createHash('sha256').update(rawToken, 'utf8').digest('hex');
+    const existing = JSON.parse(fs.readFileSync(storageFile, 'utf8'));
+    existing.push({
+      id: 'legacy-token-1',
+      name: 'Legacy Integration',
+      tokenHash: legacyHash,
+      tokenMasked: 'ck_pre****en1',
+      createdAt: new Date().toISOString(),
+      lastUsedAt: null,
+      usageCount: 0,
+      scope: 'read-only',
+      scopes: ['read-only'],
+      active: true,
+    });
+    fs.writeFileSync(storageFile, JSON.stringify(existing, null, 2), 'utf8');
+
+    const listed = await broker.call('token-manager.list');
+    const entry = listed.data.find((t) => t.id === 'legacy-token-1');
+    expect(entry.tenantId).toBeNull();
+    expect(entry.userId).toBeNull();
+    expect(entry.legacy).toBe(true);
+
+    const verified = await broker.call('token-manager.verify', {
+      token: rawToken,
+      method: 'GET',
+    });
+    expect(verified.valid).toBe(true);
+    expect(verified.tenantId).toBeNull();
+    expect(verified.userId).toBeNull();
+    expect(verified.legacy).toBe(true);
   });
 });

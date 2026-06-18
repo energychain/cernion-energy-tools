@@ -156,7 +156,14 @@ describe('Token Manager Integration — tenantId', () => {
     const storageFile = path.join(os.tmpdir(), `tokens-test-${Date.now()}.json`);
     const svc = makeService(storageFile);
 
-    const ctx = { params: { name: 'Test Token', scope: 'full-access', tenantId: 'stadtwerk-a' } };
+    const ctx = {
+      params: {
+        name: 'Test Token',
+        scope: 'full-access',
+        tenantId: 'stadtwerk-a',
+        userId: 'tester-1',
+      },
+    };
     const result = tokenManagerService.actions.create.handler.call(svc, ctx);
 
     expect(result.success).toBe(true);
@@ -168,30 +175,28 @@ describe('Token Manager Integration — tenantId', () => {
     require('fs').unlinkSync(storageFile);
   });
 
-  test('create ohne tenantId → tenantId ist null im gespeicherten Token', () => {
+  test('create ohne tenantId → wird abgelehnt (Issue #157: tenant/user binding ist Pflicht)', () => {
     const path = require('path');
     const os = require('os');
     const storageFile = path.join(os.tmpdir(), `tokens-test-${Date.now()}.json`);
     const svc = makeService(storageFile);
 
-    const ctx = { params: { name: 'Test Token 2', scope: 'read-only' } };
-    const result = tokenManagerService.actions.create.handler.call(svc, ctx);
+    const ctx = { params: { name: 'Test Token 2', scope: 'read-only', userId: 'tester-2' } };
+    expect(() => tokenManagerService.actions.create.handler.call(svc, ctx)).toThrow();
 
-    const tokens = svc.loadTokens();
-    const created = tokens.find((t) => t.id === result.data.id);
-    expect(created.tenantId).toBeNull();
-
-    require('fs').unlinkSync(storageFile);
+    if (require('fs').existsSync(storageFile)) require('fs').unlinkSync(storageFile);
   });
 
-  test('verify → tenantId wird im Return-Wert exponiert', () => {
+  test('verify → tenantId und userId werden im Return-Wert exponiert, legacy:false für neue Tokens', () => {
     const path = require('path');
     const os = require('os');
     const storageFile = path.join(os.tmpdir(), `tokens-test-${Date.now()}.json`);
     const svc = makeService(storageFile);
 
     // Token erstellen
-    const createCtx = { params: { name: 'T3', scope: 'full-access', tenantId: 'vnb-test' } };
+    const createCtx = {
+      params: { name: 'T3', scope: 'full-access', tenantId: 'vnb-test', userId: 'tester-3' },
+    };
     const createResult = tokenManagerService.actions.create.handler.call(svc, createCtx);
     const rawToken = createResult.data.token;
 
@@ -201,25 +206,44 @@ describe('Token Manager Integration — tenantId', () => {
 
     expect(verifyResult.valid).toBe(true);
     expect(verifyResult.tenantId).toBe('vnb-test');
+    expect(verifyResult.userId).toBe('tester-3');
+    expect(verifyResult.legacy).toBe(false);
 
     require('fs').unlinkSync(storageFile);
   });
 
-  test('verify für Token ohne tenantId → tenantId ist null', () => {
+  test('verify für vorbestehenden Token ohne tenantId/userId → legacy:true', () => {
     const path = require('path');
     const os = require('os');
     const storageFile = path.join(os.tmpdir(), `tokens-test-${Date.now()}.json`);
     const svc = makeService(storageFile);
 
-    const createCtx = { params: { name: 'T4', scope: 'read-only' } };
-    const createResult = tokenManagerService.actions.create.handler.call(svc, createCtx);
-    const rawToken = createResult.data.token;
+    // Simuliert einen Token, der vor Issue #157 angelegt wurde (kein tenantId/userId).
+    const rawToken = 'ck_legacytokenfortenantcontexttest';
+    const crypto = require('crypto');
+    const tokenHash = crypto.createHash('sha256').update(rawToken, 'utf8').digest('hex');
+    svc.saveTokens([
+      {
+        id: 'legacy-1',
+        name: 'Pre-existing token',
+        tokenHash,
+        tokenMasked: 'ck_leg****est',
+        createdAt: new Date().toISOString(),
+        lastUsedAt: null,
+        usageCount: 0,
+        scope: 'read-only',
+        scopes: ['read-only'],
+        active: true,
+      },
+    ]);
 
     const verifyCtx = { params: { token: rawToken, method: 'GET', trackUsage: false } };
     const verifyResult = tokenManagerService.actions.verify.handler.call(svc, verifyCtx);
 
     expect(verifyResult.valid).toBe(true);
     expect(verifyResult.tenantId).toBeNull();
+    expect(verifyResult.userId).toBeNull();
+    expect(verifyResult.legacy).toBe(true);
 
     require('fs').unlinkSync(storageFile);
   });
@@ -230,18 +254,15 @@ describe('Token Manager Integration — tenantId', () => {
     const storageFile = path.join(os.tmpdir(), `tokens-test-${Date.now()}.json`);
     const svc = makeService(storageFile);
 
-    // Zwei Tokens für verschiedene Tenants + einen ohne Tenant erstellen
+    // Zwei Tokens für stadtwerk-a + einen für stadtwerk-b erstellen
     tokenManagerService.actions.create.handler.call(svc, {
-      params: { name: 'T-A1', scope: 'read-only', tenantId: 'stadtwerk-a' },
+      params: { name: 'T-A1', scope: 'read-only', tenantId: 'stadtwerk-a', userId: 'tester-a1' },
     });
     tokenManagerService.actions.create.handler.call(svc, {
-      params: { name: 'T-A2', scope: 'read-only', tenantId: 'stadtwerk-a' },
+      params: { name: 'T-A2', scope: 'read-only', tenantId: 'stadtwerk-a', userId: 'tester-a2' },
     });
     tokenManagerService.actions.create.handler.call(svc, {
-      params: { name: 'T-B', scope: 'read-only', tenantId: 'stadtwerk-b' },
-    });
-    tokenManagerService.actions.create.handler.call(svc, {
-      params: { name: 'T-default', scope: 'read-only' },
+      params: { name: 'T-B', scope: 'read-only', tenantId: 'stadtwerk-b', userId: 'tester-b' },
     });
 
     const result = tokenManagerService.actions['tenant.list'].handler.call(svc, {});

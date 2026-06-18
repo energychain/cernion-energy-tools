@@ -809,6 +809,8 @@ describe('API Gateway Service', () => {
       const created = await broker.call('token-manager.create', {
         name: 'Admin',
         scope: 'full-access',
+        tenantId: 'public',
+        userId: 'admin',
       });
 
       const ctx = { meta: {} };
@@ -833,6 +835,8 @@ describe('API Gateway Service', () => {
       const created = await broker.call('token-manager.create', {
         name: 'ReadOnly',
         scope: 'read-only',
+        tenantId: 'public',
+        userId: 'readonly-tester',
       });
 
       const ctx = { meta: {} };
@@ -857,6 +861,7 @@ describe('API Gateway Service', () => {
         name: 'QuotaReadOnly',
         scope: 'read-only',
         tenantId: 'tenant-a',
+        userId: 'quota-readonly-tester',
       });
 
       const ctx = { meta: {} };
@@ -902,6 +907,7 @@ describe('API Gateway Service', () => {
         name: 'QuotaAdmin',
         scope: 'full-access',
         tenantId: 'tenant-rate',
+        userId: 'quota-admin-tester',
       });
 
       const state = rateQuotaStore.getTenantState('tenant-rate');
@@ -1067,6 +1073,8 @@ describe('API Gateway Service', () => {
       const created = await broker.call('token-manager.create', {
         name: 'MetricsReadOnly',
         scope: 'read-only',
+        tenantId: 'public',
+        userId: 'metrics-readonly-tester',
       });
       const req = {
         headers: { authorization: `Bearer ${created.data.token}` },
@@ -1242,6 +1250,8 @@ describe('API Gateway Service', () => {
       const created = await broker.call('token-manager.create', {
         name: 'NbpReadOnly',
         scope: 'read-only',
+        tenantId: 'public',
+        userId: 'nbp-readonly-tester',
       });
       const ctx = { meta: {} };
       const req = {
@@ -1267,6 +1277,8 @@ describe('API Gateway Service', () => {
       const created = await broker.call('token-manager.create', {
         name: 'VerifyRegressionToken',
         scope: 'read-only',
+        tenantId: 'public',
+        userId: 'verify-regression-tester',
       });
       const rawToken = created.data.token; // ck_<32 hex chars> — no ck_live_ infix
 

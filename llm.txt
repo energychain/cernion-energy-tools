@@ -5,11 +5,11 @@
 - version: 0.63.12
 - changelog_latest_release: 0.63.12
 - source_files_hash:
-  - CHANGELOG.md: cc9c1b7a640c60e8f32ebded41abad0f402f8d9289c71ef1f7b4a92be4957a3b
+  - CHANGELOG.md: e1bffaffd1c942f0db2060ab11aa458463c56c951374608f5a6698f5910ed759
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
-  - src/cookbook-recipes.js: 9e3a9c3d1cca648a3c8f515130dceecc8cc9d2746e867787cda0c03248f979b6
-  - openapi-export.json: 0d7247323b9d13d2c857740529292352047a3a17ec8433e35fafad4f1e3b80cc
+  - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
+  - openapi-export.json: e3fe4831c4b82f206d6eecb04ec3c30e1ef5a8f9961660d4969944202842a738
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -550,7 +550,7 @@ prerequisites: Grid operator identifier | Customer portal integration path
 process:
   - step 1: mastr-quality.mastr-quality.audit | rest: POST /api/mastr-quality/audit | params: {   "gridOperatorBdew": null,   "skipSteps": [     7   ] }
   - step 2: customer-service.customer-service.portalWidget | rest: POST /api/customer-service/portal-widget | params: {   "includeContactCTA": true,   "language": "de",   "mode": "embedded",   "widgetType": "installation_change_wizard" }
-  - step 3: token-manager.token-manager.create | rest: POST /api/tokens | params: {   "name": "Self-Healing Data Campaign",   "scope": "read-only" }
+  - step 3: token-manager.token-manager.create | rest: POST /api/tokens | params: {   "name": "Self-Healing Data Campaign",   "scope": "read-only",   "tenantId": "public",   "userId": "svc:data-quality-campaign" }
 
 ### Recipe: utility-report-ewk
 title: Generate an EWK grid operator utility report
@@ -47846,14 +47846,18 @@ process:
                   "summary": "Create a full-access token",
                   "value": {
                     "name": "Admin Token",
-                    "scope": "full-access"
+                    "scope": "full-access",
+                    "tenantId": "stadtwerk-a",
+                    "userId": "admin"
                   }
                 },
                 "readOnly": {
                   "summary": "Create a read-only token",
                   "value": {
                     "name": "Power BI Connector",
-                    "scope": "read-only"
+                    "scope": "read-only",
+                    "tenantId": "stadtwerk-a",
+                    "userId": "svc:powerbi-connector"
                   }
                 }
               },
@@ -47871,10 +47875,20 @@ process:
                     ],
                     "example": "read-only",
                     "type": "string"
+                  },
+                  "tenantId": {
+                    "example": "stadtwerk-a",
+                    "type": "string"
+                  },
+                  "userId": {
+                    "example": "svc:powerbi-connector",
+                    "type": "string"
                   }
                 },
                 "required": [
-                  "name"
+                  "name",
+                  "tenantId",
+                  "userId"
                 ],
                 "type": "object"
               }
@@ -52932,4 +52946,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 06e6d515a2be0aecdff8808bd07b36c3aef305d49a1e4d92b53899edcc25059a
+- llm_txt_sha256: 2e33ba5bed3c897029b6bb5aa0f8adfbb8ca77add1041f24cd199ed4a3069721
