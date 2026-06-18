@@ -219,6 +219,94 @@ function normalizeKnowledgeSpaceContext({
   };
 }
 
+function compactDossierText(value, maxLength = 500) {
+  const text = String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
+}
+
+function normalizePriorConversationContext(context = {}) {
+  if (!context || typeof context !== 'object') {
+    return { turns: [], summary: null, knownEvidence: [], missingEvidence: [] };
+  }
+
+  const turns = Array.isArray(context.turns)
+    ? context.turns
+        .map((turn) => ({
+          dossierVersion: turn?.dossierVersion || null,
+          question: compactDossierText(turn?.question, 350),
+          dossierSummary: compactDossierText(turn?.dossierSummary, 500),
+          answerMode: turn?.answerMode || null,
+          processStage: turn?.processStage || null,
+          userContext: turn?.userContext || null,
+        }))
+        .filter((turn) => turn.question || turn.dossierSummary)
+        .slice(-5)
+    : [];
+
+  const knownEvidence = Array.isArray(context.knownEvidence)
+    ? context.knownEvidence.map((entry) => compactDossierText(entry, 240)).filter(Boolean).slice(0, 5)
+    : [];
+  const missingEvidence = Array.isArray(context.missingEvidence)
+    ? context.missingEvidence.map((entry) => compactDossierText(entry, 240)).filter(Boolean).slice(0, 5)
+    : [];
+
+  return {
+    turns,
+    summary: compactDossierText(context.summary, 700) || null,
+    knownEvidence,
+    missingEvidence,
+  };
+}
+
+function buildPriorConversationSection(priorConversationContext = {}) {
+  const normalized = normalizePriorConversationContext(priorConversationContext);
+  const hasContext =
+    normalized.summary ||
+    normalized.turns.length > 0 ||
+    normalized.knownEvidence.length > 0 ||
+    normalized.missingEvidence.length > 0;
+
+  const lines = ['## Prior Conversation Context'];
+  if (!hasContext) {
+    lines.push('_Keine vorherige Dossier-Konversation in dieser Session verfügbar._');
+    return lines.join('\n');
+  }
+
+  if (normalized.summary) {
+    lines.push(`- Summary: ${normalized.summary}`);
+  }
+
+  if (normalized.turns.length > 0) {
+    lines.push('');
+    lines.push('### Prior Dossier Turns');
+    normalized.turns.forEach((turn, index) => {
+      const label = turn.dossierVersion ? `Turn ${turn.dossierVersion}` : `Turn ${index + 1}`;
+      lines.push(`- ${label}:`);
+      if (turn.question) lines.push(`  - Nutzerfrage: ${turn.question}`);
+      if (turn.dossierSummary) lines.push(`  - Dossier-Kontext: ${turn.dossierSummary}`);
+      const state = [turn.userContext, turn.processStage, turn.answerMode].filter(Boolean).join(' / ');
+      if (state) lines.push(`  - State: ${state}`);
+    });
+  }
+
+  if (normalized.knownEvidence.length > 0) {
+    lines.push('');
+    lines.push('### Carry-Forward Evidence');
+    normalized.knownEvidence.forEach((entry, index) => lines.push(`${index + 1}. ${entry}`));
+  }
+
+  if (normalized.missingEvidence.length > 0) {
+    lines.push('');
+    lines.push('### Carry-Forward Missing Evidence');
+    normalized.missingEvidence.forEach((entry, index) => lines.push(`${index + 1}. ${entry}`));
+  }
+
+  return lines.join('\n');
+}
+
 function buildCapabilityRoutingSection(capabilityRouting) {
   const status = capabilityRouting?.status || 'unavailable';
   if (!capabilityRouting || status !== 'success' || !capabilityRouting.result) {
@@ -286,6 +374,7 @@ function buildDossierMarkdown({
   knowledgeSpace = {},
   preliminaryAnswerRequested = false,
   capabilityRouting = null,
+  priorConversationContext = null,
 }) {
   const { userContext, processStage, answerMode, confidence } = dossierState;
   const normalizedKnowledgeSpace = normalizeKnowledgeSpaceContext({
@@ -348,6 +437,8 @@ function buildDossierMarkdown({
     priorTurnsCount > 0
       ? '- This is a follow-up turn in an ongoing conversation.'
       : '- This is the first turn in this session.',
+    '',
+    buildPriorConversationSection(priorConversationContext),
     '',
     '## Required Answer Behavior',
     ...requiredBehavior.map((r) => `- ${r}`),
@@ -485,6 +576,7 @@ module.exports = {
   classifyDossierContext,
   buildCapabilityRoutingSection,
   buildDossierMarkdown,
+  buildPriorConversationSection,
   buildRendererSystemHint,
   buildRendererPackageMarkdown,
   normalizeKnowledgeSpaceContext,

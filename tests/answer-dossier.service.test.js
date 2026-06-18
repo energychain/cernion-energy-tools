@@ -997,6 +997,49 @@ describe('answerDossier action', () => {
     expect(result2.auditTrail.version).toBe(2);
   });
 
+  test('two-turn: follow-up dossier includes prior question and compact prior dossier context without n8n changes', async () => {
+    const service = buildServiceHarness();
+    const sessionId = 'test-session-dossier-history-v1';
+    const store = new Map();
+    const overrides = {
+      'object-store.get': (p) => {
+        const key = `${p.namespace}:${p.key}`;
+        return store.has(key) ? { payload: store.get(key) } : null;
+      },
+      'object-store.put': (p) => {
+        store.set(`${p.namespace}:${p.key}`, p.payload);
+        return { ok: true };
+      },
+    };
+
+    const result1 = await handler.call(
+      service,
+      buildCtx({ question: 'Kannst Du das bitte fachlich einschaetzen?', sessionId }, overrides)
+    );
+
+    expect(result1.dossierVersion).toBe(1);
+    expect(result1.dossierMarkdown).toContain('## Prior Conversation Context');
+    expect(result1.dossierMarkdown).toContain('_Keine vorherige Dossier-Konversation');
+
+    const persisted = store.get(`tenant:test-tenant:personal_agent_sessions:${sessionId}`);
+    expect(persisted.dossier.turns[0].dossierSummary).toContain('Missing evidence / Rueckfragebedarf');
+
+    const result2 = await handler.call(
+      service,
+      buildCtx({ question: 'Es geht um Zielnetzplanung.', sessionId }, overrides)
+    );
+
+    expect(result2.dossierVersion).toBe(2);
+    expect(result2.userContext).toBe('target_grid_planning');
+    expect(result2.priorConversationContext.turns[0].question).toBe('Kannst Du das bitte fachlich einschaetzen?');
+    expect(result2.priorConversationContext.turns[0].dossierSummary).toContain('Rueckfragebedarf');
+    expect(result2.dossierMarkdown).toContain('## Prior Conversation Context');
+    expect(result2.dossierMarkdown).toContain('### Prior Dossier Turns');
+    expect(result2.dossierMarkdown).toContain('Kannst Du das bitte fachlich einschaetzen?');
+    expect(result2.dossierMarkdown).toContain('Dossier-Kontext');
+    expect(result2.dossierMarkdown).toContain('Nutzerkontext: Unklar wer fragt');
+  });
+
   // 14. Auth guard — unauthenticated call throws AUTH_REQUIRED
   test('call without authUser/apiToken/cernionToken throws AUTH_REQUIRED (401)', async () => {
     const service = buildServiceHarness();

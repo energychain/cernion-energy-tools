@@ -1136,6 +1136,88 @@ function detectDossierPreliminaryAnswerRequest(question = '') {
     /(?:arbeite|bewerte|schaetze|schätze).{0,80}(?:mit|auf basis).{0,80}(?:low evidence|nutzerangaben|annahmen|arbeitshypothese)/.test(text);
 }
 
+function buildDossierTurnSummary({
+  question = '',
+  dossierContext = {},
+  evidence = [],
+  missingEvidence = [],
+  reasoningSummary = '',
+  capabilityRouting = null,
+} = {}) {
+  const parts = [];
+  const state = [
+    dossierContext.userContext,
+    dossierContext.processStage,
+    dossierContext.answerMode,
+    dossierContext.confidence ? `confidence=${dossierContext.confidence}` : null,
+  ].filter(Boolean).join(' / ');
+  if (state) parts.push(`State: ${state}.`);
+  if (reasoningSummary) parts.push(`Reasoning: ${compactString(reasoningSummary, 320)}.`);
+
+  const evidencePreview = evidence
+    .slice(0, 3)
+    .map((entry) => compactString([entry?.source, entry?.value].filter(Boolean).join(': '), 220))
+    .filter(Boolean);
+  if (evidencePreview.length > 0) {
+    parts.push(`Known evidence: ${evidencePreview.join(' | ')}.`);
+  }
+
+  const missingPreview = missingEvidence
+    .slice(0, 3)
+    .map((entry) => compactString(entry, 220))
+    .filter(Boolean);
+  if (missingPreview.length > 0) {
+    parts.push(`Missing evidence / Rueckfragebedarf: ${missingPreview.join(' | ')}.`);
+  }
+
+  const brokerIntent = capabilityRouting?.result?.intent || capabilityRouting?.result?.capability || null;
+  if (capabilityRouting?.status === 'success' && brokerIntent) {
+    parts.push(`Broker: ${brokerIntent}.`);
+  }
+
+  if (parts.length === 0 && question) {
+    parts.push(`Nutzerfrage: ${compactString(question, 300)}.`);
+  }
+
+  return compactString(parts.join(' '), 1200);
+}
+
+function buildDossierPriorConversationContext(priorTurns = [], priorDossierState = {}) {
+  const turns = (Array.isArray(priorTurns) ? priorTurns : [])
+    .slice(-5)
+    .map((turn) => ({
+      dossierVersion: turn?.dossierVersion || null,
+      question: compactString(turn?.question || '', 350),
+      dossierSummary: compactString(turn?.dossierSummary || '', 700),
+      userContext: turn?.userContext || null,
+      processStage: turn?.processStage || null,
+      answerMode: turn?.answerMode || null,
+    }))
+    .filter((turn) => turn.question || turn.dossierSummary);
+
+  const knownEvidence = Array.isArray(priorDossierState?.knownEvidence)
+    ? priorDossierState.knownEvidence
+        .map((entry) => compactString([entry?.source, entry?.value].filter(Boolean).join(': '), 300))
+        .filter(Boolean)
+        .slice(0, 5)
+    : [];
+  const missingEvidence = Array.isArray(priorDossierState?.missingEvidence)
+    ? priorDossierState.missingEvidence.map((entry) => compactString(entry, 260)).filter(Boolean).slice(0, 5)
+    : [];
+  const latestTurn = turns[turns.length - 1] || null;
+  const summaryParts = [];
+  if (latestTurn?.question) summaryParts.push(`Letzte Nutzerfrage: ${latestTurn.question}.`);
+  if (latestTurn?.dossierSummary) summaryParts.push(`Letzter Dossier-Kontext: ${latestTurn.dossierSummary}.`);
+  if (missingEvidence.length > 0) summaryParts.push(`Offene Rueckfragen/Evidence: ${missingEvidence.join(' | ')}.`);
+
+  return {
+    summary: compactString(summaryParts.join(' '), 1000),
+    turns,
+    knownEvidence,
+    missingEvidence,
+  };
+}
+
 /**
  * Detect role-based open-requirements queries (v0.63.2 #220).
  * Returns { isQuery, role } or { isQuery: false }.
@@ -2047,6 +2129,11 @@ module.exports = {
                     parentDossierId: { type: 'string', nullable: true },
                     latestDossierId: { type: 'string' },
                     followUp: { type: 'object', nullable: true, description: 'Follow-up instructions for partial/async dossiers.' },
+                    priorConversationContext: {
+                      type: 'object',
+                      description:
+                        'Compact carry-forward context from previous Answer Dossier turns in the same session.',
+                    },
                     knowledgeSpace: {
                       type: 'object',
                       description:
@@ -2151,6 +2238,10 @@ module.exports = {
           ? rawSessionPayload[DOSSIER_SESSION_NAMESPACE].turns
           : [];
         const priorTurnsCount = priorDossierTurns.length;
+        const priorConversationContext = buildDossierPriorConversationContext(
+          priorDossierTurns,
+          priorDossierState
+        );
         const priorQuestionContext = priorDossierTurns
           .slice(-2)
           .map((turn) => turn?.question)
@@ -2510,10 +2601,14 @@ module.exports = {
         }
 
         const confidenceEvidenceCount = evidence.filter((entry) => entry?.metadata?.evidenceQuality !== 'low').length;
+        const classificationQuestion = compactString(
+          [priorQuestionContext, question].filter(Boolean).join(' '),
+          1200
+        );
 
         // Thinking phase — deterministic classification
         const dossierContext = classifyDossierContext({
-          question,
+          question: classificationQuestion || question,
           priorUserContext: priorDossierState?.userContext || null,
           priorProcessStage: priorDossierState?.processStage || null,
           domain,
@@ -2562,11 +2657,20 @@ module.exports = {
           knowledgeSpace,
           preliminaryAnswerRequested,
           capabilityRouting,
+          priorConversationContext,
         });
 
         const elapsedMs = Date.now() - startTime;
         const rendererSystemHint = buildRendererSystemHint();
         const followUp = buildFollowUpMetadata({ completionState, sessionId, dossierId });
+        const dossierSummary = buildDossierTurnSummary({
+          question,
+          dossierContext,
+          evidence,
+          missingEvidence,
+          reasoningSummary,
+          capabilityRouting,
+        });
 
         // Persist dossier state to session
         const updatedDossierState = {
@@ -2592,6 +2696,13 @@ module.exports = {
           answerMode: dossierContext.answerMode,
           confidence: dossierContext.confidence,
           completionState,
+          dossierSummary,
+          missingEvidence: missingEvidence.slice(0, 5),
+          knownEvidence: evidence.slice(0, 5).map((entry) => ({
+            source: entry?.source || null,
+            value: compactString(entry?.value || '', 300),
+            evidenceQuality: entry?.metadata?.evidenceQuality || null,
+          })),
           knowledgeSpace,
           preliminaryAnswerRequested,
           createdAt: new Date().toISOString(),
@@ -2626,6 +2737,7 @@ module.exports = {
           completionState,
           followUp,
           knowledgeSpace,
+          priorConversationContext,
           preliminaryAnswerRequested,
           timeBudget: { ...timeBudget, elapsedMs },
           timeoutWarning,
