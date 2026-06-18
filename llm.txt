@@ -5,7 +5,7 @@
 - version: 0.63.12
 - changelog_latest_release: 0.63.12
 - source_files_hash:
-  - CHANGELOG.md: e1bffaffd1c942f0db2060ab11aa458463c56c951374608f5a6698f5910ed759
+  - CHANGELOG.md: c02ba04f767c93dbd763ccbfa5212487a72c5ecdbe1fc3032c9c782814b45883
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
@@ -52946,4 +52946,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 2e33ba5bed3c897029b6bb5aa0f8adfbb8ca77add1041f24cd199ed4a3069721
+- llm_txt_sha256: 4f1f51c0973caa066d243c59554676a1ffbf4374c9c90e93cb14269a5b6b9630

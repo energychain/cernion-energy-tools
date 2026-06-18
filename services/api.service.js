@@ -444,6 +444,18 @@ function requiresFullAccess(method, requestPath) {
   return false;
 }
 
+function requiresTokenManagementAuth(method, requestPath) {
+  const m = String(method || '').toUpperCase();
+  const pathOnly = String(requestPath || '').split('?')[0];
+
+  if (pathOnly === '/api/tokens/verify' && m === 'POST') return false;
+  if (pathOnly === '/api/tokens' && (m === 'GET' || m === 'POST')) return true;
+  if (pathOnly === '/api/tokens/tenants' && m === 'GET') return true;
+  if (/^\/api\/tokens\/[^/]+$/.test(pathOnly) && m === 'DELETE') return true;
+
+  return false;
+}
+
 function isBusinessTokenPath(method, requestPath) {
   const m = String(method || '').toUpperCase();
   const pathOnly = String(requestPath || '').split('?')[0];
@@ -1814,6 +1826,7 @@ module.exports = {
           );
 
           const tokenToUse = (paramToken || bearerToken || '').trim();
+          const tokenManagementAuthRequired = requiresTokenManagementAuth(method, requestPath);
 
           // Remove token from incoming params so actions don't need to declare it explicitly.
           // For POST /tokens/verify the token IS the action parameter — do not strip it.
@@ -1853,6 +1866,14 @@ module.exports = {
           if (tokenToUse) {
             const isApiToken = tokenToUse.startsWith('ck_');
             const isSessionToken = tokenToUse.startsWith('csess_');
+
+            if (tokenManagementAuthRequired && !isApiToken && !isSessionToken) {
+              throw new Errors.MoleculerClientError(
+                'Valid API or session token required for token management endpoints.',
+                401,
+                'AUTH_REQUIRED'
+              );
+            }
 
             if (isApiToken) {
               const verification = await this.broker.call('token-manager.verify', {
@@ -1905,10 +1926,14 @@ module.exports = {
                 name: verification.name,
                 scope: verification.scope,
                 scopes: verification.scopes || [],
+                tenantId: verification.tenantId || null,
+                userId: verification.userId || null,
+                legacy: Boolean(verification.legacy),
               };
               ctx.meta.authUser = {
                 authType: 'legacy-token',
-                userId: verification.tokenId || null,
+                userId: verification.userId || verification.tokenId || null,
+                tenantId: verification.tenantId || null,
                 groups: [],
                 idpClaims: null,
                 roles,
@@ -1941,6 +1966,7 @@ module.exports = {
               ctx.meta.authUser = {
                 authType: 'session',
                 userId: verification.userId || null,
+                tenantId: verification.tenantId || null,
                 groups: Array.isArray(verification.groups) ? verification.groups : [],
                 idpClaims: verification.idpClaims || null,
                 roles,
@@ -1958,6 +1984,13 @@ module.exports = {
               }
             }
           } else {
+            if (tokenManagementAuthRequired) {
+              throw new Errors.MoleculerClientError(
+                'Authentication required for token management endpoints.',
+                401,
+                'AUTH_REQUIRED'
+              );
+            }
             this.logger.debug('No request token provided, will use CERNION_TOKEN from environment');
           }
 

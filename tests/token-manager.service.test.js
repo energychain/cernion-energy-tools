@@ -111,6 +111,56 @@ describe('token-manager.service', () => {
     ).rejects.toThrow();
   });
 
+  it('rejects cross-tenant token creation for tenant-bound callers', async () => {
+    await expect(
+      broker.call(
+        'token-manager.create',
+        {
+          name: 'Cross Tenant',
+          scope: 'read-only',
+          tenantId: 'stadtwerk-b',
+          userId: 'svc:cross-tenant',
+        },
+        {
+          meta: {
+            apiToken: {
+              id: 'caller-token',
+              scope: 'full-access',
+              scopes: ['full-access'],
+              tenantId: 'stadtwerk-a',
+              userId: 'tenant-admin',
+              legacy: false,
+            },
+          },
+        }
+      )
+    ).rejects.toMatchObject({ code: 403, type: 'TOKEN_TENANT_FORBIDDEN' });
+  });
+
+  it('rejects cross-tenant token creation for tenant-bound session principals', async () => {
+    await expect(
+      broker.call(
+        'token-manager.create',
+        {
+          name: 'Cross Tenant Session',
+          scope: 'read-only',
+          tenantId: 'stadtwerk-b',
+          userId: 'svc:cross-tenant-session',
+        },
+        {
+          meta: {
+            authUser: {
+              authType: 'session',
+              userId: 'tenant-admin',
+              tenantId: 'stadtwerk-a',
+              roles: ['full-access'],
+            },
+          },
+        }
+      )
+    ).rejects.toMatchObject({ code: 403, type: 'TOKEN_TENANT_FORBIDDEN' });
+  });
+
   it('exposes tenantId, userId, and legacy:false for a new bound token in list and verify', async () => {
     const created = await broker.call('token-manager.create', {
       name: 'Bound Token',

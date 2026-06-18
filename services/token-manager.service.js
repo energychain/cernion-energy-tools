@@ -56,6 +56,10 @@ function isLegacyToken(record) {
   return !record?.tenantId || !record?.userId;
 }
 
+function getCallerTenantId(ctx) {
+  return ctx?.meta?.apiToken?.tenantId || ctx?.meta?.authUser?.tenantId || null;
+}
+
 module.exports = {
   name: 'token-manager',
 
@@ -170,6 +174,15 @@ module.exports = {
             'userId is required to create a token.',
             422,
             'USER_ID_REQUIRED'
+          );
+        }
+
+        const callerTenantId = getCallerTenantId(ctx);
+        if (callerTenantId && callerTenantId !== tenantId) {
+          throw new Errors.MoleculerClientError(
+            `Token principal for tenant '${callerTenantId}' cannot create tokens for tenant '${tenantId}'.`,
+            403,
+            'TOKEN_TENANT_FORBIDDEN'
           );
         }
 

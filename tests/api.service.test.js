@@ -804,6 +804,65 @@ describe('API Gateway Service', () => {
       expect(req.body.token).toBeUndefined();
     });
 
+    it('should reject unauthenticated token-management endpoints before handlers', async () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const protectedRequests = [
+        { method: 'GET', url: '/api/tokens' },
+        { method: 'POST', url: '/api/tokens' },
+        { method: 'DELETE', url: '/api/tokens/token-id' },
+        { method: 'GET', url: '/api/tokens/tenants' },
+      ];
+
+      for (const request of protectedRequests) {
+        const ctx = { meta: {} };
+        const req = {
+          headers: {},
+          query: {},
+          body: {},
+          params: {},
+          $params: {},
+          method: request.method,
+          url: request.url,
+        };
+
+        await expect(
+          apiRoute.onBeforeCall.call(
+            { logger: { debug: jest.fn(), warn: jest.fn() }, broker },
+            ctx,
+            apiRoute,
+            req,
+            {}
+          )
+        ).rejects.toMatchObject({ code: 401, type: 'AUTH_REQUIRED' });
+      }
+    });
+
+    it('should keep token verification endpoint open for token payload verification', async () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const ctx = { meta: {} };
+      const req = {
+        headers: {},
+        query: {},
+        body: { token: 'ck_verifyonlytoken' },
+        params: {},
+        $params: { token: 'ck_verifyonlytoken' },
+        method: 'POST',
+        url: '/api/tokens/verify',
+      };
+
+      await expect(
+        apiRoute.onBeforeCall.call(
+          { logger: { debug: jest.fn(), warn: jest.fn() }, broker },
+          ctx,
+          apiRoute,
+          req,
+          {}
+        )
+      ).resolves.toBeUndefined();
+      expect(req.$params.token).toBe('ck_verifyonlytoken');
+      expect(req.body.token).toBe('ck_verifyonlytoken');
+    });
+
     it('should accept valid full-access ck_ token for admin endpoints', async () => {
       const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
       const created = await broker.call('token-manager.create', {
