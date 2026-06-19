@@ -1682,6 +1682,16 @@ module.exports = {
           'GET /investment-maturity-off-balance-gate/status':
             'investment-maturity-off-balance-gate.getStatus',
 
+          // Gas Capacity Order Revision Gate (v0.63)
+          'POST /gas-capacity-order-revision-gate/evaluate':
+            'gas-capacity-order-revision-gate.evaluate',
+          'GET /gas-capacity-order-revision-gate/revisions':
+            'gas-capacity-order-revision-gate.listRevisions',
+          'GET /gas-capacity-order-revision-gate/revisions/:revisionId':
+            'gas-capacity-order-revision-gate.getRevision',
+          'GET /gas-capacity-order-revision-gate/status':
+            'gas-capacity-order-revision-gate.getStatus',
+
           // Redispatch Settlement Sandbox (v0.62)
           'POST /redispatch-settlement-sandbox/scenarios':
             'redispatch-settlement-sandbox.createScenario',

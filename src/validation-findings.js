@@ -345,6 +345,19 @@ const IMOB_SOURCE_ACTIONS_MISSING = 'IMOB_SOURCE_ACTIONS_MISSING';
 const IMOB_GATE_READY = 'IMOB_GATE_READY';
 const IMOB_GATE_BLOCKED = 'IMOB_GATE_BLOCKED';
 
+// Gas Capacity Order Revision Gate (v0.63)
+const GCORG_TOOL_VALUE_MISSING = 'GCORG_TOOL_VALUE_MISSING';
+const GCORG_COLD_YEAR_SCENARIO_MISSING = 'GCORG_COLD_YEAR_SCENARIO_MISSING';
+const GCORG_RLM_REBOUND_MISSING = 'GCORG_RLM_REBOUND_MISSING';
+const GCORG_BOTTLENECK_EVIDENCE_MISSING = 'GCORG_BOTTLENECK_EVIDENCE_MISSING';
+const GCORG_NKP_DISTRIBUTION_MISSING = 'GCORG_NKP_DISTRIBUTION_MISSING';
+const GCORG_TARIFF_IMPACT_MISSING = 'GCORG_TARIFF_IMPACT_MISSING';
+const GCORG_FLEXIBILITY_EVIDENCE_MISSING = 'GCORG_FLEXIBILITY_EVIDENCE_MISSING';
+const GCORG_DECISION_RESOLUTION_MISSING = 'GCORG_DECISION_RESOLUTION_MISSING';
+const GCORG_SOURCE_ACTIONS_MISSING = 'GCORG_SOURCE_ACTIONS_MISSING';
+const GCORG_GATE_READY = 'GCORG_GATE_READY';
+const GCORG_GATE_BLOCKED = 'GCORG_GATE_BLOCKED';
+
 // ---------------------------------------------------------------------------
 // Netzfahrplan / fNAV finding codes (v0.51.5) — Phase 5
 // ---------------------------------------------------------------------------
@@ -2086,6 +2099,85 @@ const FINDING_CODE_METADATA = {
     description: 'Investment maturity off-balance gate is blocked',
     descriptionDe: 'Investitionsreifegrad-Off-Balance-Gate ist blockiert',
   },
+
+  // ── Gas Capacity Order Revision Gate (v0.63) ───────────────────────────
+  GCORG_TOOL_VALUE_MISSING: {
+    severity: 'error',
+    agent: 'gas-capacity-order-revision-gate',
+    step: 1,
+    description: 'Gas-capacity order tool value is missing',
+    descriptionDe: 'Toolwert fuer Gaskapazitaetsbestellung fehlt',
+  },
+  GCORG_COLD_YEAR_SCENARIO_MISSING: {
+    severity: 'error',
+    agent: 'gas-capacity-order-revision-gate',
+    step: 1,
+    description: 'Cold-year scenario evidence is missing',
+    descriptionDe: 'Kaltjahr-Szenario fehlt',
+  },
+  GCORG_RLM_REBOUND_MISSING: {
+    severity: 'warning',
+    agent: 'gas-capacity-order-revision-gate',
+    step: 1,
+    description: 'Industrial rebound or reversible RLM load evidence is missing',
+    descriptionDe: 'Industrie-Rebound- oder reversible RLM-Last-Evidenz fehlt',
+  },
+  GCORG_BOTTLENECK_EVIDENCE_MISSING: {
+    severity: 'warning',
+    agent: 'gas-capacity-order-revision-gate',
+    step: 1,
+    description: 'Historical bottleneck evidence is missing',
+    descriptionDe: 'Historische Engpass-Evidenz fehlt',
+  },
+  GCORG_NKP_DISTRIBUTION_MISSING: {
+    severity: 'error',
+    agent: 'gas-capacity-order-revision-gate',
+    step: 1,
+    description: 'Network-coupling-point distribution is missing',
+    descriptionDe: 'Netzkopplungspunkt-Verteilung fehlt',
+  },
+  GCORG_TARIFF_IMPACT_MISSING: {
+    severity: 'warning',
+    agent: 'gas-capacity-order-revision-gate',
+    step: 1,
+    description: 'Tariff or fee impact evidence is missing',
+    descriptionDe: 'Entgeltwirkung fehlt',
+  },
+  GCORG_FLEXIBILITY_EVIDENCE_MISSING: {
+    severity: 'warning',
+    agent: 'gas-capacity-order-revision-gate',
+    step: 1,
+    description: 'Pressure or maintenance flexibility evidence is missing',
+    descriptionDe: 'Druck- oder Wartungsflexibilitaets-Evidenz fehlt',
+  },
+  GCORG_DECISION_RESOLUTION_MISSING: {
+    severity: 'error',
+    agent: 'gas-capacity-order-revision-gate',
+    step: 1,
+    description: 'Documented gas-capacity order decision is missing',
+    descriptionDe: 'Dokumentierter Bestellbeschluss fehlt',
+  },
+  GCORG_SOURCE_ACTIONS_MISSING: {
+    severity: 'warning',
+    agent: 'gas-capacity-order-revision-gate',
+    step: 1,
+    description: 'Gas-capacity source action references are missing',
+    descriptionDe: 'Quell-Action-Referenzen fuer Gaskapazitaetsbestellung fehlen',
+  },
+  GCORG_GATE_READY: {
+    severity: 'info',
+    agent: 'gas-capacity-order-revision-gate',
+    step: 1,
+    description: 'Gas-capacity order revision gate is ready',
+    descriptionDe: 'Gaskapazitaetsbestellung-Revisionsgate ist bereit',
+  },
+  GCORG_GATE_BLOCKED: {
+    severity: 'error',
+    agent: 'gas-capacity-order-revision-gate',
+    step: 1,
+    description: 'Gas-capacity order revision gate is blocked',
+    descriptionDe: 'Gaskapazitaetsbestellung-Revisionsgate ist blockiert',
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -2355,4 +2447,16 @@ module.exports = {
   IMOB_SOURCE_ACTIONS_MISSING,
   IMOB_GATE_READY,
   IMOB_GATE_BLOCKED,
+  // GCORG — Gas Capacity Order Revision Gate (v0.63)
+  GCORG_TOOL_VALUE_MISSING,
+  GCORG_COLD_YEAR_SCENARIO_MISSING,
+  GCORG_RLM_REBOUND_MISSING,
+  GCORG_BOTTLENECK_EVIDENCE_MISSING,
+  GCORG_NKP_DISTRIBUTION_MISSING,
+  GCORG_TARIFF_IMPACT_MISSING,
+  GCORG_FLEXIBILITY_EVIDENCE_MISSING,
+  GCORG_DECISION_RESOLUTION_MISSING,
+  GCORG_SOURCE_ACTIONS_MISSING,
+  GCORG_GATE_READY,
+  GCORG_GATE_BLOCKED,
 };

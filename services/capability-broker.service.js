@@ -555,6 +555,44 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Gas Capacity Order Revision Gate
+  // Gas-order prompts share NKP and investment vocabulary with broader finance
+  // governance routes. Require explicit gas-capacity/order revision signals.
+  const gasCapacityOrderRevisionSignals = [
+    'gaskapazitaetsbestellung',
+    'gaskapazitätsbestellung',
+    'gas capacity order',
+    'jahresbestellung',
+    'kapazitaetsbestellung',
+    'kapazitätsbestellung',
+    'gaskapazitaet',
+    'gaskapazität',
+    'kaltjahr',
+    'milder winter',
+    'industrie-rebound',
+    'rlm rebound',
+    'sicherheitsaufschlag',
+    'druckflexibilitaet',
+    'druckflexibilität',
+    'wartungsfenster',
+    'bestellbeschluss',
+  ];
+  const hasGasCapacityOrderRevisionCombo =
+    /(gas|gaskapazit[aä]t|kapazit[aä]tsbestellung|jahresbestellung)/i.test(haystack) &&
+    /(kaltjahr|milder.?winter|rlm|rebound|nkp|netzkopplungspunkt|sicherheitsaufschlag|druckflexibilit[aä]t|wartungsfenster|bestellbeschluss|revision.?gate)/i.test(
+      haystack
+    );
+
+  if (
+    gasCapacityOrderRevisionSignals.some((signal) => haystack.includes(signal)) ||
+    hasGasCapacityOrderRevisionCombo
+  ) {
+    const gcorgCapability = findCapabilityByName('gas_capacity_order_revision_gate');
+    if (gcorgCapability) {
+      return { capability: gcorgCapability, score: 122, usedFallback: false };
+    }
+  }
+
   // ── Declarative domain routes registry (score 121, before VDMI asset-validation at 120)
   // Routes are managed via src/domain-routes-registry.js (static JSON + runtime overlay).
   // Each entry fires when any trigger phrase matches OR any combo (all-AND regex group) matches.

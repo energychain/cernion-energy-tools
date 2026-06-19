@@ -65,14 +65,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 14 static rules', () => {
+    it('loads all 15 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(14);
+      expect(rules.length).toBe(15);
     });
 
-    it('compiles all 14 static rules without error', () => {
+    it('compiles all 15 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(14);
+      expect(rules.length).toBe(15);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -92,7 +92,7 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule.timeoutMs).toBe(14000);
     });
 
-    it('all 13 actions are retrievable by getRule()', () => {
+    it('all 15 actions are retrievable by getRule()', () => {
       const expected = [
         'energy-market.co2Intensity',
         'gas-storage.countryStorage',
@@ -108,6 +108,7 @@ describe('dossier-hydration-registry (unit)', () => {
         'flexibility-conductor-role-model.getStatus',
         'knowledge-continuity-governance-gate.getStatus',
         'investment-maturity-off-balance-gate.getStatus',
+        'gas-capacity-order-revision-gate.getStatus',
       ];
       for (const action of expected) {
         expect(getRule(action)).not.toBeNull();
@@ -439,6 +440,48 @@ describe('dossier-hydration-registry (unit)', () => {
       const rule = getRule('investment-maturity-off-balance-gate.getStatus');
       expect(rule.formatEvidence({ found: false, message: 'No off-balance gate evidence yet' })).toBe(
         'No off-balance gate evidence yet'
+      );
+    });
+
+    it('gas-capacity-order-revision-gate.getStatus is dossier-safe and formats revision evidence', () => {
+      const rule = getRule('gas-capacity-order-revision-gate.getStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams([], 'Bitte Gaskapazitaetsbestellung 2028 fuer gas-vnb:stadtwerk-a laden')
+      ).toEqual({ orderYear: '2028', gridOperatorId: 'gas-vnb:stadtwerk-a' });
+
+      const formatted = rule.formatEvidence({
+        revisionId: 'gcorg:test',
+        orderYear: 2028,
+        gridOperatorId: 'gas-vnb:stadtwerk-a',
+        toolValueMwhPerDay: 1250,
+        securityMarkupPercent: 8,
+        revisedCapacityHypothesisMwhPerDay: 1350,
+        evidenceStatus: 'ready',
+        readinessScore: 1,
+        answerFacts: {
+          coldYearScenario: { summary: 'Kaltjahr P95 hebt Spitzenbedarf' },
+          industrialReboundScenario: { summary: 'RLM-Rebound plausibilisiert' },
+          tariffImpact: { summary: 'Entgeltwirkung im Zielkorridor' },
+          pressureMaintenanceFlexibility: { summary: 'Wartungsfenster vermeidet Winterspitze' },
+          decisionForum: 'Gasnetz Jahresbestellrunde',
+          decisionStatus: 'revision_evidence_ready',
+          evaluatedAt: '2026-06-19T14:45:00.000Z',
+        },
+      });
+
+      expect(formatted).toContain('Evidence Status: ready');
+      expect(formatted).toContain('Order Year: 2028');
+      expect(formatted).toContain('Tool Value: 1250.000 MWh/d');
+      expect(formatted).toContain('Revision Hypothesis: 1350.000 MWh/d');
+      expect(formatted).toContain('Decision Forum: Gasnetz Jahresbestellrunde');
+    });
+
+    it('gas-capacity-order-revision-gate.getStatus formats not-found message as fallback evidence', () => {
+      const rule = getRule('gas-capacity-order-revision-gate.getStatus');
+      expect(rule.formatEvidence({ found: false, message: 'No gas revision evidence yet' })).toBe(
+        'No gas revision evidence yet'
       );
     });
 

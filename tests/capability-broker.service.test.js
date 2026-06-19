@@ -791,4 +791,19 @@ describe('Capability Broker Service', () => {
     expect(actionNames).toContain('investment-maturity-off-balance-gate.evaluate');
     expect(actionNames).not.toContain('personal-agent.execute');
   });
+
+  it('routes gas-capacity order revision prompts to the read-only gate evidence path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Gaskapazitaetsbestellung Jahresbestellung: Kaltjahr, Industrie-Rebound, reversible RLM Lasten, Netzkopplungspunkt NKP, Engpasshistorie, Sicherheitsaufschlag, Druckflexibilitaet, Wartungsfenster und Bestellbeschluss.',
+    });
+
+    expect(result.capability).toBe('gas_capacity_order_revision_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'gas_capacity_order_revision_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('gas-capacity-order-revision-gate.getStatus');
+    expect(actionNames).toContain('gas-capacity-order-revision-gate.evaluate');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
 });

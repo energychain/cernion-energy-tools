@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: 4c2fdaa62c31b330ea470421fa5d511b878a68355e823c10ece2d259de7810fc
+  - openapi-export.json: 763dce757a306a18f5a3757d9a53ac8eeda4a32dbe05a562c2010559e032b4a4
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 695
-- operation_count: 800
+- path_count: 699
+- operation_count: 804
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -719,6 +719,7 @@ process:
 - Flexibility Conductor Role Model: 4 operations
 - fnav-commercial-hedging: 4 operations
 - Forecast (Prognostik): 16 operations
+- Gas Capacity Order Revision Gate: 4 operations
 - Gas Storage (AGSI): 7 operations
 - gasnetz-waermeplanung: 3 operations
 - German Grid Data: 4 operations
@@ -1212,6 +1213,10 @@ process:
 - POST /api/forecast/schedule/day-ahead | tags: [Forecast (Prognostik)] | operationId: forecast-engine_createSchedule | summary: Create Day-Ahead schedule with optional storage optimization
 - GET /api/forecast/schedules | tags: [Forecast (Prognostik)] | operationId: forecast-engine_listSchedules | summary: List stored schedules
 - POST /api/forecast/storage-dispatch | tags: [Forecast (Prognostik)] | operationId: forecast-engine_storageDispatch | summary: Optimize battery storage dispatch
+- POST /api/gas-capacity-order-revision-gate/evaluate | tags: [Gas Capacity Order Revision Gate] | operationId: gas-capacity-order-revision-gate_evaluate | summary: Evaluate gas-capacity order revision evidence
+- GET /api/gas-capacity-order-revision-gate/revisions | tags: [Gas Capacity Order Revision Gate] | operationId: gas-capacity-order-revision-gate_listRevisions | summary: List gas-capacity order revisions
+- GET /api/gas-capacity-order-revision-gate/revisions/:revisionId | tags: [Gas Capacity Order Revision Gate] | operationId: gas-capacity-order-revision-gate_getRevision | summary: Get a gas-capacity order revision
+- GET /api/gas-capacity-order-revision-gate/status | tags: [Gas Capacity Order Revision Gate] | operationId: gas-capacity-order-revision-gate_getStatus | summary: Get dossier-safe gas-capacity order revision status
 - POST /api/gas-storage/compare-countries | tags: [Gas Storage (AGSI)] | operationId: gas-storage_compareCountries | summary: Multi-country comparison (fill levels, capacities, trends)
 - POST /api/gas-storage/country-storage | tags: [Gas Storage (AGSI)] | operationId: gas-storage_countryStorage | summary: Current gas storage data for European countries (fill level, injection/withdrawal)
 - POST /api/gas-storage/eu-statistics | tags: [Gas Storage (AGSI)] | operationId: gas-storage_euStatistics | summary: EU-wide aggregate statistics (total capacity, fill level, days of coverage)
@@ -30137,6 +30142,90 @@ process:
         ]
       }
     },
+    "/api/gas-capacity-order-revision-gate/evaluate": {
+      "post": {
+        "operationId": "gas-capacity-order-revision-gate_evaluate",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Evaluate gas-capacity order revision evidence",
+        "tags": [
+          "Gas Capacity Order Revision Gate"
+        ]
+      }
+    },
+    "/api/gas-capacity-order-revision-gate/revisions": {
+      "get": {
+        "operationId": "gas-capacity-order-revision-gate_listRevisions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List gas-capacity order revisions",
+        "tags": [
+          "Gas Capacity Order Revision Gate"
+        ]
+      }
+    },
+    "/api/gas-capacity-order-revision-gate/revisions/:revisionId": {
+      "get": {
+        "operationId": "gas-capacity-order-revision-gate_getRevision",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get a gas-capacity order revision",
+        "tags": [
+          "Gas Capacity Order Revision Gate"
+        ]
+      }
+    },
+    "/api/gas-capacity-order-revision-gate/status": {
+      "get": {
+        "operationId": "gas-capacity-order-revision-gate_getStatus",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get dossier-safe gas-capacity order revision status",
+        "tags": [
+          "Gas Capacity Order Revision Gate"
+        ]
+      }
+    },
     "/api/gas-storage/compare-countries": {
       "post": {
         "description": "Compare gas storage metrics across multiple European countries.\n\n**Available metrics:**\n- fill_percentage: Current storage fill level\n- capacity: Total storage capacity\n- withdrawal_rate: Current withdrawal rate\n- coverage_days: Days of supply coverage\n\n**Use cases:**\n- Cross-border supply security analysis\n- Policy effectiveness comparison\n- Regional risk assessment",
@@ -53484,4 +53573,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: e1af63ef9f2eb64cbf2bbf4af47aba02d5077b10a05304f709c2a5faf9ea41e5
+- llm_txt_sha256: 4506219e0f98f03a925c4a41184ca69fb778307fdbdaaaa791d82ef9ed186244

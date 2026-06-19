@@ -521,5 +521,71 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 246
+  },
+  {
+    "id": "gas-capacity-order-revision-gate.getStatus",
+    "action": "gas-capacity-order-revision-gate.getStatus",
+    "label": "Gas Capacity Order Revision Gate Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "revisionId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(gcorg:[a-zA-Z0-9:-]+)",
+          "group": 1
+        }
+      },
+      "orderYear": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(20[0-9]{2})",
+          "group": 1,
+          "type": "number"
+        }
+      },
+      "gridOperatorId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(grid-operator:[a-zA-Z0-9-]+|vnb:[a-zA-Z0-9-]+|gas-vnb:[a-zA-Z0-9-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["evidenceStatus", "answerFacts.evidenceStatus"], "label": "Evidence Status", "maxLen": 60 },
+        { "paths": ["revisionId", "answerFacts.revisionId"], "label": "Revision", "maxLen": 80 },
+        { "paths": ["orderYear", "answerFacts.orderYear"], "label": "Order Year" },
+        { "paths": ["gridOperatorId", "answerFacts.gridOperatorId"], "label": "Grid Operator", "maxLen": 100 },
+        { "paths": ["toolValueMwhPerDay", "answerFacts.toolValueMwhPerDay"], "label": "Tool Value", "precision": 3, "suffix": "MWh/d" },
+        { "paths": ["securityMarkupPercent", "answerFacts.securityMarkupPercent"], "label": "Markup", "precision": 2, "suffix": "%" },
+        { "paths": ["revisedCapacityHypothesisMwhPerDay", "answerFacts.revisedCapacityHypothesisMwhPerDay"], "label": "Revision Hypothesis", "precision": 3, "suffix": "MWh/d" },
+        { "paths": ["answerFacts.coldYearScenario.summary", "coldYearScenario.summary"], "label": "Cold Year", "maxLen": 160 },
+        { "paths": ["answerFacts.industrialReboundScenario.summary", "industrialReboundScenario.summary"], "label": "Rebound", "maxLen": 160 },
+        { "paths": ["answerFacts.tariffImpact.summary", "tariffImpact.summary"], "label": "Tariff Impact", "maxLen": 160 },
+        { "paths": ["answerFacts.pressureMaintenanceFlexibility.summary", "pressureMaintenanceFlexibility.summary"], "label": "Flexibility", "maxLen": 160 },
+        { "paths": ["decisionForum", "answerFacts.decisionForum"], "label": "Decision Forum", "maxLen": 100 },
+        { "paths": ["decisionStatus", "answerFacts.decisionStatus"], "label": "Decision Status", "maxLen": 80 },
+        { "paths": ["readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["answerFacts.evaluatedAt", "evaluatedAt"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 248
   }
 ]

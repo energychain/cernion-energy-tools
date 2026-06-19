@@ -22398,6 +22398,90 @@
         ]
       }
     },
+    "/api/gas-capacity-order-revision-gate/evaluate": {
+      "post": {
+        "operationId": "gas-capacity-order-revision-gate_evaluate",
+        "summary": "Evaluate gas-capacity order revision evidence",
+        "tags": [
+          "Gas Capacity Order Revision Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gas-capacity-order-revision-gate/revisions": {
+      "get": {
+        "operationId": "gas-capacity-order-revision-gate_listRevisions",
+        "summary": "List gas-capacity order revisions",
+        "tags": [
+          "Gas Capacity Order Revision Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gas-capacity-order-revision-gate/revisions/:revisionId": {
+      "get": {
+        "operationId": "gas-capacity-order-revision-gate_getRevision",
+        "summary": "Get a gas-capacity order revision",
+        "tags": [
+          "Gas Capacity Order Revision Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gas-capacity-order-revision-gate/status": {
+      "get": {
+        "operationId": "gas-capacity-order-revision-gate_getStatus",
+        "summary": "Get dossier-safe gas-capacity order revision status",
+        "tags": [
+          "Gas Capacity Order Revision Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/gas-storage/country-storage": {
       "post": {
         "operationId": "gas-storage_countryStorage",
