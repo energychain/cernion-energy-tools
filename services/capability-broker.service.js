@@ -606,6 +606,42 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Evidence Grounding Confidence Audit
+  const evidenceGroundingConfidenceAuditSignals = [
+    'evidence grounding confidence audit',
+    'confidence audit',
+    'evidence confidence',
+    'routing confidence',
+    'quellenklasse',
+    'quellenklassen',
+    'scope filter',
+    'tool ausfall',
+    'toolausfall',
+    'netzbetreiber bestaetigung',
+    'netzbetreiber bestätigung',
+    'confidence begruendung',
+    'confidence begründung',
+    'scheinsicherheit',
+    'unsicherheitsstatus',
+  ];
+  const hasEvidenceGroundingConfidenceAuditCombo =
+    /(confidence|grounding|quellenklasse|scope.?filter|tool.?ausfall|scheinsicherheit|unsicherheitsstatus)/i.test(
+      haystack
+    ) &&
+    /(audit|evidence|evidenz|quelle|netzbetreiber.?best[aä]tigung|begruendung|begründung)/i.test(
+      haystack
+    );
+
+  if (
+    evidenceGroundingConfidenceAuditSignals.some((signal) => haystack.includes(signal)) ||
+    hasEvidenceGroundingConfidenceAuditCombo
+  ) {
+    const egcaCapability = findCapabilityByName('evidence_grounding_confidence_audit');
+    if (egcaCapability) {
+      return { capability: egcaCapability, score: 122, usedFallback: false };
+    }
+  }
+
   // ── Declarative domain routes registry (score 121, before VDMI asset-validation at 120)
   // Routes are managed via src/domain-routes-registry.js (static JSON + runtime overlay).
   // Each entry fires when any trigger phrase matches OR any combo (all-AND regex group) matches.

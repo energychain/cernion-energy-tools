@@ -1380,6 +1380,8 @@ module.exports = {
           'GET /dashboard/redispatch-metering-cockpit': 'dashboard-api.redispatchMeteringCockpit',
           'GET /dashboard/load-profile-stream-monitor': 'dashboard-api.loadProfileStreamMonitor',
           'GET /dashboard/redispatch-call-quality-gate': 'dashboard-api.redispatchCallQualityGate',
+          'GET /dashboard/evidence-grounding-confidence-audit':
+            'dashboard-api.evidenceGroundingConfidenceAudit',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

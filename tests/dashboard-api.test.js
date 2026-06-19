@@ -511,6 +511,35 @@ describe('dashboard-api.service', () => {
       },
     });
 
+    broker.createService({
+      name: 'capability-broker',
+      actions: {
+        recommend: makeHandler('capabilityBrokerRecommend', {
+          capability: 'grid_connection_precheck',
+          confidence: 0.91,
+          recommendedCapabilities: [{ capability: 'grid_connection_precheck', confidence: 0.91 }],
+          recommendedPlan: [{ action: 'grid-connection.list' }],
+        }),
+      },
+    });
+
+    broker.createService({
+      name: 'knowledge-rag',
+      actions: {
+        query: makeHandler('knowledgeRagQuery', {
+          results: [
+            {
+              sourceId: 'rag:chunk:1',
+              sourceVersion: 'v1',
+              collection: 'grid-connection',
+              title: 'Netzanschluss Vorpruefung Leitfaden',
+              score: 0.78,
+            },
+          ],
+        }),
+      },
+    });
+
     broker.createService(DashboardApiService);
 
     await broker.start();
@@ -1022,6 +1051,90 @@ describe('dashboard-api.service', () => {
       expect(
         result.missingDataPoints.some((item) => item.missingDataPoint === 'controlEvidence')
       ).toBe(true);
+    });
+  });
+
+  // ── evidenceGroundingConfidenceAudit ──────────────────────────────────────
+
+  describe('evidenceGroundingConfidenceAudit', () => {
+    it('separates routing confidence from capped evidence confidence when operator evidence is missing', async () => {
+      const result = await broker.call('dashboard-api.evidenceGroundingConfidenceAudit', {
+        domain: 'grid_connection',
+        query: 'Pruefe eine Anschluss-Vorpruefung mit Confidence Audit',
+        scopeId: 'grid-area:demo',
+      });
+
+      expect(result.answerStatus).toBe('requires_operator_confirmation');
+      expect(result.routingConfidence.score).toBeGreaterThan(0.8);
+      expect(result.evidenceConfidence.score).toBeLessThan(0.5);
+      expect(result.requiresNetworkOperatorConfirmation).toBe(true);
+      expect(
+        result.missingEvidence.some((item) => item.missingDataPoint === 'network_operator_confirmation')
+      ).toBe(true);
+      expect(result.sourceActions['capability-broker.recommend'].success).toBe(true);
+      expect(result.sourceActions['knowledge-rag.query'].success).toBe(true);
+    });
+
+    it('marks missing scope as out_of_scope with positive follow-up', async () => {
+      const result = await broker.call('dashboard-api.evidenceGroundingConfidenceAudit', {
+        domain: 'grid_connection',
+        query: 'Standort Vorpruefung fuer Netzanschluss',
+      });
+
+      expect(result.answerStatus).toBe('out_of_scope');
+      expect(result.evidenceConfidence.level).toBe('low');
+      expect(
+        result.positiveFollowUps.some((item) => item.missingDataPoint === 'scope_filter_grid_area')
+      ).toBe(true);
+    });
+
+    it('keeps hypothetical scenarios below high evidence confidence even with confirmation', async () => {
+      const result = await broker.call('dashboard-api.evidenceGroundingConfidenceAudit', {
+        domain: 'grid_connection',
+        query: 'Hypothetisches Szenario fuer Anschlusskapazitaet',
+        scopeId: 'grid-area:demo',
+        datasourceId: 'datasource:operator',
+        networkOperatorConfirmed: true,
+      });
+
+      expect(result.answerStatus).toBe('hypothetical_scenario');
+      expect(result.evidenceConfidence.level).not.toBe('high');
+      expect(result.evidenceConfidence.score).toBeLessThanOrEqual(0.62);
+    });
+
+    it('isolates read-only tool failures as degraded confidence', async () => {
+      handlers.knowledgeRagQuery = () => {
+        throw new Error('rag unavailable');
+      };
+
+      const result = await broker.call('dashboard-api.evidenceGroundingConfidenceAudit', {
+        domain: 'grid_connection',
+        query: 'Confidence Audit mit Toolausfall',
+        scopeId: 'grid-area:demo',
+        networkOperatorConfirmed: true,
+      });
+
+      expect(result.answerStatus).toBe('tool_degraded');
+      expect(result.evidenceConfidence.level).toBe('low');
+      expect(result._errors).toContain('knowledge-rag.query');
+      expect(
+        result.missingEvidence.some((item) => item.missingDataPoint === 'tool_failure_status')
+      ).toBe(true);
+    });
+
+    it('can return ok for scoped operator-confirmed evidence', async () => {
+      const result = await broker.call('dashboard-api.evidenceGroundingConfidenceAudit', {
+        domain: 'grid_connection',
+        query: 'Grounding Audit fuer bestaetigte Netzbetreiber Evidenz',
+        scopeId: 'grid-area:demo',
+        datasourceId: 'datasource:operator',
+        datapointId: 'datapoint:confirmed:1',
+        networkOperatorConfirmed: true,
+      });
+
+      expect(result.answerStatus).toBe('ok');
+      expect(result.evidenceConfidence.level).toBe('high');
+      expect(result.requiresNetworkOperatorConfirmation).toBe(false);
     });
   });
 

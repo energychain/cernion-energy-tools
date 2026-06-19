@@ -11027,6 +11027,179 @@
         ]
       }
     },
+    "/api/dashboard-api/evidence-grounding-confidence-audit": {
+      "get": {
+        "operationId": "dashboard-api_evidenceGroundingConfidenceAudit",
+        "summary": "Evidence grounding confidence audit — read-only dossier-safe evidence status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only evidence-grounding confidence audit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "auditId": {
+                      "type": "string"
+                    },
+                    "requestContext": {
+                      "type": "object"
+                    },
+                    "routingConfidence": {
+                      "type": "object"
+                    },
+                    "evidenceConfidence": {
+                      "type": "object"
+                    },
+                    "answerStatus": {
+                      "type": "string"
+                    },
+                    "sourceClassBreakdown": {
+                      "type": "object"
+                    },
+                    "claims": {
+                      "type": "array"
+                    },
+                    "assumptions": {
+                      "type": "array"
+                    },
+                    "toolFailures": {
+                      "type": "array"
+                    },
+                    "scopeLimitations": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "requiresNetworkOperatorConfirmation": {
+                      "type": "boolean"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Read-only confidence audit for grounded Cernion answers. It keeps Capability Broker routing confidence separate from evidence confidence, exposes source classes, scope limitations, tool failures, missing evidence and positive follow-ups. It does not create HITL items, interface placeholders, RAG ingests, Personal-Agent sessions or external calls.",
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "capabilityId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceAction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scopeId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "datasourceId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "datapointId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "networkOperatorConfirmed",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "x-oeo-class": [
+          "OEO_00000143"
+        ]
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -47113,6 +47286,179 @@
             "required": false,
             "schema": {
               "type": "string"
+            }
+          }
+        ],
+        "x-oeo-class": [
+          "OEO_00000143"
+        ]
+      }
+    },
+    "/api/dashboard/evidence-grounding-confidence-audit": {
+      "get": {
+        "operationId": "dashboard-api_evidenceGroundingConfidenceAudit",
+        "summary": "Evidence grounding confidence audit — read-only dossier-safe evidence status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only evidence-grounding confidence audit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "auditId": {
+                      "type": "string"
+                    },
+                    "requestContext": {
+                      "type": "object"
+                    },
+                    "routingConfidence": {
+                      "type": "object"
+                    },
+                    "evidenceConfidence": {
+                      "type": "object"
+                    },
+                    "answerStatus": {
+                      "type": "string"
+                    },
+                    "sourceClassBreakdown": {
+                      "type": "object"
+                    },
+                    "claims": {
+                      "type": "array"
+                    },
+                    "assumptions": {
+                      "type": "array"
+                    },
+                    "toolFailures": {
+                      "type": "array"
+                    },
+                    "scopeLimitations": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "requiresNetworkOperatorConfirmation": {
+                      "type": "boolean"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Read-only confidence audit for grounded Cernion answers. It keeps Capability Broker routing confidence separate from evidence confidence, exposes source classes, scope limitations, tool failures, missing evidence and positive follow-ups. It does not create HITL items, interface placeholders, RAG ingests, Personal-Agent sessions or external calls.",
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "capabilityId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceAction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scopeId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "datasourceId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "datapointId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "networkOperatorConfirmed",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
             }
           }
         ],

@@ -65,14 +65,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 16 static rules', () => {
+    it('loads all 17 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(16);
+      expect(rules.length).toBe(17);
     });
 
-    it('compiles all 16 static rules without error', () => {
+    it('compiles all 17 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(16);
+      expect(rules.length).toBe(17);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -300,6 +300,40 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(
         rule.formatEvidence({ found: false, message: 'No Redispatch call gate evidence yet' })
       ).toBe('No Redispatch call gate evidence yet');
+    });
+
+    it('dashboard-api.evidenceGroundingConfidenceAudit is dossier-safe and formats confidence evidence', () => {
+      const rule = getRule('dashboard-api.evidenceGroundingConfidenceAudit');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Confidence Audit fuer domain=grid_connection SNB935578300972 datapoint:confirmed:1 laden'
+        )
+      ).toEqual({
+        domain: 'grid_connection',
+        gridOperatorId: 'SNB935578300972',
+        datapointId: 'datapoint:confirmed:1',
+      });
+
+      const formatted = rule.formatEvidence({
+        answerStatus: 'requires_operator_confirmation',
+        routingConfidence: { score: 0.92 },
+        evidenceConfidence: { level: 'low', score: 0.45 },
+        requiresNetworkOperatorConfirmation: true,
+        requestContext: {
+          domain: 'grid_connection',
+          gridOperatorId: 'SNB935578300972',
+        },
+        missingEvidence: [{ missingDataPoint: 'network_operator_confirmation' }],
+        timestamp: '2026-06-19T16:30:00.000Z',
+      });
+
+      expect(formatted).toContain('Answer Status: requires_operator_confirmation');
+      expect(formatted).toContain('Routing Confidence: 0.92');
+      expect(formatted).toContain('Evidence Confidence: low');
+      expect(formatted).toContain('Leading Gap: network_operator_confirmation');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {

@@ -41,6 +41,7 @@ module.exports = {
       redispatchMeteringCockpit: 5 * 60 * 1000, // 5 min
       loadProfileStreamMonitor: 5 * 60 * 1000, // 5 min
       redispatchCallQualityGate: 5 * 60 * 1000, // 5 min
+      evidenceGroundingConfidenceAudit: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -1020,6 +1021,147 @@ module.exports = {
 
             return {
               ...result,
+              timestamp: new Date().toISOString(),
+              _errors: errors,
+            };
+          }
+        );
+      },
+    },
+
+    // ── evidenceGroundingConfidenceAudit ────────────────────────────────────
+    /**
+     * GET /api/dashboard/evidence-grounding-confidence-audit?domain=...&query=...
+     *
+     * Read-only dossier-safe confidence audit for grounded answers. It separates
+     * routing confidence from evidence confidence and turns missing operator
+     * evidence, scope filters, source refs, or tool failures into positive
+     * follow-ups instead of synthetic certainty.
+     */
+    evidenceGroundingConfidenceAudit: {
+      rest: 'GET /evidence-grounding-confidence-audit',
+      params: {
+        requestId: { type: 'string', optional: true, min: 1 },
+        sessionId: { type: 'string', optional: true, min: 1 },
+        domain: { type: 'string', optional: true, min: 1 },
+        capabilityId: { type: 'string', optional: true, min: 1 },
+        sourceAction: { type: 'string', optional: true, min: 1 },
+        scopeId: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        datasourceId: { type: 'string', optional: true, min: 1 },
+        datapointId: { type: 'string', optional: true, min: 1 },
+        query: { type: 'string', optional: true, min: 1 },
+        networkOperatorConfirmed: { type: 'boolean', optional: true, convert: true, default: false },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Evidence grounding confidence audit — read-only dossier-safe evidence status',
+        description:
+          'Read-only confidence audit for grounded Cernion answers. It keeps Capability Broker ' +
+          'routing confidence separate from evidence confidence, exposes source classes, scope ' +
+          'limitations, tool failures, missing evidence and positive follow-ups. It does not create ' +
+          'HITL items, interface placeholders, RAG ingests, Personal-Agent sessions or external calls.',
+        parameters: [
+          { name: 'requestId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sessionId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'domain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'capabilityId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceAction', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'scopeId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'datasourceId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'datapointId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'query', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'networkOperatorConfirmed',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean', default: false },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only evidence-grounding confidence audit',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    auditId: { type: 'string' },
+                    requestContext: { type: 'object' },
+                    routingConfidence: { type: 'object' },
+                    evidenceConfidence: { type: 'object' },
+                    answerStatus: { type: 'string' },
+                    sourceClassBreakdown: { type: 'object' },
+                    claims: { type: 'array' },
+                    assumptions: { type: 'array' },
+                    toolFailures: { type: 'array' },
+                    scopeLimitations: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    requiresNetworkOperatorConfirmation: { type: 'boolean' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+        'x-oeo-class': ['OEO_00000143'],
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `evidence-grounding-confidence-audit:${params.requestId || 'no-request'}:${params.sessionId || 'no-session'}:${params.domain || 'no-domain'}:${params.capabilityId || 'no-capability'}:${params.sourceAction || 'no-action'}:${params.scopeId || params.gridOperatorId || 'no-scope'}:${params.datasourceId || 'no-datasource'}:${params.datapointId || 'no-datapoint'}:${params.query || 'no-query'}:${params.networkOperatorConfirmed ? 'operator-confirmed' : 'operator-unconfirmed'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.evidenceGroundingConfidenceAudit,
+          async () => {
+            const errors = [];
+            const routingRes = params.query
+              ? await this.safeCall(
+                  ctx,
+                  'capability-broker.recommend',
+                  { task: params.query },
+                  null,
+                  errors,
+                  'capability-broker.recommend'
+                )
+              : null;
+            const [datapointRes, vdmiRes, ragRes] = await Promise.all([
+              this.safeCall(ctx, 'datapoint.health', {}, null, errors, 'datapoint.health'),
+              this.safeCall(
+                ctx,
+                ACTION_VDMI_FINDINGS,
+                { status: 'open', limit: 100 },
+                null,
+                errors,
+                ACTION_VDMI_FINDINGS
+              ),
+              params.query
+                ? this.safeCall(
+                    ctx,
+                    'knowledge-rag.query',
+                    { query: params.query, domain: params.domain, limit: 5 },
+                    null,
+                    errors,
+                    'knowledge-rag.query'
+                  )
+                : null,
+            ]);
+
+            return {
+              ...this.buildEvidenceGroundingConfidenceAudit({
+                params,
+                routingRes,
+                datapointRes,
+                vdmiRes,
+                ragRes,
+                errors,
+              }),
               timestamp: new Date().toISOString(),
               _errors: errors,
             };
@@ -2541,6 +2683,387 @@ module.exports = {
         'vdmi.findings': {
           success: !!vdmiRes,
           findings: vdmiFindings.length,
+        },
+      };
+    },
+
+    buildEvidenceGroundingConfidenceAudit({ params, routingRes, datapointRes, vdmiRes, ragRes, errors }) {
+      const now = new Date().toISOString();
+      const hasScope = !!(params.scopeId || params.gridOperatorId || params.datasourceId || params.datapointId);
+      const hasDomainContext = !!(params.domain || params.capabilityId || params.sourceAction || params.query);
+      const toolFailures = (errors || []).map((action) => ({
+        action,
+        impact: 'evidence_confidence_degraded',
+      }));
+      const ragItems = this.extractRagEvidenceItems(ragRes);
+      const sourceClassBreakdown = this.buildEvidenceSourceClassBreakdown({
+        params,
+        ragItems,
+        datapointRes,
+        vdmiRes,
+      });
+      const missingEvidence = this.buildEvidenceGroundingMissingEvidence({
+        params,
+        hasScope,
+        hasDomainContext,
+        toolFailures,
+        ragItems,
+      });
+      const requiresNetworkOperatorConfirmation =
+        !params.networkOperatorConfirmed && this.requiresOperatorConfirmation(params);
+      const scopeLimitations = [];
+      if (!hasScope) {
+        scopeLimitations.push({
+          scopeFilter: 'grid_or_datasource_scope',
+          reason: 'No gridOperatorId, scopeId, datasourceId or datapointId was supplied.',
+        });
+      }
+
+      const routingScore = this.normalizeConfidenceScore(
+        routingRes?.confidence ??
+          routingRes?.recommendedCapabilities?.[0]?.confidence ??
+          (params.capabilityId || params.sourceAction ? 0.72 : params.query ? 0.62 : 0.35)
+      );
+      const answerStatus = this.deriveEvidenceGroundingAnswerStatus({
+        params,
+        hasScope,
+        hasDomainContext,
+        toolFailures,
+        requiresNetworkOperatorConfirmation,
+      });
+      const evidenceScore = this.deriveEvidenceConfidenceScore({
+        answerStatus,
+        hasScope,
+        requiresNetworkOperatorConfirmation,
+        sourceClassBreakdown,
+        toolFailures,
+      });
+      const evidenceConfidence = {
+        score: evidenceScore,
+        level: evidenceScore >= 0.75 ? 'high' : evidenceScore >= 0.5 ? 'medium' : 'low',
+        basis: this.buildEvidenceConfidenceBasis({
+          answerStatus,
+          hasScope,
+          requiresNetworkOperatorConfirmation,
+          toolFailures,
+          sourceClassBreakdown,
+        }),
+      };
+      const claims = this.buildEvidenceGroundingClaims({ params, ragItems, sourceClassBreakdown });
+      const assumptions = this.buildEvidenceGroundingAssumptions({
+        params,
+        hasScope,
+        requiresNetworkOperatorConfirmation,
+      });
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: item.category,
+      }));
+      const sourceActions = this.buildEvidenceGroundingSourceActions({
+        routingRes,
+        datapointRes,
+        vdmiRes,
+        ragRes,
+        params,
+        errors,
+      });
+      const requestContext = {
+        requestId: params.requestId || null,
+        sessionId: params.sessionId || null,
+        query: params.query || null,
+        domain: params.domain || null,
+        capabilityId: params.capabilityId || routingRes?.capability || null,
+        sourceAction: params.sourceAction || routingRes?.recommendedPlan?.[0]?.action || null,
+        scopeId: params.scopeId || null,
+        gridOperatorId: params.gridOperatorId || null,
+        datasourceId: params.datasourceId || null,
+        datapointId: params.datapointId || null,
+      };
+      const dossierEvidence = {
+        answerStatus,
+        routingConfidence: {
+          score: routingScore,
+          capability: routingRes?.capability || params.capabilityId || null,
+          preferredAction:
+            routingRes?.recommendedPlan?.[0]?.action || params.sourceAction || null,
+        },
+        evidenceConfidence,
+        sourceClassBreakdown,
+        missingEvidence,
+        positiveFollowUps,
+      };
+
+      return {
+        auditId: params.requestId ? `egca:${params.requestId}` : `egca:${Buffer.from(`${params.domain || 'unknown'}:${params.query || params.sourceAction || now}`).toString('base64url').slice(0, 24)}`,
+        tenantId: params.tenantId || null,
+        requestContext,
+        routingConfidence: dossierEvidence.routingConfidence,
+        evidenceConfidence,
+        answerStatus,
+        sourceClassBreakdown,
+        scopeFilters: {
+          scopeId: params.scopeId || null,
+          gridOperatorId: params.gridOperatorId || null,
+          datasourceId: params.datasourceId || null,
+          datapointId: params.datapointId || null,
+        },
+        claims,
+        assumptions,
+        sourceActions,
+        sourceDatapoints: params.datapointId ? [{ datapointId: params.datapointId }] : [],
+        ragCollections: ragItems.map((item) => item.collection).filter(Boolean),
+        datasourceHealth: datapointRes?.overview || datapointRes || null,
+        toolFailures,
+        scopeLimitations,
+        missingEvidence,
+        requiresNetworkOperatorConfirmation,
+        hitlItemIds: [],
+        vdmiProcessId: null,
+        positiveFollowUps,
+        validationFindings: missingEvidence.map((item) => ({
+          code: `EGCA_${String(item.missingDataPoint || 'missing').toUpperCase()}`,
+          severity: item.severity || 'medium',
+          message: item.enablesDossierAddition,
+        })),
+        dossierEvidence,
+      };
+    },
+
+    normalizeConfidenceScore(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return 0;
+      if (n > 1) return Math.max(0, Math.min(1, n / 100));
+      return Math.max(0, Math.min(1, n));
+    },
+
+    requiresOperatorConfirmation(params) {
+      const text = `${params.domain || ''} ${params.query || ''} ${params.sourceAction || ''}`.toLowerCase();
+      return /grid|netz|vnb|dso|anschluss|kapazitaet|kapazität|redispatch|marktkommunikation/.test(text);
+    },
+
+    extractRagEvidenceItems(ragRes) {
+      const raw =
+        ragRes?.results ||
+        ragRes?.items ||
+        ragRes?.chunks ||
+        ragRes?.documents ||
+        ragRes?.sources ||
+        [];
+      if (!Array.isArray(raw)) return [];
+      return raw.slice(0, 10).map((item) => ({
+        sourceId: item.sourceId || item.id || item.documentId || null,
+        sourceVersion: item.sourceVersion || item.version || null,
+        collection: item.collection || item.collectionId || item.datasourceId || null,
+        title: item.title || item.name || item.label || null,
+        confidence: this.normalizeConfidenceScore(item.score ?? item.confidence ?? 0.55),
+      }));
+    },
+
+    buildEvidenceSourceClassBreakdown({ params, ragItems, datapointRes, vdmiRes }) {
+      const classes = {
+        authoritative_registry: 0,
+        internal_process_evidence: 0,
+        rag_chunk: 0,
+        datapoint_health: 0,
+        user_or_prompt_hint: 0,
+      };
+      if (params.datasourceId || params.datapointId || params.networkOperatorConfirmed) {
+        classes.authoritative_registry += params.networkOperatorConfirmed ? 1 : 0;
+      }
+      if (Array.isArray(vdmiRes?.findings) && vdmiRes.findings.length > 0) {
+        classes.internal_process_evidence += vdmiRes.findings.length;
+      }
+      if (ragItems.length > 0) classes.rag_chunk += ragItems.length;
+      if (datapointRes?.overview || params.datapointId) classes.datapoint_health += 1;
+      if (params.query) classes.user_or_prompt_hint += 1;
+      return classes;
+    },
+
+    buildEvidenceGroundingMissingEvidence({ params, hasScope, hasDomainContext, toolFailures, ragItems }) {
+      const missing = [];
+      const add = (missingDataPoint, enablesDossierAddition, category, severity = 'medium') => {
+        missing.push({ missingDataPoint, enablesDossierAddition, category, severity });
+      };
+      if (!hasDomainContext) {
+        add(
+          'domain_or_capability_context',
+          'Die Antwort kann einem Fachkontext oder einer Capability eindeutig zugeordnet werden',
+          'routing',
+          'high'
+        );
+      }
+      if (!hasScope) {
+        add(
+          'scope_filter_grid_area',
+          'Die Antwort kann auf Netzgebiet, Datenquelle oder Datenpunkt begrenzt werden',
+          'scope',
+          'high'
+        );
+      }
+      if (this.requiresOperatorConfirmation(params) && !params.networkOperatorConfirmed) {
+        add(
+          'network_operator_confirmation',
+          'Netzbetreiberbestaetigte Evidenz kann von Vorpruefung oder Annahme getrennt werden',
+          'confirmation',
+          'high'
+        );
+      }
+      if (!params.datasourceId && !params.datapointId && ragItems.length === 0) {
+        add(
+          'claim_source_ref',
+          'Claims koennen mit Datenpunkt, Receipt, RAG-Chunk oder ausgefuehrter Action belegt werden',
+          'source',
+          'medium'
+        );
+      }
+      if (toolFailures.length > 0) {
+        add(
+          'tool_failure_status',
+          'Degradierte Tools koennen als Confidence-Abzug und Wiederholvoraussetzung sichtbar werden',
+          'tooling',
+          'medium'
+        );
+      }
+      return missing;
+    },
+
+    deriveEvidenceGroundingAnswerStatus({
+      params,
+      hasScope,
+      hasDomainContext,
+      toolFailures,
+      requiresNetworkOperatorConfirmation,
+    }) {
+      if (toolFailures.length > 0) return 'tool_degraded';
+      if (!hasDomainContext) return 'needs_clarification';
+      if (!hasScope) return 'out_of_scope';
+      const query = String(params.query || '').toLowerCase();
+      if (/hypothetisch|szenario|scenario|annahme|was waere wenn/.test(query)) {
+        return 'hypothetical_scenario';
+      }
+      if (requiresNetworkOperatorConfirmation) return 'requires_operator_confirmation';
+      return 'ok';
+    },
+
+    deriveEvidenceConfidenceScore({
+      answerStatus,
+      hasScope,
+      requiresNetworkOperatorConfirmation,
+      sourceClassBreakdown,
+      toolFailures,
+    }) {
+      if (toolFailures.length > 0) return 0.25;
+      if (answerStatus === 'needs_clarification') return 0.35;
+      if (!hasScope || answerStatus === 'out_of_scope') return 0.4;
+      if (requiresNetworkOperatorConfirmation) return 0.45;
+      let score = 0.55;
+      if ((sourceClassBreakdown.authoritative_registry || 0) > 0) score += 0.18;
+      if ((sourceClassBreakdown.datapoint_health || 0) > 0) score += 0.08;
+      if ((sourceClassBreakdown.internal_process_evidence || 0) > 0) score += 0.06;
+      if ((sourceClassBreakdown.rag_chunk || 0) > 0) score += 0.05;
+      if (answerStatus === 'hypothetical_scenario') score = Math.min(score, 0.62);
+      return Math.round(Math.min(0.9, score) * 100) / 100;
+    },
+
+    buildEvidenceConfidenceBasis({
+      answerStatus,
+      hasScope,
+      requiresNetworkOperatorConfirmation,
+      toolFailures,
+      sourceClassBreakdown,
+    }) {
+      const basis = [`answerStatus=${answerStatus}`];
+      if (!hasScope) basis.push('missing scope filter');
+      if (requiresNetworkOperatorConfirmation) basis.push('operator confirmation missing');
+      if (toolFailures.length > 0) basis.push('tool failure present');
+      if ((sourceClassBreakdown.authoritative_registry || 0) > 0) {
+        basis.push('authoritative registry/operator evidence present');
+      }
+      if ((sourceClassBreakdown.datapoint_health || 0) > 0) basis.push('datapoint health present');
+      if ((sourceClassBreakdown.rag_chunk || 0) > 0) basis.push('RAG source refs present');
+      return basis;
+    },
+
+    buildEvidenceGroundingClaims({ params, ragItems, sourceClassBreakdown }) {
+      const claims = [];
+      if (params.sourceAction || params.capabilityId) {
+        claims.push({
+          claim:
+            params.sourceAction ||
+            `Capability ${params.capabilityId} is the requested grounding context`,
+          sourceRef: params.sourceAction || params.capabilityId,
+          sourceClass: 'internal_process_evidence',
+          confidenceBasis: 'explicit request parameter',
+        });
+      }
+      for (const item of ragItems.slice(0, 3)) {
+        claims.push({
+          claim: item.title || 'RAG source available for answer grounding',
+          sourceRef: item.sourceId,
+          sourceClass: 'rag_chunk',
+          confidenceBasis: `retrieval confidence ${item.confidence}`,
+        });
+      }
+      if ((sourceClassBreakdown.datapoint_health || 0) > 0) {
+        claims.push({
+          claim: 'Datapoint health can be considered for freshness/completeness.',
+          sourceRef: params.datapointId || 'datapoint.health',
+          sourceClass: 'datapoint_health',
+          confidenceBasis: 'read-only datapoint health surface',
+        });
+      }
+      return claims;
+    },
+
+    buildEvidenceGroundingAssumptions({ params, hasScope, requiresNetworkOperatorConfirmation }) {
+      const assumptions = [];
+      if (params.query) {
+        assumptions.push({
+          assumption: 'User prompt is treated as preview context, not authoritative evidence.',
+          sourceRef: 'query',
+        });
+      }
+      if (!hasScope) {
+        assumptions.push({
+          assumption: 'No local scope filter was supplied; answer must remain bounded as preliminary.',
+          sourceRef: 'scope_filter_grid_area',
+        });
+      }
+      if (requiresNetworkOperatorConfirmation) {
+        assumptions.push({
+          assumption: 'Network-operator confirmation is missing; fachliche confidence remains capped.',
+          sourceRef: 'network_operator_confirmation',
+        });
+      }
+      return assumptions;
+    },
+
+    buildEvidenceGroundingSourceActions({ routingRes, datapointRes, vdmiRes, ragRes, params, errors }) {
+      const failed = new Set(errors || []);
+      return {
+        'capability-broker.recommend': {
+          success: !!routingRes,
+          skipped: !params.query,
+          failed: failed.has('capability-broker.recommend'),
+          capability: routingRes?.capability || null,
+          confidence: routingRes?.confidence ?? routingRes?.recommendedCapabilities?.[0]?.confidence ?? null,
+        },
+        'knowledge-rag.query': {
+          success: !!ragRes,
+          skipped: !params.query,
+          failed: failed.has('knowledge-rag.query'),
+          sources: this.extractRagEvidenceItems(ragRes).length,
+        },
+        'datapoint.health': {
+          success: !!datapointRes,
+          failed: failed.has('datapoint.health'),
+          overview: datapointRes?.overview || null,
+        },
+        'vdmi.findings': {
+          success: !!vdmiRes,
+          failed: failed.has('vdmi.findings'),
+          findings: Array.isArray(vdmiRes?.findings) ? vdmiRes.findings.length : 0,
         },
       };
     },
