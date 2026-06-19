@@ -1660,6 +1660,18 @@ module.exports = {
           'GET /flexibility-conductor-role-model/:processId/status':
             'flexibility-conductor-role-model.getStatus',
 
+          // Knowledge Continuity Governance Gate (v0.63)
+          'POST /knowledge-continuity-governance-gate/evaluate':
+            'knowledge-continuity-governance-gate.evaluate',
+          'GET /knowledge-continuity-governance-gate/gates':
+            'knowledge-continuity-governance-gate.listGates',
+          'GET /knowledge-continuity-governance-gate/gates/:governanceGateId':
+            'knowledge-continuity-governance-gate.getGate',
+          'GET /knowledge-continuity-governance-gate/status':
+            'knowledge-continuity-governance-gate.getStatus',
+          'GET /knowledge-continuity-governance-gate/:processId/status':
+            'knowledge-continuity-governance-gate.getStatus',
+
           // Investment Maturity Off-Balance Gate (v0.63)
           'POST /investment-maturity-off-balance-gate/evaluate':
             'investment-maturity-off-balance-gate.evaluate',

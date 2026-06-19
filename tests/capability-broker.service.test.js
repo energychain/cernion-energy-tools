@@ -762,6 +762,21 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Wissenssicherung Governance Gate prompts to the read-only evidence path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Wissenssicherung Governance Gate fuer Rollenwechsel: Hauptordner, Berechtigungsowner, Gastzugriff, Adminrechte, Uebergabedokument, Loeschfrist, Teams, Loop, SharePoint und IT-Abnahme.',
+    });
+
+    expect(result.capability).toBe('knowledge_continuity_governance_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'knowledge_continuity_governance_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('knowledge-continuity-governance-gate.getStatus');
+    expect(actionNames).toContain('knowledge-continuity-governance-gate.evaluate');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes investment maturity off-balance prompts to the read-only gate evidence path', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Investitionsreifegrad Off-Balance Gate: externe Finanzierung, Finanzierungszusatzkosten, regulatory return, Asset-Risiko, ISO-Risiko, Prozessqualitaet, Netzspielraum und Entscheidungsforum.',

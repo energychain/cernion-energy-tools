@@ -322,6 +322,16 @@ const FCRM_SOURCE_ACTIONS_MISSING = 'FCRM_SOURCE_ACTIONS_MISSING';
 const FCRM_ROLE_MODEL_READY = 'FCRM_ROLE_MODEL_READY';
 const FCRM_ROLE_MODEL_BLOCKED = 'FCRM_ROLE_MODEL_BLOCKED';
 
+// KCGG — Knowledge Continuity Governance Gate (v0.63)
+const KCGG_DECISION_RIGHTS_MISSING = 'KCGG_DECISION_RIGHTS_MISSING';
+const KCGG_CONTROL_BOUNDARY_MISSING = 'KCGG_CONTROL_BOUNDARY_MISSING';
+const KCGG_MONITORING_OWNER_MISSING = 'KCGG_MONITORING_OWNER_MISSING';
+const KCGG_COMMERCIAL_OWNER_MISSING = 'KCGG_COMMERCIAL_OWNER_MISSING';
+const KCGG_ESCALATION_PATH_MISSING = 'KCGG_ESCALATION_PATH_MISSING';
+const KCGG_SOURCE_ACTIONS_MISSING = 'KCGG_SOURCE_ACTIONS_MISSING';
+const KCGG_GOVERNANCE_GATE_READY = 'KCGG_GOVERNANCE_GATE_READY';
+const KCGG_GOVERNANCE_GATE_BLOCKED = 'KCGG_GOVERNANCE_GATE_BLOCKED';
+
 // IMOB — Investment Maturity Off-Balance Gate (v0.63)
 const IMOB_MATURITY_MODEL_MISSING = 'IMOB_MATURITY_MODEL_MISSING';
 const IMOB_PROCESS_QUALITY_LOW = 'IMOB_PROCESS_QUALITY_LOW';
@@ -1947,6 +1957,64 @@ const FINDING_CODE_METADATA = {
     descriptionDe: 'Flexibilitaetsdirigent-Rollenmodell ist blockiert',
   },
 
+  // ── Knowledge Continuity Governance Gate (v0.63) ───────────────────────
+  KCGG_DECISION_RIGHTS_MISSING: {
+    severity: 'error',
+    agent: 'knowledge-continuity-governance-gate',
+    step: 1,
+    description: 'Knowledge-continuity permission owner is missing',
+    descriptionDe: 'Berechtigungsowner fuer Wissenssicherung fehlt',
+  },
+  KCGG_CONTROL_BOUNDARY_MISSING: {
+    severity: 'error',
+    agent: 'knowledge-continuity-governance-gate',
+    step: 1,
+    description: 'Knowledge-continuity admin owner is missing',
+    descriptionDe: 'Admin-Owner fuer Wissenssicherung fehlt',
+  },
+  KCGG_MONITORING_OWNER_MISSING: {
+    severity: 'warning',
+    agent: 'knowledge-continuity-governance-gate',
+    step: 1,
+    description: 'Primary knowledge folder reference is missing',
+    descriptionDe: 'Hauptordner-Referenz fuer Wissenssicherung fehlt',
+  },
+  KCGG_COMMERCIAL_OWNER_MISSING: {
+    severity: 'warning',
+    agent: 'knowledge-continuity-governance-gate',
+    step: 1,
+    description: 'Handover document reference is missing',
+    descriptionDe: 'Uebergabedokument-Referenz fehlt',
+  },
+  KCGG_ESCALATION_PATH_MISSING: {
+    severity: 'error',
+    agent: 'knowledge-continuity-governance-gate',
+    step: 1,
+    description: 'Durable communication or retention boundary is missing',
+    descriptionDe: 'Dauerhafte Kommunikations- oder Loeschgrenze fehlt',
+  },
+  KCGG_SOURCE_ACTIONS_MISSING: {
+    severity: 'warning',
+    agent: 'knowledge-continuity-governance-gate',
+    step: 1,
+    description: 'Knowledge-continuity source action references are missing',
+    descriptionDe: 'Quell-Action-Referenzen fuer Wissenssicherung fehlen',
+  },
+  KCGG_GOVERNANCE_GATE_READY: {
+    severity: 'info',
+    agent: 'knowledge-continuity-governance-gate',
+    step: 1,
+    description: 'Knowledge-continuity governance gate is ready',
+    descriptionDe: 'Wissenssicherungs-Governance-Gate ist bereit',
+  },
+  KCGG_GOVERNANCE_GATE_BLOCKED: {
+    severity: 'error',
+    agent: 'knowledge-continuity-governance-gate',
+    step: 1,
+    description: 'Knowledge-continuity governance gate is blocked',
+    descriptionDe: 'Wissenssicherungs-Governance-Gate ist blockiert',
+  },
+
   // ── Investment Maturity Off-Balance Gate (v0.63) ────────────────────────
   IMOB_MATURITY_MODEL_MISSING: {
     severity: 'error',
@@ -2267,6 +2335,15 @@ module.exports = {
   FCRM_SOURCE_ACTIONS_MISSING,
   FCRM_ROLE_MODEL_READY,
   FCRM_ROLE_MODEL_BLOCKED,
+  // KCGG — Knowledge Continuity Governance Gate (v0.63)
+  KCGG_DECISION_RIGHTS_MISSING,
+  KCGG_CONTROL_BOUNDARY_MISSING,
+  KCGG_MONITORING_OWNER_MISSING,
+  KCGG_COMMERCIAL_OWNER_MISSING,
+  KCGG_ESCALATION_PATH_MISSING,
+  KCGG_SOURCE_ACTIONS_MISSING,
+  KCGG_GOVERNANCE_GATE_READY,
+  KCGG_GOVERNANCE_GATE_BLOCKED,
   // IMOB — Investment Maturity Off-Balance Gate (v0.63)
   IMOB_MATURITY_MODEL_MISSING,
   IMOB_PROCESS_QUALITY_LOW,

@@ -428,6 +428,56 @@
     "sourceIssue": 245
   },
   {
+    "id": "knowledge-continuity-governance-gate.getStatus",
+    "action": "knowledge-continuity-governance-gate.getStatus",
+    "label": "Knowledge Continuity Governance Gate Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "processId": {
+        "extractor": "regexCaptureSafe",
+        "required": true,
+        "config": {
+          "pattern": "(knowledge-process:[a-zA-Z0-9-]+|kcgg-process:[a-zA-Z0-9-]+|cron-smoke-247)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["evidenceStatus", "answerFacts.evidenceStatus"], "label": "Evidence Status", "maxLen": 60 },
+        { "paths": ["criticalProcessId", "answerFacts.criticalProcessId"], "label": "Process", "maxLen": 100 },
+        { "paths": ["processName", "answerFacts.processName"], "label": "Name", "maxLen": 120 },
+        { "paths": ["gateId", "answerFacts.gateId"], "label": "Gate", "maxLen": 80 },
+        { "paths": ["mainFolderRef", "answerFacts.mainFolderRef"], "label": "Main Folder", "maxLen": 140 },
+        { "paths": ["permissionOwner", "answerFacts.permissionOwner"], "label": "Permission Owner", "maxLen": 100 },
+        { "paths": ["adminOwner", "answerFacts.adminOwner"], "label": "Admin Owner", "maxLen": 100 },
+        { "paths": ["guestAccessPolicy", "answerFacts.guestAccessPolicy"], "label": "Guest Access", "maxLen": 120 },
+        { "paths": ["handoverDocumentRef", "answerFacts.handoverDocumentRef"], "label": "Handover", "maxLen": 140 },
+        { "paths": ["chatMailBoundary", "answerFacts.chatMailBoundary"], "label": "Chat/Mail Boundary", "maxLen": 160 },
+        { "paths": ["retentionPolicy", "answerFacts.retentionPolicy"], "label": "Retention", "maxLen": 140 },
+        { "paths": ["deletionDeadline", "answerFacts.deletionDeadline"], "label": "Deletion Deadline", "maxLen": 60 },
+        { "paths": ["itApprovalStatus", "answerFacts.itApprovalStatus"], "label": "IT Approval", "maxLen": 80 },
+        { "paths": ["roleChangeRisk", "answerFacts.roleChangeRisk"], "label": "Role Change Risk", "maxLen": 80 },
+        { "paths": ["readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["answerFacts.evaluatedAt", "evaluatedAt"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 247
+  },
+  {
     "id": "investment-maturity-off-balance-gate.getStatus",
     "action": "investment-maturity-off-balance-gate.getStatus",
     "label": "Investment Maturity Off-Balance Gate Evidence",

@@ -28194,6 +28194,90 @@
         }
       }
     },
+    "/api/knowledge-continuity-governance-gate/evaluate": {
+      "post": {
+        "operationId": "knowledge-continuity-governance-gate_evaluate",
+        "summary": "Evaluate knowledge-continuity governance evidence",
+        "tags": [
+          "Knowledge Continuity Governance Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/knowledge-continuity-governance-gate/gates": {
+      "get": {
+        "operationId": "knowledge-continuity-governance-gate_listGates",
+        "summary": "List knowledge-continuity governance gates",
+        "tags": [
+          "Knowledge Continuity Governance Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/knowledge-continuity-governance-gate/gates/:governanceGateId": {
+      "get": {
+        "operationId": "knowledge-continuity-governance-gate_getGate",
+        "summary": "Get a knowledge-continuity governance gate",
+        "tags": [
+          "Knowledge Continuity Governance Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/knowledge-continuity-governance-gate/:processId/status": {
+      "get": {
+        "operationId": "knowledge-continuity-governance-gate_getStatus",
+        "summary": "Get dossier-safe knowledge-continuity governance status",
+        "tags": [
+          "Knowledge Continuity Governance Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/knowledge-rag/query": {
       "post": {
         "operationId": "knowledge-rag_query",
@@ -51773,6 +51857,27 @@
         "summary": "Get findings from last scan",
         "tags": [
           "File Ingest Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/knowledge-continuity-governance-gate/status": {
+      "get": {
+        "operationId": "knowledge-continuity-governance-gate_getStatus",
+        "summary": "Get dossier-safe knowledge-continuity governance status",
+        "tags": [
+          "Knowledge Continuity Governance Gate"
         ],
         "responses": {
           "200": {

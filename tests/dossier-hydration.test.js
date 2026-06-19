@@ -65,14 +65,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 13 static rules', () => {
+    it('loads all 14 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(13);
+      expect(rules.length).toBe(14);
     });
 
-    it('compiles all 13 static rules without error', () => {
+    it('compiles all 14 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(13);
+      expect(rules.length).toBe(14);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -106,6 +106,7 @@ describe('dossier-hydration-registry (unit)', () => {
         're4de-variable-grid-fee.getEvidence',
         'battery-redispatch-special-gate.getStatus',
         'flexibility-conductor-role-model.getStatus',
+        'knowledge-continuity-governance-gate.getStatus',
         'investment-maturity-off-balance-gate.getStatus',
       ];
       for (const action of expected) {
@@ -358,6 +359,48 @@ describe('dossier-hydration-registry (unit)', () => {
       const rule = getRule('flexibility-conductor-role-model.getStatus');
       expect(rule.formatEvidence({ found: false, message: 'No role-model evidence yet' })).toBe(
         'No role-model evidence yet'
+      );
+    });
+
+    it('knowledge-continuity-governance-gate.getStatus is dossier-safe and formats governance evidence', () => {
+      const rule = getRule('knowledge-continuity-governance-gate.getStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams([], 'Bitte Wissenssicherung knowledge-process:dispatch-001 laden')
+      ).toEqual({ processId: 'knowledge-process:dispatch-001' });
+
+      const formatted = rule.formatEvidence({
+        criticalProcessId: 'knowledge-process:dispatch-001',
+        processName: 'Redispatch Rollenwechsel Leitwarte',
+        gateId: 'kcgg:test',
+        evidenceStatus: 'ready',
+        readinessScore: 1,
+        answerFacts: {
+          mainFolderRef: 'sharepoint://netzprozesse/redispatch',
+          permissionOwner: 'IT Berechtigungsmanagement',
+          adminOwner: 'M365 Plattformbetrieb',
+          guestAccessPolicy: 'Quartalspruefung',
+          handoverDocumentRef: 'sharepoint://netzprozesse/redispatch/uebergabe.md',
+          chatMailBoundary: 'Teams volatil, Entscheidungen in Hauptordner',
+          retentionPolicy: '10 Jahre',
+          deletionDeadline: '2036-12-31',
+          itApprovalStatus: 'approved',
+          roleChangeRisk: 'medium',
+          evaluatedAt: '2026-06-19T13:30:00.000Z',
+        },
+      });
+
+      expect(formatted).toContain('Evidence Status: ready');
+      expect(formatted).toContain('Process: knowledge-process:dispatch-001');
+      expect(formatted).toContain('Permission Owner: IT Berechtigungsmanagement');
+      expect(formatted).toContain('IT Approval: approved');
+    });
+
+    it('knowledge-continuity-governance-gate.getStatus formats not-found message as fallback evidence', () => {
+      const rule = getRule('knowledge-continuity-governance-gate.getStatus');
+      expect(rule.formatEvidence({ found: false, message: 'No governance evidence yet' })).toBe(
+        'No governance evidence yet'
       );
     });
 

@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: 28902da5fe20e6b641dea54420d35e3b1bcf6da6c1f4eeb4efca6a8cdba62dc6
+  - openapi-export.json: 4c2fdaa62c31b330ea470421fa5d511b878a68355e823c10ece2d259de7810fc
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 690
-- operation_count: 795
+- path_count: 695
+- operation_count: 800
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -731,6 +731,7 @@ process:
 - Investment Maturity Off-Balance Gate: 4 operations
 - Investment Planning: 3 operations
 - Jobs: 14 operations
+- Knowledge Continuity Governance Gate: 5 operations
 - Knowledge RAG: 12 operations
 - MaStR Data Quality: 4 operations
 - MaStR Monitor: 12 operations
@@ -1291,6 +1292,11 @@ process:
 - GET /api/jobs/alarms | tags: [Jobs] | operationId: job-status_listAlarms | summary: List persistent async watchdog alarms
 - POST /api/jobs/alarms/:alarmId/ack | tags: [Jobs] | operationId: job-status_acknowledgeAlarm | summary: Acknowledge persistent async watchdog alarm
 - POST /api/jobs/alarms/:alarmId/resolve | tags: [Jobs] | operationId: job-status_resolveAlarm | summary: Resolve persistent async watchdog alarm
+- GET /api/knowledge-continuity-governance-gate/:processId/status | tags: [Knowledge Continuity Governance Gate] | operationId: knowledge-continuity-governance-gate_getStatus | summary: Get dossier-safe knowledge-continuity governance status
+- POST /api/knowledge-continuity-governance-gate/evaluate | tags: [Knowledge Continuity Governance Gate] | operationId: knowledge-continuity-governance-gate_evaluate | summary: Evaluate knowledge-continuity governance evidence
+- GET /api/knowledge-continuity-governance-gate/gates | tags: [Knowledge Continuity Governance Gate] | operationId: knowledge-continuity-governance-gate_listGates | summary: List knowledge-continuity governance gates
+- GET /api/knowledge-continuity-governance-gate/gates/:governanceGateId | tags: [Knowledge Continuity Governance Gate] | operationId: knowledge-continuity-governance-gate_getGate | summary: Get a knowledge-continuity governance gate
+- GET /api/knowledge-continuity-governance-gate/status | tags: [Knowledge Continuity Governance Gate] | operationId: knowledge-continuity-governance-gate_getStatus | summary: Get dossier-safe knowledge-continuity governance status
 - POST /api/knowledge-rag/collection-info | tags: [Knowledge RAG] | operationId: knowledge-rag_collectionInfo | summary: Convenience collection info endpoint
 - POST /api/knowledge-rag/collections | tags: [Knowledge RAG] | operationId: knowledge-rag_createCollection | summary: Create tenant-isolated RAG collection
 - DELETE /api/knowledge-rag/collections/:name | tags: [Knowledge RAG] | operationId: knowledge-rag_removeCollection | summary: Delete collection + chunks
@@ -36433,6 +36439,111 @@ process:
         ]
       }
     },
+    "/api/knowledge-continuity-governance-gate/:processId/status": {
+      "get": {
+        "operationId": "knowledge-continuity-governance-gate_getStatus",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get dossier-safe knowledge-continuity governance status",
+        "tags": [
+          "Knowledge Continuity Governance Gate"
+        ]
+      }
+    },
+    "/api/knowledge-continuity-governance-gate/evaluate": {
+      "post": {
+        "operationId": "knowledge-continuity-governance-gate_evaluate",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Evaluate knowledge-continuity governance evidence",
+        "tags": [
+          "Knowledge Continuity Governance Gate"
+        ]
+      }
+    },
+    "/api/knowledge-continuity-governance-gate/gates": {
+      "get": {
+        "operationId": "knowledge-continuity-governance-gate_listGates",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List knowledge-continuity governance gates",
+        "tags": [
+          "Knowledge Continuity Governance Gate"
+        ]
+      }
+    },
+    "/api/knowledge-continuity-governance-gate/gates/:governanceGateId": {
+      "get": {
+        "operationId": "knowledge-continuity-governance-gate_getGate",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get a knowledge-continuity governance gate",
+        "tags": [
+          "Knowledge Continuity Governance Gate"
+        ]
+      }
+    },
+    "/api/knowledge-continuity-governance-gate/status": {
+      "get": {
+        "operationId": "knowledge-continuity-governance-gate_getStatus",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get dossier-safe knowledge-continuity governance status",
+        "tags": [
+          "Knowledge Continuity Governance Gate"
+        ]
+      }
+    },
     "/api/knowledge-rag/collection-info": {
       "post": {
         "operationId": "knowledge-rag_collectionInfo",
@@ -53373,4 +53484,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 7860688fbfeea1bd7141fc16da62086e7254c28141966fdb24fb454ae1841458
+- llm_txt_sha256: e1af63ef9f2eb64cbf2bbf4af47aba02d5077b10a05304f709c2a5faf9ea41e5
