@@ -151,6 +151,67 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  market_communication_evidence_chain: {
+    sources: [
+      {
+        id: 'malo_identity',
+        label: 'MaLo-Identitaet (offizielle Marktlokation)',
+        resolvedBy: ['dashboard-api.marketCommunicationEvidenceChainStatus', 'edm.getMalo'],
+        contextKeys: ['maloId', 'marketLocationId'],
+        optional: false,
+      },
+      {
+        id: 'melo_identity',
+        label: 'MeLo-Identitaet (offizielle Messlokation)',
+        resolvedBy: ['dashboard-api.marketCommunicationEvidenceChainStatus', 'edm.getMelo'],
+        contextKeys: ['meloId', 'meterLocationId'],
+        optional: false,
+      },
+      {
+        id: 'utilmd_masterdata_path',
+        label: 'UTILMD-/Stammdatenweg (offizieller Nachweis)',
+        resolvedBy: ['dashboard-api.marketCommunicationEvidenceChainStatus', 'edm-validation.validate'],
+        contextKeys: ['utilmdMasterdataPath', 'masterDataPath', 'officialMasterDataEvidence'],
+        optional: false,
+      },
+      {
+        id: 'meter_values',
+        label: 'Zaehlerwerte / Messwerte',
+        resolvedBy: ['dashboard-api.marketCommunicationEvidenceChainStatus', 'edm.meterValues'],
+        contextKeys: ['meterValues', 'meterValueBatchId', 'msconsId'],
+        optional: false,
+      },
+      {
+        id: 'consumption_retrieval',
+        label: 'Verbrauchsdatenabruf / EDM-Abrufstatus',
+        resolvedBy: ['dashboard-api.marketCommunicationEvidenceChainStatus', 'edm-validation.validate'],
+        contextKeys: ['consumptionRetrievalStatus', 'edmRetrievalStatus'],
+        optional: false,
+      },
+      {
+        id: 'data_quality_status',
+        label: 'Datenqualitaetsstatus fuer Abrechnungskontext',
+        resolvedBy: ['dashboard-api.marketCommunicationEvidenceChainStatus', 'edm-validation.validate'],
+        contextKeys: ['dataQualityStatus', 'edmDataQualityStatus'],
+        optional: false,
+      },
+      {
+        id: 'next_billing_step',
+        label: 'Naechster Abrechnungsschritt (nur Kontext, keine Freigabe)',
+        resolvedBy: ['dashboard-api.marketCommunicationEvidenceChainStatus', 'settlement.readiness'],
+        contextKeys: ['nextBillingStep', 'settlementNextStep'],
+        optional: false,
+      },
+      {
+        id: 'portal_or_provider_hint',
+        label: 'Portal-/Dienstleister-/Kundenhinweis (kein offizieller Nachweis)',
+        resolvedBy: ['vdmi-evidence.list', 'vdmi.findings'],
+        contextKeys: ['portalScreenshot', 'portalHint', 'customerStatement', 'providerView'],
+        optional: true,
+      },
+    ],
+  },
+
   // ── Routing-matrix route-keyed entries ─────────────────────────────────
 
   'investment-grid-check': {

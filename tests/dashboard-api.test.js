@@ -1720,6 +1720,51 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── marketCommunicationEvidenceChainStatus ───────────────────────────────
+
+  describe('marketCommunicationEvidenceChainStatus', () => {
+    it('keeps portal/provider material as hints and reports missing official evidence', async () => {
+      const result = await broker.call('dashboard-api.marketCommunicationEvidenceChainStatus', {
+        includeHints: true,
+        portalHint: 'portal-screenshot-1',
+        providerView: 'provider-view-1',
+      });
+
+      expect(result.status).toBe('hints_only');
+      expect(result.officialEvidence).toEqual([]);
+      expect(result.hintsOnly.map((item) => item.bindingStrength)).toEqual([
+        'not_official_proof',
+        'not_official_proof',
+      ]);
+      expect(result.missingEvidence.map((item) => item.missingDataPoint)).toEqual(
+        expect.arrayContaining(['malo_identity', 'utilmd_masterdata_path', 'meter_values'])
+      );
+      expect(result.positiveFollowUps[0].enablesDossierAddition).toContain('official');
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns official_evidence_complete when all official evidence points are supplied', async () => {
+      const result = await broker.call('dashboard-api.marketCommunicationEvidenceChainStatus', {
+        maloId: 'DE-MALO-1',
+        meloId: 'DE-MELO-1',
+        utilmdMasterdataPath: 'utilmd:123',
+        meterValueBatchId: 'mscons:123',
+        consumptionRetrievalStatus: 'available',
+        dataQualityStatus: 'usable',
+        nextBillingStep: 'settlement_review',
+      });
+
+      expect(result.status).toBe('official_evidence_complete');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.officialEvidence.map((item) => item.bindingStrength)).toEqual(
+        expect.arrayContaining(['official_evidence'])
+      );
+      expect(result.dossierFacts).toContain('Official evidence items: 7/7');
+      expect(result.sourceActions.notCalled).toContain('settlement.exportA96');
+      expect(result.sourceActions.notCalled).toContain('hitl.create');
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

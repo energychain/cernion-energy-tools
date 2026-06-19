@@ -260,6 +260,63 @@
     "sourceIssue": 234
   },
   {
+    "id": "dashboard-api.marketCommunicationEvidenceChainStatus",
+    "action": "dashboard-api.marketCommunicationEvidenceChainStatus",
+    "label": "Market Communication Evidence Chain",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "maloId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:malo|maloId|marktlokation)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "meloId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:melo|meloId|messlokation)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:case|caseId|fall)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "includeHints": true
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Evidence Status", "maxLen": 80 },
+        { "paths": ["officialEvidence.0.id", "dossierEvidence.officialEvidence.0.id"], "label": "Official Evidence", "maxLen": 100 },
+        { "paths": ["hintsOnly.0.id", "dossierEvidence.hintsOnly.0.id"], "label": "Hint Only", "maxLen": 100 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 160 },
+        { "paths": ["timestamp"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 180
+  },
+  {
     "id": "dashboard-api.receiptGroundedPresentationContract",
     "action": "dashboard-api.receiptGroundedPresentationContract",
     "label": "Receipt Grounded Presentation Contract",

@@ -78,6 +78,50 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     expect(result.confidence).toBeGreaterThanOrEqual(1.0);
   });
 
+  it('treats market-communication portal material as hint-only and keeps official evidence gaps', () => {
+    const result = planEvidence(
+      { routeLabel: 'market_communication_evidence_chain' },
+      { portalScreenshot: 'portal-view-1' }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('market_communication_evidence_chain');
+    expect(result.checkedSources).toContain('portal_or_provider_hint');
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining(['malo_identity', 'utilmd_masterdata_path', 'meter_values'])
+    );
+    expect(result.confidence).toBe(0);
+  });
+
+  it('marks market-communication official evidence checked only from structured MaKo/EDM context', () => {
+    const result = planEvidence(
+      { routeLabel: 'market_communication_evidence_chain' },
+      {
+        maloId: 'DE-MALO-1',
+        meloId: 'DE-MELO-1',
+        utilmdMasterdataPath: 'utilmd:123',
+        meterValueBatchId: 'mscons:123',
+        consumptionRetrievalStatus: 'available',
+        dataQualityStatus: 'usable',
+        nextBillingStep: 'settlement_review',
+      }
+    );
+
+    expect(result.gaps).toEqual([]);
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining([
+        'malo_identity',
+        'melo_identity',
+        'utilmd_masterdata_path',
+        'meter_values',
+        'consumption_retrieval',
+        'data_quality_status',
+        'next_billing_step',
+      ])
+    );
+    expect(result.confidence).toBeGreaterThanOrEqual(1);
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });

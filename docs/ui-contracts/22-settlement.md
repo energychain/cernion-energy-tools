@@ -294,6 +294,19 @@ Anschließend via `GET /api/settlement/a96/export/:settlementId` herunterladen.
 
 ---
 
+## Marktkommunikations-Evidenzkette
+
+`dashboard-api.marketCommunicationEvidenceChainStatus` may expose
+`nextBillingStep` as dossier context for dynamic tariff, iMSys, and
+consumption-data cases. This is read-only guidance only:
+
+- `nextBillingStep` describes the next settlement or billing context.
+- Missing `next_billing_step` appears as a positive follow-up.
+- The endpoint does not call `settlement.exportA96`, release billing, prepare
+  invoices, create HITL items, or mutate settlement records.
+
+---
+
 ## Verwandte Services
 
 - **`bilanzkreis.checkReadiness`** — prüft §42c-Konformität vor Settlement (→ Contract 23)

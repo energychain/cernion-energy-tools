@@ -769,6 +769,22 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('hitl.create');
   });
 
+  it('routes market-communication evidence-chain prompts to the read-only dossier status view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Marktkommunikations Evidenzkette fuer MaLo MeLo UTILMD Stammdatenweg Verbrauchsdatenabruf EDM Datenqualitaet und Portalhinweis vs offizieller Nachweis.',
+    });
+
+    expect(result.capability).toBe('market_communication_evidence_chain');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'market_communication_evidence_chain'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.marketCommunicationEvidenceChainStatus');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

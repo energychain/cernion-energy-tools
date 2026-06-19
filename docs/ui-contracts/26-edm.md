@@ -283,6 +283,25 @@ Erlaubte `sourceType`-Werte: `manual`, `mscons`, `csv`, `slp`, `mastr`
 
 ---
 
+## Marktkommunikations-Evidenzkette
+
+`GET /api/dashboard/market-communication-evidence-chain` consumes EDM-facing
+context without mutating EDM state. UI fields should map as follows:
+
+| Field | Evidence class |
+|-------|----------------|
+| `maloId` | Official MaLo identity |
+| `meloId` | Official MeLo identity |
+| `utilmdMasterdataPath` | Official UTILMD/master-data provenance |
+| `meterValueBatchId` | Meter-value evidence |
+| `consumptionRetrievalStatus` | EDM retrieval-status evidence |
+| `dataQualityStatus` | EDM data-quality evidence |
+
+Portal, provider, or customer material is rendered under `hintsOnly`; it does
+not satisfy official EDM or market-communication evidence.
+
+---
+
 ## Verwandte Services
 
 - **`slp`** — SLP-Standardlastprofile für edm-virtual (→ Contract 27)

@@ -169,10 +169,21 @@ VDMI matrix lifecycle, nomination governance, findings workflows, A2A spectator 
 - System templates can be used as governance reference templates for new nominations.
 - Template `id` field allows filtering: `id.startsWith('SYSTEM_')` → system template, otherwise tenant-created template.
 
+## Marktkommunikations-Evidenzkette
+
+The VDMI/Dossier view for `market_communication_evidence_chain` must separate
+official evidence from hints:
+
+- `officialEvidence`: MaLo/MeLo identity, UTILMD/master-data path, meter values,
+  consumption retrieval, data-quality status, and next billing step.
+- `hintsOnly`: portal screenshots, customer/supplier statements, and provider
+  views. These are displayed as hints and never as official proof.
+- `missingEvidence`: actionable dossier gaps with positive follow-ups; no HITL,
+  settlement, billing, tariff, or market-communication mutation is triggered.
+
 ## Data Minimization & Compliance
 - All system templates contain **no real customer data** (DSGVO Art. 32 & recital 26)
 - Asset identifiers are generic (e.g., "PV_Asset_North", "Substation_A", "Portfolio_Mix_East")
 - Actors identified by **role+category**, not individual/organization names
 - Evidence requirements are process-generic, not customer-specific
 - Finanzamt-compliant anonymization for regulatory reporting use cases
-

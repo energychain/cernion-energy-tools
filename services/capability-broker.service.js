@@ -265,6 +265,37 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Market communication evidence chain
+  // Generic "Evidenz/Nachweis" terms otherwise match VDMI asset validation.
+  const marketCommunicationEvidenceSignals = [
+    'marktkommunikations evidenzkette',
+    'marktkommunikation evidenz',
+    'mako evidenzkette',
+    'malo melo',
+    'utilmd stammdatenweg',
+    'verbrauchsdatenabruf',
+    'edm datenqualitaet',
+    'edm datenqualität',
+    'portalhinweis',
+    'portal screenshot',
+    'imsys abrechnungsreife',
+  ];
+  const hasMarketCommunicationEvidenceCombo =
+    /(marktkommunikation|mako|utilmd|malo|melo|imsys|verbrauchsdatenabruf)/i.test(haystack) &&
+    /(evidenz|evidence|nachweis|stammdatenweg|portal|abrechnungsreife|datenqualit[aä]t)/i.test(
+      haystack
+    );
+
+  if (
+    marketCommunicationEvidenceSignals.some((signal) => haystack.includes(signal)) ||
+    hasMarketCommunicationEvidenceCombo
+  ) {
+    const makoCapability = findCapabilityByName('market_communication_evidence_chain');
+    if (makoCapability) {
+      return { capability: makoCapability, score: 134, usedFallback: false };
+    }
+  }
+
   // ── Redispatch/RCS Special Case Governance — must precede VDMI decision check
   // 'vergütungszusage' + 'netzbetreiber' combo would otherwise trigger VDMI grid-connection
   // decision governance (score 130). RCS/Expost signals narrow the domain unambiguously.

@@ -65,14 +65,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 18 static rules', () => {
+    it('loads all 19 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(18);
+      expect(rules.length).toBe(19);
     });
 
-    it('compiles all 18 static rules without error', () => {
+    it('compiles all 19 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(18);
+      expect(rules.length).toBe(19);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -365,6 +365,42 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Blocked Reason: requested_renderer_not_grounded:vdmi_matrix_table');
       expect(formatted).toContain('Source Action: mock.kpi');
       expect(formatted).toContain('Evidence Gap: missing_vdmi_roles');
+    });
+
+    it('dashboard-api.marketCommunicationEvidenceChainStatus is dossier-safe and formats evidence-chain facts', () => {
+      const rule = getRule('dashboard-api.marketCommunicationEvidenceChainStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Marktkommunikations Evidenzkette malo=DE-MALO-1 melo=DE-MELO-1 case=case-123 laden'
+        )
+      ).toEqual({
+        maloId: 'DE-MALO-1',
+        meloId: 'DE-MELO-1',
+        caseId: 'case-123',
+        includeHints: true,
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_official_evidence',
+        officialEvidence: [{ id: 'malo_identity' }],
+        hintsOnly: [{ id: 'portal_screenshot' }],
+        missingEvidence: [{ missingDataPoint: 'utilmd_masterdata_path' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition:
+              'replace portal hints with official master-data provenance',
+          },
+        ],
+        timestamp: '2026-06-19T21:30:00.000Z',
+      });
+
+      expect(formatted).toContain('Evidence Status: needs_official_evidence');
+      expect(formatted).toContain('Official Evidence: malo_identity');
+      expect(formatted).toContain('Hint Only: portal_screenshot');
+      expect(formatted).toContain('Leading Gap: utilmd_masterdata_path');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {

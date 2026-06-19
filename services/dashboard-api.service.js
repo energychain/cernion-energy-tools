@@ -46,6 +46,7 @@ module.exports = {
       redispatchCallQualityGate: 5 * 60 * 1000, // 5 min
       evidenceGroundingConfidenceAudit: 5 * 60 * 1000, // 5 min
       receiptGroundedPresentationContract: 5 * 60 * 1000, // 5 min
+      marketCommunicationEvidenceChainStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -1292,6 +1293,96 @@ module.exports = {
               _errors: [],
             };
           }
+        );
+      },
+    },
+
+    // ── marketCommunicationEvidenceChainStatus ─────────────────────────────
+    /**
+     * GET /api/dashboard/market-communication-evidence-chain?maloId=...&includeHints=true
+     *
+     * Read-only dossier-safe status for Marktkommunikations-Evidenzketten.
+     * It separates official MaKo/EDM/Settlement evidence from portal,
+     * customer or provider hints and never releases billing or settlement.
+     */
+    marketCommunicationEvidenceChainStatus: {
+      rest: 'GET /market-communication-evidence-chain',
+      params: {
+        maloId: { type: 'string', optional: true, min: 1 },
+        meloId: { type: 'string', optional: true, min: 1 },
+        contractAccountId: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+        includeHints: { type: 'boolean', optional: true, convert: true, default: false },
+        portalHint: { type: 'string', optional: true, min: 1 },
+        providerView: { type: 'string', optional: true, min: 1 },
+        customerStatement: { type: 'string', optional: true, min: 1 },
+        utilmdMasterdataPath: { type: 'string', optional: true, min: 1 },
+        meterValueBatchId: { type: 'string', optional: true, min: 1 },
+        consumptionRetrievalStatus: { type: 'string', optional: true, min: 1 },
+        dataQualityStatus: { type: 'string', optional: true, min: 1 },
+        nextBillingStep: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Market communication evidence chain — read-only dossier-safe status',
+        description:
+          'Classifies market-communication evidence for dynamic tariff, iMSys, consumption-data ' +
+          'and billing-readiness cases. Portal screenshots, customer statements and provider views ' +
+          'are hints only; official MaLo/MeLo, UTILMD/master-data path, meter values, consumption ' +
+          'retrieval, data-quality status and next billing step remain separate required evidence. ' +
+          'The endpoint is read-only and does not mutate MaKo, EDM, billing, settlement, VDMI or HITL state.',
+        parameters: [
+          { name: 'maloId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'meloId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'contractAccountId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'includeHints', in: 'query', required: false, schema: { type: 'boolean' } },
+          { name: 'portalHint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'providerView', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'customerStatement', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'utilmdMasterdataPath', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'meterValueBatchId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'consumptionRetrievalStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataQualityStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextBillingStep', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only market-communication evidence-chain status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    officialEvidence: { type: 'array' },
+                    hintsOnly: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    dossierFacts: { type: 'array' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `market-communication-evidence-chain:${params.caseId || 'no-case'}:${params.maloId || 'no-malo'}:${params.meloId || 'no-melo'}:${params.contractAccountId || 'no-account'}:${params.includeHints ? 'hints' : 'no-hints'}:${params.utilmdMasterdataPath || 'no-utilmd'}:${params.meterValueBatchId || 'no-meter'}:${params.consumptionRetrievalStatus || 'no-consumption'}:${params.dataQualityStatus || 'no-quality'}:${params.nextBillingStep || 'no-next'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.marketCommunicationEvidenceChainStatus,
+          async () => ({
+            ...this.buildMarketCommunicationEvidenceChainStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
         );
       },
     },
@@ -3028,6 +3119,146 @@ module.exports = {
           message: item.enablesDossierAddition,
         })),
         dossierEvidence,
+      };
+    },
+
+    buildMarketCommunicationEvidenceChainStatus(params = {}) {
+      const officialSpecs = [
+        {
+          id: 'malo_identity',
+          label: 'MaLo identity',
+          value: params.maloId,
+          sourceClass: 'official_market_location',
+          enablesDossierAddition: 'bind the dossier to the official market location',
+        },
+        {
+          id: 'melo_identity',
+          label: 'MeLo identity',
+          value: params.meloId,
+          sourceClass: 'official_meter_location',
+          enablesDossierAddition: 'bind the dossier to the official meter location',
+        },
+        {
+          id: 'utilmd_masterdata_path',
+          label: 'UTILMD/master-data path',
+          value: params.utilmdMasterdataPath,
+          sourceClass: 'official_market_communication',
+          enablesDossierAddition: 'replace portal hints with official master-data provenance',
+        },
+        {
+          id: 'meter_values',
+          label: 'Meter values',
+          value: params.meterValueBatchId,
+          sourceClass: 'metering_evidence',
+          enablesDossierAddition: 'add consumption-period meter-value evidence',
+        },
+        {
+          id: 'consumption_retrieval',
+          label: 'Consumption retrieval status',
+          value: params.consumptionRetrievalStatus,
+          sourceClass: 'edm_retrieval_evidence',
+          enablesDossierAddition: 'add EDM retrieval-status statement',
+        },
+        {
+          id: 'data_quality_status',
+          label: 'Data-quality status',
+          value: params.dataQualityStatus,
+          sourceClass: 'edm_quality_evidence',
+          enablesDossierAddition: 'add billing-readiness confidence',
+        },
+        {
+          id: 'next_billing_step',
+          label: 'Next billing step',
+          value: params.nextBillingStep,
+          sourceClass: 'settlement_context',
+          enablesDossierAddition: 'add next settlement or billing action context without releasing billing',
+        },
+      ];
+      const officialEvidence = officialSpecs
+        .filter((spec) => spec.value != null && spec.value !== '')
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.value,
+          sourceClass: spec.sourceClass,
+          bindingStrength: 'official_evidence',
+        }));
+      const missingEvidence = officialSpecs
+        .filter((spec) => spec.value == null || spec.value === '')
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const hintSpecs = [
+        { id: 'portal_screenshot', label: 'Portal screenshot or portal view', value: params.portalHint },
+        { id: 'provider_view', label: 'Service-provider view', value: params.providerView },
+        { id: 'customer_statement', label: 'Customer or supplier statement', value: params.customerStatement },
+      ];
+      const hintsOnly = (params.includeHints ? hintSpecs : [])
+        .filter((spec) => spec.value != null && spec.value !== '')
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.value,
+          sourceClass: 'hint_only',
+          bindingStrength: 'not_official_proof',
+        }));
+      const status =
+        officialEvidence.length === officialSpecs.length
+          ? 'official_evidence_complete'
+          : officialEvidence.length === 0 && hintsOnly.length > 0
+            ? 'hints_only'
+            : 'needs_official_evidence';
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Official evidence items: ${officialEvidence.length}/${officialSpecs.length}`,
+      ];
+      if (hintsOnly.length > 0) {
+        dossierFacts.push('Portal/provider/customer material is classified as hint only.');
+      }
+      if (params.maloId) dossierFacts.push(`MaLo: ${params.maloId}`);
+      if (params.meloId) dossierFacts.push(`MeLo: ${params.meloId}`);
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'official_market_communication_evidence',
+      }));
+
+      return {
+        chainId: `mako-ec:${Buffer.from(`${params.caseId || ''}:${params.maloId || ''}:${params.meloId || ''}:${params.contractAccountId || ''}`).toString('base64url').slice(0, 24)}`,
+        safety: 'read_only',
+        requestContext: {
+          maloId: params.maloId || null,
+          meloId: params.meloId || null,
+          contractAccountId: params.contractAccountId || null,
+          caseId: params.caseId || null,
+        },
+        status,
+        officialEvidence,
+        hintsOnly,
+        missingEvidence,
+        positiveFollowUps,
+        dossierFacts,
+        sourceActions: {
+          inspected: ['dashboard-api.marketCommunicationEvidenceChainStatus'],
+          notCalled: ['settlement.exportA96', 'settlement.prepareBilling', 'hitl.create'],
+        },
+        validationFindings: missingEvidence.map((item) => ({
+          code: `MAKO_EVIDENCE_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+          severity: 'medium',
+          message: item.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          status,
+          officialEvidence,
+          hintsOnly,
+          missingEvidence,
+          positiveFollowUps,
+          dossierFacts,
+        },
       };
     },
 
