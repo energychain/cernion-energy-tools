@@ -748,4 +748,17 @@ describe('Capability Broker Service', () => {
     expect(actionNames).toContain('battery-redispatch-special-gate.evaluate');
     expect(actionNames).not.toContain('personal-agent.execute');
   });
+
+  it('routes Flexibilitaetsdirigent role-model prompts to the read-only evidence path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle ein Flexibilitaetsdirigent Rollenmodell mit RACI, Entscheidungsrechten, Fahrplanmanagement, Steuerbefehl-Grenze, Softwareueberwachung, Niederspannung, Assetmanagement, Regulierungsbewertung und Eskalationspfad.',
+    });
+
+    expect(result.capability).toBe('flexibility_conductor_role_model');
+    expect(result.recommendedCapabilities[0].capability).toBe('flexibility_conductor_role_model');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('flexibility-conductor-role-model.getStatus');
+    expect(actionNames).toContain('flexibility-conductor-role-model.evaluate');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
 });

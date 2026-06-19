@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: bad0e56596f5aa2aa7a01e77c75b8550f30d2cc74f106a2a91189a3def54a658
+  - openapi-export.json: fc4ff6d8260f9845d7549d3e7327baa89774a5b7025a842dd3d8e42c58543ffb
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 682
-- operation_count: 787
+- path_count: 686
+- operation_count: 791
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -716,6 +716,7 @@ process:
 - Finance Agent: 7 operations
 - Flex (§14a Flexibilitätsmanagement): 8 operations
 - flexibilitaetskosten-raster: 3 operations
+- Flexibility Conductor Role Model: 4 operations
 - fnav-commercial-hedging: 4 operations
 - Forecast (Prognostik): 16 operations
 - Gas Storage (AGSI): 7 operations
@@ -1184,6 +1185,10 @@ process:
 - GET /api/flexibilitaetskosten-raster/grids | tags: [flexibilitaetskosten-raster] | operationId: flexibilitaetskosten-raster_list | summary: flexibilitaetskosten-raster.list
 - POST /api/flexibilitaetskosten-raster/grids | tags: [flexibilitaetskosten-raster] | operationId: flexibilitaetskosten-raster_create | summary: flexibilitaetskosten-raster.create
 - GET /api/flexibilitaetskosten-raster/grids/:id | tags: [flexibilitaetskosten-raster] | operationId: flexibilitaetskosten-raster_get | summary: flexibilitaetskosten-raster.get
+- GET /api/flexibility-conductor-role-model/:processId/status | tags: [Flexibility Conductor Role Model] | operationId: flexibility-conductor-role-model_getStatus | summary: Get dossier-safe flexibility conductor role-model status
+- POST /api/flexibility-conductor-role-model/evaluate | tags: [Flexibility Conductor Role Model] | operationId: flexibility-conductor-role-model_evaluate | summary: Evaluate flexibility orchestration role-model evidence
+- GET /api/flexibility-conductor-role-model/models | tags: [Flexibility Conductor Role Model] | operationId: flexibility-conductor-role-model_listModels | summary: List flexibility conductor role models
+- GET /api/flexibility-conductor-role-model/models/:roleModelId | tags: [Flexibility Conductor Role Model] | operationId: flexibility-conductor-role-model_getModel | summary: Get a flexibility conductor role model
 - GET /api/fnav-commercial-hedging/contracts | tags: [fnav-commercial-hedging] | operationId: fnav-commercial-hedging_listContracts | summary: fnav-commercial-hedging.listContracts
 - POST /api/fnav-commercial-hedging/contracts | tags: [fnav-commercial-hedging] | operationId: fnav-commercial-hedging_createContract | summary: fnav-commercial-hedging.createContract
 - GET /api/fnav-commercial-hedging/scenarios | tags: [fnav-commercial-hedging] | operationId: fnav-commercial-hedging_listScenarios | summary: fnav-commercial-hedging.listScenarios
@@ -28432,6 +28437,90 @@ process:
         ]
       }
     },
+    "/api/flexibility-conductor-role-model/:processId/status": {
+      "get": {
+        "operationId": "flexibility-conductor-role-model_getStatus",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get dossier-safe flexibility conductor role-model status",
+        "tags": [
+          "Flexibility Conductor Role Model"
+        ]
+      }
+    },
+    "/api/flexibility-conductor-role-model/evaluate": {
+      "post": {
+        "operationId": "flexibility-conductor-role-model_evaluate",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Evaluate flexibility orchestration role-model evidence",
+        "tags": [
+          "Flexibility Conductor Role Model"
+        ]
+      }
+    },
+    "/api/flexibility-conductor-role-model/models": {
+      "get": {
+        "operationId": "flexibility-conductor-role-model_listModels",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List flexibility conductor role models",
+        "tags": [
+          "Flexibility Conductor Role Model"
+        ]
+      }
+    },
+    "/api/flexibility-conductor-role-model/models/:roleModelId": {
+      "get": {
+        "operationId": "flexibility-conductor-role-model_getModel",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get a flexibility conductor role model",
+        "tags": [
+          "Flexibility Conductor Role Model"
+        ]
+      }
+    },
     "/api/fnav-commercial-hedging/contracts": {
       "get": {
         "operationId": "fnav-commercial-hedging_listContracts",
@@ -53195,4 +53284,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 40de05efe9874125596a62d252e1ef15d846bac92b06c118b7ee430007f170f6
+- llm_txt_sha256: 1bbc4a5e1f9b0a81fc6802f3c22105f8aa0b2cbffe7a6a696394eac790ac6103

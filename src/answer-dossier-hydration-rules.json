@@ -382,5 +382,49 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 244
+  },
+  {
+    "id": "flexibility-conductor-role-model.getStatus",
+    "action": "flexibility-conductor-role-model.getStatus",
+    "label": "Flexibility Conductor Role Model Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "processId": {
+        "extractor": "regexCaptureSafe",
+        "required": true,
+        "config": {
+          "pattern": "(flex-role:[a-zA-Z0-9-]+|fcrm-process:[a-zA-Z0-9-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["evidenceStatus", "answerFacts.evidenceStatus"], "label": "Evidence Status", "maxLen": 60 },
+        { "paths": ["processId", "answerFacts.processId"], "label": "Process", "maxLen": 80 },
+        { "paths": ["roleModelId", "answerFacts.roleModelId"], "label": "Role Model", "maxLen": 80 },
+        { "paths": ["answerFacts.flexAssetScope.scopeId", "flexAssetScope.scopeId"], "label": "Asset Scope", "maxLen": 100 },
+        { "paths": ["answerFacts.roleCoverage.forecastIntake.accountable"], "label": "Forecast Owner", "maxLen": 100 },
+        { "paths": ["answerFacts.roleCoverage.controlCommandPolicy.accountable"], "label": "Control Policy Owner", "maxLen": 100 },
+        { "paths": ["answerFacts.controlCommandBoundary", "controlCommandBoundary"], "label": "Control Boundary", "maxLen": 160 },
+        { "paths": ["answerFacts.softwareMonitoringOwner", "softwareMonitoringOwner"], "label": "Monitoring Owner", "maxLen": 100 },
+        { "paths": ["answerFacts.commercialValueOwner", "commercialValueOwner"], "label": "Commercial Owner", "maxLen": 100 },
+        { "paths": ["answerFacts.evaluatedAt", "evaluatedAt"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 245
   }
 ]

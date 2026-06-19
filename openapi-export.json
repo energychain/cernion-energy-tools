@@ -21251,6 +21251,90 @@
         }
       }
     },
+    "/api/flexibility-conductor-role-model/evaluate": {
+      "post": {
+        "operationId": "flexibility-conductor-role-model_evaluate",
+        "summary": "Evaluate flexibility orchestration role-model evidence",
+        "tags": [
+          "Flexibility Conductor Role Model"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flexibility-conductor-role-model/models": {
+      "get": {
+        "operationId": "flexibility-conductor-role-model_listModels",
+        "summary": "List flexibility conductor role models",
+        "tags": [
+          "Flexibility Conductor Role Model"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flexibility-conductor-role-model/models/:roleModelId": {
+      "get": {
+        "operationId": "flexibility-conductor-role-model_getModel",
+        "summary": "Get a flexibility conductor role model",
+        "tags": [
+          "Flexibility Conductor Role Model"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flexibility-conductor-role-model/:processId/status": {
+      "get": {
+        "operationId": "flexibility-conductor-role-model_getStatus",
+        "summary": "Get dossier-safe flexibility conductor role-model status",
+        "tags": [
+          "Flexibility Conductor Role Model"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/fnav-commercial-hedging/contracts": {
       "post": {
         "operationId": "fnav-commercial-hedging_createContract",

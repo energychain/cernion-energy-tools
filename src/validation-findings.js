@@ -312,6 +312,16 @@ const BRS_SETTLEMENT_DIRECTION_CONFLICT = 'BRS_SETTLEMENT_DIRECTION_CONFLICT';
 const BRS_GATE_READY = 'BRS_GATE_READY';
 const BRS_GATE_BLOCKED = 'BRS_GATE_BLOCKED';
 
+// FCRM — Flexibility Conductor Role Model (v0.63)
+const FCRM_DECISION_RIGHTS_MISSING = 'FCRM_DECISION_RIGHTS_MISSING';
+const FCRM_CONTROL_BOUNDARY_MISSING = 'FCRM_CONTROL_BOUNDARY_MISSING';
+const FCRM_MONITORING_OWNER_MISSING = 'FCRM_MONITORING_OWNER_MISSING';
+const FCRM_COMMERCIAL_OWNER_MISSING = 'FCRM_COMMERCIAL_OWNER_MISSING';
+const FCRM_ESCALATION_PATH_MISSING = 'FCRM_ESCALATION_PATH_MISSING';
+const FCRM_SOURCE_ACTIONS_MISSING = 'FCRM_SOURCE_ACTIONS_MISSING';
+const FCRM_ROLE_MODEL_READY = 'FCRM_ROLE_MODEL_READY';
+const FCRM_ROLE_MODEL_BLOCKED = 'FCRM_ROLE_MODEL_BLOCKED';
+
 // ---------------------------------------------------------------------------
 // Netzfahrplan / fNAV finding codes (v0.51.5) — Phase 5
 // ---------------------------------------------------------------------------
@@ -1865,6 +1875,64 @@ const FINDING_CODE_METADATA = {
     description: 'Battery Redispatch special gate is blocked',
     descriptionDe: 'Batteriespeicher-Redispatch-Sondergate ist blockiert',
   },
+
+  // ── Flexibility Conductor Role Model (v0.63) ───────────────────────────
+  FCRM_DECISION_RIGHTS_MISSING: {
+    severity: 'error',
+    agent: 'flexibility-conductor-role-model',
+    step: 1,
+    description: 'Flexibility conductor role-model decision rights are incomplete',
+    descriptionDe: 'Entscheidungsrechte im Flexibilitaetsdirigent-Rollenmodell sind unvollstaendig',
+  },
+  FCRM_CONTROL_BOUNDARY_MISSING: {
+    severity: 'error',
+    agent: 'flexibility-conductor-role-model',
+    step: 1,
+    description: 'Flexibility conductor control-command boundary is missing',
+    descriptionDe: 'Steuerbefehlsgrenze im Flexibilitaetsdirigent-Rollenmodell fehlt',
+  },
+  FCRM_MONITORING_OWNER_MISSING: {
+    severity: 'warning',
+    agent: 'flexibility-conductor-role-model',
+    step: 1,
+    description: 'Flexibility conductor software monitoring owner is missing',
+    descriptionDe: 'Owner fuer Softwareueberwachung im Flexibilitaetsdirigent-Rollenmodell fehlt',
+  },
+  FCRM_COMMERCIAL_OWNER_MISSING: {
+    severity: 'warning',
+    agent: 'flexibility-conductor-role-model',
+    step: 1,
+    description: 'Flexibility conductor commercial value owner is missing',
+    descriptionDe: 'Owner fuer kaufmaennischen Mehrwert im Flexibilitaetsdirigent-Rollenmodell fehlt',
+  },
+  FCRM_ESCALATION_PATH_MISSING: {
+    severity: 'error',
+    agent: 'flexibility-conductor-role-model',
+    step: 1,
+    description: 'Flexibility conductor escalation path is missing',
+    descriptionDe: 'Eskalationspfad im Flexibilitaetsdirigent-Rollenmodell fehlt',
+  },
+  FCRM_SOURCE_ACTIONS_MISSING: {
+    severity: 'warning',
+    agent: 'flexibility-conductor-role-model',
+    step: 1,
+    description: 'Flexibility conductor source action references are missing',
+    descriptionDe: 'Quell-Action-Referenzen im Flexibilitaetsdirigent-Rollenmodell fehlen',
+  },
+  FCRM_ROLE_MODEL_READY: {
+    severity: 'info',
+    agent: 'flexibility-conductor-role-model',
+    step: 1,
+    description: 'Flexibility conductor role model is ready',
+    descriptionDe: 'Flexibilitaetsdirigent-Rollenmodell ist bereit',
+  },
+  FCRM_ROLE_MODEL_BLOCKED: {
+    severity: 'error',
+    agent: 'flexibility-conductor-role-model',
+    step: 1,
+    description: 'Flexibility conductor role model is blocked',
+    descriptionDe: 'Flexibilitaetsdirigent-Rollenmodell ist blockiert',
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -2105,4 +2173,13 @@ module.exports = {
   BRS_SETTLEMENT_DIRECTION_CONFLICT,
   BRS_GATE_READY,
   BRS_GATE_BLOCKED,
+  // FCRM — Flexibility Conductor Role Model (v0.63)
+  FCRM_DECISION_RIGHTS_MISSING,
+  FCRM_CONTROL_BOUNDARY_MISSING,
+  FCRM_MONITORING_OWNER_MISSING,
+  FCRM_COMMERCIAL_OWNER_MISSING,
+  FCRM_ESCALATION_PATH_MISSING,
+  FCRM_SOURCE_ACTIONS_MISSING,
+  FCRM_ROLE_MODEL_READY,
+  FCRM_ROLE_MODEL_BLOCKED,
 };

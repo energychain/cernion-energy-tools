@@ -65,14 +65,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 11 static rules', () => {
+    it('loads all 12 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(11);
+      expect(rules.length).toBe(12);
     });
 
-    it('compiles all 11 static rules without error', () => {
+    it('compiles all 12 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(11);
+      expect(rules.length).toBe(12);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -92,7 +92,7 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule.timeoutMs).toBe(14000);
     });
 
-    it('all 11 actions are retrievable by getRule()', () => {
+    it('all 12 actions are retrievable by getRule()', () => {
       const expected = [
         'energy-market.co2Intensity',
         'gas-storage.countryStorage',
@@ -105,6 +105,7 @@ describe('dossier-hydration-registry (unit)', () => {
         'redispatch-readiness-gate.getStatus',
         're4de-variable-grid-fee.getEvidence',
         'battery-redispatch-special-gate.getStatus',
+        'flexibility-conductor-role-model.getStatus',
       ];
       for (const action of expected) {
         expect(getRule(action)).not.toBeNull();
@@ -318,6 +319,44 @@ describe('dossier-hydration-registry (unit)', () => {
       const rule = getRule('battery-redispatch-special-gate.getStatus');
       expect(rule.formatEvidence({ found: false, message: 'No battery gate evidence yet' })).toBe(
         'No battery gate evidence yet'
+      );
+    });
+
+    it('flexibility-conductor-role-model.getStatus is dossier-safe and formats role evidence', () => {
+      const rule = getRule('flexibility-conductor-role-model.getStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams([], 'Bitte Rollenmodell flex-role:process-001 fuer Flexibilitaetsdirigent laden')
+      ).toEqual({ processId: 'flex-role:process-001' });
+
+      const formatted = rule.formatEvidence({
+        processId: 'flex-role:process-001',
+        roleModelId: 'fcrm:test',
+        evidenceStatus: 'ready',
+        answerFacts: {
+          flexAssetScope: { scopeId: 'scope-low-voltage-flex-001' },
+          roleCoverage: {
+            forecastIntake: { accountable: 'Netzbetrieb' },
+            controlCommandPolicy: { accountable: 'Leitwarte' },
+          },
+          controlCommandBoundary: 'No automatic control commands from dossier hydration',
+          softwareMonitoringOwner: 'OT Plattformbetrieb',
+          commercialValueOwner: 'Assetmanagement/Controlling',
+          evaluatedAt: '2026-06-19T11:30:00.000Z',
+        },
+      });
+
+      expect(formatted).toContain('Evidence Status: ready');
+      expect(formatted).toContain('Process: flex-role:process-001');
+      expect(formatted).toContain('Control Policy Owner: Leitwarte');
+      expect(formatted).toContain('Monitoring Owner: OT Plattformbetrieb');
+    });
+
+    it('flexibility-conductor-role-model.getStatus formats not-found message as fallback evidence', () => {
+      const rule = getRule('flexibility-conductor-role-model.getStatus');
+      expect(rule.formatEvidence({ found: false, message: 'No role-model evidence yet' })).toBe(
+        'No role-model evidence yet'
       );
     });
 

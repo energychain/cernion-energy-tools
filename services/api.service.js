@@ -1650,6 +1650,16 @@ module.exports = {
           'GET /battery-redispatch-special-gate/:gateId/status':
             'battery-redispatch-special-gate.getStatus',
 
+          // Flexibility Conductor Role Model (v0.63)
+          'POST /flexibility-conductor-role-model/evaluate':
+            'flexibility-conductor-role-model.evaluate',
+          'GET /flexibility-conductor-role-model/models':
+            'flexibility-conductor-role-model.listModels',
+          'GET /flexibility-conductor-role-model/models/:roleModelId':
+            'flexibility-conductor-role-model.getModel',
+          'GET /flexibility-conductor-role-model/:processId/status':
+            'flexibility-conductor-role-model.getStatus',
+
           // Redispatch Settlement Sandbox (v0.62)
           'POST /redispatch-settlement-sandbox/scenarios':
             'redispatch-settlement-sandbox.createScenario',
