@@ -65,14 +65,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 9 static rules', () => {
+    it('loads all 10 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(9);
+      expect(rules.length).toBe(10);
     });
 
-    it('compiles all 9 static rules without error', () => {
+    it('compiles all 10 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(9);
+      expect(rules.length).toBe(10);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -92,7 +92,7 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule.timeoutMs).toBe(14000);
     });
 
-    it('all 9 actions are retrievable by getRule()', () => {
+    it('all 10 actions are retrievable by getRule()', () => {
       const expected = [
         'energy-market.co2Intensity',
         'gas-storage.countryStorage',
@@ -103,6 +103,7 @@ describe('dossier-hydration-registry (unit)', () => {
         'energy-market.prices',
         'residual-load.netResidualLoad',
         'redispatch-readiness-gate.getStatus',
+        're4de-variable-grid-fee.getEvidence',
       ];
       for (const action of expected) {
         expect(getRule(action)).not.toBeNull();
@@ -252,6 +253,32 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule.formatEvidence({ found: false, message: 'No readiness evaluation yet' })).toBe(
         'No readiness evaluation yet'
       );
+    });
+
+    it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {
+      const rule = getRule('re4de-variable-grid-fee.getEvidence');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams([], 'Bitte Evidenz fuer re4de-vgf:123e4567-e89b-12d3-a456-426614174000 laden')
+      ).toEqual({ calculationId: 're4de-vgf:123e4567-e89b-12d3-a456-426614174000' });
+
+      const formatted = rule.formatEvidence({
+        tariffSheetId: 'vgf-sheet-001',
+        tariffSheetVersion: '1.0.0',
+        gridAreaId: 'grid-area-demo',
+        totalKwh: 12.3456,
+        variableFeeEur: 1.23,
+        basePriceEur: 0.04,
+        totalEur: 1.27,
+        section14aApplied: true,
+        calculatedAt: '2026-06-19T09:00:00.000Z',
+      });
+
+      expect(formatted).toContain('Tariff Sheet: vgf-sheet-001');
+      expect(formatted).toContain('Energy: 12.346 kWh');
+      expect(formatted).toContain('Total: 1.27 EUR');
+      expect(formatted).toContain('Section14a Context: true');
     });
 
     it('listSummary formats empty arrays as explicit negative evidence', () => {

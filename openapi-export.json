@@ -35632,6 +35632,69 @@
         }
       }
     },
+    "/api/re4de-variable-grid-fee/calculate": {
+      "post": {
+        "operationId": "re4de-variable-grid-fee_calculate",
+        "summary": "Calculate a Re4DE-aligned variable grid fee",
+        "tags": [
+          "Re4DE Variable Grid Fee"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/re4de-variable-grid-fee/calculations/:calculationId": {
+      "get": {
+        "operationId": "re4de-variable-grid-fee_getCalculation",
+        "summary": "Get a variable grid-fee calculation",
+        "tags": [
+          "Re4DE Variable Grid Fee"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/re4de-variable-grid-fee/calculations/:calculationId/evidence": {
+      "get": {
+        "operationId": "re4de-variable-grid-fee_getEvidence",
+        "summary": "Get dossier-safe evidence for a variable grid-fee calculation",
+        "tags": [
+          "Re4DE Variable Grid Fee"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/redispatch-asset-register/projections": {
       "post": {
         "operationId": "redispatch-asset-register_createProjection",

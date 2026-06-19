@@ -444,6 +444,37 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Re4DE Variable Grid-Fee Layer-3 Service
+  const re4deVariableGridFeeSignals = [
+    're4de',
+    'variable grid fee',
+    'variable grid-fee',
+    'variables netzentgelt',
+    'variable netzentgelte',
+    'tariff sheet',
+    'tarifblatt',
+    'grid fee calculation',
+    'netzentgelt berechnung',
+    'datenraum',
+    'data product',
+    'taf-7 interval',
+    'section14a module 3',
+    '§14a module 3',
+  ];
+  const hasRe4deVariableGridFeeCombo =
+    /(netzentgelt|grid.?fee|tariff|tarif|datenraum|data.?product|re4de)/i.test(haystack) &&
+    /(variable|calculation|berechnung|layer.?3|taf.?7|14a|§14a|evidence|nachweis)/i.test(haystack);
+
+  if (
+    re4deVariableGridFeeSignals.some((signal) => haystack.includes(signal)) ||
+    hasRe4deVariableGridFeeCombo
+  ) {
+    const re4deCapability = findCapabilityByName('re4de_variable_grid_fee_layer3');
+    if (re4deCapability) {
+      return { capability: re4deCapability, score: 122, usedFallback: false };
+    }
+  }
+
   // ── Declarative domain routes registry (score 121, before VDMI asset-validation at 120)
   // Routes are managed via src/domain-routes-registry.js (static JSON + runtime overlay).
   // Each entry fires when any trigger phrase matches OR any combo (all-AND regex group) matches.

@@ -293,5 +293,48 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 243
+  },
+  {
+    "id": "re4de-variable-grid-fee.getEvidence",
+    "action": "re4de-variable-grid-fee.getEvidence",
+    "label": "Re4DE Variable Grid-Fee Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "calculationId": {
+        "extractor": "regexCaptureSafe",
+        "required": true,
+        "config": {
+          "pattern": "(re4de-vgf:[a-zA-Z0-9-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["tariffSheetId"], "label": "Tariff Sheet", "maxLen": 80 },
+        { "paths": ["tariffSheetVersion"], "label": "Version", "maxLen": 40 },
+        { "paths": ["gridAreaId"], "label": "Grid Area", "maxLen": 80 },
+        { "paths": ["totalKwh"], "label": "Energy", "suffix": "kWh", "precision": 3 },
+        { "paths": ["variableFeeEur"], "label": "Variable Fee", "suffix": "EUR", "precision": 2 },
+        { "paths": ["basePriceEur"], "label": "Base Price", "suffix": "EUR", "precision": 2 },
+        { "paths": ["totalEur"], "label": "Total", "suffix": "EUR", "precision": 2 },
+        { "paths": ["section14aApplied"], "label": "Section14a Context" },
+        { "paths": ["calculatedAt"], "label": "Calculated At", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 224
   }
 ]

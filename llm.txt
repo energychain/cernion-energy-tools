@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: 0f313e58ae97692f07eb82320ccf9662f454c1b1fee4b2b4b9e971a585d86fbd
+  - openapi-export.json: 623bbaf43970812eb869cf3f743ddbff2719295804bc4e6999ba9e67df8dd44a
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 675
-- operation_count: 780
+- path_count: 678
+- operation_count: 783
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -745,6 +745,7 @@ process:
 - Query Tools: 5 operations
 - rcs-rule-catalog: 4 operations
 - rcs-simulation-run: 18 operations
+- Re4DE Variable Grid Fee: 3 operations
 - Redispatch Asset Register: 7 operations
 - Redispatch Data Governance: 7 operations
 - Redispatch Ex-Post: 6 operations
@@ -1379,6 +1380,9 @@ process:
 - GET /api/rcs-simulation-run/runs/:runId/assets/:assetId/trace | tags: [rcs-simulation-run] | operationId: rcs-simulation-run_getTrace | summary: rcs-simulation-run.getTrace
 - GET /api/rcs-simulation-run/runs/:runId/errors | tags: [rcs-simulation-run] | operationId: rcs-simulation-run_listRunErrors | summary: rcs-simulation-run.listRunErrors
 - GET /api/rcs-simulation-run/runs/:runId/readiness | tags: [rcs-simulation-run] | operationId: rcs-simulation-run_getRunReadiness | summary: rcs-simulation-run.getRunReadiness
+- POST /api/re4de-variable-grid-fee/calculate | tags: [Re4DE Variable Grid Fee] | operationId: re4de-variable-grid-fee_calculate | summary: Calculate a Re4DE-aligned variable grid fee
+- GET /api/re4de-variable-grid-fee/calculations/:calculationId | tags: [Re4DE Variable Grid Fee] | operationId: re4de-variable-grid-fee_getCalculation | summary: Get a variable grid-fee calculation
+- GET /api/re4de-variable-grid-fee/calculations/:calculationId/evidence | tags: [Re4DE Variable Grid Fee] | operationId: re4de-variable-grid-fee_getEvidence | summary: Get dossier-safe evidence for a variable grid-fee calculation
 - GET /api/redispatch-asset-register/projections | tags: [Redispatch Asset Register] | operationId: redispatch-asset-register_listProjections | summary: List asset projections
 - POST /api/redispatch-asset-register/projections | tags: [Redispatch Asset Register] | operationId: redispatch-asset-register_createProjection | summary: Create an asset projection with deterministic finding checks
 - GET /api/redispatch-asset-register/projections/:id | tags: [Redispatch Asset Register] | operationId: redispatch-asset-register_getProjection | summary: Get asset projection by ID
@@ -44575,6 +44579,69 @@ process:
         ]
       }
     },
+    "/api/re4de-variable-grid-fee/calculate": {
+      "post": {
+        "operationId": "re4de-variable-grid-fee_calculate",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Calculate a Re4DE-aligned variable grid fee",
+        "tags": [
+          "Re4DE Variable Grid Fee"
+        ]
+      }
+    },
+    "/api/re4de-variable-grid-fee/calculations/:calculationId": {
+      "get": {
+        "operationId": "re4de-variable-grid-fee_getCalculation",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get a variable grid-fee calculation",
+        "tags": [
+          "Re4DE Variable Grid Fee"
+        ]
+      }
+    },
+    "/api/re4de-variable-grid-fee/calculations/:calculationId/evidence": {
+      "get": {
+        "operationId": "re4de-variable-grid-fee_getEvidence",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get dossier-safe evidence for a variable grid-fee calculation",
+        "tags": [
+          "Re4DE Variable Grid Fee"
+        ]
+      }
+    },
     "/api/redispatch-asset-register/projections": {
       "get": {
         "operationId": "redispatch-asset-register_listProjections",
@@ -53039,4 +53106,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: e2ce2c591218d4e106bad2f33151d84f6eb2bfbb82c796bf6b9ca7bcc28a9282
+- llm_txt_sha256: b4255072b6e7945ba4badf9f6a53808b5cd2363d497c48e8a3c61e7b5c212a6b

@@ -722,4 +722,17 @@ describe('Capability Broker Service', () => {
     expect(actionNames).toContain('redispatch-readiness-gate.getStatus');
     expect(actionNames).toContain('redispatch-readiness-gate.evaluate');
   });
+
+  it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',
+    });
+
+    expect(result.capability).toBe('re4de_variable_grid_fee_layer3');
+    expect(result.recommendedCapabilities[0].capability).toBe('re4de_variable_grid_fee_layer3');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('re4de-variable-grid-fee.getEvidence');
+    expect(actionNames).toContain('re4de-variable-grid-fee.calculate');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
 });
