@@ -5,11 +5,11 @@
 - version: 0.63.12
 - changelog_latest_release: 0.63.12
 - source_files_hash:
-  - CHANGELOG.md: b216c2764d93bc966586a22837510173a5a9bd7cb8ea1faaad44b894971600fa
+  - CHANGELOG.md: 0d91d3e6acf47eef9ad235f25e5104ae4ace3afb1fbd4aebf00773f73f66e26f
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: e3fe4831c4b82f206d6eecb04ec3c30e1ef5a8f9961660d4969944202842a738
+  - openapi-export.json: c353608995bc9bd075f4094476dee0c1da178d7a114ebb36aff981a02b2d0bd4
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -12160,6 +12160,10 @@ process:
                     },
                     "dossierMarkdown": {
                       "type": "string"
+                    },
+                    "dossierPlanning": {
+                      "description": "Dossier-safe planning view of the Capability Broker recommendation. Planning only: no consequential actions are executed from this field.",
+                      "type": "object"
                     },
                     "dossierVersion": {
                       "description": "Turn index within this session, starting at 1.",
@@ -52946,4 +52950,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 6928aabec88835e9287462afefd79749eaa3f0521de47255a13979b6885f4df9
+- llm_txt_sha256: b1e245d25ebc0438ec0338380988e60e897603649c4e00c011f7c8ef2680c6e7

@@ -45392,6 +45392,10 @@
                         }
                       }
                     },
+                    "dossierPlanning": {
+                      "type": "object",
+                      "description": "Dossier-safe planning view of the Capability Broker recommendation. Planning only: no consequential actions are executed from this field."
+                    },
                     "rendererSystemHint": {
                       "type": "string"
                     },

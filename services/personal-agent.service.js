@@ -190,6 +190,151 @@ const DEFAULT_SYSTEM_PROMPT =
   process.env.PERSONAL_AGENT_SYSTEM_PROMPT ||
   'Du bist der Cernion Personal Agent. Arbeite deterministisch, knapp und fachlich korrekt.';
 
+function uniqueStrings(values = []) {
+  return [...new Set((Array.isArray(values) ? values : []).filter((v) => typeof v === 'string' && v.trim()).map((v) => v.trim()))];
+}
+
+function normalizeBrokerCapabilityNames(recommendedCapabilities = []) {
+  if (!Array.isArray(recommendedCapabilities)) return [];
+  return recommendedCapabilities
+    .map((capability) => {
+      if (typeof capability === 'string') return capability;
+      return capability?.capability || capability?.id || capability?.name || null;
+    })
+    .filter(Boolean);
+}
+
+function buildDossierPlanningFollowUps(missingInputs = []) {
+  return uniqueStrings(missingInputs).map((input) => ({
+    missingDataPoint: input,
+    question: `Welchen Wert oder Beleg können Sie für "${input}" liefern?`,
+    enablesDossierAddition: `Mit "${input}" kann das Dossier die broker-empfohlene Planung fachlich präziser einordnen.`,
+    source: 'capability_broker_missing_input',
+  }));
+}
+
+function buildDossierSafePlanningView({ capabilityRouting = null, userProvidedFacts = [], dossierTask = '' } = {}) {
+  if (capabilityRouting?.status !== 'success' || !capabilityRouting.result) {
+    return {
+      status: capabilityRouting?.status || 'unavailable',
+      route: null,
+      actions: [],
+      hydrationCandidates: [],
+      requiredInputs: [],
+      optionalInputs: [],
+      missingInputs: [],
+      followUps: [],
+      executionPolicy: {
+        mode: 'planning_only',
+        noExecution: true,
+        consequentialActionsBlocked: true,
+      },
+    };
+  }
+
+  const result = capabilityRouting.result;
+  const planActions = Array.isArray(result.recommendedPlan)
+    ? result.recommendedPlan
+        .map((step, index) => ({
+          action: step?.action,
+          step: step?.step || index + 1,
+          purpose: step?.purpose || null,
+          source: 'recommendedPlan',
+        }))
+        .filter((entry) => typeof entry.action === 'string' && entry.action.trim())
+    : [];
+  const capabilityActions = Array.isArray(result.recommendedCapabilities)
+    ? result.recommendedCapabilities.flatMap((capability) =>
+        Array.isArray(capability?.actions)
+          ? capability.actions.map((action) => ({
+              action,
+              source: 'recommendedCapabilities',
+              capability: capability.capability || capability.id || null,
+            }))
+          : []
+      )
+    : [];
+  const preferredActions = Array.isArray(result.preferredActions)
+    ? result.preferredActions.map((action) => ({ action, source: 'preferredActions' }))
+    : [];
+  const fallbackActions = Array.isArray(result.fallbackActions)
+    ? result.fallbackActions.map((action) => ({ action, source: 'fallbackActions' }))
+    : [];
+
+  const actionsByName = new Map();
+  [...planActions, ...capabilityActions, ...preferredActions, ...fallbackActions].forEach((entry) => {
+    if (typeof entry.action !== 'string' || !entry.action.trim()) return;
+    const action = entry.action.trim();
+    const existing = actionsByName.get(action) || {
+      action,
+      sources: [],
+      step: entry.step || null,
+      purpose: entry.purpose || null,
+      capability: entry.capability || null,
+    };
+    if (!existing.sources.includes(entry.source)) existing.sources.push(entry.source);
+    if (!existing.step && entry.step) existing.step = entry.step;
+    if (!existing.purpose && entry.purpose) existing.purpose = entry.purpose;
+    if (!existing.capability && entry.capability) existing.capability = entry.capability;
+    actionsByName.set(action, existing);
+  });
+
+  const actions = Array.from(actionsByName.values()).map((entry) => {
+    const hydrationRule = getDossierHydrationRule(entry.action);
+    const unsafe = isDossierRuleSafetyRejected(entry.action);
+    const params = hydrationRule ? hydrationRule.extractParams(userProvidedFacts, dossierTask) : null;
+    return {
+      ...entry,
+      safety: hydrationRule
+        ? {
+            readOnly: true,
+            nonConsequential: true,
+            hitlRequired: false,
+            allowsMutation: false,
+          }
+        : {
+            readOnly: false,
+            nonConsequential: false,
+            hitlRequired: null,
+            allowsMutation: null,
+          },
+      hydration: {
+        allowed: Boolean(hydrationRule),
+        status: hydrationRule ? (params ? 'ready' : 'missing_params') : unsafe ? 'unsafe' : 'no_rule',
+        ruleId: hydrationRule?.id || null,
+        evidenceQuality: hydrationRule?.evidenceQuality || null,
+        paramsReady: Boolean(params),
+      },
+    };
+  });
+
+  const requiredInputs = uniqueStrings(result.requiredInputs || []);
+  const missingInputs = uniqueStrings(result.missingInputs || []);
+  const optionalInputs = uniqueStrings(result.optionalInputs || result.suggestedInputs || []);
+
+  return {
+    status: 'success',
+    route: {
+      intent: result.intent || null,
+      capability: result.capability || null,
+      domain: result.domain || null,
+      confidence: typeof result.confidence === 'number' ? result.confidence : null,
+      recommendedCapabilities: normalizeBrokerCapabilityNames(result.recommendedCapabilities),
+    },
+    actions,
+    hydrationCandidates: actions.filter((action) => action.hydration.allowed),
+    requiredInputs,
+    optionalInputs,
+    missingInputs,
+    followUps: buildDossierPlanningFollowUps(missingInputs),
+    executionPolicy: {
+      mode: 'planning_only',
+      noExecution: true,
+      consequentialActionsBlocked: true,
+    },
+  };
+}
+
 const CONSULTATION_OUTPUT_SCHEMA = {
   type: 'object',
   required: ['reply', 'hypotheses', 'openQuestions', 'nextActions', 'factsUsed'],
@@ -2386,6 +2531,11 @@ module.exports = {
                         defensiveNonAnswer: { type: 'boolean', description: 'Complement of substantiveAnswerInstructed — true when the dossier falls back to asking for more before answering.' },
                       },
                     },
+                    dossierPlanning: {
+                      type: 'object',
+                      description:
+                        'Dossier-safe planning view of the Capability Broker recommendation. Planning only: no consequential actions are executed from this field.',
+                    },
                     rendererSystemHint: { type: 'string' },
                     auditTrail: { type: 'object' },
                   },
@@ -2628,6 +2778,11 @@ module.exports = {
         // in < 5 ms (synchronous capability matching) and is already settled by the time
         // the tenantLowEvidence fetch above completes.
         const capabilityRouting = await _brokerResultPromise;
+        const dossierPlanning = buildDossierSafePlanningView({
+          capabilityRouting,
+          userProvidedFacts,
+          dossierTask,
+        });
 
         // Advisory-only capabilities (interface-placeholder.* plan) explicitly mark evidence
         // gaps rather than hydrating from live sources.  For these:
@@ -2920,9 +3075,15 @@ module.exports = {
         // becomes "missing data point -> what it would enable", not just a blocker/question.
         const possibleFollowUp = finalDossierRequested
           ? []
-          : evidenceGaps
-              .filter((gap) => gap.question && gap.enablesDossierAddition)
-              .map((gap) => ({ question: gap.question, enablesDossierAddition: gap.enablesDossierAddition }));
+          : [
+              ...evidenceGaps
+                .filter((gap) => gap.question && gap.enablesDossierAddition)
+                .map((gap) => ({ question: gap.question, enablesDossierAddition: gap.enablesDossierAddition })),
+              ...dossierPlanning.followUps.map((followUp) => ({
+                question: followUp.question,
+                enablesDossierAddition: followUp.enablesDossierAddition,
+              })),
+            ];
 
         // Evidence-first answer-quality signals (#238). usedRetrievedEvidence reflects whether
         // relevant tool/MCP evidence was actually retrieved; substantiveAnswerInstructed mirrors
@@ -3094,6 +3255,7 @@ module.exports = {
           finalDossierMarkdown,
           rendererSystemHint,
           capabilityRouting,
+          dossierPlanning,
           hydration: _hydrationResult,
           auditTrail: {
             correlationId: dossierId,
@@ -3114,6 +3276,13 @@ module.exports = {
               timedOut: capabilityRouting.timedOut,
               intent: capabilityRouting.result?.intent || null,
               capability: capabilityRouting.result?.capability || null,
+            },
+            dossierPlanning: {
+              status: dossierPlanning.status,
+              actionCount: dossierPlanning.actions.length,
+              hydrationCandidateCount: dossierPlanning.hydrationCandidates.length,
+              missingInputs: dossierPlanning.missingInputs,
+              executionMode: dossierPlanning.executionPolicy.mode,
             },
             hydration: {
               attempted: _hydrationResult.attempted,

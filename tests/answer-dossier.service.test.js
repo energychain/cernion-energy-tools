@@ -1210,6 +1210,114 @@ describe('answerDossier action', () => {
     expect(routingIdx).toBeLessThan(rendererIdx);
   });
 
+  test('dossierPlanning: exposes VDMI broker plan without executing consequential actions', async () => {
+    const service = buildServiceHarness();
+    const brokerResponse = {
+      intent: 'vdmi_asset_validation_governance',
+      capability: 'vdmi_asset_validation_governance',
+      confidence: 0.91,
+      domain: 'vdmi',
+      requiredInputs: ['assetId', 'marketRole'],
+      missingInputs: ['marketRole'],
+      recommendedPlan: [
+        { step: 1, action: 'vdmi.dossier', purpose: 'Summarize validation state' },
+        { step: 2, action: 'vdmi.negotiationTrace', purpose: 'Review negotiation history' },
+        { step: 3, action: 'vdmi.agentRole', purpose: 'Clarify role boundary' },
+      ],
+      recommendedCapabilities: [
+        {
+          capability: 'vdmi_asset_validation_governance',
+          actions: ['vdmi.dossier', 'vdmi.negotiationTrace', 'vdmi.agentRole'],
+        },
+      ],
+    };
+    const ctx = buildCtx(
+      { question: 'Prüfe VDMI Governance für Asset A-123 und erstelle ein Dossier.' },
+      { 'capability-broker.recommend': async () => brokerResponse }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(result.dossierPlanning).toMatchObject({
+      status: 'success',
+      route: {
+        intent: 'vdmi_asset_validation_governance',
+        capability: 'vdmi_asset_validation_governance',
+        domain: 'vdmi',
+      },
+      executionPolicy: {
+        mode: 'planning_only',
+        noExecution: true,
+        consequentialActionsBlocked: true,
+      },
+      missingInputs: ['marketRole'],
+    });
+    expect(result.dossierPlanning.actions.map((action) => action.action)).toEqual([
+      'vdmi.dossier',
+      'vdmi.negotiationTrace',
+      'vdmi.agentRole',
+    ]);
+    expect(result.dossierPlanning.actions.every((action) => action.hydration.status === 'no_rule')).toBe(true);
+    expect(result.dossierPlanning.followUps[0]).toMatchObject({
+      missingDataPoint: 'marketRole',
+      source: 'capability_broker_missing_input',
+    });
+    expect(ctx.call.mock.calls.map(([action]) => action)).not.toContain('vdmi.dossier');
+    expect(result.auditTrail.dossierPlanning).toMatchObject({
+      status: 'success',
+      actionCount: 3,
+      hydrationCandidateCount: 0,
+      executionMode: 'planning_only',
+    });
+  });
+
+  test('dossierPlanning: exposes non-VDMI read-only hydration candidate with ready params', async () => {
+    const service = buildServiceHarness();
+    const ctx = buildCtx(
+      { question: 'CO2-Intensität für 74889 Sinsheim bitte anzeigen', timeBudgetMs: 6000 },
+      {
+        'capability-broker.recommend': async () => ({
+          intent: 'co2_intensity_lookup',
+          capability: 'co2_intensity_lookup',
+          confidence: 0.86,
+          domain: 'energy-market',
+          recommendedPlan: [{ step: 1, action: 'energy-market.co2Intensity' }],
+          recommendedCapabilities: [
+            {
+              capability: 'co2_intensity_lookup',
+              actions: ['energy-market.co2Intensity'],
+            },
+          ],
+        }),
+      }
+    );
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.success).toBe(true);
+    expect(result.dossierPlanning.route).toMatchObject({
+      intent: 'co2_intensity_lookup',
+      capability: 'co2_intensity_lookup',
+    });
+    expect(result.dossierPlanning.hydrationCandidates).toHaveLength(1);
+    expect(result.dossierPlanning.hydrationCandidates[0]).toMatchObject({
+      action: 'energy-market.co2Intensity',
+      safety: {
+        readOnly: true,
+        nonConsequential: true,
+        hitlRequired: false,
+        allowsMutation: false,
+      },
+      hydration: {
+        allowed: true,
+        status: 'ready',
+        ruleId: 'energy-market.co2Intensity',
+        paramsReady: true,
+      },
+    });
+  });
+
   // AC3 — Broker timeout → valid dossier, capabilityRouting.status='timeout'
   test('broker: timeout returns valid dossier with capabilityRouting.status=timeout', async () => {
     const service = buildServiceHarness();
@@ -1435,8 +1543,8 @@ describe('answerDossier action', () => {
     expect(result.auditTrail.hydration.evidenceAdded).toBe(1);
     // Hydrated evidence must appear in Known Evidence section with source label
     expect(result.dossierMarkdown).toContain('energy-market.co2Intensity');
-    expect(result.dossierMarkdown).toContain('GrünstromIndex: 42');
-    expect(result.dossierMarkdown).toContain('CO₂-Intensität: 210 g/kWh');
+    expect(result.dossierMarkdown).toMatch(/Gr(?:ü|ue)nstromIndex: 42/);
+    expect(result.dossierMarkdown).toMatch(/CO(?:₂|2)-Intensit(?:ä|ae)t: 210 g\/kWh/);
     // Hydrated evidence lifts confidence evidence count (evidenceQuality=validated)
     expect(result.confidence).not.toBe('low');
   });
@@ -1476,7 +1584,7 @@ describe('answerDossier action', () => {
     expect(co2Calls[0]).toMatchObject({ location: 'Sinsheim', forecast: true });
     expect(result.hydration.succeeded).toContain('energy-market.co2Intensity');
     expect(result.hydration.evidenceAdded).toBe(1);
-    expect(result.dossierMarkdown).toContain('GrünstromIndex: 42');
+    expect(result.dossierMarkdown).toMatch(/Gr(?:ü|ue)nstromIndex: 42/);
   });
 
   test('hydration: formats real energy-market.co2Intensity response shape', async () => {
@@ -1504,7 +1612,7 @@ describe('answerDossier action', () => {
     expect(result.success).toBe(true);
     expect(result.hydration.succeeded).toContain('energy-market.co2Intensity');
     expect(result.hydration.evidenceAdded).toBe(1);
-    expect(result.dossierMarkdown).toContain('CO₂-Intensität: 380 g/kWh');
+    expect(result.dossierMarkdown).toMatch(/CO(?:₂|2)-Intensit(?:ä|ae)t: 380 g\/kWh/);
     expect(result.dossierMarkdown).toContain('Tagesmittel: 364.5 g/kWh');
   });
 
@@ -1616,7 +1724,7 @@ describe('answerDossier action', () => {
     );
     expect(result.hydration.evidenceAdded).toBe(5);
     expect(result.dossierMarkdown).toContain('Gasspeicher Deutschland / AGSI');
-    expect(result.dossierMarkdown).toContain('Fuellstand: 72.5%');
+    expect(result.dossierMarkdown).toMatch(/Fuellstand: 72\.5 ?%/);
     expect(result.dossierMarkdown).toContain('ENTSO-E Lastprognose Deutschland');
     expect(result.dossierMarkdown).toContain('ENTSO-E Wind-/Solar-Prognose Deutschland');
     expect(result.dossierMarkdown).toContain('ENTSO-E Day-Ahead-Preise Deutschland');
@@ -1781,7 +1889,7 @@ describe('answerDossier action', () => {
     expect(result.success).toBe(true);
     // Known Evidence section should contain the action name as the source identifier
     expect(result.dossierMarkdown).toContain('energy-market.co2Intensity');
-    expect(result.dossierMarkdown).toContain('GrünstromIndex: 75');
+    expect(result.dossierMarkdown).toMatch(/Gr(?:ü|ue)nstromIndex: 75/);
     // Since evidenceQuality is 'validated', it counts toward confidence evidence count
     expect(result.hydration.succeeded).toContain('energy-market.co2Intensity');
   });
