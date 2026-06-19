@@ -723,6 +723,22 @@ describe('Capability Broker Service', () => {
     expect(actionNames).toContain('redispatch-readiness-gate.evaluate');
   });
 
+  it('routes Redispatch call data-quality prompts to the read-only dashboard gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe den Redispatch Abrufprozess als Datenqualitaets-Gate: Nullwerte, fehlende Prognose, Kontrollnachweis, Monitoring Verantwortung, Redispatch Clearing und Abrechnungsgate.',
+    });
+
+    expect(result.capability).toBe('redispatch_call_data_quality_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'redispatch_call_data_quality_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.redispatchCallQualityGate');
+    expect(actionNames).toContain('redispatch-expost.list');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

@@ -10890,6 +10890,143 @@
         ]
       }
     },
+    "/api/dashboard-api/redispatch-call-quality-gate": {
+      "get": {
+        "operationId": "dashboard-api_redispatchCallQualityGate",
+        "summary": "Redispatch call data-quality gate — read-only evidence aggregator",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Redispatch call data-quality gate status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "found": {
+                      "type": "boolean"
+                    },
+                    "gateStatus": {
+                      "type": "string"
+                    },
+                    "callContext": {
+                      "type": "object"
+                    },
+                    "masterDataReadiness": {
+                      "type": "object"
+                    },
+                    "meteringReadiness": {
+                      "type": "object"
+                    },
+                    "forecastReadiness": {
+                      "type": "object"
+                    },
+                    "controlEvidenceReadiness": {
+                      "type": "object"
+                    },
+                    "settlementReadiness": {
+                      "type": "object"
+                    },
+                    "leadingProcessSignal": {
+                      "type": "object"
+                    },
+                    "openEvidence": {
+                      "type": "array"
+                    },
+                    "monitoringTasks": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "nextActions": {
+                      "type": "array"
+                    },
+                    "missingDataPoints": {
+                      "type": "array"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Read-only Redispatch-Abrufprozess gate that summarizes existing Redispatch ex-post, EDM/datapoint, forecast, VDMI and settlement-readiness evidence into a dossier-safe status. The action does not create settlement artifacts, A96 exports, HITL tasks or operational mutations.",
+        "parameters": [
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "meloId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maloId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "auditId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-oeo-class": [
+          "OEO_00000143"
+        ]
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -46840,6 +46977,143 @@
               "example": 3500
             },
             "description": "Optional annual consumption in kWh used for the stream monitor context."
+          }
+        ],
+        "x-oeo-class": [
+          "OEO_00000143"
+        ]
+      }
+    },
+    "/api/dashboard/redispatch-call-quality-gate": {
+      "get": {
+        "operationId": "dashboard-api_redispatchCallQualityGate",
+        "summary": "Redispatch call data-quality gate — read-only evidence aggregator",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Redispatch call data-quality gate status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "found": {
+                      "type": "boolean"
+                    },
+                    "gateStatus": {
+                      "type": "string"
+                    },
+                    "callContext": {
+                      "type": "object"
+                    },
+                    "masterDataReadiness": {
+                      "type": "object"
+                    },
+                    "meteringReadiness": {
+                      "type": "object"
+                    },
+                    "forecastReadiness": {
+                      "type": "object"
+                    },
+                    "controlEvidenceReadiness": {
+                      "type": "object"
+                    },
+                    "settlementReadiness": {
+                      "type": "object"
+                    },
+                    "leadingProcessSignal": {
+                      "type": "object"
+                    },
+                    "openEvidence": {
+                      "type": "array"
+                    },
+                    "monitoringTasks": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "nextActions": {
+                      "type": "array"
+                    },
+                    "missingDataPoints": {
+                      "type": "array"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Read-only Redispatch-Abrufprozess gate that summarizes existing Redispatch ex-post, EDM/datapoint, forecast, VDMI and settlement-readiness evidence into a dossier-safe status. The action does not create settlement artifacts, A96 exports, HITL tasks or operational mutations.",
+        "parameters": [
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "meloId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maloId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "auditId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "x-oeo-class": [

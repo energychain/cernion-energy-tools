@@ -937,6 +937,94 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── redispatchCallQualityGate ─────────────────────────────────────────────
+
+  describe('redispatchCallQualityGate', () => {
+    it('returns a conservative data-quality gate with source actions and follow-ups', async () => {
+      const result = await broker.call('dashboard-api.redispatchCallQualityGate', {
+        gridOperatorId: 'SNB935578300972',
+        meloId: 'DE0012345678901234567890123456789',
+        from: '2026-03-31T00:00:00Z',
+        to: '2026-04-01T00:00:00Z',
+      });
+
+      expect(result.found).toBe(true);
+      expect(result.gateStatus).toBe('needs_metering_clarification');
+      expect(result.callContext.gridOperatorId).toBe('SNB935578300972');
+      expect(result.meteringReadiness.signal).toBe('red');
+      expect(result.settlementReadiness.billingRelease).toBe(false);
+      expect(result.sourceActions['redispatch-expost.list'].success).toBe(true);
+      expect(result.sourceActions['edm-validation.validate'].success).toBe(true);
+      expect(result.sourceActions['forecast-engine.evaluateQuality'].success).toBe(true);
+      expect(
+        result.missingDataPoints.some((item) => item.missingDataPoint === 'forecastQuality')
+      ).toBe(true);
+      expect(Array.isArray(result.nextActions)).toBe(true);
+    });
+
+    it('can classify a fully evidenced call as settlement candidate without releasing billing', async () => {
+      handlers.edmValidationValidate = () => ({
+        success: true,
+        summary: { totalValues: 96, findings: 0, errors: 0, warnings: 0, dataQuality: 1 },
+        findings: [],
+      });
+      handlers.forecastEvaluateQuality = () => ({
+        success: true,
+        quality: { rating: 'good', mape: 4.2 },
+      });
+      handlers.vdmiFindings = () => ({ count: 0, findings: [] });
+
+      const result = await broker.call('dashboard-api.redispatchCallQualityGate', {
+        gridOperatorId: 'SNB935578300972',
+        meloId: 'DE0012345678901234567890123456789',
+        from: '2026-03-31T00:00:00Z',
+        to: '2026-04-01T00:00:00Z',
+      });
+
+      expect(result.gateStatus).toBe('ready_for_settlement');
+      expect(result.settlementReadiness.status).toBe('candidate_ready');
+      expect(result.settlementReadiness.billingRelease).toBe(false);
+      expect(result.missingDataPoints).toEqual([]);
+    });
+
+    it('does not treat missing context as settlement-ready evidence', async () => {
+      handlers.vdmiFindings = () => ({ count: 0, findings: [] });
+
+      const result = await broker.call('dashboard-api.redispatchCallQualityGate', {
+        gridOperatorId: 'SNB935578300972',
+      });
+
+      expect(result.gateStatus).toBe('needs_master_data_fix');
+      expect(result.sourceActions['edm-validation.validate'].skipped).toBe(true);
+      expect(
+        result.missingDataPoints.some((item) => item.missingDataPoint === 'meloMaloMapping')
+      ).toBe(true);
+      expect(
+        result.missingDataPoints.some((item) => item.missingDataPoint === 'loadProfileCompleteness')
+      ).toBe(true);
+    });
+
+    it('isolates upstream failures as billing blockers', async () => {
+      handlers.rdList = () => {
+        throw new Error('redispatch down');
+      };
+      handlers.vdmiFindings = () => ({ count: 0, findings: [] });
+
+      const result = await broker.call('dashboard-api.redispatchCallQualityGate', {
+        gridOperatorId: 'SNB935578300972',
+        meloId: 'DE0012345678901234567890123456789',
+        from: '2026-03-31T00:00:00Z',
+        to: '2026-04-01T00:00:00Z',
+      });
+
+      expect(result.gateStatus).toBe('blocked_for_billing');
+      expect(result._errors).toContain('redispatch-expost.list');
+      expect(
+        result.missingDataPoints.some((item) => item.missingDataPoint === 'controlEvidence')
+      ).toBe(true);
+    });
+  });
+
   // ── marketSnapshot ───────────────────────────────────────────────────────────
 
   describe('marketSnapshot', () => {
@@ -1193,6 +1281,17 @@ describe('dashboard-api.service', () => {
         'vdmi',
         'blindflug-radar',
         'netzfahrplan',
+        'file-ingest-monitor',
+        'redispatch-asset-register',
+        'redispatch-data-governance',
+        'redispatch-settlement-sandbox',
+        'redispatch-special-case-gate',
+        'redispatch-readiness-gate',
+        'battery-redispatch-special-gate',
+        'flexibility-conductor-role-model',
+        'investment-maturity-off-balance-gate',
+        'knowledge-continuity-governance-gate',
+        'gas-capacity-order-revision-gate',
       ];
 
       for (const [, meta] of Object.entries(result.codes)) {

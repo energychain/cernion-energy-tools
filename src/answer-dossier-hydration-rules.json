@@ -260,6 +260,67 @@
     "sourceIssue": 234
   },
   {
+    "id": "dashboard-api.redispatchCallQualityGate",
+    "action": "dashboard-api.redispatchCallQualityGate",
+    "label": "Redispatch Abrufprozess Data-Quality Gate Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "gridOperatorId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "([SG]NB\\d+)",
+          "group": 1
+        }
+      },
+      "meloId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(DE[A-Z0-9]{20,40}|melo:[a-zA-Z0-9-]+)",
+          "group": 1
+        }
+      },
+      "auditId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(rd-[a-zA-Z0-9-]+|redispatch-audit:[a-zA-Z0-9-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["gateStatus"], "label": "Gate Status", "maxLen": 80 },
+        { "paths": ["leadingProcessSignal.blocker"], "label": "Leading Blocker", "maxLen": 100 },
+        { "paths": ["callContext.gridOperatorId"], "label": "Grid Operator", "maxLen": 80 },
+        { "paths": ["callContext.meloId"], "label": "MeLo", "maxLen": 100 },
+        { "paths": ["masterDataReadiness.status"], "label": "Master Data", "maxLen": 80 },
+        { "paths": ["meteringReadiness.status"], "label": "Metering", "maxLen": 80 },
+        { "paths": ["forecastReadiness.status"], "label": "Forecast", "maxLen": 80 },
+        { "paths": ["controlEvidenceReadiness.status"], "label": "Control Evidence", "maxLen": 80 },
+        { "paths": ["settlementReadiness.status"], "label": "Settlement", "maxLen": 80 },
+        { "paths": ["settlementReadiness.readinessPercent"], "label": "Readiness", "suffix": "%", "precision": 1 },
+        { "paths": ["timestamp"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 235
+  },
+  {
     "id": "redispatch-readiness-gate.getStatus",
     "action": "redispatch-readiness-gate.getStatus",
     "label": "Redispatch Readiness Gate",

@@ -40,6 +40,7 @@ module.exports = {
       vnbOverview: 5 * 60 * 1000, // 5 min
       redispatchMeteringCockpit: 5 * 60 * 1000, // 5 min
       loadProfileStreamMonitor: 5 * 60 * 1000, // 5 min
+      redispatchCallQualityGate: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -797,6 +798,228 @@ module.exports = {
                 hasPartialData: errors.length > 0,
               }),
               sourceActions,
+              timestamp: new Date().toISOString(),
+              _errors: errors,
+            };
+          }
+        );
+      },
+    },
+
+    // ── redispatchCallQualityGate ───────────────────────────────────────────
+    /**
+     * GET /api/dashboard/redispatch-call-quality-gate?gridOperatorId=...&meloId=...&from=...&to=...
+     *
+     * Read-only dossier-safe aggregator for Redispatch Abrufprozess data-quality
+     * and billing-readiness checks. It summarizes existing evidence surfaces and
+     * never creates settlement, A96, HITL, process, or operational Redispatch state.
+     */
+    redispatchCallQualityGate: {
+      rest: 'GET /redispatch-call-quality-gate',
+      params: {
+        gridOperatorId: {
+          type: 'string',
+          optional: true,
+          pattern: /^[SG]NB\d+$/,
+          messages: {
+            stringPattern:
+              'gridOperatorId muss im Format SNBxxx oder GNBxxx sein (Beispiel: SNB935578300972)',
+          },
+        },
+        meloId: { type: 'string', optional: true, min: 1 },
+        maloId: { type: 'string', optional: true, min: 1 },
+        assetId: { type: 'string', optional: true, min: 1 },
+        from: { type: 'string', optional: true, min: 1 },
+        to: { type: 'string', optional: true, min: 1 },
+        auditId: { type: 'string', optional: true, min: 1 },
+        obis: { type: 'string', optional: true, default: '1-0:1.8.0' },
+        profileId: { type: 'string', optional: true, default: 'H0' },
+        annualConsumptionKwh: { type: 'number', optional: true, convert: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Redispatch call data-quality gate — read-only evidence aggregator',
+        description:
+          'Read-only Redispatch-Abrufprozess gate that summarizes existing Redispatch ex-post, ' +
+          'EDM/datapoint, forecast, VDMI and settlement-readiness evidence into a dossier-safe status. ' +
+          'The action does not create settlement artifacts, A96 exports, HITL tasks or operational mutations.',
+        parameters: [
+          { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'meloId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'maloId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'from', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'to', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'auditId', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Redispatch call data-quality gate status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    found: { type: 'boolean' },
+                    gateStatus: { type: 'string' },
+                    callContext: { type: 'object' },
+                    masterDataReadiness: { type: 'object' },
+                    meteringReadiness: { type: 'object' },
+                    forecastReadiness: { type: 'object' },
+                    controlEvidenceReadiness: { type: 'object' },
+                    settlementReadiness: { type: 'object' },
+                    leadingProcessSignal: { type: 'object' },
+                    openEvidence: { type: 'array' },
+                    monitoringTasks: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    nextActions: { type: 'array' },
+                    missingDataPoints: { type: 'array' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+        'x-oeo-class': ['OEO_00000143'],
+      },
+      async handler(ctx) {
+        const {
+          gridOperatorId,
+          meloId,
+          maloId,
+          assetId,
+          from,
+          to,
+          auditId,
+          obis,
+          profileId,
+          annualConsumptionKwh,
+        } = ctx.params;
+
+        if (!gridOperatorId && !meloId && !maloId && !assetId && !auditId) {
+          return {
+            found: false,
+            message:
+              'Missing Redispatch call gate context: provide gridOperatorId, meloId/maloId/assetId or auditId.',
+            gateStatus: 'blocked_for_billing',
+            callContext: {
+              gridOperatorId: null,
+              meloId: null,
+              maloId: null,
+              assetId: null,
+              from: from || null,
+              to: to || null,
+              auditId: null,
+            },
+            missingDataPoints: [
+              {
+                missingDataPoint: 'masterDataProcessSignal',
+                enablesDossierAddition:
+                  'Stammdatenmerkmal und Prozessabsprung koennen dem Abruffall belastbar zugeordnet werden',
+                category: 'masterData',
+                severity: 'high',
+              },
+            ],
+            openEvidence: [],
+            monitoringTasks: [],
+            sourceActions: {},
+            nextActions: [],
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          };
+        }
+
+        const cacheKey = `redispatch-call-quality-gate:${gridOperatorId || 'all'}:${meloId || 'no-melo'}:${maloId || 'no-malo'}:${assetId || 'no-asset'}:${from || 'no-from'}:${to || 'no-to'}:${auditId || 'latest'}:${obis}:${profileId}:${annualConsumptionKwh || 'default'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.redispatchCallQualityGate,
+          async () => {
+            const errors = [];
+            const hasTimeseriesContext = !!(meloId && from && to);
+
+            const [rdRes, datapointRes, validationRes, forecastRes, vdmiRes] =
+              await Promise.all([
+                this.safeCall(
+                  ctx,
+                  ACTION_RD_LIST,
+                  { gridOperatorId, limit: 10 },
+                  null,
+                  errors,
+                  ACTION_RD_LIST
+                ),
+                this.safeCall(ctx, 'datapoint.health', {}, null, errors, 'datapoint.health'),
+                hasTimeseriesContext
+                  ? this.safeCall(
+                      ctx,
+                      'edm-validation.validate',
+                      { meloId, obis, from, to, autoFix: false },
+                      null,
+                      errors,
+                      'edm-validation.validate'
+                    )
+                  : null,
+                hasTimeseriesContext
+                  ? this.safeCall(
+                      ctx,
+                      'forecast-engine.evaluateQuality',
+                      { meloId, obis, from, to, profileId, annualConsumptionKwh },
+                      null,
+                      errors,
+                      'forecast-engine.evaluateQuality'
+                    )
+                  : null,
+                this.safeCall(
+                  ctx,
+                  ACTION_VDMI_FINDINGS,
+                  { status: 'open', limit: 500 },
+                  null,
+                  errors,
+                  ACTION_VDMI_FINDINGS
+                ),
+              ]);
+
+            const audits = Array.isArray(rdRes?.audits) ? rdRes.audits : [];
+            const rdLatest =
+              (auditId && audits.find((a) => String(a?.id) === String(auditId))) || audits[0] || null;
+            const validationFindings = Array.isArray(validationRes?.findings)
+              ? validationRes.findings
+              : [];
+            const vdmiFindings = this.filterFindingsForContext(vdmiRes?.findings, {
+              gridOperatorId,
+              meloId,
+              maloId,
+              assetId,
+            });
+            const sourceActions = this.buildRedispatchCallQualitySourceActions({
+              rdRes,
+              datapointRes,
+              validationRes,
+              forecastRes,
+              vdmiRes,
+              hasTimeseriesContext,
+              rdLatest,
+              validationFindings,
+              vdmiFindings,
+            });
+
+            const result = this.buildRedispatchCallQualityGate({
+              params: { gridOperatorId, meloId, maloId, assetId, from, to, auditId },
+              rdLatest,
+              datapointOverview: datapointRes?.overview || null,
+              validationSummary: validationRes?.summary || null,
+              validationFindings,
+              forecastQuality: forecastRes?.quality || null,
+              vdmiFindings,
+              sourceActions,
+              errors,
+              hasTimeseriesContext,
+            });
+
+            return {
+              ...result,
               timestamp: new Date().toISOString(),
               _errors: errors,
             };
@@ -2260,6 +2483,329 @@ module.exports = {
 
       notes.push(`Gesamtstatus: ${streamStatus?.signal || 'unknown'}.`);
       return notes;
+    },
+
+    filterFindingsForContext(findings, { gridOperatorId, meloId, maloId, assetId } = {}) {
+      const list = Array.isArray(findings) ? findings : [];
+      const requested = { gridOperatorId, meloId, maloId, assetId };
+      return list.filter((finding) => {
+        for (const [key, value] of Object.entries(requested)) {
+          if (!value) continue;
+          const candidates = [
+            finding?.[key],
+            finding?.context?.[key],
+            finding?.asset?.[key],
+            finding?.gridOperatorMastrId,
+            finding?.operatorId,
+          ].filter((v) => v != null);
+          if (candidates.length > 0 && !candidates.some((v) => String(v) === String(value))) {
+            return false;
+          }
+        }
+        return true;
+      });
+    },
+
+    buildRedispatchCallQualitySourceActions({
+      rdRes,
+      datapointRes,
+      validationRes,
+      forecastRes,
+      vdmiRes,
+      hasTimeseriesContext,
+      rdLatest,
+      validationFindings,
+      vdmiFindings,
+    }) {
+      return {
+        'redispatch-expost.list': {
+          success: !!rdRes,
+          audits: Array.isArray(rdRes?.audits) ? rdRes.audits.length : 0,
+          selectedAuditId: rdLatest?.id || null,
+        },
+        'datapoint.health': {
+          success: !!datapointRes,
+          overview: datapointRes?.overview || null,
+        },
+        'edm-validation.validate': {
+          success: !!validationRes,
+          skipped: !hasTimeseriesContext,
+          findings: validationFindings.length,
+          dataQuality: validationRes?.summary?.dataQuality ?? null,
+        },
+        'forecast-engine.evaluateQuality': {
+          success: !!forecastRes,
+          skipped: !hasTimeseriesContext,
+          rating: forecastRes?.quality?.rating || null,
+        },
+        'vdmi.findings': {
+          success: !!vdmiRes,
+          findings: vdmiFindings.length,
+        },
+      };
+    },
+
+    buildRedispatchCallQualityGate({
+      params,
+      rdLatest,
+      datapointOverview,
+      validationSummary,
+      validationFindings,
+      forecastQuality,
+      vdmiFindings,
+      sourceActions,
+      errors,
+      hasTimeseriesContext,
+    }) {
+      const missingDataPoints = [];
+      const openEvidence = [];
+      const monitoringTasks = [];
+
+      const addMissing = (missingDataPoint, enablesDossierAddition, category, severity = 'medium') => {
+        const item = { missingDataPoint, enablesDossierAddition, category, severity };
+        missingDataPoints.push(item);
+        openEvidence.push(item);
+        monitoringTasks.push({
+          task: `Clarify ${missingDataPoint}`,
+          source: category,
+          severity,
+          recommendedAction: enablesDossierAddition,
+        });
+      };
+
+      if (!params.gridOperatorId) {
+        addMissing(
+          'masterDataProcessSignal',
+          'Stammdatenmerkmal und Prozessabsprung koennen dem Abruffall belastbar zugeordnet werden',
+          'masterData',
+          'high'
+        );
+      }
+      if (!params.meloId && !params.maloId && !params.assetId) {
+        addMissing(
+          'meloMaloMapping',
+          'Messlokation/Marktlokation koennen in die Datenqualitaetskette aufgenommen werden',
+          'metering',
+          'high'
+        );
+      }
+      if (!hasTimeseriesContext) {
+        addMissing(
+          'loadProfileCompleteness',
+          'Nullwerte und Lastgangluecken koennen vor Clearing/Abrechnung bewertet werden',
+          'metering',
+          'high'
+        );
+        addMissing(
+          'forecastQuality',
+          'Prognoseluecken koennen als Klaeraufgabe statt als Abrechnungsfreigabe erscheinen',
+          'forecast',
+          'medium'
+        );
+      }
+
+      const readinessPercent = rdLatest?.settlementReadiness?.readinessPercent;
+      const rdRisk = String(rdLatest?.riskAssessment?.level || '').toLowerCase();
+      const validationQuality = validationSummary?.dataQuality;
+      const validationErrors = validationFindings.filter((f) => f?.severity === 'error').length;
+      const validationWarnings = validationFindings.filter((f) => f?.severity === 'warning').length;
+      const forecastRating = String(forecastQuality?.rating || '').toLowerCase();
+      const criticalGovernance = vdmiFindings.filter((f) => {
+        const severity = String(f?.severity || '').toUpperCase();
+        const code = String(f?.code || '').toUpperCase();
+        return severity === 'H' || severity === 'K' || code.startsWith('VD_GOV_');
+      });
+
+      if (!rdLatest) {
+        addMissing(
+          'controlEvidence',
+          'Kontrollnachweis zum Abruf kann in die Evidenzkette aufgenommen werden',
+          'controlEvidence',
+          'high'
+        );
+      }
+      if (criticalGovernance.length > 0) {
+        addMissing(
+          'monitoringOwner',
+          'Verantwortliche Rolle und naechster Klaerschritt koennen im Dossier genannt werden',
+          'monitoring',
+          'high'
+        );
+      }
+      if (
+        hasTimeseriesContext &&
+        !this.validationHasUsableEvidence(validationSummary, validationFindings)
+      ) {
+        addMissing(
+          'loadProfileCompleteness',
+          'Nullwerte und Lastgangluecken koennen vor Clearing/Abrechnung bewertet werden',
+          'metering',
+          'high'
+        );
+      }
+      if (forecastRating === 'poor' || forecastRating === 'fair') {
+        addMissing(
+          'forecastQuality',
+          'Prognoseluecken koennen als Klaeraufgabe statt als Abrechnungsfreigabe erscheinen',
+          'forecast',
+          forecastRating === 'poor' ? 'high' : 'medium'
+        );
+      }
+
+      const masterDataReadiness = {
+        status: params.gridOperatorId && rdLatest ? 'available' : 'missing_evidence',
+        processSignal: params.gridOperatorId || null,
+        source: 'redispatch-expost.list',
+      };
+      const meteringSignal =
+        !hasTimeseriesContext || validationErrors > 0
+          ? 'red'
+          : validationWarnings > 0 ||
+              (typeof validationQuality === 'number' && validationQuality < 0.95) ||
+              (datapointOverview?.stale ?? 0) > 0
+            ? 'yellow'
+            : 'green';
+      const meteringReadiness = {
+        status: meteringSignal === 'green' ? 'ready' : 'needs_clarification',
+        signal: meteringSignal,
+        dataQuality: typeof validationQuality === 'number' ? validationQuality : null,
+        validationErrors,
+        validationWarnings,
+        datapointOverview,
+      };
+      const forecastReadiness = {
+        status:
+          forecastRating === 'excellent' || forecastRating === 'good'
+            ? 'ready'
+            : forecastRating
+              ? 'needs_clarification'
+              : 'missing_evidence',
+        rating: forecastQuality?.rating || null,
+        mape: forecastQuality?.mape ?? null,
+      };
+      const controlEvidenceReadiness = {
+        status: rdLatest ? 'available' : 'missing_evidence',
+        auditId: rdLatest?.id || null,
+        criticalGovernanceFindings: criticalGovernance.length,
+      };
+      const settlementReadiness = {
+        status:
+          typeof readinessPercent === 'number' && readinessPercent >= 80 && rdRisk !== 'high'
+            ? 'candidate_ready'
+            : 'not_ready',
+        readinessPercent: typeof readinessPercent === 'number' ? readinessPercent : null,
+        riskLevel: rdRisk || null,
+        billingRelease: false,
+      };
+
+      const gateStatus = this.deriveRedispatchCallGateStatus({
+        missingDataPoints,
+        masterDataReadiness,
+        meteringReadiness,
+        forecastReadiness,
+        controlEvidenceReadiness,
+        settlementReadiness,
+        errors,
+      });
+      const leadingProcessSignal = this.pickRedispatchCallLeadingSignal({
+        gateStatus,
+        missingDataPoints,
+        sourceActions,
+      });
+      const nextActions = this.buildRedispatchCallNextActions(gateStatus, missingDataPoints);
+
+      return {
+        found: true,
+        gateStatus,
+        callContext: {
+          gridOperatorId: params.gridOperatorId || null,
+          meloId: params.meloId || null,
+          maloId: params.maloId || null,
+          assetId: params.assetId || null,
+          from: params.from || null,
+          to: params.to || null,
+          auditId: params.auditId || rdLatest?.id || null,
+        },
+        masterDataReadiness,
+        meteringReadiness,
+        forecastReadiness,
+        controlEvidenceReadiness,
+        settlementReadiness,
+        leadingProcessSignal,
+        openEvidence,
+        monitoringTasks,
+        sourceActions,
+        nextActions,
+        missingDataPoints,
+      };
+    },
+
+    deriveRedispatchCallGateStatus({
+      missingDataPoints,
+      meteringReadiness,
+      forecastReadiness,
+      controlEvidenceReadiness,
+      settlementReadiness,
+      errors,
+    }) {
+      if ((errors || []).length > 0) return 'blocked_for_billing';
+      const has = (name) => missingDataPoints.some((m) => m.missingDataPoint === name);
+      if (has('masterDataProcessSignal') || has('meloMaloMapping')) return 'needs_master_data_fix';
+      if (has('loadProfileCompleteness') || meteringReadiness.signal === 'red') {
+        return 'needs_metering_clarification';
+      }
+      if (has('forecastQuality') || forecastReadiness.status === 'needs_clarification') {
+        return 'needs_forecast_clarification';
+      }
+      if (has('controlEvidence') || controlEvidenceReadiness.status !== 'available') {
+        return 'needs_control_evidence';
+      }
+      if (has('monitoringOwner')) return 'needs_monitoring_owner';
+      if (settlementReadiness.status === 'candidate_ready') return 'ready_for_settlement';
+      return 'blocked_for_billing';
+    },
+
+    pickRedispatchCallLeadingSignal({ gateStatus, missingDataPoints, sourceActions }) {
+      const firstMissing = missingDataPoints[0] || null;
+      return {
+        status: gateStatus,
+        category: firstMissing?.category || 'settlement',
+        blocker: firstMissing?.missingDataPoint || null,
+        source:
+          firstMissing?.category === 'metering'
+            ? 'edm-validation.validate'
+            : firstMissing?.category === 'forecast'
+              ? 'forecast-engine.evaluateQuality'
+              : firstMissing?.category === 'monitoring'
+                ? 'vdmi.findings'
+                : firstMissing?.category === 'controlEvidence'
+                  ? 'redispatch-expost.list'
+                  : sourceActions?.['redispatch-expost.list']?.selectedAuditId
+                    ? 'redispatch-expost.list'
+                    : 'dashboard-api.redispatchCallQualityGate',
+      };
+    },
+
+    buildRedispatchCallNextActions(gateStatus, missingDataPoints) {
+      if (!missingDataPoints.length && gateStatus === 'ready_for_settlement') {
+        return [
+          {
+            action: 'review_settlement_candidate',
+            label: 'Abrechnungsnahe Evidenz pruefen; keine automatische Freigabe in diesem Gate.',
+          },
+        ];
+      }
+      return missingDataPoints.map((item) => ({
+        action: `clarify_${item.missingDataPoint}`,
+        label: item.enablesDossierAddition,
+        category: item.category,
+        consequential: false,
+      }));
+    },
+
+    validationHasUsableEvidence(validationSummary, validationFindings) {
+      if (validationSummary && typeof validationSummary === 'object') return true;
+      return Array.isArray(validationFindings) && validationFindings.length > 0;
     },
 
     computeRedispatchMeteringScore({ rdLatest, mqLatest, dpOverview, openCriticalFindings }) {

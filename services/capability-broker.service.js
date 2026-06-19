@@ -225,6 +225,19 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasRedispatchCallQualityGateSpecificSignal =
+    /redispatch/i.test(haystack) &&
+    /(abrufprozess|redispatch abruf|datenqualitaets-gate|datenqualität gate|datenqualitaet gate|nullwerte|fehlende prognose|kontrollnachweis|monitoring verantwortung|abrechnungsgate)/i.test(
+      haystack
+    );
+
+  if (hasRedispatchCallQualityGateSpecificSignal) {
+    const rdqgCapability = findCapabilityByName('redispatch_call_data_quality_gate');
+    if (rdqgCapability) {
+      return { capability: rdqgCapability, score: 134, usedFallback: false };
+    }
+  }
+
   const hasRedispatchSettlementSandboxSpecificSignal =
     /redispatch/i.test(haystack) &&
     /(settlement sandbox|expost.?szenario|abrechnung|vergütungsrisiko|verguetungsrisiko)/i.test(

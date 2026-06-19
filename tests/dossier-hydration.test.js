@@ -65,14 +65,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 15 static rules', () => {
+    it('loads all 16 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(15);
+      expect(rules.length).toBe(16);
     });
 
-    it('compiles all 15 static rules without error', () => {
+    it('compiles all 16 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(15);
+      expect(rules.length).toBe(16);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -258,6 +258,48 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule.formatEvidence({ found: false, message: 'No readiness evaluation yet' })).toBe(
         'No readiness evaluation yet'
       );
+    });
+
+    it('dashboard-api.redispatchCallQualityGate is dossier-safe and formats call-gate evidence', () => {
+      const rule = getRule('dashboard-api.redispatchCallQualityGate');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Redispatch Abruf fuer SNB935578300972 und DE0012345678901234567890123456789 pruefen'
+        )
+      ).toEqual({
+        gridOperatorId: 'SNB935578300972',
+        meloId: 'DE0012345678901234567890123456789',
+      });
+
+      const formatted = rule.formatEvidence({
+        gateStatus: 'needs_metering_clarification',
+        callContext: {
+          gridOperatorId: 'SNB935578300972',
+          meloId: 'DE0012345678901234567890123456789',
+        },
+        leadingProcessSignal: { blocker: 'loadProfileCompleteness' },
+        masterDataReadiness: { status: 'available' },
+        meteringReadiness: { status: 'needs_clarification' },
+        forecastReadiness: { status: 'needs_clarification' },
+        controlEvidenceReadiness: { status: 'available' },
+        settlementReadiness: { status: 'not_ready', readinessPercent: 88.1 },
+        timestamp: '2026-06-19T15:50:00.000Z',
+      });
+
+      expect(formatted).toContain('Gate Status: needs_metering_clarification');
+      expect(formatted).toContain('Leading Blocker: loadProfileCompleteness');
+      expect(formatted).toContain('Grid Operator: SNB935578300972');
+      expect(formatted).toContain('Settlement: not_ready');
+    });
+
+    it('dashboard-api.redispatchCallQualityGate formats not-found message as fallback evidence', () => {
+      const rule = getRule('dashboard-api.redispatchCallQualityGate');
+      expect(
+        rule.formatEvidence({ found: false, message: 'No Redispatch call gate evidence yet' })
+      ).toBe('No Redispatch call gate evidence yet');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {
