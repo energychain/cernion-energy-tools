@@ -421,6 +421,29 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Redispatch Readiness Gate
+  // 'Produktivreife' can otherwise be captured by broad VDMI asset-validation signals.
+  const redispatchReadinessGateSignals = [
+    'redispatch readiness',
+    'redispatch produktivreife',
+    'redispatch betriebsbereit',
+    'zugangsmatrix redispatch',
+    'testabruf redispatch',
+    'produktivnachweis redispatch',
+    'stammdatentemplate redispatch',
+    'abnahmefrist redispatch',
+    'redispatch readiness gate',
+    'redispatch onboarding gate',
+    'redispatch operative bereitschaft',
+  ];
+
+  if (redispatchReadinessGateSignals.some((signal) => haystack.includes(signal))) {
+    const rrgCapability = findCapabilityByName('redispatch_readiness_gate');
+    if (rrgCapability) {
+      return { capability: rrgCapability, score: 122, usedFallback: false };
+    }
+  }
+
   // ── Declarative domain routes registry (score 121, before VDMI asset-validation at 120)
   // Routes are managed via src/domain-routes-registry.js (static JSON + runtime overlay).
   // Each entry fires when any trigger phrase matches OR any combo (all-AND regex group) matches.

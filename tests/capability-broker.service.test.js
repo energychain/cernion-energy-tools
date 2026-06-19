@@ -710,4 +710,16 @@ describe('Capability Broker Service', () => {
       'redispatch_rcs_special_case_governance'
     );
   });
+
+  it('routes Redispatch readiness prompts to the readiness gate capability', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe die Redispatch Produktivreife: Zugangsmatrix, Testabruf, Produktivnachweis, Stammdatentemplate und Abnahmefrist.',
+    });
+
+    expect(result.capability).toBe('redispatch_readiness_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe('redispatch_readiness_gate');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('redispatch-readiness-gate.getStatus');
+    expect(actionNames).toContain('redispatch-readiness-gate.evaluate');
+  });
 });

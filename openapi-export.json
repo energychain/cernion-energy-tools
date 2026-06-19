@@ -36177,6 +36177,90 @@
         ]
       }
     },
+    "/api/redispatch-readiness-gate/evaluate": {
+      "post": {
+        "operationId": "redispatch-readiness-gate_evaluate",
+        "summary": "Evaluate Redispatch operational readiness",
+        "tags": [
+          "Redispatch Readiness Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redispatch-readiness-gate/runs": {
+      "get": {
+        "operationId": "redispatch-readiness-gate_listRuns",
+        "summary": "List Redispatch readiness gate runs",
+        "tags": [
+          "Redispatch Readiness Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redispatch-readiness-gate/runs/:id": {
+      "get": {
+        "operationId": "redispatch-readiness-gate_getRun",
+        "summary": "Get Redispatch readiness gate run",
+        "tags": [
+          "Redispatch Readiness Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redispatch-readiness-gate/status": {
+      "get": {
+        "operationId": "redispatch-readiness-gate_getStatus",
+        "summary": "Get latest Redispatch readiness status",
+        "tags": [
+          "Redispatch Readiness Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/redispatch-settlement-sandbox/scenarios": {
       "post": {
         "operationId": "redispatch-settlement-sandbox_createScenario",

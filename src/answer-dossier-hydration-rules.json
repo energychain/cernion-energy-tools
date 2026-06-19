@@ -258,5 +258,40 @@
     "evidenceQuality": "validated",
     "timeoutMs": 14000,
     "sourceIssue": 234
+  },
+  {
+    "id": "redispatch-readiness-gate.getStatus",
+    "action": "redispatch-readiness-gate.getStatus",
+    "label": "Redispatch Readiness Gate",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {},
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["overallStatus"], "label": "Status", "maxLen": 60 },
+        { "paths": ["accessMatrixStatus"], "label": "Zugangsmatrix", "maxLen": 60 },
+        { "paths": ["testCallStatus"], "label": "Testabruf", "maxLen": 60 },
+        { "paths": ["productionProofConfirmed"], "label": "Produktivnachweis" },
+        { "paths": ["templateVersionCurrent"], "label": "Template aktuell" },
+        { "paths": ["openQuestionsCount"], "label": "Offene Fragen" },
+        { "paths": ["responsibleRole"], "label": "Verantwortliche Rolle", "maxLen": 100 },
+        { "paths": ["acceptanceDeadline"], "label": "Abnahmefrist", "maxLen": 40 },
+        { "paths": ["daysUntilDeadline"], "label": "Tage bis Abnahmefrist" },
+        { "paths": ["evaluatedAt"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 243
   }
 ]

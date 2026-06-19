@@ -282,6 +282,25 @@ const RSCG_GATE_READY = 'RSCG_GATE_READY';
 const RSCG_GATE_BLOCKED = 'RSCG_GATE_BLOCKED';
 const RSCG_GATE_INSUFFICIENT_EVIDENCE = 'RSCG_GATE_INSUFFICIENT_EVIDENCE';
 
+// RRG — Redispatch Readiness Gate (v0.63)
+const RRG_ACCESS_MATRIX_COMPLETE = 'RRG_ACCESS_MATRIX_COMPLETE';
+const RRG_ACCESS_MATRIX_INCOMPLETE = 'RRG_ACCESS_MATRIX_INCOMPLETE';
+const RRG_TEST_CALL_PASSED = 'RRG_TEST_CALL_PASSED';
+const RRG_TEST_CALL_MISSING = 'RRG_TEST_CALL_MISSING';
+const RRG_TEST_CALL_FAILED = 'RRG_TEST_CALL_FAILED';
+const RRG_PRODUCTION_PROOF_CONFIRMED = 'RRG_PRODUCTION_PROOF_CONFIRMED';
+const RRG_PRODUCTION_PROOF_MISSING = 'RRG_PRODUCTION_PROOF_MISSING';
+const RRG_TEMPLATE_VERSION_CURRENT = 'RRG_TEMPLATE_VERSION_CURRENT';
+const RRG_TEMPLATE_VERSION_OUTDATED = 'RRG_TEMPLATE_VERSION_OUTDATED';
+const RRG_OPEN_QUESTIONS_PRESENT = 'RRG_OPEN_QUESTIONS_PRESENT';
+const RRG_RESPONSIBLE_ROLE_ASSIGNED = 'RRG_RESPONSIBLE_ROLE_ASSIGNED';
+const RRG_RESPONSIBLE_ROLE_MISSING = 'RRG_RESPONSIBLE_ROLE_MISSING';
+const RRG_ACCEPTANCE_DEADLINE_MISSED = 'RRG_ACCEPTANCE_DEADLINE_MISSED';
+const RRG_ACCEPTANCE_DEADLINE_APPROACHING = 'RRG_ACCEPTANCE_DEADLINE_APPROACHING';
+const RRG_GATE_READY = 'RRG_GATE_READY';
+const RRG_GATE_READY_WITH_WARNINGS = 'RRG_GATE_READY_WITH_WARNINGS';
+const RRG_GATE_BLOCKED = 'RRG_GATE_BLOCKED';
+
 // ---------------------------------------------------------------------------
 // Netzfahrplan / fNAV finding codes (v0.51.5) — Phase 5
 // ---------------------------------------------------------------------------
@@ -1649,6 +1668,127 @@ const FINDING_CODE_METADATA = {
     descriptionDe:
       'Gate kann nicht vollständig bewertet werden — vorgelagerter Dienst für eine oder mehrere Prüfungen nicht verfügbar',
   },
+
+  // ── Redispatch Readiness Gate (v0.63) ───────────────────────────────────
+  RRG_ACCESS_MATRIX_COMPLETE: {
+    severity: 'info',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'Redispatch GUI, SFTP, test-system and production-system access are confirmed',
+    descriptionDe: 'Redispatch-GUI, SFTP, Testsystem und Produktivsystem sind bestaetigt',
+  },
+  RRG_ACCESS_MATRIX_INCOMPLETE: {
+    severity: 'error',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'One or more required Redispatch access paths are missing',
+    descriptionDe: 'Ein oder mehrere erforderliche Redispatch-Zugaenge fehlen',
+  },
+  RRG_TEST_CALL_PASSED: {
+    severity: 'info',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'Redispatch test call passed',
+    descriptionDe: 'Redispatch-Testabruf bestanden',
+  },
+  RRG_TEST_CALL_MISSING: {
+    severity: 'warning',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'Redispatch test call is missing or pending',
+    descriptionDe: 'Redispatch-Testabruf fehlt oder ist offen',
+  },
+  RRG_TEST_CALL_FAILED: {
+    severity: 'error',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'Redispatch test call failed',
+    descriptionDe: 'Redispatch-Testabruf fehlgeschlagen',
+  },
+  RRG_PRODUCTION_PROOF_CONFIRMED: {
+    severity: 'info',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'Production readiness proof is confirmed',
+    descriptionDe: 'Produktivreife-Nachweis bestaetigt',
+  },
+  RRG_PRODUCTION_PROOF_MISSING: {
+    severity: 'error',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'Production readiness proof is missing',
+    descriptionDe: 'Produktivreife-Nachweis fehlt',
+  },
+  RRG_TEMPLATE_VERSION_CURRENT: {
+    severity: 'info',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'Redispatch master-data template version is current',
+    descriptionDe: 'Redispatch-Stammdatentemplate ist aktuell',
+  },
+  RRG_TEMPLATE_VERSION_OUTDATED: {
+    severity: 'warning',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'Redispatch master-data template version is outdated',
+    descriptionDe: 'Redispatch-Stammdatentemplate ist veraltet',
+  },
+  RRG_OPEN_QUESTIONS_PRESENT: {
+    severity: 'warning',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'Open Redispatch readiness questions remain',
+    descriptionDe: 'Offene Redispatch-Readiness-Fragen vorhanden',
+  },
+  RRG_RESPONSIBLE_ROLE_ASSIGNED: {
+    severity: 'info',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'Responsible IT/business role is assigned',
+    descriptionDe: 'Verantwortliche IT-/Fachrolle ist zugewiesen',
+  },
+  RRG_RESPONSIBLE_ROLE_MISSING: {
+    severity: 'warning',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'Responsible IT/business role is missing',
+    descriptionDe: 'Verantwortliche IT-/Fachrolle fehlt',
+  },
+  RRG_ACCEPTANCE_DEADLINE_MISSED: {
+    severity: 'error',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'Acceptance deadline has been missed',
+    descriptionDe: 'Abnahmefrist wurde verpasst',
+  },
+  RRG_ACCEPTANCE_DEADLINE_APPROACHING: {
+    severity: 'warning',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'Acceptance deadline is approaching',
+    descriptionDe: 'Abnahmefrist rueckt naeher',
+  },
+  RRG_GATE_READY: {
+    severity: 'info',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'Redispatch readiness gate is ready',
+    descriptionDe: 'Redispatch-Readiness-Gate ist bereit',
+  },
+  RRG_GATE_READY_WITH_WARNINGS: {
+    severity: 'warning',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'Redispatch readiness gate is ready with warnings',
+    descriptionDe: 'Redispatch-Readiness-Gate ist mit Warnungen bereit',
+  },
+  RRG_GATE_BLOCKED: {
+    severity: 'error',
+    agent: 'redispatch-readiness-gate',
+    step: 1,
+    description: 'Redispatch readiness gate is blocked',
+    descriptionDe: 'Redispatch-Readiness-Gate ist blockiert',
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -1861,4 +2001,22 @@ module.exports = {
   RSCG_GATE_READY,
   RSCG_GATE_BLOCKED,
   RSCG_GATE_INSUFFICIENT_EVIDENCE,
+  // RRG — Redispatch Readiness Gate (v0.63)
+  RRG_ACCESS_MATRIX_COMPLETE,
+  RRG_ACCESS_MATRIX_INCOMPLETE,
+  RRG_TEST_CALL_PASSED,
+  RRG_TEST_CALL_MISSING,
+  RRG_TEST_CALL_FAILED,
+  RRG_PRODUCTION_PROOF_CONFIRMED,
+  RRG_PRODUCTION_PROOF_MISSING,
+  RRG_TEMPLATE_VERSION_CURRENT,
+  RRG_TEMPLATE_VERSION_OUTDATED,
+  RRG_OPEN_QUESTIONS_PRESENT,
+  RRG_RESPONSIBLE_ROLE_ASSIGNED,
+  RRG_RESPONSIBLE_ROLE_MISSING,
+  RRG_ACCEPTANCE_DEADLINE_MISSED,
+  RRG_ACCEPTANCE_DEADLINE_APPROACHING,
+  RRG_GATE_READY,
+  RRG_GATE_READY_WITH_WARNINGS,
+  RRG_GATE_BLOCKED,
 };

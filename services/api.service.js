@@ -1634,6 +1634,12 @@ module.exports = {
           'GET /redispatch-data-governance/evaluations':
             'redispatch-data-governance.listEvaluations',
 
+          // Redispatch Readiness Gate (v0.63)
+          'POST /redispatch-readiness-gate/evaluate': 'redispatch-readiness-gate.evaluate',
+          'GET /redispatch-readiness-gate/runs': 'redispatch-readiness-gate.listRuns',
+          'GET /redispatch-readiness-gate/runs/:id': 'redispatch-readiness-gate.getRun',
+          'GET /redispatch-readiness-gate/status': 'redispatch-readiness-gate.getStatus',
+
           // Redispatch Settlement Sandbox (v0.62)
           'POST /redispatch-settlement-sandbox/scenarios':
             'redispatch-settlement-sandbox.createScenario',

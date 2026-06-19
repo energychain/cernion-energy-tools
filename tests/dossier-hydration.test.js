@@ -65,14 +65,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 8 static rules', () => {
+    it('loads all 9 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(8);
+      expect(rules.length).toBe(9);
     });
 
-    it('compiles all 8 static rules without error', () => {
+    it('compiles all 9 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(8);
+      expect(rules.length).toBe(9);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -92,7 +92,7 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule.timeoutMs).toBe(14000);
     });
 
-    it('all 8 actions are retrievable by getRule()', () => {
+    it('all 9 actions are retrievable by getRule()', () => {
       const expected = [
         'energy-market.co2Intensity',
         'gas-storage.countryStorage',
@@ -102,6 +102,7 @@ describe('dossier-hydration-registry (unit)', () => {
         'entsoe.dayAheadPrices',
         'energy-market.prices',
         'residual-load.netResidualLoad',
+        'redispatch-readiness-gate.getStatus',
       ];
       for (const action of expected) {
         expect(getRule(action)).not.toBeNull();
@@ -218,6 +219,39 @@ describe('dossier-hydration-registry (unit)', () => {
     it('co2Intensity fieldSummary returns null for empty result', () => {
       const rule = getRule('energy-market.co2Intensity');
       expect(rule.formatEvidence({})).toBeNull();
+    });
+
+    it('redispatch-readiness-gate.getStatus is dossier-safe and formats status facts', () => {
+      const rule = getRule('redispatch-readiness-gate.getStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(rule.extractParams([], 'Redispatch Readiness pruefen')).toEqual({});
+
+      const formatted = rule.formatEvidence({
+        overallStatus: 'ready',
+        accessMatrixStatus: 'complete',
+        testCallStatus: 'passed',
+        productionProofConfirmed: true,
+        templateVersionCurrent: true,
+        openQuestionsCount: 0,
+        responsibleRole: 'Redispatch IT/Fachkoordination',
+        acceptanceDeadline: '2026-07-01',
+        daysUntilDeadline: 12,
+        evaluatedAt: '2026-06-19T08:00:00.000Z',
+      });
+
+      expect(formatted).toContain('Status: ready');
+      expect(formatted).toContain('Zugangsmatrix: complete');
+      expect(formatted).toContain('Testabruf: passed');
+      expect(formatted).toContain('Produktivnachweis: true');
+      expect(formatted).toContain('Offene Fragen: 0');
+    });
+
+    it('redispatch-readiness-gate.getStatus formats not-found message as fallback evidence', () => {
+      const rule = getRule('redispatch-readiness-gate.getStatus');
+      expect(rule.formatEvidence({ found: false, message: 'No readiness evaluation yet' })).toBe(
+        'No readiness evaluation yet'
+      );
     });
 
     it('listSummary formats empty arrays as explicit negative evidence', () => {
