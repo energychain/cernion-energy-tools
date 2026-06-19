@@ -1388,6 +1388,8 @@ module.exports = {
             'dashboard-api.marketCommunicationEvidenceChainStatus',
           'GET /dashboard/e2e-controllability-governance':
             'dashboard-api.e2eControllabilityGovernanceStatus',
+          'GET /dashboard/controllability-asset-handover':
+            'dashboard-api.controllabilityAssetHandoverStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

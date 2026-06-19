@@ -1812,6 +1812,72 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── controllabilityAssetHandoverStatus ─────────────────────────────────
+
+  describe('controllabilityAssetHandoverStatus', () => {
+    it('reports explicit asset-handover gaps without creating downstream actions', async () => {
+      const result = await broker.call('dashboard-api.controllabilityAssetHandoverStatus', {
+        caseId: 'case-194',
+        assetId: 'asset-194',
+        mastrId: 'SEE-194',
+        technicalStatus: 'technical-check-ok',
+        lineOwnerRole: 'Assetmanagement',
+      });
+
+      expect(result.status).toBe('needs_feedback_capability');
+      expect(result.asset).toMatchObject({
+        assetId: 'asset-194',
+        mastrId: 'SEE-194',
+      });
+      expect(result.evidenceItems.map((item) => item.id)).toEqual(
+        expect.arrayContaining(['asset_inventory', 'technical_status', 'line_owner'])
+      );
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'feedback_capability',
+          'data_source_snapshot',
+          'next_reporting_cycle',
+          'handover_decision',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('controllability_asset_handover');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['hitl.create', 'assets.applyOverride', 'grid-operations.executeControl'])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_handover when all required handover facts are supplied', async () => {
+      const result = await broker.call('dashboard-api.controllabilityAssetHandoverStatus', {
+        caseId: 'case-194',
+        assetId: 'asset-194',
+        mastrId: 'SEE-194',
+        napId: 'nap-194',
+        meloId: 'melo-194',
+        technologyType: 'battery',
+        capacityKW: 750,
+        controllabilityScope: 'redispatch-and-14a',
+        technicalStatus: 'checked',
+        feedbackCapability: 'bidirectional-feedback-ok',
+        dataSourceRefs: ['asset-registry:snapshot-1'],
+        sourceSnapshotId: 'snapshot-194',
+        checkStatus: 'passed',
+        nonExecutionReason: 'not-needed-in-current-cycle',
+        evidenceStatus: 'complete',
+        lineOwnerRole: 'Assetmanagement',
+        handoverDecision: 'handover-approved',
+        nextReportingCycle: '2026-Q3',
+      });
+
+      expect(result.status).toBe('ready_for_handover');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.handoverDecision).toBe('handover-approved');
+      expect(result.nextReportingCycle).toBe('2026-Q3');
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided handover evidence: 10/10');
+      expect(result.sourceActions.notCalled).toContain('settlement.prepareBilling');
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

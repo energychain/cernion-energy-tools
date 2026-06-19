@@ -316,6 +316,63 @@
     "sourceIssue": 173
   },
   {
+    "id": "dashboard-api.controllabilityAssetHandoverStatus",
+    "action": "dashboard-api.controllabilityAssetHandoverStatus",
+    "label": "Controllability Asset Line Handover",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:case|caseId|fall)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "assetId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:assetId|asset|anlage)[:=]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "lineOwnerRole": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner|lineOwner|linienowner|verantwortlich)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Handover Status", "maxLen": 80 },
+        { "paths": ["asset.assetId", "dossierEvidence.asset.assetId"], "label": "Asset", "maxLen": 100 },
+        { "paths": ["lineOwnerRole", "dossierEvidence.lineOwnerRole"], "label": "Owner", "maxLen": 100 },
+        { "paths": ["handoverDecision", "dossierEvidence.handoverDecision"], "label": "Decision", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 160 },
+        { "paths": ["timestamp"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 194
+  },
+  {
     "id": "dashboard-api.marketCommunicationEvidenceChainStatus",
     "action": "dashboard-api.marketCommunicationEvidenceChainStatus",
     "label": "Market Communication Evidence Chain",

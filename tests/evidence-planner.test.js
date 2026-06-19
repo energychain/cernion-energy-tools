@@ -148,6 +148,35 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans controllability asset handover as explicit asset and owner evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'controllability_asset_handover' },
+      {
+        assetId: 'asset-194',
+        mastrId: 'SEE-194',
+        technicalStatus: 'checked',
+        lineOwnerRole: 'Assetmanagement',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('controllability_asset_handover');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['asset_inventory', 'technical_status', 'line_owner'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'nap_melo_mapping',
+        'feedback_capability',
+        'controllability_scope',
+        'data_source_snapshot',
+        'check_result',
+        'next_reporting_cycle',
+        'handover_decision',
+      ])
+    );
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });

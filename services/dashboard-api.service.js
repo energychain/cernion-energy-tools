@@ -48,6 +48,7 @@ module.exports = {
       receiptGroundedPresentationContract: 5 * 60 * 1000, // 5 min
       marketCommunicationEvidenceChainStatus: 5 * 60 * 1000, // 5 min
       e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
+      controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -1467,6 +1468,110 @@ module.exports = {
           this.settings.cacheTtlMs.e2eControllabilityGovernanceStatus,
           async () => ({
             ...this.buildE2eControllabilityGovernanceStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── controllabilityAssetHandoverStatus ────────────────────────────────
+    /**
+     * GET /api/dashboard/controllability-asset-handover?assetId=...
+     *
+     * Read-only dossier-safe line handover status for controllable assets.
+     * It projects supplied asset, source and owner evidence into explicit
+     * handover gaps without creating Asset-MDM, HITL or control mutations.
+     */
+    controllabilityAssetHandoverStatus: {
+      rest: 'GET /controllability-asset-handover',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        assetId: { type: 'string', optional: true, min: 1 },
+        mastrId: { type: 'string', optional: true, min: 1 },
+        napId: { type: 'string', optional: true, min: 1 },
+        meloId: { type: 'string', optional: true, min: 1 },
+        technologyType: { type: 'string', optional: true, min: 1 },
+        capacityKW: { type: 'number', optional: true, convert: true },
+        controllabilityScope: { type: 'string', optional: true, min: 1 },
+        technicalStatus: { type: 'string', optional: true, min: 1 },
+        feedbackCapability: { type: 'string', optional: true, min: 1 },
+        dataSourceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceSnapshotId: { type: 'string', optional: true, min: 1 },
+        checkStatus: { type: 'string', optional: true, min: 1 },
+        nonExecutionReason: { type: 'string', optional: true, min: 1 },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+        lineOwnerRole: { type: 'string', optional: true, min: 1 },
+        handoverDecision: { type: 'string', optional: true, min: 1 },
+        nextReportingCycle: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Controllability asset handover — read-only dossier-safe status',
+        description:
+          'Builds a deterministic asset line-handover evidence view for Steuerbarkeitscheck cases. ' +
+          'It covers asset identity, NAP/MeLo mapping, technical status, feedback capability, source ' +
+          'snapshot, check result, non-execution reason, line owner, next reporting cycle and handover ' +
+          'decision. The endpoint is read-only and does not mutate Asset-MDM, VDMI, HITL, MaKo, billing, ' +
+          'settlement, tariff or device-control state.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'mastrId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'napId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'meloId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'technologyType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'capacityKW', in: 'query', required: false, schema: { type: 'number' } },
+          { name: 'controllabilityScope', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'technicalStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'feedbackCapability', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataSourceRefs', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          { name: 'sourceSnapshotId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'checkStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nonExecutionReason', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'lineOwnerRole', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'handoverDecision', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextReportingCycle', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only controllability asset line handover status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    asset: { type: 'object' },
+                    evidenceItems: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    handoverDecision: { type: 'string' },
+                    lineOwnerRole: { type: 'string' },
+                    nextReportingCycle: { type: 'string' },
+                    blockingFindings: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `controllability-asset-handover:${params.caseId || 'no-case'}:${params.assetId || 'no-asset'}:${params.mastrId || 'no-mastr'}:${params.napId || 'no-nap'}:${params.meloId || 'no-melo'}:${params.technicalStatus || 'no-technical'}:${params.feedbackCapability || 'no-feedback'}:${params.lineOwnerRole || 'no-owner'}:${params.handoverDecision || 'no-decision'}:${params.nextReportingCycle || 'no-cycle'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.controllabilityAssetHandoverStatus,
+          async () => ({
+            ...this.buildControllabilityAssetHandoverStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -3532,6 +3637,209 @@ module.exports = {
           owners,
           deadlines,
           openMeasures,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildControllabilityAssetHandoverStatus(params = {}) {
+      const dataSourceRefs = Array.isArray(params.dataSourceRefs)
+        ? params.dataSourceRefs.filter(Boolean)
+        : params.dataSourceRefs
+          ? String(params.dataSourceRefs).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const evidenceSpecs = [
+        {
+          id: 'asset_inventory',
+          label: 'Asset inventory',
+          value: params.assetId || params.mastrId,
+          sourceClass: 'asset_master_data',
+          enablesDossierAddition: 'add asset identity and inventory reference',
+        },
+        {
+          id: 'nap_melo_mapping',
+          label: 'NAP/MeLo mapping',
+          value: params.napId || params.meloId,
+          sourceClass: 'connection_meter_mapping',
+          enablesDossierAddition: 'add NAP and MeLo mapping evidence',
+        },
+        {
+          id: 'technical_status',
+          label: 'Technical status',
+          value: params.technicalStatus,
+          sourceClass: 'technical_readiness',
+          enablesDossierAddition: 'add technical readiness evidence',
+        },
+        {
+          id: 'feedback_capability',
+          label: 'Feedback capability',
+          value: params.feedbackCapability,
+          sourceClass: 'remote_feedback',
+          enablesDossierAddition: 'add Rueckmelde-/Fernsteuerbarkeits evidence',
+        },
+        {
+          id: 'controllability_scope',
+          label: 'Controllability scope',
+          value: params.controllabilityScope,
+          sourceClass: 'control_scope',
+          enablesDossierAddition: 'add controllability scope boundary',
+        },
+        {
+          id: 'data_source_snapshot',
+          label: 'Source snapshot',
+          value: params.sourceSnapshotId || (dataSourceRefs.length > 0 ? dataSourceRefs.join(',') : null),
+          sourceClass: 'source_snapshot',
+          enablesDossierAddition: 'add source and freshness proof',
+        },
+        {
+          id: 'check_result',
+          label: 'Check result',
+          value: params.checkStatus || params.evidenceStatus,
+          sourceClass: 'check_status',
+          enablesDossierAddition: 'add check result evidence',
+        },
+        {
+          id: 'line_owner',
+          label: 'Line owner',
+          value: params.lineOwnerRole,
+          sourceClass: 'line_handover_owner',
+          enablesDossierAddition: 'add accountable line handover ownership',
+        },
+        {
+          id: 'next_reporting_cycle',
+          label: 'Next reporting cycle',
+          value: params.nextReportingCycle,
+          sourceClass: 'line_monitoring_cycle',
+          enablesDossierAddition: 'add recurring monitoring cadence',
+        },
+        {
+          id: 'handover_decision',
+          label: 'Handover decision',
+          value: params.handoverDecision,
+          sourceClass: 'line_transition_decision',
+          enablesDossierAddition: 'add explicit line-transition decision',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value != null && spec.value !== '')
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => spec.value == null || spec.value === '')
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      if (params.nonExecutionReason) {
+        evidenceItems.push({
+          id: 'non_execution_reason',
+          label: 'Non-execution reason',
+          value: params.nonExecutionReason,
+          sourceClass: 'defensible_non_execution_context',
+          evidenceStatus: 'provided',
+        });
+      }
+
+      const status =
+        missingEvidence.length === 0
+          ? 'ready_for_handover'
+          : !params.technicalStatus
+            ? 'needs_technical_check'
+            : !params.feedbackCapability
+              ? 'needs_feedback_capability'
+              : !params.lineOwnerRole
+                ? 'needs_owner'
+                : !params.handoverDecision
+                  ? 'needs_handover_decision'
+                  : 'needs_evidence';
+      const asset = {
+        assetId: params.assetId || null,
+        mastrId: params.mastrId || null,
+        napId: params.napId || null,
+        meloId: params.meloId || null,
+        technologyType: params.technologyType || null,
+        capacityKW: params.capacityKW ?? null,
+        controllabilityScope: params.controllabilityScope || null,
+      };
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'controllability_asset_handover',
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `CAH_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['line_owner', 'handover_decision', 'technical_status'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      const providedRequiredEvidence = evidenceItems.filter((item) => item.id !== 'non_execution_reason');
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided handover evidence: ${providedRequiredEvidence.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.assetId) dossierFacts.push(`Asset: ${params.assetId}`);
+      if (params.lineOwnerRole) dossierFacts.push(`Line Owner: ${params.lineOwnerRole}`);
+      if (params.handoverDecision) dossierFacts.push(`Decision: ${params.handoverDecision}`);
+
+      return {
+        handoverId: `cah:${Buffer.from(`${params.caseId || ''}:${params.assetId || ''}:${params.mastrId || ''}:${params.lineOwnerRole || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'controllability_asset_handover',
+        safety: 'read_only',
+        requestContext: {
+          caseId: params.caseId || null,
+          sourceSnapshotId: params.sourceSnapshotId || null,
+          dataSourceRefs,
+        },
+        status,
+        asset,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        handoverDecision: params.handoverDecision || null,
+        lineOwnerRole: params.lineOwnerRole || null,
+        nextReportingCycle: params.nextReportingCycle || null,
+        nonExecutionReason: params.nonExecutionReason || null,
+        blockingFindings,
+        sourceActions: {
+          inspected: ['dashboard-api.controllabilityAssetHandoverStatus'],
+          referenced: [
+            'assets.effective',
+            'mastr-quality.audit',
+            'redispatch-expost.audit',
+            'datapoint.health',
+            'vdmi.dossier',
+            'interface-placeholder.requestEvidence',
+          ],
+          notCalled: [
+            'hitl.create',
+            'assets.applyOverride',
+            'grid-operations.executeControl',
+            'settlement.exportA96',
+            'settlement.prepareBilling',
+            'external.connector.call',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          asset,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          handoverDecision: params.handoverDecision || null,
+          lineOwnerRole: params.lineOwnerRole || null,
+          nextReportingCycle: params.nextReportingCycle || null,
+          nonExecutionReason: params.nonExecutionReason || null,
+          blockingFindings,
           dossierFacts,
         },
       };

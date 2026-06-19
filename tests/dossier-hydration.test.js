@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 20 static rules', () => {
+    it('loads all 21 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(20);
+      expect(rules.length).toBe(21);
     });
 
-    it('compiles all 20 static rules without error', () => {
+    it('compiles all 21 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(20);
+      expect(rules.length).toBe(21);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -438,6 +438,40 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('First Step: Netzanschluss-/Asset-Identifikation');
       expect(formatted).toContain('Leading Gap: metering_concept');
       expect(formatted).toContain('Owner: netzanschluss');
+    });
+
+    it('dashboard-api.controllabilityAssetHandoverStatus is dossier-safe and formats handover facts', () => {
+      const rule = getRule('dashboard-api.controllabilityAssetHandoverStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Steuerbarkeitscheck Asset Linienuebergabe asset=asset-194 owner=assetmanagement case=case-194 laden'
+        )
+      ).toEqual({
+        caseId: 'case-194',
+        assetId: 'asset-194',
+        lineOwnerRole: 'assetmanagement',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_feedback_capability',
+        asset: { assetId: 'asset-194' },
+        lineOwnerRole: 'assetmanagement',
+        missingEvidence: [{ missingDataPoint: 'feedback_capability' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add Rueckmelde-/Fernsteuerbarkeits evidence',
+          },
+        ],
+        timestamp: '2026-06-19T23:50:00.000Z',
+      });
+
+      expect(formatted).toContain('Handover Status: needs_feedback_capability');
+      expect(formatted).toContain('Asset: asset-194');
+      expect(formatted).toContain('Owner: assetmanagement');
+      expect(formatted).toContain('Leading Gap: feedback_capability');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {

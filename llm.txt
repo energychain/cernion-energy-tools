@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: a0940cb235b505332a24839c013f209ad663d2b9a9e69f37a9be2d3b4afca794
+  - openapi-export.json: bfd6c700baa874ae14f457bd038164285a85fced370abe34cbbcccd8905d1f72
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 709
-- operation_count: 814
+- path_count: 711
+- operation_count: 816
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -694,7 +694,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 24 operations
+- Dashboard API: 26 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -962,6 +962,7 @@ process:
 - GET /api/cya/sessions/:session_id/export/pdf | tags: [CYA Agent] | operationId: cya_exportPdf | summary: Export CYA session as PDF
 - GET /api/cya/templates | tags: [CYA Agent] | operationId: cya_listTemplates | summary: List prebuilt CYA profile templates
 - GET /api/cya/templates/:templateId | tags: [CYA Agent] | operationId: cya_getTemplate | summary: Load one prebuilt CYA profile template
+- GET /api/dashboard-api/controllability-asset-handover | tags: [Dashboard API] | operationId: dashboard-api_controllabilityAssetHandoverStatus | summary: Controllability asset handover — read-only dossier-safe status
 - GET /api/dashboard-api/e2e-controllability-governance | tags: [Dashboard API] | operationId: dashboard-api_e2eControllabilityGovernanceStatus | summary: E2E controllability governance — read-only dossier-safe matrix
 - GET /api/dashboard-api/evidence-grounding-confidence-audit | tags: [Dashboard API] | operationId: dashboard-api_evidenceGroundingConfidenceAudit | summary: Evidence grounding confidence audit — read-only dossier-safe evidence status
 - GET /api/dashboard-api/finding-codes | tags: [Dashboard API] | operationId: dashboard-api_findingCodes | summary: Finding codes reference — all 92 codes with metadata
@@ -974,6 +975,7 @@ process:
 - GET /api/dashboard-api/redispatch-call-quality-gate | tags: [Dashboard API] | operationId: dashboard-api_redispatchCallQualityGate | summary: Redispatch call data-quality gate — read-only evidence aggregator
 - GET /api/dashboard-api/redispatch-metering-cockpit | tags: [Dashboard API] | operationId: dashboard-api_redispatchMeteringCockpit | summary: Redispatch Metering Cockpit — operator-level decision readiness
 - GET /api/dashboard-api/vnb-overview | tags: [Dashboard API] | operationId: dashboard-api_vnbOverview | summary: VNB overview — aggregated dashboard data for one grid operator
+- GET /api/dashboard/controllability-asset-handover | tags: [Dashboard API] | operationId: dashboard-api_controllabilityAssetHandoverStatus | summary: Controllability asset handover — read-only dossier-safe status
 - GET /api/dashboard/e2e-controllability-governance | tags: [Dashboard API] | operationId: dashboard-api_e2eControllabilityGovernanceStatus | summary: E2E controllability governance — read-only dossier-safe matrix
 - GET /api/dashboard/evidence-grounding-confidence-audit | tags: [Dashboard API] | operationId: dashboard-api_evidenceGroundingConfidenceAudit | summary: Evidence grounding confidence audit — read-only dossier-safe evidence status
 - GET /api/dashboard/finding-codes | tags: [Dashboard API] | operationId: dashboard-api_findingCodes | summary: Finding codes reference — all 92 codes with metadata
@@ -15027,6 +15029,232 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/controllability-asset-handover": {
+      "get": {
+        "description": "Builds a deterministic asset line-handover evidence view for Steuerbarkeitscheck cases. It covers asset identity, NAP/MeLo mapping, technical status, feedback capability, source snapshot, check result, non-execution reason, line owner, next reporting cycle and handover decision. The endpoint is read-only and does not mutate Asset-MDM, VDMI, HITL, MaKo, billing, settlement, tariff or device-control state.",
+        "operationId": "dashboard-api_controllabilityAssetHandoverStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "caseId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "assetId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mastrId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "napId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "meloId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "technologyType",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "capacityKW",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "controllabilityScope",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "technicalStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "feedbackCapability",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dataSourceRefs",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceSnapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "checkStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "nonExecutionReason",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lineOwnerRole",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "handoverDecision",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "nextReportingCycle",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "asset": {
+                      "type": "object"
+                    },
+                    "blockingFindings": {
+                      "type": "array"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "evidenceItems": {
+                      "type": "array"
+                    },
+                    "handoverDecision": {
+                      "type": "string"
+                    },
+                    "lineOwnerRole": {
+                      "type": "string"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "nextReportingCycle": {
+                      "type": "string"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only controllability asset line handover status"
+          }
+        },
+        "summary": "Controllability asset handover — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/e2e-controllability-governance": {
       "get": {
         "description": "Builds a deterministic governance/evidence matrix for E2E Steuerbarkeitscheck handover readiness across connection intake, metering, asset control, grid operations, market communication and billing-impact boundaries. The endpoint is read-only and does not mutate VDMI, HITL, MaKo, billing, settlement, tariff or device-control state.",
@@ -16525,6 +16753,232 @@ process:
         ],
         "x-oeo-class": [
           "OEO_00000446"
+        ]
+      }
+    },
+    "/api/dashboard/controllability-asset-handover": {
+      "get": {
+        "description": "Builds a deterministic asset line-handover evidence view for Steuerbarkeitscheck cases. It covers asset identity, NAP/MeLo mapping, technical status, feedback capability, source snapshot, check result, non-execution reason, line owner, next reporting cycle and handover decision. The endpoint is read-only and does not mutate Asset-MDM, VDMI, HITL, MaKo, billing, settlement, tariff or device-control state.",
+        "operationId": "dashboard-api_controllabilityAssetHandoverStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "caseId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "assetId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mastrId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "napId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "meloId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "technologyType",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "capacityKW",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "controllabilityScope",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "technicalStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "feedbackCapability",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dataSourceRefs",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceSnapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "checkStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "nonExecutionReason",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lineOwnerRole",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "handoverDecision",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "nextReportingCycle",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "asset": {
+                      "type": "object"
+                    },
+                    "blockingFindings": {
+                      "type": "array"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "evidenceItems": {
+                      "type": "array"
+                    },
+                    "handoverDecision": {
+                      "type": "string"
+                    },
+                    "lineOwnerRole": {
+                      "type": "string"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "nextReportingCycle": {
+                      "type": "string"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only controllability asset line handover status"
+          }
+        },
+        "summary": "Controllability asset handover — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
         ]
       }
     },
@@ -55095,4 +55549,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 6b6c077e95d130e1ea1d2a5ba6b6d4240a15be7a43db4bdd316c9aaacddcadb7
+- llm_txt_sha256: ac58bb29b138b56b2d4e6834d937200ec0c7193b13beb68bd4970518494edd00

@@ -238,6 +238,17 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasControllabilityAssetHandoverSpecificSignal =
+    /(steuerbarkeitscheck|steuerbarkeit|steuerbare anlagen)/i.test(haystack) &&
+    /(linienuebergabe|linienübergabe|asset handover|meldezyklus|nichtdurchfuehrungsbegruendung|nichtdurchführungsbegründung|rueckmeldefaehigkeit|rückmeldefähigkeit|fernsteuerbarkeit|asset evidenzkatalog)/i.test(haystack);
+
+  if (hasControllabilityAssetHandoverSpecificSignal) {
+    const assetHandoverCapability = findCapabilityByName('controllability_asset_handover');
+    if (assetHandoverCapability) {
+      return { capability: assetHandoverCapability, score: 136, usedFallback: false };
+    }
+  }
+
   const hasE2eControllabilityGovernanceSpecificSignal =
     /(steuerbarkeitscheck|steuerbarkeit)/i.test(haystack) &&
     /(evidenzmatrix|rollenmatrix|abgabeprozess|messkonzept|handover|governance)/i.test(haystack);

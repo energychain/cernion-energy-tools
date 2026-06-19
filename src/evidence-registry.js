@@ -266,6 +266,88 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  controllability_asset_handover: {
+    sources: [
+      {
+        id: 'asset_inventory',
+        label: 'Asset-Inventar / MaStR-Bezug',
+        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'assets.effective', 'mastr-quality.audit'],
+        contextKeys: ['assetId', 'mastrId'],
+        optional: false,
+      },
+      {
+        id: 'nap_melo_mapping',
+        label: 'NAP-/MeLo-Zuordnung',
+        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'assets.effective', 'mastr-quality.audit'],
+        contextKeys: ['napId', 'meloId'],
+        optional: false,
+      },
+      {
+        id: 'technical_status',
+        label: 'Technikstatus',
+        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'assets.effective', 'redispatch-expost.audit'],
+        contextKeys: ['technicalStatus'],
+        optional: false,
+      },
+      {
+        id: 'feedback_capability',
+        label: 'Rueckmelde-/Fernsteuerbarkeitsfaehigkeit',
+        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'redispatch-expost.audit', 'grid-operations.controlMeasures'],
+        contextKeys: ['feedbackCapability'],
+        optional: false,
+      },
+      {
+        id: 'controllability_scope',
+        label: 'Steuerbarkeits-Scope',
+        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'redispatch-expost.audit'],
+        contextKeys: ['controllabilityScope'],
+        optional: false,
+      },
+      {
+        id: 'data_source_snapshot',
+        label: 'Quellen-/Snapshot-Nachweis',
+        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'datapoint.health', 'datasource-registry.get'],
+        contextKeys: ['dataSourceRefs', 'sourceSnapshotId'],
+        optional: false,
+      },
+      {
+        id: 'check_result',
+        label: 'Pruefergebnis',
+        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'mastr-quality.audit', 'redispatch-expost.audit'],
+        contextKeys: ['checkStatus', 'evidenceStatus'],
+        optional: false,
+      },
+      {
+        id: 'non_execution_reason',
+        label: 'Nichtdurchfuehrungsbegruendung',
+        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'vdmi.dossier', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['nonExecutionReason'],
+        optional: true,
+      },
+      {
+        id: 'line_owner',
+        label: 'Linienverantwortung',
+        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'vdmi.dossier'],
+        contextKeys: ['lineOwnerRole'],
+        optional: false,
+      },
+      {
+        id: 'next_reporting_cycle',
+        label: 'Naechster Meldezyklus',
+        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'vdmi.dossier'],
+        contextKeys: ['nextReportingCycle'],
+        optional: false,
+      },
+      {
+        id: 'handover_decision',
+        label: 'Uebergabeentscheidung',
+        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'vdmi.dossier'],
+        contextKeys: ['handoverDecision'],
+        optional: false,
+      },
+    ],
+  },
+
   // ── Routing-matrix route-keyed entries ─────────────────────────────────
 
   'investment-grid-check': {
