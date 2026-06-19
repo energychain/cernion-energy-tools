@@ -65,14 +65,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 17 static rules', () => {
+    it('loads all 18 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(17);
+      expect(rules.length).toBe(18);
     });
 
-    it('compiles all 17 static rules without error', () => {
+    it('compiles all 18 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(17);
+      expect(rules.length).toBe(18);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -334,6 +334,37 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Routing Confidence: 0.92');
       expect(formatted).toContain('Evidence Confidence: low');
       expect(formatted).toContain('Leading Gap: network_operator_confirmation');
+    });
+
+    it('dashboard-api.receiptGroundedPresentationContract is dossier-safe and formats grounding evidence', () => {
+      const rule = getRule('dashboard-api.receiptGroundedPresentationContract');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Presentation Contract renderer=vdmi_matrix_table action=mock.kpi gap=missing_vdmi_roles laden'
+        )
+      ).toEqual({
+        preferredFormat: 'vdmi_matrix_table',
+        sourceAction: 'mock.kpi',
+        evidenceGapId: 'missing_vdmi_roles',
+      });
+
+      const formatted = rule.formatEvidence({
+        selectedType: 'debug_summary',
+        allowedTypes: ['debug_summary', 'kpi_fact'],
+        blockedReason: 'requested_renderer_not_grounded:vdmi_matrix_table',
+        sourceActions: ['mock.kpi'],
+        evidenceGapIds: ['missing_vdmi_roles'],
+        timestamp: '2026-06-19T17:45:00.000Z',
+      });
+
+      expect(formatted).toContain('Selected Renderer: debug_summary');
+      expect(formatted).toContain('Allowed Renderer: debug_summary');
+      expect(formatted).toContain('Blocked Reason: requested_renderer_not_grounded:vdmi_matrix_table');
+      expect(formatted).toContain('Source Action: mock.kpi');
+      expect(formatted).toContain('Evidence Gap: missing_vdmi_roles');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {

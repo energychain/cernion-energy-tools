@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: b977f27a09a57d5480d23f23501321cb1c4c84d83c0900c4308083b21c6afd59
+  - openapi-export.json: cc533f81a3113b2ecb669623c301ff5208a34078d7586f978c51ad2b9a5ea395
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 703
-- operation_count: 808
+- path_count: 705
+- operation_count: 810
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -694,7 +694,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 18 operations
+- Dashboard API: 20 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -968,6 +968,7 @@ process:
 - GET /api/dashboard-api/market-snapshot | tags: [Dashboard API] | operationId: dashboard-api_marketSnapshot | summary: Market snapshot — current spot prices, CO₂ intensity, renewable forecast
 - GET /api/dashboard-api/observability-mini | tags: [Dashboard API] | operationId: dashboard-api_observabilityMini | summary: Observability mini dashboard — compact production feedback cards
 - GET /api/dashboard-api/quality-summary | tags: [Dashboard API] | operationId: dashboard-api_qualitySummary | summary: Quality summary — recent reports from all agent pipelines
+- GET /api/dashboard-api/receipt-grounded-presentation-contract | tags: [Dashboard API] | operationId: dashboard-api_receiptGroundedPresentationContract | summary: Receipt-grounded presentation contract — read-only renderer grounding check
 - GET /api/dashboard-api/redispatch-call-quality-gate | tags: [Dashboard API] | operationId: dashboard-api_redispatchCallQualityGate | summary: Redispatch call data-quality gate — read-only evidence aggregator
 - GET /api/dashboard-api/redispatch-metering-cockpit | tags: [Dashboard API] | operationId: dashboard-api_redispatchMeteringCockpit | summary: Redispatch Metering Cockpit — operator-level decision readiness
 - GET /api/dashboard-api/vnb-overview | tags: [Dashboard API] | operationId: dashboard-api_vnbOverview | summary: VNB overview — aggregated dashboard data for one grid operator
@@ -977,6 +978,7 @@ process:
 - GET /api/dashboard/market-snapshot | tags: [Dashboard API] | operationId: dashboard-api_marketSnapshot | summary: Market snapshot — current spot prices, CO₂ intensity, renewable forecast
 - GET /api/dashboard/observability-mini | tags: [Dashboard API] | operationId: dashboard-api_observabilityMini | summary: Observability mini dashboard — compact production feedback cards
 - GET /api/dashboard/quality-summary | tags: [Dashboard API] | operationId: dashboard-api_qualitySummary | summary: Quality summary — recent reports from all agent pipelines
+- GET /api/dashboard/receipt-grounded-presentation-contract | tags: [Dashboard API] | operationId: dashboard-api_receiptGroundedPresentationContract | summary: Receipt-grounded presentation contract — read-only renderer grounding check
 - GET /api/dashboard/redispatch-call-quality-gate | tags: [Dashboard API] | operationId: dashboard-api_redispatchCallQualityGate | summary: Redispatch call data-quality gate — read-only evidence aggregator
 - GET /api/dashboard/redispatch-metering-cockpit | tags: [Dashboard API] | operationId: dashboard-api_redispatchMeteringCockpit | summary: Redispatch Metering Cockpit — operator-level decision readiness
 - GET /api/dashboard/vnb-overview | tags: [Dashboard API] | operationId: dashboard-api_vnbOverview | summary: VNB overview — aggregated dashboard data for one grid operator
@@ -15727,6 +15729,139 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/receipt-grounded-presentation-contract": {
+      "get": {
+        "description": "Evaluates whether a requested presentation renderer is grounded by the supplied domain shape, executed source action and evidence gaps. This is a deterministic inspect endpoint only; it does not run Personal-Agent chat, execute tools, create HITL/interface-placeholder items, mutate data, ingest RAG or call external services.",
+        "operationId": "dashboard-api_receiptGroundedPresentationContract",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "preferredFormat",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "selectedType",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceAction",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "domainShape",
+            "required": false,
+            "schema": {
+              "enum": [
+                "plain",
+                "vdmi_matrix",
+                "kpi_fact",
+                "evidence_gap",
+                "decision_brief"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceGapId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "allowedTypes": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "blockedReason": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "contractId": {
+                      "type": "string"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "evidenceGapIds": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "requestedType": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "selectedType": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Receipt-grounded presentation contract decision"
+          }
+        },
+        "summary": "Receipt-grounded presentation contract — read-only renderer grounding check",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/redispatch-call-quality-gate": {
       "get": {
         "description": "Read-only Redispatch-Abrufprozess gate that summarizes existing Redispatch ex-post, EDM/datapoint, forecast, VDMI and settlement-readiness evidence into a dossier-safe status. The action does not create settlement artifacts, A96 exports, HITL tasks or operational mutations.",
@@ -16779,6 +16914,139 @@ process:
         ],
         "x-oeo-class": [
           "OEO_00000143"
+        ]
+      }
+    },
+    "/api/dashboard/receipt-grounded-presentation-contract": {
+      "get": {
+        "description": "Evaluates whether a requested presentation renderer is grounded by the supplied domain shape, executed source action and evidence gaps. This is a deterministic inspect endpoint only; it does not run Personal-Agent chat, execute tools, create HITL/interface-placeholder items, mutate data, ingest RAG or call external services.",
+        "operationId": "dashboard-api_receiptGroundedPresentationContract",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "preferredFormat",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "selectedType",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceAction",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "domainShape",
+            "required": false,
+            "schema": {
+              "enum": [
+                "plain",
+                "vdmi_matrix",
+                "kpi_fact",
+                "evidence_gap",
+                "decision_brief"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceGapId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "allowedTypes": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "blockedReason": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "contractId": {
+                      "type": "string"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "evidenceGapIds": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "requestedType": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "selectedType": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Receipt-grounded presentation contract decision"
+          }
+        },
+        "summary": "Receipt-grounded presentation contract — read-only renderer grounding check",
+        "tags": [
+          "Dashboard API"
         ]
       }
     },
@@ -54197,4 +54465,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: c3c61e8a248e4f51d04e3d43f9361cab8702c574b0ec2667b666d4866c79ef9f
+- llm_txt_sha256: a795f9a83b5e7f53407b72e96c7617263514d8d16a2c40bc5220eedd8f5708c8

@@ -260,6 +260,62 @@
     "sourceIssue": 234
   },
   {
+    "id": "dashboard-api.receiptGroundedPresentationContract",
+    "action": "dashboard-api.receiptGroundedPresentationContract",
+    "label": "Receipt Grounded Presentation Contract",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "preferredFormat": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:preferredFormat|renderer|presentationType)[:= ]+([a-zA-Z0-9_:-]+)",
+          "group": 1
+        }
+      },
+      "sourceAction": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:sourceAction|action)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "evidenceGapId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:gap|evidenceGapId)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["selectedType", "dossierEvidence.selectedPresentationType"], "label": "Selected Renderer", "maxLen": 80 },
+        { "paths": ["allowedTypes.0", "dossierEvidence.allowedPresentationTypes.0"], "label": "Allowed Renderer", "maxLen": 80 },
+        { "paths": ["blockedReason", "dossierEvidence.blockedRendererReason"], "label": "Blocked Reason", "maxLen": 120 },
+        { "paths": ["sourceActions.0", "dossierEvidence.sourceActions.0"], "label": "Source Action", "maxLen": 120 },
+        { "paths": ["evidenceGapIds.0", "dossierEvidence.evidenceGapIds.0"], "label": "Evidence Gap", "maxLen": 120 },
+        { "paths": ["timestamp"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 166
+  },
+  {
     "id": "dashboard-api.evidenceGroundingConfidenceAudit",
     "action": "dashboard-api.evidenceGroundingConfidenceAudit",
     "label": "Evidence Grounding Confidence Audit",

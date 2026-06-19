@@ -11200,6 +11200,139 @@
         ]
       }
     },
+    "/api/dashboard-api/receipt-grounded-presentation-contract": {
+      "get": {
+        "operationId": "dashboard-api_receiptGroundedPresentationContract",
+        "summary": "Receipt-grounded presentation contract — read-only renderer grounding check",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Receipt-grounded presentation contract decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "contractId": {
+                      "type": "string"
+                    },
+                    "requestedType": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "selectedType": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "allowedTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "blockedReason": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "sourceActions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "evidenceGapIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "positiveFollowUps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Evaluates whether a requested presentation renderer is grounded by the supplied domain shape, executed source action and evidence gaps. This is a deterministic inspect endpoint only; it does not run Personal-Agent chat, execute tools, create HITL/interface-placeholder items, mutate data, ingest RAG or call external services.",
+        "parameters": [
+          {
+            "name": "preferredFormat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "selectedType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceAction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domainShape",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "plain",
+                "vdmi_matrix",
+                "kpi_fact",
+                "evidence_gap",
+                "decision_brief"
+              ]
+            }
+          },
+          {
+            "name": "evidenceGapId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -47464,6 +47597,139 @@
         ],
         "x-oeo-class": [
           "OEO_00000143"
+        ]
+      }
+    },
+    "/api/dashboard/receipt-grounded-presentation-contract": {
+      "get": {
+        "operationId": "dashboard-api_receiptGroundedPresentationContract",
+        "summary": "Receipt-grounded presentation contract — read-only renderer grounding check",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Receipt-grounded presentation contract decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "contractId": {
+                      "type": "string"
+                    },
+                    "requestedType": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "selectedType": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "allowedTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "blockedReason": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "sourceActions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "evidenceGapIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "positiveFollowUps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Evaluates whether a requested presentation renderer is grounded by the supplied domain shape, executed source action and evidence gaps. This is a deterministic inspect endpoint only; it does not run Personal-Agent chat, execute tools, create HITL/interface-placeholder items, mutate data, ingest RAG or call external services.",
+        "parameters": [
+          {
+            "name": "preferredFormat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "selectedType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceAction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domainShape",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "plain",
+                "vdmi_matrix",
+                "kpi_fact",
+                "evidence_gap",
+                "decision_brief"
+              ]
+            }
+          },
+          {
+            "name": "evidenceGapId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
         ]
       }
     },

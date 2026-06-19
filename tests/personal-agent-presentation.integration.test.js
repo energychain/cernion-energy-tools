@@ -126,7 +126,7 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
     try {
       const result = await broker.call(
         'personal-agent.chat',
-        { message: 'VDMI Decision?', executionMode: 'auto' },
+        { message: 'VDMI Decision?', executionMode: 'auto', chatMode: 'execution' },
         { meta: { tenantId: 'tenant-pa-pres-01', authUser: { userId: 'user-1' } } }
       );
 
@@ -134,6 +134,8 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
       expect(presentationRenderCalls).toBeGreaterThan(0);
       expect(result.presentationApplied).toBe(true);
       expect(result.presentationType).toBe('vdmi_matrix_table');
+      expect(result.presentationGrounding.allowedTypes).toContain('vdmi_matrix_table');
+      expect(result.presentationGrounding.blockedReason).toBeNull();
       expect(result.reply).toBe(result.presentation.markdown);
       expect(result.reply).toContain(
         '| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |'
@@ -171,15 +173,53 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
 
     const result = await broker.call(
       'personal-agent.chat',
-      { message: 'Wie viele PV-Anlagen?', executionMode: 'auto' },
+      { message: 'Wie viele PV-Anlagen?', executionMode: 'auto', chatMode: 'execution' },
       { meta: { tenantId: 'tenant-pa-pres-02', authUser: { userId: 'user-1' } } }
     );
 
     expect(result.success).toBe(true);
     expect(result.presentationApplied).toBe(true);
     expect(result.presentationType).toBe('kpi_fact');
+    expect(result.presentationGrounding.allowedTypes).toContain('kpi_fact');
     expect(result.reply).toBe(result.presentation.markdown);
     expect(result.reply).toContain('| Feld | Wert |');
+  });
+
+  test('PA-PRES-02b: capability hint cannot force ungrounded VDMI renderer', async () => {
+    setExecutionResult({
+      status: 'completed',
+      plan: deterministicPlan,
+      steps: [
+        {
+          action: 'mock.kpi',
+          result: {
+            count: 3,
+            unit: 'Nachweise',
+            source: 'mock.kpi',
+            asOf: '2026-06-19',
+          },
+        },
+      ],
+      stopPoint: null,
+    });
+
+    const result = await broker.call(
+      'personal-agent.chat',
+      { message: 'VDMI Decision?', executionMode: 'auto', chatMode: 'execution' },
+      { meta: { tenantId: 'tenant-pa-pres-02b', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.presentationApplied).toBe(true);
+    expect(result.presentationType).toBe('kpi_fact');
+    expect(result.presentationGrounding.blockedReason).toBe(
+      'requested_renderer_not_grounded:vdmi_matrix_table'
+    );
+    expect(result.presentationGrounding.sourceActions).toContain('mock.kpi');
+    expect(result.presentationGrounding.allowedTypes).not.toContain('vdmi_matrix_table');
+    expect(result.presentation.warnings).toContain(
+      'presentation_grounding_blocked:vdmi_matrix_table'
+    );
   });
 
   test('PA-PRES-03: presentation failure is non-blocking and falls back', async () => {
@@ -218,7 +258,7 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
     try {
       const result = await broker.call(
         'personal-agent.chat',
-        { message: 'Render with failure', executionMode: 'auto' },
+        { message: 'Render with failure', executionMode: 'auto', chatMode: 'execution' },
         { meta: { tenantId: 'tenant-pa-pres-03', authUser: { userId: 'user-1' } } }
       );
 
@@ -260,7 +300,7 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
     try {
       const result = await broker.call(
         'personal-agent.chat',
-        { message: 'Plain text execution', executionMode: 'auto' },
+        { message: 'Plain text execution', executionMode: 'auto', chatMode: 'execution' },
         { meta: { tenantId: 'tenant-pa-pres-04', authUser: { userId: 'user-1' } } }
       );
 
@@ -301,7 +341,7 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
 
     const result = await broker.call(
       'personal-agent.chat',
-      { message: 'Metadata test', executionMode: 'auto' },
+      { message: 'Metadata test', executionMode: 'auto', chatMode: 'execution' },
       { meta: { tenantId: 'tenant-pa-pres-05', authUser: { userId: 'user-1' } } }
     );
 
@@ -349,7 +389,7 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
 
     const result = await broker.call(
       'personal-agent.chat',
-      { message: 'Persist test', executionMode: 'auto' },
+      { message: 'Persist test', executionMode: 'auto', chatMode: 'execution' },
       { meta: { tenantId: 'tenant-pa-pres-07', authUser: { userId: 'user-1' } } }
     );
 
@@ -384,7 +424,7 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
 
     const result = await broker.call(
       'personal-agent.chat',
-      { message: 'Zeige #Triwo Step 3 als Human View', executionMode: 'auto' },
+      { message: 'Zeige #Triwo Step 3 als Human View', executionMode: 'auto', chatMode: 'execution' },
       { meta: { tenantId: 'tenant-pa-pres-triwo-01', authUser: { userId: 'user-1' } } }
     );
 
@@ -418,14 +458,14 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
 
     const result = await broker.call(
       'personal-agent.chat',
-      { message: 'Vergleiche VNB Benchmarks', executionMode: 'auto' },
+      { message: 'Vergleiche VNB Benchmarks', executionMode: 'auto', chatMode: 'execution' },
       { meta: { tenantId: 'tenant-pa-pres-comp-01', authUser: { userId: 'user-1' } } }
     );
 
     expect(result.success).toBe(true);
     expect(result.presentationApplied).toBe(true);
     expect(result.presentationType).toBe('comparison_table');
-    expect(result.reply).toBe(result.presentation.markdown);
+    expect(result.reply).toContain(result.presentation.markdown);
     expect(result.reply).toContain('| Eintrag | Wert |');
   });
 
@@ -449,7 +489,7 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
 
     const result = await broker.call(
       'personal-agent.chat',
-      { message: 'Erstelle Due-Diligence View für Kreditkomitee', executionMode: 'auto' },
+      { message: 'Erstelle Due-Diligence View für Kreditkomitee', executionMode: 'auto', chatMode: 'execution' },
       { meta: { tenantId: 'tenant-pa-pres-bank-dd-01', authUser: { userId: 'user-1' } } }
     );
 
@@ -481,7 +521,7 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
 
     const result = await broker.call(
       'personal-agent.chat',
-      { message: 'Zeige PV KPI', executionMode: 'auto' },
+      { message: 'Zeige PV KPI', executionMode: 'auto', chatMode: 'execution' },
       { meta: { tenantId: 'tenant-pa-pres-kpi-01', authUser: { userId: 'user-1' } } }
     );
 

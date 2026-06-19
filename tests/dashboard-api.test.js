@@ -1684,10 +1684,43 @@ describe('dashboard-api.service', () => {
         await expect(
           broker.call('dashboard-api.vnbOverview', { bdewCode: '9900992' })
         ).resolves.toBeDefined();
+    });
+  });
+
+  // ── receiptGroundedPresentationContract ──────────────────────────────────
+
+  describe('receiptGroundedPresentationContract', () => {
+    it('blocks a VDMI renderer when the supplied source action and shape do not ground it', async () => {
+      const result = await broker.call('dashboard-api.receiptGroundedPresentationContract', {
+        preferredFormat: 'vdmi_matrix_table',
+        sourceAction: 'mock.kpi',
+        domainShape: 'kpi_fact',
       });
+
+      expect(result.blockedReason).toBe('requested_renderer_not_grounded:vdmi_matrix_table');
+      expect(result.allowedTypes).toContain('kpi_fact');
+      expect(result.allowedTypes).not.toContain('vdmi_matrix_table');
+      expect(result.sourceActions).toContain('mock.kpi');
+      expect(result.dossierEvidence.blockedRendererReason).toBe(
+        'requested_renderer_not_grounded:vdmi_matrix_table'
+      );
     });
 
-    describe('marketSnapshot', () => {
+    it('allows VDMI renderer only with VDMI-shaped evidence and a VDMI source action', async () => {
+      const result = await broker.call('dashboard-api.receiptGroundedPresentationContract', {
+        preferredFormat: 'vdmi_matrix_table',
+        selectedType: 'vdmi_matrix_table',
+        sourceAction: 'vdmi.dossier',
+        domainShape: 'vdmi_matrix',
+      });
+
+      expect(result.blockedReason).toBeNull();
+      expect(result.allowedTypes).toContain('vdmi_matrix_table');
+      expect(result.dossierEvidence.allowedPresentationTypes).toContain('vdmi_matrix_table');
+    });
+  });
+
+  describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(
           broker.call('dashboard-api.marketSnapshot', { location: 'X' })

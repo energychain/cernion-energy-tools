@@ -23,6 +23,9 @@
  */
 
 const { FINDING_CODE_METADATA } = require('../src/validation-findings');
+const {
+  evaluatePresentationGrounding,
+} = require('../src/receipt-grounded-presentation-contract');
 
 const OPENAPI_TAG = 'Dashboard API';
 const ACTION_MQ_LIST = 'mastr-quality.list';
@@ -42,6 +45,7 @@ module.exports = {
       loadProfileStreamMonitor: 5 * 60 * 1000, // 5 min
       redispatchCallQualityGate: 5 * 60 * 1000, // 5 min
       evidenceGroundingConfidenceAudit: 5 * 60 * 1000, // 5 min
+      receiptGroundedPresentationContract: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -1170,6 +1174,128 @@ module.exports = {
       },
     },
 
+    // ── receiptGroundedPresentationContract ────────────────────────────────
+    /**
+     * GET /api/dashboard/receipt-grounded-presentation-contract?preferredFormat=...&sourceAction=...
+     *
+     * Read-only inspect path for the Personal-Agent presentation grounding
+     * contract. It evaluates a supplied/synthetic evidence context without
+     * executing tools, creating sessions, mutating datasources or calling an LLM.
+     */
+    receiptGroundedPresentationContract: {
+      rest: 'GET /receipt-grounded-presentation-contract',
+      params: {
+        preferredFormat: { type: 'string', optional: true, default: 'auto' },
+        selectedType: { type: 'string', optional: true },
+        sourceAction: { type: 'string', optional: true },
+        domainShape: {
+          type: 'enum',
+          optional: true,
+          values: ['plain', 'vdmi_matrix', 'kpi_fact', 'evidence_gap', 'decision_brief'],
+          default: 'plain',
+        },
+        evidenceGapId: { type: 'string', optional: true },
+        query: { type: 'string', optional: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Receipt-grounded presentation contract — read-only renderer grounding check',
+        description:
+          'Evaluates whether a requested presentation renderer is grounded by the supplied ' +
+          'domain shape, executed source action and evidence gaps. This is a deterministic ' +
+          'inspect endpoint only; it does not run Personal-Agent chat, execute tools, create ' +
+          'HITL/interface-placeholder items, mutate data, ingest RAG or call external services.',
+        parameters: [
+          { name: 'preferredFormat', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'selectedType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceAction', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'domainShape',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: ['plain', 'vdmi_matrix', 'kpi_fact', 'evidence_gap', 'decision_brief'],
+            },
+          },
+          { name: 'evidenceGapId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'query', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Receipt-grounded presentation contract decision',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    contractId: { type: 'string' },
+                    requestedType: { type: 'string', nullable: true },
+                    selectedType: { type: 'string', nullable: true },
+                    allowedTypes: { type: 'array', items: { type: 'string' } },
+                    blockedReason: { type: 'string', nullable: true },
+                    sourceActions: { type: 'array', items: { type: 'string' } },
+                    evidenceGapIds: { type: 'array', items: { type: 'string' } },
+                    positiveFollowUps: { type: 'array', items: { type: 'object' } },
+                    dossierEvidence: { type: 'object' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `receipt-grounded-presentation-contract:${params.preferredFormat}:${params.selectedType || 'no-selected'}:${params.sourceAction || 'no-action'}:${params.domainShape}:${params.evidenceGapId || 'no-gap'}:${params.query || 'no-query'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.receiptGroundedPresentationContract,
+          async () => {
+            const sourceActions = params.sourceAction ? [params.sourceAction] : [];
+            const domainResult = this.buildReceiptGroundingSyntheticDomain(params);
+            const evidencePlan = params.evidenceGapId
+              ? { gaps: [{ id: params.evidenceGapId, label: params.evidenceGapId }] }
+              : null;
+            const grounding = evaluatePresentationGrounding({
+              requestedType: params.preferredFormat,
+              selectedType: params.selectedType || null,
+              domainResult,
+              sourceActions,
+              evidencePlan,
+            });
+            return {
+              contractId: `rgpc:${Buffer.from(
+                `${params.preferredFormat}:${params.sourceAction || ''}:${params.domainShape}`
+              )
+                .toString('base64url')
+                .slice(0, 18)}`,
+              requestedType: params.preferredFormat === 'auto' ? null : params.preferredFormat,
+              selectedType: grounding.selectedType,
+              allowedTypes: grounding.allowedTypes,
+              blockedReason: grounding.blockedReason,
+              sourceActions: grounding.sourceActions,
+              evidenceGapIds: grounding.evidenceGapIds,
+              basis: grounding.basis,
+              positiveFollowUps: this.buildReceiptGroundingFollowUps(grounding),
+              dossierEvidence: {
+                selectedPresentationType: grounding.selectedType,
+                allowedPresentationTypes: grounding.allowedTypes,
+                blockedRendererReason: grounding.blockedReason,
+                sourceActions: grounding.sourceActions,
+                evidenceGapIds: grounding.evidenceGapIds,
+              },
+              timestamp: new Date().toISOString(),
+              _errors: [],
+            };
+          }
+        );
+      },
+    },
+
     // ── marketSnapshot ───────────────────────────────────────────────────────
     /**
      * GET /api/dashboard/market-snapshot
@@ -1788,6 +1914,81 @@ module.exports = {
   },
 
   methods: {
+    buildReceiptGroundingSyntheticDomain(params = {}) {
+      switch (params.domainShape) {
+        case 'vdmi_matrix':
+          return {
+            matrix: {
+              tasks: [
+                {
+                  taskName: 'Synthetic VDMI grounding check',
+                  verantwortlich: ['DSO_GATEKEEPER'],
+                  durchfuehrend: ['TECHNICAL_PLANNER'],
+                  mitwirkend: [],
+                  information: [],
+                },
+              ],
+            },
+          };
+        case 'kpi_fact':
+          return {
+            label: 'Synthetic KPI grounding check',
+            value: 1,
+            unit: 'evidence item',
+            source: params.sourceAction || 'synthetic-inspect',
+          };
+        case 'evidence_gap':
+          return {
+            evidenceGaps: [
+              {
+                id: params.evidenceGapId || 'missing_source_action',
+                label: params.evidenceGapId || 'Missing source action',
+              },
+            ],
+          };
+        case 'decision_brief':
+          return {
+            decisionStatus: 'blocked_until_evidence_arrives',
+            forbiddenAssumptions: ['Renderer cannot outrank executed evidence.'],
+          };
+        default:
+          return params.query ? { note: String(params.query).slice(0, 160) } : {};
+      }
+    },
+
+    buildReceiptGroundingFollowUps(grounding = {}) {
+      const followUps = [];
+      if (Array.isArray(grounding.sourceActions) && grounding.sourceActions.length === 0) {
+        followUps.push({
+          missingDataPoint: 'missingSourceAction',
+          enablesDossierAddition:
+            'Add the executed domain action so the renderer can be tied to tool evidence.',
+        });
+      }
+      if (grounding?.basis?.hasDomainResult === false) {
+        followUps.push({
+          missingDataPoint: 'missingDomainResultShape',
+          enablesDossierAddition:
+            'Provide the structured domain result fields required by the requested renderer.',
+        });
+      }
+      for (const gapId of grounding.evidenceGapIds || []) {
+        followUps.push({
+          missingDataPoint: gapId,
+          enablesDossierAddition:
+            'Resolve this evidence gap to allow a stronger grounded presentation.',
+        });
+      }
+      if (grounding.blockedReason) {
+        followUps.push({
+          missingDataPoint: 'rendererMismatch',
+          enablesDossierAddition:
+            'Use the grounded fallback now; enable the richer renderer once matching evidence is present.',
+        });
+      }
+      return followUps;
+    },
+
     // ── Cache helpers ─────────────────────────────────────────────────────────
 
     /**

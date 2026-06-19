@@ -180,6 +180,31 @@ describe('presentation.service', () => {
     expect(result.presentation.warnings.join(' ')).not.toMatch(/vdmi_matrix_table/);
   });
 
+  test('blocks ungrounded preferredFormat when allowedPresentationTypes excludes it', async () => {
+    const result = await broker.call('presentation.render', {
+      preferredFormat: 'vdmi_matrix_table',
+      domainResult: {
+        count: 7,
+        unit: 'items',
+        source: 'mock.kpi',
+      },
+      context: {
+        sourceActions: ['mock.kpi'],
+        allowedPresentationTypes: ['kpi_fact', 'debug_summary'],
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.presentation.type).toBe('kpi_fact');
+    expect(result.presentation.warnings).toContain(
+      'presentation_grounding_blocked:vdmi_matrix_table'
+    );
+    expect(result.presentation.grounding.blockedReason).toBe(
+      'requested_renderer_not_grounded:vdmi_matrix_table'
+    );
+    expect(result.presentation.grounding.allowedTypes).toEqual(['kpi_fact', 'debug_summary']);
+  });
+
   test('falls back to debug_summary with unknown_preferred_format on unknown preferredFormat', async () => {
     const result = await broker.call('presentation.render', {
       preferredFormat: 'totally_unknown_renderer',

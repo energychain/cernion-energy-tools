@@ -72,6 +72,10 @@ const {
   buildEvidenceGapPresentation,
 } = require('../src/evidence-planner');
 const {
+  extractSourceActions,
+  evaluatePresentationGrounding,
+} = require('../src/receipt-grounded-presentation-contract');
+const {
   queryKnowledgeOrientation: queryKnowledgeOrientationAdapter,
   queryKnowledgeEvidence: queryKnowledgeEvidenceAdapter,
 } = require('../src/personal-agent-knowledge-rag');
@@ -6746,10 +6750,24 @@ module.exports = {
         let presentationResult = {};
         let presentationApplied = false;
         let presentationType = null;
+        let presentationGrounding = null;
 
         if (receiptGroundedReply) {
           presentationApplied = true;
           presentationType = 'receipt_grounded_reply';
+          presentationGrounding = {
+            selectedType: presentationType,
+            allowedTypes: ['receipt_grounded_reply', 'debug_summary'],
+            blockedReason: null,
+            sourceActions: ['energy-market.co2Intensity'],
+            evidenceGapIds: [],
+            basis: {
+              hasDomainResult: true,
+              hasVdmiShape: false,
+              hasKpiShape: false,
+              hasEvidenceGaps: false,
+            },
+          };
           presentationResult = {
             markdown: synthesisText,
             presentation: {
@@ -6796,6 +6814,9 @@ module.exports = {
                   sessionId,
                   source: 'personal-agent-evidence-gate',
                   phaseNote: 'evidence-plan-phase2-synthesis-gate',
+                  sourceActions: extractSourceActions(execution),
+                  evidencePlan: responsePlan.evidencePlan,
+                  allowedPresentationTypes: ['evidence_gap_table', 'debug_summary'],
                 },
                 locale: 'de-DE',
               },
@@ -6809,6 +6830,16 @@ module.exports = {
             ) {
               presentationApplied = true;
               presentationType = 'evidence_gap_table';
+              presentationGrounding =
+                presentationResult?.presentation?.grounding ||
+                evaluatePresentationGrounding({
+                  requestedType: 'evidence_gap_table',
+                  selectedType: 'evidence_gap_table',
+                  domainResult: gapPresentation,
+                  sourceActions: extractSourceActions(execution),
+                  evidencePlan: responsePlan.evidencePlan,
+                  allowedTypes: ['evidence_gap_table', 'debug_summary'],
+                });
               // Synthesis is skipped — we replace reply with the gap table
               synthesisText = /evidence_gap_table_renderer_not_implemented/i.test(
                 presentationResult.markdown
@@ -6821,6 +6852,14 @@ module.exports = {
             this.logger?.warn(`Evidence-gap presentation render failed: ${error.message}`);
             presentationApplied = true;
             presentationType = 'evidence_gap_table';
+            presentationGrounding = evaluatePresentationGrounding({
+              requestedType: 'evidence_gap_table',
+              selectedType: 'evidence_gap_table',
+              domainResult: buildEvidenceGapPresentation(responsePlan.evidencePlan),
+              sourceActions: extractSourceActions(execution),
+              evidencePlan: responsePlan.evidencePlan,
+              allowedTypes: ['evidence_gap_table', 'debug_summary'],
+            });
             presentationResult = {
               markdown: fallbackGapMarkdown,
               presentation: {
@@ -6967,10 +7006,18 @@ module.exports = {
                     ? domainResult.matrix.tasks[0].taskId || null
                     : null),
                 source: 'personal-agent',
+                sourceActions: extractSourceActions(execution),
+                evidencePlan: responsePlan?.evidencePlan || null,
               };
 
               const preferredFormat =
                 intent && /vdmi|governance/i.test(String(intent)) ? 'vdmi_matrix_table' : 'auto';
+              const groundingBeforeRender = evaluatePresentationGrounding({
+                requestedType: preferredFormat,
+                domainResult,
+                sourceActions: presentationContext.sourceActions,
+                evidencePlan: responsePlan?.evidencePlan || null,
+              });
 
               presentationResult = await ctx.call(
                 'presentation.render',
@@ -6979,7 +7026,11 @@ module.exports = {
                   audience: 'management',
                   preferredFormat,
                   domainResult,
-                  context: presentationContext,
+                  context: {
+                    ...presentationContext,
+                    allowedPresentationTypes: groundingBeforeRender.allowedTypes,
+                    presentationGrounding: groundingBeforeRender,
+                  },
                   locale: 'de-DE',
                 },
                 { meta: { ...ctx.meta, $gateway: false } }
@@ -6993,6 +7044,16 @@ module.exports = {
                 presentationApplied = true;
                 presentationType =
                   presentationResult?.presentation?.type || presentationResult?.type || null;
+                presentationGrounding =
+                  presentationResult?.presentation?.grounding ||
+                  evaluatePresentationGrounding({
+                    requestedType: preferredFormat,
+                    selectedType: presentationType,
+                    domainResult,
+                    sourceActions: presentationContext.sourceActions,
+                    evidencePlan: responsePlan?.evidencePlan || null,
+                    allowedTypes: groundingBeforeRender.allowedTypes,
+                  });
               }
             }
           } catch (error) {
@@ -7238,6 +7299,7 @@ module.exports = {
           guardrailCorrections: executionGuardedReply.guardrailCorrections,
           presentationApplied,
           presentationType: presentationType || null,
+          presentationGrounding,
           presentation: presentationApplied
             ? {
                 ...(presentationResult.presentation || {}),

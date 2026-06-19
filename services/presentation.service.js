@@ -21,6 +21,7 @@
  */
 
 const OPENAPI_TAG = 'Presentation';
+const { evaluatePresentationGrounding } = require('../src/receipt-grounded-presentation-contract');
 
 const VALID_FORMATS = new Set([
   'auto',
@@ -116,55 +117,76 @@ function hasKpiSignals(domainResult) {
  * @param {object} input.domainResult
  * @returns {{ type: string, warnings: string[] }}
  */
-function selectRenderer({ preferredFormat, intent, domainResult }) {
+function normalizeAllowedTypes(context = {}) {
+  const allowed =
+    context.allowedPresentationTypes ||
+    context?.presentationGrounding?.allowedTypes ||
+    context?.grounding?.allowedTypes ||
+    null;
+  return Array.isArray(allowed) ? allowed.filter((type) => VALID_FORMATS.has(type)) : [];
+}
+
+function applyAllowedType(type, allowedTypes, warnings) {
+  if (!Array.isArray(allowedTypes) || allowedTypes.length === 0 || allowedTypes.includes(type)) {
+    return type;
+  }
+  warnings.push(`presentation_grounding_blocked:${type}`);
+  if (allowedTypes.includes('evidence_gap_table')) return 'evidence_gap_table';
+  if (allowedTypes.includes('decision_brief')) return 'decision_brief';
+  if (allowedTypes.includes('kpi_fact')) return 'kpi_fact';
+  return allowedTypes.includes('debug_summary') ? 'debug_summary' : allowedTypes[0];
+}
+
+function selectRenderer({ preferredFormat, intent, domainResult, context = {} }) {
   const warnings = [];
   const dr = domainResult || {};
+  const allowedTypes = normalizeAllowedTypes(context);
 
   if (preferredFormat && preferredFormat !== 'auto') {
     if (VALID_FORMATS.has(preferredFormat)) {
-      return { type: preferredFormat, warnings };
+      return { type: applyAllowedType(preferredFormat, allowedTypes, warnings), warnings };
     }
     warnings.push('unknown_preferred_format');
-    return { type: 'debug_summary', warnings };
+    return { type: applyAllowedType('debug_summary', allowedTypes, warnings), warnings };
   }
 
   // 1) VDMI matrix
   const matrixTasks = dr.matrix && Array.isArray(dr.matrix.tasks) ? dr.matrix.tasks : null;
   if (Array.isArray(matrixTasks)) {
-    return { type: 'vdmi_matrix_table', warnings };
+    return { type: applyAllowedType('vdmi_matrix_table', allowedTypes, warnings), warnings };
   }
 
   const tasks = Array.isArray(dr.tasks) ? dr.tasks : null;
   if (isNonEmptyArray(tasks) && tasks.some(hasVdmiRoleFields)) {
-    return { type: 'vdmi_matrix_table', warnings };
+    return { type: applyAllowedType('vdmi_matrix_table', allowedTypes, warnings), warnings };
   }
 
   // 2) decision brief
   if (hasDecisionSignals(dr)) {
-    return { type: 'decision_brief', warnings };
+    return { type: applyAllowedType('decision_brief', allowedTypes, warnings), warnings };
   }
 
   // 3) evidence gaps
   if (isNonEmptyArray(dr.evidenceGaps)) {
-    return { type: 'evidence_gap_table', warnings };
+    return { type: applyAllowedType('evidence_gap_table', allowedTypes, warnings), warnings };
   }
 
   // 4) risk table
   if (isNonEmptyArray(dr.assetRisks) || isNonEmptyArray(dr.risks)) {
-    return { type: 'risk_table', warnings };
+    return { type: applyAllowedType('risk_table', allowedTypes, warnings), warnings };
   }
 
   // 5) comparison
   if (hasComparisonSignals(dr)) {
-    return { type: 'comparison_table', warnings };
+    return { type: applyAllowedType('comparison_table', allowedTypes, warnings), warnings };
   }
 
   // 6) kpi_fact
   if (hasKpiSignals(dr)) {
-    return { type: 'kpi_fact', warnings };
+    return { type: applyAllowedType('kpi_fact', allowedTypes, warnings), warnings };
   }
 
-  return { type: 'debug_summary', warnings };
+  return { type: applyAllowedType('debug_summary', allowedTypes, warnings), warnings };
 }
 
 // ---------------------------------------------------------------------------
@@ -1359,9 +1381,24 @@ module.exports = {
           );
         }
 
-        const selection = selectRenderer({ preferredFormat, intent, domainResult });
+        const selection = selectRenderer({ preferredFormat, intent, domainResult, context });
         const rendered = dispatch(selection.type, domainResult, context, locale);
-        return mergeSelectionWarnings(rendered, selection.warnings);
+        const withWarnings = mergeSelectionWarnings(rendered, selection.warnings);
+        const grounding = evaluatePresentationGrounding({
+          requestedType: preferredFormat,
+          selectedType: withWarnings?.presentation?.type || selection.type,
+          domainResult,
+          sourceActions: context?.sourceActions || [],
+          evidencePlan: context?.evidencePlan || null,
+          allowedTypes: normalizeAllowedTypes(context),
+        });
+        return {
+          ...withWarnings,
+          presentation: {
+            ...withWarnings.presentation,
+            grounding,
+          },
+        };
       },
     },
   },

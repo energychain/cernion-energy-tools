@@ -1382,6 +1382,8 @@ module.exports = {
           'GET /dashboard/redispatch-call-quality-gate': 'dashboard-api.redispatchCallQualityGate',
           'GET /dashboard/evidence-grounding-confidence-audit':
             'dashboard-api.evidenceGroundingConfidenceAudit',
+          'GET /dashboard/receipt-grounded-presentation-contract':
+            'dashboard-api.receiptGroundedPresentationContract',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

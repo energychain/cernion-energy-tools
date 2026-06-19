@@ -754,6 +754,21 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes receipt-grounded presentation contract prompts to the read-only inspect view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Receipt Grounded Presentation Contract bei Renderer Mismatch und Source Action Mismatch fuer VDMI Presentation Mismatch.',
+    });
+
+    expect(result.capability).toBe('receipt_grounded_presentation_contract');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'receipt_grounded_presentation_contract'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.receiptGroundedPresentationContract');
+    expect(actionNames).not.toContain('personal-agent.execute');
+    expect(actionNames).not.toContain('hitl.create');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',
