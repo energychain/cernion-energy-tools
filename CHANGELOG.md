@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.63.12] — 2026-06-18
 
 ### Added
+- **Support-only bootstrap provisioning CLI** (`scripts/provision-tenant.js`, `scripts/provision-user.js`, `scripts/provision-token.js`, `src/provisioning-registry.js`, #157): added in-process `npm run tenant:create`, `npm run user:create`, and `npm run token:create` commands guarded by `CERNION_SUPPORT_TOKEN`. The support secret is never a `ck_` API token, is not exposed through `/api/tokens*`, and is not written to token/user/tenant records. `token:create` creates tenant/user-bound `ck_` tokens through the existing token-manager path and prints the plaintext token only once.
 - **Answer Dossier clarification & final-mode response fields** (`services/personal-agent.service.js`, `src/answer-dossier-builder.js`, #237): `answerDossier` now returns `clarificationQuestions`, `finalDossierRequested`, and `finalDossierMarkdown` so downstream systems (n8n, AnythingLLM) can drive clarification/final-answer workflows without parsing `dossierMarkdown`. `finalDossierRequested` is detected deterministically (regex, no LLM) and is also exposed in `auditTrail` for tracing. `clarificationQuestions` is derived from the same structured evidence-gap conditions that already produce `missingEvidence` — not from Markdown parsing — and is suppressed to `[]` once a final dossier is requested. `finalDossierMarkdown` reuses `buildDossierMarkdown` in a new `finalMode` that suppresses every clarification-seeking instruction (Required Answer Behavior, Recommended Answer Structure, renderer system hint, renderer task, reasoning summary) while still surfacing evidence gaps as caveats/limitations rather than hiding them. The existing `dossierMarkdown` output is unchanged for the default (non-final) path. OpenAPI response schema documents the three new fields.
 
 ### Fixed
@@ -21,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added consultation-execution bridge regressions for broker-recommended execution fallback, including the VDMI governance path and guard cases where local workflows or placeholder-only broker plans must not be overridden.
 - Added token-manager, tenant-context, API gateway, and Höheinöd E2E coverage for tenant/user-bound token creation, legacy-token metadata compatibility, token-management authentication, and cross-tenant token-creation rejection.
 - Added Personal-Agent session ownership regressions covering cross-user read/reset/dream-status denial, full-access override, and legacy ownerless session compatibility.
+- Added provisioning registry and CLI coverage for support-secret validation, tenant/user audit records, and one-time plaintext output for support-created bound tokens.
 
 ## [0.63.11] — 2026-06-16
 

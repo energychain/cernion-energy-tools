@@ -1,23 +1,24 @@
 # UI Contract: Token Management Page
 
 > **Page ID:** `auth`
-> **Version:** 0.38.1
-> **Last updated:** 2026-05-01
+> **Version:** 0.63.12
+> **Last updated:** 2026-06-19
 
 ---
 
 ## API Endpoints
 
-| Method | URL | Purpose |
-|--------|-----|---------|
-| `GET`    | `/api/tokens`          | List all tokens (names only — no secrets) |
-| `POST`   | `/api/tokens`          | Create a new token |
-| `DELETE` | `/api/tokens/:id`      | Revoke a token |
-| `GET`    | `/api/tokens/verify`   | Verify the calling token (self-check) |
+| Method   | URL                  | Purpose                                   |
+| -------- | -------------------- | ----------------------------------------- |
+| `GET`    | `/api/tokens`        | List all tokens (names only — no secrets) |
+| `POST`   | `/api/tokens`        | Create a new tenant/user-bound token      |
+| `DELETE` | `/api/tokens/:id`    | Revoke a token                            |
+| `POST`   | `/api/tokens/verify` | Verify the calling token (self-check)     |
 
 > **Security note:** Token secrets (`ck_` prefix) are never returned after creation.
-> The `GET /api/tokens` endpoint returns only `id`, `name`, `scope`, `createdAt`, `lastUsedAt`.
+> The `GET /api/tokens` endpoint returns only non-secret metadata such as `id`, `name`, `scope`, `tenantId`, `userId`, `legacy`, `createdAt`, `lastUsedAt`.
 > The `POST /api/tokens` response is the **only** time the token secret is shown.
+> Bootstrap/support provisioning uses local CLI commands guarded by `CERNION_SUPPORT_TOKEN`; that secret is not a `ck_` token and is not exposed in the token-management UI.
 
 ---
 
@@ -26,11 +27,14 @@
 ```json
 [
   {
-    "id":          "tok_abc123",
-    "name":        "Dashboard frontend",
-    "scope":       "read-only",
-    "createdAt":   "2026-01-15T00:00:00Z",
-    "lastUsedAt":  "2026-03-31T11:55:00Z"
+    "id": "tok_abc123",
+    "name": "Dashboard frontend",
+    "scope": "read-only",
+    "tenantId": "public",
+    "userId": "svc:dashboard",
+    "legacy": false,
+    "createdAt": "2026-01-15T00:00:00Z",
+    "lastUsedAt": "2026-03-31T11:55:00Z"
   }
 ]
 ```
@@ -39,10 +43,13 @@
 
 ```json
 {
-  "id":     "tok_abc123",
-  "name":   "Dashboard frontend",
-  "scope":  "read-only",
-  "token":  "ck_abcdef1234567890...",
+  "id": "tok_abc123",
+  "name": "Dashboard frontend",
+  "scope": "read-only",
+  "tenantId": "public",
+  "userId": "svc:dashboard",
+  "legacy": false,
+  "token": "ck_abcdef1234567890...",
   "createdAt": "2026-03-31T12:00:00Z"
 }
 ```
@@ -53,18 +60,21 @@
 
 ### Token List Table
 
-| Column | Source | Format |
-|--------|--------|--------|
-| Name | `name` | — |
-| Scope badge | `scope` | `read-only` → blue, `full-access` → orange |
-| Created | `createdAt` | `dd.MM.yyyy` |
-| Last used | `lastUsedAt` | Relative time; "Never" if null |
-| Actions | — | 🗑 Revoke |
+| Column      | Source       | Format                                     |
+| ----------- | ------------ | ------------------------------------------ |
+| Name        | `name`       | —                                          |
+| Scope badge | `scope`      | `read-only` → blue, `full-access` → orange |
+| Created     | `createdAt`  | `dd.MM.yyyy`                               |
+| Last used   | `lastUsedAt` | Relative time; "Never" if null             |
+| Actions     | —            | 🗑 Revoke                                  |
 
 ### Create Token Drawer
 
 Fields:
+
 - **Name**: text input (required, max 100 chars)
+- **Tenant ID**: text input (required)
+- **User ID / Service Account**: text input (required)
 - **Scope**: radio buttons — `read-only` / `full-access`
 
 After creation: show **one-time reveal** modal:
@@ -79,7 +89,8 @@ ck_abcdef1234567890...  [📋 Copy]
 
 ### Self-Verify Section
 
-"Verify my token" button → GET `/api/tokens/verify` → shows:
+"Verify my token" button → POST `/api/tokens/verify` → shows:
+
 - ✓ "Token gültig — Scope: read-only"
 - ✗ "Token ungültig oder abgelaufen"
 
@@ -95,16 +106,30 @@ ck_abcdef1234567890...  [📋 Copy]
 
 ## Edge Cases
 
-| Scenario | Behaviour |
-|----------|-----------|
-| Token list empty | "Noch kein Token erstellt" + "Token erstellen" CTA |
-| Duplicate name on create | Inline error: "Ein Token mit diesem Namen existiert bereits" |
-| Revoke own token | Warning: "Du widerrufst deinen aktuellen Token — du wirst ausgeloggt" |
-| Full-access scope creation | Additional confirmation: "Full-Access gibt vollen Schreibzugriff" |
+| Scenario                   | Behaviour                                                             |
+| -------------------------- | --------------------------------------------------------------------- |
+| Token list empty           | "Noch kein Token erstellt" + "Token erstellen" CTA                    |
+| Duplicate name on create   | Inline error: "Ein Token mit diesem Namen existiert bereits"          |
+| Missing tenantId/userId    | Inline error from API validation; token is not created                |
+| Legacy token               | Show `legacy` badge and sunset/deprecation hint                       |
+| Revoke own token           | Warning: "Du widerrufst deinen aktuellen Token — du wirst ausgeloggt" |
+| Full-access scope creation | Additional confirmation: "Full-Access gibt vollen Schreibzugriff"     |
 
 ---
 
 ## Änderungen seit letzter Version
+
+### v0.63.12 — tenantId/userId Pflicht und Support-Bootstrap
+
+Neue Tokens muessen ueber `tenantId` und `userId` bzw. Service-Account gebunden sein. Auth-lose Token-Management-Requests werden am Gateway abgelehnt. Tenant-/User-/Initialtoken-Provisionierung fuer Bootstrap und Break-Glass erfolgt nicht ueber die UI, sondern lokal:
+
+```bash
+npm run tenant:create -- --support-token "<secret>" --tenant public --name "Public Tenant"
+npm run user:create -- --support-token "<secret>" --tenant public --user thorsten --email thorsten@example.org
+npm run token:create -- --support-token "<secret>" --tenant public --user thorsten --scope full-access --name "Chat UI"
+```
+
+`CERNION_SUPPORT_TOKEN` ist kein API-Token und darf im UI nicht angezeigt, eingegeben, gespeichert oder rotiert werden.
 
 ### v0.38.0 — tenantId-Unterstützung im Token Manager
 

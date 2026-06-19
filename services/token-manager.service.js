@@ -10,6 +10,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { Errors } = require('moleculer');
 const { validateTenantId, isTenantAllowed } = require('../src/tenant-context');
+const { tenantExistsInRegistry } = require('../src/provisioning-registry');
 
 const DEFAULT_STORAGE_FILE = process.env.TOKEN_STORAGE_FILE || './uploads/.api-tokens.json';
 const MAX_NAME_LENGTH = 60;
@@ -187,7 +188,7 @@ module.exports = {
         }
 
         validateTenantId(tenantId);
-        if (!isTenantAllowed(tenantId)) {
+        if (!isTenantAllowed(tenantId) && !tenantExistsInRegistry(tenantId)) {
           throw new Errors.MoleculerClientError(
             `Tenant '${tenantId}' is not in the allowed tenant list.`,
             403,

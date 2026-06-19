@@ -46,6 +46,23 @@ Regeln v0.48.0:
 - `POST /api/hitl/items/:id/approve` und `POST /api/hitl/items/bulk-approve` benötigen `hitl-approver`.
 - Legacy `ck_` + `full-access` wird im Übergang auf Rollen `full-access` + `hitl-approver` gemappt.
 
+## Support-/Bootstrap-Provisionierung
+
+Issue #157 haertet die Token-Provisionierung: neue `ck_`-Tokens muessen tenant- und user-gebunden sein. Initiale Tenant-, User- und Service-Token-Provisionierung laeuft lokal ueber ein explizites Support-Secret:
+
+```bash
+CERNION_SUPPORT_TOKEN="<long-random-secret>" \
+  npm run tenant:create -- --support-token "<long-random-secret>" --tenant public --name "Public Tenant"
+
+CERNION_SUPPORT_TOKEN="<long-random-secret>" \
+  npm run user:create -- --support-token "<long-random-secret>" --tenant public --user thorsten --email thorsten@example.org
+
+CERNION_SUPPORT_TOKEN="<long-random-secret>" \
+  npm run token:create -- --support-token "<long-random-secret>" --tenant public --user thorsten --scope full-access --name "Chat UI"
+```
+
+`CERNION_SUPPORT_TOKEN` ist kein normales `ck_`-API-Token. Es wird nicht ueber `/api/tokens*` erzeugt, gelistet, rotiert oder verifiziert und darf nicht in Records oder Logs geschrieben werden. `token:create` schreibt nur den SHA-256-Hash des erzeugten `ck_`-Tokens und gibt dessen Plaintext genau einmal auf stdout aus.
+
 ## Beispiele IdP-Konfiguration
 
 ### Azure AD (OIDC)
