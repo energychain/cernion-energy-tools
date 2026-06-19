@@ -14,11 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Personal Agent broker-recommended execution bridge** (`src/consultation-execution-bridge.js`, #150): when the local consultation workflow heuristics produce no executable steps but the Capability Broker already returned a safe `recommendedPlan`, the bridge now adopts those broker-recommended actions as a generic `capability_broker_execution` workflow. This lets VDMI governance and future broker-routed capabilities execute their selected action plan instead of falling back to advisory-only behavior, while still filtering interface placeholders and blocked actions.
 - **API token tenant/user binding slice** (`services/token-manager.service.js`, #157): newly-created API tokens now require explicit `tenantId` and `userId`, expose both fields in create/list/verify responses, and mark pre-existing unbound tokens as `legacy: true` so legacy integrations remain readable while new unbound tokens are rejected.
 - **Token-management auth gate** (`services/api.service.js`, `services/token-manager.service.js`, #157): token-management endpoints now require an explicit API/session principal instead of falling through to the environment-token fallback, while `POST /api/tokens/verify` remains open for token validation. Tenant-bound callers are also prevented from creating tokens for another tenant.
+- **Personal Agent session ownership guard** (`services/personal-agent.service.js`, #157): persisted Personal-Agent sessions with an owner `userId` are now readable/resettable/dream-status-visible only to the same user or a `full-access`/cross-tenant admin principal. Unauthorized cross-user access returns the same `OBJECT_NOT_FOUND` 404 as a missing session to avoid leaking existence, while legacy ownerless sessions remain readable for compatibility.
 
 ### Tests
 - Added 8 tests covering clarification-question extraction, all 5 final-intent phrasings from the issue plus a negative case, full suppression of clarification instructions in final mode, low-evidence final-answer caveat handling, and non-final defaults.
 - Added consultation-execution bridge regressions for broker-recommended execution fallback, including the VDMI governance path and guard cases where local workflows or placeholder-only broker plans must not be overridden.
 - Added token-manager, tenant-context, API gateway, and Höheinöd E2E coverage for tenant/user-bound token creation, legacy-token metadata compatibility, token-management authentication, and cross-tenant token-creation rejection.
+- Added Personal-Agent session ownership regressions covering cross-user read/reset/dream-status denial, full-access override, and legacy ownerless session compatibility.
 
 ## [0.63.11] — 2026-06-16
 

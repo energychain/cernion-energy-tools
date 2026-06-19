@@ -384,6 +384,36 @@ function isNotFound(error) {
   return error?.code === 404 || error?.type === 'OBJECT_NOT_FOUND';
 }
 
+function buildSessionNotFoundError(sessionId) {
+  return new MoleculerClientError(
+    `Personal-Agent session not found: ${sessionId}`,
+    404,
+    'OBJECT_NOT_FOUND',
+    { sessionId }
+  );
+}
+
+function listAuthValues(...values) {
+  return values
+    .flatMap((value) => (Array.isArray(value) ? value : [value]))
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+}
+
+function hasFullAccessPrincipal(ctx) {
+  const meta = ctx?.meta || {};
+  const authUser = meta.authUser && typeof meta.authUser === 'object' ? meta.authUser : {};
+  const apiToken = meta.apiToken && typeof meta.apiToken === 'object' ? meta.apiToken : {};
+  const values = listAuthValues(
+    authUser.roles,
+    meta.roles,
+    apiToken.scopes,
+    apiToken.scope,
+    meta.scopes
+  );
+  return values.includes('full-access') || values.includes('cross-tenant-admin');
+}
+
 function isActionUnavailable(error) {
   return (
     error?.code === 404 ||
@@ -7377,7 +7407,7 @@ module.exports = {
         const resetState = buildPersistableSessionState({
           id: current.id,
           tenantId,
-          userId,
+          userId: current.userId || userId,
           l1: { tenantFacts: current.l1?.tenantFacts || [] },
           l2: current.l2,
           l3: {
@@ -7501,6 +7531,10 @@ module.exports = {
       async handler(ctx) {
         const sessionId = String(ctx.params.sessionId);
         const tenantId = getTenantId(ctx);
+        const userId = String(ctx.meta?.authUser?.userId || 'anonymous');
+        await this.assertStoredSessionOwnerAccess(ctx, tenantId, sessionId, userId, {
+          allowMissing: true,
+        });
         return {
           success: true,
           sessionId,
@@ -16154,11 +16188,12 @@ module.exports = {
           { meta: ctx.meta }
         );
         const payload = doc?.payload || {};
+        this.assertSessionOwnerAccess(ctx, payload, sessionId, userId);
         assertNoL4RawInPersistedState(payload);
         return {
           id: sessionId,
           tenantId,
-          userId,
+          userId: payload.userId || userId,
           chatMode: normalizeChatMode(payload?.l3?.chatMode) || CHAT_MODES.CONSULTATION,
           l1: payload.l1 || { tenantFacts: [] },
           l2: {
@@ -16252,12 +16287,7 @@ module.exports = {
         }
 
         if (!createIfMissing) {
-          throw new MoleculerClientError(
-            `Personal-Agent session not found: ${sessionId}`,
-            404,
-            'OBJECT_NOT_FOUND',
-            { sessionId }
-          );
+          throw buildSessionNotFoundError(sessionId);
         }
 
         return {
@@ -16303,6 +16333,44 @@ module.exports = {
           updatedAt: null,
         };
       }
+    },
+
+    assertSessionOwnerAccess(ctx, payload, sessionId, userId) {
+      const ownerUserId = String(payload?.userId || '').trim();
+      if (!ownerUserId) {
+        return;
+      }
+
+      const callerUserId = String(userId || '').trim();
+      if (callerUserId && callerUserId === ownerUserId) {
+        return;
+      }
+
+      if (hasFullAccessPrincipal(ctx)) {
+        return;
+      }
+
+      throw buildSessionNotFoundError(sessionId);
+    },
+
+    async assertStoredSessionOwnerAccess(ctx, tenantId, sessionId, userId, options = {}) {
+      const namespace = tenantNamespace(SESSION_NAMESPACE, tenantId);
+      let doc;
+      try {
+        doc = await ctx.call(
+          'object-store.get',
+          { namespace, key: sessionId },
+          { meta: ctx.meta }
+        );
+      } catch (error) {
+        if (isNotFound(error) && options.allowMissing) {
+          return false;
+        }
+        throw error;
+      }
+
+      this.assertSessionOwnerAccess(ctx, doc?.payload || {}, sessionId, userId);
+      return true;
     },
 
     toPublicProactiveMessage(item = {}) {

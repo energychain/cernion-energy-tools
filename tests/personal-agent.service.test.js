@@ -1060,6 +1060,84 @@ describe('personal-agent.service', () => {
     });
   });
 
+  it('getSession hides sessions owned by another user', async () => {
+    await broker.call('object-store.put', {
+      namespace: 'tenant:tenant-a:personal_agent_sessions',
+      key: 'owned-session-read',
+      payload: {
+        id: 'owned-session-read',
+        tenantId: 'tenant-a',
+        userId: 'user-owner',
+        l1: { tenantFacts: [] },
+        l2: { userProfile: { userId: 'user-owner', preferences: {} } },
+        l3: { history: [{ role: 'user', text: 'private', ts: new Date().toISOString() }] },
+      },
+    });
+
+    await expect(
+      broker.call(
+        'personal-agent.getSession',
+        { sessionId: 'owned-session-read' },
+        { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-other' } } }
+      )
+    ).rejects.toMatchObject({
+      code: 404,
+      type: 'OBJECT_NOT_FOUND',
+    });
+  });
+
+  it('getSession allows full-access principals to inspect owned sessions', async () => {
+    await broker.call('object-store.put', {
+      namespace: 'tenant:tenant-a:personal_agent_sessions',
+      key: 'owned-session-admin',
+      payload: {
+        id: 'owned-session-admin',
+        tenantId: 'tenant-a',
+        userId: 'user-owner',
+        l1: { tenantFacts: [] },
+        l2: { userProfile: { userId: 'user-owner', preferences: {} } },
+        l3: { history: [{ role: 'user', text: 'private', ts: new Date().toISOString() }] },
+      },
+    });
+
+    const session = await broker.call(
+      'personal-agent.getSession',
+      { sessionId: 'owned-session-admin' },
+      {
+        meta: {
+          tenantId: 'tenant-a',
+          authUser: { userId: 'admin-user', roles: ['full-access'] },
+        },
+      }
+    );
+
+    expect(session.success).toBe(true);
+    expect(session.sessionId).toBe('owned-session-admin');
+  });
+
+  it('getSession keeps legacy ownerless sessions readable', async () => {
+    await broker.call('object-store.put', {
+      namespace: 'tenant:tenant-a:personal_agent_sessions',
+      key: 'legacy-ownerless-session',
+      payload: {
+        id: 'legacy-ownerless-session',
+        tenantId: 'tenant-a',
+        l1: { tenantFacts: [] },
+        l2: { userProfile: { preferences: {} } },
+        l3: { history: [{ role: 'user', text: 'legacy', ts: new Date().toISOString() }] },
+      },
+    });
+
+    const session = await broker.call(
+      'personal-agent.getSession',
+      { sessionId: 'legacy-ownerless-session' },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-other' } } }
+    );
+
+    expect(session.success).toBe(true);
+    expect(session.sessionId).toBe('legacy-ownerless-session');
+  });
+
   it('returns a stable deterministic plan in HITL mode without executing tools', async () => {
     const result = await broker.call(
       'personal-agent.chat',
@@ -2313,6 +2391,38 @@ describe('personal-agent.service', () => {
     });
   });
 
+  it('resetSession hides sessions owned by another user and leaves them unchanged', async () => {
+    await broker.call('object-store.put', {
+      namespace: 'tenant:tenant-a:personal_agent_sessions',
+      key: 'owned-session-reset',
+      payload: {
+        id: 'owned-session-reset',
+        tenantId: 'tenant-a',
+        userId: 'user-owner',
+        l1: { tenantFacts: [] },
+        l2: { userProfile: { userId: 'user-owner', preferences: {} } },
+        l3: { history: [{ role: 'user', text: 'do not reset', ts: new Date().toISOString() }] },
+      },
+    });
+
+    await expect(
+      broker.call(
+        'personal-agent.resetSession',
+        { sessionId: 'owned-session-reset' },
+        { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-other' } } }
+      )
+    ).rejects.toMatchObject({
+      code: 404,
+      type: 'OBJECT_NOT_FOUND',
+    });
+
+    const stored = await broker.call('object-store.get', {
+      namespace: 'tenant:tenant-a:personal_agent_sessions',
+      key: 'owned-session-reset',
+    });
+    expect(stored.payload.l3.history[0].text).toBe('do not reset');
+  });
+
   it('getDreamStatus returns dreamPending: false before any chat', async () => {
     const result = await broker.call(
       'personal-agent.getDreamStatus',
@@ -2321,6 +2431,32 @@ describe('personal-agent.service', () => {
     );
     expect(result.success).toBe(true);
     expect(result.dreamPending).toBe(false);
+  });
+
+  it('getDreamStatus hides sessions owned by another user', async () => {
+    await broker.call('object-store.put', {
+      namespace: 'tenant:tenant-a:personal_agent_sessions',
+      key: 'owned-session-dream-status',
+      payload: {
+        id: 'owned-session-dream-status',
+        tenantId: 'tenant-a',
+        userId: 'user-owner',
+        l1: { tenantFacts: [] },
+        l2: { userProfile: { userId: 'user-owner', preferences: {} } },
+        l3: { history: [] },
+      },
+    });
+
+    await expect(
+      broker.call(
+        'personal-agent.getDreamStatus',
+        { sessionId: 'owned-session-dream-status' },
+        { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-other' } } }
+      )
+    ).rejects.toMatchObject({
+      code: 404,
+      type: 'OBJECT_NOT_FOUND',
+    });
   });
 
   it('getDreamAudit returns empty list for tenant with no dream runs', async () => {
