@@ -322,6 +322,19 @@ const FCRM_SOURCE_ACTIONS_MISSING = 'FCRM_SOURCE_ACTIONS_MISSING';
 const FCRM_ROLE_MODEL_READY = 'FCRM_ROLE_MODEL_READY';
 const FCRM_ROLE_MODEL_BLOCKED = 'FCRM_ROLE_MODEL_BLOCKED';
 
+// IMOB — Investment Maturity Off-Balance Gate (v0.63)
+const IMOB_MATURITY_MODEL_MISSING = 'IMOB_MATURITY_MODEL_MISSING';
+const IMOB_PROCESS_QUALITY_LOW = 'IMOB_PROCESS_QUALITY_LOW';
+const IMOB_FINANCING_COST_MISSING = 'IMOB_FINANCING_COST_MISSING';
+const IMOB_REGULATORY_RETURN_HYPOTHESIS_MISSING =
+  'IMOB_REGULATORY_RETURN_HYPOTHESIS_MISSING';
+const IMOB_ASSET_RISK_REFERENCE_MISSING = 'IMOB_ASSET_RISK_REFERENCE_MISSING';
+const IMOB_ISO_RISK_REFERENCE_MISSING = 'IMOB_ISO_RISK_REFERENCE_MISSING';
+const IMOB_DECISION_FORUM_MISSING = 'IMOB_DECISION_FORUM_MISSING';
+const IMOB_SOURCE_ACTIONS_MISSING = 'IMOB_SOURCE_ACTIONS_MISSING';
+const IMOB_GATE_READY = 'IMOB_GATE_READY';
+const IMOB_GATE_BLOCKED = 'IMOB_GATE_BLOCKED';
+
 // ---------------------------------------------------------------------------
 // Netzfahrplan / fNAV finding codes (v0.51.5) — Phase 5
 // ---------------------------------------------------------------------------
@@ -1933,6 +1946,78 @@ const FINDING_CODE_METADATA = {
     description: 'Flexibility conductor role model is blocked',
     descriptionDe: 'Flexibilitaetsdirigent-Rollenmodell ist blockiert',
   },
+
+  // ── Investment Maturity Off-Balance Gate (v0.63) ────────────────────────
+  IMOB_MATURITY_MODEL_MISSING: {
+    severity: 'error',
+    agent: 'investment-maturity-off-balance-gate',
+    step: 1,
+    description: 'Investment maturity model is missing',
+    descriptionDe: 'Investitionsreifegradmodell fehlt',
+  },
+  IMOB_PROCESS_QUALITY_LOW: {
+    severity: 'warning',
+    agent: 'investment-maturity-off-balance-gate',
+    step: 1,
+    description: 'Investment process quality is missing or below threshold',
+    descriptionDe: 'Prozessqualitaet ist fehlend oder unterhalb des Gate-Schwellenwerts',
+  },
+  IMOB_FINANCING_COST_MISSING: {
+    severity: 'error',
+    agent: 'investment-maturity-off-balance-gate',
+    step: 1,
+    description: 'Additional financing cost evidence is missing',
+    descriptionDe: 'Nachweis zu Finanzierungszusatzkosten fehlt',
+  },
+  IMOB_REGULATORY_RETURN_HYPOTHESIS_MISSING: {
+    severity: 'warning',
+    agent: 'investment-maturity-off-balance-gate',
+    step: 1,
+    description: 'Regulatory return hypothesis is missing',
+    descriptionDe: 'Regulatorische Return-Hypothese fehlt',
+  },
+  IMOB_ASSET_RISK_REFERENCE_MISSING: {
+    severity: 'error',
+    agent: 'investment-maturity-off-balance-gate',
+    step: 1,
+    description: 'Asset-risk reference is missing',
+    descriptionDe: 'Asset-Risiko-Referenz fehlt',
+  },
+  IMOB_ISO_RISK_REFERENCE_MISSING: {
+    severity: 'warning',
+    agent: 'investment-maturity-off-balance-gate',
+    step: 1,
+    description: 'ISO/risk-control reference is missing',
+    descriptionDe: 'ISO-/Risikoreferenz fehlt',
+  },
+  IMOB_DECISION_FORUM_MISSING: {
+    severity: 'error',
+    agent: 'investment-maturity-off-balance-gate',
+    step: 1,
+    description: 'Responsible decision forum is missing',
+    descriptionDe: 'Verantwortliches Entscheidungsforum fehlt',
+  },
+  IMOB_SOURCE_ACTIONS_MISSING: {
+    severity: 'warning',
+    agent: 'investment-maturity-off-balance-gate',
+    step: 1,
+    description: 'Source action references are missing',
+    descriptionDe: 'Quell-Action-Referenzen fehlen',
+  },
+  IMOB_GATE_READY: {
+    severity: 'info',
+    agent: 'investment-maturity-off-balance-gate',
+    step: 1,
+    description: 'Investment maturity off-balance gate is ready',
+    descriptionDe: 'Investitionsreifegrad-Off-Balance-Gate ist bereit',
+  },
+  IMOB_GATE_BLOCKED: {
+    severity: 'error',
+    agent: 'investment-maturity-off-balance-gate',
+    step: 1,
+    description: 'Investment maturity off-balance gate is blocked',
+    descriptionDe: 'Investitionsreifegrad-Off-Balance-Gate ist blockiert',
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -2182,4 +2267,15 @@ module.exports = {
   FCRM_SOURCE_ACTIONS_MISSING,
   FCRM_ROLE_MODEL_READY,
   FCRM_ROLE_MODEL_BLOCKED,
+  // IMOB — Investment Maturity Off-Balance Gate (v0.63)
+  IMOB_MATURITY_MODEL_MISSING,
+  IMOB_PROCESS_QUALITY_LOW,
+  IMOB_FINANCING_COST_MISSING,
+  IMOB_REGULATORY_RETURN_HYPOTHESIS_MISSING,
+  IMOB_ASSET_RISK_REFERENCE_MISSING,
+  IMOB_ISO_RISK_REFERENCE_MISSING,
+  IMOB_DECISION_FORUM_MISSING,
+  IMOB_SOURCE_ACTIONS_MISSING,
+  IMOB_GATE_READY,
+  IMOB_GATE_BLOCKED,
 };

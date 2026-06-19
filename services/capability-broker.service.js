@@ -513,6 +513,48 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Investment Maturity Off-Balance Gate
+  // These prompts share evidence/risk vocabulary with VDMI asset validation.
+  // Require explicit investment/off-balance finance signals before routing here.
+  const investmentMaturityOffBalanceSignals = [
+    'investitionsreifegrad',
+    'off-balance',
+    'off balance',
+    'externe finanzierung',
+    'extern finanzierung',
+    'finanzierungszusatzkosten',
+    'zusatzkosten finanzierung',
+    'regulatory return',
+    'regulatorischer return',
+    'asset-risiko',
+    'asset risiko',
+    'iso-risiko',
+    'iso risiko',
+    'prozessqualitaet',
+    'prozessqualität',
+    'netzspielraum',
+    'entscheidungsforum',
+    'investment maturity',
+    'off-balance gate',
+  ];
+  const hasInvestmentMaturityOffBalanceCombo =
+    /(investition|investment|off.?balance|externe.?finanzierung|finanzierungszusatzkosten)/i.test(
+      haystack
+    ) &&
+    /(prozessqualit[aä]t|regulatory.?return|regulatorischer.?return|asset.?risiko|iso.?risiko|netzspielraum|entscheidungsforum|gate)/i.test(
+      haystack
+    );
+
+  if (
+    investmentMaturityOffBalanceSignals.some((signal) => haystack.includes(signal)) ||
+    hasInvestmentMaturityOffBalanceCombo
+  ) {
+    const imobCapability = findCapabilityByName('investment_maturity_off_balance_gate');
+    if (imobCapability) {
+      return { capability: imobCapability, score: 122, usedFallback: false };
+    }
+  }
+
   // ── Declarative domain routes registry (score 121, before VDMI asset-validation at 120)
   // Routes are managed via src/domain-routes-registry.js (static JSON + runtime overlay).
   // Each entry fires when any trigger phrase matches OR any combo (all-AND regex group) matches.

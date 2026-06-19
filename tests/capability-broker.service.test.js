@@ -761,4 +761,19 @@ describe('Capability Broker Service', () => {
     expect(actionNames).toContain('flexibility-conductor-role-model.evaluate');
     expect(actionNames).not.toContain('personal-agent.execute');
   });
+
+  it('routes investment maturity off-balance prompts to the read-only gate evidence path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Investitionsreifegrad Off-Balance Gate: externe Finanzierung, Finanzierungszusatzkosten, regulatory return, Asset-Risiko, ISO-Risiko, Prozessqualitaet, Netzspielraum und Entscheidungsforum.',
+    });
+
+    expect(result.capability).toBe('investment_maturity_off_balance_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'investment_maturity_off_balance_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('investment-maturity-off-balance-gate.getStatus');
+    expect(actionNames).toContain('investment-maturity-off-balance-gate.evaluate');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
 });

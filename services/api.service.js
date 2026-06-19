@@ -1660,6 +1660,16 @@ module.exports = {
           'GET /flexibility-conductor-role-model/:processId/status':
             'flexibility-conductor-role-model.getStatus',
 
+          // Investment Maturity Off-Balance Gate (v0.63)
+          'POST /investment-maturity-off-balance-gate/evaluate':
+            'investment-maturity-off-balance-gate.evaluate',
+          'GET /investment-maturity-off-balance-gate/gates':
+            'investment-maturity-off-balance-gate.listGates',
+          'GET /investment-maturity-off-balance-gate/gates/:gateId':
+            'investment-maturity-off-balance-gate.getGate',
+          'GET /investment-maturity-off-balance-gate/status':
+            'investment-maturity-off-balance-gate.getStatus',
+
           // Redispatch Settlement Sandbox (v0.62)
           'POST /redispatch-settlement-sandbox/scenarios':
             'redispatch-settlement-sandbox.createScenario',

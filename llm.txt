@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: fc4ff6d8260f9845d7549d3e7327baa89774a5b7025a842dd3d8e42c58543ffb
+  - openapi-export.json: 28902da5fe20e6b641dea54420d35e3b1bcf6da6c1f4eeb4efca6a8cdba62dc6
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 686
-- operation_count: 791
+- path_count: 690
+- operation_count: 795
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -728,6 +728,7 @@ process:
 - HITL: 13 operations
 - IntegrationHub: 8 operations
 - Interface Placeholder: 5 operations
+- Investment Maturity Off-Balance Gate: 4 operations
 - Investment Planning: 3 operations
 - Jobs: 14 operations
 - Knowledge RAG: 12 operations
@@ -1269,6 +1270,10 @@ process:
 - GET /api/interface-placeholder/gaps/:placeholderId/status | tags: [Interface Placeholder] | operationId: interface-placeholder_returnMinimalStatus | summary: Return low-confidence minimal status for a placeholder
 - POST /api/interface-placeholder/mark-gap | tags: [Interface Placeholder] | operationId: interface-placeholder_markGap | summary: Create an explicit interface placeholder gap
 - POST /api/interface-placeholder/request-evidence | tags: [Interface Placeholder] | operationId: interface-placeholder_requestEvidence | summary: Return evidence signals required to replace a placeholder
+- POST /api/investment-maturity-off-balance-gate/evaluate | tags: [Investment Maturity Off-Balance Gate] | operationId: investment-maturity-off-balance-gate_evaluate | summary: Evaluate investment maturity off-balance evidence
+- GET /api/investment-maturity-off-balance-gate/gates | tags: [Investment Maturity Off-Balance Gate] | operationId: investment-maturity-off-balance-gate_listGates | summary: List investment maturity off-balance gates
+- GET /api/investment-maturity-off-balance-gate/gates/:gateId | tags: [Investment Maturity Off-Balance Gate] | operationId: investment-maturity-off-balance-gate_getGate | summary: Get an investment maturity off-balance gate
+- GET /api/investment-maturity-off-balance-gate/status | tags: [Investment Maturity Off-Balance Gate] | operationId: investment-maturity-off-balance-gate_getStatus | summary: Get dossier-safe investment maturity off-balance status
 - GET /api/investment-planning/plans | tags: [Investment Planning] | operationId: investment-planning_listPlans | summary: List investment planning reports
 - POST /api/investment-planning/plans | tags: [Investment Planning] | operationId: investment-planning_createPlan | summary: Create investment plan with Soll-Ist delta and mandate alignment
 - GET /api/investment-planning/plans/:id | tags: [Investment Planning] | operationId: investment-planning_getPlan | summary: Get one investment planning report
@@ -35148,6 +35153,90 @@ process:
         ]
       }
     },
+    "/api/investment-maturity-off-balance-gate/evaluate": {
+      "post": {
+        "operationId": "investment-maturity-off-balance-gate_evaluate",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Evaluate investment maturity off-balance evidence",
+        "tags": [
+          "Investment Maturity Off-Balance Gate"
+        ]
+      }
+    },
+    "/api/investment-maturity-off-balance-gate/gates": {
+      "get": {
+        "operationId": "investment-maturity-off-balance-gate_listGates",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List investment maturity off-balance gates",
+        "tags": [
+          "Investment Maturity Off-Balance Gate"
+        ]
+      }
+    },
+    "/api/investment-maturity-off-balance-gate/gates/:gateId": {
+      "get": {
+        "operationId": "investment-maturity-off-balance-gate_getGate",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get an investment maturity off-balance gate",
+        "tags": [
+          "Investment Maturity Off-Balance Gate"
+        ]
+      }
+    },
+    "/api/investment-maturity-off-balance-gate/status": {
+      "get": {
+        "operationId": "investment-maturity-off-balance-gate_getStatus",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get dossier-safe investment maturity off-balance status",
+        "tags": [
+          "Investment Maturity Off-Balance Gate"
+        ]
+      }
+    },
     "/api/investment-planning/plans": {
       "get": {
         "operationId": "investment-planning_listPlans",
@@ -53284,4 +53373,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 1bbc4a5e1f9b0a81fc6802f3c22105f8aa0b2cbffe7a6a696394eac790ac6103
+- llm_txt_sha256: 7860688fbfeea1bd7141fc16da62086e7254c28141966fdb24fb454ae1841458

@@ -426,5 +426,50 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 245
+  },
+  {
+    "id": "investment-maturity-off-balance-gate.getStatus",
+    "action": "investment-maturity-off-balance-gate.getStatus",
+    "label": "Investment Maturity Off-Balance Gate Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "investmentCaseId": {
+        "extractor": "regexCaptureSafe",
+        "required": true,
+        "config": {
+          "pattern": "(investment-case:[a-zA-Z0-9-]+|imob-case:[a-zA-Z0-9-]+|cron-smoke-246)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["evidenceStatus", "answerFacts.evidenceStatus"], "label": "Evidence Status", "maxLen": 60 },
+        { "paths": ["investmentCaseId", "answerFacts.investmentCaseId"], "label": "Investment Case", "maxLen": 100 },
+        { "paths": ["gateId", "answerFacts.gateId"], "label": "Gate", "maxLen": 80 },
+        { "paths": ["maturityLevel", "answerFacts.maturityLevel"], "label": "Maturity", "maxLen": 80 },
+        { "paths": ["processQualityScore", "answerFacts.processQualityScore"], "label": "Process Quality", "precision": 2 },
+        { "paths": ["additionalFinancingCostEur", "answerFacts.additionalFinancingCostEur"], "label": "Financing Cost", "precision": 2, "suffix": "EUR" },
+        { "paths": ["answerFacts.regulatoryReturnHypothesis.summary", "regulatoryReturnHypothesis.summary"], "label": "Return Hypothesis", "maxLen": 160 },
+        { "paths": ["answerFacts.assetRiskReference.referenceId", "assetRiskReference.referenceId"], "label": "Asset Risk", "maxLen": 100 },
+        { "paths": ["answerFacts.isoRiskReference.referenceId", "isoRiskReference.referenceId"], "label": "ISO Risk", "maxLen": 100 },
+        { "paths": ["answerFacts.decisionForum.name", "decisionForum.name"], "label": "Decision Forum", "maxLen": 100 },
+        { "paths": ["answerFacts.evaluatedAt", "evaluatedAt"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 246
   }
 ]

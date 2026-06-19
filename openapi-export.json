@@ -27420,6 +27420,90 @@
         }
       }
     },
+    "/api/investment-maturity-off-balance-gate/evaluate": {
+      "post": {
+        "operationId": "investment-maturity-off-balance-gate_evaluate",
+        "summary": "Evaluate investment maturity off-balance evidence",
+        "tags": [
+          "Investment Maturity Off-Balance Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/investment-maturity-off-balance-gate/gates": {
+      "get": {
+        "operationId": "investment-maturity-off-balance-gate_listGates",
+        "summary": "List investment maturity off-balance gates",
+        "tags": [
+          "Investment Maturity Off-Balance Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/investment-maturity-off-balance-gate/gates/:gateId": {
+      "get": {
+        "operationId": "investment-maturity-off-balance-gate_getGate",
+        "summary": "Get an investment maturity off-balance gate",
+        "tags": [
+          "Investment Maturity Off-Balance Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/investment-maturity-off-balance-gate/status": {
+      "get": {
+        "operationId": "investment-maturity-off-balance-gate_getStatus",
+        "summary": "Get dossier-safe investment maturity off-balance status",
+        "tags": [
+          "Investment Maturity Off-Balance Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/investment-planning/plans": {
       "post": {
         "operationId": "investment-planning_createPlan",

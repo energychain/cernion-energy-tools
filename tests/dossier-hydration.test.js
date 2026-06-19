@@ -65,14 +65,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 12 static rules', () => {
+    it('loads all 13 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(12);
+      expect(rules.length).toBe(13);
     });
 
-    it('compiles all 12 static rules without error', () => {
+    it('compiles all 13 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(12);
+      expect(rules.length).toBe(13);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -92,7 +92,7 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule.timeoutMs).toBe(14000);
     });
 
-    it('all 12 actions are retrievable by getRule()', () => {
+    it('all 13 actions are retrievable by getRule()', () => {
       const expected = [
         'energy-market.co2Intensity',
         'gas-storage.countryStorage',
@@ -106,6 +106,7 @@ describe('dossier-hydration-registry (unit)', () => {
         're4de-variable-grid-fee.getEvidence',
         'battery-redispatch-special-gate.getStatus',
         'flexibility-conductor-role-model.getStatus',
+        'investment-maturity-off-balance-gate.getStatus',
       ];
       for (const action of expected) {
         expect(getRule(action)).not.toBeNull();
@@ -357,6 +358,44 @@ describe('dossier-hydration-registry (unit)', () => {
       const rule = getRule('flexibility-conductor-role-model.getStatus');
       expect(rule.formatEvidence({ found: false, message: 'No role-model evidence yet' })).toBe(
         'No role-model evidence yet'
+      );
+    });
+
+    it('investment-maturity-off-balance-gate.getStatus is dossier-safe and formats gate evidence', () => {
+      const rule = getRule('investment-maturity-off-balance-gate.getStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams([], 'Bitte investment-case:process-001 Off-Balance Gate laden')
+      ).toEqual({ investmentCaseId: 'investment-case:process-001' });
+
+      const formatted = rule.formatEvidence({
+        investmentCaseId: 'investment-case:process-001',
+        gateId: 'imob:test',
+        evidenceStatus: 'ready_with_warnings',
+        answerFacts: {
+          maturityLevel: 'gate-3-investment-ready',
+          processQualityScore: 0.86,
+          additionalFinancingCostEur: 125000,
+          regulatoryReturnHypothesis: { summary: 'Return headroom remains a hypothesis' },
+          assetRiskReference: { referenceId: 'asset-risk:grid-001' },
+          isoRiskReference: { referenceId: 'iso-risk:control-001' },
+          decisionForum: { name: 'Investitionsausschuss Netz' },
+          evaluatedAt: '2026-06-19T12:30:00.000Z',
+        },
+      });
+
+      expect(formatted).toContain('Evidence Status: ready_with_warnings');
+      expect(formatted).toContain('Investment Case: investment-case:process-001');
+      expect(formatted).toContain('Process Quality: 0.86');
+      expect(formatted).toContain('Financing Cost: 125000.00 EUR');
+      expect(formatted).toContain('Decision Forum: Investitionsausschuss Netz');
+    });
+
+    it('investment-maturity-off-balance-gate.getStatus formats not-found message as fallback evidence', () => {
+      const rule = getRule('investment-maturity-off-balance-gate.getStatus');
+      expect(rule.formatEvidence({ found: false, message: 'No off-balance gate evidence yet' })).toBe(
+        'No off-balance gate evidence yet'
       );
     });
 
