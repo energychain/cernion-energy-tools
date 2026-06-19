@@ -475,6 +475,44 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Battery Redispatch Special Gate
+  // Storage prompts share words with the older generic Redispatch special-case
+  // gate. These signals narrow the case to MaLo/MeLo, direction and clearing
+  // evidence for batteries.
+  const batteryRedispatchSpecialGateSignals = [
+    'batteriespeicher redispatch',
+    'speicher sondergate',
+    'redispatch speicher sondergate',
+    'malo speicher',
+    'melo speicher',
+    'positive redispatch',
+    'negative redispatch',
+    'lastaufnahme',
+    'einspeisung',
+    'testabruf',
+    'steuerbarkeitsrichtung',
+    'clearing speicher',
+    'abrechnung speicher',
+    'battery redispatch special gate',
+    'bess redispatch sondergate',
+  ];
+  const hasBatteryRedispatchSpecialGateCombo =
+    /(batteriespeicher|bess|speicher)/i.test(haystack) &&
+    /redispatch/i.test(haystack) &&
+    /(malo|melo|lastaufnahme|einspeisung|testabruf|steuerbarkeitsrichtung|clearing|abrechnung|sondergate)/i.test(
+      haystack
+    );
+
+  if (
+    batteryRedispatchSpecialGateSignals.some((signal) => haystack.includes(signal)) ||
+    hasBatteryRedispatchSpecialGateCombo
+  ) {
+    const brsCapability = findCapabilityByName('battery_redispatch_special_gate');
+    if (brsCapability) {
+      return { capability: brsCapability, score: 122, usedFallback: false };
+    }
+  }
+
   // ── Declarative domain routes registry (score 121, before VDMI asset-validation at 120)
   // Routes are managed via src/domain-routes-registry.js (static JSON + runtime overlay).
   // Each entry fires when any trigger phrase matches OR any combo (all-AND regex group) matches.

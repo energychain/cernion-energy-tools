@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: 623bbaf43970812eb869cf3f743ddbff2719295804bc4e6999ba9e67df8dd44a
+  - openapi-export.json: bad0e56596f5aa2aa7a01e77c75b8550f30d2cc74f106a2a91189a3def54a658
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 678
-- operation_count: 783
+- path_count: 682
+- operation_count: 787
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -680,6 +680,7 @@ process:
 - Authentication: 6 operations
 - automatisierungsradar: 3 operations
 - Backup & Restore: 10 operations
+- Battery Redispatch Special Gate: 4 operations
 - bess-screening: 3 operations
 - Blindflug Radar: 4 operations
 - blueprint-management: 8 operations
@@ -854,6 +855,10 @@ process:
 - GET /api/backup-orchestrator/snapshots | tags: [Backup & Restore] | operationId: backup-orchestrator_list | summary: List available backup snapshots
 - DELETE /api/backup-orchestrator/snapshots/:snapshotId | tags: [Backup & Restore] | operationId: backup-orchestrator_delete | summary: Delete a backup snapshot
 - GET /api/backup-orchestrator/snapshots/:snapshotId | tags: [Backup & Restore] | operationId: backup-orchestrator_get | summary: Get backup snapshot manifest by ID
+- GET /api/battery-redispatch-special-gate/:gateId/status | tags: [Battery Redispatch Special Gate] | operationId: battery-redispatch-special-gate_getStatus | summary: Get dossier-safe battery Redispatch special gate status
+- POST /api/battery-redispatch-special-gate/evaluate | tags: [Battery Redispatch Special Gate] | operationId: battery-redispatch-special-gate_evaluate | summary: Evaluate a battery storage Redispatch special gate
+- GET /api/battery-redispatch-special-gate/gates | tags: [Battery Redispatch Special Gate] | operationId: battery-redispatch-special-gate_listGates | summary: List battery Redispatch special gates
+- GET /api/battery-redispatch-special-gate/gates/:gateId | tags: [Battery Redispatch Special Gate] | operationId: battery-redispatch-special-gate_getGate | summary: Get a battery Redispatch special gate
 - GET /api/bess-screening/screenings | tags: [bess-screening] | operationId: bess-screening_list | summary: bess-screening.list
 - POST /api/bess-screening/screenings | tags: [bess-screening] | operationId: bess-screening_screen | summary: bess-screening.screen
 - GET /api/bess-screening/screenings/:id | tags: [bess-screening] | operationId: bess-screening_get | summary: bess-screening.get
@@ -7994,6 +7999,90 @@ process:
           "Backup & Restore"
         ],
         "x-oeo-class": "OEO_00140083"
+      }
+    },
+    "/api/battery-redispatch-special-gate/:gateId/status": {
+      "get": {
+        "operationId": "battery-redispatch-special-gate_getStatus",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get dossier-safe battery Redispatch special gate status",
+        "tags": [
+          "Battery Redispatch Special Gate"
+        ]
+      }
+    },
+    "/api/battery-redispatch-special-gate/evaluate": {
+      "post": {
+        "operationId": "battery-redispatch-special-gate_evaluate",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Evaluate a battery storage Redispatch special gate",
+        "tags": [
+          "Battery Redispatch Special Gate"
+        ]
+      }
+    },
+    "/api/battery-redispatch-special-gate/gates": {
+      "get": {
+        "operationId": "battery-redispatch-special-gate_listGates",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List battery Redispatch special gates",
+        "tags": [
+          "Battery Redispatch Special Gate"
+        ]
+      }
+    },
+    "/api/battery-redispatch-special-gate/gates/:gateId": {
+      "get": {
+        "operationId": "battery-redispatch-special-gate_getGate",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get a battery Redispatch special gate",
+        "tags": [
+          "Battery Redispatch Special Gate"
+        ]
       }
     },
     "/api/bess-screening/screenings": {
@@ -53106,4 +53195,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: b4255072b6e7945ba4badf9f6a53808b5cd2363d497c48e8a3c61e7b5c212a6b
+- llm_txt_sha256: 40de05efe9874125596a62d252e1ef15d846bac92b06c118b7ee430007f170f6

@@ -301,6 +301,17 @@ const RRG_GATE_READY = 'RRG_GATE_READY';
 const RRG_GATE_READY_WITH_WARNINGS = 'RRG_GATE_READY_WITH_WARNINGS';
 const RRG_GATE_BLOCKED = 'RRG_GATE_BLOCKED';
 
+// BRS — Battery Redispatch Special Gate (v0.63)
+const BRS_MALO_DIRECTION_MISSING = 'BRS_MALO_DIRECTION_MISSING';
+const BRS_METERING_CONCEPT_MISSING = 'BRS_METERING_CONCEPT_MISSING';
+const BRS_REDISPATCH_DIRECTION_INCOMPLETE = 'BRS_REDISPATCH_DIRECTION_INCOMPLETE';
+const BRS_CONTROLLABILITY_DIRECTION_MISSING = 'BRS_CONTROLLABILITY_DIRECTION_MISSING';
+const BRS_TEST_CALL_PROOF_MISSING = 'BRS_TEST_CALL_PROOF_MISSING';
+const BRS_PRODUCTION_PROOF_MISSING = 'BRS_PRODUCTION_PROOF_MISSING';
+const BRS_SETTLEMENT_DIRECTION_CONFLICT = 'BRS_SETTLEMENT_DIRECTION_CONFLICT';
+const BRS_GATE_READY = 'BRS_GATE_READY';
+const BRS_GATE_BLOCKED = 'BRS_GATE_BLOCKED';
+
 // ---------------------------------------------------------------------------
 // Netzfahrplan / fNAV finding codes (v0.51.5) — Phase 5
 // ---------------------------------------------------------------------------
@@ -1789,6 +1800,71 @@ const FINDING_CODE_METADATA = {
     description: 'Redispatch readiness gate is blocked',
     descriptionDe: 'Redispatch-Readiness-Gate ist blockiert',
   },
+
+  // ── Battery Redispatch Special Gate (v0.63) ─────────────────────────────
+  BRS_MALO_DIRECTION_MISSING: {
+    severity: 'error',
+    agent: 'battery-redispatch-special-gate',
+    step: 1,
+    description: 'Battery storage MaLo/MeLo role or injection/withdrawal direction is incomplete',
+    descriptionDe: 'Speicher-MaLo/MeLo-Rolle oder Einspeise-/Lastaufnahme-Richtung ist unvollstaendig',
+  },
+  BRS_METERING_CONCEPT_MISSING: {
+    severity: 'error',
+    agent: 'battery-redispatch-special-gate',
+    step: 1,
+    description: 'Battery storage metering concept or MeLo references are missing',
+    descriptionDe: 'Speicher-Messkonzept oder MeLo-Referenzen fehlen',
+  },
+  BRS_REDISPATCH_DIRECTION_INCOMPLETE: {
+    severity: 'error',
+    agent: 'battery-redispatch-special-gate',
+    step: 1,
+    description: 'Positive and negative Redispatch eligibility are not both explicit',
+    descriptionDe: 'Positive und negative Redispatch-Faehigkeit sind nicht beide explizit',
+  },
+  BRS_CONTROLLABILITY_DIRECTION_MISSING: {
+    severity: 'error',
+    agent: 'battery-redispatch-special-gate',
+    step: 1,
+    description: 'Battery storage controllability direction is missing',
+    descriptionDe: 'Steuerbarkeitsrichtung des Speichers fehlt',
+  },
+  BRS_TEST_CALL_PROOF_MISSING: {
+    severity: 'warning',
+    agent: 'battery-redispatch-special-gate',
+    step: 1,
+    description: 'Battery Redispatch test-call proof is missing',
+    descriptionDe: 'Speicher-Redispatch-Testabrufnachweis fehlt',
+  },
+  BRS_PRODUCTION_PROOF_MISSING: {
+    severity: 'error',
+    agent: 'battery-redispatch-special-gate',
+    step: 1,
+    description: 'Battery Redispatch production proof is missing',
+    descriptionDe: 'Speicher-Redispatch-Produktivnachweis fehlt',
+  },
+  BRS_SETTLEMENT_DIRECTION_CONFLICT: {
+    severity: 'error',
+    agent: 'battery-redispatch-special-gate',
+    step: 1,
+    description: 'Settlement, clearing or billing decision blocks the battery Redispatch gate',
+    descriptionDe: 'Settlement-, Clearing- oder Abrechnungsentscheidung blockiert das Speicher-Redispatch-Gate',
+  },
+  BRS_GATE_READY: {
+    severity: 'info',
+    agent: 'battery-redispatch-special-gate',
+    step: 1,
+    description: 'Battery Redispatch special gate is ready',
+    descriptionDe: 'Batteriespeicher-Redispatch-Sondergate ist bereit',
+  },
+  BRS_GATE_BLOCKED: {
+    severity: 'error',
+    agent: 'battery-redispatch-special-gate',
+    step: 1,
+    description: 'Battery Redispatch special gate is blocked',
+    descriptionDe: 'Batteriespeicher-Redispatch-Sondergate ist blockiert',
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -2019,4 +2095,14 @@ module.exports = {
   RRG_GATE_READY,
   RRG_GATE_READY_WITH_WARNINGS,
   RRG_GATE_BLOCKED,
+  // BRS — Battery Redispatch Special Gate (v0.63)
+  BRS_MALO_DIRECTION_MISSING,
+  BRS_METERING_CONCEPT_MISSING,
+  BRS_REDISPATCH_DIRECTION_INCOMPLETE,
+  BRS_CONTROLLABILITY_DIRECTION_MISSING,
+  BRS_TEST_CALL_PROOF_MISSING,
+  BRS_PRODUCTION_PROOF_MISSING,
+  BRS_SETTLEMENT_DIRECTION_CONFLICT,
+  BRS_GATE_READY,
+  BRS_GATE_BLOCKED,
 };

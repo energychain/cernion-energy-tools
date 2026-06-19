@@ -1640,6 +1640,16 @@ module.exports = {
           'GET /redispatch-readiness-gate/runs/:id': 'redispatch-readiness-gate.getRun',
           'GET /redispatch-readiness-gate/status': 'redispatch-readiness-gate.getStatus',
 
+          // Battery Redispatch Special Gate (v0.63)
+          'POST /battery-redispatch-special-gate/evaluate':
+            'battery-redispatch-special-gate.evaluate',
+          'GET /battery-redispatch-special-gate/gates':
+            'battery-redispatch-special-gate.listGates',
+          'GET /battery-redispatch-special-gate/gates/:gateId':
+            'battery-redispatch-special-gate.getGate',
+          'GET /battery-redispatch-special-gate/:gateId/status':
+            'battery-redispatch-special-gate.getStatus',
+
           // Redispatch Settlement Sandbox (v0.62)
           'POST /redispatch-settlement-sandbox/scenarios':
             'redispatch-settlement-sandbox.createScenario',

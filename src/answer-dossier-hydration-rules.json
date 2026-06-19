@@ -336,5 +336,51 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 224
+  },
+  {
+    "id": "battery-redispatch-special-gate.getStatus",
+    "action": "battery-redispatch-special-gate.getStatus",
+    "label": "Battery Redispatch Special Gate Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "gateId": {
+        "extractor": "regexCaptureSafe",
+        "required": true,
+        "config": {
+          "pattern": "(brs:[a-zA-Z0-9-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["evidenceStatus", "answerFacts.evidenceStatus"], "label": "Evidence Status", "maxLen": 60 },
+        { "paths": ["assetId", "answerFacts.assetId"], "label": "Asset", "maxLen": 80 },
+        { "paths": ["answerFacts.maloDecision"], "label": "MaLo/MeLo", "maxLen": 100 },
+        { "paths": ["answerFacts.injectionDirection"], "label": "Injection", "maxLen": 40 },
+        { "paths": ["answerFacts.withdrawalDirection"], "label": "Withdrawal", "maxLen": 40 },
+        { "paths": ["answerFacts.controllabilityDirection"], "label": "Steuerbarkeit", "maxLen": 40 },
+        { "paths": ["answerFacts.testCallProofPresent"], "label": "Testabrufnachweis" },
+        { "paths": ["answerFacts.productionProofConfirmed"], "label": "Produktivnachweis" },
+        { "paths": ["answerFacts.settlementReadiness"], "label": "Settlement", "maxLen": 60 },
+        { "paths": ["answerFacts.clearingDecision"], "label": "Clearing", "maxLen": 60 },
+        { "paths": ["answerFacts.billingDecision"], "label": "Billing", "maxLen": 60 },
+        { "paths": ["recommendedNextDecision", "answerFacts.recommendedNextDecision"], "label": "Next", "maxLen": 140 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 244
   }
 ]

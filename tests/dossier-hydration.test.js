@@ -65,14 +65,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 10 static rules', () => {
+    it('loads all 11 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(10);
+      expect(rules.length).toBe(11);
     });
 
-    it('compiles all 10 static rules without error', () => {
+    it('compiles all 11 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(10);
+      expect(rules.length).toBe(11);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -92,7 +92,7 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule.timeoutMs).toBe(14000);
     });
 
-    it('all 10 actions are retrievable by getRule()', () => {
+    it('all 11 actions are retrievable by getRule()', () => {
       const expected = [
         'energy-market.co2Intensity',
         'gas-storage.countryStorage',
@@ -104,6 +104,7 @@ describe('dossier-hydration-registry (unit)', () => {
         'residual-load.netResidualLoad',
         'redispatch-readiness-gate.getStatus',
         're4de-variable-grid-fee.getEvidence',
+        'battery-redispatch-special-gate.getStatus',
       ];
       for (const action of expected) {
         expect(getRule(action)).not.toBeNull();
@@ -279,6 +280,45 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Energy: 12.346 kWh');
       expect(formatted).toContain('Total: 1.27 EUR');
       expect(formatted).toContain('Section14a Context: true');
+    });
+
+    it('battery-redispatch-special-gate.getStatus is dossier-safe and formats gate evidence', () => {
+      const rule = getRule('battery-redispatch-special-gate.getStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams([], 'Bitte Speicher-Sondergate brs:123e4567-e89b-12d3-a456-426614174000 laden')
+      ).toEqual({ gateId: 'brs:123e4567-e89b-12d3-a456-426614174000' });
+
+      const formatted = rule.formatEvidence({
+        gateId: 'brs:test',
+        assetId: 'bess-001',
+        evidenceStatus: 'ready',
+        answerFacts: {
+          maloDecision: 'separate-injection-and-withdrawal-malo',
+          injectionDirection: 'injection',
+          withdrawalDirection: 'withdrawal',
+          controllabilityDirection: 'bidirectional',
+          testCallProofPresent: true,
+          productionProofConfirmed: true,
+          settlementReadiness: 'ready',
+          clearingDecision: 'approved',
+          billingDecision: 'approved',
+        },
+        recommendedNextDecision: 'Proceed to Redispatch storage clearing review',
+      });
+
+      expect(formatted).toContain('Evidence Status: ready');
+      expect(formatted).toContain('Asset: bess-001');
+      expect(formatted).toContain('Injection: injection');
+      expect(formatted).toContain('Clearing: approved');
+    });
+
+    it('battery-redispatch-special-gate.getStatus formats not-found message as fallback evidence', () => {
+      const rule = getRule('battery-redispatch-special-gate.getStatus');
+      expect(rule.formatEvidence({ found: false, message: 'No battery gate evidence yet' })).toBe(
+        'No battery gate evidence yet'
+      );
     });
 
     it('listSummary formats empty arrays as explicit negative evidence', () => {

@@ -735,4 +735,17 @@ describe('Capability Broker Service', () => {
     expect(actionNames).toContain('re4de-variable-grid-fee.calculate');
     expect(actionNames).not.toContain('personal-agent.execute');
   });
+
+  it('routes battery storage Redispatch Sondergate prompts to the battery gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Batteriespeicher Redispatch Sondergate: MaLo Speicher, MeLo, positive Redispatch, negative Redispatch, Lastaufnahme, Einspeisung, Testabruf, Steuerbarkeitsrichtung und Clearing Speicher.',
+    });
+
+    expect(result.capability).toBe('battery_redispatch_special_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe('battery_redispatch_special_gate');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('battery-redispatch-special-gate.getStatus');
+    expect(actionNames).toContain('battery-redispatch-special-gate.evaluate');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
 });

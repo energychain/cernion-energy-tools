@@ -4533,6 +4533,90 @@
         "x-oeo-class": "OEO_00140083"
       }
     },
+    "/api/battery-redispatch-special-gate/evaluate": {
+      "post": {
+        "operationId": "battery-redispatch-special-gate_evaluate",
+        "summary": "Evaluate a battery storage Redispatch special gate",
+        "tags": [
+          "Battery Redispatch Special Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/battery-redispatch-special-gate/gates": {
+      "get": {
+        "operationId": "battery-redispatch-special-gate_listGates",
+        "summary": "List battery Redispatch special gates",
+        "tags": [
+          "Battery Redispatch Special Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/battery-redispatch-special-gate/gates/:gateId": {
+      "get": {
+        "operationId": "battery-redispatch-special-gate_getGate",
+        "summary": "Get a battery Redispatch special gate",
+        "tags": [
+          "Battery Redispatch Special Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/battery-redispatch-special-gate/:gateId/status": {
+      "get": {
+        "operationId": "battery-redispatch-special-gate_getStatus",
+        "summary": "Get dossier-safe battery Redispatch special gate status",
+        "tags": [
+          "Battery Redispatch Special Gate"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/bess-screening/screenings": {
       "post": {
         "operationId": "bess-screening_screen",
