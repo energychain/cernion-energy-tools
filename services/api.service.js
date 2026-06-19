@@ -1384,6 +1384,8 @@ module.exports = {
             'dashboard-api.evidenceGroundingConfidenceAudit',
           'GET /dashboard/receipt-grounded-presentation-contract':
             'dashboard-api.receiptGroundedPresentationContract',
+          'GET /dashboard/market-communication-evidence-chain':
+            'dashboard-api.marketCommunicationEvidenceChainStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

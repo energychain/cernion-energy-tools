@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: 760cd89cf1b6be3e7b3bfc21409a2678f69ca3e6c7022ece561f0e36ad8e1b4d
+  - openapi-export.json: 4d1254fdf1d4c5e0da1003396b4f5b01b160d4a9083ebb7b3887824ac8e1a885
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 706
-- operation_count: 811
+- path_count: 707
+- operation_count: 812
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -694,7 +694,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 21 operations
+- Dashboard API: 22 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -976,6 +976,7 @@ process:
 - GET /api/dashboard/evidence-grounding-confidence-audit | tags: [Dashboard API] | operationId: dashboard-api_evidenceGroundingConfidenceAudit | summary: Evidence grounding confidence audit — read-only dossier-safe evidence status
 - GET /api/dashboard/finding-codes | tags: [Dashboard API] | operationId: dashboard-api_findingCodes | summary: Finding codes reference — all 92 codes with metadata
 - GET /api/dashboard/load-profile-stream-monitor | tags: [Dashboard API] | operationId: dashboard-api_loadProfileStreamMonitor | summary: Load profile movement monitor — strict anomaly-class buckets
+- GET /api/dashboard/market-communication-evidence-chain | tags: [Dashboard API] | operationId: dashboard-api_marketCommunicationEvidenceChainStatus | summary: Market communication evidence chain — read-only dossier-safe status
 - GET /api/dashboard/market-snapshot | tags: [Dashboard API] | operationId: dashboard-api_marketSnapshot | summary: Market snapshot — current spot prices, CO₂ intensity, renewable forecast
 - GET /api/dashboard/observability-mini | tags: [Dashboard API] | operationId: dashboard-api_observabilityMini | summary: Observability mini dashboard — compact production feedback cards
 - GET /api/dashboard/quality-summary | tags: [Dashboard API] | operationId: dashboard-api_qualitySummary | summary: Quality summary — recent reports from all agent pipelines
@@ -16748,6 +16749,170 @@ process:
         ],
         "x-oeo-class": [
           "OEO_00000143"
+        ]
+      }
+    },
+    "/api/dashboard/market-communication-evidence-chain": {
+      "get": {
+        "description": "Classifies market-communication evidence for dynamic tariff, iMSys, consumption-data and billing-readiness cases. Portal screenshots, customer statements and provider views are hints only; official MaLo/MeLo, UTILMD/master-data path, meter values, consumption retrieval, data-quality status and next billing step remain separate required evidence. The endpoint is read-only and does not mutate MaKo, EDM, billing, settlement, VDMI or HITL state.",
+        "operationId": "dashboard-api_marketCommunicationEvidenceChainStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "maloId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "meloId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contractAccountId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "caseId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeHints",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "portalHint",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "providerView",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "customerStatement",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "utilmdMasterdataPath",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "meterValueBatchId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "consumptionRetrievalStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dataQualityStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "nextBillingStep",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "dossierFacts": {
+                      "type": "array"
+                    },
+                    "hintsOnly": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "officialEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only market-communication evidence-chain status"
+          }
+        },
+        "summary": "Market communication evidence chain — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
         ]
       }
     },
@@ -54630,4 +54795,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 09621addd965d3c4e50875142f4bda6f199e8d8b17603a409f62b439940b550a
+- llm_txt_sha256: da7f301f5955b0f846b72639b3651677c47afada3ba3cddd3908c03ed46187cc
