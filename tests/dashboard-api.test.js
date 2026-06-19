@@ -1765,6 +1765,53 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── e2eControllabilityGovernanceStatus ──────────────────────────────────
+
+  describe('e2eControllabilityGovernanceStatus', () => {
+    it('reports explicit governance gaps without creating downstream actions', async () => {
+      const result = await broker.call('dashboard-api.e2eControllabilityGovernanceStatus', {
+        caseId: 'case-173',
+        connectionIntake: 'grid-connection:ok',
+        owner: 'netzanschluss',
+      });
+
+      expect(result.status).toBe('partial_governance_evidence');
+      expect(result.processSteps.map((step) => step.id)).toContain('connection_intake');
+      expect(result.evidenceMatrix.find((step) => step.stepId === 'connection_intake')).toMatchObject({
+        evidenceStatus: 'provided',
+        ownerRole: 'Netzanschluss',
+      });
+      expect(result.gaps.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['metering_concept', 'billing_impact_check', 'deadline'])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('e2e_controllability_governance');
+      expect(result.sourceActions.notCalled).toContain('hitl.create');
+      expect(result.sourceActions.notCalled).toContain('grid-operations.executeControl');
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns governance_evidence_complete when all matrix facts are supplied', async () => {
+      const result = await broker.call('dashboard-api.e2eControllabilityGovernanceStatus', {
+        caseId: 'case-173',
+        connectionIntake: 'grid-connection:ok',
+        meteringConcept: 'taf-ready',
+        assetControlCapability: 'asset-control-evidence',
+        gridOperationsDecision: 'redispatch-ready',
+        marketCommunicationHandover: 'mako-handover-ok',
+        billingImpactCheck: 'billing-boundary-reviewed',
+        owner: 'netzanschluss',
+        deadline: '2026-07-01',
+        openMeasure: 'close handover minutes',
+      });
+
+      expect(result.status).toBe('governance_evidence_complete');
+      expect(result.gaps).toEqual([]);
+      expect(result.dossierFacts).toContain('Covered governance steps: 6/6');
+      expect(result.owners[0].value).toBe('netzanschluss');
+      expect(result.openMeasures[0].value).toBe('close handover minutes');
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

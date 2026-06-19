@@ -212,6 +212,60 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  e2e_controllability_check_governance: {
+    sources: [
+      {
+        id: 'connection_intake',
+        label: 'Netzanschluss-/Asset-Identifikation',
+        resolvedBy: ['dashboard-api.e2eControllabilityGovernanceStatus', 'grid-connection.validate', 'assets.effective'],
+        contextKeys: ['connectionIntake', 'gridConnectionId', 'assetId'],
+        optional: false,
+      },
+      {
+        id: 'metering_concept',
+        label: 'Mess-/TAF-/EDM-Konzept',
+        resolvedBy: ['dashboard-api.e2eControllabilityGovernanceStatus', 'edm-messkonzept.evaluate', 'edm-validation.validate'],
+        contextKeys: ['meteringConcept', 'tafReadiness', 'edmValidationId'],
+        optional: false,
+      },
+      {
+        id: 'asset_control_capability',
+        label: 'Asset-Steuerbarkeitsnachweis',
+        resolvedBy: ['dashboard-api.e2eControllabilityGovernanceStatus', 'grid-operations.controlMeasures'],
+        contextKeys: ['assetControlCapability', 'controlCapabilityEvidence'],
+        optional: false,
+      },
+      {
+        id: 'grid_operations_decision',
+        label: 'Netzbetrieb/Redispatch-/§14a-Entscheidung',
+        resolvedBy: ['dashboard-api.e2eControllabilityGovernanceStatus', 'grid-operations.netzfahrplanGenerate'],
+        contextKeys: ['gridOperationsDecision', 'redispatchReadiness', 'section14aReadiness'],
+        optional: false,
+      },
+      {
+        id: 'market_communication_handover',
+        label: 'Marktkommunikations-Abgabe',
+        resolvedBy: ['dashboard-api.e2eControllabilityGovernanceStatus', 'dashboard-api.marketCommunicationEvidenceChainStatus'],
+        contextKeys: ['marketCommunicationHandover', 'makoHandoverStatus'],
+        optional: false,
+      },
+      {
+        id: 'billing_impact_check',
+        label: 'Abrechnungs-/Settlement-Grenze',
+        resolvedBy: ['dashboard-api.e2eControllabilityGovernanceStatus', 'settlement.readiness'],
+        contextKeys: ['billingImpactCheck', 'settlementBoundary'],
+        optional: false,
+      },
+      {
+        id: 'owner_deadline_open_measure',
+        label: 'Owner, Frist und offene Massnahme',
+        resolvedBy: ['dashboard-api.e2eControllabilityGovernanceStatus', 'vdmi.dossier', 'hitl.summary'],
+        contextKeys: ['owner', 'deadline', 'openMeasure'],
+        optional: false,
+      },
+    ],
+  },
+
   // ── Routing-matrix route-keyed entries ─────────────────────────────────
 
   'investment-grid-check': {

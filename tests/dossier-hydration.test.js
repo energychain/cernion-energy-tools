@@ -1,5 +1,7 @@
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
 const { ServiceBroker } = require('moleculer');
 const DossierHydrationManagementService = require('../services/dossier-hydration-management.service');
 const {
@@ -45,6 +47,7 @@ function makeRule(overrides = {}) {
 const TEST_DB_PATH = `./data/dossier-hydration-test-${Date.now()}`;
 
 function makeBroker() {
+  fs.mkdirSync(path.dirname(TEST_DB_PATH), { recursive: true });
   const broker = new ServiceBroker({ logger: false });
   broker.createService({
     ...DossierHydrationManagementService,
@@ -65,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 19 static rules', () => {
+    it('loads all 20 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(19);
+      expect(rules.length).toBe(20);
     });
 
-    it('compiles all 19 static rules without error', () => {
+    it('compiles all 20 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(19);
+      expect(rules.length).toBe(20);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -401,6 +404,40 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Official Evidence: malo_identity');
       expect(formatted).toContain('Hint Only: portal_screenshot');
       expect(formatted).toContain('Leading Gap: utilmd_masterdata_path');
+    });
+
+    it('dashboard-api.e2eControllabilityGovernanceStatus is dossier-safe and formats governance facts', () => {
+      const rule = getRule('dashboard-api.e2eControllabilityGovernanceStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte E2E Steuerbarkeitscheck Governance case=case-173 owner=netzanschluss frist=2026-07-01 laden'
+        )
+      ).toEqual({
+        caseId: 'case-173',
+        owner: 'netzanschluss',
+        deadline: '2026-07-01',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'partial_governance_evidence',
+        processSteps: [{ label: 'Netzanschluss-/Asset-Identifikation' }],
+        gaps: [{ missingDataPoint: 'metering_concept' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add TAF and Messkonzept readiness',
+          },
+        ],
+        owners: [{ value: 'netzanschluss' }],
+        timestamp: '2026-06-19T22:30:00.000Z',
+      });
+
+      expect(formatted).toContain('Governance Status: partial_governance_evidence');
+      expect(formatted).toContain('First Step: Netzanschluss-/Asset-Identifikation');
+      expect(formatted).toContain('Leading Gap: metering_concept');
+      expect(formatted).toContain('Owner: netzanschluss');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {

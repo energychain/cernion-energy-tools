@@ -47,6 +47,7 @@ module.exports = {
       evidenceGroundingConfidenceAudit: 5 * 60 * 1000, // 5 min
       receiptGroundedPresentationContract: 5 * 60 * 1000, // 5 min
       marketCommunicationEvidenceChainStatus: 5 * 60 * 1000, // 5 min
+      e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -1380,6 +1381,92 @@ module.exports = {
           this.settings.cacheTtlMs.marketCommunicationEvidenceChainStatus,
           async () => ({
             ...this.buildMarketCommunicationEvidenceChainStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── e2eControllabilityGovernanceStatus ────────────────────────────────
+    /**
+     * GET /api/dashboard/e2e-controllability-governance?connectionIntake=...
+     *
+     * Read-only dossier-safe governance matrix for E2E Steuerbarkeitscheck
+     * handovers. It projects provided source facts into process-step evidence
+     * and explicit gaps without creating VDMI/HITL items or executing control.
+     */
+    e2eControllabilityGovernanceStatus: {
+      rest: 'GET /e2e-controllability-governance',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        connectionIntake: { type: 'string', optional: true, min: 1 },
+        meteringConcept: { type: 'string', optional: true, min: 1 },
+        assetControlCapability: { type: 'string', optional: true, min: 1 },
+        gridOperationsDecision: { type: 'string', optional: true, min: 1 },
+        marketCommunicationHandover: { type: 'string', optional: true, min: 1 },
+        billingImpactCheck: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        deadline: { type: 'string', optional: true, min: 1 },
+        openMeasure: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'E2E controllability governance — read-only dossier-safe matrix',
+        description:
+          'Builds a deterministic governance/evidence matrix for E2E Steuerbarkeitscheck ' +
+          'handover readiness across connection intake, metering, asset control, grid ' +
+          'operations, market communication and billing-impact boundaries. The endpoint is ' +
+          'read-only and does not mutate VDMI, HITL, MaKo, billing, settlement, tariff or device-control state.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'connectionIntake', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'meteringConcept', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetControlCapability', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'gridOperationsDecision', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'marketCommunicationHandover', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'billingImpactCheck', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'deadline', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'openMeasure', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only E2E controllability governance matrix',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    processSteps: { type: 'array' },
+                    evidenceMatrix: { type: 'array' },
+                    decisionBoundaries: { type: 'array' },
+                    owners: { type: 'array' },
+                    deadlines: { type: 'array' },
+                    openMeasures: { type: 'array' },
+                    gaps: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `e2e-controllability-governance:${params.caseId || 'no-case'}:${params.connectionIntake || 'no-connection'}:${params.meteringConcept || 'no-metering'}:${params.assetControlCapability || 'no-asset'}:${params.gridOperationsDecision || 'no-grid'}:${params.marketCommunicationHandover || 'no-mako'}:${params.billingImpactCheck || 'no-billing'}:${params.owner || 'no-owner'}:${params.deadline || 'no-deadline'}:${params.openMeasure || 'no-measure'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.e2eControllabilityGovernanceStatus,
+          async () => ({
+            ...this.buildE2eControllabilityGovernanceStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -3257,6 +3344,194 @@ module.exports = {
           hintsOnly,
           missingEvidence,
           positiveFollowUps,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildE2eControllabilityGovernanceStatus(params = {}) {
+      const stepSpecs = [
+        {
+          id: 'connection_intake',
+          label: 'Netzanschluss-/Asset-Identifikation',
+          value: params.connectionIntake,
+          role: 'Netzanschluss',
+          decisionBoundary: 'Asset identity and connection context are known before controllability assumptions are used.',
+          enablesDossierAddition: 'add Netzanschluss and asset identity context',
+        },
+        {
+          id: 'metering_concept',
+          label: 'Mess-/TAF-/EDM-Konzept',
+          value: params.meteringConcept,
+          role: 'Metering',
+          decisionBoundary: 'Metering and TAF readiness are explicit before data-quality or control readiness is claimed.',
+          enablesDossierAddition: 'add TAF and Messkonzept readiness',
+        },
+        {
+          id: 'asset_control_capability',
+          label: 'Asset-Steuerbarkeitsnachweis',
+          value: params.assetControlCapability,
+          role: 'Asset Management',
+          decisionBoundary: 'Asset controllability remains an evidence requirement, not an inferred property.',
+          enablesDossierAddition: 'add asset-control assumption boundary',
+        },
+        {
+          id: 'grid_operations_decision',
+          label: 'Netzbetrieb/Redispatch-/§14a-Entscheidung',
+          value: params.gridOperationsDecision,
+          role: 'Netzbetrieb',
+          decisionBoundary: 'Operational readiness is separated from technical switching or dispatch execution.',
+          enablesDossierAddition: 'add Redispatch or §14a operations readiness',
+        },
+        {
+          id: 'market_communication_handover',
+          label: 'Marktkommunikations-Abgabe',
+          value: params.marketCommunicationHandover,
+          role: 'Marktkommunikation',
+          decisionBoundary: 'MaKo handover evidence is required before downstream settlement context is treated as traceable.',
+          enablesDossierAddition: 'add MaKo handover traceability',
+        },
+        {
+          id: 'billing_impact_check',
+          label: 'Abrechnungs-/Settlement-Grenze',
+          value: params.billingImpactCheck,
+          role: 'Abrechnung',
+          decisionBoundary: 'Billing impact is a boundary note only; no billing or settlement release is performed.',
+          enablesDossierAddition: 'add Abrechnung boundary clarity',
+        },
+      ];
+
+      const evidenceMatrix = stepSpecs.map((spec, index) => ({
+        stepId: spec.id,
+        order: index + 1,
+        label: spec.label,
+        ownerRole: spec.role,
+        evidenceValue: spec.value || null,
+        evidenceStatus: spec.value ? 'provided' : 'missing',
+        decisionBoundary: spec.decisionBoundary,
+      }));
+      const gaps = stepSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          ownerRole: spec.role,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      if (!params.owner) {
+        gaps.push({
+          missingDataPoint: 'owner',
+          label: 'Accountable Owner',
+          ownerRole: 'Governance',
+          enablesDossierAddition: 'add accountable handover status',
+        });
+      }
+      if (!params.deadline) {
+        gaps.push({
+          missingDataPoint: 'deadline',
+          label: 'Handover Deadline',
+          ownerRole: 'Governance',
+          enablesDossierAddition: 'add due-date and escalation context',
+        });
+      }
+      if (!params.openMeasure) {
+        gaps.push({
+          missingDataPoint: 'open_measure',
+          label: 'Open Measure',
+          ownerRole: 'Governance',
+          enablesDossierAddition: 'add next open measure for closure tracking',
+        });
+      }
+
+      const coveredSteps = evidenceMatrix.filter((item) => item.evidenceStatus === 'provided');
+      const status =
+        gaps.length === 0
+          ? 'governance_evidence_complete'
+          : coveredSteps.length === 0
+            ? 'needs_governance_evidence'
+            : 'partial_governance_evidence';
+      const positiveFollowUps = gaps.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'e2e_controllability_governance',
+      }));
+      const processSteps = evidenceMatrix.map((item) => ({
+        id: item.stepId,
+        label: item.label,
+        ownerRole: item.ownerRole,
+        evidenceStatus: item.evidenceStatus,
+      }));
+      const owners = params.owner
+        ? [{ id: 'accountable_owner', label: 'Accountable Owner', value: params.owner }]
+        : [];
+      const deadlines = params.deadline
+        ? [{ id: 'handover_deadline', label: 'Handover Deadline', value: params.deadline }]
+        : [];
+      const openMeasures = params.openMeasure
+        ? [{ id: 'open_measure', label: 'Open Measure', value: params.openMeasure }]
+        : [];
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Covered governance steps: ${coveredSteps.length}/${stepSpecs.length}`,
+        `Open gaps: ${gaps.length}`,
+      ];
+      if (params.caseId) dossierFacts.push(`Case: ${params.caseId}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+
+      return {
+        governanceId: `e2e-ccg:${Buffer.from(`${params.caseId || ''}:${params.owner || ''}:${params.deadline || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'e2e_controllability_check_governance',
+        safety: 'read_only',
+        requestContext: {
+          caseId: params.caseId || null,
+          owner: params.owner || null,
+          deadline: params.deadline || null,
+        },
+        status,
+        processSteps,
+        evidenceMatrix,
+        decisionBoundaries: evidenceMatrix.map((item) => ({
+          stepId: item.stepId,
+          label: item.label,
+          boundary: item.decisionBoundary,
+        })),
+        owners,
+        deadlines,
+        openMeasures,
+        gaps,
+        positiveFollowUps,
+        dossierFacts,
+        sourceActions: {
+          inspected: ['dashboard-api.e2eControllabilityGovernanceStatus'],
+          referenced: [
+            'vdmi.dossier',
+            'vdmi.evidence',
+            'interface-placeholder.requestEvidence',
+            'grid-operations.controlMeasures',
+            'edm-messkonzept.evaluate',
+            'edm-validation.validate',
+          ],
+          notCalled: [
+            'hitl.create',
+            'settlement.exportA96',
+            'settlement.prepareBilling',
+            'grid-operations.executeControl',
+          ],
+        },
+        validationFindings: gaps.map((item) => ({
+          code: `E2E_CCG_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+          severity: 'medium',
+          message: item.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          status,
+          processSteps,
+          evidenceMatrix,
+          gaps,
+          positiveFollowUps,
+          owners,
+          deadlines,
+          openMeasures,
           dossierFacts,
         },
       };

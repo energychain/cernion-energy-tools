@@ -122,6 +122,32 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     expect(result.confidence).toBeGreaterThanOrEqual(1);
   });
 
+  it('plans E2E controllability governance as explicit handover evidence, not inferred readiness', () => {
+    const result = planEvidence(
+      { routeLabel: 'e2e_controllability_check_governance' },
+      {
+        connectionIntake: 'grid-connection:ok',
+        owner: 'netzanschluss',
+        deadline: '2026-07-01',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('e2e_controllability_check_governance');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['connection_intake', 'owner_deadline_open_measure'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'metering_concept',
+        'asset_control_capability',
+        'grid_operations_decision',
+        'market_communication_handover',
+        'billing_impact_check',
+      ])
+    );
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });

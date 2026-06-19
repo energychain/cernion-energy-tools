@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: 4d1254fdf1d4c5e0da1003396b4f5b01b160d4a9083ebb7b3887824ac8e1a885
+  - openapi-export.json: a0940cb235b505332a24839c013f209ad663d2b9a9e69f37a9be2d3b4afca794
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 707
-- operation_count: 812
+- path_count: 709
+- operation_count: 814
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -694,7 +694,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 22 operations
+- Dashboard API: 24 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -962,6 +962,7 @@ process:
 - GET /api/cya/sessions/:session_id/export/pdf | tags: [CYA Agent] | operationId: cya_exportPdf | summary: Export CYA session as PDF
 - GET /api/cya/templates | tags: [CYA Agent] | operationId: cya_listTemplates | summary: List prebuilt CYA profile templates
 - GET /api/cya/templates/:templateId | tags: [CYA Agent] | operationId: cya_getTemplate | summary: Load one prebuilt CYA profile template
+- GET /api/dashboard-api/e2e-controllability-governance | tags: [Dashboard API] | operationId: dashboard-api_e2eControllabilityGovernanceStatus | summary: E2E controllability governance — read-only dossier-safe matrix
 - GET /api/dashboard-api/evidence-grounding-confidence-audit | tags: [Dashboard API] | operationId: dashboard-api_evidenceGroundingConfidenceAudit | summary: Evidence grounding confidence audit — read-only dossier-safe evidence status
 - GET /api/dashboard-api/finding-codes | tags: [Dashboard API] | operationId: dashboard-api_findingCodes | summary: Finding codes reference — all 92 codes with metadata
 - GET /api/dashboard-api/load-profile-stream-monitor | tags: [Dashboard API] | operationId: dashboard-api_loadProfileStreamMonitor | summary: Load profile movement monitor — strict anomaly-class buckets
@@ -973,6 +974,7 @@ process:
 - GET /api/dashboard-api/redispatch-call-quality-gate | tags: [Dashboard API] | operationId: dashboard-api_redispatchCallQualityGate | summary: Redispatch call data-quality gate — read-only evidence aggregator
 - GET /api/dashboard-api/redispatch-metering-cockpit | tags: [Dashboard API] | operationId: dashboard-api_redispatchMeteringCockpit | summary: Redispatch Metering Cockpit — operator-level decision readiness
 - GET /api/dashboard-api/vnb-overview | tags: [Dashboard API] | operationId: dashboard-api_vnbOverview | summary: VNB overview — aggregated dashboard data for one grid operator
+- GET /api/dashboard/e2e-controllability-governance | tags: [Dashboard API] | operationId: dashboard-api_e2eControllabilityGovernanceStatus | summary: E2E controllability governance — read-only dossier-safe matrix
 - GET /api/dashboard/evidence-grounding-confidence-audit | tags: [Dashboard API] | operationId: dashboard-api_evidenceGroundingConfidenceAudit | summary: Evidence grounding confidence audit — read-only dossier-safe evidence status
 - GET /api/dashboard/finding-codes | tags: [Dashboard API] | operationId: dashboard-api_findingCodes | summary: Finding codes reference — all 92 codes with metadata
 - GET /api/dashboard/load-profile-stream-monitor | tags: [Dashboard API] | operationId: dashboard-api_loadProfileStreamMonitor | summary: Load profile movement monitor — strict anomaly-class buckets
@@ -15025,6 +15027,155 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/e2e-controllability-governance": {
+      "get": {
+        "description": "Builds a deterministic governance/evidence matrix for E2E Steuerbarkeitscheck handover readiness across connection intake, metering, asset control, grid operations, market communication and billing-impact boundaries. The endpoint is read-only and does not mutate VDMI, HITL, MaKo, billing, settlement, tariff or device-control state.",
+        "operationId": "dashboard-api_e2eControllabilityGovernanceStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "caseId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "connectionIntake",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "meteringConcept",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "assetControlCapability",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gridOperationsDecision",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "marketCommunicationHandover",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "billingImpactCheck",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "owner",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "deadline",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "openMeasure",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "deadlines": {
+                      "type": "array"
+                    },
+                    "decisionBoundaries": {
+                      "type": "array"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "evidenceMatrix": {
+                      "type": "array"
+                    },
+                    "gaps": {
+                      "type": "array"
+                    },
+                    "openMeasures": {
+                      "type": "array"
+                    },
+                    "owners": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "processSteps": {
+                      "type": "array"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only E2E controllability governance matrix"
+          }
+        },
+        "summary": "E2E controllability governance — read-only dossier-safe matrix",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/evidence-grounding-confidence-audit": {
       "get": {
         "description": "Read-only confidence audit for grounded Cernion answers. It keeps Capability Broker routing confidence separate from evidence confidence, exposes source classes, scope limitations, tool failures, missing evidence and positive follow-ups. It does not create HITL items, interface placeholders, RAG ingests, Personal-Agent sessions or external calls.",
@@ -16374,6 +16525,155 @@ process:
         ],
         "x-oeo-class": [
           "OEO_00000446"
+        ]
+      }
+    },
+    "/api/dashboard/e2e-controllability-governance": {
+      "get": {
+        "description": "Builds a deterministic governance/evidence matrix for E2E Steuerbarkeitscheck handover readiness across connection intake, metering, asset control, grid operations, market communication and billing-impact boundaries. The endpoint is read-only and does not mutate VDMI, HITL, MaKo, billing, settlement, tariff or device-control state.",
+        "operationId": "dashboard-api_e2eControllabilityGovernanceStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "caseId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "connectionIntake",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "meteringConcept",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "assetControlCapability",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gridOperationsDecision",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "marketCommunicationHandover",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "billingImpactCheck",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "owner",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "deadline",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "openMeasure",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "deadlines": {
+                      "type": "array"
+                    },
+                    "decisionBoundaries": {
+                      "type": "array"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "evidenceMatrix": {
+                      "type": "array"
+                    },
+                    "gaps": {
+                      "type": "array"
+                    },
+                    "openMeasures": {
+                      "type": "array"
+                    },
+                    "owners": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "processSteps": {
+                      "type": "array"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only E2E controllability governance matrix"
+          }
+        },
+        "summary": "E2E controllability governance — read-only dossier-safe matrix",
+        "tags": [
+          "Dashboard API"
         ]
       }
     },
@@ -54795,4 +55095,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: da7f301f5955b0f846b72639b3651677c47afada3ba3cddd3908c03ed46187cc
+- llm_txt_sha256: 6b6c077e95d130e1ea1d2a5ba6b6d4240a15be7a43db4bdd316c9aaacddcadb7

@@ -238,6 +238,17 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasE2eControllabilityGovernanceSpecificSignal =
+    /(steuerbarkeitscheck|steuerbarkeit)/i.test(haystack) &&
+    /(evidenzmatrix|rollenmatrix|abgabeprozess|messkonzept|handover|governance)/i.test(haystack);
+
+  if (hasE2eControllabilityGovernanceSpecificSignal) {
+    const e2eGovernanceCapability = findCapabilityByName('e2e_controllability_check_governance');
+    if (e2eGovernanceCapability) {
+      return { capability: e2eGovernanceCapability, score: 135, usedFallback: false };
+    }
+  }
+
   const hasRedispatchSettlementSandboxSpecificSignal =
     /redispatch/i.test(haystack) &&
     /(settlement sandbox|expost.?szenario|abrechnung|vergütungsrisiko|verguetungsrisiko)/i.test(
