@@ -1439,6 +1439,8 @@ module.exports = {
             'dashboard-api.imsysScheduleValueChainReadinessStatus',
           'GET /dashboard/cls-digital-twin-compliance-gate':
             'dashboard-api.clsDigitalTwinComplianceGateStatus',
+          'GET /dashboard/legacy-control-technology-transition':
+            'dashboard-api.legacyControlTechnologyTransitionStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

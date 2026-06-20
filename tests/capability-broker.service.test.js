@@ -1052,6 +1052,26 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes legacy Rundsteuertechnik transition prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe legacy_control_technology_transition fuer Rundsteuertechnik, Gruppensignal, Rueckmeldefaehigkeit, Bestandsanlage, Steuerbarkeitsnachweis, Testbarkeit, Nichtdurchfuehrungsbegruendung und Steuerbox Uebergang.',
+    });
+
+    expect(result.capability).toBe('legacy_control_technology_transition');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'legacy_control_technology_transition'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.legacyControlTechnologyTransitionStatus');
+    expect(actionNames).not.toContain('grid-operations.executeControl');
+    expect(actionNames).not.toContain('cls.executeControl');
+    expect(actionNames).not.toContain('smgw.switch');
+    expect(actionNames).not.toContain('device-control.execute');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

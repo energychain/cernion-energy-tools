@@ -574,6 +574,37 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans Legacy Control Technology Transition as feedback, testability and roadmap evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'legacy_control_technology_transition' },
+      {
+        assetGroupId: 'legacy-group-175',
+        controlTechnology: 'rundsteuertechnik-gruppensignal',
+        feedbackCapability: 'available',
+        testFeasibility: 'maintenance-window',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('legacy_control_technology_transition');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining([
+        'asset_group_or_asset',
+        'control_technology',
+        'feedback_capability',
+        'test_feasibility',
+      ])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'test_status',
+        'non_execution_reason',
+        'migration_roadmap',
+        'owner_next_action',
+      ])
+    );
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });

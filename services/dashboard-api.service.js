@@ -62,6 +62,7 @@ module.exports = {
       smartMeterOffBalancingPurposeLockStatus: 5 * 60 * 1000, // 5 min
       imsysScheduleValueChainReadinessStatus: 5 * 60 * 1000, // 5 min
       clsDigitalTwinComplianceGateStatus: 5 * 60 * 1000, // 5 min
+      legacyControlTechnologyTransitionStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -2702,6 +2703,63 @@ module.exports = {
           this.settings.cacheTtlMs.clsDigitalTwinComplianceGateStatus,
           async () => ({
             ...this.buildClsDigitalTwinComplianceGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── legacyControlTechnologyTransitionStatus ─────────────────────────
+    /**
+     * GET /api/dashboard/legacy-control-technology-transition?assetGroupId=...
+     *
+     * Read-only dossier-safe evidence gate for legacy Rundsteuertechnik /
+     * Gruppensignal transition logic. It exposes feedback, testability,
+     * switching-risk and roadmap evidence without executing grid control,
+     * CLS/SMGW/device actions, HITL, settlement, MaKo or Personal-Agent paths.
+     */
+    legacyControlTechnologyTransitionStatus: {
+      rest: 'GET /legacy-control-technology-transition',
+      params: {
+        assetGroupId: { type: 'string', optional: true, min: 1 },
+        assetId: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        powerClass: { type: 'string', optional: true, min: 1 },
+        controlTechnology: { type: 'string', optional: true, min: 1 },
+        feedbackCapability: { type: 'string', optional: true, min: 1 },
+        switchingRisk: { type: 'string', optional: true, min: 1 },
+        testFeasibility: { type: 'string', optional: true, min: 1 },
+        testStatus: { type: 'string', optional: true, min: 1 },
+        nonExecutionReason: { type: 'string', optional: true, min: 1 },
+        targetTechnology: { type: 'string', optional: true, min: 1 },
+        migrationRoadmap: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        nextAction: { type: 'string', optional: true, min: 1 },
+        sourceEvidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceSnapshot: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Legacy control technology transition — read-only dossier-safe gate',
+        description:
+          'Builds a deterministic evidence view for Rundsteuertechnik/Gruppensignal transition readiness. ' +
+          'The endpoint is read-only and does not execute grid control, CLS, SMGW, device-control, HITL, settlement, MaKo, external connector or Personal-Agent side effects.',
+        responses: {
+          200: {
+            description: 'Read-only legacy control technology transition status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `legacy-control-transition:${params.assetGroupId || 'no-group'}:${params.assetId || 'no-asset'}:${params.controlTechnology || 'no-tech'}:${params.feedbackCapability || 'no-feedback'}:${params.testStatus || 'no-test'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.legacyControlTechnologyTransitionStatus,
+          async () => ({
+            ...this.buildLegacyControlTechnologyTransitionStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -8233,6 +8291,171 @@ module.exports = {
           gateContext,
           complianceEvidence,
           decisionSteps,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockedDecisions,
+          blockingFindings,
+          sourceSnapshot: params.sourceSnapshot || null,
+          sourceEvidenceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildLegacyControlTechnologyTransitionStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.flatMap((item) => String(item || '').split(',')).map((item) => item.trim()).filter(Boolean)
+        : String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+      const sourceEvidenceRefs = toList(params.sourceEvidenceRefs);
+      const evidenceSpecs = [
+        ['asset_group_or_asset', 'Asset group or asset', params.assetGroupId || params.assetId, 'Assetgruppe oder Einzelasset kann dem Uebergangsraster eindeutig zugeordnet werden'],
+        ['power_class', 'Power class', params.powerClass, 'Leistungsklasse kann getrennt von der Steuertechnik bewertet werden'],
+        ['control_technology', 'Control technology', params.controlTechnology, 'Bestands-Steuertechnik wie Rundsteuertechnik, Gruppensignal oder Steuerbox-Pfad kann benannt werden'],
+        ['feedback_capability', 'Feedback capability', params.feedbackCapability, 'Rueckmeldefaehigkeit kann proven control von legacy no-feedback operation trennen'],
+        ['switching_risk', 'Switching risk', params.switchingRisk, 'Schaltrisiko kann vor Tests oder Roadmap-Entscheiden sichtbar werden'],
+        ['test_feasibility', 'Test feasibility', params.testFeasibility, 'Testbarkeit kann dokumentiert werden, ohne eine Schalthandlung auszufuehren'],
+        ['test_status', 'Test status', params.testStatus, 'Teststatus kann eine belegte Steuerbarkeitsaussage oder Luecke begrenzen'],
+        ['non_execution_reason', 'Non-execution reason', params.nonExecutionReason, 'Nichtdurchfuehrungsbegruendung kann auditierbar werden, wenn Tests nicht zumutbar sind'],
+        ['target_technology', 'Target technology', params.targetTechnology, 'Zieltechnologie fuer Steuerbox, CLS oder Zielprozess kann als Roadmap-Ziel erscheinen'],
+        ['migration_roadmap', 'Migration roadmap', params.migrationRoadmap, 'Migrationsfahrplan kann Bestandsbetrieb von Zielprozess trennen'],
+        ['owner_next_action', 'Owner and next action', params.owner && params.nextAction ? `${params.owner}: ${params.nextAction}` : null, 'Owner und naechster Schritt koennen als Steuerungsobjekt ergaenzt werden'],
+        ['source_evidence_refs', 'Source evidence refs', sourceEvidenceRefs.length ? sourceEvidenceRefs.join(', ') : null, 'Quellenreferenzen koennen den Uebergangsstatus auditierbar machen'],
+      ].map(([key, label, value, enablesDossierAddition]) => ({
+        key,
+        label,
+        value,
+        missingDataPoint: key,
+        enablesDossierAddition,
+      }));
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({ id: spec.key, label: spec.label, value: spec.value, evidenceStatus: 'provided' }));
+      const highGaps = new Set(['asset_group_or_asset', 'control_technology', 'feedback_capability', 'test_feasibility', 'test_status', 'non_execution_reason', 'migration_roadmap']);
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.missingDataPoint,
+          enablesDossierAddition: spec.enablesDossierAddition,
+          category: 'legacy_control_technology_transition',
+          severity: highGaps.has(spec.missingDataPoint) ? 'high' : 'medium',
+        }));
+      const text = (value) => String(value || '').toLowerCase();
+      const feedbackText = text(params.feedbackCapability);
+      const testFeasibilityText = text(params.testFeasibility);
+      const testStatusText = text(params.testStatus);
+      const roadmapText = text(params.migrationRoadmap);
+      const hasFeedback = params.feedbackCapability && !/none|keine|no feedback|nicht rueckmelde|nicht rückmelde|unknown|unbekannt/.test(feedbackText);
+      const notTestable = /not.?test|nicht test|unzumutbar|blocked|gesperrt|no test/.test(testFeasibilityText);
+      const tested = /done|tested|geprueft|geprüft|complete|ok|passed|nachweis/.test(testStatusText);
+      const roadmapReady = params.migrationRoadmap && !/unknown|unbekannt|none|offen/.test(roadmapText);
+      let controlReadiness = 'needs_evidence';
+      if (!params.controlTechnology || !params.feedbackCapability) controlReadiness = 'needs_evidence';
+      else if (!hasFeedback) controlReadiness = roadmapReady ? 'roadmap_only' : 'not_feedback_capable';
+      else if (notTestable) controlReadiness = params.nonExecutionReason ? 'not_testable' : 'needs_evidence';
+      else if (tested) controlReadiness = 'proven';
+      else controlReadiness = 'limited';
+      let transitionStatus = 'unknown';
+      if (controlReadiness === 'proven' && roadmapReady) transitionStatus = 'target_process_ready';
+      else if (roadmapReady && params.owner && params.nextAction) transitionStatus = 'migration_planned';
+      else if (params.nonExecutionReason && !roadmapReady) transitionStatus = 'migration_blocked';
+      else if (params.controlTechnology) transitionStatus = 'legacy_operational';
+      let status = 'ready_for_transition_review';
+      if (!params.controlTechnology) status = 'needs_control_technology';
+      else if (!params.feedbackCapability) status = 'needs_feedback_capability';
+      else if (!params.testFeasibility && !params.testStatus) status = 'needs_testability_evidence';
+      else if (notTestable && !params.nonExecutionReason) status = 'needs_non_execution_reason';
+      else if (!roadmapReady) status = 'needs_migration_roadmap';
+      else if (!params.owner || !params.nextAction) status = 'needs_owner_next_action';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        category: item.category,
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `LCTT_${String(item.missingDataPoint).toUpperCase()}`,
+        severity: item.severity,
+        message: item.enablesDossierAddition,
+      }));
+      const blockedDecisions = missingEvidence.length
+        ? ['steuerbarkeitsnachweis', 'test_execution_decision', 'legacy_to_target_transition', 'control_claim']
+        : [];
+      const transitionContext = {
+        assetGroupId: params.assetGroupId || null,
+        assetId: params.assetId || null,
+        gridOperatorId: params.gridOperatorId || null,
+        powerClass: params.powerClass || null,
+        controlTechnology: params.controlTechnology || null,
+      };
+      const transitionEvidence = {
+        feedbackCapability: params.feedbackCapability || null,
+        switchingRisk: params.switchingRisk || null,
+        testFeasibility: params.testFeasibility || null,
+        testStatus: params.testStatus || null,
+        nonExecutionReason: params.nonExecutionReason || null,
+        targetTechnology: params.targetTechnology || null,
+        migrationRoadmap: params.migrationRoadmap || null,
+        owner: params.owner || null,
+        nextAction: params.nextAction || null,
+      };
+      const transitionSteps = [
+        { id: 'asset-scope', label: 'Asset group / power class', evidenceStatus: (params.assetGroupId || params.assetId) && params.powerClass ? 'provided' : 'missing' },
+        { id: 'legacy-control-technology', label: 'Legacy control technology', evidenceStatus: params.controlTechnology ? 'provided' : 'missing' },
+        { id: 'feedback-capability', label: 'Feedback capability', evidenceStatus: params.feedbackCapability ? 'provided' : 'missing' },
+        { id: 'testability', label: 'Testability and test status', evidenceStatus: params.testFeasibility && params.testStatus ? 'provided' : 'missing' },
+        { id: 'non-execution', label: 'Non-execution reason', evidenceStatus: params.nonExecutionReason ? 'provided' : 'missing' },
+        { id: 'migration-roadmap', label: 'Target technology and roadmap', evidenceStatus: params.targetTechnology && params.migrationRoadmap ? 'provided' : 'missing' },
+        { id: 'owner-next-action', label: 'Owner and next action', evidenceStatus: params.owner && params.nextAction ? 'provided' : 'missing' },
+      ];
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Control readiness: ${controlReadiness}`,
+        `Transition status: ${transitionStatus}`,
+        `Provided legacy-control evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.assetGroupId) dossierFacts.push(`Asset group: ${params.assetGroupId}`);
+      if (params.controlTechnology) dossierFacts.push(`Control technology: ${params.controlTechnology}`);
+      if (params.migrationRoadmap) dossierFacts.push(`Roadmap: ${params.migrationRoadmap}`);
+
+      return {
+        transitionStatusId: `lctt:${Buffer.from(`${params.assetGroupId || ''}:${params.assetId || ''}:${params.controlTechnology || ''}:${params.feedbackCapability || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'legacy_control_technology_transition',
+        safety: 'read_only',
+        requestContext: transitionContext,
+        status,
+        controlReadiness,
+        transitionStatus,
+        readinessScore,
+        transitionContext,
+        transitionEvidence,
+        transitionSteps,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockedDecisions,
+        blockingFindings,
+        sourceEvidence: {
+          transitionContext,
+          transitionEvidence,
+          sourceSnapshot: params.sourceSnapshot || null,
+          sourceEvidenceRefs,
+        },
+        sourceActions: {
+          inspected: ['dashboard-api.legacyControlTechnologyTransitionStatus'],
+          referenced: ['assets.effective', 'grid-operations.controlMeasures', 'edm-messkonzept.evaluate', 'datapoint.health', 'vdmi.dossier', 'interface-placeholder.requestEvidence', 'presentation.generate'],
+          notCalled: ['grid-operations.executeControl', 'cls.executeControl', 'smgw.switch', 'device-control.execute', 'hitl.create', 'settlement.prepareBilling', 'settlement.exportA96', 'mako.dispatch', 'billing.release', 'external.connector.call', 'personal-agent.execute'],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          controlReadiness,
+          transitionStatus,
+          readinessScore,
+          transitionContext,
+          transitionEvidence,
+          transitionSteps,
           evidenceItems,
           missingEvidence,
           positiveFollowUps,

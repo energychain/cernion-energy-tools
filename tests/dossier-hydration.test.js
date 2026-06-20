@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 34 static rules', () => {
+    it('loads all 35 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(34);
+      expect(rules.length).toBe(35);
     });
 
-    it('compiles all 34 static rules without error', () => {
+    it('compiles all 35 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(34);
+      expect(rules.length).toBe(35);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1166,6 +1166,68 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('DSFA: screening');
       expect(formatted).toContain('Leading Gap: rbac_refs');
       expect(formatted).toContain('Side-Effect Guard: procurement.approve');
+    });
+
+    it('dashboard-api.legacyControlTechnologyTransitionStatus is dossier-safe and formats transition facts', () => {
+      const rule = getRule('dashboard-api.legacyControlTechnologyTransitionStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Rundsteuertechnik Uebergang assetGroup=legacy-175 asset=asset-175 steuertechnik=rst-gruppe laden'
+        )
+      ).toEqual({
+        assetGroupId: 'legacy-175',
+        assetId: 'asset-175',
+        controlTechnology: 'rst-gruppe',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_testability_evidence',
+        controlReadiness: 'limited',
+        transitionStatus: 'legacy_operational',
+        readinessScore: 0.5,
+        requestContext: {
+          assetGroupId: 'legacy-175',
+        },
+        transitionContext: {
+          assetGroupId: 'legacy-175',
+          assetId: 'asset-175',
+          powerClass: 'lt-100kw',
+          controlTechnology: 'rundsteuertechnik',
+        },
+        transitionEvidence: {
+          feedbackCapability: 'available',
+          switchingRisk: 'medium',
+          testFeasibility: 'maintenance-window',
+          testStatus: 'open',
+          nonExecutionReason: 'not-yet-scheduled',
+          targetTechnology: 'steuerbox-cls',
+          migrationRoadmap: 'roadmap-2026-q4',
+        },
+        missingEvidence: [
+          { missingDataPoint: 'owner_next_action' },
+        ],
+        sourceActions: {
+          notCalled: ['grid-operations.executeControl'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_testability_evidence'],
+        },
+      });
+
+      expect(formatted).toContain('Legacy Control Status: needs_testability_evidence');
+      expect(formatted).toContain('Control Readiness: limited');
+      expect(formatted).toContain('Transition: legacy_operational');
+      expect(formatted).toContain('Asset Group: legacy-175');
+      expect(formatted).toContain('Asset: asset-175');
+      expect(formatted).toContain('Power Class: lt-100kw');
+      expect(formatted).toContain('Control Technology: rundsteuertechnik');
+      expect(formatted).toContain('Feedback: available');
+      expect(formatted).toContain('Test Feasibility: maintenance-window');
+      expect(formatted).toContain('Leading Gap: owner_next_action');
+      expect(formatted).toContain('Side-Effect Guard: grid-operations.executeControl');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {

@@ -1748,5 +1748,73 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 197
+  },
+  {
+    "id": "dashboard-api.legacyControlTechnologyTransitionStatus",
+    "action": "dashboard-api.legacyControlTechnologyTransitionStatus",
+    "label": "Legacy Control Technology Transition Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "assetGroupId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:assetGroupId[:= ]+|assetGroup[:=]+|assetgruppe[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "assetId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:assetId[:= ]+|asset[:=]+|anlage[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "controlTechnology": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:controlTechnology[:= ]+|steuertechnik[:=]+|technik[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Legacy Control Status", "maxLen": 90 },
+        { "paths": ["controlReadiness", "dossierEvidence.controlReadiness"], "label": "Control Readiness", "maxLen": 90 },
+        { "paths": ["transitionStatus", "dossierEvidence.transitionStatus"], "label": "Transition", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.assetGroupId", "transitionContext.assetGroupId"], "label": "Asset Group", "maxLen": 120 },
+        { "paths": ["requestContext.assetId", "transitionContext.assetId"], "label": "Asset", "maxLen": 120 },
+        { "paths": ["transitionContext.powerClass", "dossierEvidence.transitionContext.powerClass"], "label": "Power Class", "maxLen": 120 },
+        { "paths": ["transitionContext.controlTechnology", "dossierEvidence.transitionContext.controlTechnology"], "label": "Control Technology", "maxLen": 140 },
+        { "paths": ["transitionEvidence.feedbackCapability", "dossierEvidence.transitionEvidence.feedbackCapability"], "label": "Feedback", "maxLen": 140 },
+        { "paths": ["transitionEvidence.switchingRisk", "dossierEvidence.transitionEvidence.switchingRisk"], "label": "Switching Risk", "maxLen": 140 },
+        { "paths": ["transitionEvidence.testFeasibility", "dossierEvidence.transitionEvidence.testFeasibility"], "label": "Test Feasibility", "maxLen": 140 },
+        { "paths": ["transitionEvidence.testStatus", "dossierEvidence.transitionEvidence.testStatus"], "label": "Test Status", "maxLen": 140 },
+        { "paths": ["transitionEvidence.nonExecutionReason", "dossierEvidence.transitionEvidence.nonExecutionReason"], "label": "Non-Execution", "maxLen": 160 },
+        { "paths": ["transitionEvidence.targetTechnology", "dossierEvidence.transitionEvidence.targetTechnology"], "label": "Target", "maxLen": 140 },
+        { "paths": ["transitionEvidence.migrationRoadmap", "dossierEvidence.transitionEvidence.migrationRoadmap"], "label": "Roadmap", "maxLen": 160 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 175
   }
 ]

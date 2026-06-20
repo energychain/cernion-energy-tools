@@ -238,6 +238,17 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasLegacyControlTechnologyTransitionSpecificSignal =
+    /(rundsteuertechnik|rundsteuerempfaenger|rundsteuerempfänger|gruppensignal|legacy control|bestandsanlage|steuerbox uebergang|steuerbox übergang|cls uebergang|cls übergang)/i.test(haystack) &&
+    /(rueckmeldefaehigkeit|rückmeldefähigkeit|testbarkeit|nichtdurchfuehrungsbegruendung|nichtdurchführungsbegründung|steuerbarkeitsnachweis|migration|roadmap|uebergang|übergang)/i.test(haystack);
+
+  if (hasLegacyControlTechnologyTransitionSpecificSignal) {
+    const legacyControlCapability = findCapabilityByName('legacy_control_technology_transition');
+    if (legacyControlCapability) {
+      return { capability: legacyControlCapability, score: 137, usedFallback: false };
+    }
+  }
+
   const hasControllabilityAssetHandoverSpecificSignal =
     /(steuerbarkeitscheck|steuerbarkeit|steuerbare anlagen)/i.test(haystack) &&
     /(linienuebergabe|linienübergabe|asset handover|meldezyklus|nichtdurchfuehrungsbegruendung|nichtdurchführungsbegründung|rueckmeldefaehigkeit|rückmeldefähigkeit|fernsteuerbarkeit|asset evidenzkatalog)/i.test(haystack);

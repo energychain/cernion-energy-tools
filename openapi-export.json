@@ -13981,6 +13981,21 @@
         "description": "Builds a deterministic evidence view for CLS/digital-twin procurement readiness. The endpoint is read-only and does not create procurement, legal, DSFA, RBAC, HITL, billing, settlement, MaKo, CLS, SMGW, device-control, external connector or Personal-Agent side effects."
       }
     },
+    "/api/dashboard-api/legacy-control-technology-transition": {
+      "get": {
+        "operationId": "dashboard-api_legacyControlTechnologyTransitionStatus",
+        "summary": "Legacy control technology transition — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only legacy control technology transition status"
+          }
+        },
+        "description": "Builds a deterministic evidence view for Rundsteuertechnik/Gruppensignal transition readiness. The endpoint is read-only and does not execute grid control, CLS, SMGW, device-control, HITL, settlement, MaKo, external connector or Personal-Agent side effects."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -52922,6 +52937,21 @@
           }
         },
         "description": "Builds a deterministic evidence view for CLS/digital-twin procurement readiness. The endpoint is read-only and does not create procurement, legal, DSFA, RBAC, HITL, billing, settlement, MaKo, CLS, SMGW, device-control, external connector or Personal-Agent side effects."
+      }
+    },
+    "/api/dashboard/legacy-control-technology-transition": {
+      "get": {
+        "operationId": "dashboard-api_legacyControlTechnologyTransitionStatus",
+        "summary": "Legacy control technology transition — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only legacy control technology transition status"
+          }
+        },
+        "description": "Builds a deterministic evidence view for Rundsteuertechnik/Gruppensignal transition readiness. The endpoint is read-only and does not execute grid control, CLS, SMGW, device-control, HITL, settlement, MaKo, external connector or Personal-Agent side effects."
       }
     },
     "/api/dashboard/market-snapshot": {

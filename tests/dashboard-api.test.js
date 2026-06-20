@@ -2923,6 +2923,82 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── legacyControlTechnologyTransitionStatus ───────────────────────────
+
+  describe('legacyControlTechnologyTransitionStatus', () => {
+    it('reports legacy control evidence gaps without executing control or HITL side effects', async () => {
+      const result = await broker.call('dashboard-api.legacyControlTechnologyTransitionStatus', {
+        assetGroupId: 'legacy-group-175',
+        powerClass: 'lt-100kw',
+        controlTechnology: 'rundsteuertechnik-gruppensignal',
+      });
+
+      expect(result.status).toBe('needs_feedback_capability');
+      expect(result.controlReadiness).toBe('needs_evidence');
+      expect(result.transitionStatus).toBe('legacy_operational');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'feedback_capability',
+          'test_feasibility',
+          'test_status',
+          'non_execution_reason',
+          'migration_roadmap',
+        ])
+      );
+      expect(result.blockedDecisions).toEqual(
+        expect.arrayContaining(['steuerbarkeitsnachweis', 'control_claim'])
+      );
+      expect(result.positiveFollowUps[0].category).toBe(
+        'legacy_control_technology_transition'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'grid-operations.executeControl',
+          'cls.executeControl',
+          'smgw.switch',
+          'device-control.execute',
+          'hitl.create',
+          'settlement.prepareBilling',
+          'mako.dispatch',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_transition_review when transition evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.legacyControlTechnologyTransitionStatus', {
+        assetGroupId: 'legacy-group-175',
+        assetId: 'asset-rst-175',
+        gridOperatorId: 'SNB935578300972',
+        powerClass: 'lt-100kw',
+        controlTechnology: 'rundsteuertechnik-gruppensignal',
+        feedbackCapability: 'available-via-return-channel',
+        switchingRisk: 'low-after-window-review',
+        testFeasibility: 'testable-in-maintenance-window',
+        testStatus: 'tested-ok',
+        nonExecutionReason: 'not-needed-after-positive-test',
+        targetTechnology: 'steuerbox-cls-target-process',
+        migrationRoadmap: 'migration-planned-2026-q4',
+        owner: 'Netzbetrieb',
+        nextAction: 'review-roadmap-gate',
+        sourceEvidenceRefs: 'asset:175,vdmi:rst-175',
+        sourceSnapshot: 'snapshot:rst-175',
+      });
+
+      expect(result.status).toBe('ready_for_transition_review');
+      expect(result.controlReadiness).toBe('proven');
+      expect(result.transitionStatus).toBe('target_process_ready');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.transitionContext.assetGroupId).toBe('legacy-group-175');
+      expect(result.transitionEvidence.feedbackCapability).toBe('available-via-return-channel');
+      expect(result.sourceEvidence.sourceEvidenceRefs).toEqual(['asset:175', 'vdmi:rst-175']);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided legacy-control evidence: 12/12');
+      expect(result.sourceActions.notCalled).toContain('grid-operations.executeControl');
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

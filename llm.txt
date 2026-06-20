@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: 2f192d3b83c38718e265d6903c4cc73565c0fee93e1678f873e23c08848ab5c9
+  - openapi-export.json: 846f23e83d9ce9aa2d95a085abdf1bedaba8360f360f21a94ffe8eb54b0bffda
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 742
-- operation_count: 847
+- path_count: 744
+- operation_count: 849
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -695,7 +695,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 52 operations
+- Dashboard API: 54 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -981,6 +981,7 @@ process:
 - GET /api/dashboard-api/investment-risk-translation | tags: [Dashboard API] | operationId: dashboard-api_investmentRiskTranslationStatus | summary: Investment Risk Translation — read-only dossier-safe status
 - GET /api/dashboard-api/investment-two-track-control | tags: [Dashboard API] | operationId: dashboard-api_investmentTwoTrackControlStatus | summary: Investment two-track control — read-only dossier-safe status
 - GET /api/dashboard-api/jour-fixe-decision-closure | tags: [Dashboard API] | operationId: dashboard-api_jourFixeDecisionClosureStatus | summary: Jour-Fixe Decision Closure — read-only dossier-safe status
+- GET /api/dashboard-api/legacy-control-technology-transition | tags: [Dashboard API] | operationId: dashboard-api_legacyControlTechnologyTransitionStatus | summary: Legacy control technology transition — read-only dossier-safe gate
 - GET /api/dashboard-api/load-profile-stream-monitor | tags: [Dashboard API] | operationId: dashboard-api_loadProfileStreamMonitor | summary: Load profile movement monitor — strict anomaly-class buckets
 - GET /api/dashboard-api/market-communication-evidence-chain | tags: [Dashboard API] | operationId: dashboard-api_marketCommunicationEvidenceChainStatus | summary: Market communication evidence chain — read-only dossier-safe status
 - GET /api/dashboard-api/market-snapshot | tags: [Dashboard API] | operationId: dashboard-api_marketSnapshot | summary: Market snapshot — current spot prices, CO₂ intensity, renewable forecast
@@ -1007,6 +1008,7 @@ process:
 - GET /api/dashboard/investment-risk-translation | tags: [Dashboard API] | operationId: dashboard-api_investmentRiskTranslationStatus | summary: Investment Risk Translation — read-only dossier-safe status
 - GET /api/dashboard/investment-two-track-control | tags: [Dashboard API] | operationId: dashboard-api_investmentTwoTrackControlStatus | summary: Investment two-track control — read-only dossier-safe status
 - GET /api/dashboard/jour-fixe-decision-closure | tags: [Dashboard API] | operationId: dashboard-api_jourFixeDecisionClosureStatus | summary: Jour-Fixe Decision Closure — read-only dossier-safe status
+- GET /api/dashboard/legacy-control-technology-transition | tags: [Dashboard API] | operationId: dashboard-api_legacyControlTechnologyTransitionStatus | summary: Legacy control technology transition — read-only dossier-safe gate
 - GET /api/dashboard/load-profile-stream-monitor | tags: [Dashboard API] | operationId: dashboard-api_loadProfileStreamMonitor | summary: Load profile movement monitor — strict anomaly-class buckets
 - GET /api/dashboard/market-communication-evidence-chain | tags: [Dashboard API] | operationId: dashboard-api_marketCommunicationEvidenceChainStatus | summary: Market communication evidence chain — read-only dossier-safe status
 - GET /api/dashboard/market-snapshot | tags: [Dashboard API] | operationId: dashboard-api_marketSnapshot | summary: Market snapshot — current spot prices, CO₂ intensity, renewable forecast
@@ -17136,6 +17138,21 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/legacy-control-technology-transition": {
+      "get": {
+        "description": "Builds a deterministic evidence view for Rundsteuertechnik/Gruppensignal transition readiness. The endpoint is read-only and does not execute grid control, CLS, SMGW, device-control, HITL, settlement, MaKo, external connector or Personal-Agent side effects.",
+        "operationId": "dashboard-api_legacyControlTechnologyTransitionStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only legacy control technology transition status"
+          }
+        },
+        "summary": "Legacy control technology transition — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/load-profile-stream-monitor": {
       "get": {
         "description": "Read-only monitor for Lastgangdaten/Bewegungsstrom diagnostics using existing deterministic services only (edm.getTimeseriesSummary, edm-validation.validate, forecast-engine.evaluateQuality, vdmi.findings). Returns strict anomaly buckets (`dataQualityGap`, `realAnomaly`, `forecastProblem`, `processGovernanceBreak`) and allows partial findings with explicit `_errors`.",
@@ -20862,6 +20879,21 @@ process:
           }
         },
         "summary": "Jour-Fixe Decision Closure — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
+    "/api/dashboard/legacy-control-technology-transition": {
+      "get": {
+        "description": "Builds a deterministic evidence view for Rundsteuertechnik/Gruppensignal transition readiness. The endpoint is read-only and does not execute grid control, CLS, SMGW, device-control, HITL, settlement, MaKo, external connector or Personal-Agent side effects.",
+        "operationId": "dashboard-api_legacyControlTechnologyTransitionStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only legacy control technology transition status"
+          }
+        },
+        "summary": "Legacy control technology transition — read-only dossier-safe gate",
         "tags": [
           "Dashboard API"
         ]
@@ -59694,4 +59726,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 993586de6253450dbe4a8c8da91ffcf2a725de0c7de98dc981fcf95dde92495d
+- llm_txt_sha256: 0062ec38c1f39c7c14810be9c91abb6b555ca0600d3023cc491a5ecfb8afcfbe

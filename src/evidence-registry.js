@@ -1484,6 +1484,95 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  legacy_control_technology_transition: {
+    sources: [
+      {
+        id: 'asset_group_or_asset',
+        label: 'Assetgruppe oder Einzelasset',
+        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'assets.effective'],
+        contextKeys: ['assetGroupId', 'assetId'],
+        optional: false,
+      },
+      {
+        id: 'power_class',
+        label: 'Leistungsklasse',
+        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'assets.effective'],
+        contextKeys: ['powerClass'],
+        optional: false,
+      },
+      {
+        id: 'control_technology',
+        label: 'Bestands-Steuertechnik',
+        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'grid-operations.controlMeasures'],
+        contextKeys: ['controlTechnology'],
+        optional: false,
+      },
+      {
+        id: 'feedback_capability',
+        label: 'Rueckmeldefaehigkeit',
+        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'edm-messkonzept.evaluate'],
+        contextKeys: ['feedbackCapability'],
+        optional: false,
+      },
+      {
+        id: 'switching_risk',
+        label: 'Schaltrisiko',
+        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'grid-operations.controlMeasures'],
+        contextKeys: ['switchingRisk'],
+        optional: false,
+      },
+      {
+        id: 'test_feasibility',
+        label: 'Testbarkeit',
+        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['testFeasibility'],
+        optional: false,
+      },
+      {
+        id: 'test_status',
+        label: 'Teststatus',
+        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'datapoint.health'],
+        contextKeys: ['testStatus'],
+        optional: false,
+      },
+      {
+        id: 'non_execution_reason',
+        label: 'Nichtdurchfuehrungsbegruendung',
+        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'vdmi.dossier'],
+        contextKeys: ['nonExecutionReason'],
+        optional: false,
+      },
+      {
+        id: 'target_technology',
+        label: 'Zieltechnologie',
+        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'vdmi.dossier'],
+        contextKeys: ['targetTechnology'],
+        optional: false,
+      },
+      {
+        id: 'migration_roadmap',
+        label: 'Migrationsroadmap',
+        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'vdmi.dossier'],
+        contextKeys: ['migrationRoadmap'],
+        optional: false,
+      },
+      {
+        id: 'owner_next_action',
+        label: 'Owner und naechster Schritt',
+        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'vdmi.dossier'],
+        contextKeys: ['owner', 'nextAction'],
+        optional: false,
+      },
+      {
+        id: 'source_evidence_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceEvidenceRefs'],
+        optional: false,
+      },
+    ],
+  },
+
   // ── Routing-matrix route-keyed entries ─────────────────────────────────
 
   'investment-grid-check': {
