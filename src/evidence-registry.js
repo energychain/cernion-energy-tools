@@ -212,6 +212,74 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  sap_budget_psp_gate: {
+    sources: [
+      {
+        id: 'measure_context',
+        label: 'Massnahme und SAP-Migrationskontext',
+        resolvedBy: ['dashboard-api.sapBudgetPspGateStatus', 'investment-planning.createPlan'],
+        contextKeys: ['measureId', 'measureName', 'migrationWave'],
+        optional: false,
+      },
+      {
+        id: 'sap_mapping',
+        label: 'SAP-Zielsystem / interner Auftrag',
+        resolvedBy: ['dashboard-api.sapBudgetPspGateStatus', 'datasource-registry.get', 'vdmi.dossier'],
+        contextKeys: ['sapSystemRef', 'legacyInternalOrderId'],
+        optional: false,
+      },
+      {
+        id: 'psp_snapshot',
+        label: 'PSP-Element und Uebertragssnapshot',
+        resolvedBy: ['dashboard-api.sapBudgetPspGateStatus', 'datapoint.health', 'datasource-registry.get'],
+        contextKeys: ['pspElementId', 'pspCarryOverEur', 'sourceSnapshotId'],
+        optional: false,
+      },
+      {
+        id: 'budget_values',
+        label: 'Budget-, Plan- und Commitment-Werte',
+        resolvedBy: ['dashboard-api.sapBudgetPspGateStatus', 'investment-planning.createPlan', 'finance-agent.analyze'],
+        contextKeys: ['availableBudgetEur', 'plannedValueEur', 'committedValueEur', 'budgetOverhangEur'],
+        optional: false,
+      },
+      {
+        id: 'budget_owner',
+        label: 'Budget-Owner',
+        resolvedBy: ['dashboard-api.sapBudgetPspGateStatus', 'vdmi.dossier'],
+        contextKeys: ['ownerRole', 'budgetOwner'],
+        optional: false,
+      },
+      {
+        id: 'asset_benefit',
+        label: 'Assetnutzen und Priorisierung',
+        resolvedBy: ['dashboard-api.sapBudgetPspGateStatus', 'investment-planning.createPlan', 'finance-agent.analyze'],
+        contextKeys: ['assetBenefit', 'priorityScore', 'avoidedCostsEur'],
+        optional: false,
+      },
+      {
+        id: 'finance_gate',
+        label: 'Finance-Gate',
+        resolvedBy: ['dashboard-api.sapBudgetPspGateStatus', 'finance-agent.analyze', 'presentation.generate'],
+        contextKeys: ['financeGate', 'financeReviewStatus'],
+        optional: false,
+      },
+      {
+        id: 'approval_status',
+        label: 'Freigabestatus',
+        resolvedBy: ['dashboard-api.sapBudgetPspGateStatus', 'vdmi.dossier'],
+        contextKeys: ['approvalStatus', 'approvalModel'],
+        optional: false,
+      },
+      {
+        id: 'data_quality',
+        label: 'Datenqualitaet / Auditierbarkeit',
+        resolvedBy: ['dashboard-api.sapBudgetPspGateStatus', 'datapoint.health', 'datasource-registry.get'],
+        contextKeys: ['dataQualityStatus'],
+        optional: false,
+      },
+    ],
+  },
+
   investment_two_track_control: {
     sources: [
       {

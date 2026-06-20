@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: 87775fb57fb89a649f4b53a76c2cd611d0c37c54dcde456d4dc27b3edf05f225
+  - openapi-export.json: 6145402562c93776d0522348f51f33aece06244602b79908330674e4de52077f
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 715
-- operation_count: 820
+- path_count: 717
+- operation_count: 822
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -694,7 +694,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 30 operations
+- Dashboard API: 32 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -976,6 +976,7 @@ process:
 - GET /api/dashboard-api/redispatch-call-quality-gate | tags: [Dashboard API] | operationId: dashboard-api_redispatchCallQualityGate | summary: Redispatch call data-quality gate — read-only evidence aggregator
 - GET /api/dashboard-api/redispatch-metering-cockpit | tags: [Dashboard API] | operationId: dashboard-api_redispatchMeteringCockpit | summary: Redispatch Metering Cockpit — operator-level decision readiness
 - GET /api/dashboard-api/regulatory-change-readiness | tags: [Dashboard API] | operationId: dashboard-api_regulatoryChangeReadinessStatus | summary: Regulatory change readiness — read-only dossier-safe gate
+- GET /api/dashboard-api/sap-budget-psp-gate | tags: [Dashboard API] | operationId: dashboard-api_sapBudgetPspGateStatus | summary: SAP Budget PSP Gate — read-only dossier-safe status
 - GET /api/dashboard-api/vnb-overview | tags: [Dashboard API] | operationId: dashboard-api_vnbOverview | summary: VNB overview — aggregated dashboard data for one grid operator
 - GET /api/dashboard/controllability-asset-handover | tags: [Dashboard API] | operationId: dashboard-api_controllabilityAssetHandoverStatus | summary: Controllability asset handover — read-only dossier-safe status
 - GET /api/dashboard/e2e-controllability-governance | tags: [Dashboard API] | operationId: dashboard-api_e2eControllabilityGovernanceStatus | summary: E2E controllability governance — read-only dossier-safe matrix
@@ -991,6 +992,7 @@ process:
 - GET /api/dashboard/redispatch-call-quality-gate | tags: [Dashboard API] | operationId: dashboard-api_redispatchCallQualityGate | summary: Redispatch call data-quality gate — read-only evidence aggregator
 - GET /api/dashboard/redispatch-metering-cockpit | tags: [Dashboard API] | operationId: dashboard-api_redispatchMeteringCockpit | summary: Redispatch Metering Cockpit — operator-level decision readiness
 - GET /api/dashboard/regulatory-change-readiness | tags: [Dashboard API] | operationId: dashboard-api_regulatoryChangeReadinessStatus | summary: Regulatory change readiness — read-only dossier-safe gate
+- GET /api/dashboard/sap-budget-psp-gate | tags: [Dashboard API] | operationId: dashboard-api_sapBudgetPspGateStatus | summary: SAP Budget PSP Gate — read-only dossier-safe status
 - GET /api/dashboard/vnb-overview | tags: [Dashboard API] | operationId: dashboard-api_vnbOverview | summary: VNB overview — aggregated dashboard data for one grid operator
 - GET /api/datapoint/ | tags: [Datapoints] | operationId: datapoint_list | summary: List all registered Datapoints
 - POST /api/datapoint/ | tags: [Datapoints] | operationId: datapoint_create | summary: Create a metadata-only datapoint directly
@@ -17071,6 +17073,237 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/sap-budget-psp-gate": {
+      "get": {
+        "description": "Builds a deterministic SAP/PSP budget-gate evidence view for one investment measure. The endpoint is read-only and does not mutate SAP/PSP, Finance, investment workflow, billing, settlement, MaKo, HITL, VDMI, external connector or Personal-Agent state.",
+        "operationId": "dashboard-api_sapBudgetPspGateStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "measureId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "measureName",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "migrationWave",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sapSystemRef",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pspElementId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "legacyInternalOrderId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "assetBenefit",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ownerRole",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "approvalStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "financeGate",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dataQualityStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceSnapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "availableBudgetEur",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "plannedValueEur",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "committedValueEur",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pspCarryOverEur",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "budgetOverhangEur",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "priorityScore",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "blockedDecisions",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "blockedDecisions": {
+                      "type": "array"
+                    },
+                    "budgetEvidence": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "gateEvidence": {
+                      "type": "object"
+                    },
+                    "measureContext": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only SAP/PSP budget-gate status"
+          }
+        },
+        "summary": "SAP Budget PSP Gate — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/vnb-overview": {
       "get": {
         "description": "Returns VNB identity, KPIs (installations, capacity, EWK scores, MaStR quality), latest agent results (MaStR Quality, Grid Connection, Energy Sharing, Redispatch), active VNB Monitor alerts, and datapoint health — all in a single call.\n\nTwo-phase execution: Phase 1 runs grid-operations.vnbLookupCodes and vnb-monitor.snapshot sequentially (MCP-intensive, ≤10 concurrent sessions). Phase 2 fires datapoint.health and four agent list calls in parallel (PouchDB-only). gridOperatorId from Phase 1 is forwarded to Phase 2 list calls.\n\nIf any upstream service is unavailable, the affected fields are set to `null` and the service name is appended to `_errors`.\n\nCache TTL: 5 minutes (key: bdewCode). Stampede-safe: concurrent requests for the same bdewCode share a single in-flight fetch promise.",
@@ -19208,6 +19441,237 @@ process:
           }
         },
         "summary": "Regulatory change readiness — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
+    "/api/dashboard/sap-budget-psp-gate": {
+      "get": {
+        "description": "Builds a deterministic SAP/PSP budget-gate evidence view for one investment measure. The endpoint is read-only and does not mutate SAP/PSP, Finance, investment workflow, billing, settlement, MaKo, HITL, VDMI, external connector or Personal-Agent state.",
+        "operationId": "dashboard-api_sapBudgetPspGateStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "measureId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "measureName",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "migrationWave",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sapSystemRef",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pspElementId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "legacyInternalOrderId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "assetBenefit",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ownerRole",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "approvalStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "financeGate",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dataQualityStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceSnapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "availableBudgetEur",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "plannedValueEur",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "committedValueEur",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pspCarryOverEur",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "budgetOverhangEur",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "priorityScore",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "blockedDecisions",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "blockedDecisions": {
+                      "type": "array"
+                    },
+                    "budgetEvidence": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "gateEvidence": {
+                      "type": "object"
+                    },
+                    "measureContext": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only SAP/PSP budget-gate status"
+          }
+        },
+        "summary": "SAP Budget PSP Gate — read-only dossier-safe status",
         "tags": [
           "Dashboard API"
         ]
@@ -56383,4 +56847,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 10b6c07fb0f080240d295058c09431fbba52235dd2a40c5b9d834a61ab35a4f9
+- llm_txt_sha256: 2bdd5a9629581e3a39200b85616d59e37a464402f586d6de62d2d29b91892ad8

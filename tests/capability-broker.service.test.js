@@ -849,6 +849,23 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes SAP Budget PSP Gate prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe SAP Budget PSP Gate fuer PSP Reste, Budgetueberhang, interner Auftrag, SAP Migration Invest, Finance Gate, Massnahmenpriorisierung, Planwert und Assetnutzen.',
+    });
+
+    expect(result.capability).toBe('sap_budget_psp_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'sap_budget_psp_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.sapBudgetPspGateStatus');
+    expect(actionNames).not.toContain('sap.psp.write');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

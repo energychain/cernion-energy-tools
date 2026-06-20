@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 23 static rules', () => {
+    it('loads all 24 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(23);
+      expect(rules.length).toBe(24);
     });
 
-    it('compiles all 23 static rules without error', () => {
+    it('compiles all 24 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(23);
+      expect(rules.length).toBe(24);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -555,6 +555,56 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Submission: submission:2026-capex');
       expect(formatted).toContain('Tactical Owner: Assetmanagement');
       expect(formatted).toContain('Leading Gap: finance_review');
+    });
+
+    it('dashboard-api.sapBudgetPspGateStatus is dossier-safe and formats SAP/PSP gate facts', () => {
+      const rule = getRule('dashboard-api.sapBudgetPspGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte SAP Budget PSP Gate fuer measure:196 psp=PSP-2026-4711 snapshot=snapshot:sap-psp-196 laden'
+        )
+      ).toEqual({
+        measureId: 'measure:196',
+        pspElementId: 'PSP-2026-4711',
+        sourceSnapshotId: 'snapshot:sap-psp-196',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_budget_owner',
+        readinessScore: 0.44,
+        requestContext: {
+          measureId: 'measure:196',
+        },
+        measureContext: {
+          pspElementId: 'PSP-2026-4711',
+        },
+        budgetEvidence: {
+          budgetOverhangEur: 50000,
+          effectiveBudgetGapEur: -50000,
+        },
+        gateEvidence: {
+          financeGate: 'board-pack-ready',
+        },
+        missingEvidence: [
+          { missingDataPoint: 'budget_owner' },
+        ],
+        sourceActions: {
+          notCalled: ['sap.psp.write'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_budget_owner'],
+        },
+      });
+
+      expect(formatted).toContain('Gate Status: needs_budget_owner');
+      expect(formatted).toContain('Readiness: 0.44');
+      expect(formatted).toContain('Measure: measure:196');
+      expect(formatted).toContain('PSP: PSP-2026-4711');
+      expect(formatted).toContain('Leading Gap: budget_owner');
+      expect(formatted).toContain('Side-Effect Guard: sap.psp.write');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {

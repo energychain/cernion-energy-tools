@@ -2029,6 +2029,101 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── sapBudgetPspGateStatus ──────────────────────────────────────────────
+
+  describe('sapBudgetPspGateStatus', () => {
+    it('reports PSP and budget-owner gaps without creating downstream actions', async () => {
+      const result = await broker.call('dashboard-api.sapBudgetPspGateStatus', {
+        measureId: 'measure:196',
+        measureName: 'Trafostation Migration',
+        migrationWave: 'wave-2026-q3',
+        availableBudgetEur: 100000,
+        plannedValueEur: 125000,
+        committedValueEur: 5000,
+      });
+
+      expect(result.status).toBe('needs_psp_snapshot');
+      expect(result.budgetEvidence).toMatchObject({
+        availableBudgetEur: 100000,
+        plannedValueEur: 125000,
+        committedValueEur: 5000,
+        effectiveBudgetGapEur: 30000,
+      });
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['psp_snapshot', 'budget_owner', 'asset_benefit', 'sap_mapping'])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('sap_budget_psp_gate');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'sap.psp.write',
+          'sap.budget.write',
+          'finance-agent.mutate',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_finance_gate when SAP, PSP and finance evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.sapBudgetPspGateStatus', {
+        measureId: 'measure:196',
+        measureName: 'Trafostation Migration',
+        migrationWave: 'wave-2026-q3',
+        sapSystemRef: 'sap-s4-target',
+        pspElementId: 'PSP-2026-4711',
+        legacyInternalOrderId: 'IO-legacy-4711',
+        availableBudgetEur: 200000,
+        plannedValueEur: 125000,
+        committedValueEur: 25000,
+        pspCarryOverEur: 18000,
+        assetBenefit: 'SAIDI risk reduction',
+        priorityScore: 0.87,
+        ownerRole: 'Finance Asset Owner',
+        approvalStatus: 'approved',
+        financeGate: 'board-pack-ready',
+        dataQualityStatus: 'auditable',
+        sourceSnapshotId: 'snapshot:sap-psp-196',
+      });
+
+      expect(result.status).toBe('ready_for_finance_gate');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.budgetEvidence.budgetOverhangEur).toBe(50000);
+      expect(result.gateEvidence.ownerRole).toBe('Finance Asset Owner');
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided gate evidence: 9/9');
+      expect(result.sourceActions.notCalled).toContain('settlement.prepareBilling');
+    });
+
+    it('surfaces approval and data-quality blockers as explicit findings', async () => {
+      const result = await broker.call('dashboard-api.sapBudgetPspGateStatus', {
+        measureId: 'measure:196',
+        measureName: 'Trafostation Migration',
+        migrationWave: 'wave-2026-q3',
+        sapSystemRef: 'sap-s4-target',
+        pspElementId: 'PSP-2026-4711',
+        legacyInternalOrderId: 'IO-legacy-4711',
+        availableBudgetEur: 200000,
+        plannedValueEur: 125000,
+        committedValueEur: 25000,
+        pspCarryOverEur: 18000,
+        assetBenefit: 'SAIDI risk reduction',
+        priorityScore: 0.87,
+        ownerRole: 'Finance Asset Owner',
+        approvalStatus: 'blocked',
+        financeGate: 'board-pack-ready',
+        dataQualityStatus: 'auditable',
+        sourceSnapshotId: 'snapshot:sap-psp-196',
+      });
+
+      expect(result.status).toBe('blocked_by_approval');
+      expect(result.blockingFindings.map((finding) => finding.code)).toContain(
+        'SBP_APPROVAL_BLOCKING'
+      );
+      expect(result.sourceActions.notCalled).toContain('sap.psp.write');
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

@@ -51,6 +51,7 @@ module.exports = {
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
       regulatoryChangeReadinessStatus: 5 * 60 * 1000, // 5 min
       investmentTwoTrackControlStatus: 5 * 60 * 1000, // 5 min
+      sapBudgetPspGateStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -1763,6 +1764,110 @@ module.exports = {
           this.settings.cacheTtlMs.investmentTwoTrackControlStatus,
           async () => ({
             ...this.buildInvestmentTwoTrackControlStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── sapBudgetPspGateStatus ────────────────────────────────────────────
+    /**
+     * GET /api/dashboard/sap-budget-psp-gate?measureId=...
+     *
+     * Read-only dossier-safe evidence view for SAP/PSP budget-gate readiness.
+     * It treats SAP migration and PSP carry-over as evidence context only and
+     * does not write SAP/PSP, finance, billing, settlement, MaKo, HITL, VDMI,
+     * external connector or Personal-Agent state.
+     */
+    sapBudgetPspGateStatus: {
+      rest: 'GET /sap-budget-psp-gate',
+      params: {
+        measureId: { type: 'string', optional: true, min: 1 },
+        measureName: { type: 'string', optional: true, min: 1 },
+        migrationWave: { type: 'string', optional: true, min: 1 },
+        sapSystemRef: { type: 'string', optional: true, min: 1 },
+        pspElementId: { type: 'string', optional: true, min: 1 },
+        legacyInternalOrderId: { type: 'string', optional: true, min: 1 },
+        assetBenefit: { type: 'string', optional: true, min: 1 },
+        ownerRole: { type: 'string', optional: true, min: 1 },
+        approvalStatus: { type: 'string', optional: true, min: 1 },
+        financeGate: { type: 'string', optional: true, min: 1 },
+        dataQualityStatus: { type: 'string', optional: true, min: 1 },
+        sourceSnapshotId: { type: 'string', optional: true, min: 1 },
+        availableBudgetEur: { type: 'number', optional: true, convert: true },
+        plannedValueEur: { type: 'number', optional: true, convert: true },
+        committedValueEur: { type: 'number', optional: true, convert: true },
+        pspCarryOverEur: { type: 'number', optional: true, convert: true },
+        budgetOverhangEur: { type: 'number', optional: true, convert: true },
+        priorityScore: { type: 'number', optional: true, convert: true },
+        blockedDecisions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'SAP Budget PSP Gate — read-only dossier-safe status',
+        description:
+          'Builds a deterministic SAP/PSP budget-gate evidence view for one investment measure. ' +
+          'The endpoint is read-only and does not mutate SAP/PSP, Finance, investment workflow, ' +
+          'billing, settlement, MaKo, HITL, VDMI, external connector or Personal-Agent state.',
+        parameters: [
+          { name: 'measureId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'measureName', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'migrationWave', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sapSystemRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'pspElementId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'legacyInternalOrderId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetBenefit', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'approvalStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'financeGate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataQualityStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceSnapshotId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'availableBudgetEur', in: 'query', required: false, schema: { type: 'number' } },
+          { name: 'plannedValueEur', in: 'query', required: false, schema: { type: 'number' } },
+          { name: 'committedValueEur', in: 'query', required: false, schema: { type: 'number' } },
+          { name: 'pspCarryOverEur', in: 'query', required: false, schema: { type: 'number' } },
+          { name: 'budgetOverhangEur', in: 'query', required: false, schema: { type: 'number' } },
+          { name: 'priorityScore', in: 'query', required: false, schema: { type: 'number' } },
+          { name: 'blockedDecisions', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only SAP/PSP budget-gate status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    measureContext: { type: 'object' },
+                    budgetEvidence: { type: 'object' },
+                    gateEvidence: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    blockedDecisions: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `sap-budget-psp-gate:${params.measureId || 'no-measure'}:${params.migrationWave || 'no-wave'}:${params.sapSystemRef || 'no-sap'}:${params.pspElementId || 'no-psp'}:${params.ownerRole || 'no-owner'}:${params.approvalStatus || 'no-approval'}:${params.financeGate || 'no-finance'}:${params.dataQualityStatus || 'no-data'}:${params.sourceSnapshotId || 'no-snapshot'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.sapBudgetPspGateStatus,
+          async () => ({
+            ...this.buildSapBudgetPspGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -4529,6 +4634,268 @@ module.exports = {
             budgetEnvelopeEur: params.budgetEnvelopeEur ?? null,
             measureCount: params.measureCount ?? null,
           },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildSapBudgetPspGateStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const explicitBlockedDecisions = toList(params.blockedDecisions);
+      const hasNumber = (value) => Number.isFinite(Number(value));
+      const availableBudget = hasNumber(params.availableBudgetEur) ? Number(params.availableBudgetEur) : null;
+      const plannedValue = hasNumber(params.plannedValueEur) ? Number(params.plannedValueEur) : null;
+      const committedValue = hasNumber(params.committedValueEur) ? Number(params.committedValueEur) : null;
+      const pspCarryOver = hasNumber(params.pspCarryOverEur) ? Number(params.pspCarryOverEur) : null;
+      const budgetOverhang = hasNumber(params.budgetOverhangEur)
+        ? Number(params.budgetOverhangEur)
+        : availableBudget != null && plannedValue != null && committedValue != null
+          ? Number((availableBudget - plannedValue - committedValue).toFixed(2))
+          : null;
+      const effectiveBudgetGap = availableBudget != null && plannedValue != null && committedValue != null
+        ? Number((plannedValue + committedValue - availableBudget).toFixed(2))
+        : null;
+      const evidenceSpecs = [
+        {
+          id: 'measure_context',
+          label: 'Measure and migration context',
+          value: params.measureId && params.measureName && params.migrationWave,
+          displayValue: [params.measureId, params.measureName, params.migrationWave].filter(Boolean).join(' / '),
+          sourceClass: 'investment_measure_context',
+          enablesDossierAddition: 'add measure identity, name and SAP migration wave',
+        },
+        {
+          id: 'sap_mapping',
+          label: 'SAP system and legacy internal order mapping',
+          value: params.sapSystemRef && params.legacyInternalOrderId,
+          displayValue: [params.sapSystemRef, params.legacyInternalOrderId].filter(Boolean).join(' / '),
+          sourceClass: 'sap_target_process_mapping',
+          enablesDossierAddition: 'add SAP target-process and legacy internal-order evidence',
+        },
+        {
+          id: 'psp_snapshot',
+          label: 'PSP element and carry-over snapshot',
+          value: params.pspElementId && pspCarryOver != null && params.sourceSnapshotId,
+          displayValue: [params.pspElementId, pspCarryOver, params.sourceSnapshotId].filter(Boolean).join(' / '),
+          sourceClass: 'psp_carry_over_snapshot',
+          enablesDossierAddition: 'add PSP carry-over and source snapshot evidence',
+        },
+        {
+          id: 'budget_values',
+          label: 'Budget, plan and commitment values',
+          value: availableBudget != null && plannedValue != null && committedValue != null,
+          displayValue: `${availableBudget ?? 'no'} available / ${plannedValue ?? 'no'} planned / ${committedValue ?? 'no'} committed`,
+          sourceClass: 'budget_value_snapshot',
+          enablesDossierAddition: 'add available budget, planned value and committed value evidence',
+        },
+        {
+          id: 'budget_owner',
+          label: 'Budget owner role',
+          value: params.ownerRole,
+          sourceClass: 'accountable_budget_owner',
+          enablesDossierAddition: 'add accountable budget owner and escalation path',
+        },
+        {
+          id: 'asset_benefit',
+          label: 'Asset benefit and priority rationale',
+          value: params.assetBenefit && hasNumber(params.priorityScore),
+          displayValue: [params.assetBenefit, params.priorityScore].filter((v) => v != null && v !== '').join(' / '),
+          sourceClass: 'asset_benefit_prioritization',
+          enablesDossierAddition: 'add asset-benefit and prioritisation rationale for the measure',
+        },
+        {
+          id: 'finance_gate',
+          label: 'Finance gate',
+          value: params.financeGate,
+          sourceClass: 'finance_gate_state',
+          enablesDossierAddition: 'add finance-gate and board-submission readiness',
+        },
+        {
+          id: 'approval_status',
+          label: 'Approval status',
+          value: params.approvalStatus,
+          sourceClass: 'approval_state',
+          enablesDossierAddition: 'add approval-state evidence and blocked-decision context',
+        },
+        {
+          id: 'data_quality',
+          label: 'Data quality status',
+          value: params.dataQualityStatus,
+          sourceClass: 'source_data_quality',
+          enablesDossierAddition: 'add source-data quality and auditability evidence',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue || spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const lowerApproval = String(params.approvalStatus || '').toLowerCase();
+      const lowerDataQuality = String(params.dataQualityStatus || '').toLowerCase();
+      const blockedByApproval = /block|blocked|rejected|abgelehnt|stop|gesperrt/.test(lowerApproval);
+      const blockedByDataQuality = /block|fail|critical|kritisch|unbrauchbar|rejected/.test(lowerDataQuality);
+      const status =
+        blockedByApproval
+          ? 'blocked_by_approval'
+          : blockedByDataQuality
+            ? 'blocked_by_data_quality'
+            : !params.pspElementId || pspCarryOver == null || !params.sourceSnapshotId
+              ? 'needs_psp_snapshot'
+              : !params.ownerRole
+                ? 'needs_budget_owner'
+                : !params.assetBenefit || !hasNumber(params.priorityScore)
+                  ? 'needs_asset_benefit'
+                  : !params.sapSystemRef || !params.legacyInternalOrderId
+                    ? 'needs_sap_mapping'
+                    : !params.financeGate || !params.approvalStatus
+                      ? 'needs_finance_gate'
+                      : missingEvidence.length === 0
+                        ? 'ready_for_finance_gate'
+                        : 'needs_budget_evidence';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'sap_budget_psp_gate',
+      }));
+      const derivedBlockedDecisions = missingEvidence
+        .filter((item) => ['psp_snapshot', 'budget_owner', 'asset_benefit', 'finance_gate', 'approval_status', 'data_quality'].includes(item.missingDataPoint))
+        .map((item) => item.label);
+      const blockedDecisions = Array.from(new Set([...explicitBlockedDecisions, ...derivedBlockedDecisions]));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `SBP_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['psp_snapshot', 'budget_owner', 'finance_gate', 'approval_status'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      if (blockedByApproval) {
+        blockingFindings.push({
+          code: 'SBP_APPROVAL_BLOCKING',
+          severity: 'high',
+          message: 'approval status is explicitly blocking the SAP/PSP budget gate',
+        });
+      }
+      if (blockedByDataQuality) {
+        blockingFindings.push({
+          code: 'SBP_DATA_QUALITY_BLOCKING',
+          severity: 'high',
+          message: 'data quality is explicitly blocking the SAP/PSP budget gate',
+        });
+      }
+      const measureContext = {
+        measureId: params.measureId || null,
+        measureName: params.measureName || null,
+        migrationWave: params.migrationWave || null,
+        sapSystemRef: params.sapSystemRef || null,
+        legacyInternalOrderId: params.legacyInternalOrderId || null,
+        pspElementId: params.pspElementId || null,
+      };
+      const budgetEvidence = {
+        availableBudgetEur: availableBudget,
+        plannedValueEur: plannedValue,
+        committedValueEur: committedValue,
+        pspCarryOverEur: pspCarryOver,
+        budgetOverhangEur: budgetOverhang,
+        effectiveBudgetGapEur: effectiveBudgetGap,
+      };
+      const gateEvidence = {
+        assetBenefit: params.assetBenefit || null,
+        priorityScore: hasNumber(params.priorityScore) ? Number(params.priorityScore) : null,
+        ownerRole: params.ownerRole || null,
+        approvalStatus: params.approvalStatus || null,
+        financeGate: params.financeGate || null,
+        dataQualityStatus: params.dataQualityStatus || null,
+        sourceSnapshotId: params.sourceSnapshotId || null,
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided gate evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.measureId) dossierFacts.push(`Measure: ${params.measureId}`);
+      if (params.pspElementId) dossierFacts.push(`PSP: ${params.pspElementId}`);
+      if (budgetOverhang != null) dossierFacts.push(`Budget overhang EUR: ${budgetOverhang}`);
+      if (effectiveBudgetGap != null) dossierFacts.push(`Budget gap EUR: ${effectiveBudgetGap}`);
+
+      return {
+        gateId: `sbp:${Buffer.from(`${params.measureId || ''}:${params.migrationWave || ''}:${params.pspElementId || ''}:${params.sourceSnapshotId || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'sap_budget_psp_gate',
+        safety: 'read_only',
+        requestContext: {
+          measureId: params.measureId || null,
+          migrationWave: params.migrationWave || null,
+          sourceSnapshotId: params.sourceSnapshotId || null,
+        },
+        status,
+        readinessScore,
+        measureContext,
+        budgetEvidence,
+        gateEvidence,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockedDecisions,
+        blockingFindings,
+        sourceEvidence: {
+          measureContext,
+          budgetEvidence,
+          gateEvidence,
+        },
+        sourceActions: {
+          inspected: ['dashboard-api.sapBudgetPspGateStatus'],
+          referenced: [
+            'datasource-registry.get',
+            'datapoint.health',
+            'investment-planning.createPlan',
+            'finance-agent.analyze',
+            'vdmi.dossier',
+            'interface-placeholder.requestEvidence',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'sap.psp.write',
+            'sap.budget.write',
+            'finance-agent.mutate',
+            'investment-planning.createPlan',
+            'settlement.exportA96',
+            'settlement.prepareBilling',
+            'billing.release',
+            'mako.dispatch',
+            'hitl.create',
+            'vdmi.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          measureContext,
+          budgetEvidence,
+          gateEvidence,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockedDecisions,
+          blockingFindings,
           dossierFacts,
         },
       };

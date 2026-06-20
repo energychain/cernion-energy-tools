@@ -1051,5 +1051,66 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 195
+  },
+  {
+    "id": "dashboard-api.sapBudgetPspGateStatus",
+    "action": "dashboard-api.sapBudgetPspGateStatus",
+    "label": "SAP Budget PSP Gate Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "measureId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(measure:[a-zA-Z0-9:-]+|massnahme:[a-zA-Z0-9:-]+|investment:[a-zA-Z0-9:-]+)",
+          "group": 1
+        }
+      },
+      "pspElementId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:psp|psp element|psp-element)[:=]+\\s*([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "sourceSnapshotId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:snapshot|source snapshot|quelle|source)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Gate Status", "maxLen": 80 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.measureId", "measureContext.measureId"], "label": "Measure", "maxLen": 100 },
+        { "paths": ["measureContext.pspElementId", "dossierEvidence.measureContext.pspElementId"], "label": "PSP", "maxLen": 100 },
+        { "paths": ["budgetEvidence.budgetOverhangEur", "dossierEvidence.budgetEvidence.budgetOverhangEur"], "label": "Budget Overhang EUR", "precision": 2 },
+        { "paths": ["budgetEvidence.effectiveBudgetGapEur", "dossierEvidence.budgetEvidence.effectiveBudgetGapEur"], "label": "Budget Gap EUR", "precision": 2 },
+        { "paths": ["gateEvidence.ownerRole", "dossierEvidence.gateEvidence.ownerRole"], "label": "Owner", "maxLen": 100 },
+        { "paths": ["gateEvidence.financeGate", "dossierEvidence.gateEvidence.financeGate"], "label": "Finance Gate", "maxLen": 100 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 100 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 196
   }
 ]

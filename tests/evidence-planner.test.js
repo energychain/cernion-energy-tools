@@ -238,6 +238,37 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans SAP Budget PSP Gate as budget and PSP evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'sap_budget_psp_gate' },
+      {
+        measureId: 'measure-196',
+        measureName: 'Trafostation Migration',
+        migrationWave: 'wave-2026-q3',
+        pspElementId: 'PSP-2026-4711',
+        pspCarryOverEur: 18000,
+        sourceSnapshotId: 'snapshot:sap-psp-196',
+        ownerRole: 'Finance Asset Owner',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('sap_budget_psp_gate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['measure_context', 'psp_snapshot', 'budget_owner'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'sap_mapping',
+        'budget_values',
+        'asset_benefit',
+        'finance_gate',
+        'approval_status',
+        'data_quality',
+      ])
+    );
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });

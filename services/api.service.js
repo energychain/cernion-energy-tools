@@ -1394,6 +1394,8 @@ module.exports = {
             'dashboard-api.regulatoryChangeReadinessStatus',
           'GET /dashboard/investment-two-track-control':
             'dashboard-api.investmentTwoTrackControlStatus',
+          'GET /dashboard/sap-budget-psp-gate':
+            'dashboard-api.sapBudgetPspGateStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

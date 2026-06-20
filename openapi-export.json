@@ -12287,6 +12287,237 @@
         ]
       }
     },
+    "/api/dashboard-api/sap-budget-psp-gate": {
+      "get": {
+        "operationId": "dashboard-api_sapBudgetPspGateStatus",
+        "summary": "SAP Budget PSP Gate — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only SAP/PSP budget-gate status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "measureContext": {
+                      "type": "object"
+                    },
+                    "budgetEvidence": {
+                      "type": "object"
+                    },
+                    "gateEvidence": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "blockedDecisions": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a deterministic SAP/PSP budget-gate evidence view for one investment measure. The endpoint is read-only and does not mutate SAP/PSP, Finance, investment workflow, billing, settlement, MaKo, HITL, VDMI, external connector or Personal-Agent state.",
+        "parameters": [
+          {
+            "name": "measureId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "measureName",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "migrationWave",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sapSystemRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pspElementId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "legacyInternalOrderId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetBenefit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerRole",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "approvalStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "financeGate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataQualityStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceSnapshotId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "availableBudgetEur",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "plannedValueEur",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "committedValueEur",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "pspCarryOverEur",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "budgetOverhangEur",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "priorityScore",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "blockedDecisions",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -49618,6 +49849,237 @@
                   "type": "string"
                 }
               ]
+            }
+          },
+          {
+            "name": "blockedDecisions",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/sap-budget-psp-gate": {
+      "get": {
+        "operationId": "dashboard-api_sapBudgetPspGateStatus",
+        "summary": "SAP Budget PSP Gate — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only SAP/PSP budget-gate status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "measureContext": {
+                      "type": "object"
+                    },
+                    "budgetEvidence": {
+                      "type": "object"
+                    },
+                    "gateEvidence": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "blockedDecisions": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a deterministic SAP/PSP budget-gate evidence view for one investment measure. The endpoint is read-only and does not mutate SAP/PSP, Finance, investment workflow, billing, settlement, MaKo, HITL, VDMI, external connector or Personal-Agent state.",
+        "parameters": [
+          {
+            "name": "measureId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "measureName",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "migrationWave",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sapSystemRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pspElementId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "legacyInternalOrderId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetBenefit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerRole",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "approvalStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "financeGate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataQualityStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceSnapshotId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "availableBudgetEur",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "plannedValueEur",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "committedValueEur",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "pspCarryOverEur",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "budgetOverhangEur",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "priorityScore",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
             }
           },
           {

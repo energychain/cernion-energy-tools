@@ -471,6 +471,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/investment-two-track-control']).toBe(
         'dashboard-api.investmentTwoTrackControlStatus'
       );
+      expect(aliases['GET /dashboard/sap-budget-psp-gate']).toBe(
+        'dashboard-api.sapBudgetPspGateStatus'
+      );
       expect(aliases['GET /dashboard/observability-mini']).toBe('dashboard-api.observabilityMini');
       expect(aliases['GET /observability/logs']).toBe('observability.logs');
       expect(aliases['GET /observability/metrics']).toBe('observability.metrics');
