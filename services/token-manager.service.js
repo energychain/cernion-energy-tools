@@ -51,6 +51,12 @@ function isWriteMethod(method) {
   return m !== 'GET' && m !== 'HEAD' && m !== 'OPTIONS';
 }
 
+function isReadOnlySidecarInvocation(method, requestPath) {
+  const m = String(method || '').toUpperCase();
+  const pathOnly = String(requestPath || '').split('?')[0];
+  return m === 'POST' && /^\/api\/agent-sidecar\/tools\/[^/]+\/call$/.test(pathOnly);
+}
+
 // Tokens created before Issue #157 (tenant/user binding) have no userId on
 // record. They keep working but are flagged so callers can sunset them.
 function isLegacyToken(record) {
@@ -336,7 +342,11 @@ module.exports = {
         const record = tokens[matchIndex];
         const scope = normaliseScope(record.scope);
 
-        if (scope === 'read-only' && isWriteMethod(method)) {
+        if (
+          scope === 'read-only' &&
+          isWriteMethod(method) &&
+          !isReadOnlySidecarInvocation(method, requestPath)
+        ) {
           return {
             success: true,
             valid: false,

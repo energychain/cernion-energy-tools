@@ -72,6 +72,32 @@ describe('token-manager.service', () => {
     expect(deniedWrite.reason).toBe('SCOPE_VIOLATION');
   });
 
+  it('allows read-only tokens to invoke the sidecar policy-gated tool call endpoint', async () => {
+    const created = await broker.call('token-manager.create', {
+      name: 'OpenClaw Sidecar',
+      scope: 'read-only',
+      tenantId: 'stadtwerk-a',
+      userId: 'svc:openclaw',
+    });
+
+    const allowedSidecarPost = await broker.call('token-manager.verify', {
+      token: created.data.token,
+      method: 'POST',
+      path: '/api/agent-sidecar/tools/cernion.list_readonly_capabilities/call',
+      trackUsage: false,
+    });
+    expect(allowedSidecarPost.valid).toBe(true);
+
+    const deniedOtherPost = await broker.call('token-manager.verify', {
+      token: created.data.token,
+      method: 'POST',
+      path: '/api/hitl/items/123/approve',
+      trackUsage: false,
+    });
+    expect(deniedOtherPost.valid).toBe(false);
+    expect(deniedOtherPost.reason).toBe('SCOPE_VIOLATION');
+  });
+
   it('revokes token and invalidates verification', async () => {
     const created = await broker.call('token-manager.create', {
       name: 'Admin',

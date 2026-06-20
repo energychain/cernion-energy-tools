@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: 746e0b3810956aff3756b3b47e4b17eb05a1026860e6aa8831b087cd52713856
+  - openapi-export.json: cba55c7104484ddf74d04503389f96e72b741499cf6e67fc872a4b3a5ac1cf37
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,11 +666,12 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 725
-- operation_count: 830
+- path_count: 727
+- operation_count: 832
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
+- Agent Sidecar: 2 operations
 - agnes-bottleneck: 3 operations
 - AI Agent: 5 operations
 - altdaten-assessment: 3 operations
@@ -816,6 +817,8 @@ process:
 - POST /api/agent-receipts/select | tags: [Agent Receipts] | operationId: agent-receipts_select | summary: Select a runtime receipt for Personal Agent orchestration
 - POST /api/agent-receipts/test | tags: [Agent Receipts] | operationId: agent-receipts_test | summary: Test receipt planning and return runnable execution details
 - POST /api/agent-receipts/validate | tags: [Agent Receipts] | operationId: agent-receipts_validate | summary: Validate receipt payload or persisted receipt
+- GET /api/agent-sidecar/tools | tags: [Agent Sidecar] | operationId: agent-sidecar_listTools | summary: List curated OpenClaw-safe Cernion Sidecar tools
+- POST /api/agent-sidecar/tools/:name/call | tags: [Agent Sidecar] | operationId: agent-sidecar_callTool | summary: Call one curated Cernion Sidecar tool through the server-side policy gate
 - POST /api/agent/analyze | tags: [AI Agent] | operationId: agent_analyze | summary: Analyze a natural-language energy problem and return an execution plan
 - POST /api/agent/execute | tags: [AI Agent] | operationId: agent_execute | summary: Execute the planned steps with user-provided parameter values
 - POST /api/agent/rerun | tags: [AI Agent] | operationId: agent_rerun | summary: Re-run a completed session with the same plan and inputs
@@ -4674,6 +4677,48 @@ process:
         "summary": "Validate receipt payload or persisted receipt",
         "tags": [
           "Agent Receipts"
+        ]
+      }
+    },
+    "/api/agent-sidecar/tools": {
+      "get": {
+        "operationId": "agent-sidecar_listTools",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List curated OpenClaw-safe Cernion Sidecar tools",
+        "tags": [
+          "Agent Sidecar"
+        ]
+      }
+    },
+    "/api/agent-sidecar/tools/:name/call": {
+      "post": {
+        "operationId": "agent-sidecar_callTool",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Call one curated Cernion Sidecar tool through the server-side policy gate",
+        "tags": [
+          "Agent Sidecar"
         ]
       }
     },
@@ -58349,4 +58394,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: baf687b497296c7e416a1d4b2c2b525dc0ca15c43cc9848fe5402a4e324b31ac
+- llm_txt_sha256: 882c516d35928f0ac0cee17d351758f04106048123bbe6ee10bc6962906217e2

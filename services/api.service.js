@@ -248,6 +248,12 @@ function isReadMethod(method) {
   return m === 'GET' || m === 'HEAD' || m === 'OPTIONS';
 }
 
+function isReadOnlySidecarInvocation(method, requestPath) {
+  const m = String(method || '').toUpperCase();
+  const pathOnly = String(requestPath || '').split('?')[0];
+  return m === 'POST' && /^\/api\/agent-sidecar\/tools\/[^/]+\/call$/.test(pathOnly);
+}
+
 function normalizeRequestPath(req) {
   const raw = String(req?.originalUrl || req?.url || req?.path || '');
   return raw.split('?')[0] || '';
@@ -1376,6 +1382,10 @@ module.exports = {
           'PUT /companies/:id/confirm': 'company.confirm',
           'DELETE /companies/:id': 'company.delete',
           // Dashboard API (v0.19+) — UI-optimised aggregate endpoints
+          // Agent Sidecar (v0.64+) — curated OpenClaw-safe tool facade
+          'GET /agent-sidecar/tools': 'agent-sidecar.listTools',
+          'POST /agent-sidecar/tools/:name/call': 'agent-sidecar.callTool',
+          // Dashboard API (v0.19+) — UI-optimised aggregate endpoints
           'GET /dashboard/vnb-overview': 'dashboard-api.vnbOverview',
           'GET /dashboard/redispatch-metering-cockpit': 'dashboard-api.redispatchMeteringCockpit',
           'GET /dashboard/load-profile-stream-monitor': 'dashboard-api.loadProfileStreamMonitor',
@@ -1981,7 +1991,11 @@ module.exports = {
                 );
               }
 
-              if (verification.scope === 'read-only' && !isReadMethod(req?.method)) {
+              if (
+                verification.scope === 'read-only' &&
+                !isReadMethod(req?.method) &&
+                !isReadOnlySidecarInvocation(req?.method, requestPath)
+              ) {
                 throw new Errors.MoleculerClientError(
                   'Scope violation: read-only token cannot call write endpoints.',
                   403,

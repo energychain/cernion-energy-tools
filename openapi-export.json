@@ -1162,6 +1162,48 @@
         ]
       }
     },
+    "/api/agent-sidecar/tools": {
+      "get": {
+        "operationId": "agent-sidecar_listTools",
+        "summary": "List curated OpenClaw-safe Cernion Sidecar tools",
+        "tags": [
+          "Agent Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-sidecar/tools/:name/call": {
+      "post": {
+        "operationId": "agent-sidecar_callTool",
+        "summary": "Call one curated Cernion Sidecar tool through the server-side policy gate",
+        "tags": [
+          "Agent Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/agent/analyze": {
       "post": {
         "operationId": "agent_analyze",
