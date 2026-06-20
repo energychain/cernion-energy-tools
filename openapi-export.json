@@ -13936,6 +13936,21 @@
         ]
       }
     },
+    "/api/dashboard-api/imsys-schedule-value-chain-readiness": {
+      "get": {
+        "operationId": "dashboard-api_imsysScheduleValueChainReadinessStatus",
+        "summary": "iMSys schedule value-chain readiness — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only iMSys schedule value-chain readiness status"
+          }
+        },
+        "description": "Builds a deterministic evidence view for iMSys/CLS schedule value-chain readiness. The endpoint is read-only and does not execute device control, grid operations, HITL, MaKo, billing, settlement, external connector or Personal-Agent actions."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -52832,6 +52847,21 @@
             }
           }
         ]
+      }
+    },
+    "/api/dashboard/imsys-schedule-value-chain-readiness": {
+      "get": {
+        "operationId": "dashboard-api_imsysScheduleValueChainReadinessStatus",
+        "summary": "iMSys schedule value-chain readiness — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only iMSys schedule value-chain readiness status"
+          }
+        },
+        "description": "Builds a deterministic evidence view for iMSys/CLS schedule value-chain readiness. The endpoint is read-only and does not execute device control, grid operations, HITL, MaKo, billing, settlement, external connector or Personal-Agent actions."
       }
     },
     "/api/dashboard/market-snapshot": {

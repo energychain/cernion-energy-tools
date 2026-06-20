@@ -1550,5 +1550,71 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 181
+  },
+  {
+    "id": "dashboard-api.imsysScheduleValueChainReadinessStatus",
+    "action": "dashboard-api.imsysScheduleValueChainReadinessStatus",
+    "label": "iMSys Schedule Value-Chain Readiness Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:caseId[:= ]+|case[:=]+|fall[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "meteringScope": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:meteringScope[:= ]+|scope[:=]+|messbereich[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "controlReadiness": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:controlReadiness[:= ]+|control[:=]+|leitwarte[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "iMSys Value-Chain Status", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.caseId", "valueChainContext.caseId"], "label": "Case", "maxLen": 100 },
+        { "paths": ["valueChainContext.gridOperatorId", "dossierEvidence.valueChainContext.gridOperatorId"], "label": "Grid Operator", "maxLen": 120 },
+        { "paths": ["valueChainContext.meteringScope", "dossierEvidence.valueChainContext.meteringScope"], "label": "Metering Scope", "maxLen": 140 },
+        { "paths": ["readinessEvidence.dataQualityStatus", "dossierEvidence.readinessEvidence.dataQualityStatus"], "label": "Data Quality", "maxLen": 120 },
+        { "paths": ["readinessEvidence.forecastWindow", "dossierEvidence.readinessEvidence.forecastWindow"], "label": "Forecast Window", "maxLen": 120 },
+        { "paths": ["readinessEvidence.congestionSignal", "dossierEvidence.readinessEvidence.congestionSignal"], "label": "Congestion Signal", "maxLen": 140 },
+        { "paths": ["readinessEvidence.controllabilityStatus", "dossierEvidence.readinessEvidence.controllabilityStatus"], "label": "Controllability", "maxLen": 140 },
+        { "paths": ["readinessEvidence.netzfahrplanAssessmentRef", "dossierEvidence.readinessEvidence.netzfahrplanAssessmentRef"], "label": "Netzfahrplan", "maxLen": 140 },
+        { "paths": ["readinessEvidence.operationalDecision", "dossierEvidence.readinessEvidence.operationalDecision"], "label": "Operational Decision", "maxLen": 160 },
+        { "paths": ["readinessEvidence.controlReadiness", "dossierEvidence.readinessEvidence.controlReadiness"], "label": "Control Readiness", "maxLen": 140 },
+        { "paths": ["readinessEvidence.lineOwnerRole", "dossierEvidence.readinessEvidence.lineOwnerRole"], "label": "Line Owner", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 199
   }
 ]

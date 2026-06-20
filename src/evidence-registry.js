@@ -814,6 +814,109 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  imsys_schedule_value_chain_readiness: {
+    sources: [
+      {
+        id: 'metering_scope',
+        label: 'iMSys-/CLS-Messbereich',
+        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'datapoint.health'],
+        contextKeys: ['meteringScope'],
+        optional: false,
+      },
+      {
+        id: 'source_datapoints',
+        label: 'Messdatenquellen',
+        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'datapoint.health', 'datasource-registry.get'],
+        contextKeys: ['sourceDatapoints'],
+        optional: false,
+      },
+      {
+        id: 'data_quality_status',
+        label: 'Datenqualitaet',
+        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'datapoint.health'],
+        contextKeys: ['dataQualityStatus'],
+        optional: false,
+      },
+      {
+        id: 'forecast_window',
+        label: 'Prognosefenster',
+        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'forecast-engine.run', 'forecast.read'],
+        contextKeys: ['forecastWindow'],
+        optional: false,
+      },
+      {
+        id: 'congestion_signal',
+        label: 'Engpasssignal',
+        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'grid-operations.netzfahrplanGenerate'],
+        contextKeys: ['congestionSignal'],
+        optional: false,
+      },
+      {
+        id: 'asset_scope',
+        label: 'Asset-/NAP-/MeLo-Scope',
+        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'assets.effective', 'mastr-quality.audit'],
+        contextKeys: ['assetScope'],
+        optional: false,
+      },
+      {
+        id: 'controllability_status',
+        label: 'Steuerbarkeitsstatus',
+        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'flex.listDevices', 'redispatch-expost.audit'],
+        contextKeys: ['controllabilityStatus'],
+        optional: false,
+      },
+      {
+        id: 'flexibility_options',
+        label: 'Flexibilitaetsoptionen',
+        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'flex.listDevices'],
+        contextKeys: ['flexibilityOptions'],
+        optional: false,
+      },
+      {
+        id: 'netzfahrplan_assessment_ref',
+        label: 'Netzfahrplan-Bewertung',
+        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'grid-operations.netzfahrplanGenerate'],
+        contextKeys: ['netzfahrplanAssessmentRef'],
+        optional: false,
+      },
+      {
+        id: 'operational_decision',
+        label: 'Operative Entscheidung',
+        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'vdmi.dossier'],
+        contextKeys: ['operationalDecision'],
+        optional: false,
+      },
+      {
+        id: 'control_readiness',
+        label: 'Leitwarten-/Control-Readiness',
+        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'vdmi.dossier', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['controlReadiness'],
+        optional: false,
+      },
+      {
+        id: 'line_owner_role',
+        label: 'Linienverantwortung',
+        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'vdmi.dossier'],
+        contextKeys: ['lineOwnerRole'],
+        optional: false,
+      },
+      {
+        id: 'source_snapshot_ref',
+        label: 'Quellensnapshot',
+        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceSnapshotRef'],
+        optional: false,
+      },
+      {
+        id: 'evidence_ref',
+        label: 'Evidenzreferenzen',
+        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['evidenceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   sap_budget_psp_gate: {
     sources: [
       {

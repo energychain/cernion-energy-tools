@@ -2688,6 +2688,76 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── imsysScheduleValueChainReadinessStatus ─────────────────────────────
+
+  describe('imsysScheduleValueChainReadinessStatus', () => {
+    it('reports metering and forecast gaps without executing control side effects', async () => {
+      const result = await broker.call('dashboard-api.imsysScheduleValueChainReadinessStatus', {
+        caseId: 'isvc:199',
+        gridOperatorId: 'vnb-west',
+        meteringScope: 'imsys-rollout-west',
+        sourceDatapoints: 'taf7-load,cls-status',
+        dataQualityStatus: 'freshness-missing',
+      });
+
+      expect(result.status).toBe('needs_forecast_context');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'forecast_window',
+          'congestion_signal',
+          'controllability_status',
+          'control_readiness',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('imsys_schedule_value_chain_readiness');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'device-control.execute',
+          'cls.executeControl',
+          'smgw.switch',
+          'grid-operations.executeControl',
+          'hitl.create',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_operation_review when value-chain evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.imsysScheduleValueChainReadinessStatus', {
+        caseId: 'isvc:199',
+        gridOperatorId: 'vnb-west',
+        meteringScope: 'imsys-rollout-west',
+        sourceDatapoints: 'taf7-load,cls-status',
+        dataQualityStatus: 'green',
+        forecastWindow: '2026-Q3 daily rolling',
+        congestionSignal: 'lv-congestion:west-feeder-7',
+        assetScope: 'nap:west-42,melo:west-42',
+        controllabilityStatus: 'feedback-capable',
+        flexibilityOptions: 'dim-40,shift-window',
+        netzfahrplanAssessmentRef: 'fnav:assessment-199',
+        operationalDecision: 'prepare control-room review',
+        controlReadiness: 'ready-for-review',
+        lineOwnerRole: 'Netzbetrieb Leitwarte',
+        sourceSnapshotRef: 'snapshot:isvc-199',
+        evidenceRef: 'datapoint:taf7,vdmi:handover',
+      });
+
+      expect(result.status).toBe('ready_for_operation_review');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.valueChainContext.caseId).toBe('isvc:199');
+      expect(result.readinessEvidence.flexibilityOptions).toEqual(['dim-40', 'shift-window']);
+      expect(result.evidenceRefs).toEqual(['datapoint:taf7', 'vdmi:handover']);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided iMSys value-chain evidence: 14/14');
+      expect(result.sourceActions.notCalled).toContain('grid-operations.executeControl');
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

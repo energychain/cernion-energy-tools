@@ -824,6 +824,23 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasImsysScheduleValueChainSignal =
+    /(imsys|cls|smart.?meter)/i.test(haystack) &&
+    /(fahrplan|value.?chain|zustandsmanagement|messdaten.*steuerung|steuerung.*messdaten|kapazit[aä]tsbewirtschaftung|engpasslogik|flexibilit[aä]tsnutzung|leitwartenuebergabe|leitwarte|control.?readiness)/i.test(
+      haystack
+    );
+
+  if (hasImsysScheduleValueChainSignal) {
+    const imsysCapability = findCapabilityByName('imsys_schedule_value_chain_readiness');
+    if (imsysCapability) {
+      return {
+        capability: imsysCapability,
+        score: 122,
+        usedFallback: false,
+      };
+    }
+  }
+
   if (fnavSignals.some((signal) => haystack.includes(signal))) {
     const fnavCapability = findCapabilityByName('netzfahrplan_fnav_assessment');
     if (fnavCapability) {

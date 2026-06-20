@@ -59,6 +59,7 @@ module.exports = {
       jourFixeDecisionClosureStatus: 5 * 60 * 1000, // 5 min
       offBalancingMeteringPruefmatrixStatus: 5 * 60 * 1000, // 5 min
       automationRequirementsDecisionValueStatus: 5 * 60 * 1000, // 5 min
+      imsysScheduleValueChainReadinessStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -2523,6 +2524,63 @@ module.exports = {
           this.settings.cacheTtlMs.automationRequirementsDecisionValueStatus,
           async () => ({
             ...this.buildAutomationRequirementsDecisionValueStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── imsysScheduleValueChainReadinessStatus ────────────────────────────
+    /**
+     * GET /api/dashboard/imsys-schedule-value-chain-readiness?caseId=...
+     *
+     * Read-only dossier-safe evidence gate for the iMSys/CLS Fahrplan value
+     * chain. It projects metering, datapoint, forecast, congestion, asset/flex
+     * and control-room handover evidence into a readiness status without
+     * executing device, grid-control, HITL, MaKo, billing or external actions.
+     */
+    imsysScheduleValueChainReadinessStatus: {
+      rest: 'GET /imsys-schedule-value-chain-readiness',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        meteringScope: { type: 'string', optional: true, min: 1 },
+        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        dataQualityStatus: { type: 'string', optional: true, min: 1 },
+        forecastWindow: { type: 'string', optional: true, min: 1 },
+        congestionSignal: { type: 'string', optional: true, min: 1 },
+        assetScope: { type: 'string', optional: true, min: 1 },
+        controllabilityStatus: { type: 'string', optional: true, min: 1 },
+        flexibilityOptions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        netzfahrplanAssessmentRef: { type: 'string', optional: true, min: 1 },
+        operationalDecision: { type: 'string', optional: true, min: 1 },
+        controlReadiness: { type: 'string', optional: true, min: 1 },
+        lineOwnerRole: { type: 'string', optional: true, min: 1 },
+        sourceSnapshotRef: { type: 'string', optional: true, min: 1 },
+        evidenceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'iMSys schedule value-chain readiness — read-only dossier-safe gate',
+        description:
+          'Builds a deterministic evidence view for iMSys/CLS schedule value-chain readiness. ' +
+          'The endpoint is read-only and does not execute device control, grid operations, HITL, MaKo, billing, settlement, external connector or Personal-Agent actions.',
+        responses: {
+          200: {
+            description: 'Read-only iMSys schedule value-chain readiness status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `imsys-schedule:${params.caseId || 'no-case'}:${params.meteringScope || 'no-scope'}:${params.forecastWindow || 'no-forecast'}:${params.assetScope || 'no-asset'}:${params.controlReadiness || 'no-control'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.imsysScheduleValueChainReadinessStatus,
+          async () => ({
+            ...this.buildImsysScheduleValueChainReadinessStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -7368,6 +7426,251 @@ module.exports = {
           requirementContext,
           decisionEvidence,
           decisionSteps,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceSnapshotRef: params.sourceSnapshotRef || null,
+          evidenceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildImsysScheduleValueChainReadinessStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const sourceDatapoints = toList(params.sourceDatapoints);
+      const flexibilityOptions = toList(params.flexibilityOptions);
+      const evidenceRefs = toList(params.evidenceRef);
+      const evidenceSpecs = [
+        {
+          key: 'metering_scope',
+          label: 'Metering scope',
+          value: params.meteringScope,
+          missingDataPoint: 'metering_scope',
+          enablesDossierAddition: 'iMSys-/CLS-Messbereich und betroffene Markt-/Netzlokation koennen abgegrenzt werden',
+        },
+        {
+          key: 'source_datapoints',
+          label: 'Source datapoints',
+          value: sourceDatapoints.length > 0 ? sourceDatapoints.join(', ') : null,
+          missingDataPoint: 'source_datapoints',
+          enablesDossierAddition: 'Messdatenquellen, Datenalter und Verfuegbarkeit koennen im Dossier belegt werden',
+        },
+        {
+          key: 'data_quality_status',
+          label: 'Data quality status',
+          value: params.dataQualityStatus,
+          missingDataPoint: 'data_quality_status',
+          enablesDossierAddition: 'Datenqualitaet und Confidence der iMSys-/CLS-Daten koennen bewertet werden',
+        },
+        {
+          key: 'forecast_window',
+          label: 'Forecast window',
+          value: params.forecastWindow,
+          missingDataPoint: 'forecast_window',
+          enablesDossierAddition: 'Prognosefenster und Fahrplanhorizont koennen in die Bewertung aufgenommen werden',
+        },
+        {
+          key: 'congestion_signal',
+          label: 'Congestion signal',
+          value: params.congestionSignal,
+          missingDataPoint: 'congestion_signal',
+          enablesDossierAddition: 'Engpasslogik und Netzbedarf koennen als Ausloeser der Value Chain erklaert werden',
+        },
+        {
+          key: 'asset_scope',
+          label: 'Asset scope',
+          value: params.assetScope,
+          missingDataPoint: 'asset_scope',
+          enablesDossierAddition: 'Betroffene Anlagen, NAP/MeLo oder Flex-Assets koennen der Fahrplankette zugeordnet werden',
+        },
+        {
+          key: 'controllability_status',
+          label: 'Controllability status',
+          value: params.controllabilityStatus,
+          missingDataPoint: 'controllability_status',
+          enablesDossierAddition: 'Fernsteuerbarkeit, Rueckmeldefaehigkeit und Flex-Status koennen ausgewiesen werden',
+        },
+        {
+          key: 'flexibility_options',
+          label: 'Flexibility options',
+          value: flexibilityOptions.length > 0 ? flexibilityOptions.join(', ') : null,
+          missingDataPoint: 'flexibility_options',
+          enablesDossierAddition: 'Konkrete Flexibilitaetsoptionen koennen als operative Auswahl sichtbar werden',
+        },
+        {
+          key: 'netzfahrplan_assessment_ref',
+          label: 'Netzfahrplan assessment',
+          value: params.netzfahrplanAssessmentRef,
+          missingDataPoint: 'netzfahrplan_assessment_ref',
+          enablesDossierAddition: 'fNAV-/Netzfahrplan-Bewertung und Kapazitaetsentscheidung koennen referenziert werden',
+        },
+        {
+          key: 'operational_decision',
+          label: 'Operational decision',
+          value: params.operationalDecision,
+          missingDataPoint: 'operational_decision',
+          enablesDossierAddition: 'Die naechste Netzbetriebsentscheidung kann als Review-Grenze beschrieben werden',
+        },
+        {
+          key: 'control_readiness',
+          label: 'Control readiness',
+          value: params.controlReadiness,
+          missingDataPoint: 'control_readiness',
+          enablesDossierAddition: 'Leitwarten-/CLS-Uebergabefaehigkeit kann ohne Ausfuehrung bewertet werden',
+        },
+        {
+          key: 'line_owner_role',
+          label: 'Line owner role',
+          value: params.lineOwnerRole,
+          missingDataPoint: 'line_owner_role',
+          enablesDossierAddition: 'Die fachliche Linienverantwortung fuer die Uebergabe kann benannt werden',
+        },
+        {
+          key: 'source_snapshot_ref',
+          label: 'Source snapshot',
+          value: params.sourceSnapshotRef,
+          missingDataPoint: 'source_snapshot_ref',
+          enablesDossierAddition: 'Ein zitierbarer Snapshot kann die Value-Chain-Bewertung auditierbar machen',
+        },
+        {
+          key: 'evidence_ref',
+          label: 'Evidence references',
+          value: evidenceRefs.length > 0 ? evidenceRefs.join(', ') : null,
+          missingDataPoint: 'evidence_ref',
+          enablesDossierAddition: 'Evidenzreferenzen koennen die operative Review-Faehigkeit absichern',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({ id: spec.key, label: spec.label, value: spec.value, evidenceStatus: 'provided' }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.missingDataPoint,
+          enablesDossierAddition: spec.enablesDossierAddition,
+          category: 'imsys_schedule_value_chain_readiness',
+          severity: ['metering_scope', 'source_datapoints', 'forecast_window', 'controllability_status', 'control_readiness'].includes(spec.key) ? 'high' : 'medium',
+        }));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        category: item.category,
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+      }));
+      let status = 'ready_for_operation_review';
+      if (!params.meteringScope || sourceDatapoints.length === 0 || !params.dataQualityStatus) status = 'needs_metering_evidence';
+      else if (!params.forecastWindow) status = 'needs_forecast_context';
+      else if (!params.congestionSignal) status = 'needs_congestion_signal';
+      else if (!params.assetScope || !params.controllabilityStatus || flexibilityOptions.length === 0) status = 'needs_flex_mapping';
+      else if (!params.netzfahrplanAssessmentRef || !params.operationalDecision) status = 'needs_governance_decision';
+      else if (!params.controlReadiness || /blocked|not[-_ ]?ready|missing|unready|nein|no/i.test(params.controlReadiness)) status = 'blocked_by_control_readiness';
+      else if (!params.lineOwnerRole) status = 'needs_line_owner';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const blockingFindings = [];
+      if (status === 'blocked_by_control_readiness') {
+        blockingFindings.push({
+          code: 'IMSYS_CONTROL_READINESS_BLOCKED',
+          severity: 'high',
+          message: 'iMSys/CLS value-chain review is blocked until control-room handover readiness is evidenced',
+        });
+      }
+      const valueChainContext = {
+        caseId: params.caseId || null,
+        gridOperatorId: params.gridOperatorId || null,
+        meteringScope: params.meteringScope || null,
+      };
+      const readinessEvidence = {
+        sourceDatapoints,
+        dataQualityStatus: params.dataQualityStatus || null,
+        forecastWindow: params.forecastWindow || null,
+        congestionSignal: params.congestionSignal || null,
+        assetScope: params.assetScope || null,
+        controllabilityStatus: params.controllabilityStatus || null,
+        flexibilityOptions,
+        netzfahrplanAssessmentRef: params.netzfahrplanAssessmentRef || null,
+        operationalDecision: params.operationalDecision || null,
+        controlReadiness: params.controlReadiness || null,
+        lineOwnerRole: params.lineOwnerRole || null,
+      };
+      const valueChainSteps = [
+        { id: 'metering-data', label: 'Metering and datapoint evidence', evidenceStatus: params.meteringScope && sourceDatapoints.length > 0 && params.dataQualityStatus ? 'provided' : 'missing' },
+        { id: 'forecast-congestion', label: 'Forecast and congestion context', evidenceStatus: params.forecastWindow && params.congestionSignal ? 'provided' : 'missing' },
+        { id: 'asset-flex', label: 'Asset controllability and flex mapping', evidenceStatus: params.assetScope && params.controllabilityStatus && flexibilityOptions.length > 0 ? 'provided' : 'missing' },
+        { id: 'fnav-decision', label: 'Netzfahrplan and operational decision', evidenceStatus: params.netzfahrplanAssessmentRef && params.operationalDecision ? 'provided' : 'missing' },
+        { id: 'line-handover', label: 'Control-room readiness and line owner', evidenceStatus: params.controlReadiness && params.lineOwnerRole ? 'provided' : 'missing' },
+      ];
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided iMSys value-chain evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.caseId) dossierFacts.push(`Case: ${params.caseId}`);
+      if (params.meteringScope) dossierFacts.push(`Metering scope: ${params.meteringScope}`);
+      if (params.operationalDecision) dossierFacts.push(`Operational decision: ${params.operationalDecision}`);
+      if (params.controlReadiness) dossierFacts.push(`Control readiness: ${params.controlReadiness}`);
+
+      return {
+        valueChainReadinessId: `isvc:${Buffer.from(`${params.caseId || ''}:${params.meteringScope || ''}:${params.forecastWindow || ''}:${params.assetScope || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'imsys_schedule_value_chain_readiness',
+        safety: 'read_only',
+        requestContext: valueChainContext,
+        status,
+        readinessScore,
+        valueChainContext,
+        readinessEvidence,
+        valueChainSteps,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          valueChainContext,
+          readinessEvidence,
+          sourceSnapshotRef: params.sourceSnapshotRef || null,
+          evidenceRefs,
+        },
+        evidenceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.imsysScheduleValueChainReadinessStatus'],
+          referenced: [
+            'datapoint.health',
+            'datasource-registry.get',
+            'forecast-engine.run',
+            'forecast.read',
+            'grid-operations.netzfahrplanGenerate',
+            'flex.listDevices',
+            'mastr-quality.audit',
+            'redispatch-expost.audit',
+            'vdmi.dossier',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'device-control.execute',
+            'cls.executeControl',
+            'smgw.switch',
+            'grid-operations.executeControl',
+            'grid-operations.dispatch',
+            'hitl.create',
+            'mako.dispatch',
+            'billing.release',
+            'settlement.prepareBilling',
+            'settlement.exportA96',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          valueChainContext,
+          readinessEvidence,
+          valueChainSteps,
           evidenceItems,
           missingEvidence,
           positiveFollowUps,

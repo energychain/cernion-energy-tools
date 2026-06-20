@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 31 static rules', () => {
+    it('loads all 32 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(31);
+      expect(rules.length).toBe(32);
     });
 
-    it('compiles all 31 static rules without error', () => {
+    it('compiles all 32 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(31);
+      expect(rules.length).toBe(32);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -978,6 +978,67 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Decision Value: redispatch-kpi');
       expect(formatted).toContain('Leading Gap: follow_up_process');
       expect(formatted).toContain('Side-Effect Guard: powerbi.createDashboard');
+    });
+
+    it('dashboard-api.imsysScheduleValueChainReadinessStatus is dossier-safe and formats value-chain facts', () => {
+      const rule = getRule('dashboard-api.imsysScheduleValueChainReadinessStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte iMSys Fahrplan Value Chain case=isvc:199 scope=imsys-west control=ready laden'
+        )
+      ).toEqual({
+        caseId: 'isvc:199',
+        meteringScope: 'imsys-west',
+        controlReadiness: 'ready',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_flex_mapping',
+        readinessScore: 0.57,
+        requestContext: {
+          caseId: 'isvc:199',
+        },
+        valueChainContext: {
+          caseId: 'isvc:199',
+          gridOperatorId: 'vnb-west',
+          meteringScope: 'imsys-west',
+        },
+        readinessEvidence: {
+          dataQualityStatus: 'green',
+          forecastWindow: '2026-Q3 rolling',
+          congestionSignal: 'lv-congestion',
+          controllabilityStatus: null,
+          netzfahrplanAssessmentRef: 'fnav:199',
+          operationalDecision: 'control-room-review',
+          controlReadiness: 'missing',
+          lineOwnerRole: 'Leitwarte',
+        },
+        missingEvidence: [
+          { missingDataPoint: 'controllability_status' },
+        ],
+        sourceActions: {
+          notCalled: ['device-control.execute'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_flex_mapping'],
+        },
+      });
+
+      expect(formatted).toContain('iMSys Value-Chain Status: needs_flex_mapping');
+      expect(formatted).toContain('Readiness: 0.57');
+      expect(formatted).toContain('Case: isvc:199');
+      expect(formatted).toContain('Grid Operator: vnb-west');
+      expect(formatted).toContain('Metering Scope: imsys-west');
+      expect(formatted).toContain('Forecast Window: 2026-Q3 rolling');
+      expect(formatted).toContain('Congestion Signal: lv-congestion');
+      expect(formatted).toContain('Netzfahrplan: fnav:199');
+      expect(formatted).toContain('Operational Decision: control-room-review');
+      expect(formatted).toContain('Control Readiness: missing');
+      expect(formatted).toContain('Leading Gap: controllability_status');
+      expect(formatted).toContain('Side-Effect Guard: device-control.execute');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {

@@ -479,6 +479,37 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans iMSys Schedule Value Chain as metering, forecast and handover evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'imsys_schedule_value_chain_readiness' },
+      {
+        caseId: 'isvc:199',
+        meteringScope: 'imsys-west',
+        sourceDatapoints: ['taf7-load'],
+        forecastWindow: '2026-Q3 rolling',
+        congestionSignal: 'lv-congestion',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('imsys_schedule_value_chain_readiness');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining([
+        'metering_scope',
+        'source_datapoints',
+        'forecast_window',
+        'congestion_signal',
+      ])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'controllability_status',
+        'control_readiness',
+        'line_owner_role',
+      ])
+    );
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });
