@@ -480,6 +480,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/investment-risk-translation']).toBe(
         'dashboard-api.investmentRiskTranslationStatus'
       );
+      expect(aliases['GET /dashboard/budget-waterfall-governance']).toBe(
+        'dashboard-api.budgetWaterfallGovernanceStatus'
+      );
       expect(aliases['GET /dashboard/observability-mini']).toBe('dashboard-api.observabilityMini');
       expect(aliases['GET /observability/logs']).toBe('observability.logs');
       expect(aliases['GET /observability/metrics']).toBe('observability.metrics');

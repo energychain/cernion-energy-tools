@@ -328,6 +328,36 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans Budget Waterfall Governance as baseline, sign and approval evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'budget_waterfall_governance' },
+      {
+        waterfallId: 'bwg-189',
+        period: '2026-Q3',
+        division: 'Stromnetz',
+        baselineRef: 'baseline:2026',
+        signConvention: 'positive reduces headroom',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('budget_waterfall_governance');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['source_identity', 'period_division', 'baseline_reference', 'sign_convention'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'forecast_cutoff',
+        'carryover_logic',
+        'owner_role',
+        'approval_status',
+        'follow_up_decision',
+        'source_snapshot_ref',
+        'evidence_ref',
+      ])
+    );
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });

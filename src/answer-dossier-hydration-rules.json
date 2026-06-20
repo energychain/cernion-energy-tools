@@ -1235,5 +1235,67 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 196
+  },
+  {
+    "id": "dashboard-api.budgetWaterfallGovernanceStatus",
+    "action": "dashboard-api.budgetWaterfallGovernanceStatus",
+    "label": "Budget Waterfall Governance Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "waterfallId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:waterfallId[:= ]+|waterfall[:=]+|wasserfall[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "baselineRef": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:baselineRef[:= ]+|baseline[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "signConvention": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:signConvention[:= ]+|sign convention[:= ]+|vorzeichen[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Governance Status", "maxLen": 80 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.waterfallId", "waterfallContext.waterfallId"], "label": "Waterfall", "maxLen": 100 },
+        { "paths": ["waterfallContext.period", "dossierEvidence.waterfallContext.period"], "label": "Period", "maxLen": 80 },
+        { "paths": ["waterfallContext.division", "dossierEvidence.waterfallContext.division"], "label": "Division", "maxLen": 100 },
+        { "paths": ["governanceEvidence.baselineRef", "dossierEvidence.governanceEvidence.baselineRef"], "label": "Baseline", "maxLen": 100 },
+        { "paths": ["governanceEvidence.forecastCutoff", "dossierEvidence.governanceEvidence.forecastCutoff"], "label": "Forecast Cutoff", "maxLen": 80 },
+        { "paths": ["governanceEvidence.signConvention", "dossierEvidence.governanceEvidence.signConvention"], "label": "Sign Convention", "maxLen": 120 },
+        { "paths": ["governanceEvidence.approvalStatus", "dossierEvidence.governanceEvidence.approvalStatus"], "label": "Approval", "maxLen": 100 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 100 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 189
   }
 ]

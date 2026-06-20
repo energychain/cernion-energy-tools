@@ -2278,6 +2278,83 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── budgetWaterfallGovernanceStatus ───────────────────────────────────
+
+  describe('budgetWaterfallGovernanceStatus', () => {
+    it('reports waterfall governance gaps without creating downstream actions', async () => {
+      const result = await broker.call('dashboard-api.budgetWaterfallGovernanceStatus', {
+        waterfallId: 'bwg:189',
+        period: '2026-Q3',
+        division: 'Stromnetz',
+      });
+
+      expect(result.status).toBe('needs_baseline');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['baseline_reference', 'forecast_cutoff', 'sign_convention', 'approval_status'])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('budget_waterfall_governance');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'finance-agent.mutate',
+          'sap.psp.write',
+          'investment-planning.createPlan',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_committee_review when governance evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.budgetWaterfallGovernanceStatus', {
+        waterfallId: 'bwg:189',
+        sourceId: 'source:budget-waterfall-q3',
+        period: '2026-Q3',
+        division: 'Stromnetz',
+        baselineRef: 'baseline:approved-2026',
+        forecastCutoff: '2026-09-30',
+        carryoverLogic: 'approved carry-over shown as negative headroom movement',
+        signConvention: 'positive value reduces remaining budget headroom',
+        ownerRole: 'Controlling Governance',
+        approvalStatus: 'approved_for_committee',
+        followUpDecision: 'committee-review-q3',
+        sourceSnapshotRef: 'snapshot:budget-waterfall-189',
+        evidenceRef: 'finance:evidence-1,vdmi:evidence-2',
+      });
+
+      expect(result.status).toBe('ready_for_committee_review');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.waterfallContext.waterfallId).toBe('bwg:189');
+      expect(result.governanceEvidence.signConvention).toContain('positive value');
+      expect(result.evidenceRefs).toEqual(['finance:evidence-1', 'vdmi:evidence-2']);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided waterfall governance evidence: 11/11');
+      expect(result.sourceActions.notCalled).toContain('settlement.prepareBilling');
+    });
+
+    it('surfaces blocking approval as an explicit finding', async () => {
+      const result = await broker.call('dashboard-api.budgetWaterfallGovernanceStatus', {
+        waterfallId: 'bwg:blocked',
+        period: '2026-Q3',
+        division: 'Stromnetz',
+        baselineRef: 'baseline:approved-2026',
+        forecastCutoff: '2026-09-30',
+        carryoverLogic: 'carry-over documented',
+        signConvention: 'positive reduces headroom',
+        ownerRole: 'Controlling Governance',
+        approvalStatus: 'blocked',
+        followUpDecision: 'committee-review-q3',
+        sourceSnapshotRef: 'snapshot:budget-waterfall-blocked',
+        evidenceRef: ['finance:evidence-1'],
+      });
+
+      expect(result.status).toBe('blocked_by_approval_status');
+      expect(result.blockingFindings.map((finding) => finding.code)).toContain(
+        'BWG_APPROVAL_STATUS_BLOCKING'
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

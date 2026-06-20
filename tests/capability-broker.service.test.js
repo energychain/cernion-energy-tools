@@ -901,6 +901,24 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Budget Waterfall Governance prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe budget_waterfall_governance fuer Budget-Wasserfall, Investitionswasserfall, Ueberhang, Vorzeichenlogik, Prognoseende, Freigabestatus und Gremienreife.',
+    });
+
+    expect(result.capability).toBe('budget_waterfall_governance');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'budget_waterfall_governance'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.budgetWaterfallGovernanceStatus');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('sap.psp.write');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

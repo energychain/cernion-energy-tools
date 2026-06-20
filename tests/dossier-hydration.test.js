@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 26 static rules', () => {
+    it('loads all 27 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(26);
+      expect(rules.length).toBe(27);
     });
 
-    it('compiles all 26 static rules without error', () => {
+    it('compiles all 27 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(26);
+      expect(rules.length).toBe(27);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -704,6 +704,58 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Blocked Decision: decision:capex-q3');
       expect(formatted).toContain('Leading Gap: owner_role');
       expect(formatted).toContain('Side-Effect Guard: vdmi.create');
+    });
+
+    it('dashboard-api.budgetWaterfallGovernanceStatus is dossier-safe and formats governance facts', () => {
+      const rule = getRule('dashboard-api.budgetWaterfallGovernanceStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Budget Wasserfall waterfall=bwg:189 baseline=baseline:2026 vorzeichen=positive laden'
+        )
+      ).toEqual({
+        waterfallId: 'bwg:189',
+        baselineRef: 'baseline:2026',
+        signConvention: 'positive',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_forecast_cutoff',
+        readinessScore: 0.55,
+        requestContext: {
+          waterfallId: 'bwg:189',
+        },
+        waterfallContext: {
+          period: '2026-Q3',
+          division: 'Stromnetz',
+        },
+        governanceEvidence: {
+          baselineRef: 'baseline:2026',
+          signConvention: 'positive reduces headroom',
+          approvalStatus: 'draft',
+        },
+        missingEvidence: [
+          { missingDataPoint: 'forecast_cutoff' },
+        ],
+        sourceActions: {
+          notCalled: ['finance-agent.mutate'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_forecast_cutoff'],
+        },
+      });
+
+      expect(formatted).toContain('Governance Status: needs_forecast_cutoff');
+      expect(formatted).toContain('Readiness: 0.55');
+      expect(formatted).toContain('Waterfall: bwg:189');
+      expect(formatted).toContain('Period: 2026-Q3');
+      expect(formatted).toContain('Division: Stromnetz');
+      expect(formatted).toContain('Baseline: baseline:2026');
+      expect(formatted).toContain('Sign Convention: positive reduces headroom');
+      expect(formatted).toContain('Leading Gap: forecast_cutoff');
+      expect(formatted).toContain('Side-Effect Guard: finance-agent.mutate');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {

@@ -54,6 +54,7 @@ module.exports = {
       sapBudgetPspGateStatus: 5 * 60 * 1000, // 5 min
       energyTaxInformationPackageStatus: 5 * 60 * 1000, // 5 min
       investmentRiskTranslationStatus: 5 * 60 * 1000, // 5 min
+      budgetWaterfallGovernanceStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -2060,6 +2061,96 @@ module.exports = {
           this.settings.cacheTtlMs.investmentRiskTranslationStatus,
           async () => ({
             ...this.buildInvestmentRiskTranslationStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── budgetWaterfallGovernanceStatus ─────────────────────────────────
+    /**
+     * GET /api/dashboard/budget-waterfall-governance?waterfallId=...
+     *
+     * Read-only dossier-safe evidence gate for budget-waterfall governance.
+     * It validates baseline, sign convention, carry-over logic, forecast
+     * cutoff, division mapping and approval evidence without creating
+     * Finance, SAP/PSP, Investment Planning, HITL, external connector or
+     * Personal-Agent side effects.
+     */
+    budgetWaterfallGovernanceStatus: {
+      rest: 'GET /budget-waterfall-governance',
+      params: {
+        waterfallId: { type: 'string', optional: true, min: 1 },
+        sourceId: { type: 'string', optional: true, min: 1 },
+        period: { type: 'string', optional: true, min: 1 },
+        division: { type: 'string', optional: true, min: 1 },
+        baselineRef: { type: 'string', optional: true, min: 1 },
+        forecastCutoff: { type: 'string', optional: true, min: 1 },
+        carryoverLogic: { type: 'string', optional: true, min: 1 },
+        signConvention: { type: 'string', optional: true, min: 1 },
+        ownerRole: { type: 'string', optional: true, min: 1 },
+        approvalStatus: { type: 'string', optional: true, min: 1 },
+        followUpDecision: { type: 'string', optional: true, min: 1 },
+        sourceSnapshotRef: { type: 'string', optional: true, min: 1 },
+        evidenceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Budget Waterfall Governance — read-only dossier-safe gate',
+        description:
+          'Builds a deterministic evidence view for budget-waterfall governance. ' +
+          'The endpoint is read-only and does not create Finance, SAP/PSP, Investment Planning, settlement, billing, MaKo, HITL, external connector or Personal-Agent side effects.',
+        parameters: [
+          { name: 'waterfallId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'period', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'division', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'baselineRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'forecastCutoff', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'carryoverLogic', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'signConvention', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'approvalStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'followUpDecision', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceSnapshotRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceRef', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only budget-waterfall governance status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    waterfallContext: { type: 'object' },
+                    governanceEvidence: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `budget-waterfall-governance:${params.waterfallId || params.sourceId || 'no-source'}:${params.period || 'no-period'}:${params.division || 'no-division'}:${params.baselineRef || 'no-baseline'}:${params.forecastCutoff || 'no-cutoff'}:${params.approvalStatus || 'no-approval'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.budgetWaterfallGovernanceStatus,
+          async () => ({
+            ...this.buildBudgetWaterfallGovernanceStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -5577,6 +5668,254 @@ module.exports = {
           sourceSnapshot: params.sourceSnapshot || null,
           evidenceRefs,
           forbiddenAssumptions,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildBudgetWaterfallGovernanceStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const evidenceRefs = toList(params.evidenceRef);
+      const evidenceSpecs = [
+        {
+          id: 'source_identity',
+          label: 'Waterfall/source identity',
+          value: params.waterfallId || params.sourceId,
+          displayValue: params.waterfallId || params.sourceId,
+          sourceClass: 'waterfall_source',
+          enablesDossierAddition: 'add the budget-waterfall source identity',
+        },
+        {
+          id: 'period_division',
+          label: 'Period and division',
+          value: params.period && params.division,
+          displayValue: [params.period, params.division].filter(Boolean).join(' / '),
+          sourceClass: 'waterfall_scope',
+          enablesDossierAddition: 'add the period and division scope for the waterfall claim',
+        },
+        {
+          id: 'baseline_reference',
+          label: 'Baseline reference',
+          value: params.baselineRef,
+          sourceClass: 'baseline',
+          enablesDossierAddition: 'explain which approved baseline the waterfall compares against',
+        },
+        {
+          id: 'forecast_cutoff',
+          label: 'Forecast cutoff',
+          value: params.forecastCutoff,
+          sourceClass: 'forecast_cutoff',
+          enablesDossierAddition: 'state the forecast end date used for committee-ready budget wording',
+        },
+        {
+          id: 'carryover_logic',
+          label: 'Carry-over logic',
+          value: params.carryoverLogic,
+          sourceClass: 'carryover',
+          enablesDossierAddition: 'explain how budget overhangs are carried into the next view',
+        },
+        {
+          id: 'sign_convention',
+          label: 'Sign convention',
+          value: params.signConvention,
+          sourceClass: 'sign_convention',
+          enablesDossierAddition: 'explain whether the visible waterfall movement increases or reduces budget headroom',
+        },
+        {
+          id: 'owner_role',
+          label: 'Owner role',
+          value: params.ownerRole,
+          sourceClass: 'governance_owner',
+          enablesDossierAddition: 'add the accountable owner for baseline/sign/cutoff validation',
+        },
+        {
+          id: 'approval_status',
+          label: 'Approval status',
+          value: params.approvalStatus,
+          sourceClass: 'committee_approval',
+          enablesDossierAddition: 'add committee-readiness wording for the waterfall claim',
+        },
+        {
+          id: 'follow_up_decision',
+          label: 'Follow-up decision',
+          value: params.followUpDecision,
+          sourceClass: 'follow_up_decision',
+          enablesDossierAddition: 'name the next management or committee decision enabled by the waterfall',
+        },
+        {
+          id: 'source_snapshot_ref',
+          label: 'Source snapshot',
+          value: params.sourceSnapshotRef,
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add source grounding for the waterfall evidence',
+        },
+        {
+          id: 'evidence_ref',
+          label: 'Evidence reference',
+          value: evidenceRefs.length > 0,
+          displayValue: evidenceRefs.join(', '),
+          sourceClass: 'evidence_refs',
+          enablesDossierAddition: 'add citable evidence references to the dossier',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue || spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const approvalText = String(params.approvalStatus || '').toLowerCase();
+      const approvalBlocking = /block|blocked|rejected|abgelehnt|gesperrt|not.approved|not_approved|unklar|unclear/.test(approvalText);
+      const status =
+        approvalBlocking
+          ? 'blocked_by_approval_status'
+          : !params.waterfallId && !params.sourceId
+            ? 'needs_source_identity'
+            : !params.period || !params.division
+              ? 'needs_period_division'
+              : !params.baselineRef
+                ? 'needs_baseline'
+                : !params.signConvention
+                  ? 'needs_sign_convention'
+                  : !params.forecastCutoff
+                    ? 'needs_forecast_cutoff'
+                    : !params.carryoverLogic
+                      ? 'needs_carryover_logic'
+                      : !params.ownerRole
+                        ? 'needs_owner_role'
+                        : !params.approvalStatus
+                          ? 'needs_approval'
+                          : !params.followUpDecision
+                            ? 'needs_follow_up_decision'
+                            : !params.sourceSnapshotRef || evidenceRefs.length === 0
+                              ? 'needs_source_evidence'
+                              : missingEvidence.length === 0
+                                ? 'ready_for_committee_review'
+                                : 'needs_governance_evidence';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'budget_waterfall_governance',
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `BWG_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['baseline_reference', 'sign_convention', 'forecast_cutoff', 'approval_status'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      if (approvalBlocking) {
+        blockingFindings.push({
+          code: 'BWG_APPROVAL_STATUS_BLOCKING',
+          severity: 'high',
+          message: 'approval status blocks committee-ready budget-waterfall wording',
+        });
+      }
+      const waterfallContext = {
+        waterfallId: params.waterfallId || null,
+        sourceId: params.sourceId || null,
+        period: params.period || null,
+        division: params.division || null,
+      };
+      const governanceEvidence = {
+        baselineRef: params.baselineRef || null,
+        forecastCutoff: params.forecastCutoff || null,
+        carryoverLogic: params.carryoverLogic || null,
+        signConvention: params.signConvention || null,
+        ownerRole: params.ownerRole || null,
+        approvalStatus: params.approvalStatus || null,
+        followUpDecision: params.followUpDecision || null,
+        sourceSnapshotRef: params.sourceSnapshotRef || null,
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided waterfall governance evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.waterfallId || params.sourceId) dossierFacts.push(`Waterfall: ${params.waterfallId || params.sourceId}`);
+      if (params.baselineRef) dossierFacts.push(`Baseline: ${params.baselineRef}`);
+      if (params.signConvention) dossierFacts.push(`Sign convention: ${params.signConvention}`);
+      if (params.approvalStatus) dossierFacts.push(`Approval: ${params.approvalStatus}`);
+
+      return {
+        governanceStatusId: `bwg:${Buffer.from(`${params.waterfallId || params.sourceId || ''}:${params.period || ''}:${params.division || ''}:${params.baselineRef || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'budget_waterfall_governance',
+        safety: 'read_only',
+        requestContext: {
+          waterfallId: params.waterfallId || null,
+          sourceId: params.sourceId || null,
+          period: params.period || null,
+          division: params.division || null,
+        },
+        status,
+        readinessScore,
+        waterfallContext,
+        governanceEvidence,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          waterfallContext,
+          governanceEvidence,
+          sourceSnapshotRef: params.sourceSnapshotRef || null,
+          evidenceRefs,
+        },
+        evidenceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.budgetWaterfallGovernanceStatus'],
+          referenced: [
+            'datasource-registry.get',
+            'datapoint.health',
+            'investment-planning.createPlan',
+            'finance-agent.analyze',
+            'vdmi.dossier',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'finance-agent.mutate',
+            'sap.psp.write',
+            'sap.budget.write',
+            'investment-planning.createPlan',
+            'investment-planning.mutate',
+            'settlement.exportA96',
+            'settlement.prepareBilling',
+            'billing.release',
+            'mako.dispatch',
+            'hitl.create',
+            'vdmi.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          waterfallContext,
+          governanceEvidence,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceSnapshotRef: params.sourceSnapshotRef || null,
+          evidenceRefs,
           dossierFacts,
         },
       };

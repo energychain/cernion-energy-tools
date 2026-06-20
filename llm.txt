@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: 9b6c08998a09594d9d686dfa9107dd3071582edd7736b9f452ec59c6f574399c
+  - openapi-export.json: ce5502504ba8d2e248fefc4292cdd5dbb4a95e3402fa3fff164ea6dd48229e54
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 721
-- operation_count: 826
+- path_count: 723
+- operation_count: 828
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -694,7 +694,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 36 operations
+- Dashboard API: 38 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -962,6 +962,7 @@ process:
 - GET /api/cya/sessions/:session_id/export/pdf | tags: [CYA Agent] | operationId: cya_exportPdf | summary: Export CYA session as PDF
 - GET /api/cya/templates | tags: [CYA Agent] | operationId: cya_listTemplates | summary: List prebuilt CYA profile templates
 - GET /api/cya/templates/:templateId | tags: [CYA Agent] | operationId: cya_getTemplate | summary: Load one prebuilt CYA profile template
+- GET /api/dashboard-api/budget-waterfall-governance | tags: [Dashboard API] | operationId: dashboard-api_budgetWaterfallGovernanceStatus | summary: Budget Waterfall Governance — read-only dossier-safe gate
 - GET /api/dashboard-api/controllability-asset-handover | tags: [Dashboard API] | operationId: dashboard-api_controllabilityAssetHandoverStatus | summary: Controllability asset handover — read-only dossier-safe status
 - GET /api/dashboard-api/e2e-controllability-governance | tags: [Dashboard API] | operationId: dashboard-api_e2eControllabilityGovernanceStatus | summary: E2E controllability governance — read-only dossier-safe matrix
 - GET /api/dashboard-api/energy-tax-information-package | tags: [Dashboard API] | operationId: dashboard-api_energyTaxInformationPackageStatus | summary: Energy Tax Information Package — read-only dossier-safe status
@@ -980,6 +981,7 @@ process:
 - GET /api/dashboard-api/regulatory-change-readiness | tags: [Dashboard API] | operationId: dashboard-api_regulatoryChangeReadinessStatus | summary: Regulatory change readiness — read-only dossier-safe gate
 - GET /api/dashboard-api/sap-budget-psp-gate | tags: [Dashboard API] | operationId: dashboard-api_sapBudgetPspGateStatus | summary: SAP Budget PSP Gate — read-only dossier-safe status
 - GET /api/dashboard-api/vnb-overview | tags: [Dashboard API] | operationId: dashboard-api_vnbOverview | summary: VNB overview — aggregated dashboard data for one grid operator
+- GET /api/dashboard/budget-waterfall-governance | tags: [Dashboard API] | operationId: dashboard-api_budgetWaterfallGovernanceStatus | summary: Budget Waterfall Governance — read-only dossier-safe gate
 - GET /api/dashboard/controllability-asset-handover | tags: [Dashboard API] | operationId: dashboard-api_controllabilityAssetHandoverStatus | summary: Controllability asset handover — read-only dossier-safe status
 - GET /api/dashboard/e2e-controllability-governance | tags: [Dashboard API] | operationId: dashboard-api_e2eControllabilityGovernanceStatus | summary: E2E controllability governance — read-only dossier-safe matrix
 - GET /api/dashboard/energy-tax-information-package | tags: [Dashboard API] | operationId: dashboard-api_energyTaxInformationPackageStatus | summary: Energy Tax Information Package — read-only dossier-safe status
@@ -15039,6 +15041,183 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/budget-waterfall-governance": {
+      "get": {
+        "description": "Builds a deterministic evidence view for budget-waterfall governance. The endpoint is read-only and does not create Finance, SAP/PSP, Investment Planning, settlement, billing, MaKo, HITL, external connector or Personal-Agent side effects.",
+        "operationId": "dashboard-api_budgetWaterfallGovernanceStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "waterfallId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "division",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "baselineRef",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forecastCutoff",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "carryoverLogic",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "signConvention",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ownerRole",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "approvalStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "followUpDecision",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceSnapshotRef",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceRef",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "governanceEvidence": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "waterfallContext": {
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only budget-waterfall governance status"
+          }
+        },
+        "summary": "Budget Waterfall Governance — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/controllability-asset-handover": {
       "get": {
         "description": "Builds a deterministic asset line-handover evidence view for Steuerbarkeitscheck cases. It covers asset identity, NAP/MeLo mapping, technical status, feedback capability, source snapshot, check result, non-execution reason, line owner, next reporting cycle and handover decision. The endpoint is read-only and does not mutate Asset-MDM, VDMI, HITL, MaKo, billing, settlement, tariff or device-control state.",
@@ -17794,6 +17973,183 @@ process:
         ],
         "x-oeo-class": [
           "OEO_00000446"
+        ]
+      }
+    },
+    "/api/dashboard/budget-waterfall-governance": {
+      "get": {
+        "description": "Builds a deterministic evidence view for budget-waterfall governance. The endpoint is read-only and does not create Finance, SAP/PSP, Investment Planning, settlement, billing, MaKo, HITL, external connector or Personal-Agent side effects.",
+        "operationId": "dashboard-api_budgetWaterfallGovernanceStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "waterfallId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "division",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "baselineRef",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forecastCutoff",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "carryoverLogic",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "signConvention",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ownerRole",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "approvalStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "followUpDecision",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceSnapshotRef",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceRef",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "governanceEvidence": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "waterfallContext": {
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only budget-waterfall governance status"
+          }
+        },
+        "summary": "Budget Waterfall Governance — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
         ]
       }
     },
@@ -57621,4 +57977,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 1b03d39e0d2314c759d18c09e360a54ccf4d7e1ca0f87f14a82fd762b7b0d683
+- llm_txt_sha256: 370ef14749ac15722b6318636608997a688501988f804878cbf84f476bc7e9b3

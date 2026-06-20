@@ -362,6 +362,88 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  budget_waterfall_governance: {
+    sources: [
+      {
+        id: 'source_identity',
+        label: 'Wasserfall- und Quellenidentitaet',
+        resolvedBy: ['dashboard-api.budgetWaterfallGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['waterfallId', 'sourceId'],
+        optional: false,
+      },
+      {
+        id: 'period_division',
+        label: 'Zeitraum und Sparte',
+        resolvedBy: ['dashboard-api.budgetWaterfallGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['period', 'division'],
+        optional: false,
+      },
+      {
+        id: 'baseline_reference',
+        label: 'Baseline-Referenz',
+        resolvedBy: ['dashboard-api.budgetWaterfallGovernanceStatus', 'investment-planning.createPlan'],
+        contextKeys: ['baselineRef'],
+        optional: false,
+      },
+      {
+        id: 'forecast_cutoff',
+        label: 'Prognoseende',
+        resolvedBy: ['dashboard-api.budgetWaterfallGovernanceStatus', 'datapoint.health', 'datasource-registry.get'],
+        contextKeys: ['forecastCutoff'],
+        optional: false,
+      },
+      {
+        id: 'carryover_logic',
+        label: 'Uebertragslogik',
+        resolvedBy: ['dashboard-api.budgetWaterfallGovernanceStatus', 'investment-planning.createPlan', 'finance-agent.analyze'],
+        contextKeys: ['carryoverLogic'],
+        optional: false,
+      },
+      {
+        id: 'sign_convention',
+        label: 'Vorzeichenlogik',
+        resolvedBy: ['dashboard-api.budgetWaterfallGovernanceStatus', 'finance-agent.analyze', 'presentation.generate'],
+        contextKeys: ['signConvention'],
+        optional: false,
+      },
+      {
+        id: 'owner_role',
+        label: 'Owner-Rolle',
+        resolvedBy: ['dashboard-api.budgetWaterfallGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['ownerRole'],
+        optional: false,
+      },
+      {
+        id: 'approval_status',
+        label: 'Freigabestatus',
+        resolvedBy: ['dashboard-api.budgetWaterfallGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['approvalStatus'],
+        optional: false,
+      },
+      {
+        id: 'follow_up_decision',
+        label: 'Folgeentscheidung',
+        resolvedBy: ['dashboard-api.budgetWaterfallGovernanceStatus', 'presentation.generate'],
+        contextKeys: ['followUpDecision'],
+        optional: false,
+      },
+      {
+        id: 'source_snapshot_ref',
+        label: 'Quellensnapshot',
+        resolvedBy: ['dashboard-api.budgetWaterfallGovernanceStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceSnapshotRef'],
+        optional: false,
+      },
+      {
+        id: 'evidence_ref',
+        label: 'Evidenzreferenzen',
+        resolvedBy: ['dashboard-api.budgetWaterfallGovernanceStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['evidenceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   sap_budget_psp_gate: {
     sources: [
       {

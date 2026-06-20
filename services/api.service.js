@@ -1400,6 +1400,8 @@ module.exports = {
             'dashboard-api.energyTaxInformationPackageStatus',
           'GET /dashboard/investment-risk-translation':
             'dashboard-api.investmentRiskTranslationStatus',
+          'GET /dashboard/budget-waterfall-governance':
+            'dashboard-api.budgetWaterfallGovernanceStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',
