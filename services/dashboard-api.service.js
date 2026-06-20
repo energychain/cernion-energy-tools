@@ -50,6 +50,7 @@ module.exports = {
       e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
       regulatoryChangeReadinessStatus: 5 * 60 * 1000, // 5 min
+      investmentTwoTrackControlStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -1666,6 +1667,102 @@ module.exports = {
           this.settings.cacheTtlMs.regulatoryChangeReadinessStatus,
           async () => ({
             ...this.buildRegulatoryChangeReadinessStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── investmentTwoTrackControlStatus ───────────────────────────────────
+    /**
+     * GET /api/dashboard/investment-two-track-control?submissionId=...
+     *
+     * Read-only dossier-safe evidence view for separating tactical investment
+     * submission readiness from the longer-term Asset Management / ISO-55001
+     * target-process track. It does not create workflows or mutate finance,
+     * SAP/PSP, settlement, billing, HITL, VDMI or Personal-Agent state.
+     */
+    investmentTwoTrackControlStatus: {
+      rest: 'GET /investment-two-track-control',
+      params: {
+        submissionId: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        deadline: { type: 'string', optional: true, min: 1 },
+        submissionFormat: { type: 'string', optional: true, min: 1 },
+        tacticalOwner: { type: 'string', optional: true, min: 1 },
+        targetOwner: { type: 'string', optional: true, min: 1 },
+        financeReviewStatus: { type: 'string', optional: true, min: 1 },
+        boardReadiness: { type: 'string', optional: true, min: 1 },
+        dataQualityStatus: { type: 'string', optional: true, min: 1 },
+        approvalModel: { type: 'string', optional: true, min: 1 },
+        handoverStatus: { type: 'string', optional: true, min: 1 },
+        budgetEnvelopeEur: { type: 'number', optional: true, convert: true },
+        measureCount: { type: 'number', optional: true, integer: true, convert: true, min: 0 },
+        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        blockedDecisions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Investment two-track control — read-only dossier-safe status',
+        description:
+          'Builds a deterministic evidence/readiness view that separates tactical investment submission ' +
+          'readiness from the target-process readiness track for Asset Management / ISO 55001 work. The ' +
+          'endpoint is read-only and does not mutate Investment Planning, Finance, SAP/PSP, settlement, ' +
+          'billing, MaKo, HITL, VDMI, external connector or Personal-Agent state.',
+        parameters: [
+          { name: 'submissionId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'deadline', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'submissionFormat', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'tacticalOwner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'targetOwner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'financeReviewStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'boardReadiness', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataQualityStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'approvalModel', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'handoverStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'budgetEnvelopeEur', in: 'query', required: false, schema: { type: 'number' } },
+          { name: 'measureCount', in: 'query', required: false, schema: { type: 'integer', minimum: 0 } },
+          { name: 'sourceDatapoints', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          { name: 'blockedDecisions', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only investment two-track control status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    tacticalTrack: { type: 'object' },
+                    targetTrack: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    blockedDecisions: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `investment-two-track-control:${params.submissionId || 'no-submission'}:${params.gridOperatorId || 'no-grid'}:${params.deadline || 'no-deadline'}:${params.tacticalOwner || 'no-tactical-owner'}:${params.targetOwner || 'no-target-owner'}:${params.financeReviewStatus || 'no-finance'}:${params.boardReadiness || 'no-board'}:${params.dataQualityStatus || 'no-data'}:${params.approvalModel || 'no-approval'}:${params.handoverStatus || 'no-handover'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.investmentTwoTrackControlStatus,
+          async () => ({
+            ...this.buildInvestmentTwoTrackControlStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -4172,6 +4269,265 @@ module.exports = {
             dictionaryVersion: params.dictionaryVersion || null,
             makoCases,
             billingRuleReference: params.billingRuleReference || null,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildInvestmentTwoTrackControlStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const sourceDatapoints = toList(params.sourceDatapoints);
+      const explicitBlockedDecisions = toList(params.blockedDecisions);
+      const evidenceSpecs = [
+        {
+          id: 'submission_contract',
+          track: 'tactical',
+          label: 'Tactical submission contract',
+          value: params.submissionId && params.deadline && params.submissionFormat,
+          displayValue: [params.submissionId, params.deadline, params.submissionFormat].filter(Boolean).join(' / '),
+          sourceClass: 'investment_submission_contract',
+          enablesDossierAddition: 'add submission id, deadline and required submission format',
+        },
+        {
+          id: 'tactical_owner',
+          track: 'tactical',
+          label: 'Tactical submission owner',
+          value: params.tacticalOwner,
+          sourceClass: 'accountable_owner',
+          enablesDossierAddition: 'add accountable tactical submission owner',
+        },
+        {
+          id: 'measures_and_budget',
+          track: 'tactical',
+          label: 'Measures and budget envelope',
+          value: Number(params.measureCount || 0) > 0 && params.budgetEnvelopeEur != null,
+          displayValue: `${params.measureCount || 0} measures / ${params.budgetEnvelopeEur ?? 'no'} EUR`,
+          sourceClass: 'investment_plan_measure_pack',
+          enablesDossierAddition: 'add measure count and budget-envelope confidence',
+        },
+        {
+          id: 'finance_review',
+          track: 'tactical',
+          label: 'Finance review state',
+          value: params.financeReviewStatus,
+          sourceClass: 'finance_review',
+          enablesDossierAddition: 'add finance-review state and budget-envelope confidence',
+        },
+        {
+          id: 'board_format',
+          track: 'tactical',
+          label: 'Board / committee format',
+          value: params.boardReadiness,
+          sourceClass: 'board_submission_format',
+          enablesDossierAddition: 'add board or committee submission readiness',
+        },
+        {
+          id: 'source_datapoints',
+          track: 'shared',
+          label: 'Source datapoints',
+          value: sourceDatapoints.length > 0,
+          displayValue: sourceDatapoints.join(', '),
+          sourceClass: 'source_datapoint_snapshot',
+          enablesDossierAddition: 'add referenced investment datapoint snapshot evidence',
+        },
+        {
+          id: 'data_quality_plan',
+          track: 'target',
+          label: 'Target-process data-quality plan',
+          value: params.dataQualityStatus,
+          sourceClass: 'data_quality_plan',
+          enablesDossierAddition: 'add target-process data-quality closure path',
+        },
+        {
+          id: 'target_owner',
+          track: 'target',
+          label: 'Target-process owner',
+          value: params.targetOwner,
+          sourceClass: 'target_process_owner',
+          enablesDossierAddition: 'add accountable target-process owner',
+        },
+        {
+          id: 'approval_model',
+          track: 'target',
+          label: 'Role and approval model',
+          value: params.approvalModel,
+          sourceClass: 'role_approval_model',
+          enablesDossierAddition: 'add role and approval-model evidence',
+        },
+        {
+          id: 'handover_status',
+          track: 'target',
+          label: 'Target-process handover status',
+          value: params.handoverStatus,
+          sourceClass: 'target_process_handover',
+          enablesDossierAddition: 'add target-process handover readiness',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          track: spec.track,
+          label: spec.label,
+          value: spec.displayValue || spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          track: spec.track,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const lowerApproval = String(params.approvalModel || '').toLowerCase();
+      const lowerDataQuality = String(params.dataQualityStatus || '').toLowerCase();
+      const blockedByApproval = /block|missing|none|unklar|offen|rejected|abgelehnt/.test(lowerApproval);
+      const blockedByDataQuality = /block|fail|critical|kritisch|unbrauchbar/.test(lowerDataQuality);
+      const status =
+        blockedByApproval
+          ? 'blocked_by_approval'
+          : blockedByDataQuality
+            ? 'needs_data_quality'
+            : !params.tacticalOwner
+              ? 'needs_tactical_owner'
+              : !params.financeReviewStatus
+                ? 'needs_finance_review'
+                : !params.boardReadiness
+                  ? 'needs_board_format'
+                  : !params.dataQualityStatus || !params.targetOwner || !params.approvalModel || !params.handoverStatus
+                    ? 'target_process_pending'
+                    : missingEvidence.length === 0
+                      ? 'ready_for_submission'
+                      : 'needs_data_quality';
+      const tacticalEvidence = evidenceItems.filter((item) => item.track === 'tactical').length;
+      const tacticalTotal = evidenceSpecs.filter((item) => item.track === 'tactical').length;
+      const targetEvidence = evidenceItems.filter((item) => item.track === 'target').length;
+      const targetTotal = evidenceSpecs.filter((item) => item.track === 'target').length;
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'investment_two_track_control',
+        track: item.track,
+      }));
+      const derivedBlockedDecisions = missingEvidence
+        .filter((item) => ['tactical_owner', 'finance_review', 'board_format', 'data_quality_plan', 'approval_model', 'handover_status'].includes(item.missingDataPoint))
+        .map((item) => item.label);
+      const blockedDecisions = Array.from(new Set([...explicitBlockedDecisions, ...derivedBlockedDecisions]));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `ITC_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['tactical_owner', 'finance_review', 'approval_model'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      if (blockedByApproval) {
+        blockingFindings.push({
+          code: 'ITC_APPROVAL_MODEL_BLOCKING',
+          severity: 'high',
+          message: 'approval model is explicitly blocking the two-track control view',
+        });
+      }
+      const tacticalTrack = {
+        readiness: `${tacticalEvidence}/${tacticalTotal}`,
+        owner: params.tacticalOwner || null,
+        deadline: params.deadline || null,
+        submissionFormat: params.submissionFormat || null,
+        measureCount: params.measureCount ?? null,
+        budgetEnvelopeEur: params.budgetEnvelopeEur ?? null,
+        financeReviewStatus: params.financeReviewStatus || null,
+        boardReadiness: params.boardReadiness || null,
+      };
+      const targetTrack = {
+        readiness: `${targetEvidence}/${targetTotal}`,
+        owner: params.targetOwner || null,
+        dataQualityStatus: params.dataQualityStatus || null,
+        approvalModel: params.approvalModel || null,
+        handoverStatus: params.handoverStatus || null,
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Tactical readiness: ${tacticalTrack.readiness}`,
+        `Target readiness: ${targetTrack.readiness}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.submissionId) dossierFacts.push(`Submission: ${params.submissionId}`);
+      if (params.deadline) dossierFacts.push(`Deadline: ${params.deadline}`);
+      if (params.tacticalOwner) dossierFacts.push(`Tactical Owner: ${params.tacticalOwner}`);
+      if (params.targetOwner) dossierFacts.push(`Target Owner: ${params.targetOwner}`);
+
+      return {
+        controlId: `itc:${Buffer.from(`${params.submissionId || ''}:${params.gridOperatorId || ''}:${params.deadline || ''}:${params.tacticalOwner || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'investment_two_track_control',
+        safety: 'read_only',
+        requestContext: {
+          submissionId: params.submissionId || null,
+          gridOperatorId: params.gridOperatorId || null,
+          deadline: params.deadline || null,
+          sourceDatapoints,
+        },
+        status,
+        readinessScore,
+        tacticalTrack,
+        targetTrack,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockedDecisions,
+        blockingFindings,
+        sourceEvidence: {
+          sourceDatapoints,
+          budgetEnvelopeEur: params.budgetEnvelopeEur ?? null,
+          measureCount: params.measureCount ?? null,
+        },
+        sourceActions: {
+          inspected: ['dashboard-api.investmentTwoTrackControlStatus'],
+          referenced: [
+            'datasource-registry.get',
+            'datapoint.health',
+            'investment-planning.createPlan',
+            'finance-agent.analyze',
+            'vdmi.dossier',
+            'interface-placeholder.requestEvidence',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'investment-planning.createPlan',
+            'finance-agent.mutate',
+            'settlement.exportA96',
+            'settlement.prepareBilling',
+            'billing.release',
+            'mako.dispatch',
+            'sap.psp.write',
+            'hitl.create',
+            'vdmi.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          tacticalTrack,
+          targetTrack,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockedDecisions,
+          blockingFindings,
+          sourceEvidence: {
+            sourceDatapoints,
+            budgetEnvelopeEur: params.budgetEnvelopeEur ?? null,
+            measureCount: params.measureCount ?? null,
           },
           dossierFacts,
         },

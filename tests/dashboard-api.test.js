@@ -1940,6 +1940,95 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── investmentTwoTrackControlStatus ─────────────────────────────────────
+
+  describe('investmentTwoTrackControlStatus', () => {
+    it('reports explicit two-track investment gaps without creating downstream actions', async () => {
+      const result = await broker.call('dashboard-api.investmentTwoTrackControlStatus', {
+        submissionId: 'submission-195',
+        deadline: '2026-09-30',
+        submissionFormat: 'finance-board-pack',
+        tacticalOwner: 'Assetmanagement',
+      });
+
+      expect(result.status).toBe('needs_finance_review');
+      expect(result.tacticalTrack).toMatchObject({
+        owner: 'Assetmanagement',
+        deadline: '2026-09-30',
+        submissionFormat: 'finance-board-pack',
+      });
+      expect(result.evidenceItems.map((item) => item.id)).toEqual(
+        expect.arrayContaining(['submission_contract', 'tactical_owner'])
+      );
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'measures_and_budget',
+          'finance_review',
+          'board_format',
+          'data_quality_plan',
+          'approval_model',
+          'handover_status',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('investment_two_track_control');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'hitl.create',
+          'settlement.prepareBilling',
+          'sap.psp.write',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_submission when both investment tracks are complete', async () => {
+      const result = await broker.call('dashboard-api.investmentTwoTrackControlStatus', {
+        submissionId: 'submission-195',
+        gridOperatorId: 'SNB195',
+        deadline: '2026-09-30',
+        submissionFormat: 'finance-board-pack',
+        tacticalOwner: 'Assetmanagement',
+        targetOwner: 'Strategic Asset Management',
+        financeReviewStatus: 'reviewed',
+        boardReadiness: 'board-pack-ready',
+        dataQualityStatus: 'closure-plan-approved',
+        approvalModel: 'roles-approved',
+        handoverStatus: 'handover-ready',
+        budgetEnvelopeEur: 1250000,
+        measureCount: 4,
+        sourceDatapoints: ['investment-plan:2026', 'asset-quality:snapshot-1'],
+      });
+
+      expect(result.status).toBe('ready_for_submission');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.tacticalTrack.readiness).toBe('5/5');
+      expect(result.targetTrack.readiness).toBe('4/4');
+      expect(result.dossierEvidence.dossierFacts).toContain('Tactical readiness: 5/5');
+      expect(result.sourceActions.notCalled).toContain('finance-agent.mutate');
+    });
+
+    it('surfaces blocking approval evidence separately from tactical readiness', async () => {
+      const result = await broker.call('dashboard-api.investmentTwoTrackControlStatus', {
+        submissionId: 'submission-195',
+        deadline: '2026-09-30',
+        submissionFormat: 'finance-board-pack',
+        tacticalOwner: 'Assetmanagement',
+        financeReviewStatus: 'reviewed',
+        boardReadiness: 'board-pack-ready',
+        dataQualityStatus: 'closure-plan-approved',
+        approvalModel: 'blocked',
+      });
+
+      expect(result.status).toBe('blocked_by_approval');
+      expect(result.blockingFindings.map((finding) => finding.code)).toContain(
+        'ITC_APPROVAL_MODEL_BLOCKING'
+      );
+      expect(result.blockedDecisions).toEqual(expect.arrayContaining(['Target-process handover status']));
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

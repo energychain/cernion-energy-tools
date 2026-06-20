@@ -991,5 +991,65 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 193
+  },
+  {
+    "id": "dashboard-api.investmentTwoTrackControlStatus",
+    "action": "dashboard-api.investmentTwoTrackControlStatus",
+    "label": "Investment Two-Track Control Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "submissionId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(itc:[a-zA-Z0-9:-]+|investment:[a-zA-Z0-9:-]+|submission:[a-zA-Z0-9:-]+)",
+          "group": 1
+        }
+      },
+      "deadline": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(20[0-9]{2}-[0-9]{2}-[0-9]{2})",
+          "group": 1
+        }
+      },
+      "tacticalOwner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:tactical owner|taktischer owner|owner)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Control Status", "maxLen": 80 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.submissionId", "submissionId"], "label": "Submission", "maxLen": 100 },
+        { "paths": ["requestContext.deadline", "deadline"], "label": "Deadline", "maxLen": 40 },
+        { "paths": ["tacticalTrack.owner", "dossierEvidence.tacticalTrack.owner"], "label": "Tactical Owner", "maxLen": 100 },
+        { "paths": ["targetTrack.owner", "dossierEvidence.targetTrack.owner"], "label": "Target Owner", "maxLen": 100 },
+        { "paths": ["tacticalTrack.readiness", "dossierEvidence.tacticalTrack.readiness"], "label": "Tactical", "maxLen": 40 },
+        { "paths": ["targetTrack.readiness", "dossierEvidence.targetTrack.readiness"], "label": "Target", "maxLen": 40 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 195
   }
 ]

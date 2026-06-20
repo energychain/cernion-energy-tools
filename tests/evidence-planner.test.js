@@ -208,6 +208,36 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans investment two-track control as tactical and target-process evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'investment_two_track_control' },
+      {
+        submissionId: 'submission-195',
+        deadline: '2026-09-30',
+        submissionFormat: 'finance-board-pack',
+        tacticalOwner: 'Assetmanagement',
+        financeReviewStatus: 'reviewed',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('investment_two_track_control');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['submission_contract', 'tactical_owner', 'finance_review'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'measures_and_budget',
+        'board_format',
+        'source_datapoints',
+        'data_quality_plan',
+        'target_owner',
+        'approval_model',
+        'handover_status',
+      ])
+    );
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });

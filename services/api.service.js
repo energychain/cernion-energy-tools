@@ -1392,6 +1392,8 @@ module.exports = {
             'dashboard-api.controllabilityAssetHandoverStatus',
           'GET /dashboard/regulatory-change-readiness':
             'dashboard-api.regulatoryChangeReadinessStatus',
+          'GET /dashboard/investment-two-track-control':
+            'dashboard-api.investmentTwoTrackControlStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

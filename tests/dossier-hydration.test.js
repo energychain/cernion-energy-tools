@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 22 static rules', () => {
+    it('loads all 23 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(22);
+      expect(rules.length).toBe(23);
     });
 
-    it('compiles all 22 static rules without error', () => {
+    it('compiles all 23 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(22);
+      expect(rules.length).toBe(23);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -510,6 +510,51 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Readiness: 0.36');
       expect(formatted).toContain('Change: reg-change:eeg-2027');
       expect(formatted).toContain('Dictionary: dd-v1');
+    });
+
+    it('dashboard-api.investmentTwoTrackControlStatus is dossier-safe and formats two-track facts', () => {
+      const rule = getRule('dashboard-api.investmentTwoTrackControlStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Investment Two-Track Control fuer submission:2026-capex bis 2026-09-30 owner Assetmanagement pruefen'
+        )
+      ).toEqual({
+        submissionId: 'submission:2026-capex',
+        deadline: '2026-09-30',
+        tacticalOwner: 'Assetmanagement',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_finance_review',
+        readinessScore: 0.3,
+        requestContext: {
+          submissionId: 'submission:2026-capex',
+          deadline: '2026-09-30',
+        },
+        tacticalTrack: {
+          owner: 'Assetmanagement',
+          readiness: '2/5',
+        },
+        targetTrack: {
+          owner: 'Strategic Asset Management',
+          readiness: '0/4',
+        },
+        missingEvidence: [
+          { missingDataPoint: 'finance_review' },
+        ],
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_finance_review'],
+        },
+      });
+
+      expect(formatted).toContain('Control Status: needs_finance_review');
+      expect(formatted).toContain('Readiness: 0.30');
+      expect(formatted).toContain('Submission: submission:2026-capex');
+      expect(formatted).toContain('Tactical Owner: Assetmanagement');
+      expect(formatted).toContain('Leading Gap: finance_review');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {

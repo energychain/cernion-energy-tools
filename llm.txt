@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: 978cd3a1cf8827ea327bcb6f8ffedb3a8102e8a35acd0442e95a7197e0f3d0b4
+  - openapi-export.json: 87775fb57fb89a649f4b53a76c2cd611d0c37c54dcde456d4dc27b3edf05f225
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 713
-- operation_count: 818
+- path_count: 715
+- operation_count: 820
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -694,7 +694,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 28 operations
+- Dashboard API: 30 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -966,6 +966,7 @@ process:
 - GET /api/dashboard-api/e2e-controllability-governance | tags: [Dashboard API] | operationId: dashboard-api_e2eControllabilityGovernanceStatus | summary: E2E controllability governance — read-only dossier-safe matrix
 - GET /api/dashboard-api/evidence-grounding-confidence-audit | tags: [Dashboard API] | operationId: dashboard-api_evidenceGroundingConfidenceAudit | summary: Evidence grounding confidence audit — read-only dossier-safe evidence status
 - GET /api/dashboard-api/finding-codes | tags: [Dashboard API] | operationId: dashboard-api_findingCodes | summary: Finding codes reference — all 92 codes with metadata
+- GET /api/dashboard-api/investment-two-track-control | tags: [Dashboard API] | operationId: dashboard-api_investmentTwoTrackControlStatus | summary: Investment two-track control — read-only dossier-safe status
 - GET /api/dashboard-api/load-profile-stream-monitor | tags: [Dashboard API] | operationId: dashboard-api_loadProfileStreamMonitor | summary: Load profile movement monitor — strict anomaly-class buckets
 - GET /api/dashboard-api/market-communication-evidence-chain | tags: [Dashboard API] | operationId: dashboard-api_marketCommunicationEvidenceChainStatus | summary: Market communication evidence chain — read-only dossier-safe status
 - GET /api/dashboard-api/market-snapshot | tags: [Dashboard API] | operationId: dashboard-api_marketSnapshot | summary: Market snapshot — current spot prices, CO₂ intensity, renewable forecast
@@ -980,6 +981,7 @@ process:
 - GET /api/dashboard/e2e-controllability-governance | tags: [Dashboard API] | operationId: dashboard-api_e2eControllabilityGovernanceStatus | summary: E2E controllability governance — read-only dossier-safe matrix
 - GET /api/dashboard/evidence-grounding-confidence-audit | tags: [Dashboard API] | operationId: dashboard-api_evidenceGroundingConfidenceAudit | summary: Evidence grounding confidence audit — read-only dossier-safe evidence status
 - GET /api/dashboard/finding-codes | tags: [Dashboard API] | operationId: dashboard-api_findingCodes | summary: Finding codes reference — all 92 codes with metadata
+- GET /api/dashboard/investment-two-track-control | tags: [Dashboard API] | operationId: dashboard-api_investmentTwoTrackControlStatus | summary: Investment two-track control — read-only dossier-safe status
 - GET /api/dashboard/load-profile-stream-monitor | tags: [Dashboard API] | operationId: dashboard-api_loadProfileStreamMonitor | summary: Load profile movement monitor — strict anomaly-class buckets
 - GET /api/dashboard/market-communication-evidence-chain | tags: [Dashboard API] | operationId: dashboard-api_marketCommunicationEvidenceChainStatus | summary: Market communication evidence chain — read-only dossier-safe status
 - GET /api/dashboard/market-snapshot | tags: [Dashboard API] | operationId: dashboard-api_marketSnapshot | summary: Market snapshot — current spot prices, CO₂ intensity, renewable forecast
@@ -15647,6 +15649,213 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/investment-two-track-control": {
+      "get": {
+        "description": "Builds a deterministic evidence/readiness view that separates tactical investment submission readiness from the target-process readiness track for Asset Management / ISO 55001 work. The endpoint is read-only and does not mutate Investment Planning, Finance, SAP/PSP, settlement, billing, MaKo, HITL, VDMI, external connector or Personal-Agent state.",
+        "operationId": "dashboard-api_investmentTwoTrackControlStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "submissionId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gridOperatorId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "deadline",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "submissionFormat",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tacticalOwner",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "targetOwner",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "financeReviewStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "boardReadiness",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dataQualityStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "approvalModel",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "handoverStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "budgetEnvelopeEur",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "measureCount",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceDatapoints",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "blockedDecisions",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "blockedDecisions": {
+                      "type": "array"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "tacticalTrack": {
+                      "type": "object"
+                    },
+                    "targetTrack": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only investment two-track control status"
+          }
+        },
+        "summary": "Investment two-track control — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/load-profile-stream-monitor": {
       "get": {
         "description": "Read-only monitor for Lastgangdaten/Bewegungsstrom diagnostics using existing deterministic services only (edm.getTimeseriesSummary, edm-validation.validate, forecast-engine.evaluateQuality, vdmi.findings). Returns strict anomaly buckets (`dataQualityGap`, `realAnomaly`, `forecastProblem`, `processGovernanceBreak`) and allows partial findings with explicit `_errors`.",
@@ -17579,6 +17788,213 @@ process:
         ],
         "x-oeo-class": [
           "OEO_00000143"
+        ]
+      }
+    },
+    "/api/dashboard/investment-two-track-control": {
+      "get": {
+        "description": "Builds a deterministic evidence/readiness view that separates tactical investment submission readiness from the target-process readiness track for Asset Management / ISO 55001 work. The endpoint is read-only and does not mutate Investment Planning, Finance, SAP/PSP, settlement, billing, MaKo, HITL, VDMI, external connector or Personal-Agent state.",
+        "operationId": "dashboard-api_investmentTwoTrackControlStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "submissionId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gridOperatorId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "deadline",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "submissionFormat",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tacticalOwner",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "targetOwner",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "financeReviewStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "boardReadiness",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dataQualityStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "approvalModel",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "handoverStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "budgetEnvelopeEur",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "measureCount",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceDatapoints",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "blockedDecisions",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "blockedDecisions": {
+                      "type": "array"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "tacticalTrack": {
+                      "type": "object"
+                    },
+                    "targetTrack": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only investment two-track control status"
+          }
+        },
+        "summary": "Investment two-track control — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
         ]
       }
     },
@@ -55967,4 +56383,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 4bcb76a1f810c8c453136237ec8f5f139ef16c5bc92c51b2c10dd353c1fcae3c
+- llm_txt_sha256: 10b6c07fb0f080240d295058c09431fbba52235dd2a40c5b9d834a61ab35a4f9

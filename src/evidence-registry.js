@@ -212,6 +212,81 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  investment_two_track_control: {
+    sources: [
+      {
+        id: 'submission_contract',
+        label: 'Taktischer Abgabevertrag',
+        resolvedBy: ['dashboard-api.investmentTwoTrackControlStatus', 'investment-planning.createPlan'],
+        contextKeys: ['submissionId', 'deadline', 'submissionFormat'],
+        optional: false,
+      },
+      {
+        id: 'tactical_owner',
+        label: 'Taktischer Abgabe-Owner',
+        resolvedBy: ['dashboard-api.investmentTwoTrackControlStatus', 'vdmi.dossier'],
+        contextKeys: ['tacticalOwner', 'owner'],
+        optional: false,
+      },
+      {
+        id: 'measures_and_budget',
+        label: 'Massnahmen und Budgetrahmen',
+        resolvedBy: ['dashboard-api.investmentTwoTrackControlStatus', 'investment-planning.createPlan'],
+        contextKeys: ['measureCount', 'measures', 'budgetEnvelopeEur', 'financeBudgetEur'],
+        optional: false,
+      },
+      {
+        id: 'finance_review',
+        label: 'Finance-Review-Status',
+        resolvedBy: ['dashboard-api.investmentTwoTrackControlStatus', 'finance-agent.analyze'],
+        contextKeys: ['financeReviewStatus', 'financeReview'],
+        optional: false,
+      },
+      {
+        id: 'board_format',
+        label: 'Vorstands-/Gremienformat',
+        resolvedBy: ['dashboard-api.investmentTwoTrackControlStatus', 'presentation.generate'],
+        contextKeys: ['boardReadiness', 'approvalFormat', 'boardFormat'],
+        optional: false,
+      },
+      {
+        id: 'source_datapoints',
+        label: 'Invest-Datenpunkte / Snapshot',
+        resolvedBy: ['dashboard-api.investmentTwoTrackControlStatus', 'datapoint.health', 'datasource-registry.get'],
+        contextKeys: ['sourceDatapoints', 'datapointIds', 'sourceSnapshotId'],
+        optional: false,
+      },
+      {
+        id: 'data_quality_plan',
+        label: 'Datenqualitaets-Zielprozess',
+        resolvedBy: ['dashboard-api.investmentTwoTrackControlStatus', 'vdmi.dossier'],
+        contextKeys: ['dataQualityStatus', 'dataQualityPlan'],
+        optional: false,
+      },
+      {
+        id: 'target_owner',
+        label: 'Zielprozess-Owner',
+        resolvedBy: ['dashboard-api.investmentTwoTrackControlStatus', 'vdmi.dossier'],
+        contextKeys: ['targetOwner', 'targetProcessOwner'],
+        optional: false,
+      },
+      {
+        id: 'approval_model',
+        label: 'Rollen-/Freigabemodell',
+        resolvedBy: ['dashboard-api.investmentTwoTrackControlStatus', 'vdmi.dossier'],
+        contextKeys: ['approvalModel', 'roleApprovalModel'],
+        optional: false,
+      },
+      {
+        id: 'handover_status',
+        label: 'Zielprozess-Uebergabestatus',
+        resolvedBy: ['dashboard-api.investmentTwoTrackControlStatus', 'vdmi.dossier'],
+        contextKeys: ['handoverStatus', 'targetProcessHandover'],
+        optional: false,
+      },
+    ],
+  },
+
   regulatory_change_simulator_readiness: {
     sources: [
       {
