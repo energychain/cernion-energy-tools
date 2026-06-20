@@ -796,6 +796,21 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasClsDigitalTwinComplianceCombo =
+    /(cls|digital.?twin|digitaler zwilling|digital.?zwilling)/i.test(haystack) &&
+    /(compliance|beschaffung|procurement|avv|nda|betriebsvereinbarung|dsfa|rollenrechte|rbac|datenfluss|bnetza|security evidence)/i.test(
+      haystack
+    ) &&
+    !/(steuern|steuerung ausfuehren|steuerung ausführen|control command|switch|schalten|device-control|smgw switch)/i.test(
+      haystack
+    );
+  if (hasClsDigitalTwinComplianceCombo || haystack.includes('cls_digital_twin_compliance_gate')) {
+    const clsComplianceCapability = findCapabilityByName('cls_digital_twin_compliance_gate');
+    if (clsComplianceCapability) {
+      return { capability: clsComplianceCapability, score: 122, usedFallback: false };
+    }
+  }
+
   if (
     vdmiAssetValidationSignals.some((signal) => haystack.includes(signal)) ||
     hasVdmiAssetValidationCombo

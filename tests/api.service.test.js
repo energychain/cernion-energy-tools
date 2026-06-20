@@ -501,6 +501,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/imsys-schedule-value-chain-readiness']).toBe(
         'dashboard-api.imsysScheduleValueChainReadinessStatus'
       );
+      expect(aliases['GET /dashboard/cls-digital-twin-compliance-gate']).toBe(
+        'dashboard-api.clsDigitalTwinComplianceGateStatus'
+      );
       expect(aliases['GET /agent-sidecar/tools']).toBe('agent-sidecar.listTools');
       expect(aliases['POST /agent-sidecar/tools/:name/call']).toBe('agent-sidecar.callTool');
       expect(aliases['GET /agent-sidecar/descriptor']).toBe('agent-sidecar.descriptor');

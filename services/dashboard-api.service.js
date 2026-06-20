@@ -61,6 +61,7 @@ module.exports = {
       automationRequirementsDecisionValueStatus: 5 * 60 * 1000, // 5 min
       smartMeterOffBalancingPurposeLockStatus: 5 * 60 * 1000, // 5 min
       imsysScheduleValueChainReadinessStatus: 5 * 60 * 1000, // 5 min
+      clsDigitalTwinComplianceGateStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -2641,6 +2642,66 @@ module.exports = {
           this.settings.cacheTtlMs.imsysScheduleValueChainReadinessStatus,
           async () => ({
             ...this.buildImsysScheduleValueChainReadinessStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── clsDigitalTwinComplianceGateStatus ───────────────────────────────
+    /**
+     * GET /api/dashboard/cls-digital-twin-compliance-gate?procurementId=...
+     *
+     * Read-only dossier-safe evidence gate for CLS/digital-twin procurement.
+     * It exposes compliance readiness and missing evidence without approving
+     * vendors, creating DSFA/RBAC/HITL workflows, or executing CLS/SMGW/device
+     * control, billing, MaKo, external connector or Personal-Agent actions.
+     */
+    clsDigitalTwinComplianceGateStatus: {
+      rest: 'GET /cls-digital-twin-compliance-gate',
+      params: {
+        procurementId: { type: 'string', optional: true, min: 1 },
+        vendorId: { type: 'string', optional: true, min: 1 },
+        systemPurpose: { type: 'string', optional: true, min: 1 },
+        digitalTwinScope: { type: 'string', optional: true, min: 1 },
+        clsInterfaceScope: { type: 'string', optional: true, min: 1 },
+        dataFlowMap: { type: 'string', optional: true, min: 1 },
+        personalDataCategories: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        rolesAccessRights: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        rbacRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        avvStatus: { type: 'string', optional: true, min: 1 },
+        ndaStatus: { type: 'string', optional: true, min: 1 },
+        worksCouncilStatus: { type: 'string', optional: true, min: 1 },
+        dsfaStatus: { type: 'string', optional: true, min: 1 },
+        billingModuleImpact: { type: 'string', optional: true, min: 1 },
+        regulatoryEvidenceStatus: { type: 'string', optional: true, min: 1 },
+        securityEvidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        approvalStatus: { type: 'string', optional: true, min: 1 },
+        sourceEvidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceSnapshot: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'CLS Digital Twin Compliance Gate — read-only dossier-safe status',
+        description:
+          'Builds a deterministic evidence view for CLS/digital-twin procurement readiness. ' +
+          'The endpoint is read-only and does not create procurement, legal, DSFA, RBAC, HITL, billing, settlement, MaKo, CLS, SMGW, device-control, external connector or Personal-Agent side effects.',
+        responses: {
+          200: {
+            description: 'Read-only CLS digital-twin compliance gate status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `cls-digital-twin-compliance:${params.procurementId || 'no-procurement'}:${params.vendorId || 'no-vendor'}:${params.systemPurpose || 'no-purpose'}:${params.dataFlowMap || 'no-data-flow'}:${params.approvalStatus || 'no-approval'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.clsDigitalTwinComplianceGateStatus,
+          async () => ({
+            ...this.buildClsDigitalTwinComplianceGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -8017,6 +8078,168 @@ module.exports = {
           blockingFindings,
           sourceSnapshotRef: params.sourceSnapshotRef || null,
           evidenceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildClsDigitalTwinComplianceGateStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.flatMap((item) => String(item || '').split(',')).map((item) => item.trim()).filter(Boolean)
+        : String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+      const personalDataCategories = toList(params.personalDataCategories);
+      const rolesAccessRights = toList(params.rolesAccessRights);
+      const rbacRefs = toList(params.rbacRefs);
+      const securityEvidenceRefs = toList(params.securityEvidenceRefs);
+      const sourceEvidenceRefs = toList(params.sourceEvidenceRefs);
+      const evidenceSpecs = [
+        ['system_purpose', 'System purpose', params.systemPurpose, 'Systemzweck und Beschaffungsgrenze koennen im Gate-Brief benannt werden'],
+        ['digital_twin_scope', 'Digital-twin scope', params.digitalTwinScope, 'Digital-Twin-Scope und betroffene Asset-/Datenobjekte koennen abgegrenzt werden'],
+        ['cls_interface_scope', 'CLS interface scope', params.clsInterfaceScope, 'CLS-Schnittstellenumfang kann ohne Steuerungsfreigabe dokumentiert werden'],
+        ['data_flow_map', 'Data-flow map', params.dataFlowMap, 'Datenflussrisiken und Systemgrenzen koennen bewertet werden'],
+        ['personal_data_categories', 'Personal-data categories', personalDataCategories.length ? personalDataCategories.join(', ') : null, 'Personenbezogene Datenarten koennen fuer Datenschutz-/DSFA-Bewertung sichtbar werden'],
+        ['roles_access_rights', 'Roles and access rights', rolesAccessRights.length ? rolesAccessRights.join(', ') : null, 'Rollenrechte und Zugriffspfad koennen als Entscheidungsmatrix aufgenommen werden'],
+        ['rbac_refs', 'RBAC refs', rbacRefs.length ? rbacRefs.join(', ') : null, 'RBAC-Nachweise koennen den Rollenrechte-Entscheid belegen'],
+        ['avv_status', 'AVV status', params.avvStatus, 'AVV-Status kann als Vertragsnachweis ergaenzt werden'],
+        ['nda_status', 'NDA status', params.ndaStatus, 'NDA-/Vertraulichkeitsstatus kann als Vertragsnachweis ergaenzt werden'],
+        ['works_council_status', 'Works-council status', params.worksCouncilStatus, 'Betriebsvereinbarungs- oder BR-Bedarf kann als Governance-Grenze sichtbar werden'],
+        ['dsfa_status', 'DSFA status', params.dsfaStatus, 'DSFA-Status kann ohne Rechtsfreigabe als Evidenzluecke oder Nachweis erscheinen'],
+        ['billing_module_impact', 'Billing/module impact', params.billingModuleImpact, 'Abrechnungs- oder Modulwirkung kann als Review-Grenze dokumentiert werden'],
+        ['regulatory_evidence_status', 'Regulatory evidence', params.regulatoryEvidenceStatus, 'BNetzA-/Regulierungsnachweise koennen ohne Authority-Claim referenziert werden'],
+        ['security_evidence_refs', 'Security evidence refs', securityEvidenceRefs.length ? securityEvidenceRefs.join(', ') : null, 'IT-Sicherheitsnachweise koennen die CLS-/Digital-Twin-Beschaffung absichern'],
+        ['source_evidence_refs', 'Source evidence refs', sourceEvidenceRefs.length ? sourceEvidenceRefs.join(', ') : null, 'Quellenreferenzen koennen den Gate-Status auditierbar machen'],
+      ].map(([key, label, value, enablesDossierAddition]) => ({
+        key,
+        label,
+        value,
+        missingDataPoint: key,
+        enablesDossierAddition,
+      }));
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({ id: spec.key, label: spec.label, value: spec.value, evidenceStatus: 'provided' }));
+      const highGaps = new Set(['system_purpose', 'data_flow_map', 'roles_access_rights', 'rbac_refs', 'avv_status', 'dsfa_status', 'regulatory_evidence_status', 'security_evidence_refs']);
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.missingDataPoint,
+          enablesDossierAddition: spec.enablesDossierAddition,
+          category: 'cls_digital_twin_compliance_gate',
+          severity: highGaps.has(spec.missingDataPoint) ? 'high' : 'medium',
+        }));
+      let status = 'ready_for_procurement_review';
+      if (!params.systemPurpose) status = 'needs_system_purpose';
+      else if (!params.dataFlowMap) status = 'needs_data_flow_map';
+      else if (!rolesAccessRights.length || !rbacRefs.length) status = 'needs_rbac_decision';
+      else if (!params.avvStatus || !params.ndaStatus) status = 'needs_contractual_evidence';
+      else if (!params.worksCouncilStatus || !params.dsfaStatus) status = 'needs_dsfa';
+      else if (!params.billingModuleImpact) status = 'needs_billing_review';
+      else if (!params.regulatoryEvidenceStatus || !securityEvidenceRefs.length) status = 'needs_regulatory_security_evidence';
+      else if (!sourceEvidenceRefs.length) status = 'needs_source_evidence';
+      const approvalText = String(params.approvalStatus || '').toLowerCase();
+      const blockedByCompliance =
+        /blocked|gesperrt|reject|abgelehnt|stop|red|rot|nicht freigegeben|not approved/.test(approvalText) &&
+        !/not blocked|unblocked|freigegeben|approved|green|gruen|grün/.test(approvalText);
+      if (blockedByCompliance) status = 'blocked_by_compliance';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        category: item.category,
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `CLSDT_${String(item.missingDataPoint).toUpperCase()}`,
+        severity: item.severity,
+        message: item.enablesDossierAddition,
+      }));
+      if (blockedByCompliance) {
+        blockingFindings.push({
+          code: 'CLSDT_BLOCKED_BY_COMPLIANCE',
+          severity: 'high',
+          message: 'procurement review remains blocked by the supplied compliance approval status',
+        });
+      }
+      const blockedDecisions = missingEvidence.length || blockedByCompliance
+        ? ['vendor_procurement_approval', 'pilot_start', 'cls_interface_activation', 'digital_twin_runtime_use']
+        : [];
+      const gateContext = {
+        procurementId: params.procurementId || null,
+        vendorId: params.vendorId || null,
+        systemPurpose: params.systemPurpose || null,
+        digitalTwinScope: params.digitalTwinScope || null,
+        clsInterfaceScope: params.clsInterfaceScope || null,
+      };
+      const complianceEvidence = {
+        dataFlowMap: params.dataFlowMap || null,
+        personalDataCategories,
+        rolesAccessRights,
+        rbacRefs,
+        avvStatus: params.avvStatus || null,
+        ndaStatus: params.ndaStatus || null,
+        worksCouncilStatus: params.worksCouncilStatus || null,
+        dsfaStatus: params.dsfaStatus || null,
+        billingModuleImpact: params.billingModuleImpact || null,
+        regulatoryEvidenceStatus: params.regulatoryEvidenceStatus || null,
+        securityEvidenceRefs,
+        approvalStatus: params.approvalStatus || null,
+      };
+      const decisionSteps = [
+        { id: 'purpose-and-scope', label: 'System purpose and scope', evidenceStatus: params.systemPurpose && params.digitalTwinScope && params.clsInterfaceScope ? 'provided' : 'missing' },
+        { id: 'data-flow-map', label: 'Data-flow map', evidenceStatus: params.dataFlowMap ? 'provided' : 'missing' },
+        { id: 'roles-rbac', label: 'Roles and RBAC', evidenceStatus: rolesAccessRights.length && rbacRefs.length ? 'provided' : 'missing' },
+        { id: 'contractual-evidence', label: 'AVV/NDA evidence', evidenceStatus: params.avvStatus && params.ndaStatus ? 'provided' : 'missing' },
+        { id: 'privacy-governance', label: 'Works council and DSFA', evidenceStatus: params.worksCouncilStatus && params.dsfaStatus ? 'provided' : 'missing' },
+        { id: 'billing-regulatory-security', label: 'Billing, regulatory and security evidence', evidenceStatus: params.billingModuleImpact && params.regulatoryEvidenceStatus && securityEvidenceRefs.length ? 'provided' : 'missing' },
+      ];
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided CLS compliance evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.procurementId) dossierFacts.push(`Procurement: ${params.procurementId}`);
+      if (params.vendorId) dossierFacts.push(`Vendor: ${params.vendorId}`);
+      if (params.systemPurpose) dossierFacts.push(`System purpose: ${params.systemPurpose}`);
+
+      return {
+        complianceGateStatusId: `clsdt:${Buffer.from(`${params.procurementId || ''}:${params.vendorId || ''}:${params.systemPurpose || ''}:${params.approvalStatus || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'cls_digital_twin_compliance_gate',
+        safety: 'read_only',
+        requestContext: gateContext,
+        status,
+        readinessScore,
+        gateContext,
+        complianceEvidence,
+        decisionSteps,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockedDecisions,
+        blockingFindings,
+        sourceEvidence: {
+          gateContext,
+          complianceEvidence,
+          sourceSnapshot: params.sourceSnapshot || null,
+          sourceEvidenceRefs,
+        },
+        sourceActions: {
+          inspected: ['dashboard-api.clsDigitalTwinComplianceGateStatus'],
+          referenced: ['datasource-registry.get', 'datapoint.health', 'vdmi.dossier', 'interface-placeholder.requestEvidence', 'finance-agent.analyze', 'presentation.generate'],
+          notCalled: ['procurement.approve', 'legal.approve', 'dsfa.create', 'rbac.grant', 'hitl.create', 'billing.release', 'settlement.prepareBilling', 'settlement.exportA96', 'mako.dispatch', 'cls.executeControl', 'smgw.switch', 'device-control.execute', 'external.connector.call', 'personal-agent.execute'],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          gateContext,
+          complianceEvidence,
+          decisionSteps,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockedDecisions,
+          blockingFindings,
+          sourceSnapshot: params.sourceSnapshot || null,
+          sourceEvidenceRefs,
           dossierFacts,
         },
       };

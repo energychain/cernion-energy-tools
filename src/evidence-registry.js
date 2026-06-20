@@ -1374,6 +1374,116 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  cls_digital_twin_compliance_gate: {
+    sources: [
+      {
+        id: 'system_purpose',
+        label: 'Systemzweck',
+        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'vdmi.dossier'],
+        contextKeys: ['systemPurpose'],
+        optional: false,
+      },
+      {
+        id: 'digital_twin_scope',
+        label: 'Digital-Twin-Scope',
+        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'datasource-registry.get'],
+        contextKeys: ['digitalTwinScope'],
+        optional: false,
+      },
+      {
+        id: 'cls_interface_scope',
+        label: 'CLS-Schnittstellenumfang',
+        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['clsInterfaceScope'],
+        optional: false,
+      },
+      {
+        id: 'data_flow_map',
+        label: 'Datenflusskarte',
+        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'datasource-registry.get', 'datapoint.health'],
+        contextKeys: ['dataFlowMap'],
+        optional: false,
+      },
+      {
+        id: 'personal_data_categories',
+        label: 'Personenbezogene Datenarten',
+        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'vdmi.dossier'],
+        contextKeys: ['personalDataCategories'],
+        optional: false,
+      },
+      {
+        id: 'roles_access_rights',
+        label: 'Rollen- und Zugriffsrechte',
+        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'vdmi.dossier'],
+        contextKeys: ['rolesAccessRights'],
+        optional: false,
+      },
+      {
+        id: 'rbac_refs',
+        label: 'RBAC-Nachweise',
+        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'vdmi.dossier'],
+        contextKeys: ['rbacRefs'],
+        optional: false,
+      },
+      {
+        id: 'avv_status',
+        label: 'AVV-Status',
+        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['avvStatus'],
+        optional: false,
+      },
+      {
+        id: 'nda_status',
+        label: 'NDA-Status',
+        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['ndaStatus'],
+        optional: false,
+      },
+      {
+        id: 'works_council_status',
+        label: 'Betriebsvereinbarung/BR-Status',
+        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['worksCouncilStatus'],
+        optional: false,
+      },
+      {
+        id: 'dsfa_status',
+        label: 'DSFA-Status',
+        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['dsfaStatus'],
+        optional: false,
+      },
+      {
+        id: 'billing_module_impact',
+        label: 'Abrechnungs-/Modulwirkung',
+        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'finance-agent.analyze'],
+        contextKeys: ['billingModuleImpact'],
+        optional: false,
+      },
+      {
+        id: 'regulatory_evidence_status',
+        label: 'Regulatorischer Nachweisstatus',
+        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'vdmi.dossier'],
+        contextKeys: ['regulatoryEvidenceStatus'],
+        optional: false,
+      },
+      {
+        id: 'security_evidence_refs',
+        label: 'Security-Nachweise',
+        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['securityEvidenceRefs'],
+        optional: false,
+      },
+      {
+        id: 'source_evidence_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceEvidenceRefs'],
+        optional: false,
+      },
+    ],
+  },
+
   // ── Routing-matrix route-keyed entries ─────────────────────────────────
 
   'investment-grid-check': {

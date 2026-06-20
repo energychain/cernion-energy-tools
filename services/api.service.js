@@ -1437,6 +1437,8 @@ module.exports = {
             'dashboard-api.smartMeterOffBalancingPurposeLockStatus',
           'GET /dashboard/imsys-schedule-value-chain-readiness':
             'dashboard-api.imsysScheduleValueChainReadinessStatus',
+          'GET /dashboard/cls-digital-twin-compliance-gate':
+            'dashboard-api.clsDigitalTwinComplianceGateStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

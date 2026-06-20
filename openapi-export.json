@@ -13966,6 +13966,21 @@
         "description": "Builds a deterministic evidence view for iMSys/CLS schedule value-chain readiness. The endpoint is read-only and does not execute device control, grid operations, HITL, MaKo, billing, settlement, external connector or Personal-Agent actions."
       }
     },
+    "/api/dashboard-api/cls-digital-twin-compliance-gate": {
+      "get": {
+        "operationId": "dashboard-api_clsDigitalTwinComplianceGateStatus",
+        "summary": "CLS Digital Twin Compliance Gate — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only CLS digital-twin compliance gate status"
+          }
+        },
+        "description": "Builds a deterministic evidence view for CLS/digital-twin procurement readiness. The endpoint is read-only and does not create procurement, legal, DSFA, RBAC, HITL, billing, settlement, MaKo, CLS, SMGW, device-control, external connector or Personal-Agent side effects."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -52892,6 +52907,21 @@
           }
         },
         "description": "Builds a deterministic evidence view for iMSys/CLS schedule value-chain readiness. The endpoint is read-only and does not execute device control, grid operations, HITL, MaKo, billing, settlement, external connector or Personal-Agent actions."
+      }
+    },
+    "/api/dashboard/cls-digital-twin-compliance-gate": {
+      "get": {
+        "operationId": "dashboard-api_clsDigitalTwinComplianceGateStatus",
+        "summary": "CLS Digital Twin Compliance Gate — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only CLS digital-twin compliance gate status"
+          }
+        },
+        "description": "Builds a deterministic evidence view for CLS/digital-twin procurement readiness. The endpoint is read-only and does not create procurement, legal, DSFA, RBAC, HITL, billing, settlement, MaKo, CLS, SMGW, device-control, external connector or Personal-Agent side effects."
       }
     },
     "/api/dashboard/market-snapshot": {

@@ -2835,6 +2835,94 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── clsDigitalTwinComplianceGateStatus ────────────────────────────────
+
+  describe('clsDigitalTwinComplianceGateStatus', () => {
+    it('reports compliance evidence gaps without creating procurement or control side effects', async () => {
+      const result = await broker.call('dashboard-api.clsDigitalTwinComplianceGateStatus', {
+        procurementId: 'proc-197',
+        vendorId: 'vendor-cls',
+        systemPurpose: 'cls-digital-twin-procurement-review',
+        digitalTwinScope: 'lv-grid-digital-twin',
+      });
+
+      expect(result.status).toBe('needs_data_flow_map');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'data_flow_map',
+          'roles_access_rights',
+          'rbac_refs',
+          'avv_status',
+          'dsfa_status',
+          'regulatory_evidence_status',
+          'security_evidence_refs',
+        ])
+      );
+      expect(result.blockedDecisions).toEqual(
+        expect.arrayContaining(['vendor_procurement_approval', 'cls_interface_activation'])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('cls_digital_twin_compliance_gate');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'procurement.approve',
+          'legal.approve',
+          'dsfa.create',
+          'rbac.grant',
+          'hitl.create',
+          'billing.release',
+          'settlement.prepareBilling',
+          'mako.dispatch',
+          'cls.executeControl',
+          'smgw.switch',
+          'device-control.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_procurement_review when compliance evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.clsDigitalTwinComplianceGateStatus', {
+        procurementId: 'proc-197',
+        vendorId: 'vendor-cls',
+        systemPurpose: 'cls-digital-twin-procurement-review',
+        digitalTwinScope: 'lv-grid-digital-twin',
+        clsInterfaceScope: 'taf7-readonly-status',
+        dataFlowMap: 'dfm:cls-dt-197',
+        personalDataCategories: 'operator-user,technical-metering-ref',
+        rolesAccessRights: 'netzleitwarte-read,assetmanagement-review',
+        rbacRefs: 'rbac:cls-dt-197',
+        avvStatus: 'available',
+        ndaStatus: 'available',
+        worksCouncilStatus: 'not-required-documented',
+        dsfaStatus: 'screening-complete',
+        billingModuleImpact: 'no-billing-mutation-review',
+        regulatoryEvidenceStatus: 'bnetza-evidence-referenced',
+        securityEvidenceRefs: 'iso27001:vendor,bsitr:cls-path',
+        approvalStatus: 'green-for-procurement-review',
+        sourceEvidenceRefs: 'vdmi:cls-197,datasource:flow-197',
+        sourceSnapshot: 'snapshot:cls-197',
+      });
+
+      expect(result.status).toBe('ready_for_procurement_review');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.blockedDecisions).toEqual([]);
+      expect(result.gateContext.procurementId).toBe('proc-197');
+      expect(result.complianceEvidence.rolesAccessRights).toEqual([
+        'netzleitwarte-read',
+        'assetmanagement-review',
+      ]);
+      expect(result.complianceEvidence.securityEvidenceRefs).toEqual([
+        'iso27001:vendor',
+        'bsitr:cls-path',
+      ]);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided CLS compliance evidence: 15/15');
+      expect(result.sourceActions.notCalled).toContain('cls.executeControl');
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

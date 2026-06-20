@@ -1032,6 +1032,26 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes CLS digital-twin compliance prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe cls_digital_twin_compliance_gate fuer CLS Schnittstelle, digitaler Zwilling Beschaffung, AVV, NDA, Betriebsvereinbarung, Rollenrechte, Datenfluss, DSFA, BNetzA Nachweis und Security Evidence.',
+    });
+
+    expect(result.capability).toBe('cls_digital_twin_compliance_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe('cls_digital_twin_compliance_gate');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.clsDigitalTwinComplianceGateStatus');
+    expect(actionNames).not.toContain('procurement.approve');
+    expect(actionNames).not.toContain('legal.approve');
+    expect(actionNames).not.toContain('dsfa.create');
+    expect(actionNames).not.toContain('rbac.grant');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('cls.executeControl');
+    expect(actionNames).not.toContain('smgw.switch');
+    expect(actionNames).not.toContain('device-control.execute');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 33 static rules', () => {
+    it('loads all 34 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(33);
+      expect(rules.length).toBe(34);
     });
 
-    it('compiles all 33 static rules without error', () => {
+    it('compiles all 34 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(33);
+      expect(rules.length).toBe(34);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1104,6 +1104,68 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Control Readiness: missing');
       expect(formatted).toContain('Leading Gap: controllability_status');
       expect(formatted).toContain('Side-Effect Guard: device-control.execute');
+    });
+
+    it('dashboard-api.clsDigitalTwinComplianceGateStatus is dossier-safe and formats compliance facts', () => {
+      const rule = getRule('dashboard-api.clsDigitalTwinComplianceGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte CLS Digital Twin Compliance procurement=proc-197 vendor=vendor-1 systemPurpose=grid-twin laden'
+        )
+      ).toEqual({
+        procurementId: 'proc-197',
+        vendorId: 'vendor-1',
+        systemPurpose: 'grid-twin',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_rbac_decision',
+        readinessScore: 0.53,
+        requestContext: {
+          procurementId: 'proc-197',
+        },
+        gateContext: {
+          procurementId: 'proc-197',
+          vendorId: 'vendor-1',
+          systemPurpose: 'grid-twin',
+          digitalTwinScope: 'lv-grid',
+          clsInterfaceScope: 'taf7-status',
+        },
+        complianceEvidence: {
+          dataFlowMap: 'dfm:197',
+          avvStatus: 'available',
+          ndaStatus: 'available',
+          worksCouncilStatus: 'pending',
+          dsfaStatus: 'screening',
+          billingModuleImpact: 'review-only',
+          regulatoryEvidenceStatus: 'bnetza-ref',
+        },
+        missingEvidence: [
+          { missingDataPoint: 'rbac_refs' },
+        ],
+        sourceActions: {
+          notCalled: ['procurement.approve'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_rbac_decision'],
+        },
+      });
+
+      expect(formatted).toContain('CLS Compliance Status: needs_rbac_decision');
+      expect(formatted).toContain('Readiness: 0.53');
+      expect(formatted).toContain('Procurement: proc-197');
+      expect(formatted).toContain('Vendor: vendor-1');
+      expect(formatted).toContain('System Purpose: grid-twin');
+      expect(formatted).toContain('Twin Scope: lv-grid');
+      expect(formatted).toContain('CLS Scope: taf7-status');
+      expect(formatted).toContain('Data Flow: dfm:197');
+      expect(formatted).toContain('AVV: available');
+      expect(formatted).toContain('DSFA: screening');
+      expect(formatted).toContain('Leading Gap: rbac_refs');
+      expect(formatted).toContain('Side-Effect Guard: procurement.approve');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {

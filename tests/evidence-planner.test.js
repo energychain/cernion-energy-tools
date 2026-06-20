@@ -541,6 +541,39 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans CLS Digital Twin Compliance Gate as governance and evidence bundle', () => {
+    const result = planEvidence(
+      { routeLabel: 'cls_digital_twin_compliance_gate' },
+      {
+        procurementId: 'proc-197',
+        systemPurpose: 'cls-digital-twin-review',
+        dataFlowMap: 'dfm:197',
+        rolesAccessRights: ['leitwarte-read'],
+        avvStatus: 'available',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('cls_digital_twin_compliance_gate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining([
+        'system_purpose',
+        'data_flow_map',
+        'roles_access_rights',
+        'avv_status',
+      ])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'rbac_refs',
+        'dsfa_status',
+        'billing_module_impact',
+        'regulatory_evidence_status',
+        'security_evidence_refs',
+      ])
+    );
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });

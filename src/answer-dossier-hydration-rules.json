@@ -1681,5 +1681,72 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 199
+  },
+  {
+    "id": "dashboard-api.clsDigitalTwinComplianceGateStatus",
+    "action": "dashboard-api.clsDigitalTwinComplianceGateStatus",
+    "label": "CLS Digital Twin Compliance Gate Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "procurementId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:procurementId[:= ]+|procurement[:=]+|beschaffung[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "vendorId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:vendorId[:= ]+|vendor[:=]+|anbieter[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "systemPurpose": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:systemPurpose[:= ]+|purpose[:=]+|systemzweck[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "CLS Compliance Status", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.procurementId", "gateContext.procurementId"], "label": "Procurement", "maxLen": 100 },
+        { "paths": ["gateContext.vendorId", "dossierEvidence.gateContext.vendorId"], "label": "Vendor", "maxLen": 100 },
+        { "paths": ["gateContext.systemPurpose", "dossierEvidence.gateContext.systemPurpose"], "label": "System Purpose", "maxLen": 140 },
+        { "paths": ["gateContext.digitalTwinScope", "dossierEvidence.gateContext.digitalTwinScope"], "label": "Twin Scope", "maxLen": 140 },
+        { "paths": ["gateContext.clsInterfaceScope", "dossierEvidence.gateContext.clsInterfaceScope"], "label": "CLS Scope", "maxLen": 140 },
+        { "paths": ["complianceEvidence.dataFlowMap", "dossierEvidence.complianceEvidence.dataFlowMap"], "label": "Data Flow", "maxLen": 140 },
+        { "paths": ["complianceEvidence.avvStatus", "dossierEvidence.complianceEvidence.avvStatus"], "label": "AVV", "maxLen": 120 },
+        { "paths": ["complianceEvidence.ndaStatus", "dossierEvidence.complianceEvidence.ndaStatus"], "label": "NDA", "maxLen": 120 },
+        { "paths": ["complianceEvidence.worksCouncilStatus", "dossierEvidence.complianceEvidence.worksCouncilStatus"], "label": "Works Council", "maxLen": 120 },
+        { "paths": ["complianceEvidence.dsfaStatus", "dossierEvidence.complianceEvidence.dsfaStatus"], "label": "DSFA", "maxLen": 120 },
+        { "paths": ["complianceEvidence.billingModuleImpact", "dossierEvidence.complianceEvidence.billingModuleImpact"], "label": "Billing Impact", "maxLen": 140 },
+        { "paths": ["complianceEvidence.regulatoryEvidenceStatus", "dossierEvidence.complianceEvidence.regulatoryEvidenceStatus"], "label": "Regulatory Evidence", "maxLen": 140 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 197
   }
 ]
