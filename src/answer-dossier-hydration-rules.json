@@ -1053,6 +1053,67 @@
     "sourceIssue": 195
   },
   {
+    "id": "dashboard-api.investmentRiskTranslationStatus",
+    "action": "dashboard-api.investmentRiskTranslationStatus",
+    "label": "Investment Risk Translation Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "sourceRef": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:sourceRef[:= ]+|source[:=]+|quelle[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "sourceType": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:sourceType[:= ]+|source type[:= ]+|quellentyp[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "classification": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:classification[:= ]+|klasse[:= ]+|klassifikation[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Translation Status", "maxLen": 80 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.sourceRef", "translationContext.sourceRef"], "label": "Source", "maxLen": 100 },
+        { "paths": ["translationContext.sourceType", "dossierEvidence.translationContext.sourceType"], "label": "Source Type", "maxLen": 80 },
+        { "paths": ["translationContext.classification", "dossierEvidence.translationContext.classification"], "label": "Classification", "maxLen": 100 },
+        { "paths": ["handoverContext.ownerRole", "dossierEvidence.handoverContext.ownerRole"], "label": "Owner", "maxLen": 100 },
+        { "paths": ["handoverContext.blockedDecisionId", "dossierEvidence.handoverContext.blockedDecisionId"], "label": "Blocked Decision", "maxLen": 100 },
+        { "paths": ["handoverContext.nextAction", "dossierEvidence.handoverContext.nextAction"], "label": "Next Action", "maxLen": 140 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 100 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 191
+  },
+  {
     "id": "dashboard-api.energyTaxInformationPackageStatus",
     "action": "dashboard-api.energyTaxInformationPackageStatus",
     "label": "Energy Tax Information Package Evidence",

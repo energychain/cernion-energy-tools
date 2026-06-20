@@ -1398,6 +1398,8 @@ module.exports = {
             'dashboard-api.sapBudgetPspGateStatus',
           'GET /dashboard/energy-tax-information-package':
             'dashboard-api.energyTaxInformationPackageStatus',
+          'GET /dashboard/investment-risk-translation':
+            'dashboard-api.investmentRiskTranslationStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

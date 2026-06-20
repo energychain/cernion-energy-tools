@@ -53,6 +53,7 @@ module.exports = {
       investmentTwoTrackControlStatus: 5 * 60 * 1000, // 5 min
       sapBudgetPspGateStatus: 5 * 60 * 1000, // 5 min
       energyTaxInformationPackageStatus: 5 * 60 * 1000, // 5 min
+      investmentRiskTranslationStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -1966,6 +1967,99 @@ module.exports = {
           this.settings.cacheTtlMs.energyTaxInformationPackageStatus,
           async () => ({
             ...this.buildEnergyTaxInformationPackageStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── investmentRiskTranslationStatus ─────────────────────────────────
+    /**
+     * GET /api/dashboard/investment-risk-translation?sourceRef=...
+     *
+     * Read-only dossier-safe evidence view for GF slides, risk-register items,
+     * monthly reports and workshop anchors before they become investment/risk
+     * handovers. It does not create VDMI tasks, HITL items, Finance-Agent runs,
+     * Investment Planning measures, SAP/PSP writes, external calls or
+     * Personal-Agent execution.
+     */
+    investmentRiskTranslationStatus: {
+      rest: 'GET /investment-risk-translation',
+      params: {
+        sourceRef: { type: 'string', optional: true, min: 1 },
+        sourceType: { type: 'string', optional: true, min: 1 },
+        period: { type: 'string', optional: true, min: 1 },
+        division: { type: 'string', optional: true, min: 1 },
+        classification: { type: 'string', optional: true, min: 1 },
+        financialImpact: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        assetImpact: { type: 'string', optional: true, min: 1 },
+        ownerRole: { type: 'string', optional: true, min: 1 },
+        decisionReadiness: { type: 'string', optional: true, min: 1 },
+        blockedDecisionId: { type: 'string', optional: true, min: 1 },
+        nextAction: { type: 'string', optional: true, min: 1 },
+        sourceSnapshot: { type: 'string', optional: true, min: 1 },
+        evidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        forbiddenAssumptions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        budgetRef: { type: 'string', optional: true, min: 1 },
+        riskRef: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Investment Risk Translation — read-only dossier-safe status',
+        description:
+          'Builds a deterministic evidence view for investment/risk translation material. ' +
+          'The endpoint is read-only and does not create VDMI, HITL, Finance, Investment Planning, SAP/PSP, external connector or Personal-Agent side effects.',
+        parameters: [
+          { name: 'sourceRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'period', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'division', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'classification', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'financialImpact', in: 'query', required: false, schema: { oneOf: [{ type: 'number' }, { type: 'string' }] } },
+          { name: 'assetImpact', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionReadiness', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'blockedDecisionId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextAction', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceSnapshot', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceRefs', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only investment-risk translation status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    translationContext: { type: 'object' },
+                    handoverContext: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `investment-risk-translation:${params.sourceRef || 'no-source'}:${params.sourceType || 'no-type'}:${params.period || 'no-period'}:${params.classification || 'no-class'}:${params.ownerRole || 'no-owner'}:${params.decisionReadiness || 'no-readiness'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.investmentRiskTranslationStatus,
+          async () => ({
+            ...this.buildInvestmentRiskTranslationStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -5238,6 +5332,251 @@ module.exports = {
           positiveFollowUps,
           blockingFindings,
           sourceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildInvestmentRiskTranslationStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const evidenceRefs = toList(params.evidenceRefs);
+      const forbiddenAssumptions = toList(params.forbiddenAssumptions);
+      const evidenceSpecs = [
+        {
+          id: 'source_identity',
+          label: 'Source reference and type',
+          value: params.sourceRef && params.sourceType,
+          displayValue: [params.sourceRef, params.sourceType].filter(Boolean).join(' / '),
+          sourceClass: 'investment_risk_source',
+          enablesDossierAddition: 'add the concrete management/risk source and document type',
+        },
+        {
+          id: 'period_division',
+          label: 'Period and division',
+          value: params.period && params.division,
+          displayValue: [params.period, params.division].filter(Boolean).join(' / '),
+          sourceClass: 'business_context',
+          enablesDossierAddition: 'add the temporal and division context for the handover',
+        },
+        {
+          id: 'classification',
+          label: 'Translation classification',
+          value: params.classification,
+          sourceClass: 'classification',
+          enablesDossierAddition: 'add whether the source is report, decision basis, evidence, risk, measure or follow-up task',
+        },
+        {
+          id: 'impact_context',
+          label: 'Financial and asset impact',
+          value: params.financialImpact || params.assetImpact || params.budgetRef || params.riskRef,
+          displayValue: [params.financialImpact, params.assetImpact, params.budgetRef, params.riskRef].filter(Boolean).join(' / '),
+          sourceClass: 'impact_context',
+          enablesDossierAddition: 'add investment, asset and risk consequence wording',
+        },
+        {
+          id: 'owner_role',
+          label: 'Owner role',
+          value: params.ownerRole,
+          sourceClass: 'owner',
+          enablesDossierAddition: 'add accountable handover ownership',
+        },
+        {
+          id: 'decision_readiness',
+          label: 'Decision readiness',
+          value: params.decisionReadiness,
+          sourceClass: 'decision_readiness',
+          enablesDossierAddition: 'add decision-readiness and blocked-decision context',
+        },
+        {
+          id: 'blocked_decision',
+          label: 'Blocked decision',
+          value: params.blockedDecisionId,
+          sourceClass: 'decision_chain',
+          enablesDossierAddition: 'add the concrete follow-up decision that is blocked or prepared',
+        },
+        {
+          id: 'next_action',
+          label: 'Next action',
+          value: params.nextAction,
+          sourceClass: 'handover_action',
+          enablesDossierAddition: 'add operational next-action wording',
+        },
+        {
+          id: 'source_snapshot',
+          label: 'Source snapshot',
+          value: params.sourceSnapshot,
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add source grounding for the translation status',
+        },
+        {
+          id: 'evidence_refs',
+          label: 'Evidence references',
+          value: evidenceRefs.length > 0,
+          displayValue: evidenceRefs.join(', '),
+          sourceClass: 'evidence_refs',
+          enablesDossierAddition: 'add citable evidence references to the dossier',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue || spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const readinessText = String(params.decisionReadiness || '').toLowerCase();
+      const blockedByDecision = /block|blocked|gesperrt|offen|not.ready|not_ready|unready|unklar|unclear/.test(readinessText);
+      const status =
+        blockedByDecision
+          ? 'blocked_for_decision'
+          : !params.sourceRef || !params.sourceType
+            ? 'needs_source_identity'
+            : !params.classification
+              ? 'needs_classification'
+              : !params.financialImpact && !params.assetImpact && !params.budgetRef && !params.riskRef
+                ? 'needs_impact_context'
+                : !params.ownerRole
+                  ? 'needs_owner_role'
+                  : !params.decisionReadiness
+                    ? 'needs_decision_readiness'
+                    : !params.blockedDecisionId
+                      ? 'needs_blocked_decision'
+                      : !params.nextAction
+                        ? 'needs_next_action'
+                        : !params.sourceSnapshot || evidenceRefs.length === 0
+                          ? 'needs_source_evidence'
+                          : missingEvidence.length === 0
+                            ? 'ready_for_handover'
+                            : 'needs_translation_evidence';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'investment_risk_translation_status',
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `IRTS_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['source_identity', 'classification', 'decision_readiness', 'blocked_decision'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      if (blockedByDecision) {
+        blockingFindings.push({
+          code: 'IRTS_DECISION_READINESS_BLOCKING',
+          severity: 'high',
+          message: 'decision readiness is explicitly blocking the investment/risk handover',
+        });
+      }
+      const translationContext = {
+        sourceRef: params.sourceRef || null,
+        sourceType: params.sourceType || null,
+        period: params.period || null,
+        division: params.division || null,
+        classification: params.classification || null,
+      };
+      const handoverContext = {
+        financialImpact: params.financialImpact || null,
+        assetImpact: params.assetImpact || null,
+        budgetRef: params.budgetRef || null,
+        riskRef: params.riskRef || null,
+        ownerRole: params.ownerRole || null,
+        decisionReadiness: params.decisionReadiness || null,
+        blockedDecisionId: params.blockedDecisionId || null,
+        nextAction: params.nextAction || null,
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided translation evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.sourceRef) dossierFacts.push(`Source: ${params.sourceRef}`);
+      if (params.classification) dossierFacts.push(`Classification: ${params.classification}`);
+      if (params.ownerRole) dossierFacts.push(`Owner: ${params.ownerRole}`);
+      if (params.blockedDecisionId) dossierFacts.push(`Blocked decision: ${params.blockedDecisionId}`);
+
+      return {
+        translationStatusId: `irts:${Buffer.from(`${params.sourceRef || ''}:${params.sourceType || ''}:${params.period || ''}:${params.classification || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'investment_risk_translation_status',
+        safety: 'read_only',
+        requestContext: {
+          sourceRef: params.sourceRef || null,
+          sourceType: params.sourceType || null,
+          period: params.period || null,
+          division: params.division || null,
+        },
+        status,
+        readinessScore,
+        translationContext,
+        handoverContext,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          translationContext,
+          handoverContext,
+          sourceSnapshot: params.sourceSnapshot || null,
+          evidenceRefs,
+          forbiddenAssumptions,
+        },
+        evidenceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.investmentRiskTranslationStatus'],
+          referenced: [
+            'vdmi.create',
+            'vdmi-evidence.inject',
+            'vdmi-findings.list',
+            'finance-agent.analyze',
+            'investment-planning.createPlan',
+            'hitl.create',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'vdmi.create',
+            'vdmi-evidence.inject',
+            'finance-agent.analyze',
+            'investment-planning.createPlan',
+            'investment-planning.mutate',
+            'hitl.create',
+            'sap.psp.write',
+            'sap.budget.write',
+            'finance-agent.mutate',
+            'settlement.exportA96',
+            'settlement.prepareBilling',
+            'billing.release',
+            'mako.dispatch',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          translationContext,
+          handoverContext,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceSnapshot: params.sourceSnapshot || null,
+          evidenceRefs,
+          forbiddenAssumptions,
           dossierFacts,
         },
       };

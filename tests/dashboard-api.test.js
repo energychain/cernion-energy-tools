@@ -2200,6 +2200,84 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── investmentRiskTranslationStatus ───────────────────────────────────
+
+  describe('investmentRiskTranslationStatus', () => {
+    it('reports translation gaps without creating downstream actions', async () => {
+      const result = await broker.call('dashboard-api.investmentRiskTranslationStatus', {
+        sourceRef: 'gf-slide:191',
+        sourceType: 'gf_slide',
+        classification: 'decision_basis',
+      });
+
+      expect(result.status).toBe('needs_impact_context');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['period_division', 'impact_context', 'owner_role', 'decision_readiness', 'blocked_decision'])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('investment_risk_translation_status');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'vdmi.create',
+          'finance-agent.analyze',
+          'investment-planning.createPlan',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_handover when translation evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.investmentRiskTranslationStatus', {
+        sourceRef: 'gf-slide:191',
+        sourceType: 'gf_slide',
+        period: '2026-Q3',
+        division: 'Stromnetz',
+        classification: 'decision_basis',
+        financialImpact: 'capex-risk 250000',
+        assetImpact: 'substation renewal cluster',
+        ownerRole: 'Asset Risk Owner',
+        decisionReadiness: 'ready',
+        blockedDecisionId: 'decision:capex-priority-q3',
+        nextAction: 'prepare board handover',
+        sourceSnapshot: 'snapshot:gf-slide-191',
+        evidenceRefs: 'vdmi:evidence-1,finance:finding-2',
+      });
+
+      expect(result.status).toBe('ready_for_handover');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.translationContext.classification).toBe('decision_basis');
+      expect(result.handoverContext.ownerRole).toBe('Asset Risk Owner');
+      expect(result.evidenceRefs).toEqual(['vdmi:evidence-1', 'finance:finding-2']);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided translation evidence: 10/10');
+      expect(result.sourceActions.notCalled).toContain('hitl.create');
+    });
+
+    it('surfaces blocked decision readiness as an explicit finding', async () => {
+      const result = await broker.call('dashboard-api.investmentRiskTranslationStatus', {
+        sourceRef: 'risk-register:191',
+        sourceType: 'risk_register',
+        period: '2026-Q3',
+        division: 'Stromnetz',
+        classification: 'risk',
+        financialImpact: 'opex exposure',
+        assetImpact: 'asset ageing cluster',
+        ownerRole: 'Risk Office',
+        decisionReadiness: 'blocked',
+        blockedDecisionId: 'decision:risk-budget',
+        nextAction: 'clarify mitigation owner',
+        sourceSnapshot: 'snapshot:risk-191',
+        evidenceRefs: ['risk:evidence-1'],
+      });
+
+      expect(result.status).toBe('blocked_for_decision');
+      expect(result.blockingFindings.map((finding) => finding.code)).toContain(
+        'IRTS_DECISION_READINESS_BLOCKING'
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

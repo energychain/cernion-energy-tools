@@ -287,6 +287,81 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  investment_risk_translation_status: {
+    sources: [
+      {
+        id: 'source_identity',
+        label: 'Quelle und Quellentyp',
+        resolvedBy: ['dashboard-api.investmentRiskTranslationStatus', 'vdmi.dossier'],
+        contextKeys: ['sourceRef', 'sourceType'],
+        optional: false,
+      },
+      {
+        id: 'period_division',
+        label: 'Zeitraum und Sparte',
+        resolvedBy: ['dashboard-api.investmentRiskTranslationStatus', 'vdmi.dossier'],
+        contextKeys: ['period', 'division'],
+        optional: false,
+      },
+      {
+        id: 'classification',
+        label: 'Klassifikation der Unterlage',
+        resolvedBy: ['dashboard-api.investmentRiskTranslationStatus', 'vdmi-findings.list'],
+        contextKeys: ['classification'],
+        optional: false,
+      },
+      {
+        id: 'impact_context',
+        label: 'Finanz-/Asset-/Risikoauswirkung',
+        resolvedBy: ['dashboard-api.investmentRiskTranslationStatus', 'finance-agent.analyze', 'investment-planning.createPlan'],
+        contextKeys: ['financialImpact', 'assetImpact', 'budgetRef', 'riskRef'],
+        optional: false,
+      },
+      {
+        id: 'owner_role',
+        label: 'Owner-Rolle',
+        resolvedBy: ['dashboard-api.investmentRiskTranslationStatus', 'vdmi.dossier'],
+        contextKeys: ['ownerRole'],
+        optional: false,
+      },
+      {
+        id: 'decision_readiness',
+        label: 'Entscheidungsreife',
+        resolvedBy: ['dashboard-api.investmentRiskTranslationStatus', 'vdmi-findings.list'],
+        contextKeys: ['decisionReadiness'],
+        optional: false,
+      },
+      {
+        id: 'blocked_decision',
+        label: 'Blockierte Folgeentscheidung',
+        resolvedBy: ['dashboard-api.investmentRiskTranslationStatus', 'hitl.create'],
+        contextKeys: ['blockedDecisionId'],
+        optional: false,
+      },
+      {
+        id: 'next_action',
+        label: 'Naechste Aktion',
+        resolvedBy: ['dashboard-api.investmentRiskTranslationStatus', 'presentation.generate'],
+        contextKeys: ['nextAction'],
+        optional: false,
+      },
+      {
+        id: 'source_snapshot',
+        label: 'Quellensnapshot',
+        resolvedBy: ['dashboard-api.investmentRiskTranslationStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceSnapshot'],
+        optional: false,
+      },
+      {
+        id: 'evidence_refs',
+        label: 'Evidenzreferenzen',
+        resolvedBy: ['dashboard-api.investmentRiskTranslationStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['evidenceRefs'],
+        optional: false,
+      },
+    ],
+  },
+
   sap_budget_psp_gate: {
     sources: [
       {

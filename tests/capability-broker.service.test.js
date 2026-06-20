@@ -883,6 +883,24 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Invest Risiko translation prompts to the read-only evidence status', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Uebersetze GF-Folie und Monatsbericht als Invest Risiko Uebersetzungsqueue mit Risikoaufnahme, Entscheidungsgrundlage, Owner, blockierter Folgeentscheidung und naechster Aktion.',
+    });
+
+    expect(result.capability).toBe('investment_risk_translation_status');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'investment_risk_translation_status'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.investmentRiskTranslationStatus');
+    expect(actionNames).not.toContain('vdmi.create');
+    expect(actionNames).not.toContain('finance-agent.analyze');
+    expect(actionNames).not.toContain('investment-planning.createPlan');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

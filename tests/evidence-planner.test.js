@@ -298,6 +298,36 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans Investment Risk Translation Status as source and handover evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'investment_risk_translation_status' },
+      {
+        sourceRef: 'gf-slide-191',
+        sourceType: 'gf_slide',
+        period: '2026-Q3',
+        division: 'Stromnetz',
+        classification: 'decision_basis',
+        ownerRole: 'Asset Risk Owner',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('investment_risk_translation_status');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['source_identity', 'period_division', 'classification', 'owner_role'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'impact_context',
+        'decision_readiness',
+        'blocked_decision',
+        'next_action',
+        'source_snapshot',
+        'evidence_refs',
+      ])
+    );
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });

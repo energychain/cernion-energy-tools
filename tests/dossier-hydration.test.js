@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 25 static rules', () => {
+    it('loads all 26 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(25);
+      expect(rules.length).toBe(26);
     });
 
-    it('compiles all 25 static rules without error', () => {
+    it('compiles all 26 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(25);
+      expect(rules.length).toBe(26);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -654,6 +654,56 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Dictionary: dd-v1');
       expect(formatted).toContain('Leading Gap: responsible_owner');
       expect(formatted).toContain('Side-Effect Guard: tax.calculate');
+    });
+
+    it('dashboard-api.investmentRiskTranslationStatus is dossier-safe and formats translation facts', () => {
+      const rule = getRule('dashboard-api.investmentRiskTranslationStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Invest Risiko Quelle source=gf-slide:191 sourceType=gf_slide classification=decision_basis laden'
+        )
+      ).toEqual({
+        sourceRef: 'gf-slide:191',
+        sourceType: 'gf_slide',
+        classification: 'decision_basis',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_owner_role',
+        readinessScore: 0.5,
+        requestContext: {
+          sourceRef: 'gf-slide:191',
+        },
+        translationContext: {
+          sourceType: 'gf_slide',
+          classification: 'decision_basis',
+        },
+        handoverContext: {
+          blockedDecisionId: 'decision:capex-q3',
+          nextAction: 'prepare handover',
+        },
+        missingEvidence: [
+          { missingDataPoint: 'owner_role' },
+        ],
+        sourceActions: {
+          notCalled: ['vdmi.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_owner_role'],
+        },
+      });
+
+      expect(formatted).toContain('Translation Status: needs_owner_role');
+      expect(formatted).toContain('Readiness: 0.5');
+      expect(formatted).toContain('Source: gf-slide:191');
+      expect(formatted).toContain('Source Type: gf_slide');
+      expect(formatted).toContain('Classification: decision_basis');
+      expect(formatted).toContain('Blocked Decision: decision:capex-q3');
+      expect(formatted).toContain('Leading Gap: owner_role');
+      expect(formatted).toContain('Side-Effect Guard: vdmi.create');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {
