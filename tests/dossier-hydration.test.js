@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 21 static rules', () => {
+    it('loads all 22 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(21);
+      expect(rules.length).toBe(22);
     });
 
-    it('compiles all 21 static rules without error', () => {
+    it('compiles all 22 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(21);
+      expect(rules.length).toBe(22);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -472,6 +472,44 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Asset: asset-194');
       expect(formatted).toContain('Owner: assetmanagement');
       expect(formatted).toContain('Leading Gap: feedback_capability');
+    });
+
+    it('dashboard-api.regulatoryChangeReadinessStatus is dossier-safe and formats readiness facts', () => {
+      const rule = getRule('dashboard-api.regulatoryChangeReadinessStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Regulatory Change Readiness fuer reg-change:eeg-2027 zum 2027-01-01 EEG pruefen'
+        )
+      ).toEqual({
+        changeId: 'reg-change:eeg-2027',
+        effectiveDate: '2027-01-01',
+        mechanismType: 'eeg',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_interval_profile',
+        readinessScore: 0.36,
+        requestContext: {
+          changeId: 'reg-change:eeg-2027',
+          effectiveDate: '2027-01-01',
+          mechanismType: 'EEG',
+        },
+        sourceEvidence: {
+          dictionaryVersion: 'dd-v1',
+          billingRuleReference: 'eeg-rule-v1',
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_interval_profile'],
+        },
+      });
+
+      expect(formatted).toContain('Readiness Status: needs_interval_profile');
+      expect(formatted).toContain('Readiness: 0.36');
+      expect(formatted).toContain('Change: reg-change:eeg-2027');
+      expect(formatted).toContain('Dictionary: dd-v1');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {

@@ -1878,6 +1878,68 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── regulatoryChangeReadinessStatus ─────────────────────────────────────
+
+  describe('regulatoryChangeReadinessStatus', () => {
+    it('reports explicit regulatory readiness gaps without creating downstream actions', async () => {
+      const result = await broker.call('dashboard-api.regulatoryChangeReadinessStatus', {
+        changeId: 'reg-change:eeg-2027',
+        effectiveDate: '2027-01-01',
+        mechanismType: 'EEG',
+        dictionaryVersion: 'dd-v1',
+      });
+
+      expect(result.status).toBe('needs_interval_profile');
+      expect(result.readinessScore).toBeGreaterThan(0);
+      expect(result.evidenceItems.map((item) => item.id)).toEqual(
+        expect.arrayContaining(['data_contract', 'dictionary_version'])
+      );
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'source_datapoints',
+          'interval_profile_coverage',
+          'master_data_quality',
+          'market_communication_cases',
+          'audit_trail',
+        ])
+      );
+      expect(result.generatedTestCaseRequirements.map((item) => item.requiredEvidence)).toContain(
+        'interval_profile_coverage'
+      );
+      expect(result.positiveFollowUps[0].category).toBe('regulatory_change_readiness');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['settlement.exportA96', 'mako.dispatch', 'hitl.create', 'personal-agent.execute'])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_simulation when the evidence contract is complete', async () => {
+      const result = await broker.call('dashboard-api.regulatoryChangeReadinessStatus', {
+        changeId: 'reg-change:eeg-2027',
+        effectiveDate: '2027-01-01',
+        mechanismType: 'EEG',
+        affectedSystems: ['edm', 'settlement'],
+        dictionaryVersion: 'dd-v1',
+        sourceDatapoints: ['dp-1', 'dp-2'],
+        intervalCoverage: 'complete',
+        masterDataStatus: 'usable',
+        substituteValuePolicy: 'approved',
+        makoCases: ['utilmd-special', 'billing-edge'],
+        operatorDeclarationStatus: 'available',
+        billingRuleReference: 'eeg-rule-v1',
+        auditTrailStatus: 'auditable',
+        testCasePackStatus: 'generated',
+      });
+
+      expect(result.status).toBe('ready_for_simulation');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided readiness evidence: 11/11');
+      expect(result.sourceEvidence.makoCases).toEqual(['utilmd-special', 'billing-edge']);
+      expect(result.sourceActions.notCalled).toContain('settlement.prepareBilling');
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

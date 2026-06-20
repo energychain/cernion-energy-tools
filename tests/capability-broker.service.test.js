@@ -817,6 +817,22 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes regulatory change readiness prompts to the read-only gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Regulatory Change Simulator Readiness fuer EEG Mechanik mit Viertelstundenprofil, Ersatzwertlogik, MaKo Sonderfall, Betreibererklaerung, Auditierbarkeit und Testfallpaket.',
+    });
+
+    expect(result.capability).toBe('regulatory_change_simulator_readiness');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'regulatory_change_simulator_readiness'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.regulatoryChangeReadinessStatus');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

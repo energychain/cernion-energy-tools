@@ -933,5 +933,63 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 248
+  },
+  {
+    "id": "dashboard-api.regulatoryChangeReadinessStatus",
+    "action": "dashboard-api.regulatoryChangeReadinessStatus",
+    "label": "Regulatory Change Readiness Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "changeId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(rcr:[a-zA-Z0-9:-]+|reg-change:[a-zA-Z0-9:-]+)",
+          "group": 1
+        }
+      },
+      "effectiveDate": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(20[0-9]{2}-[0-9]{2}-[0-9]{2})",
+          "group": 1
+        }
+      },
+      "mechanismType": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(EEG|eeg|refinanzierung|refinancing|abrechnungsmechanik|billing)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Readiness Status", "maxLen": 80 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.changeId", "changeId"], "label": "Change", "maxLen": 100 },
+        { "paths": ["requestContext.effectiveDate", "effectiveDate"], "label": "Effective Date", "maxLen": 40 },
+        { "paths": ["requestContext.mechanismType", "mechanismType"], "label": "Mechanism", "maxLen": 100 },
+        { "paths": ["sourceEvidence.dictionaryVersion", "dictionaryVersion"], "label": "Dictionary", "maxLen": 100 },
+        { "paths": ["sourceEvidence.billingRuleReference", "billingRuleReference"], "label": "Billing Rule", "maxLen": 100 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 193
   }
 ]

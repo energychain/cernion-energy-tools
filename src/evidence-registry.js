@@ -212,6 +212,88 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  regulatory_change_simulator_readiness: {
+    sources: [
+      {
+        id: 'data_contract',
+        label: 'Regulatory-Change-Datenvertrag',
+        resolvedBy: ['dashboard-api.regulatoryChangeReadinessStatus', 'datasource-registry.get'],
+        contextKeys: ['changeId', 'effectiveDate', 'mechanismType'],
+        optional: false,
+      },
+      {
+        id: 'dictionary_version',
+        label: 'Data-Dictionary-Version',
+        resolvedBy: ['dashboard-api.regulatoryChangeReadinessStatus', 'datasource-registry.get'],
+        contextKeys: ['dictionaryVersion'],
+        optional: false,
+      },
+      {
+        id: 'source_datapoints',
+        label: 'Quell-Datapoints / Snapshot',
+        resolvedBy: ['dashboard-api.regulatoryChangeReadinessStatus', 'datapoint.health', 'datapoint.validateSnapshot'],
+        contextKeys: ['sourceDatapoints', 'datapointIds', 'sourceSnapshotId'],
+        optional: false,
+      },
+      {
+        id: 'interval_profile_coverage',
+        label: 'Viertelstundenprofil-Abdeckung',
+        resolvedBy: ['dashboard-api.regulatoryChangeReadinessStatus', 'edm-validation.validate', 'mscons-import.import'],
+        contextKeys: ['intervalCoverage', 'quarterHourCoverage'],
+        optional: false,
+      },
+      {
+        id: 'master_data_quality',
+        label: 'Stammdatenqualitaet / MaStR-NAP-MeLo',
+        resolvedBy: ['dashboard-api.regulatoryChangeReadinessStatus', 'mastr-quality.audit'],
+        contextKeys: ['masterDataStatus', 'masterDataQuality'],
+        optional: false,
+      },
+      {
+        id: 'substitute_value_policy',
+        label: 'Ersatzwertlogik / Policy',
+        resolvedBy: ['dashboard-api.regulatoryChangeReadinessStatus', 'edm-validation.validate'],
+        contextKeys: ['substituteValuePolicy', 'ersatzwertPolicy'],
+        optional: false,
+      },
+      {
+        id: 'market_communication_cases',
+        label: 'MaKo-Sonderfaelle / Testfaelle',
+        resolvedBy: ['dashboard-api.regulatoryChangeReadinessStatus', 'dashboard-api.marketCommunicationEvidenceChainStatus'],
+        contextKeys: ['makoCases', 'marketCommunicationCases'],
+        optional: false,
+      },
+      {
+        id: 'operator_declaration',
+        label: 'Betreibererklaerung',
+        resolvedBy: ['dashboard-api.regulatoryChangeReadinessStatus', 'vdmi.dossier'],
+        contextKeys: ['operatorDeclarationStatus', 'operatorDeclaration'],
+        optional: false,
+      },
+      {
+        id: 'billing_rule_reference',
+        label: 'Abrechnungsregel-Referenz',
+        resolvedBy: ['dashboard-api.regulatoryChangeReadinessStatus', 'settlement.readiness'],
+        contextKeys: ['billingRuleReference', 'billingRuleId'],
+        optional: false,
+      },
+      {
+        id: 'audit_trail',
+        label: 'Audit Trail',
+        resolvedBy: ['dashboard-api.regulatoryChangeReadinessStatus', 'vdmi-evidence.list'],
+        contextKeys: ['auditTrailStatus', 'auditTrailId'],
+        optional: false,
+      },
+      {
+        id: 'test_case_pack',
+        label: 'Drittsystem-Testfallpaket',
+        resolvedBy: ['dashboard-api.regulatoryChangeReadinessStatus', 'presentation.generate'],
+        contextKeys: ['testCasePackStatus', 'generatedTestCases'],
+        optional: false,
+      },
+    ],
+  },
+
   e2e_controllability_check_governance: {
     sources: [
       {

@@ -49,6 +49,7 @@ module.exports = {
       marketCommunicationEvidenceChainStatus: 5 * 60 * 1000, // 5 min
       e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
+      regulatoryChangeReadinessStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -1572,6 +1573,99 @@ module.exports = {
           this.settings.cacheTtlMs.controllabilityAssetHandoverStatus,
           async () => ({
             ...this.buildControllabilityAssetHandoverStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── regulatoryChangeReadinessStatus ───────────────────────────────────
+    /**
+     * GET /api/dashboard/regulatory-change-readiness?changeId=...
+     *
+     * Read-only dossier-safe readiness gate for upcoming regulatory changes.
+     * It models data, MaKo, billing and audit evidence needed before a
+     * simulation can start, without implementing a legal/regulatory engine.
+     */
+    regulatoryChangeReadinessStatus: {
+      rest: 'GET /regulatory-change-readiness',
+      params: {
+        changeId: { type: 'string', optional: true, min: 1 },
+        effectiveDate: { type: 'string', optional: true, min: 1 },
+        mechanismType: { type: 'string', optional: true, min: 1 },
+        affectedSystems: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        dictionaryVersion: { type: 'string', optional: true, min: 1 },
+        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        intervalCoverage: { type: 'string', optional: true, min: 1 },
+        masterDataStatus: { type: 'string', optional: true, min: 1 },
+        substituteValuePolicy: { type: 'string', optional: true, min: 1 },
+        makoCases: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        operatorDeclarationStatus: { type: 'string', optional: true, min: 1 },
+        billingRuleReference: { type: 'string', optional: true, min: 1 },
+        auditTrailStatus: { type: 'string', optional: true, min: 1 },
+        testCasePackStatus: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Regulatory change readiness — read-only dossier-safe gate',
+        description:
+          'Builds a deterministic readiness/evidence contract for upcoming regulatory billing, EEG or ' +
+          'refinancing mechanisms. The endpoint separates dictionary, datapoint, interval, master-data, ' +
+          'substitute-value, MaKo, operator-declaration, billing-rule, audit and test-case evidence. It is ' +
+          'read-only and does not run settlement, billing, MaKo dispatch, HITL, external connectors or legal interpretation.',
+        parameters: [
+          { name: 'changeId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'effectiveDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'mechanismType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'affectedSystems', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          { name: 'dictionaryVersion', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceDatapoints', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          { name: 'intervalCoverage', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'masterDataStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'substituteValuePolicy', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'makoCases', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          { name: 'operatorDeclarationStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'billingRuleReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'auditTrailStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'testCasePackStatus', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only regulatory change readiness status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    evidenceItems: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    generatedTestCaseRequirements: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    blockingFindings: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `regulatory-change-readiness:${params.changeId || 'no-change'}:${params.effectiveDate || 'no-date'}:${params.mechanismType || 'no-mechanism'}:${params.dictionaryVersion || 'no-dictionary'}:${params.intervalCoverage || 'no-interval'}:${params.masterDataStatus || 'no-masterdata'}:${params.substituteValuePolicy || 'no-substitute'}:${params.operatorDeclarationStatus || 'no-operator'}:${params.auditTrailStatus || 'no-audit'}:${params.testCasePackStatus || 'no-tests'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.regulatoryChangeReadinessStatus,
+          async () => ({
+            ...this.buildRegulatoryChangeReadinessStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -3840,6 +3934,245 @@ module.exports = {
           nextReportingCycle: params.nextReportingCycle || null,
           nonExecutionReason: params.nonExecutionReason || null,
           blockingFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildRegulatoryChangeReadinessStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const affectedSystems = toList(params.affectedSystems);
+      const sourceDatapoints = toList(params.sourceDatapoints);
+      const makoCases = toList(params.makoCases);
+      const evidenceSpecs = [
+        {
+          id: 'data_contract',
+          label: 'Regulatory change data contract',
+          value: params.changeId && params.effectiveDate && params.mechanismType,
+          displayValue: [params.changeId, params.effectiveDate, params.mechanismType].filter(Boolean).join(' / '),
+          sourceClass: 'regulatory_change_contract',
+          enablesDossierAddition: 'add change id, effective date and mechanism type',
+        },
+        {
+          id: 'dictionary_version',
+          label: 'Data dictionary version',
+          value: params.dictionaryVersion,
+          sourceClass: 'data_dictionary',
+          enablesDossierAddition: 'add dictionary-grounded mechanism contract',
+        },
+        {
+          id: 'source_datapoints',
+          label: 'Source datapoints',
+          value: sourceDatapoints.length > 0,
+          displayValue: sourceDatapoints.join(', '),
+          sourceClass: 'source_datapoint_snapshot',
+          enablesDossierAddition: 'add referenced datapoint snapshot evidence',
+        },
+        {
+          id: 'interval_profile_coverage',
+          label: 'Interval profile coverage',
+          value: params.intervalCoverage,
+          sourceClass: 'interval_profile',
+          enablesDossierAddition: 'add Viertelstundenprofil readiness proof',
+        },
+        {
+          id: 'master_data_quality',
+          label: 'Master data quality',
+          value: params.masterDataStatus,
+          sourceClass: 'master_data_quality',
+          enablesDossierAddition: 'add MaStR/NAP/MeLo/master-data quality proof',
+        },
+        {
+          id: 'substitute_value_policy',
+          label: 'Substitute value policy',
+          value: params.substituteValuePolicy,
+          sourceClass: 'substitute_value_policy',
+          enablesDossierAddition: 'add Ersatzwert policy evidence',
+        },
+        {
+          id: 'market_communication_cases',
+          label: 'MaKo special cases',
+          value: makoCases.length > 0,
+          displayValue: makoCases.join(', '),
+          sourceClass: 'market_communication_case_pack',
+          enablesDossierAddition: 'add MaKo Sonderfall test coverage',
+        },
+        {
+          id: 'operator_declaration',
+          label: 'Operator declaration',
+          value: params.operatorDeclarationStatus,
+          sourceClass: 'operator_declaration',
+          enablesDossierAddition: 'add Betreibererklaerung readiness',
+        },
+        {
+          id: 'billing_rule_reference',
+          label: 'Billing rule reference',
+          value: params.billingRuleReference,
+          sourceClass: 'billing_rule_reference',
+          enablesDossierAddition: 'add billing-rule reference evidence',
+        },
+        {
+          id: 'audit_trail',
+          label: 'Audit trail',
+          value: params.auditTrailStatus,
+          sourceClass: 'audit_trail',
+          enablesDossierAddition: 'add audit evidence trail',
+        },
+        {
+          id: 'test_case_pack',
+          label: 'Test-case pack',
+          value: params.testCasePackStatus,
+          sourceClass: 'third_party_test_cases',
+          enablesDossierAddition: 'add generated Drittsystem test-case requirements',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue || spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const lowerMasterData = String(params.masterDataStatus || '').toLowerCase();
+      const blockedByDataQuality = /block|fail|invalid|kritisch|unbrauchbar/.test(lowerMasterData);
+      const status =
+        blockedByDataQuality
+          ? 'blocked_by_data_quality'
+          : missingEvidence.length === 0
+            ? 'ready_for_simulation'
+            : !params.changeId || !params.effectiveDate || !params.mechanismType || !params.dictionaryVersion
+              ? 'needs_data_contract'
+              : !params.intervalCoverage
+                ? 'needs_interval_profile'
+                : !params.masterDataStatus
+                  ? 'needs_masterdata'
+                  : !params.substituteValuePolicy
+                    ? 'needs_substitute_value_policy'
+                    : makoCases.length === 0
+                      ? 'needs_mako_cases'
+                      : !params.operatorDeclarationStatus
+                        ? 'needs_operator_declaration'
+                        : !params.auditTrailStatus
+                          ? 'needs_audit_evidence'
+                          : 'needs_test_data';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'regulatory_change_readiness',
+      }));
+      const generatedTestCaseRequirements = missingEvidence
+        .filter((item) => [
+          'interval_profile_coverage',
+          'master_data_quality',
+          'substitute_value_policy',
+          'market_communication_cases',
+          'billing_rule_reference',
+          'audit_trail',
+        ].includes(item.missingDataPoint))
+        .map((item) => ({
+          id: `test_${item.missingDataPoint}`,
+          requiredEvidence: item.missingDataPoint,
+          description: item.enablesDossierAddition,
+        }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `RCR_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['data_contract', 'dictionary_version', 'master_data_quality', 'audit_trail'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      if (blockedByDataQuality) {
+        blockingFindings.push({
+          code: 'RCR_MASTER_DATA_QUALITY_BLOCKING',
+          severity: 'high',
+          message: 'master-data quality is explicitly blocking the readiness contract',
+        });
+      }
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided readiness evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.changeId) dossierFacts.push(`Change: ${params.changeId}`);
+      if (params.effectiveDate) dossierFacts.push(`Effective date: ${params.effectiveDate}`);
+      if (params.mechanismType) dossierFacts.push(`Mechanism: ${params.mechanismType}`);
+
+      return {
+        readinessId: `rcr:${Buffer.from(`${params.changeId || ''}:${params.effectiveDate || ''}:${params.mechanismType || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'regulatory_change_simulator_readiness',
+        safety: 'read_only',
+        requestContext: {
+          changeId: params.changeId || null,
+          effectiveDate: params.effectiveDate || null,
+          mechanismType: params.mechanismType || null,
+          affectedSystems,
+        },
+        status,
+        readinessScore,
+        evidenceItems,
+        missingEvidence,
+        generatedTestCaseRequirements,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          sourceDatapoints,
+          dictionaryVersion: params.dictionaryVersion || null,
+          makoCases,
+          billingRuleReference: params.billingRuleReference || null,
+        },
+        sourceActions: {
+          inspected: ['dashboard-api.regulatoryChangeReadinessStatus'],
+          referenced: [
+            'datasource-registry.get',
+            'datapoint.health',
+            'datapoint.validateSnapshot',
+            'mastr-quality.audit',
+            'edm-validation.validate',
+            'mscons-import.import',
+            'settlement.readiness',
+            'vdmi.dossier',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'settlement.exportA96',
+            'settlement.prepareBilling',
+            'billing.release',
+            'mako.dispatch',
+            'hitl.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          evidenceItems,
+          missingEvidence,
+          generatedTestCaseRequirements,
+          positiveFollowUps,
+          blockingFindings,
+          sourceEvidence: {
+            sourceDatapoints,
+            dictionaryVersion: params.dictionaryVersion || null,
+            makoCases,
+            billingRuleReference: params.billingRuleReference || null,
+          },
           dossierFacts,
         },
       };

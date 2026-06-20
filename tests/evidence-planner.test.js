@@ -177,6 +177,37 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans regulatory change readiness as explicit data and audit evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'regulatory_change_simulator_readiness' },
+      {
+        changeId: 'reg-change:eeg-2027',
+        effectiveDate: '2027-01-01',
+        mechanismType: 'EEG',
+        dictionaryVersion: 'dd-v1',
+        intervalCoverage: 'complete',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('regulatory_change_simulator_readiness');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['data_contract', 'dictionary_version', 'interval_profile_coverage'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'source_datapoints',
+        'master_data_quality',
+        'substitute_value_policy',
+        'market_communication_cases',
+        'operator_declaration',
+        'billing_rule_reference',
+        'audit_trail',
+        'test_case_pack',
+      ])
+    );
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });
