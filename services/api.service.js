@@ -562,7 +562,13 @@ function enforceRbacForPath(roles, method, requestPath) {
     pathOnly === '/api/auth/logout' ||
     pathOnly === '/api/auth/saml/acs';
 
-  if (m !== 'GET' && m !== 'HEAD' && m !== 'OPTIONS' && !isSessionSelfServiceEndpoint) {
+  if (
+    m !== 'GET' &&
+    m !== 'HEAD' &&
+    m !== 'OPTIONS' &&
+    !isSessionSelfServiceEndpoint &&
+    !isReadOnlySidecarInvocation(m, requestPath)
+  ) {
     if (!hasRole(roles, 'full-access')) {
       throw new Errors.MoleculerClientError('Role required: full-access.', 403, 'ROLE_REQUIRED');
     }

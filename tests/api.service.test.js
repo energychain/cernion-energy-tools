@@ -950,6 +950,36 @@ describe('API Gateway Service', () => {
       ).rejects.toMatchObject({ code: 403 });
     });
 
+    it('should allow read-only ck_ token on the policy-gated sidecar tool call endpoint', async () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const created = await broker.call('token-manager.create', {
+        name: 'OpenClawSidecarReadOnly',
+        scope: 'read-only',
+        tenantId: 'public',
+        userId: 'svc:openclaw',
+      });
+
+      const ctx = { meta: {} };
+      const req = {
+        headers: { authorization: `Bearer ${created.data.token}` },
+        query: {},
+        body: { input: { context: { tenantId: 'public' } } },
+        params: { name: 'cernion.list_readonly_capabilities' },
+        $params: {
+          name: 'cernion.list_readonly_capabilities',
+          input: { context: { tenantId: 'public' } },
+        },
+        method: 'POST',
+        url: '/api/agent-sidecar/tools/cernion.list_readonly_capabilities/call',
+      };
+
+      await expect(
+        apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, ctx, apiRoute, req, {})
+      ).resolves.toBeUndefined();
+      expect(ctx.meta.apiToken.scope).toBe('read-only');
+      expect(ctx.meta.apiToken.tenantId).toBe('public');
+    });
+
     it('should reject read-only ck_ token on tenant quota admin endpoints', async () => {
       const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
       const created = await broker.call('token-manager.create', {
