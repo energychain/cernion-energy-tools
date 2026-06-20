@@ -526,6 +526,88 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  jour_fixe_decision_closure_tracker: {
+    sources: [
+      {
+        id: 'topic_identity',
+        label: 'Jour-fixe-Thema / Topic-Identitaet',
+        resolvedBy: ['dashboard-api.jourFixeDecisionClosureStatus', 'vdmi.dossier'],
+        contextKeys: ['topicId', 'topicTitle'],
+        optional: false,
+      },
+      {
+        id: 'jour_fixe_context',
+        label: 'Jour-fixe-Kontext',
+        resolvedBy: ['dashboard-api.jourFixeDecisionClosureStatus', 'vdmi.dossier'],
+        contextKeys: ['jourFixeId'],
+        optional: false,
+      },
+      {
+        id: 'topic_owner',
+        label: 'Topic-Owner',
+        resolvedBy: ['dashboard-api.jourFixeDecisionClosureStatus', 'vdmi.dossier'],
+        contextKeys: ['owner', 'topicOwner'],
+        optional: false,
+      },
+      {
+        id: 'kpi',
+        label: 'KPI / Abschlusskennzahl',
+        resolvedBy: ['dashboard-api.jourFixeDecisionClosureStatus', 'vdmi.dossier'],
+        contextKeys: ['kpi'],
+        optional: false,
+      },
+      {
+        id: 'decision_criterion',
+        label: 'Entscheidungskriterium',
+        resolvedBy: ['dashboard-api.jourFixeDecisionClosureStatus', 'nova.list', 'vdmi.dossier'],
+        contextKeys: ['decisionCriterion'],
+        optional: false,
+      },
+      {
+        id: 'next_gate',
+        label: 'Naechstes Gate',
+        resolvedBy: ['dashboard-api.jourFixeDecisionClosureStatus', 'presentation.generate'],
+        contextKeys: ['nextGate'],
+        optional: false,
+      },
+      {
+        id: 'closure_status',
+        label: 'Abschlussstatus',
+        resolvedBy: ['dashboard-api.jourFixeDecisionClosureStatus', 'vdmi.dossier'],
+        contextKeys: ['closureStatus'],
+        optional: false,
+      },
+      {
+        id: 'closure_proof',
+        label: 'Abschlussnachweis',
+        resolvedBy: ['dashboard-api.jourFixeDecisionClosureStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['closureProof'],
+        optional: false,
+      },
+      {
+        id: 'blocked_follow_up_action',
+        label: 'Blockierte Folgeaktion',
+        resolvedBy: ['dashboard-api.jourFixeDecisionClosureStatus', 'hitl.create', 'nova.list'],
+        contextKeys: ['blockedFollowUpAction'],
+        optional: true,
+      },
+      {
+        id: 'source_snapshot_ref',
+        label: 'Quellensnapshot',
+        resolvedBy: ['dashboard-api.jourFixeDecisionClosureStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceSnapshotRef'],
+        optional: false,
+      },
+      {
+        id: 'evidence_ref',
+        label: 'Evidenzreferenzen',
+        resolvedBy: ['dashboard-api.jourFixeDecisionClosureStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['evidenceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   sap_budget_psp_gate: {
     sources: [
       {

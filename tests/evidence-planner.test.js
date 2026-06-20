@@ -387,6 +387,34 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans Jour-Fixe Decision Closure as owner, KPI and gate evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'jour_fixe_decision_closure_tracker' },
+      {
+        topicId: 'jf-186',
+        jourFixeId: 'jf-weekly',
+        owner: 'Netzstrategie',
+        kpi: 'closure-rate',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('jour_fixe_decision_closure_tracker');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['topic_identity', 'jour_fixe_context', 'topic_owner', 'kpi'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'decision_criterion',
+        'next_gate',
+        'closure_status',
+        'closure_proof',
+        'source_snapshot_ref',
+        'evidence_ref',
+      ])
+    );
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });

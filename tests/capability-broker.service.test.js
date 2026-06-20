@@ -937,6 +937,24 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Jour-Fixe Decision Closure prompts to the read-only evidence status', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe jour_fixe_decision_closure_tracker fuer Jour Fixe, Entscheidung offen, Abschlussstatus, Owner, KPI, Entscheidungskriterium, naechstes Gate, carried over und Abschlussnachweis.',
+    });
+
+    expect(result.capability).toBe('jour_fixe_decision_closure_tracker');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'jour_fixe_decision_closure_tracker'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.jourFixeDecisionClosureStatus');
+    expect(actionNames).not.toContain('meeting-transcription.ingest');
+    expect(actionNames).not.toContain('vdmi.create');
+    expect(actionNames).not.toContain('nova.createDecision');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

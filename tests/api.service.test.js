@@ -486,6 +486,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/gas-decommissioning-roadmap']).toBe(
         'dashboard-api.gasDecommissioningRoadmapStatus'
       );
+      expect(aliases['GET /dashboard/jour-fixe-decision-closure']).toBe(
+        'dashboard-api.jourFixeDecisionClosureStatus'
+      );
       expect(aliases['GET /agent-sidecar/tools']).toBe('agent-sidecar.listTools');
       expect(aliases['POST /agent-sidecar/tools/:name/call']).toBe('agent-sidecar.callTool');
       expect(aliases['GET /dashboard/observability-mini']).toBe('dashboard-api.observabilityMini');

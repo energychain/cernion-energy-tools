@@ -2436,6 +2436,91 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── jourFixeDecisionClosureStatus ─────────────────────────────────────
+
+  describe('jourFixeDecisionClosureStatus', () => {
+    it('reports Jour-fixe closure gaps without creating downstream actions', async () => {
+      const result = await broker.call('dashboard-api.jourFixeDecisionClosureStatus', {
+        topicId: 'jf:186',
+        topicTitle: 'Open investment decision',
+      });
+
+      expect(result.status).toBe('needs_owner');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'jour_fixe_context',
+          'topic_owner',
+          'kpi',
+          'decision_criterion',
+          'next_gate',
+          'closure_status',
+          'closure_proof',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('jour_fixe_decision_closure_tracker');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'meeting-transcription.ingest',
+          'vdmi.create',
+          'nova.createDecision',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns done when closure evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.jourFixeDecisionClosureStatus', {
+        topicId: 'jf:186',
+        topicTitle: 'Decision closure tracker',
+        jourFixeId: 'jf-weekly-2026-06-20',
+        owner: 'Netzstrategie',
+        kpi: 'closure-rate>=90',
+        decisionCriterion: 'committee-approved',
+        nextGate: 'jf:2026-06-27',
+        closureStatus: 'done',
+        closureProof: 'minutes:decision-186',
+        sourceSnapshotRef: 'snapshot:jf-186',
+        evidenceRef: 'vdmi:evidence-1,nova:decision-2',
+      });
+
+      expect(result.status).toBe('done');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.topic.topicId).toBe('jf:186');
+      expect(result.closureEvidence.owner).toBe('Netzstrategie');
+      expect(result.evidenceRefs).toEqual(['vdmi:evidence-1', 'nova:decision-2']);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided Jour-fixe closure evidence: 10/10');
+      expect(result.sourceActions.notCalled).toContain('hitl.resolve');
+    });
+
+    it('keeps blocked follow-up actions visible as escalation evidence', async () => {
+      const result = await broker.call('dashboard-api.jourFixeDecisionClosureStatus', {
+        topicId: 'jf:blocker',
+        topicTitle: 'Blocked owner decision',
+        jourFixeId: 'jf-weekly',
+        owner: 'Netzstrategie',
+        kpi: 'owner-assigned',
+        decisionCriterion: 'board-approval',
+        nextGate: 'jf:next',
+        closureStatus: 'open',
+        blockedFollowUpAction: 'investment committee sign-off missing',
+        sourceSnapshotRef: 'snapshot:blocker',
+        evidenceRef: ['vdmi:evidence-1'],
+      });
+
+      expect(result.status).toBe('escalated');
+      expect(result.blockingFindings.map((finding) => finding.code)).toContain(
+        'JFD_BLOCKED_FOLLOW_UP_ACTION'
+      );
+      expect(result.closureEvidence.blockedFollowUpAction).toBe(
+        'investment committee sign-off missing'
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

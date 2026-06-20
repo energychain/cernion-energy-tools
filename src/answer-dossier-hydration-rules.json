@@ -1360,5 +1360,68 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 190
+  },
+  {
+    "id": "dashboard-api.jourFixeDecisionClosureStatus",
+    "action": "dashboard-api.jourFixeDecisionClosureStatus",
+    "label": "Jour-Fixe Decision Closure Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "topicId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:topicId[:= ]+|topic[:=]+|thema[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "jourFixeId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:jourFixeId[:= ]+|jourFixe[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner[:= ]+|topic owner[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Closure Status", "maxLen": 80 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.topicId", "topic.topicId", "topic.topicTitle"], "label": "Topic", "maxLen": 120 },
+        { "paths": ["topic.jourFixeId", "dossierEvidence.topic.jourFixeId"], "label": "Jour Fixe", "maxLen": 100 },
+        { "paths": ["closureEvidence.owner", "dossierEvidence.closureEvidence.owner"], "label": "Owner", "maxLen": 100 },
+        { "paths": ["closureEvidence.kpi", "dossierEvidence.closureEvidence.kpi"], "label": "KPI", "maxLen": 120 },
+        { "paths": ["closureEvidence.decisionCriterion", "dossierEvidence.closureEvidence.decisionCriterion"], "label": "Decision Criterion", "maxLen": 140 },
+        { "paths": ["closureEvidence.nextGate", "dossierEvidence.closureEvidence.nextGate"], "label": "Next Gate", "maxLen": 100 },
+        { "paths": ["closureEvidence.closureProof", "dossierEvidence.closureEvidence.closureProof"], "label": "Closure Proof", "maxLen": 120 },
+        { "paths": ["closureEvidence.blockedFollowUpAction", "dossierEvidence.closureEvidence.blockedFollowUpAction"], "label": "Blocked Follow-Up", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 186
   }
 ]

@@ -610,6 +610,38 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Jour-Fixe Decision Closure Tracker
+  // JF closure prompts share generic owner/KPI/evidence words with older VDMI
+  // routes. Require explicit Jour-fixe or decision-closure vocabulary.
+  const jourFixeDecisionClosureSignals = [
+    'jour_fixe_decision_closure_tracker',
+    'jour fixe',
+    'jour-fixe',
+    'decision closure',
+    'decision-closure',
+    'abschlussstatus',
+    'offene entscheidung',
+    'entscheidung offen',
+    'abschlussnachweis',
+  ];
+  const hasJourFixeDecisionClosureCombo =
+    /(jour.?fixe|\bjf\b|decision.?closure|abschlussstatus|offene entscheidung|entscheidung offen)/i.test(
+      haystack
+    ) &&
+    /(owner|kpi|kennzahl|entscheidungskriterium|decision.?criterion|naechstes gate|nächstes gate|next gate|carried.?over|eskalation|abschlussnachweis)/i.test(
+      haystack
+    );
+
+  if (
+    jourFixeDecisionClosureSignals.some((signal) => haystack.includes(signal)) ||
+    hasJourFixeDecisionClosureCombo
+  ) {
+    const jfdCapability = findCapabilityByName('jour_fixe_decision_closure_tracker');
+    if (jfdCapability) {
+      return { capability: jfdCapability, score: 122, usedFallback: false };
+    }
+  }
+
   // ── Investment Maturity Off-Balance Gate
   // These prompts share evidence/risk vocabulary with VDMI asset validation.
   // Require explicit investment/off-balance finance signals before routing here.

@@ -1420,6 +1420,8 @@ module.exports = {
             'dashboard-api.budgetWaterfallGovernanceStatus',
           'GET /dashboard/gas-decommissioning-roadmap':
             'dashboard-api.gasDecommissioningRoadmapStatus',
+          'GET /dashboard/jour-fixe-decision-closure':
+            'dashboard-api.jourFixeDecisionClosureStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

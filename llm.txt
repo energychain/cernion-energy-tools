@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: cba55c7104484ddf74d04503389f96e72b741499cf6e67fc872a4b3a5ac1cf37
+  - openapi-export.json: cc950b30b76e340a33ff0d1da7cd645913ab1678ca8814bba7d84510c88b5043
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 727
-- operation_count: 832
+- path_count: 729
+- operation_count: 834
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -695,7 +695,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 40 operations
+- Dashboard API: 42 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -974,6 +974,7 @@ process:
 - GET /api/dashboard-api/gas-decommissioning-roadmap | tags: [Dashboard API] | operationId: dashboard-api_gasDecommissioningRoadmapStatus | summary: Gas Decommissioning Roadmap — read-only dossier-safe status
 - GET /api/dashboard-api/investment-risk-translation | tags: [Dashboard API] | operationId: dashboard-api_investmentRiskTranslationStatus | summary: Investment Risk Translation — read-only dossier-safe status
 - GET /api/dashboard-api/investment-two-track-control | tags: [Dashboard API] | operationId: dashboard-api_investmentTwoTrackControlStatus | summary: Investment two-track control — read-only dossier-safe status
+- GET /api/dashboard-api/jour-fixe-decision-closure | tags: [Dashboard API] | operationId: dashboard-api_jourFixeDecisionClosureStatus | summary: Jour-Fixe Decision Closure — read-only dossier-safe status
 - GET /api/dashboard-api/load-profile-stream-monitor | tags: [Dashboard API] | operationId: dashboard-api_loadProfileStreamMonitor | summary: Load profile movement monitor — strict anomaly-class buckets
 - GET /api/dashboard-api/market-communication-evidence-chain | tags: [Dashboard API] | operationId: dashboard-api_marketCommunicationEvidenceChainStatus | summary: Market communication evidence chain — read-only dossier-safe status
 - GET /api/dashboard-api/market-snapshot | tags: [Dashboard API] | operationId: dashboard-api_marketSnapshot | summary: Market snapshot — current spot prices, CO₂ intensity, renewable forecast
@@ -994,6 +995,7 @@ process:
 - GET /api/dashboard/gas-decommissioning-roadmap | tags: [Dashboard API] | operationId: dashboard-api_gasDecommissioningRoadmapStatus | summary: Gas Decommissioning Roadmap — read-only dossier-safe status
 - GET /api/dashboard/investment-risk-translation | tags: [Dashboard API] | operationId: dashboard-api_investmentRiskTranslationStatus | summary: Investment Risk Translation — read-only dossier-safe status
 - GET /api/dashboard/investment-two-track-control | tags: [Dashboard API] | operationId: dashboard-api_investmentTwoTrackControlStatus | summary: Investment two-track control — read-only dossier-safe status
+- GET /api/dashboard/jour-fixe-decision-closure | tags: [Dashboard API] | operationId: dashboard-api_jourFixeDecisionClosureStatus | summary: Jour-Fixe Decision Closure — read-only dossier-safe status
 - GET /api/dashboard/load-profile-stream-monitor | tags: [Dashboard API] | operationId: dashboard-api_loadProfileStreamMonitor | summary: Load profile movement monitor — strict anomaly-class buckets
 - GET /api/dashboard/market-communication-evidence-chain | tags: [Dashboard API] | operationId: dashboard-api_marketCommunicationEvidenceChainStatus | summary: Market communication evidence chain — read-only dossier-safe status
 - GET /api/dashboard/market-snapshot | tags: [Dashboard API] | operationId: dashboard-api_marketSnapshot | summary: Market snapshot — current spot prices, CO₂ intensity, renewable forecast
@@ -16658,6 +16660,175 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/jour-fixe-decision-closure": {
+      "get": {
+        "description": "Builds a deterministic evidence view for Jour-fixe topic closure. The endpoint is read-only and does not create meeting, VDMI, NOVA, HITL, external connector or Personal-Agent side effects.",
+        "operationId": "dashboard-api_jourFixeDecisionClosureStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "topicId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "topicTitle",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "jourFixeId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "owner",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kpi",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "decisionCriterion",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "nextGate",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "closureStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "closureProof",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "blockedFollowUpAction",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceSnapshotRef",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceRef",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "closureEvidence": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "topic": {
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only Jour-fixe decision closure status"
+          }
+        },
+        "summary": "Jour-Fixe Decision Closure — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/load-profile-stream-monitor": {
       "get": {
         "description": "Read-only monitor for Lastgangdaten/Bewegungsstrom diagnostics using existing deterministic services only (edm.getTimeseriesSummary, edm-validation.validate, forecast-engine.evaluateQuality, vdmi.findings). Returns strict anomaly buckets (`dataQualityGap`, `realAnomaly`, `forecastProblem`, `processGovernanceBreak`) and allows partial findings with explicit `_errors`.",
@@ -19773,6 +19944,175 @@ process:
           }
         },
         "summary": "Investment two-track control — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
+    "/api/dashboard/jour-fixe-decision-closure": {
+      "get": {
+        "description": "Builds a deterministic evidence view for Jour-fixe topic closure. The endpoint is read-only and does not create meeting, VDMI, NOVA, HITL, external connector or Personal-Agent side effects.",
+        "operationId": "dashboard-api_jourFixeDecisionClosureStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "topicId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "topicTitle",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "jourFixeId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "owner",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kpi",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "decisionCriterion",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "nextGate",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "closureStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "closureProof",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "blockedFollowUpAction",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceSnapshotRef",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceRef",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "closureEvidence": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "topic": {
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only Jour-fixe decision closure status"
+          }
+        },
+        "summary": "Jour-Fixe Decision Closure — read-only dossier-safe status",
         "tags": [
           "Dashboard API"
         ]
@@ -58394,4 +58734,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 882c516d35928f0ac0cee17d351758f04106048123bbe6ee10bc6962906217e2
+- llm_txt_sha256: 88c59f20c20db71387f4a40132c1eaa82fe1855387e3334a58b35567147981de

@@ -56,6 +56,7 @@ module.exports = {
       investmentRiskTranslationStatus: 5 * 60 * 1000, // 5 min
       budgetWaterfallGovernanceStatus: 5 * 60 * 1000, // 5 min
       gasDecommissioningRoadmapStatus: 5 * 60 * 1000, // 5 min
+      jourFixeDecisionClosureStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -2242,6 +2243,93 @@ module.exports = {
           this.settings.cacheTtlMs.gasDecommissioningRoadmapStatus,
           async () => ({
             ...this.buildGasDecommissioningRoadmapStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── jourFixeDecisionClosureStatus ─────────────────────────────────────
+    /**
+     * GET /api/dashboard/jour-fixe-decision-closure?topicId=...
+     *
+     * Read-only dossier-safe evidence gate for recurring Jour-fixe decision
+     * closure. It validates topic, owner, KPI, decision criterion, next gate,
+     * closure proof and blocked follow-up evidence without creating meeting,
+     * VDMI, NOVA, HITL, external connector or Personal-Agent side effects.
+     */
+    jourFixeDecisionClosureStatus: {
+      rest: 'GET /jour-fixe-decision-closure',
+      params: {
+        topicId: { type: 'string', optional: true, min: 1 },
+        topicTitle: { type: 'string', optional: true, min: 1 },
+        jourFixeId: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        kpi: { type: 'string', optional: true, min: 1 },
+        decisionCriterion: { type: 'string', optional: true, min: 1 },
+        nextGate: { type: 'string', optional: true, min: 1 },
+        closureStatus: { type: 'string', optional: true, min: 1 },
+        closureProof: { type: 'string', optional: true, min: 1 },
+        blockedFollowUpAction: { type: 'string', optional: true, min: 1 },
+        sourceSnapshotRef: { type: 'string', optional: true, min: 1 },
+        evidenceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Jour-Fixe Decision Closure — read-only dossier-safe status',
+        description:
+          'Builds a deterministic evidence view for Jour-fixe topic closure. ' +
+          'The endpoint is read-only and does not create meeting, VDMI, NOVA, HITL, external connector or Personal-Agent side effects.',
+        parameters: [
+          { name: 'topicId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'topicTitle', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'jourFixeId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'kpi', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionCriterion', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextGate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'closureStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'closureProof', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'blockedFollowUpAction', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceSnapshotRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceRef', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Jour-fixe decision closure status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    topic: { type: 'object' },
+                    closureEvidence: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `jour-fixe-decision-closure:${params.topicId || params.topicTitle || 'no-topic'}:${params.jourFixeId || 'no-jf'}:${params.owner || 'no-owner'}:${params.closureStatus || 'no-status'}:${params.nextGate || 'no-gate'}:${params.closureProof || 'no-proof'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.jourFixeDecisionClosureStatus,
+          async () => ({
+            ...this.buildJourFixeDecisionClosureStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -6272,6 +6360,264 @@ module.exports = {
           dependencies,
           blockers,
           nextDecisionGate: params.nextDecisionGate || null,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceSnapshotRef: params.sourceSnapshotRef || null,
+          evidenceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildJourFixeDecisionClosureStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const evidenceRefs = toList(params.evidenceRef);
+      const closureStatus = String(params.closureStatus || '').toLowerCase().replace(/\s+/g, '_');
+      const isClosedStatus = ['done', 'decided', 'closed', 'erledigt', 'entschieden'].includes(closureStatus);
+      const isEscalated = ['escalated', 'eskaliert'].includes(closureStatus);
+      const isCarriedOver = ['carried_over', 'carried-over', 'uebertragen', 'übertragen', 'weitergetragen'].includes(closureStatus);
+      const evidenceSpecs = [
+        {
+          id: 'topic_identity',
+          label: 'Topic identity',
+          value: params.topicId || params.topicTitle,
+          displayValue: params.topicId || params.topicTitle,
+          sourceClass: 'topic_identity',
+          enablesDossierAddition: 'add the Jour-fixe topic identity and title',
+        },
+        {
+          id: 'jour_fixe_context',
+          label: 'Jour-fixe context',
+          value: params.jourFixeId,
+          sourceClass: 'jour_fixe_context',
+          enablesDossierAddition: 'add the recurring Jour-fixe context for this topic',
+        },
+        {
+          id: 'topic_owner',
+          label: 'Topic owner',
+          value: params.owner,
+          sourceClass: 'governance_owner',
+          enablesDossierAddition: 'add owner accountability and escalation path',
+        },
+        {
+          id: 'kpi',
+          label: 'KPI',
+          value: params.kpi,
+          sourceClass: 'closure_kpi',
+          enablesDossierAddition: 'add KPI-based closure criterion',
+        },
+        {
+          id: 'decision_criterion',
+          label: 'Decision criterion',
+          value: params.decisionCriterion,
+          sourceClass: 'decision_criterion',
+          enablesDossierAddition: 'state what decision unlocks closure',
+        },
+        {
+          id: 'next_gate',
+          label: 'Next gate',
+          value: params.nextGate,
+          sourceClass: 'next_gate',
+          enablesDossierAddition: 'include the next Jour-fixe or committee gate',
+        },
+        {
+          id: 'closure_status',
+          label: 'Closure status',
+          value: params.closureStatus,
+          sourceClass: 'closure_status',
+          enablesDossierAddition: 'add the open/decided/escalated/done/carried-over state',
+        },
+        {
+          id: 'closure_proof',
+          label: 'Closure proof',
+          value: params.closureProof,
+          sourceClass: 'closure_proof',
+          enablesDossierAddition: 'mark the topic as done with evidence',
+        },
+        {
+          id: 'blocked_follow_up_action',
+          label: 'Blocked follow-up action',
+          value: params.blockedFollowUpAction,
+          sourceClass: 'blocked_follow_up',
+          enablesDossierAddition: 'state the blocked management action and required unblocker',
+          optional: true,
+        },
+        {
+          id: 'source_snapshot_ref',
+          label: 'Source snapshot',
+          value: params.sourceSnapshotRef,
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add source grounding for the Jour-fixe evidence',
+        },
+        {
+          id: 'evidence_ref',
+          label: 'Evidence reference',
+          value: evidenceRefs.length > 0,
+          displayValue: evidenceRefs.join(', '),
+          sourceClass: 'evidence_refs',
+          enablesDossierAddition: 'add citable evidence references to the dossier',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue || spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value && !spec.optional)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const status =
+        !params.topicId && !params.topicTitle
+          ? 'open'
+          : !params.owner
+            ? 'needs_owner'
+            : !params.kpi
+              ? 'needs_kpi'
+              : !params.decisionCriterion
+                ? 'needs_decision_criterion'
+                : !params.nextGate
+                  ? 'needs_next_gate'
+                  : isEscalated
+                    ? 'escalated'
+                    : isCarriedOver
+                      ? 'carried_over'
+                      : isClosedStatus && params.closureProof
+                        ? (closureStatus === 'decided' || closureStatus === 'entschieden' ? 'decided' : 'done')
+                        : isClosedStatus && !params.closureProof
+                          ? 'needs_closure_proof'
+                          : params.blockedFollowUpAction
+                            ? 'escalated'
+                            : params.closureStatus
+                              ? 'decided'
+                              : 'open';
+      const requiredEvidenceSpecs = evidenceSpecs.filter((spec) => !spec.optional);
+      const requiredEvidenceItems = evidenceItems.filter((item) => {
+        const spec = evidenceSpecs.find((candidate) => candidate.id === item.id);
+        return !spec?.optional;
+      });
+      const readinessScore = Number((requiredEvidenceItems.length / requiredEvidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'jour_fixe_decision_closure_tracker',
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `JFD_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['topic_owner', 'kpi', 'decision_criterion', 'next_gate', 'closure_status', 'closure_proof'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      if (params.blockedFollowUpAction) {
+        blockingFindings.push({
+          code: 'JFD_BLOCKED_FOLLOW_UP_ACTION',
+          severity: 'high',
+          message: 'blocked follow-up action prevents silent topic closure',
+        });
+      }
+      const topic = {
+        topicId: params.topicId || null,
+        topicTitle: params.topicTitle || null,
+        jourFixeId: params.jourFixeId || null,
+      };
+      const closureEvidence = {
+        owner: params.owner || null,
+        kpi: params.kpi || null,
+        decisionCriterion: params.decisionCriterion || null,
+        nextGate: params.nextGate || null,
+        closureStatus: params.closureStatus || null,
+        closureProof: params.closureProof || null,
+        blockedFollowUpAction: params.blockedFollowUpAction || null,
+        sourceSnapshotRef: params.sourceSnapshotRef || null,
+      };
+      const closureSteps = [
+        { id: 'topic-intake', label: 'Topic intake', evidenceStatus: params.topicId || params.topicTitle ? 'provided' : 'missing' },
+        { id: 'owner-kpi-check', label: 'Owner and KPI check', evidenceStatus: params.owner && params.kpi ? 'provided' : 'missing' },
+        { id: 'decision-criterion-gate', label: 'Decision criterion gate', evidenceStatus: params.decisionCriterion ? 'provided' : 'missing' },
+        { id: 'closure-or-escalation', label: 'Closure or escalation', evidenceStatus: params.closureStatus ? 'provided' : 'missing' },
+        { id: 'next-jf-handover', label: 'Next Jour-fixe handover', evidenceStatus: params.nextGate ? 'provided' : 'missing' },
+      ];
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided Jour-fixe closure evidence: ${requiredEvidenceItems.length}/${requiredEvidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.topicId || params.topicTitle) dossierFacts.push(`Topic: ${params.topicId || params.topicTitle}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (params.kpi) dossierFacts.push(`KPI: ${params.kpi}`);
+      if (params.nextGate) dossierFacts.push(`Next gate: ${params.nextGate}`);
+
+      return {
+        closureStatusId: `jfd:${Buffer.from(`${params.topicId || params.topicTitle || ''}:${params.jourFixeId || ''}:${params.owner || ''}:${params.nextGate || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'jour_fixe_decision_closure_tracker',
+        safety: 'read_only',
+        requestContext: {
+          topicId: params.topicId || null,
+          topicTitle: params.topicTitle || null,
+          jourFixeId: params.jourFixeId || null,
+        },
+        status,
+        readinessScore,
+        topic,
+        closureEvidence,
+        closureSteps,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          topic,
+          closureEvidence,
+          sourceSnapshotRef: params.sourceSnapshotRef || null,
+          evidenceRefs,
+        },
+        evidenceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.jourFixeDecisionClosureStatus'],
+          referenced: [
+            'vdmi.dossier',
+            'nova.list',
+            'hitl.create',
+            'vdmi-evidence.inject',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'meeting-transcription.ingest',
+            'calendar.connector.read',
+            'email.connector.read',
+            'teams.connector.read',
+            'vdmi.create',
+            'vdmi.update',
+            'nova.createDecision',
+            'nova.approve',
+            'hitl.create',
+            'hitl.resolve',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          topic,
+          closureEvidence,
+          closureSteps,
           evidenceItems,
           missingEvidence,
           positiveFollowUps,

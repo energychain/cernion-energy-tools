@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 28 static rules', () => {
+    it('loads all 29 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(28);
+      expect(rules.length).toBe(29);
     });
 
-    it('compiles all 28 static rules without error', () => {
+    it('compiles all 29 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(28);
+      expect(rules.length).toBe(29);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -809,6 +809,60 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Next Gate: committee:decommissioning-q3');
       expect(formatted).toContain('Leading Gap: investment_impact_ref');
       expect(formatted).toContain('Side-Effect Guard: gas-transformation.executeDecommissioning');
+    });
+
+    it('dashboard-api.jourFixeDecisionClosureStatus is dossier-safe and formats closure facts', () => {
+      const rule = getRule('dashboard-api.jourFixeDecisionClosureStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Jour Fixe Decision Closure topic=jf:186 jourFixeId=weekly owner=Netzstrategie laden'
+        )
+      ).toEqual({
+        topicId: 'jf:186',
+        jourFixeId: 'weekly',
+        owner: 'Netzstrategie',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_next_gate',
+        readinessScore: 0.64,
+        requestContext: {
+          topicId: 'jf:186',
+        },
+        topic: {
+          topicId: 'jf:186',
+          jourFixeId: 'weekly',
+        },
+        closureEvidence: {
+          owner: 'Netzstrategie',
+          kpi: 'closure-rate',
+          decisionCriterion: 'committee-approved',
+          blockedFollowUpAction: 'investment-gate',
+        },
+        missingEvidence: [
+          { missingDataPoint: 'next_gate' },
+        ],
+        sourceActions: {
+          notCalled: ['vdmi.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_next_gate'],
+        },
+      });
+
+      expect(formatted).toContain('Closure Status: needs_next_gate');
+      expect(formatted).toContain('Readiness: 0.64');
+      expect(formatted).toContain('Topic: jf:186');
+      expect(formatted).toContain('Jour Fixe: weekly');
+      expect(formatted).toContain('Owner: Netzstrategie');
+      expect(formatted).toContain('KPI: closure-rate');
+      expect(formatted).toContain('Decision Criterion: committee-approved');
+      expect(formatted).toContain('Blocked Follow-Up: investment-gate');
+      expect(formatted).toContain('Leading Gap: next_gate');
+      expect(formatted).toContain('Side-Effect Guard: vdmi.create');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {
