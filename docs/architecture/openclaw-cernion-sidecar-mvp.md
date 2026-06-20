@@ -54,3 +54,8 @@ DevServer smoke should verify:
 - A forbidden HITL/write/admin/token action returns `sidecar_policy_blocked`.
 
 No Personal Agent hardcoding is required for OpenClaw. Consumption stays in the manifest, policy gate, existing Cernion actions and generated API artifacts.
+
+## Setup Guide
+
+For operator-facing setup instructions, see
+[`openclaw-cernion-sidecar-setup.md`](./openclaw-cernion-sidecar-setup.md).
