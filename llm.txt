@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: cc950b30b76e340a33ff0d1da7cd645913ab1678ca8814bba7d84510c88b5043
+  - openapi-export.json: 2b71d8fc988fad11899d846865f5206f608959eda45285fb6e4290af52480d4d
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 729
-- operation_count: 834
+- path_count: 731
+- operation_count: 836
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -695,7 +695,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 42 operations
+- Dashboard API: 44 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -979,6 +979,7 @@ process:
 - GET /api/dashboard-api/market-communication-evidence-chain | tags: [Dashboard API] | operationId: dashboard-api_marketCommunicationEvidenceChainStatus | summary: Market communication evidence chain — read-only dossier-safe status
 - GET /api/dashboard-api/market-snapshot | tags: [Dashboard API] | operationId: dashboard-api_marketSnapshot | summary: Market snapshot — current spot prices, CO₂ intensity, renewable forecast
 - GET /api/dashboard-api/observability-mini | tags: [Dashboard API] | operationId: dashboard-api_observabilityMini | summary: Observability mini dashboard — compact production feedback cards
+- GET /api/dashboard-api/off-balancing-metering-pruefmatrix | tags: [Dashboard API] | operationId: dashboard-api_offBalancingMeteringPruefmatrixStatus | summary: Off-Balancing Metering Pruefmatrix — read-only dossier-safe gate
 - GET /api/dashboard-api/quality-summary | tags: [Dashboard API] | operationId: dashboard-api_qualitySummary | summary: Quality summary — recent reports from all agent pipelines
 - GET /api/dashboard-api/receipt-grounded-presentation-contract | tags: [Dashboard API] | operationId: dashboard-api_receiptGroundedPresentationContract | summary: Receipt-grounded presentation contract — read-only renderer grounding check
 - GET /api/dashboard-api/redispatch-call-quality-gate | tags: [Dashboard API] | operationId: dashboard-api_redispatchCallQualityGate | summary: Redispatch call data-quality gate — read-only evidence aggregator
@@ -1000,6 +1001,7 @@ process:
 - GET /api/dashboard/market-communication-evidence-chain | tags: [Dashboard API] | operationId: dashboard-api_marketCommunicationEvidenceChainStatus | summary: Market communication evidence chain — read-only dossier-safe status
 - GET /api/dashboard/market-snapshot | tags: [Dashboard API] | operationId: dashboard-api_marketSnapshot | summary: Market snapshot — current spot prices, CO₂ intensity, renewable forecast
 - GET /api/dashboard/observability-mini | tags: [Dashboard API] | operationId: dashboard-api_observabilityMini | summary: Observability mini dashboard — compact production feedback cards
+- GET /api/dashboard/off-balancing-metering-pruefmatrix | tags: [Dashboard API] | operationId: dashboard-api_offBalancingMeteringPruefmatrixStatus | summary: Off-Balancing Metering Pruefmatrix — read-only dossier-safe gate
 - GET /api/dashboard/quality-summary | tags: [Dashboard API] | operationId: dashboard-api_qualitySummary | summary: Quality summary — recent reports from all agent pipelines
 - GET /api/dashboard/receipt-grounded-presentation-contract | tags: [Dashboard API] | operationId: dashboard-api_receiptGroundedPresentationContract | summary: Receipt-grounded presentation contract — read-only renderer grounding check
 - GET /api/dashboard/redispatch-call-quality-gate | tags: [Dashboard API] | operationId: dashboard-api_redispatchCallQualityGate | summary: Redispatch call data-quality gate — read-only evidence aggregator
@@ -17339,6 +17341,202 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/off-balancing-metering-pruefmatrix": {
+      "get": {
+        "description": "Builds a deterministic evidence view for off-balancing metering option readiness. The endpoint is read-only and does not create finance, SAP, investment, settlement, billing, MaKo, HITL, external connector or Personal-Agent side effects.",
+        "operationId": "dashboard-api_offBalancingMeteringPruefmatrixStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "matrixId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "meteringScope",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "financingModel",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "decisionOwner",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "committeeGate",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "capexOpexBaseline",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "eogEffectEvidence",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "regulatoryEffectEvidence",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "costRecognitionAssumption",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "financierConditions",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dataQualityStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "interfaceRiskStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gridInvestmentSpaceProof",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceSnapshotRef",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceRef",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "financingEvidence": {
+                      "type": "object"
+                    },
+                    "gridInvestmentVerdict": {
+                      "type": "object"
+                    },
+                    "matrixContext": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only off-balancing metering pruefmatrix status"
+          }
+        },
+        "summary": "Off-Balancing Metering Pruefmatrix — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/quality-summary": {
       "get": {
         "description": "Returns the five most recent reports from each of the five agent pipelines (MaStR Quality, Grid Connection, Energy Sharing, Redispatch Ex-Post, Energy Sharing Allocation), structured as an agent-type array with last-run timestamp, key metric, and report list.\n\nOptionally filtered by `gridOperatorId` (MaStR SNB/GNB ID). If omitted, returns the five most recent reports regardless of operator.\n\nCache TTL: 5 minutes (key: gridOperatorId).",
@@ -20625,6 +20823,202 @@ process:
         ],
         "x-oeo-class": [
           "OEO_00000143"
+        ]
+      }
+    },
+    "/api/dashboard/off-balancing-metering-pruefmatrix": {
+      "get": {
+        "description": "Builds a deterministic evidence view for off-balancing metering option readiness. The endpoint is read-only and does not create finance, SAP, investment, settlement, billing, MaKo, HITL, external connector or Personal-Agent side effects.",
+        "operationId": "dashboard-api_offBalancingMeteringPruefmatrixStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "matrixId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "meteringScope",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "financingModel",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "decisionOwner",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "committeeGate",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "capexOpexBaseline",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "eogEffectEvidence",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "regulatoryEffectEvidence",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "costRecognitionAssumption",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "financierConditions",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dataQualityStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "interfaceRiskStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gridInvestmentSpaceProof",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceSnapshotRef",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceRef",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "financingEvidence": {
+                      "type": "object"
+                    },
+                    "gridInvestmentVerdict": {
+                      "type": "object"
+                    },
+                    "matrixContext": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only off-balancing metering pruefmatrix status"
+          }
+        },
+        "summary": "Off-Balancing Metering Pruefmatrix — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
         ]
       }
     },
@@ -58734,4 +59128,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 88c59f20c20db71387f4a40132c1eaa82fe1855387e3334a58b35567147981de
+- llm_txt_sha256: c4483eb58fa44ad5c92a9a483c6da46e88c690dec26cc1282168851e259d10f0

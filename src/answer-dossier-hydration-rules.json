@@ -1423,5 +1423,67 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 186
+  },
+  {
+    "id": "dashboard-api.offBalancingMeteringPruefmatrixStatus",
+    "action": "dashboard-api.offBalancingMeteringPruefmatrixStatus",
+    "label": "Off-Balancing Metering Pruefmatrix Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "matrixId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:matrixId[:= ]+|matrix[:=]+|pruefmatrix[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "meteringScope": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:meteringScope[:= ]+|scope[:=]+|zaehlpark[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "financingModel": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:financingModel[:= ]+|finanzierungsmodell[:=]+|model[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Pruefmatrix Status", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.matrixId", "matrixContext.matrixId"], "label": "Matrix", "maxLen": 100 },
+        { "paths": ["matrixContext.meteringScope", "dossierEvidence.matrixContext.meteringScope"], "label": "Metering Scope", "maxLen": 120 },
+        { "paths": ["matrixContext.financingModel", "dossierEvidence.matrixContext.financingModel"], "label": "Financing Model", "maxLen": 120 },
+        { "paths": ["financingEvidence.regulatoryEffectEvidence", "dossierEvidence.financingEvidence.regulatoryEffectEvidence"], "label": "Regulatory Effect", "maxLen": 140 },
+        { "paths": ["financingEvidence.financierConditions", "dossierEvidence.financingEvidence.financierConditions"], "label": "Financier Terms", "maxLen": 140 },
+        { "paths": ["gridInvestmentVerdict.gridInvestmentSpaceProof", "dossierEvidence.gridInvestmentVerdict.gridInvestmentSpaceProof"], "label": "Grid Headroom Proof", "maxLen": 140 },
+        { "paths": ["gridInvestmentVerdict.usableGridInvestmentHeadroomProven", "dossierEvidence.gridInvestmentVerdict.usableGridInvestmentHeadroomProven"], "label": "Usable Headroom" },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 187
   }
 ]

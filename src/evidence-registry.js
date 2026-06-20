@@ -608,6 +608,102 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  off_balancing_metering_pruefmatrix: {
+    sources: [
+      {
+        id: 'metering_scope',
+        label: 'Metering-Scope / Zaehlparkumfang',
+        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'datapoint.health'],
+        contextKeys: ['meteringScope'],
+        optional: false,
+      },
+      {
+        id: 'financing_model',
+        label: 'Off-Balancing-Finanzierungsmodell',
+        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'finance-agent.analyze'],
+        contextKeys: ['financingModel'],
+        optional: false,
+      },
+      {
+        id: 'decision_owner',
+        label: 'Entscheidungs-Owner',
+        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'vdmi.dossier'],
+        contextKeys: ['decisionOwner'],
+        optional: false,
+      },
+      {
+        id: 'committee_gate',
+        label: 'Gremiengate',
+        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'presentation.generate'],
+        contextKeys: ['committeeGate'],
+        optional: false,
+      },
+      {
+        id: 'capex_opex_baseline',
+        label: 'CAPEX/OPEX-Baseline',
+        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'investment-planning.createPlan', 'finance-agent.analyze'],
+        contextKeys: ['capexOpexBaseline'],
+        optional: false,
+      },
+      {
+        id: 'eog_regulatory_effect',
+        label: 'EOG-/Regulierungswirkung',
+        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'eog-calculator.scenario', 'finance-agent.analyze'],
+        contextKeys: ['eogEffectEvidence', 'regulatoryEffectEvidence'],
+        optional: false,
+      },
+      {
+        id: 'cost_recognition_assumption',
+        label: 'Kostenanerkennungsannahme',
+        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'finance-agent.analyze'],
+        contextKeys: ['costRecognitionAssumption'],
+        optional: false,
+      },
+      {
+        id: 'financier_conditions',
+        label: 'Finanziererbedingungen',
+        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'finance-agent.analyze'],
+        contextKeys: ['financierConditions'],
+        optional: false,
+      },
+      {
+        id: 'data_quality_status',
+        label: 'Datenqualitaetsstatus',
+        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'datapoint.health', 'datasource-registry.get'],
+        contextKeys: ['dataQualityStatus'],
+        optional: false,
+      },
+      {
+        id: 'interface_risk_status',
+        label: 'Schnittstellenrisiko',
+        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'interface-placeholder.listGaps', 'vdmi.dossier'],
+        contextKeys: ['interfaceRiskStatus'],
+        optional: false,
+      },
+      {
+        id: 'grid_investment_space_proof',
+        label: 'Nutzbarer Stromnetz-Investitionsspielraum',
+        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'investment-planning.createPlan', 'finance-agent.analyze'],
+        contextKeys: ['gridInvestmentSpaceProof'],
+        optional: false,
+      },
+      {
+        id: 'source_snapshot_ref',
+        label: 'Quellensnapshot',
+        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceSnapshotRef'],
+        optional: false,
+      },
+      {
+        id: 'evidence_ref',
+        label: 'Evidenzreferenzen',
+        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['evidenceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   sap_budget_psp_gate: {
     sources: [
       {

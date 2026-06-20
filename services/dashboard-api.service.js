@@ -57,6 +57,7 @@ module.exports = {
       budgetWaterfallGovernanceStatus: 5 * 60 * 1000, // 5 min
       gasDecommissioningRoadmapStatus: 5 * 60 * 1000, // 5 min
       jourFixeDecisionClosureStatus: 5 * 60 * 1000, // 5 min
+      offBalancingMeteringPruefmatrixStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -2330,6 +2331,101 @@ module.exports = {
           this.settings.cacheTtlMs.jourFixeDecisionClosureStatus,
           async () => ({
             ...this.buildJourFixeDecisionClosureStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── offBalancingMeteringPruefmatrixStatus ─────────────────────────────
+    /**
+     * GET /api/dashboard/off-balancing-metering-pruefmatrix?matrixId=...
+     *
+     * Read-only dossier-safe evidence gate for off-balancing metering options.
+     * It validates financing, regulatory, data-quality, interface-risk and
+     * usable grid-investment-headroom evidence without creating finance, SAP,
+     * investment, settlement, billing, MaKo, HITL, external connector or
+     * Personal-Agent side effects.
+     */
+    offBalancingMeteringPruefmatrixStatus: {
+      rest: 'GET /off-balancing-metering-pruefmatrix',
+      params: {
+        matrixId: { type: 'string', optional: true, min: 1 },
+        meteringScope: { type: 'string', optional: true, min: 1 },
+        financingModel: { type: 'string', optional: true, min: 1 },
+        decisionOwner: { type: 'string', optional: true, min: 1 },
+        committeeGate: { type: 'string', optional: true, min: 1 },
+        capexOpexBaseline: { type: 'string', optional: true, min: 1 },
+        eogEffectEvidence: { type: 'string', optional: true, min: 1 },
+        regulatoryEffectEvidence: { type: 'string', optional: true, min: 1 },
+        costRecognitionAssumption: { type: 'string', optional: true, min: 1 },
+        financierConditions: { type: 'string', optional: true, min: 1 },
+        dataQualityStatus: { type: 'string', optional: true, min: 1 },
+        interfaceRiskStatus: { type: 'string', optional: true, min: 1 },
+        gridInvestmentSpaceProof: { type: 'string', optional: true, min: 1 },
+        sourceSnapshotRef: { type: 'string', optional: true, min: 1 },
+        evidenceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Off-Balancing Metering Pruefmatrix — read-only dossier-safe gate',
+        description:
+          'Builds a deterministic evidence view for off-balancing metering option readiness. ' +
+          'The endpoint is read-only and does not create finance, SAP, investment, settlement, billing, MaKo, HITL, external connector or Personal-Agent side effects.',
+        parameters: [
+          { name: 'matrixId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'meteringScope', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'financingModel', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionOwner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'committeeGate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'capexOpexBaseline', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'eogEffectEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryEffectEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'costRecognitionAssumption', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'financierConditions', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataQualityStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'interfaceRiskStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'gridInvestmentSpaceProof', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceSnapshotRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceRef', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only off-balancing metering pruefmatrix status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    matrixContext: { type: 'object' },
+                    financingEvidence: { type: 'object' },
+                    gridInvestmentVerdict: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `off-balancing-metering:${params.matrixId || 'no-matrix'}:${params.meteringScope || 'no-scope'}:${params.financingModel || 'no-model'}:${params.decisionOwner || 'no-owner'}:${params.gridInvestmentSpaceProof || 'no-grid-proof'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.offBalancingMeteringPruefmatrixStatus,
+          async () => ({
+            ...this.buildOffBalancingMeteringPruefmatrixStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -6618,6 +6714,311 @@ module.exports = {
           topic,
           closureEvidence,
           closureSteps,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceSnapshotRef: params.sourceSnapshotRef || null,
+          evidenceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildOffBalancingMeteringPruefmatrixStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const evidenceRefs = toList(params.evidenceRef);
+      const regulatoryEffectEvidence = params.regulatoryEffectEvidence || params.eogEffectEvidence;
+      const evidenceSpecs = [
+        {
+          id: 'metering_scope',
+          label: 'Metering scope',
+          value: params.meteringScope,
+          sourceClass: 'metering_scope',
+          enablesDossierAddition: 'add the metering scope and affected meter portfolio',
+        },
+        {
+          id: 'financing_model',
+          label: 'Financing model',
+          value: params.financingModel,
+          sourceClass: 'financing_model',
+          enablesDossierAddition: 'add the off-balancing financing model under review',
+        },
+        {
+          id: 'decision_owner',
+          label: 'Decision owner',
+          value: params.decisionOwner,
+          sourceClass: 'governance_owner',
+          enablesDossierAddition: 'add accountable Finance/Regulation/Grid decision ownership',
+        },
+        {
+          id: 'committee_gate',
+          label: 'Committee gate',
+          value: params.committeeGate,
+          sourceClass: 'committee_gate',
+          enablesDossierAddition: 'add the management or committee gate for the option',
+        },
+        {
+          id: 'capex_opex_baseline',
+          label: 'CAPEX/OPEX baseline',
+          value: params.capexOpexBaseline,
+          sourceClass: 'capex_opex_baseline',
+          enablesDossierAddition: 'compare the option against the approved CAPEX/OPEX baseline',
+        },
+        {
+          id: 'eog_regulatory_effect',
+          label: 'EOG/regulatory-effect evidence',
+          value: regulatoryEffectEvidence,
+          sourceClass: 'regulatory_effect',
+          enablesDossierAddition: 'add regulatory or EOG-effect plausibility for the option',
+        },
+        {
+          id: 'cost_recognition_assumption',
+          label: 'Cost-recognition assumption',
+          value: params.costRecognitionAssumption,
+          sourceClass: 'cost_recognition',
+          enablesDossierAddition: 'add a recognition-bound decision guard without claiming legal authority',
+        },
+        {
+          id: 'financier_conditions',
+          label: 'Financier conditions',
+          value: params.financierConditions,
+          sourceClass: 'financier_terms',
+          enablesDossierAddition: 'add financier-bound risk, covenant and exit-condition assessment',
+        },
+        {
+          id: 'data_quality_status',
+          label: 'Data-quality status',
+          value: params.dataQualityStatus,
+          sourceClass: 'data_quality',
+          enablesDossierAddition: 'add metering-data reliability status for decision wording',
+        },
+        {
+          id: 'interface_risk_status',
+          label: 'Interface-risk status',
+          value: params.interfaceRiskStatus,
+          sourceClass: 'interface_risk',
+          enablesDossierAddition: 'add integration-risk guard for billing, MaKo and data interfaces',
+        },
+        {
+          id: 'grid_investment_space_proof',
+          label: 'Usable grid-investment headroom proof',
+          value: params.gridInvestmentSpaceProof,
+          sourceClass: 'grid_investment_space',
+          enablesDossierAddition: 'add the verdict whether budget relief creates usable electricity-grid investment headroom',
+        },
+        {
+          id: 'source_snapshot_ref',
+          label: 'Source snapshot',
+          value: params.sourceSnapshotRef,
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add source grounding for the pruefmatrix evidence',
+        },
+        {
+          id: 'evidence_ref',
+          label: 'Evidence reference',
+          value: evidenceRefs.length > 0,
+          displayValue: evidenceRefs.join(', '),
+          sourceClass: 'evidence_refs',
+          enablesDossierAddition: 'add citable evidence references to the dossier',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue || spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const gridProofText = String(params.gridInvestmentSpaceProof || '').toLowerCase();
+      const apparentReliefUnproven =
+        !!params.financingModel &&
+        !params.gridInvestmentSpaceProof;
+      const gridProofBlocking =
+        /not usable|not_usable|kein nutzbarer|scheininvest|scheinspielraum|unproven|ungeklaert|unklar|blocked/.test(gridProofText);
+      const status =
+        !params.meteringScope
+          ? 'needs_metering_scope'
+          : !params.financingModel
+            ? 'needs_financing_model'
+            : !params.financierConditions
+              ? 'needs_financier_terms'
+              : !regulatoryEffectEvidence
+                ? 'needs_regulatory_effect'
+                : !params.costRecognitionAssumption
+                  ? 'needs_cost_recognition'
+                  : !params.capexOpexBaseline
+                    ? 'needs_capex_opex_baseline'
+                    : !params.dataQualityStatus
+                      ? 'needs_data_quality'
+                      : !params.interfaceRiskStatus
+                        ? 'needs_interface_risk'
+                        : !params.gridInvestmentSpaceProof
+                          ? 'needs_grid_investment_proof'
+                          : gridProofBlocking
+                            ? 'apparent_relief_not_decision_ready'
+                            : !params.decisionOwner
+                              ? 'needs_decision_owner'
+                              : !params.committeeGate
+                                ? 'needs_committee_gate'
+                                : !params.sourceSnapshotRef || evidenceRefs.length === 0
+                                  ? 'needs_source_evidence'
+                                  : missingEvidence.length === 0
+                                    ? 'ready_for_committee_review'
+                                    : 'needs_pruefmatrix_evidence';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'off_balancing_metering_pruefmatrix',
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `OBM_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: [
+          'financier_conditions',
+          'eog_regulatory_effect',
+          'cost_recognition_assumption',
+          'grid_investment_space_proof',
+          'capex_opex_baseline',
+        ].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      if (apparentReliefUnproven) {
+        blockingFindings.push({
+          code: 'OBM_APPARENT_RELIEF_UNPROVEN',
+          severity: 'high',
+          message: 'claimed budget relief is not decision-ready until usable grid-investment headroom is proven',
+        });
+      }
+      if (gridProofBlocking) {
+        blockingFindings.push({
+          code: 'OBM_GRID_INVESTMENT_SPACE_BLOCKING',
+          severity: 'high',
+          message: 'provided grid-investment-space evidence marks the option as not usable or unresolved',
+        });
+      }
+      const matrixContext = {
+        matrixId: params.matrixId || null,
+        meteringScope: params.meteringScope || null,
+        financingModel: params.financingModel || null,
+        decisionOwner: params.decisionOwner || null,
+        committeeGate: params.committeeGate || null,
+      };
+      const financingEvidence = {
+        capexOpexBaseline: params.capexOpexBaseline || null,
+        regulatoryEffectEvidence: regulatoryEffectEvidence || null,
+        costRecognitionAssumption: params.costRecognitionAssumption || null,
+        financierConditions: params.financierConditions || null,
+      };
+      const operationalEvidence = {
+        dataQualityStatus: params.dataQualityStatus || null,
+        interfaceRiskStatus: params.interfaceRiskStatus || null,
+        sourceSnapshotRef: params.sourceSnapshotRef || null,
+      };
+      const gridInvestmentVerdict = {
+        gridInvestmentSpaceProof: params.gridInvestmentSpaceProof || null,
+        apparentBudgetRelief: !!params.financingModel,
+        usableGridInvestmentHeadroomProven: !!params.gridInvestmentSpaceProof && !gridProofBlocking,
+        apparentReliefUnproven,
+      };
+      const matrixSteps = [
+        { id: 'scope-and-model', label: 'Scope and model', evidenceStatus: params.meteringScope && params.financingModel ? 'provided' : 'missing' },
+        { id: 'finance-regulation', label: 'Finance and regulation', evidenceStatus: params.capexOpexBaseline && regulatoryEffectEvidence && params.costRecognitionAssumption && params.financierConditions ? 'provided' : 'missing' },
+        { id: 'data-interface-risk', label: 'Data and interface risk', evidenceStatus: params.dataQualityStatus && params.interfaceRiskStatus ? 'provided' : 'missing' },
+        { id: 'grid-headroom-verdict', label: 'Grid headroom verdict', evidenceStatus: params.gridInvestmentSpaceProof ? 'provided' : 'missing' },
+        { id: 'committee-readiness', label: 'Committee readiness', evidenceStatus: params.decisionOwner && params.committeeGate ? 'provided' : 'missing' },
+      ];
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided off-balancing metering evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.matrixId) dossierFacts.push(`Matrix: ${params.matrixId}`);
+      if (params.meteringScope) dossierFacts.push(`Metering scope: ${params.meteringScope}`);
+      if (params.financingModel) dossierFacts.push(`Financing model: ${params.financingModel}`);
+      if (params.gridInvestmentSpaceProof) dossierFacts.push(`Grid headroom proof: ${params.gridInvestmentSpaceProof}`);
+
+      return {
+        pruefmatrixStatusId: `obm:${Buffer.from(`${params.matrixId || ''}:${params.meteringScope || ''}:${params.financingModel || ''}:${params.gridInvestmentSpaceProof || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'off_balancing_metering_pruefmatrix',
+        safety: 'read_only',
+        requestContext: {
+          matrixId: params.matrixId || null,
+          meteringScope: params.meteringScope || null,
+          financingModel: params.financingModel || null,
+        },
+        status,
+        readinessScore,
+        matrixContext,
+        financingEvidence,
+        operationalEvidence,
+        gridInvestmentVerdict,
+        matrixSteps,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          matrixContext,
+          financingEvidence,
+          operationalEvidence,
+          gridInvestmentVerdict,
+          sourceSnapshotRef: params.sourceSnapshotRef || null,
+          evidenceRefs,
+        },
+        evidenceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.offBalancingMeteringPruefmatrixStatus'],
+          referenced: [
+            'finance-agent.analyze',
+            'investment-planning.createPlan',
+            'eog-calculator.scenario',
+            'datapoint.health',
+            'datasource-registry.get',
+            'vdmi.dossier',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'finance-agent.mutate',
+            'sap.psp.write',
+            'sap.budget.write',
+            'investment-planning.createPlan',
+            'investment-planning.mutate',
+            'settlement.exportA96',
+            'settlement.prepareBilling',
+            'billing.release',
+            'mako.dispatch',
+            'hitl.create',
+            'vdmi.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          matrixContext,
+          financingEvidence,
+          operationalEvidence,
+          gridInvestmentVerdict,
+          matrixSteps,
           evidenceItems,
           missingEvidence,
           positiveFollowUps,

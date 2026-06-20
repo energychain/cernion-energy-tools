@@ -2521,6 +2521,99 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── offBalancingMeteringPruefmatrixStatus ─────────────────────────────
+
+  describe('offBalancingMeteringPruefmatrixStatus', () => {
+    it('reports off-balancing metering gaps without creating downstream actions', async () => {
+      const result = await broker.call('dashboard-api.offBalancingMeteringPruefmatrixStatus', {
+        matrixId: 'obm:187',
+        meteringScope: 'smart-meter-rollout-west',
+        financingModel: 'leasing',
+      });
+
+      expect(result.status).toBe('needs_financier_terms');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'financier_conditions',
+          'eog_regulatory_effect',
+          'cost_recognition_assumption',
+          'grid_investment_space_proof',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('off_balancing_metering_pruefmatrix');
+      expect(result.blockingFindings.map((finding) => finding.code)).toContain(
+        'OBM_APPARENT_RELIEF_UNPROVEN'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'finance-agent.mutate',
+          'sap.psp.write',
+          'investment-planning.createPlan',
+          'settlement.prepareBilling',
+          'mako.dispatch',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_committee_review when pruefmatrix evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.offBalancingMeteringPruefmatrixStatus', {
+        matrixId: 'obm:187',
+        meteringScope: 'smart-meter-rollout-west',
+        financingModel: 'leasing',
+        decisionOwner: 'Finance Regulation Board',
+        committeeGate: 'committee:metering-q3',
+        capexOpexBaseline: 'baseline:capex-opex-2026',
+        eogEffectEvidence: 'eog:scenario-metering-2027',
+        costRecognitionAssumption: 'recognized as service cost with regulator caveat',
+        financierConditions: 'covenants:exit-rights-documented',
+        dataQualityStatus: 'metering-data-quality-green',
+        interfaceRiskStatus: 'billing-mako-interface-risk-low',
+        gridInvestmentSpaceProof: 'usable-grid-headroom:3.2m-eur',
+        sourceSnapshotRef: 'snapshot:obm-187',
+        evidenceRef: 'finance:evidence-1,eog:evidence-2',
+      });
+
+      expect(result.status).toBe('ready_for_committee_review');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.matrixContext.matrixId).toBe('obm:187');
+      expect(result.financingEvidence.regulatoryEffectEvidence).toBe('eog:scenario-metering-2027');
+      expect(result.gridInvestmentVerdict.usableGridInvestmentHeadroomProven).toBe(true);
+      expect(result.evidenceRefs).toEqual(['finance:evidence-1', 'eog:evidence-2']);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided off-balancing metering evidence: 13/13');
+      expect(result.sourceActions.notCalled).toContain('billing.release');
+    });
+
+    it('marks apparent relief as not decision-ready when grid headroom is blocked', async () => {
+      const result = await broker.call('dashboard-api.offBalancingMeteringPruefmatrixStatus', {
+        matrixId: 'obm:blocking',
+        meteringScope: 'smart-meter-rollout-west',
+        financingModel: 'leasing',
+        decisionOwner: 'Finance Regulation Board',
+        committeeGate: 'committee:metering-q3',
+        capexOpexBaseline: 'baseline:capex-opex-2026',
+        regulatoryEffectEvidence: 'regulatory:scenario-metering-2027',
+        costRecognitionAssumption: 'recognized as service cost with regulator caveat',
+        financierConditions: 'covenants:exit-rights-documented',
+        dataQualityStatus: 'metering-data-quality-green',
+        interfaceRiskStatus: 'billing-mako-interface-risk-low',
+        gridInvestmentSpaceProof: 'not usable for stromnetz investments',
+        sourceSnapshotRef: 'snapshot:obm-blocking',
+        evidenceRef: ['finance:evidence-1'],
+      });
+
+      expect(result.status).toBe('apparent_relief_not_decision_ready');
+      expect(result.gridInvestmentVerdict.usableGridInvestmentHeadroomProven).toBe(false);
+      expect(result.blockingFindings.map((finding) => finding.code)).toContain(
+        'OBM_GRID_INVESTMENT_SPACE_BLOCKING'
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

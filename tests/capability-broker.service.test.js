@@ -955,6 +955,25 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Off-Balancing Metering Pruefmatrix prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe off_balancing_metering_pruefmatrix fuer Off-Balancing Metering, Zaehlpark Leasing, CAPEX OPEX, EOG, Kostenanerkennung, Datenqualitaet, Schnittstellenrisiko, Scheinspielraum und nutzbaren Stromnetz Investitionsspielraum.',
+    });
+
+    expect(result.capability).toBe('off_balancing_metering_pruefmatrix');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'off_balancing_metering_pruefmatrix'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.offBalancingMeteringPruefmatrixStatus');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('sap.psp.write');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('mako.dispatch');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

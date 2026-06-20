@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 29 static rules', () => {
+    it('loads all 30 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(29);
+      expect(rules.length).toBe(30);
     });
 
-    it('compiles all 29 static rules without error', () => {
+    it('compiles all 30 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(29);
+      expect(rules.length).toBe(30);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -863,6 +863,63 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Blocked Follow-Up: investment-gate');
       expect(formatted).toContain('Leading Gap: next_gate');
       expect(formatted).toContain('Side-Effect Guard: vdmi.create');
+    });
+
+    it('dashboard-api.offBalancingMeteringPruefmatrixStatus is dossier-safe and formats matrix facts', () => {
+      const rule = getRule('dashboard-api.offBalancingMeteringPruefmatrixStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Off-Balancing Metering pruefmatrix=obm:187 scope=zaehlpark-west financingModel=leasing laden'
+        )
+      ).toEqual({
+        matrixId: 'obm:187',
+        meteringScope: 'zaehlpark-west',
+        financingModel: 'leasing',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_grid_investment_proof',
+        readinessScore: 0.69,
+        requestContext: {
+          matrixId: 'obm:187',
+        },
+        matrixContext: {
+          matrixId: 'obm:187',
+          meteringScope: 'zaehlpark-west',
+          financingModel: 'leasing',
+        },
+        financingEvidence: {
+          regulatoryEffectEvidence: 'eog:scenario-187',
+          financierConditions: 'covenants:documented',
+        },
+        gridInvestmentVerdict: {
+          gridInvestmentSpaceProof: null,
+          usableGridInvestmentHeadroomProven: false,
+        },
+        missingEvidence: [
+          { missingDataPoint: 'grid_investment_space_proof' },
+        ],
+        sourceActions: {
+          notCalled: ['finance-agent.mutate'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_grid_investment_proof'],
+        },
+      });
+
+      expect(formatted).toContain('Pruefmatrix Status: needs_grid_investment_proof');
+      expect(formatted).toContain('Readiness: 0.69');
+      expect(formatted).toContain('Matrix: obm:187');
+      expect(formatted).toContain('Metering Scope: zaehlpark-west');
+      expect(formatted).toContain('Financing Model: leasing');
+      expect(formatted).toContain('Regulatory Effect: eog:scenario-187');
+      expect(formatted).toContain('Financier Terms: covenants:documented');
+      expect(formatted).toContain('Usable Headroom: false');
+      expect(formatted).toContain('Leading Gap: grid_investment_space_proof');
+      expect(formatted).toContain('Side-Effect Guard: finance-agent.mutate');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {

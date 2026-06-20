@@ -415,6 +415,38 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans Off-Balancing Metering Pruefmatrix as finance, EOG and headroom evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'off_balancing_metering_pruefmatrix' },
+      {
+        meteringScope: 'smart-meter-rollout-west',
+        financingModel: 'leasing',
+        capexOpexBaseline: 'baseline:2026',
+        financierConditions: 'covenants:documented',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('off_balancing_metering_pruefmatrix');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining([
+        'metering_scope',
+        'financing_model',
+        'capex_opex_baseline',
+        'financier_conditions',
+      ])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'eog_regulatory_effect',
+        'cost_recognition_assumption',
+        'data_quality_status',
+        'interface_risk_status',
+        'grid_investment_space_proof',
+      ])
+    );
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });
