@@ -2688,6 +2688,83 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── smartMeterOffBalancingPurposeLockStatus ────────────────────────────
+
+  describe('smartMeterOffBalancingPurposeLockStatus', () => {
+    it('reports purpose-lock gaps without creating finance or HITL side effects', async () => {
+      const result = await broker.call('dashboard-api.smartMeterOffBalancingPurposeLockStatus', {
+        caseId: 'smopl:198',
+        gridOperatorId: 'vnb-west',
+        assetScope: 'smart-meter-rollout-west',
+        financingModel: 'leasing',
+        offBalanceVolumeEur: '1200000',
+        freedLiquidityEur: '800000',
+      });
+
+      expect(result.status).toBe('needs_purpose_lock');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'purpose_lock_measures_missing',
+          'regulatory_recognition_status',
+          'finance_review_missing',
+          'investment_effect_missing',
+          'budget_dilution_risk_open',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('smart_meter_off_balancing_purpose_lock');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'finance-agent.mutate',
+          'sap.psp.write',
+          'investment-planning.createPlan',
+          'billing.release',
+          'settlement.prepareBilling',
+          'mako.dispatch',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_committee_review when purpose-lock evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.smartMeterOffBalancingPurposeLockStatus', {
+        caseId: 'smopl:198',
+        gridOperatorId: 'vnb-west',
+        assetScope: 'smart-meter-rollout-west',
+        financingModel: 'service-lease',
+        offBalanceVolumeEur: 1200000,
+        freedLiquidityEur: 820000,
+        financierCostEur: 64000,
+        capexOpexTotexEffect: 'capex relief, opex service cost visible',
+        regulatoryRecognitionStatus: 'recognized-with-regulatory-caveat',
+        purposeLockedMeasures: 'leitwarte-upgrade,process-control-room-handover',
+        controlRoomInvestments: 'scada-workbench',
+        processInvestments: 'redispatch-process-training',
+        gridInfrastructureInvestments: 'lv-feeder-sensors',
+        budgetDilutionRisk: 'low-protected-by-committee-lock',
+        financeReviewStatus: 'committee-ready',
+        sourceSnapshotRef: 'snapshot:smopl-198',
+        evidenceRef: 'finance:review-198,vdmi:purpose-lock-198',
+      });
+
+      expect(result.status).toBe('ready_for_committee_review');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.purposeLockContext.caseId).toBe('smopl:198');
+      expect(result.financeSummary.freedLiquidityEur).toBe(820000);
+      expect(result.purposeLockCoverage.purposeLockedMeasures).toEqual([
+        'leitwarte-upgrade',
+        'process-control-room-handover',
+      ]);
+      expect(result.investmentEffectEvidence.usableOperationalInvestmentEffect).toBe(true);
+      expect(result.evidenceRefs).toEqual(['finance:review-198', 'vdmi:purpose-lock-198']);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided purpose-lock evidence: 13/13');
+      expect(result.sourceActions.notCalled).toContain('settlement.prepareBilling');
+    });
+  });
+
   // ── imsysScheduleValueChainReadinessStatus ─────────────────────────────
 
   describe('imsysScheduleValueChainReadinessStatus', () => {

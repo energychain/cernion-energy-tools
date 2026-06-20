@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 32 static rules', () => {
+    it('loads all 33 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(32);
+      expect(rules.length).toBe(33);
     });
 
-    it('compiles all 32 static rules without error', () => {
+    it('compiles all 33 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(32);
+      expect(rules.length).toBe(33);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -978,6 +978,71 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Decision Value: redispatch-kpi');
       expect(formatted).toContain('Leading Gap: follow_up_process');
       expect(formatted).toContain('Side-Effect Guard: powerbi.createDashboard');
+    });
+
+    it('dashboard-api.smartMeterOffBalancingPurposeLockStatus is dossier-safe and formats purpose-lock facts', () => {
+      const rule = getRule('dashboard-api.smartMeterOffBalancingPurposeLockStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Smart Meter Purpose Lock case=smopl:198 scope=smart-meter-west financingModel=leasing laden'
+        )
+      ).toEqual({
+        caseId: 'smopl:198',
+        assetScope: 'smart-meter-west',
+        financingModel: 'leasing',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'budget_dilution_risk',
+        readinessScore: 0.69,
+        requestContext: {
+          caseId: 'smopl:198',
+        },
+        purposeLockContext: {
+          caseId: 'smopl:198',
+          assetScope: 'smart-meter-west',
+          financingModel: 'leasing',
+        },
+        financeSummary: {
+          freedLiquidityEur: 820000,
+          financierCostEur: 64000,
+          regulatoryRecognitionStatus: 'recognized-with-caveat',
+          financeReviewStatus: 'pending',
+        },
+        purposeLockCoverage: {
+          purposeLockEvidenced: true,
+        },
+        investmentEffectEvidence: {
+          usableOperationalInvestmentEffect: true,
+        },
+        budgetDilutionRisk: {
+          status: 'open',
+        },
+        missingEvidence: [
+          { missingDataPoint: 'budget_dilution_risk_open' },
+        ],
+        sourceActions: {
+          notCalled: ['finance-agent.mutate'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: budget_dilution_risk'],
+        },
+      });
+
+      expect(formatted).toContain('Purpose-Lock Status: budget_dilution_risk');
+      expect(formatted).toContain('Readiness: 0.69');
+      expect(formatted).toContain('Case: smopl:198');
+      expect(formatted).toContain('Asset Scope: smart-meter-west');
+      expect(formatted).toContain('Financing Model: leasing');
+      expect(formatted).toContain('Freed Liquidity EUR: 820000');
+      expect(formatted).toContain('Regulatory Recognition: recognized-with-caveat');
+      expect(formatted).toContain('Purpose Lock Evidenced: true');
+      expect(formatted).toContain('Investment Effect: true');
+      expect(formatted).toContain('Leading Gap: budget_dilution_risk_open');
+      expect(formatted).toContain('Side-Effect Guard: finance-agent.mutate');
     });
 
     it('dashboard-api.imsysScheduleValueChainReadinessStatus is dossier-safe and formats value-chain facts', () => {

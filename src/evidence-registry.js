@@ -814,6 +814,102 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  smart_meter_off_balancing_purpose_lock: {
+    sources: [
+      {
+        id: 'asset_scope',
+        label: 'Smart-Meter-Assetumfang',
+        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'datapoint.health'],
+        contextKeys: ['assetScope'],
+        optional: false,
+      },
+      {
+        id: 'financing_model',
+        label: 'Off-Balancing-Finanzierungsmodell',
+        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'finance-agent.analyze'],
+        contextKeys: ['financingModel'],
+        optional: false,
+      },
+      {
+        id: 'off_balance_volume_eur',
+        label: 'Off-Balance-Volumen',
+        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'finance-agent.analyze'],
+        contextKeys: ['offBalanceVolumeEur'],
+        optional: false,
+      },
+      {
+        id: 'freed_liquidity_eur',
+        label: 'Freiwerdende Liquiditaet',
+        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'finance-agent.analyze'],
+        contextKeys: ['freedLiquidityEur'],
+        optional: false,
+      },
+      {
+        id: 'financier_cost_eur',
+        label: 'Finanzierer-Kosten',
+        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'finance-agent.analyze'],
+        contextKeys: ['financierCostEur'],
+        optional: false,
+      },
+      {
+        id: 'capex_opex_totex_effect',
+        label: 'CAPEX-/OPEX-/TOTEX-Wirkung',
+        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'finance-agent.analyze'],
+        contextKeys: ['capexOpexTotexEffect'],
+        optional: false,
+      },
+      {
+        id: 'regulatory_recognition_status',
+        label: 'Regulatorische Anerkennung',
+        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'finance-agent.analyze'],
+        contextKeys: ['regulatoryRecognitionStatus'],
+        optional: false,
+      },
+      {
+        id: 'purpose_lock_measures_missing',
+        label: 'Zweckgebundene Massnahmen',
+        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'vdmi.dossier'],
+        contextKeys: ['purposeLockedMeasures'],
+        optional: false,
+      },
+      {
+        id: 'investment_effect_missing',
+        label: 'Operativer Investitionseffekt',
+        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'investment-planning.read'],
+        contextKeys: ['controlRoomInvestments', 'processInvestments', 'gridInfrastructureInvestments'],
+        optional: false,
+      },
+      {
+        id: 'budget_dilution_risk_open',
+        label: 'Budgetverwaesserungsrisiko',
+        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'finance-agent.analyze'],
+        contextKeys: ['budgetDilutionRisk'],
+        optional: false,
+      },
+      {
+        id: 'finance_review_missing',
+        label: 'Finance-Review-Status',
+        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'vdmi.dossier'],
+        contextKeys: ['financeReviewStatus'],
+        optional: false,
+      },
+      {
+        id: 'source_snapshot_ref',
+        label: 'Quellensnapshot',
+        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceSnapshotRef'],
+        optional: false,
+      },
+      {
+        id: 'evidence_ref',
+        label: 'Evidenzreferenzen',
+        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['evidenceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   imsys_schedule_value_chain_readiness: {
     sources: [
       {

@@ -993,6 +993,25 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Smart-Meter Off-Balancing Purpose-Lock prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe smart_meter_off_balancing_purpose_lock fuer Smart Meter Off-Balancing, Purpose Lock, Zweckbindung, freiwerdende Liquiditaet, Finanzierer Kosten, regulatorische Anerkennung, Budgetverwaesserung und Leitwarte Invest.',
+    });
+
+    expect(result.capability).toBe('smart_meter_off_balancing_purpose_lock');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'smart_meter_off_balancing_purpose_lock'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.smartMeterOffBalancingPurposeLockStatus');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('sap.psp.write');
+    expect(actionNames).not.toContain('investment-planning.createPlan');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes iMSys schedule value-chain prompts to the read-only evidence gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe imsys_schedule_value_chain_readiness fuer iMSys Fahrplan, CLS Fahrplan, Messdaten zu Steuerung, Engpasslogik, Flexibilitaetsnutzung, Netzfahrplan Assessment und Leitwartenuebergabe.',

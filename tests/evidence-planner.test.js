@@ -510,6 +510,37 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans Smart-Meter Off-Balancing Purpose Lock as finance and purpose evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'smart_meter_off_balancing_purpose_lock' },
+      {
+        caseId: 'smopl:198',
+        assetScope: 'smart-meter-west',
+        financingModel: 'service-lease',
+        freedLiquidityEur: 820000,
+        purposeLockedMeasures: ['leitwarte-upgrade'],
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('smart_meter_off_balancing_purpose_lock');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining([
+        'asset_scope',
+        'financing_model',
+        'freed_liquidity_eur',
+        'purpose_lock_measures_missing',
+      ])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'regulatory_recognition_status',
+        'finance_review_missing',
+        'budget_dilution_risk_open',
+      ])
+    );
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });

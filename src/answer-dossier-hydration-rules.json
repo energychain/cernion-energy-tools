@@ -1552,6 +1552,71 @@
     "sourceIssue": 181
   },
   {
+    "id": "dashboard-api.smartMeterOffBalancingPurposeLockStatus",
+    "action": "dashboard-api.smartMeterOffBalancingPurposeLockStatus",
+    "label": "Smart Meter Off-Balancing Purpose Lock Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:caseId[:= ]+|case[:=]+|fall[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "assetScope": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:assetScope[:= ]+|scope[:=]+|asset[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "financingModel": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:financingModel[:= ]+|model[:=]+|finanzierungsmodell[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Purpose-Lock Status", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.caseId", "purposeLockContext.caseId"], "label": "Case", "maxLen": 100 },
+        { "paths": ["purposeLockContext.assetScope", "dossierEvidence.purposeLockContext.assetScope"], "label": "Asset Scope", "maxLen": 140 },
+        { "paths": ["purposeLockContext.financingModel", "dossierEvidence.purposeLockContext.financingModel"], "label": "Financing Model", "maxLen": 120 },
+        { "paths": ["financeSummary.freedLiquidityEur", "dossierEvidence.financeSummary.freedLiquidityEur"], "label": "Freed Liquidity EUR", "maxLen": 120 },
+        { "paths": ["financeSummary.financierCostEur", "dossierEvidence.financeSummary.financierCostEur"], "label": "Financier Cost EUR", "maxLen": 120 },
+        { "paths": ["financeSummary.regulatoryRecognitionStatus", "dossierEvidence.financeSummary.regulatoryRecognitionStatus"], "label": "Regulatory Recognition", "maxLen": 140 },
+        { "paths": ["financeSummary.financeReviewStatus", "dossierEvidence.financeSummary.financeReviewStatus"], "label": "Finance Review", "maxLen": 140 },
+        { "paths": ["purposeLockCoverage.purposeLockEvidenced", "dossierEvidence.purposeLockCoverage.purposeLockEvidenced"], "label": "Purpose Lock Evidenced" },
+        { "paths": ["investmentEffectEvidence.usableOperationalInvestmentEffect", "dossierEvidence.investmentEffectEvidence.usableOperationalInvestmentEffect"], "label": "Investment Effect" },
+        { "paths": ["budgetDilutionRisk.status", "dossierEvidence.budgetDilutionRisk.status"], "label": "Budget Dilution Risk", "maxLen": 140 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 198
+  },
+  {
     "id": "dashboard-api.imsysScheduleValueChainReadinessStatus",
     "action": "dashboard-api.imsysScheduleValueChainReadinessStatus",
     "label": "iMSys Schedule Value-Chain Readiness Evidence",

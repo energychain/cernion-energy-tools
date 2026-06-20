@@ -1433,6 +1433,8 @@ module.exports = {
             'dashboard-api.offBalancingMeteringPruefmatrixStatus',
           'GET /dashboard/automation-requirements-decision-value':
             'dashboard-api.automationRequirementsDecisionValueStatus',
+          'GET /dashboard/smart-meter-off-balancing-purpose-lock':
+            'dashboard-api.smartMeterOffBalancingPurposeLockStatus',
           'GET /dashboard/imsys-schedule-value-chain-readiness':
             'dashboard-api.imsysScheduleValueChainReadinessStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',

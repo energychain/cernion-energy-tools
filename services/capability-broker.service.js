@@ -350,6 +350,25 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasSmartMeterPurposeLockSignal =
+    /(smart.?meter|imsys|z[aä]hlpark)/i.test(haystack) &&
+    /(off.?balancing|purpose.?lock|zweckbindung|budgetverwaesserung|budgetverw[aä]sserung|freiwerdende liquidit[aä]t|leitwarte invest|steuerbarkeit finanzieren)/i.test(
+      haystack
+    );
+
+  if (hasSmartMeterPurposeLockSignal) {
+    const purposeLockCapability = findCapabilityByName(
+      'smart_meter_off_balancing_purpose_lock'
+    );
+    if (purposeLockCapability) {
+      return {
+        capability: purposeLockCapability,
+        score: 128,
+        usedFallback: false,
+      };
+    }
+  }
+
   const hasFinancierDueDiligenceCombo =
     /(due\s*diligence|risk\s*assessment|kreditausschuss|credit\s*committee|bankability)/i.test(
       haystack

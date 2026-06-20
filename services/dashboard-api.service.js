@@ -59,6 +59,7 @@ module.exports = {
       jourFixeDecisionClosureStatus: 5 * 60 * 1000, // 5 min
       offBalancingMeteringPruefmatrixStatus: 5 * 60 * 1000, // 5 min
       automationRequirementsDecisionValueStatus: 5 * 60 * 1000, // 5 min
+      smartMeterOffBalancingPurposeLockStatus: 5 * 60 * 1000, // 5 min
       imsysScheduleValueChainReadinessStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
@@ -2524,6 +2525,65 @@ module.exports = {
           this.settings.cacheTtlMs.automationRequirementsDecisionValueStatus,
           async () => ({
             ...this.buildAutomationRequirementsDecisionValueStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── smartMeterOffBalancingPurposeLockStatus ───────────────────────────
+    /**
+     * GET /api/dashboard/smart-meter-off-balancing-purpose-lock?caseId=...
+     *
+     * Read-only dossier-safe evidence gate for smart-meter off-balancing
+     * purpose locks. It validates whether freed liquidity is visibly bound to
+     * control-room, process and grid-infrastructure value without creating
+     * finance, SAP, investment, billing, settlement, MaKo, HITL, external or
+     * Personal-Agent side effects.
+     */
+    smartMeterOffBalancingPurposeLockStatus: {
+      rest: 'GET /smart-meter-off-balancing-purpose-lock',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        assetScope: { type: 'string', optional: true, min: 1 },
+        financingModel: { type: 'string', optional: true, min: 1 },
+        offBalanceVolumeEur: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        freedLiquidityEur: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        financierCostEur: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        capexOpexTotexEffect: { type: 'string', optional: true, min: 1 },
+        regulatoryRecognitionStatus: { type: 'string', optional: true, min: 1 },
+        purposeLockedMeasures: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        controlRoomInvestments: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        processInvestments: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        gridInfrastructureInvestments: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        budgetDilutionRisk: { type: 'string', optional: true, min: 1 },
+        financeReviewStatus: { type: 'string', optional: true, min: 1 },
+        sourceSnapshotRef: { type: 'string', optional: true, min: 1 },
+        evidenceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Smart Meter Off-Balancing Purpose Lock — read-only dossier-safe gate',
+        description:
+          'Builds a deterministic evidence view for smart-meter off-balancing purpose-lock readiness. ' +
+          'The endpoint is read-only and does not create finance, SAP, investment, billing, settlement, MaKo, HITL, external connector or Personal-Agent side effects.',
+        responses: {
+          200: {
+            description: 'Read-only smart-meter off-balancing purpose-lock status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `smart-meter-purpose-lock:${params.caseId || 'no-case'}:${params.assetScope || 'no-asset'}:${params.financingModel || 'no-model'}:${params.financeReviewStatus || 'no-review'}:${params.budgetDilutionRisk || 'no-dilution'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.smartMeterOffBalancingPurposeLockStatus,
+          async () => ({
+            ...this.buildSmartMeterOffBalancingPurposeLockStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -7426,6 +7486,286 @@ module.exports = {
           requirementContext,
           decisionEvidence,
           decisionSteps,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceSnapshotRef: params.sourceSnapshotRef || null,
+          evidenceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildSmartMeterOffBalancingPurposeLockStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.flatMap((item) => String(item || '').split(',')).map((item) => item.trim()).filter(Boolean)
+        : String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+      const toAmount = (value) => {
+        if (value == null || value === '') return null;
+        const normalized = Number(String(value).replace(/[^\d.-]/g, ''));
+        return Number.isFinite(normalized) ? normalized : String(value);
+      };
+      const purposeLockedMeasures = toList(params.purposeLockedMeasures);
+      const controlRoomInvestments = toList(params.controlRoomInvestments);
+      const processInvestments = toList(params.processInvestments);
+      const gridInfrastructureInvestments = toList(params.gridInfrastructureInvestments);
+      const evidenceRefs = toList(params.evidenceRef);
+      const offBalanceVolumeEur = toAmount(params.offBalanceVolumeEur);
+      const freedLiquidityEur = toAmount(params.freedLiquidityEur);
+      const financierCostEur = toAmount(params.financierCostEur);
+      const investmentEffectEvidence =
+        controlRoomInvestments.length + processInvestments.length + gridInfrastructureInvestments.length;
+      const evidenceSpecs = [
+        {
+          key: 'asset_scope',
+          label: 'Asset scope',
+          value: params.assetScope,
+          missingDataPoint: 'asset_scope',
+          enablesDossierAddition: 'Smart-Meter-Assetumfang und betroffene Netz-/Messlokationen koennen abgegrenzt werden',
+        },
+        {
+          key: 'financing_model',
+          label: 'Financing model',
+          value: params.financingModel,
+          missingDataPoint: 'financing_model',
+          enablesDossierAddition: 'Das Off-Balancing-/Finanzierungsmodell kann als Entscheidungsgrundlage sichtbar werden',
+        },
+        {
+          key: 'off_balance_volume_eur',
+          label: 'Off-balance volume',
+          value: offBalanceVolumeEur,
+          missingDataPoint: 'off_balance_volume_eur',
+          enablesDossierAddition: 'Das auszulagernde Smart-Meter-Assetvolumen kann beziffert werden',
+        },
+        {
+          key: 'freed_liquidity_eur',
+          label: 'Freed liquidity',
+          value: freedLiquidityEur,
+          missingDataPoint: 'freed_liquidity_eur',
+          enablesDossierAddition: 'Freiwerdende Liquiditaet kann von reiner Bilanzoptik getrennt werden',
+        },
+        {
+          key: 'financier_cost_eur',
+          label: 'Financier cost',
+          value: financierCostEur,
+          missingDataPoint: 'financier_cost_eur',
+          enablesDossierAddition: 'Finanzierer-Kosten koennen gegen den operativen Netzsteuerungsnutzen gestellt werden',
+        },
+        {
+          key: 'capex_opex_totex_effect',
+          label: 'CAPEX/OPEX/TOTEX effect',
+          value: params.capexOpexTotexEffect,
+          missingDataPoint: 'capex_opex_totex_effect',
+          enablesDossierAddition: 'CAPEX-/OPEX-/TOTEX-Wirkung kann separat ausgewiesen werden',
+        },
+        {
+          key: 'regulatory_recognition_status',
+          label: 'Regulatory recognition',
+          value: params.regulatoryRecognitionStatus,
+          missingDataPoint: 'regulatory_recognition_status',
+          enablesDossierAddition: 'Regulatorische Anerkennung oder Unsicherheit kann ohne Authority-Claim markiert werden',
+        },
+        {
+          key: 'purpose_locked_measures',
+          label: 'Purpose-locked measures',
+          value: purposeLockedMeasures.length > 0 ? purposeLockedMeasures.join(', ') : null,
+          missingDataPoint: 'purpose_lock_measures_missing',
+          enablesDossierAddition: 'Zweckgebundene Steuerbarkeits-, Leitwarten-, Prozess- oder Infrastrukturmassnahmen koennen belegt werden',
+        },
+        {
+          key: 'investment_effect',
+          label: 'Operational investment effect',
+          value: investmentEffectEvidence > 0,
+          missingDataPoint: 'investment_effect_missing',
+          enablesDossierAddition: 'Der nutzbare operative Investitionseffekt kann mit Leitwarte, Prozess und Infrastruktur verknuepft werden',
+        },
+        {
+          key: 'budget_dilution_risk',
+          label: 'Budget dilution risk',
+          value: params.budgetDilutionRisk,
+          missingDataPoint: 'budget_dilution_risk_open',
+          enablesDossierAddition: 'Risiko einer Budgetverwaesserung kann als Guard gegen Scheinnutzen ausgewiesen werden',
+        },
+        {
+          key: 'finance_review_status',
+          label: 'Finance review status',
+          value: params.financeReviewStatus,
+          missingDataPoint: 'finance_review_missing',
+          enablesDossierAddition: 'Gremien- oder Finance-Review-Status kann committee-ready sichtbar werden',
+        },
+        {
+          key: 'source_snapshot_ref',
+          label: 'Source snapshot',
+          value: params.sourceSnapshotRef,
+          missingDataPoint: 'source_snapshot_ref',
+          enablesDossierAddition: 'Ein zitierbarer Snapshot kann die Purpose-Lock-Bewertung auditierbar machen',
+        },
+        {
+          key: 'evidence_ref',
+          label: 'Evidence references',
+          value: evidenceRefs.length > 0 ? evidenceRefs.join(', ') : null,
+          missingDataPoint: 'evidence_ref',
+          enablesDossierAddition: 'Evidenzreferenzen koennen die Purpose-Lock-Matrix absichern',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({ id: spec.key, label: spec.label, value: spec.value, evidenceStatus: 'provided' }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.missingDataPoint,
+          enablesDossierAddition: spec.enablesDossierAddition,
+          category: 'smart_meter_off_balancing_purpose_lock',
+          severity: ['purpose_lock_measures_missing', 'investment_effect_missing', 'budget_dilution_risk_open', 'finance_review_missing'].includes(spec.missingDataPoint) ? 'high' : 'medium',
+        }));
+      const dilutionText = String(params.budgetDilutionRisk || '').toLowerCase();
+      const dilutionBlocking = /high|hoch|open|offen|unresolved|ungeloest|budgetverwaesser|dilution/.test(dilutionText) &&
+        !/low|niedrig|resolved|geschlossen|protected|locked|none|kein/.test(dilutionText);
+      let status = 'ready_for_committee_review';
+      if (!params.assetScope) status = 'needs_asset_scope';
+      else if (!params.financingModel) status = 'needs_financing_model';
+      else if (!freedLiquidityEur || !offBalanceVolumeEur) status = 'needs_liquidity_evidence';
+      else if (purposeLockedMeasures.length === 0) status = 'needs_purpose_lock';
+      else if (!params.regulatoryRecognitionStatus) status = 'needs_regulatory_evidence';
+      else if (!params.financeReviewStatus) status = 'needs_finance_review';
+      else if (dilutionBlocking) status = 'budget_dilution_risk';
+      else if (investmentEffectEvidence === 0) status = 'needs_investment_effect';
+      else if (!params.capexOpexTotexEffect || !financierCostEur) status = 'needs_finance_effect_evidence';
+      else if (!params.sourceSnapshotRef || evidenceRefs.length === 0) status = 'needs_source_evidence';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        category: item.category,
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `SMOPL_${String(item.missingDataPoint).toUpperCase()}`,
+        severity: item.severity,
+        message: item.enablesDossierAddition,
+      }));
+      if (dilutionBlocking) {
+        blockingFindings.push({
+          code: 'SMOPL_BUDGET_DILUTION_RISK',
+          severity: 'high',
+          message: 'freed liquidity is not committee-ready while budget dilution risk remains open',
+        });
+      }
+      const purposeLockContext = {
+        caseId: params.caseId || null,
+        gridOperatorId: params.gridOperatorId || null,
+        assetScope: params.assetScope || null,
+        financingModel: params.financingModel || null,
+      };
+      const financeSummary = {
+        offBalanceVolumeEur,
+        freedLiquidityEur,
+        financierCostEur,
+        capexOpexTotexEffect: params.capexOpexTotexEffect || null,
+        regulatoryRecognitionStatus: params.regulatoryRecognitionStatus || null,
+        financeReviewStatus: params.financeReviewStatus || null,
+      };
+      const purposeLockCoverage = {
+        purposeLockedMeasures,
+        controlRoomInvestments,
+        processInvestments,
+        gridInfrastructureInvestments,
+        purposeLockEvidenced: purposeLockedMeasures.length > 0,
+        operationalInvestmentEffectEvidenced: investmentEffectEvidence > 0,
+      };
+      const investmentEffect = {
+        controlRoomInvestments,
+        processInvestments,
+        gridInfrastructureInvestments,
+        usableOperationalInvestmentEffect: investmentEffectEvidence > 0,
+      };
+      const purposeLockSteps = [
+        { id: 'scope-and-model', label: 'Asset scope and financing model', evidenceStatus: params.assetScope && params.financingModel ? 'provided' : 'missing' },
+        { id: 'liquidity-and-cost', label: 'Freed liquidity and financier cost', evidenceStatus: offBalanceVolumeEur && freedLiquidityEur && financierCostEur ? 'provided' : 'missing' },
+        { id: 'purpose-lock', label: 'Purpose-locked measures', evidenceStatus: purposeLockedMeasures.length > 0 ? 'provided' : 'missing' },
+        { id: 'investment-effect', label: 'Operational investment effect', evidenceStatus: investmentEffectEvidence > 0 ? 'provided' : 'missing' },
+        { id: 'regulatory-finance-review', label: 'Regulatory and finance review', evidenceStatus: params.regulatoryRecognitionStatus && params.financeReviewStatus ? 'provided' : 'missing' },
+        { id: 'anti-dilution', label: 'Budget dilution guard', evidenceStatus: params.budgetDilutionRisk && !dilutionBlocking ? 'provided' : 'missing' },
+      ];
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided purpose-lock evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.caseId) dossierFacts.push(`Case: ${params.caseId}`);
+      if (params.assetScope) dossierFacts.push(`Asset scope: ${params.assetScope}`);
+      if (params.financingModel) dossierFacts.push(`Financing model: ${params.financingModel}`);
+      if (purposeLockedMeasures.length > 0) dossierFacts.push(`Purpose-locked measures: ${purposeLockedMeasures.length}`);
+
+      return {
+        purposeLockStatusId: `smopl:${Buffer.from(`${params.caseId || ''}:${params.assetScope || ''}:${params.financingModel || ''}:${params.financeReviewStatus || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'smart_meter_off_balancing_purpose_lock',
+        safety: 'read_only',
+        requestContext: purposeLockContext,
+        status,
+        readinessScore,
+        purposeLockContext,
+        financeSummary,
+        purposeLockCoverage,
+        investmentEffectEvidence: investmentEffect,
+        budgetDilutionRisk: {
+          status: params.budgetDilutionRisk || null,
+          blocking: dilutionBlocking,
+        },
+        purposeLockSteps,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          purposeLockContext,
+          financeSummary,
+          purposeLockCoverage,
+          investmentEffectEvidence: investmentEffect,
+          sourceSnapshotRef: params.sourceSnapshotRef || null,
+          evidenceRefs,
+        },
+        evidenceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus'],
+          referenced: [
+            'finance-agent.analyze',
+            'investment-planning.read',
+            'vdmi.dossier',
+            'datapoint.health',
+            'datasource-registry.get',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'finance-agent.mutate',
+            'sap.psp.write',
+            'sap.budget.write',
+            'investment-planning.createPlan',
+            'investment-planning.mutate',
+            'billing.release',
+            'settlement.prepareBilling',
+            'settlement.exportA96',
+            'mako.dispatch',
+            'hitl.create',
+            'vdmi.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          purposeLockContext,
+          financeSummary,
+          purposeLockCoverage,
+          investmentEffectEvidence: investmentEffect,
+          budgetDilutionRisk: {
+            status: params.budgetDilutionRisk || null,
+            blocking: dilutionBlocking,
+          },
+          purposeLockSteps,
           evidenceItems,
           missingEvidence,
           positiveFollowUps,

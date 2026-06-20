@@ -13936,6 +13936,21 @@
         ]
       }
     },
+    "/api/dashboard-api/smart-meter-off-balancing-purpose-lock": {
+      "get": {
+        "operationId": "dashboard-api_smartMeterOffBalancingPurposeLockStatus",
+        "summary": "Smart Meter Off-Balancing Purpose Lock — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only smart-meter off-balancing purpose-lock status"
+          }
+        },
+        "description": "Builds a deterministic evidence view for smart-meter off-balancing purpose-lock readiness. The endpoint is read-only and does not create finance, SAP, investment, billing, settlement, MaKo, HITL, external connector or Personal-Agent side effects."
+      }
+    },
     "/api/dashboard-api/imsys-schedule-value-chain-readiness": {
       "get": {
         "operationId": "dashboard-api_imsysScheduleValueChainReadinessStatus",
@@ -52847,6 +52862,21 @@
             }
           }
         ]
+      }
+    },
+    "/api/dashboard/smart-meter-off-balancing-purpose-lock": {
+      "get": {
+        "operationId": "dashboard-api_smartMeterOffBalancingPurposeLockStatus",
+        "summary": "Smart Meter Off-Balancing Purpose Lock — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only smart-meter off-balancing purpose-lock status"
+          }
+        },
+        "description": "Builds a deterministic evidence view for smart-meter off-balancing purpose-lock readiness. The endpoint is read-only and does not create finance, SAP, investment, billing, settlement, MaKo, HITL, external connector or Personal-Agent side effects."
       }
     },
     "/api/dashboard/imsys-schedule-value-chain-readiness": {
