@@ -212,6 +212,81 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  energy_tax_information_package: {
+    sources: [
+      {
+        id: 'package_identity',
+        label: 'Information Package und Datenquelle',
+        resolvedBy: ['dashboard-api.energyTaxInformationPackageStatus', 'datasource-registry.get'],
+        contextKeys: ['packageId', 'dataSourceId'],
+        optional: false,
+      },
+      {
+        id: 'data_dictionary',
+        label: 'Data Dictionary / Dictionary-Version',
+        resolvedBy: ['dashboard-api.energyTaxInformationPackageStatus', 'datasource-registry.get'],
+        contextKeys: ['dictionaryVersion', 'dataDictionaryVersion'],
+        optional: false,
+      },
+      {
+        id: 'period_definition',
+        label: 'Zeitraum / Periodendefinition',
+        resolvedBy: ['dashboard-api.energyTaxInformationPackageStatus', 'datapoint.health'],
+        contextKeys: ['period', 'periodStart', 'periodEnd'],
+        optional: false,
+      },
+      {
+        id: 'aggregation_logic',
+        label: 'Aggregationslogik',
+        resolvedBy: ['dashboard-api.energyTaxInformationPackageStatus', 'datasource-classifier.classify'],
+        contextKeys: ['aggregationLogic'],
+        optional: false,
+      },
+      {
+        id: 'validation_status',
+        label: 'Validierungsstatus',
+        resolvedBy: ['dashboard-api.energyTaxInformationPackageStatus', 'datapoint.health'],
+        contextKeys: ['validationStatus', 'dataQualityStatus'],
+        optional: false,
+      },
+      {
+        id: 'responsible_owner',
+        label: 'Verantwortlicher Owner',
+        resolvedBy: ['dashboard-api.energyTaxInformationPackageStatus', 'vdmi.dossier'],
+        contextKeys: ['responsibleOwner', 'sourceOwner'],
+        optional: false,
+      },
+      {
+        id: 'handover_contact',
+        label: 'Uebergabe-Ansprechpartner / Rolle',
+        resolvedBy: ['dashboard-api.energyTaxInformationPackageStatus', 'vdmi.dossier'],
+        contextKeys: ['contactRole', 'handoverContact'],
+        optional: false,
+      },
+      {
+        id: 'sla',
+        label: 'SLA / Rueckfragefrist',
+        resolvedBy: ['dashboard-api.energyTaxInformationPackageStatus', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['sla', 'responseSla'],
+        optional: false,
+      },
+      {
+        id: 'audit_reference',
+        label: 'Audit-Referenz',
+        resolvedBy: ['dashboard-api.energyTaxInformationPackageStatus', 'presentation.generate'],
+        contextKeys: ['auditReference', 'auditRef'],
+        optional: false,
+      },
+      {
+        id: 'handover_decision',
+        label: 'Uebergabeentscheidung',
+        resolvedBy: ['dashboard-api.energyTaxInformationPackageStatus', 'vdmi.dossier'],
+        contextKeys: ['handoverDecision', 'evidenceStatus'],
+        optional: false,
+      },
+    ],
+  },
+
   sap_budget_psp_gate: {
     sources: [
       {

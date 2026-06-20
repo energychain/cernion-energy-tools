@@ -2124,6 +2124,82 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── energyTaxInformationPackageStatus ──────────────────────────────────
+
+  describe('energyTaxInformationPackageStatus', () => {
+    it('reports package contract gaps without creating downstream actions', async () => {
+      const result = await broker.call('dashboard-api.energyTaxInformationPackageStatus', {
+        packageId: 'etip:188',
+        dataSourceId: 'datasource:tax-metering',
+        dictionaryVersion: 'dd-v1',
+      });
+
+      expect(result.status).toBe('needs_period');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['period_definition', 'aggregation_logic', 'validation_status', 'responsible_owner', 'sla'])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('energy_tax_information_package');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'tax.calculate',
+          'package.release',
+          'raw-data.copy',
+          'finance-agent.mutate',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_handover when package evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.energyTaxInformationPackageStatus', {
+        packageId: 'etip:188',
+        dataSourceId: 'datasource:tax-metering',
+        dictionaryVersion: 'dd-v1',
+        periodStart: '2026-01-01',
+        periodEnd: '2026-03-31',
+        aggregationLogic: 'quarterly grid-fee energy volumes by tax segment',
+        validationStatus: 'validated',
+        responsibleOwner: 'Tax Data Owner',
+        contactRole: 'Finance Tax Desk',
+        sla: 'P5D',
+        auditReference: 'audit:energy-tax-2026-q1',
+        handoverDecision: 'ready',
+        sourceRefs: 'dictionary:dd-v1,datapoint:snapshot-188',
+      });
+
+      expect(result.status).toBe('ready_for_handover');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.packageContext.period).toBe('2026-01-01/2026-03-31');
+      expect(result.handoverContext.responsibleOwner).toBe('Tax Data Owner');
+      expect(result.evidenceRefs).toEqual(['dictionary:dd-v1', 'datapoint:snapshot-188']);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided package evidence: 10/10');
+      expect(result.sourceActions.notCalled).toContain('settlement.prepareBilling');
+    });
+
+    it('surfaces validation and handover blockers as explicit findings', async () => {
+      const result = await broker.call('dashboard-api.energyTaxInformationPackageStatus', {
+        packageId: 'etip:188',
+        dataSourceId: 'datasource:tax-metering',
+        dictionaryVersion: 'dd-v1',
+        period: '2026-Q1',
+        aggregationLogic: 'quarterly totals',
+        validationStatus: 'critical',
+        responsibleOwner: 'Tax Data Owner',
+        contactRole: 'Finance Tax Desk',
+        sla: 'P5D',
+        auditReference: 'audit:energy-tax-2026-q1',
+        handoverDecision: 'blocked',
+      });
+
+      expect(result.status).toBe('blocked_by_validation');
+      expect(result.blockingFindings.map((finding) => finding.code)).toEqual(
+        expect.arrayContaining(['ETIP_VALIDATION_BLOCKING', 'ETIP_HANDOVER_DECISION_BLOCKING'])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

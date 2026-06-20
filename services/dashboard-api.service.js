@@ -52,6 +52,7 @@ module.exports = {
       regulatoryChangeReadinessStatus: 5 * 60 * 1000, // 5 min
       investmentTwoTrackControlStatus: 5 * 60 * 1000, // 5 min
       sapBudgetPspGateStatus: 5 * 60 * 1000, // 5 min
+      energyTaxInformationPackageStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -1868,6 +1869,103 @@ module.exports = {
           this.settings.cacheTtlMs.sapBudgetPspGateStatus,
           async () => ({
             ...this.buildSapBudgetPspGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── energyTaxInformationPackageStatus ─────────────────────────────────
+    /**
+     * GET /api/dashboard/energy-tax-information-package?packageId=...
+     *
+     * Read-only dossier-safe evidence view for Energiesteuer/Finance data
+     * handover packages. It validates package-contract evidence only and does
+     * not calculate taxes, approve packages, copy raw data, or mutate Finance,
+     * billing, settlement, MaKo, SAP, HITL, external connector or Personal-Agent
+     * state.
+     */
+    energyTaxInformationPackageStatus: {
+      rest: 'GET /energy-tax-information-package',
+      params: {
+        packageId: { type: 'string', optional: true, min: 1 },
+        dataSourceId: { type: 'string', optional: true, min: 1 },
+        dictionaryVersion: { type: 'string', optional: true, min: 1 },
+        period: { type: 'string', optional: true, min: 1 },
+        periodStart: { type: 'string', optional: true, min: 1 },
+        periodEnd: { type: 'string', optional: true, min: 1 },
+        aggregationLogic: { type: 'string', optional: true, min: 1 },
+        validationStatus: { type: 'string', optional: true, min: 1 },
+        responsibleOwner: { type: 'string', optional: true, min: 1 },
+        contactRole: { type: 'string', optional: true, min: 1 },
+        sla: { type: 'string', optional: true, min: 1 },
+        auditReference: { type: 'string', optional: true, min: 1 },
+        handoverDecision: { type: 'string', optional: true, min: 1 },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+        dataQualityStatus: { type: 'string', optional: true, min: 1 },
+        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Energy Tax Information Package — read-only dossier-safe status',
+        description:
+          'Builds a deterministic evidence view for an Energiesteuer/Finance information package. ' +
+          'The endpoint is read-only and does not calculate tax, approve packages, copy raw data, or mutate ' +
+          'Finance, billing, settlement, MaKo, SAP, HITL, external connector or Personal-Agent state.',
+        parameters: [
+          { name: 'packageId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataSourceId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dictionaryVersion', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'period', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'periodStart', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'periodEnd', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'aggregationLogic', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'validationStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'responsibleOwner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'contactRole', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sla', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'auditReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'handoverDecision', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataQualityStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceRefs', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only energy-tax information-package status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    packageContext: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceEvidence: { type: 'object' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `energy-tax-information-package:${params.packageId || 'no-package'}:${params.dataSourceId || 'no-source'}:${params.dictionaryVersion || 'no-dictionary'}:${params.period || params.periodStart || 'no-period'}:${params.validationStatus || 'no-validation'}:${params.responsibleOwner || 'no-owner'}:${params.handoverDecision || 'no-decision'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.energyTaxInformationPackageStatus,
+          async () => ({
+            ...this.buildEnergyTaxInformationPackageStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -4896,6 +4994,250 @@ module.exports = {
           positiveFollowUps,
           blockedDecisions,
           blockingFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildEnergyTaxInformationPackageStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const period = params.period || [params.periodStart, params.periodEnd].filter(Boolean).join('/');
+      const sourceRefs = toList(params.sourceRefs);
+      const evidenceSpecs = [
+        {
+          id: 'package_identity',
+          label: 'Package and source identity',
+          value: params.packageId && params.dataSourceId,
+          displayValue: [params.packageId, params.dataSourceId].filter(Boolean).join(' / '),
+          sourceClass: 'information_package_identity',
+          enablesDossierAddition: 'add the package id and source data reference to the tax/finance handover',
+        },
+        {
+          id: 'data_dictionary',
+          label: 'Data dictionary version',
+          value: params.dictionaryVersion,
+          sourceClass: 'data_dictionary_contract',
+          enablesDossierAddition: 'add semantically stable field definitions for the package',
+        },
+        {
+          id: 'period_definition',
+          label: 'Package period',
+          value: period,
+          sourceClass: 'period_definition',
+          enablesDossierAddition: 'add the time-bounded tax/finance handover period',
+        },
+        {
+          id: 'aggregation_logic',
+          label: 'Aggregation logic',
+          value: params.aggregationLogic,
+          sourceClass: 'aggregation_logic',
+          enablesDossierAddition: 'add reproducible aggregation logic for audit review',
+        },
+        {
+          id: 'validation_status',
+          label: 'Validation status',
+          value: params.validationStatus,
+          sourceClass: 'validation_status',
+          enablesDossierAddition: 'add handover readiness based on validated source data',
+        },
+        {
+          id: 'responsible_owner',
+          label: 'Responsible owner',
+          value: params.responsibleOwner,
+          sourceClass: 'source_owner',
+          enablesDossierAddition: 'add accountable owner and escalation context',
+        },
+        {
+          id: 'handover_contact',
+          label: 'Handover contact role',
+          value: params.contactRole,
+          sourceClass: 'handover_contact',
+          enablesDossierAddition: 'add contact role for tax/finance follow-up',
+        },
+        {
+          id: 'sla',
+          label: 'SLA / response window',
+          value: params.sla,
+          sourceClass: 'handover_sla',
+          enablesDossierAddition: 'add SLA and ageing context for open questions',
+        },
+        {
+          id: 'audit_reference',
+          label: 'Audit reference',
+          value: params.auditReference,
+          sourceClass: 'audit_reference',
+          enablesDossierAddition: 'add audit-traceable package support',
+        },
+        {
+          id: 'handover_decision',
+          label: 'Handover decision',
+          value: params.handoverDecision,
+          sourceClass: 'handover_decision',
+          enablesDossierAddition: 'add final package handover summary',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue || spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const lowerValidation = String(params.validationStatus || '').toLowerCase();
+      const lowerDecision = String(params.handoverDecision || '').toLowerCase();
+      const blockedByValidation = /block|fail|critical|kritisch|invalid|ungueltig|ungültig|rejected/.test(lowerValidation);
+      const blockedByDecision = /block|blocked|rejected|abgelehnt|stop|gesperrt/.test(lowerDecision);
+      const status =
+        blockedByValidation
+          ? 'blocked_by_validation'
+          : blockedByDecision
+            ? 'blocked_by_handover_decision'
+            : !params.dictionaryVersion
+              ? 'needs_dictionary'
+              : !period
+                ? 'needs_period'
+                : !params.aggregationLogic
+                  ? 'needs_aggregation_logic'
+                  : !params.validationStatus
+                    ? 'needs_validation'
+                    : !params.responsibleOwner || !params.contactRole || !params.sla
+                      ? 'needs_owner_sla'
+                      : !params.auditReference
+                        ? 'needs_audit_reference'
+                        : !params.handoverDecision
+                          ? 'needs_handover_decision'
+                          : missingEvidence.length === 0
+                            ? 'ready_for_handover'
+                            : 'needs_package_evidence';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'energy_tax_information_package',
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `ETIP_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['data_dictionary', 'period_definition', 'aggregation_logic', 'validation_status', 'handover_decision'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      if (blockedByValidation) {
+        blockingFindings.push({
+          code: 'ETIP_VALIDATION_BLOCKING',
+          severity: 'high',
+          message: 'validation status is explicitly blocking the information-package handover',
+        });
+      }
+      if (blockedByDecision) {
+        blockingFindings.push({
+          code: 'ETIP_HANDOVER_DECISION_BLOCKING',
+          severity: 'high',
+          message: 'handover decision is explicitly blocking the information-package handover',
+        });
+      }
+      const packageContext = {
+        packageId: params.packageId || null,
+        dataSourceId: params.dataSourceId || null,
+        dictionaryVersion: params.dictionaryVersion || null,
+        period: period || null,
+        aggregationLogic: params.aggregationLogic || null,
+      };
+      const handoverContext = {
+        validationStatus: params.validationStatus || null,
+        responsibleOwner: params.responsibleOwner || null,
+        contactRole: params.contactRole || null,
+        sla: params.sla || null,
+        auditReference: params.auditReference || null,
+        handoverDecision: params.handoverDecision || null,
+        evidenceStatus: params.evidenceStatus || null,
+        dataQualityStatus: params.dataQualityStatus || null,
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided package evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.packageId) dossierFacts.push(`Package: ${params.packageId}`);
+      if (params.dataSourceId) dossierFacts.push(`Source: ${params.dataSourceId}`);
+      if (params.dictionaryVersion) dossierFacts.push(`Dictionary: ${params.dictionaryVersion}`);
+      if (period) dossierFacts.push(`Period: ${period}`);
+
+      return {
+        packageReadinessId: `etip:${Buffer.from(`${params.packageId || ''}:${params.dataSourceId || ''}:${params.dictionaryVersion || ''}:${period || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'energy_tax_information_package',
+        safety: 'read_only',
+        requestContext: {
+          packageId: params.packageId || null,
+          dataSourceId: params.dataSourceId || null,
+          period: period || null,
+        },
+        status,
+        readinessScore,
+        packageContext,
+        handoverContext,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          packageContext,
+          handoverContext,
+          sourceRefs,
+        },
+        evidenceRefs: sourceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.energyTaxInformationPackageStatus'],
+          referenced: [
+            'datasource-registry.get',
+            'datasource-registry.updateDictionary',
+            'datasource-classifier.classify',
+            'datapoint.health',
+            'vdmi.dossier',
+            'interface-placeholder.requestEvidence',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'tax.calculate',
+            'tax.authority.submit',
+            'package.release',
+            'raw-data.copy',
+            'finance-agent.mutate',
+            'settlement.exportA96',
+            'settlement.prepareBilling',
+            'billing.release',
+            'mako.dispatch',
+            'sap.psp.write',
+            'hitl.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          packageContext,
+          handoverContext,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceRefs,
           dossierFacts,
         },
       };

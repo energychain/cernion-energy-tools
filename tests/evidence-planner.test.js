@@ -269,6 +269,35 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans Energy Tax Information Package as dictionary and handover evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'energy_tax_information_package' },
+      {
+        packageId: 'etip-188',
+        dataSourceId: 'datasource-tax-metering',
+        dictionaryVersion: 'dd-v1',
+        period: '2026-Q1',
+        responsibleOwner: 'Tax Data Owner',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('energy_tax_information_package');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['package_identity', 'data_dictionary', 'period_definition', 'responsible_owner'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'aggregation_logic',
+        'validation_status',
+        'handover_contact',
+        'sla',
+        'audit_reference',
+        'handover_decision',
+      ])
+    );
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });

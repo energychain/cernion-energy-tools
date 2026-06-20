@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: 6145402562c93776d0522348f51f33aece06244602b79908330674e4de52077f
+  - openapi-export.json: 844bfc794c75cc19bc356b0c1c71ba795341c11c9be433fcb6f8bf956abc8e13
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 717
-- operation_count: 822
+- path_count: 719
+- operation_count: 824
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -694,7 +694,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 32 operations
+- Dashboard API: 34 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -964,6 +964,7 @@ process:
 - GET /api/cya/templates/:templateId | tags: [CYA Agent] | operationId: cya_getTemplate | summary: Load one prebuilt CYA profile template
 - GET /api/dashboard-api/controllability-asset-handover | tags: [Dashboard API] | operationId: dashboard-api_controllabilityAssetHandoverStatus | summary: Controllability asset handover — read-only dossier-safe status
 - GET /api/dashboard-api/e2e-controllability-governance | tags: [Dashboard API] | operationId: dashboard-api_e2eControllabilityGovernanceStatus | summary: E2E controllability governance — read-only dossier-safe matrix
+- GET /api/dashboard-api/energy-tax-information-package | tags: [Dashboard API] | operationId: dashboard-api_energyTaxInformationPackageStatus | summary: Energy Tax Information Package — read-only dossier-safe status
 - GET /api/dashboard-api/evidence-grounding-confidence-audit | tags: [Dashboard API] | operationId: dashboard-api_evidenceGroundingConfidenceAudit | summary: Evidence grounding confidence audit — read-only dossier-safe evidence status
 - GET /api/dashboard-api/finding-codes | tags: [Dashboard API] | operationId: dashboard-api_findingCodes | summary: Finding codes reference — all 92 codes with metadata
 - GET /api/dashboard-api/investment-two-track-control | tags: [Dashboard API] | operationId: dashboard-api_investmentTwoTrackControlStatus | summary: Investment two-track control — read-only dossier-safe status
@@ -980,6 +981,7 @@ process:
 - GET /api/dashboard-api/vnb-overview | tags: [Dashboard API] | operationId: dashboard-api_vnbOverview | summary: VNB overview — aggregated dashboard data for one grid operator
 - GET /api/dashboard/controllability-asset-handover | tags: [Dashboard API] | operationId: dashboard-api_controllabilityAssetHandoverStatus | summary: Controllability asset handover — read-only dossier-safe status
 - GET /api/dashboard/e2e-controllability-governance | tags: [Dashboard API] | operationId: dashboard-api_e2eControllabilityGovernanceStatus | summary: E2E controllability governance — read-only dossier-safe matrix
+- GET /api/dashboard/energy-tax-information-package | tags: [Dashboard API] | operationId: dashboard-api_energyTaxInformationPackageStatus | summary: Energy Tax Information Package — read-only dossier-safe status
 - GET /api/dashboard/evidence-grounding-confidence-audit | tags: [Dashboard API] | operationId: dashboard-api_evidenceGroundingConfidenceAudit | summary: Evidence grounding confidence audit — read-only dossier-safe evidence status
 - GET /api/dashboard/finding-codes | tags: [Dashboard API] | operationId: dashboard-api_findingCodes | summary: Finding codes reference — all 92 codes with metadata
 - GET /api/dashboard/investment-two-track-control | tags: [Dashboard API] | operationId: dashboard-api_investmentTwoTrackControlStatus | summary: Investment two-track control — read-only dossier-safe status
@@ -15410,6 +15412,207 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/energy-tax-information-package": {
+      "get": {
+        "description": "Builds a deterministic evidence view for an Energiesteuer/Finance information package. The endpoint is read-only and does not calculate tax, approve packages, copy raw data, or mutate Finance, billing, settlement, MaKo, SAP, HITL, external connector or Personal-Agent state.",
+        "operationId": "dashboard-api_energyTaxInformationPackageStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "packageId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dataSourceId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dictionaryVersion",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "periodStart",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "periodEnd",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "aggregationLogic",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "validationStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "responsibleOwner",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contactRole",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sla",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "auditReference",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "handoverDecision",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dataQualityStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceRefs",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "packageContext": {
+                      "type": "object"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "sourceEvidence": {
+                      "type": "object"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only energy-tax information-package status"
+          }
+        },
+        "summary": "Energy Tax Information Package — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/evidence-grounding-confidence-audit": {
       "get": {
         "description": "Read-only confidence audit for grounded Cernion answers. It keeps Capability Broker routing confidence separate from evidence confidence, exposes source classes, scope limitations, tool failures, missing evidence and positive follow-ups. It does not create HITL items, interface placeholders, RAG ingests, Personal-Agent sessions or external calls.",
@@ -17778,6 +17981,207 @@ process:
           }
         },
         "summary": "E2E controllability governance — read-only dossier-safe matrix",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
+    "/api/dashboard/energy-tax-information-package": {
+      "get": {
+        "description": "Builds a deterministic evidence view for an Energiesteuer/Finance information package. The endpoint is read-only and does not calculate tax, approve packages, copy raw data, or mutate Finance, billing, settlement, MaKo, SAP, HITL, external connector or Personal-Agent state.",
+        "operationId": "dashboard-api_energyTaxInformationPackageStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "packageId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dataSourceId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dictionaryVersion",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "periodStart",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "periodEnd",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "aggregationLogic",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "validationStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "responsibleOwner",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contactRole",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sla",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "auditReference",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "handoverDecision",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dataQualityStatus",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceRefs",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_errors": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "packageContext": {
+                      "type": "object"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "sourceEvidence": {
+                      "type": "object"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-only energy-tax information-package status"
+          }
+        },
+        "summary": "Energy Tax Information Package — read-only dossier-safe status",
         "tags": [
           "Dashboard API"
         ]
@@ -56847,4 +57251,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 2bdd5a9629581e3a39200b85616d59e37a464402f586d6de62d2d29b91892ad8
+- llm_txt_sha256: 978569e14b3c9a92cbc9193bd047e0b5aebe8523843ad6cc10ea6f0f777bcae7

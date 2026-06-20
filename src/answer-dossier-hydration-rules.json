@@ -1053,6 +1053,68 @@
     "sourceIssue": 195
   },
   {
+    "id": "dashboard-api.energyTaxInformationPackageStatus",
+    "action": "dashboard-api.energyTaxInformationPackageStatus",
+    "label": "Energy Tax Information Package Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "packageId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:packageId[:= ]+|package[:=]+|paket[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "dataSourceId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:datasource|data source|datenquelle|source)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "dictionaryVersion": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:dictionary|dictionary version|data dictionary|woerterbuch|wörterbuch)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Package Status", "maxLen": 80 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.packageId", "packageContext.packageId"], "label": "Package", "maxLen": 100 },
+        { "paths": ["packageContext.dataSourceId", "dossierEvidence.packageContext.dataSourceId"], "label": "Source", "maxLen": 100 },
+        { "paths": ["packageContext.dictionaryVersion", "dossierEvidence.packageContext.dictionaryVersion"], "label": "Dictionary", "maxLen": 100 },
+        { "paths": ["packageContext.period", "dossierEvidence.packageContext.period"], "label": "Period", "maxLen": 80 },
+        { "paths": ["handoverContext.responsibleOwner", "dossierEvidence.handoverContext.responsibleOwner"], "label": "Owner", "maxLen": 100 },
+        { "paths": ["handoverContext.sla", "dossierEvidence.handoverContext.sla"], "label": "SLA", "maxLen": 80 },
+        { "paths": ["handoverContext.auditReference", "dossierEvidence.handoverContext.auditReference"], "label": "Audit", "maxLen": 100 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 100 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 188
+  },
+  {
     "id": "dashboard-api.sapBudgetPspGateStatus",
     "action": "dashboard-api.sapBudgetPspGateStatus",
     "label": "SAP Budget PSP Gate Evidence",

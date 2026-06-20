@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 24 static rules', () => {
+    it('loads all 25 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(24);
+      expect(rules.length).toBe(25);
     });
 
-    it('compiles all 24 static rules without error', () => {
+    it('compiles all 25 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(24);
+      expect(rules.length).toBe(25);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -605,6 +605,55 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('PSP: PSP-2026-4711');
       expect(formatted).toContain('Leading Gap: budget_owner');
       expect(formatted).toContain('Side-Effect Guard: sap.psp.write');
+    });
+
+    it('dashboard-api.energyTaxInformationPackageStatus is dossier-safe and formats package facts', () => {
+      const rule = getRule('dashboard-api.energyTaxInformationPackageStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Energiesteuer Package package=etip:188 datasource=datasource:tax dictionary=dd-v1 laden'
+        )
+      ).toEqual({
+        packageId: 'etip:188',
+        dataSourceId: 'datasource:tax',
+        dictionaryVersion: 'dd-v1',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_owner_sla',
+        readinessScore: 0.5,
+        requestContext: {
+          packageId: 'etip:188',
+        },
+        packageContext: {
+          dataSourceId: 'datasource:tax',
+          dictionaryVersion: 'dd-v1',
+          period: '2026-Q1',
+        },
+        handoverContext: {
+          auditReference: 'audit:188',
+        },
+        missingEvidence: [
+          { missingDataPoint: 'responsible_owner' },
+        ],
+        sourceActions: {
+          notCalled: ['tax.calculate'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_owner_sla'],
+        },
+      });
+
+      expect(formatted).toContain('Package Status: needs_owner_sla');
+      expect(formatted).toContain('Readiness: 0.5');
+      expect(formatted).toContain('Package: etip:188');
+      expect(formatted).toContain('Source: datasource:tax');
+      expect(formatted).toContain('Dictionary: dd-v1');
+      expect(formatted).toContain('Leading Gap: responsible_owner');
+      expect(formatted).toContain('Side-Effect Guard: tax.calculate');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {
