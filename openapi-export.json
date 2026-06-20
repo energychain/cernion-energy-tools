@@ -13672,6 +13672,207 @@
         ]
       }
     },
+    "/api/dashboard-api/automation-requirements-decision-value": {
+      "get": {
+        "operationId": "dashboard-api_automationRequirementsDecisionValueStatus",
+        "summary": "Automation Requirements Decision Value — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only automation requirements decision-value status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "requirementContext": {
+                      "type": "object"
+                    },
+                    "decisionEvidence": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a deterministic evidence view for automation, dashboard, PowerBI or workflow wishes. The endpoint is read-only and does not create Office/BI workflows, tickets, HITL items, VDMI mutations, external connectors or production side effects.",
+        "parameters": [
+          {
+            "name": "requirementId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestTitle",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "processArea",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionOwner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetGate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceSystem",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "movingDataFlow",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "manualEffort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "controlPoint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionValue",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "followUpProcess",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataQuality",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rollbackOrStopCriterion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceSnapshotRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -52334,6 +52535,207 @@
           },
           {
             "name": "gridInvestmentSpaceProof",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceSnapshotRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/automation-requirements-decision-value": {
+      "get": {
+        "operationId": "dashboard-api_automationRequirementsDecisionValueStatus",
+        "summary": "Automation Requirements Decision Value — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only automation requirements decision-value status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "requirementContext": {
+                      "type": "object"
+                    },
+                    "decisionEvidence": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a deterministic evidence view for automation, dashboard, PowerBI or workflow wishes. The endpoint is read-only and does not create Office/BI workflows, tickets, HITL items, VDMI mutations, external connectors or production side effects.",
+        "parameters": [
+          {
+            "name": "requirementId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestTitle",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "processArea",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionOwner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetGate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceSystem",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "movingDataFlow",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "manualEffort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "controlPoint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionValue",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "followUpProcess",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataQuality",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rollbackOrStopCriterion",
             "in": "query",
             "required": false,
             "schema": {

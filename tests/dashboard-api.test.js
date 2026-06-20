@@ -2614,6 +2614,80 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── automationRequirementsDecisionValueStatus ──────────────────────────
+
+  describe('automationRequirementsDecisionValueStatus', () => {
+    it('reports tool-wish gaps without creating workflow or Office side effects', async () => {
+      const result = await broker.call('dashboard-api.automationRequirementsDecisionValueStatus', {
+        requirementId: 'ardv:181',
+        requestTitle: 'Redispatch KPI PowerBI',
+        requestType: 'PowerBI dashboard',
+        processArea: 'redispatch',
+        sourceSystem: 'edm',
+        movingDataFlow: 'edm-to-powerbi',
+        manualEffort: '4h weekly',
+      });
+
+      expect(result.status).toBe('needs_control_point');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'control_point',
+          'decision_value',
+          'follow_up_process',
+          'rollback_or_stop_criterion',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('automation_requirements_decision_value');
+      expect(result.blockingFindings.map((finding) => finding.code)).toContain(
+        'ARDV_TOOL_WISH_WITHOUT_DECISION_VALUE'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'powerbi.createDashboard',
+          'power-automate.createFlow',
+          'office.connector.call',
+          'workflow.create',
+          'ticket.create',
+          'hitl.create',
+          'vdmi.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_requirements_review when decision-value evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.automationRequirementsDecisionValueStatus', {
+        requirementId: 'ardv:181',
+        requestTitle: 'Redispatch KPI PowerBI',
+        requestType: 'PowerBI dashboard',
+        processArea: 'redispatch',
+        decisionOwner: 'Netzbetrieb',
+        targetGate: 'requirements-review:q3',
+        sourceSystem: 'edm',
+        movingDataFlow: 'edm-to-powerbi',
+        manualEffort: '4h weekly',
+        controlPoint: 'redispatch deviation monitoring',
+        decisionValue: 'weekly redispatch exception decision',
+        followUpProcess: 'redispatch steering meeting',
+        dataQuality: 'source freshness daily',
+        rollbackOrStopCriterion: 'stop when no manual effort reduction after two cycles',
+        sourceSnapshotRef: 'snapshot:ardv-181',
+        evidenceRef: 'vdmi:card-181,edm:sample',
+      });
+
+      expect(result.status).toBe('ready_for_requirements_review');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.requirementContext.requirementId).toBe('ardv:181');
+      expect(result.decisionEvidence.decisionValue).toBe('weekly redispatch exception decision');
+      expect(result.evidenceRefs).toEqual(['vdmi:card-181', 'edm:sample']);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided automation requirement evidence: 15/15');
+      expect(result.sourceActions.notCalled).toContain('power-automate.createFlow');
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

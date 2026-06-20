@@ -1424,6 +1424,8 @@ module.exports = {
             'dashboard-api.jourFixeDecisionClosureStatus',
           'GET /dashboard/off-balancing-metering-pruefmatrix':
             'dashboard-api.offBalancingMeteringPruefmatrixStatus',
+          'GET /dashboard/automation-requirements-decision-value':
+            'dashboard-api.automationRequirementsDecisionValueStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

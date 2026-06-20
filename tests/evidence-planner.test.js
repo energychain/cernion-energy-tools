@@ -447,6 +447,38 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans Automation Requirements Decision Value as source, flow and decision evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'automation_requirements_decision_value' },
+      {
+        requirementId: 'ardv:181',
+        requestType: 'PowerBI dashboard',
+        sourceSystem: 'edm',
+        movingDataFlow: 'edm-to-dashboard',
+        decisionValue: 'weekly redispatch exception decision',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('automation_requirements_decision_value');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining([
+        'request_identity',
+        'request_type',
+        'source_system',
+        'moving_data_flow',
+        'decision_value',
+      ])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'follow_up_process',
+        'data_quality',
+        'rollback_or_stop_criterion',
+      ])
+    );
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });

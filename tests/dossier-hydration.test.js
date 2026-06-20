@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 30 static rules', () => {
+    it('loads all 31 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(30);
+      expect(rules.length).toBe(31);
     });
 
-    it('compiles all 30 static rules without error', () => {
+    it('compiles all 31 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(30);
+      expect(rules.length).toBe(31);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -920,6 +920,64 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Usable Headroom: false');
       expect(formatted).toContain('Leading Gap: grid_investment_space_proof');
       expect(formatted).toContain('Side-Effect Guard: finance-agent.mutate');
+    });
+
+    it('dashboard-api.automationRequirementsDecisionValueStatus is dossier-safe and formats decision-value facts', () => {
+      const rule = getRule('dashboard-api.automationRequirementsDecisionValueStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Automation Requirements requirement=ardv:181 type=powerbi decisionValue=redispatch-kpi laden'
+        )
+      ).toEqual({
+        requirementId: 'ardv:181',
+        requestType: 'powerbi',
+        decisionValue: 'redispatch-kpi',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_follow_up_process',
+        readinessScore: 0.67,
+        requestContext: {
+          requirementId: 'ardv:181',
+        },
+        requirementContext: {
+          requirementId: 'ardv:181',
+          requestTitle: 'Redispatch KPI Dashboard',
+          requestType: 'PowerBI',
+          processArea: 'redispatch',
+          decisionOwner: 'Netzbetrieb',
+        },
+        decisionEvidence: {
+          sourceSystem: 'edm',
+          movingDataFlow: 'edm-to-dashboard',
+          controlPoint: 'redispatch-monitoring',
+          decisionValue: 'redispatch-kpi',
+          followUpProcess: null,
+        },
+        missingEvidence: [
+          { missingDataPoint: 'follow_up_process' },
+        ],
+        sourceActions: {
+          notCalled: ['powerbi.createDashboard'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_follow_up_process'],
+        },
+      });
+
+      expect(formatted).toContain('Decision-Value Status: needs_follow_up_process');
+      expect(formatted).toContain('Readiness: 0.67');
+      expect(formatted).toContain('Requirement: ardv:181');
+      expect(formatted).toContain('Request Type: PowerBI');
+      expect(formatted).toContain('Process Area: redispatch');
+      expect(formatted).toContain('Source System: edm');
+      expect(formatted).toContain('Data Flow: edm-to-dashboard');
+      expect(formatted).toContain('Decision Value: redispatch-kpi');
+      expect(formatted).toContain('Leading Gap: follow_up_process');
+      expect(formatted).toContain('Side-Effect Guard: powerbi.createDashboard');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {

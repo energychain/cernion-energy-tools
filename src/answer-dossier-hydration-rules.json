@@ -1485,5 +1485,70 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 187
+  },
+  {
+    "id": "dashboard-api.automationRequirementsDecisionValueStatus",
+    "action": "dashboard-api.automationRequirementsDecisionValueStatus",
+    "label": "Automation Requirements Decision Value Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "requirementId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:requirementId[:= ]+|requirement[:=]+|anforderung[:=]+|card[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "requestType": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:requestType[:= ]+|type[:=]+|anforderungstyp[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "decisionValue": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:decisionValue[:= ]+|entscheidungswert[:=]+|value[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Decision-Value Status", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.requirementId", "requirementContext.requirementId"], "label": "Requirement", "maxLen": 100 },
+        { "paths": ["requirementContext.requestTitle", "dossierEvidence.requirementContext.requestTitle"], "label": "Title", "maxLen": 140 },
+        { "paths": ["requirementContext.requestType", "dossierEvidence.requirementContext.requestType"], "label": "Request Type", "maxLen": 120 },
+        { "paths": ["requirementContext.processArea", "dossierEvidence.requirementContext.processArea"], "label": "Process Area", "maxLen": 120 },
+        { "paths": ["requirementContext.decisionOwner", "dossierEvidence.requirementContext.decisionOwner"], "label": "Owner", "maxLen": 100 },
+        { "paths": ["decisionEvidence.sourceSystem", "dossierEvidence.decisionEvidence.sourceSystem"], "label": "Source System", "maxLen": 120 },
+        { "paths": ["decisionEvidence.movingDataFlow", "dossierEvidence.decisionEvidence.movingDataFlow"], "label": "Data Flow", "maxLen": 140 },
+        { "paths": ["decisionEvidence.controlPoint", "dossierEvidence.decisionEvidence.controlPoint"], "label": "Control Point", "maxLen": 140 },
+        { "paths": ["decisionEvidence.decisionValue", "dossierEvidence.decisionEvidence.decisionValue"], "label": "Decision Value", "maxLen": 160 },
+        { "paths": ["decisionEvidence.followUpProcess", "dossierEvidence.decisionEvidence.followUpProcess"], "label": "Follow-Up", "maxLen": 140 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 181
   }
 ]

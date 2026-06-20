@@ -58,6 +58,7 @@ module.exports = {
       gasDecommissioningRoadmapStatus: 5 * 60 * 1000, // 5 min
       jourFixeDecisionClosureStatus: 5 * 60 * 1000, // 5 min
       offBalancingMeteringPruefmatrixStatus: 5 * 60 * 1000, // 5 min
+      automationRequirementsDecisionValueStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -2426,6 +2427,102 @@ module.exports = {
           this.settings.cacheTtlMs.offBalancingMeteringPruefmatrixStatus,
           async () => ({
             ...this.buildOffBalancingMeteringPruefmatrixStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── automationRequirementsDecisionValueStatus ─────────────────────────
+    /**
+     * GET /api/dashboard/automation-requirements-decision-value?requirementId=...
+     *
+     * Read-only dossier-safe evidence gate for automation/dashboard wishes.
+     * It validates whether an automation requirement has source, data-flow,
+     * effort, control-point, decision-value, follow-up, data-quality and
+     * rollback evidence without creating workflow, Office/BI, HITL, VDMI,
+     * ticket or external connector side effects.
+     */
+    automationRequirementsDecisionValueStatus: {
+      rest: 'GET /automation-requirements-decision-value',
+      params: {
+        requirementId: { type: 'string', optional: true, min: 1 },
+        requestTitle: { type: 'string', optional: true, min: 1 },
+        requestType: { type: 'string', optional: true, min: 1 },
+        processArea: { type: 'string', optional: true, min: 1 },
+        decisionOwner: { type: 'string', optional: true, min: 1 },
+        targetGate: { type: 'string', optional: true, min: 1 },
+        sourceSystem: { type: 'string', optional: true, min: 1 },
+        movingDataFlow: { type: 'string', optional: true, min: 1 },
+        manualEffort: { type: 'string', optional: true, min: 1 },
+        controlPoint: { type: 'string', optional: true, min: 1 },
+        decisionValue: { type: 'string', optional: true, min: 1 },
+        followUpProcess: { type: 'string', optional: true, min: 1 },
+        dataQuality: { type: 'string', optional: true, min: 1 },
+        rollbackOrStopCriterion: { type: 'string', optional: true, min: 1 },
+        sourceSnapshotRef: { type: 'string', optional: true, min: 1 },
+        evidenceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Automation Requirements Decision Value — read-only dossier-safe gate',
+        description:
+          'Builds a deterministic evidence view for automation, dashboard, PowerBI or workflow wishes. ' +
+          'The endpoint is read-only and does not create Office/BI workflows, tickets, HITL items, VDMI mutations, external connectors or production side effects.',
+        parameters: [
+          { name: 'requirementId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'requestTitle', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'requestType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'processArea', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionOwner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'targetGate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceSystem', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'movingDataFlow', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'manualEffort', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'controlPoint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionValue', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'followUpProcess', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataQuality', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'rollbackOrStopCriterion', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceSnapshotRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceRef', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only automation requirements decision-value status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    requirementContext: { type: 'object' },
+                    decisionEvidence: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `automation-requirements:${params.requirementId || 'no-id'}:${params.requestTitle || 'no-title'}:${params.requestType || 'no-type'}:${params.processArea || 'no-area'}:${params.decisionValue || 'no-value'}:${params.followUpProcess || 'no-follow-up'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.automationRequirementsDecisionValueStatus,
+          async () => ({
+            ...this.buildAutomationRequirementsDecisionValueStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -7019,6 +7116,258 @@ module.exports = {
           operationalEvidence,
           gridInvestmentVerdict,
           matrixSteps,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceSnapshotRef: params.sourceSnapshotRef || null,
+          evidenceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildAutomationRequirementsDecisionValueStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.flatMap((item) => String(item || '').split(',')).map((item) => item.trim()).filter(Boolean)
+        : String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+      const evidenceRefs = toList(params.evidenceRef);
+      const evidenceSpecs = [
+        {
+          key: 'request_identity',
+          label: 'Requirement identity',
+          value: params.requirementId || params.requestTitle,
+          missingDataPoint: 'request_identity',
+          enablesDossierAddition: 'Anforderungstitel und Karten-ID koennen als pruefbares Steuerungsobjekt referenziert werden',
+        },
+        {
+          key: 'request_type',
+          label: 'Request type',
+          value: params.requestType,
+          missingDataPoint: 'request_type',
+          enablesDossierAddition: 'Der Toolwunsch kann als Dashboard-, Workflow-, Report- oder Automatisierungsanforderung klassifiziert werden',
+        },
+        {
+          key: 'process_area',
+          label: 'Process area',
+          value: params.processArea,
+          missingDataPoint: 'process_area',
+          enablesDossierAddition: 'Der betroffene VNB-/EVU-Prozess kann im Dossier eingegrenzt werden',
+        },
+        {
+          key: 'decision_owner',
+          label: 'Decision owner',
+          value: params.decisionOwner,
+          missingDataPoint: 'decision_owner',
+          enablesDossierAddition: 'Der fachliche Owner fuer Wertentscheidung und Nachhaltung kann benannt werden',
+        },
+        {
+          key: 'target_gate',
+          label: 'Target gate',
+          value: params.targetGate,
+          missingDataPoint: 'target_gate',
+          enablesDossierAddition: 'Das naechste Entscheidungs- oder Review-Gate kann im Dossier sichtbar werden',
+        },
+        {
+          key: 'source_system',
+          label: 'Source system',
+          value: params.sourceSystem,
+          missingDataPoint: 'source_system',
+          enablesDossierAddition: 'Quellsystem-Provenienz und Datenverantwortung koennen belegt werden',
+        },
+        {
+          key: 'moving_data_flow',
+          label: 'Moving data flow',
+          value: params.movingDataFlow,
+          missingDataPoint: 'moving_data_flow',
+          enablesDossierAddition: 'Betroffener Datenfluss und Schnittstellenwirkung koennen beschrieben werden',
+        },
+        {
+          key: 'manual_effort',
+          label: 'Manual effort',
+          value: params.manualEffort,
+          missingDataPoint: 'manual_effort',
+          enablesDossierAddition: 'Manueller Aufwand kann als Baseline fuer Nutzenbewertung ergaenzt werden',
+        },
+        {
+          key: 'control_point',
+          label: 'Control point',
+          value: params.controlPoint,
+          missingDataPoint: 'control_point',
+          enablesDossierAddition: 'Der verbesserte operative Kontrollpunkt kann entscheidungsfaehig benannt werden',
+        },
+        {
+          key: 'decision_value',
+          label: 'Decision value',
+          value: params.decisionValue,
+          missingDataPoint: 'decision_value',
+          enablesDossierAddition: 'Die durch Automation besser moegliche Fachentscheidung kann im Dossier ausgewiesen werden',
+        },
+        {
+          key: 'follow_up_process',
+          label: 'Follow-up process',
+          value: params.followUpProcess,
+          missingDataPoint: 'follow_up_process',
+          enablesDossierAddition: 'Der nachgelagerte Prozess oder Handover kann als Wirkung der Anforderung ergaenzt werden',
+        },
+        {
+          key: 'data_quality',
+          label: 'Data quality',
+          value: params.dataQuality,
+          missingDataPoint: 'data_quality',
+          enablesDossierAddition: 'Datenqualitaet, Confidence und bekannte Grenzen koennen bewertet werden',
+        },
+        {
+          key: 'rollback_or_stop_criterion',
+          label: 'Rollback or stop criterion',
+          value: params.rollbackOrStopCriterion,
+          missingDataPoint: 'rollback_or_stop_criterion',
+          enablesDossierAddition: 'Ein Stop-/Rollback-Kriterium kann nicht hilfreiche Automation begrenzen',
+        },
+        {
+          key: 'source_snapshot_ref',
+          label: 'Source snapshot',
+          value: params.sourceSnapshotRef,
+          missingDataPoint: 'source_snapshot_ref',
+          enablesDossierAddition: 'Ein zitierbarer Snapshot kann als Grundlage der Requirements Card referenziert werden',
+        },
+        {
+          key: 'evidence_ref',
+          label: 'Evidence references',
+          value: evidenceRefs.length > 0 ? evidenceRefs.join(', ') : null,
+          missingDataPoint: 'evidence_ref',
+          enablesDossierAddition: 'Evidenzreferenzen koennen die Requirements Card auditierbar machen',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({ id: spec.key, label: spec.label, value: spec.value, evidenceStatus: 'provided' }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.missingDataPoint,
+          enablesDossierAddition: spec.enablesDossierAddition,
+          category: 'automation_requirements_decision_value',
+          severity: ['decision_value', 'follow_up_process', 'control_point'].includes(spec.key) ? 'high' : 'medium',
+        }));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        category: item.category,
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+      }));
+      let status = 'ready_for_requirements_review';
+      if (!params.sourceSystem) status = 'needs_source_system';
+      else if (!params.movingDataFlow) status = 'needs_moving_data_flow';
+      else if (!params.controlPoint) status = 'needs_control_point';
+      else if (!params.decisionValue) status = 'needs_decision_value';
+      else if (!params.followUpProcess) status = 'needs_follow_up_process';
+      else if (!params.dataQuality) status = 'needs_data_quality';
+      else if (!params.rollbackOrStopCriterion) status = 'needs_rollback_or_stop_criterion';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const toolWishWithoutDecisionValue =
+        !!params.requestType &&
+        /powerbi|power bi|power-?automate|dashboard|workflow|office|report|automation/i.test(params.requestType) &&
+        (!params.decisionValue || !params.followUpProcess);
+      const blockingFindings = [];
+      if (toolWishWithoutDecisionValue) {
+        blockingFindings.push({
+          code: 'ARDV_TOOL_WISH_WITHOUT_DECISION_VALUE',
+          severity: 'high',
+          message: 'automation or dashboard wish is not decision-ready without decision value and follow-up process',
+        });
+      }
+      const requirementContext = {
+        requirementId: params.requirementId || null,
+        requestTitle: params.requestTitle || null,
+        requestType: params.requestType || null,
+        processArea: params.processArea || null,
+        decisionOwner: params.decisionOwner || null,
+        targetGate: params.targetGate || null,
+      };
+      const decisionEvidence = {
+        sourceSystem: params.sourceSystem || null,
+        movingDataFlow: params.movingDataFlow || null,
+        manualEffort: params.manualEffort || null,
+        controlPoint: params.controlPoint || null,
+        decisionValue: params.decisionValue || null,
+        followUpProcess: params.followUpProcess || null,
+        dataQuality: params.dataQuality || null,
+        rollbackOrStopCriterion: params.rollbackOrStopCriterion || null,
+      };
+      const decisionSteps = [
+        { id: 'identity-and-owner', label: 'Identity and owner', evidenceStatus: (params.requirementId || params.requestTitle) && params.decisionOwner ? 'provided' : 'missing' },
+        { id: 'data-flow', label: 'Source system and moving data flow', evidenceStatus: params.sourceSystem && params.movingDataFlow ? 'provided' : 'missing' },
+        { id: 'value-control', label: 'Decision value and control point', evidenceStatus: params.decisionValue && params.controlPoint ? 'provided' : 'missing' },
+        { id: 'process-handover', label: 'Follow-up and target gate', evidenceStatus: params.followUpProcess && params.targetGate ? 'provided' : 'missing' },
+        { id: 'quality-and-stop', label: 'Data quality and rollback guard', evidenceStatus: params.dataQuality && params.rollbackOrStopCriterion ? 'provided' : 'missing' },
+      ];
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided automation requirement evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.requirementId) dossierFacts.push(`Requirement: ${params.requirementId}`);
+      if (params.requestType) dossierFacts.push(`Request type: ${params.requestType}`);
+      if (params.decisionValue) dossierFacts.push(`Decision value: ${params.decisionValue}`);
+      if (params.followUpProcess) dossierFacts.push(`Follow-up process: ${params.followUpProcess}`);
+
+      return {
+        decisionValueStatusId: `ardv:${Buffer.from(`${params.requirementId || ''}:${params.requestTitle || ''}:${params.decisionValue || ''}:${params.followUpProcess || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'automation_requirements_decision_value',
+        safety: 'read_only',
+        requestContext: {
+          requirementId: params.requirementId || null,
+          requestTitle: params.requestTitle || null,
+          requestType: params.requestType || null,
+        },
+        status,
+        readinessScore,
+        requirementContext,
+        decisionEvidence,
+        decisionSteps,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          requirementContext,
+          decisionEvidence,
+          sourceSnapshotRef: params.sourceSnapshotRef || null,
+          evidenceRefs,
+        },
+        evidenceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.automationRequirementsDecisionValueStatus'],
+          referenced: [
+            'vdmi.dossier',
+            'business-intelligence.describe',
+            'datapoint.health',
+            'datasource-registry.get',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'powerbi.createDashboard',
+            'power-automate.createFlow',
+            'office.connector.call',
+            'mail.send',
+            'teams.postMessage',
+            'loop.update',
+            'workflow.create',
+            'ticket.create',
+            'hitl.create',
+            'vdmi.create',
+            'vdmi.update',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          requirementContext,
+          decisionEvidence,
+          decisionSteps,
           evidenceItems,
           missingEvidence,
           positiveFollowUps,

@@ -704,6 +704,116 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  automation_requirements_decision_value: {
+    sources: [
+      {
+        id: 'request_identity',
+        label: 'Anforderung / Requirements Card',
+        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'vdmi.dossier'],
+        contextKeys: ['requirementId', 'requestTitle'],
+        optional: false,
+      },
+      {
+        id: 'request_type',
+        label: 'Anforderungstyp',
+        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'business-intelligence.describe'],
+        contextKeys: ['requestType'],
+        optional: false,
+      },
+      {
+        id: 'process_area',
+        label: 'Prozessbereich',
+        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'vdmi.dossier'],
+        contextKeys: ['processArea'],
+        optional: false,
+      },
+      {
+        id: 'decision_owner',
+        label: 'Entscheidungs-Owner',
+        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'vdmi.dossier'],
+        contextKeys: ['decisionOwner'],
+        optional: false,
+      },
+      {
+        id: 'target_gate',
+        label: 'Ziel-Gate',
+        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'presentation.generate'],
+        contextKeys: ['targetGate'],
+        optional: false,
+      },
+      {
+        id: 'source_system',
+        label: 'Quellsystem',
+        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'datasource-registry.get'],
+        contextKeys: ['sourceSystem'],
+        optional: false,
+      },
+      {
+        id: 'moving_data_flow',
+        label: 'Bewegungsdatenfluss',
+        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'datasource-registry.get', 'interface-placeholder.listGaps'],
+        contextKeys: ['movingDataFlow'],
+        optional: false,
+      },
+      {
+        id: 'manual_effort',
+        label: 'Manueller Aufwand',
+        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'vdmi.dossier'],
+        contextKeys: ['manualEffort'],
+        optional: false,
+      },
+      {
+        id: 'control_point',
+        label: 'Operativer Kontrollpunkt',
+        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'vdmi.dossier'],
+        contextKeys: ['controlPoint'],
+        optional: false,
+      },
+      {
+        id: 'decision_value',
+        label: 'Entscheidungswert',
+        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'presentation.generate'],
+        contextKeys: ['decisionValue'],
+        optional: false,
+      },
+      {
+        id: 'follow_up_process',
+        label: 'Folgeprozess',
+        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'vdmi.dossier'],
+        contextKeys: ['followUpProcess'],
+        optional: false,
+      },
+      {
+        id: 'data_quality',
+        label: 'Datenqualitaet',
+        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'datapoint.health'],
+        contextKeys: ['dataQuality'],
+        optional: false,
+      },
+      {
+        id: 'rollback_or_stop_criterion',
+        label: 'Rollback-/Stop-Kriterium',
+        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'vdmi.dossier'],
+        contextKeys: ['rollbackOrStopCriterion'],
+        optional: false,
+      },
+      {
+        id: 'source_snapshot_ref',
+        label: 'Quellensnapshot',
+        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceSnapshotRef'],
+        optional: false,
+      },
+      {
+        id: 'evidence_ref',
+        label: 'Evidenzreferenzen',
+        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['evidenceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   sap_budget_psp_gate: {
     sources: [
       {
