@@ -54,7 +54,11 @@ function isWriteMethod(method) {
 function isReadOnlySidecarInvocation(method, requestPath) {
   const m = String(method || '').toUpperCase();
   const pathOnly = String(requestPath || '').split('?')[0];
-  return m === 'POST' && /^\/api\/agent-sidecar\/tools\/[^/]+\/call$/.test(pathOnly);
+  return (
+    m === 'POST' &&
+    (/^\/api\/agent-sidecar\/tools\/[^/]+\/call$/.test(pathOnly) ||
+      /^\/api\/agent-sidecar\/mcp\/tools\/[^/]+\/call$/.test(pathOnly))
+  );
 }
 
 // Tokens created before Issue #157 (tenant/user binding) have no userId on

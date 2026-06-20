@@ -497,6 +497,11 @@ describe('API Gateway Service', () => {
       );
       expect(aliases['GET /agent-sidecar/tools']).toBe('agent-sidecar.listTools');
       expect(aliases['POST /agent-sidecar/tools/:name/call']).toBe('agent-sidecar.callTool');
+      expect(aliases['GET /agent-sidecar/descriptor']).toBe('agent-sidecar.descriptor');
+      expect(aliases['GET /agent-sidecar/mcp/tools']).toBe('agent-sidecar.mcpListTools');
+      expect(aliases['POST /agent-sidecar/mcp/tools/:name/call']).toBe(
+        'agent-sidecar.mcpCallTool'
+      );
       expect(aliases['GET /dashboard/observability-mini']).toBe('dashboard-api.observabilityMini');
       expect(aliases['GET /observability/logs']).toBe('observability.logs');
       expect(aliases['GET /observability/metrics']).toBe('observability.metrics');
@@ -980,6 +985,36 @@ describe('API Gateway Service', () => {
         },
         method: 'POST',
         url: '/api/agent-sidecar/tools/cernion.list_readonly_capabilities/call',
+      };
+
+      await expect(
+        apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, ctx, apiRoute, req, {})
+      ).resolves.toBeUndefined();
+      expect(ctx.meta.apiToken.scope).toBe('read-only');
+      expect(ctx.meta.apiToken.tenantId).toBe('public');
+    });
+
+    it('should allow read-only ck_ token on the MCP-like sidecar bridge call endpoint', async () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const created = await broker.call('token-manager.create', {
+        name: 'OpenClawMcpSidecarReadOnly',
+        scope: 'read-only',
+        tenantId: 'public',
+        userId: 'svc:openclaw',
+      });
+
+      const ctx = { meta: {} };
+      const req = {
+        headers: { authorization: `Bearer ${created.data.token}` },
+        query: {},
+        body: { arguments: { context: { tenantId: 'public' } } },
+        params: { name: 'cernion.list_readonly_capabilities' },
+        $params: {
+          name: 'cernion.list_readonly_capabilities',
+          arguments: { context: { tenantId: 'public' } },
+        },
+        method: 'POST',
+        url: '/api/agent-sidecar/mcp/tools/cernion.list_readonly_capabilities/call',
       };
 
       await expect(

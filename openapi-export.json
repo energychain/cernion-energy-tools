@@ -1204,6 +1204,69 @@
         }
       }
     },
+    "/api/agent-sidecar/descriptor": {
+      "get": {
+        "operationId": "agent-sidecar_descriptor",
+        "summary": "Describe the Cernion provider as a generic Energy Sidecar descriptor",
+        "tags": [
+          "Agent Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-sidecar/mcp/tools": {
+      "get": {
+        "operationId": "agent-sidecar_mcpListTools",
+        "summary": "List Cernion Sidecar tools in an MCP-like host descriptor",
+        "tags": [
+          "Agent Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-sidecar/mcp/tools/:name/call": {
+      "post": {
+        "operationId": "agent-sidecar_mcpCallTool",
+        "summary": "Call a Cernion Sidecar tool through the MCP-like bridge",
+        "tags": [
+          "Agent Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/agent/analyze": {
       "post": {
         "operationId": "agent_analyze",

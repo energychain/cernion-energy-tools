@@ -59,3 +59,6 @@ No Personal Agent hardcoding is required for OpenClaw. Consumption stays in the 
 
 For operator-facing setup instructions, see
 [`openclaw-cernion-sidecar-setup.md`](./openclaw-cernion-sidecar-setup.md).
+
+For the generic provider/host connector layer introduced after the MVP, see
+[`generic-energy-sidecar-connector.md`](./generic-energy-sidecar-connector.md).

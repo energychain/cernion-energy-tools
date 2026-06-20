@@ -12,6 +12,15 @@ const {
   buildPolicyBlocked,
   getAuthenticatedTenant,
 } = require('../src/agent-sidecar-policy');
+const {
+  buildCernionProviderCall,
+  buildCernionSidecarDescriptor,
+} = require('../src/cernion-sidecar-provider');
+const {
+  buildMcpLikeToolsList,
+  callMcpLikeTool,
+} = require('../src/energy-sidecar-mcp-bridge');
+const { summarizeDescriptorForDossier } = require('../src/energy-sidecar-descriptor');
 
 const OPENAPI_TAG = 'Agent Sidecar';
 
@@ -137,6 +146,85 @@ module.exports = {
         }
 
         return buildPolicyBlocked('tool_not_implemented', { tool: name });
+      },
+    },
+
+    descriptor: {
+      rest: 'GET /descriptor',
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Describe the Cernion provider as a generic Energy Sidecar descriptor',
+      },
+      handler(ctx) {
+        const descriptor = buildCernionSidecarDescriptor({
+          baseUrl: ctx.params.baseUrl,
+          bearerTokenSecretRef: ctx.params.bearerTokenSecretRef || 'CERNION_READONLY_TOKEN',
+        });
+        return {
+          ...descriptor,
+          tenantId: getAuthenticatedTenant(ctx),
+          dossierSummary: summarizeDescriptorForDossier(descriptor),
+        };
+      },
+    },
+
+    mcpListTools: {
+      rest: 'GET /mcp/tools',
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'List Cernion Sidecar tools in an MCP-like host descriptor',
+      },
+      handler(ctx) {
+        const descriptor = buildCernionSidecarDescriptor({
+          baseUrl: ctx.params.baseUrl,
+          bearerTokenSecretRef: ctx.params.bearerTokenSecretRef || 'CERNION_READONLY_TOKEN',
+        });
+        return buildMcpLikeToolsList(descriptor);
+      },
+    },
+
+    mcpCallTool: {
+      rest: 'POST /mcp/tools/:name/call',
+      params: {
+        name: { type: 'string', min: 1, trim: true },
+        arguments: { type: 'object', optional: true, default: {} },
+        input: { type: 'object', optional: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Call a Cernion Sidecar tool through the MCP-like bridge',
+      },
+      async handler(ctx) {
+        const descriptor = buildCernionSidecarDescriptor({
+          baseUrl: ctx.params.baseUrl,
+          bearerTokenSecretRef: ctx.params.bearerTokenSecretRef || 'CERNION_READONLY_TOKEN',
+        });
+        return callMcpLikeTool({
+          descriptor,
+          name: ctx.params.name,
+          arguments: ctx.params.arguments || ctx.params.input || {},
+          providerCall: async ({ tool, input }) => {
+            const plannedCall = buildCernionProviderCall({
+              descriptor,
+              toolName: tool.name,
+              input,
+            });
+            if (!plannedCall.ok) return plannedCall;
+            const result = await ctx.call('agent-sidecar.callTool', {
+              name: tool.name,
+              input,
+            });
+            return {
+              ...result,
+              providerCall: {
+                providerId: plannedCall.providerId,
+                method: plannedCall.method,
+                path: plannedCall.path,
+                targetAction: plannedCall.targetAction,
+              },
+            };
+          },
+        });
       },
     },
   },

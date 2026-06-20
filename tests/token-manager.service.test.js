@@ -88,6 +88,14 @@ describe('token-manager.service', () => {
     });
     expect(allowedSidecarPost.valid).toBe(true);
 
+    const allowedMcpSidecarPost = await broker.call('token-manager.verify', {
+      token: created.data.token,
+      method: 'POST',
+      path: '/api/agent-sidecar/mcp/tools/cernion.list_readonly_capabilities/call',
+      trackUsage: false,
+    });
+    expect(allowedMcpSidecarPost.valid).toBe(true);
+
     const deniedOtherPost = await broker.call('token-manager.verify', {
       token: created.data.token,
       method: 'POST',

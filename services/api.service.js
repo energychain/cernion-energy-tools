@@ -251,7 +251,11 @@ function isReadMethod(method) {
 function isReadOnlySidecarInvocation(method, requestPath) {
   const m = String(method || '').toUpperCase();
   const pathOnly = String(requestPath || '').split('?')[0];
-  return m === 'POST' && /^\/api\/agent-sidecar\/tools\/[^/]+\/call$/.test(pathOnly);
+  return (
+    m === 'POST' &&
+    (/^\/api\/agent-sidecar\/tools\/[^/]+\/call$/.test(pathOnly) ||
+      /^\/api\/agent-sidecar\/mcp\/tools\/[^/]+\/call$/.test(pathOnly))
+  );
 }
 
 function normalizeRequestPath(req) {
@@ -1391,6 +1395,9 @@ module.exports = {
           // Agent Sidecar (v0.64+) — curated OpenClaw-safe tool facade
           'GET /agent-sidecar/tools': 'agent-sidecar.listTools',
           'POST /agent-sidecar/tools/:name/call': 'agent-sidecar.callTool',
+          'GET /agent-sidecar/descriptor': 'agent-sidecar.descriptor',
+          'GET /agent-sidecar/mcp/tools': 'agent-sidecar.mcpListTools',
+          'POST /agent-sidecar/mcp/tools/:name/call': 'agent-sidecar.mcpCallTool',
           // Dashboard API (v0.19+) — UI-optimised aggregate endpoints
           'GET /dashboard/vnb-overview': 'dashboard-api.vnbOverview',
           'GET /dashboard/redispatch-metering-cockpit': 'dashboard-api.redispatchMeteringCockpit',
