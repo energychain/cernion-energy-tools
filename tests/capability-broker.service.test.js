@@ -919,6 +919,24 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Gas Decommissioning Roadmap prompts to the read-only evidence status', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe gas_decommissioning_roadmap_status fuer Gasnetz-Stilllegung, Stilllegungsroadmap, Transformationsfahrplan, Asset-Risiko, Investfolge, Gremiengate, Abhaengigkeiten und Ausfuehrungsuebergabe.',
+    });
+
+    expect(result.capability).toBe('gas_decommissioning_roadmap_status');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'gas_decommissioning_roadmap_status'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.gasDecommissioningRoadmapStatus');
+    expect(actionNames).not.toContain('gas-transformation.executeDecommissioning');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

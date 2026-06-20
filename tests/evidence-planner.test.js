@@ -358,6 +358,35 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans Gas Decommissioning Roadmap as phase, dependency and gate evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'gas_decommissioning_roadmap_status' },
+      {
+        roadmapId: 'gdr-190',
+        currentPhase: 'committee-gate',
+        owner: 'Netzstrategie',
+        assetRiskEvidence: 'asset-risk:west-loop',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('gas_decommissioning_roadmap_status');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['roadmap_identity', 'current_phase', 'owner', 'asset_risk_evidence'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'dependency_map',
+        'investment_impact_ref',
+        'committee_gate_date',
+        'execution_handover_owner',
+        'next_decision_gate',
+        'source_snapshot_ref',
+        'evidence_ref',
+      ])
+    );
+  });
+
   it('isSourceSatisfied returns false when contextKeys is empty', () => {
     expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
   });

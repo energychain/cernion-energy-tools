@@ -579,6 +579,37 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Gas Decommissioning Roadmap Status
+  // Gas roadmap prompts share investment and asset-risk vocabulary with the
+  // off-balance gate. Require explicit gas decommissioning / roadmap signals.
+  const gasDecommissioningRoadmapSignals = [
+    'gasnetz stilllegung',
+    'gasnetz-stilllegung',
+    'gas decommissioning',
+    'gas network decommissioning',
+    'stilllegungsroadmap',
+    'decommissioning roadmap',
+    'transformationsfahrplan',
+    'ausfuehrungsuebergabe',
+    'ausführungsübergabe',
+  ];
+  const hasGasDecommissioningRoadmapCombo =
+    /(gasnetz|gas network|gas)/i.test(haystack) &&
+    /(stilllegung|decommissioning|transformationsfahrplan|roadmap)/i.test(haystack) &&
+    /(asset.?risiko|investment.?impact|investfolge|gremiengate|committee.?gate|abhaengigkeit|abhängigkeit|ausfuehrungsuebergabe|ausführungsübergabe)/i.test(
+      haystack
+    );
+
+  if (
+    gasDecommissioningRoadmapSignals.some((signal) => haystack.includes(signal)) ||
+    hasGasDecommissioningRoadmapCombo
+  ) {
+    const gdrCapability = findCapabilityByName('gas_decommissioning_roadmap_status');
+    if (gdrCapability) {
+      return { capability: gdrCapability, score: 122, usedFallback: false };
+    }
+  }
+
   // ── Investment Maturity Off-Balance Gate
   // These prompts share evidence/risk vocabulary with VDMI asset validation.
   // Require explicit investment/off-balance finance signals before routing here.

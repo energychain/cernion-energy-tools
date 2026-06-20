@@ -444,6 +444,88 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  gas_decommissioning_roadmap_status: {
+    sources: [
+      {
+        id: 'roadmap_identity',
+        label: 'Stilllegungsroadmap-Identitaet',
+        resolvedBy: ['dashboard-api.gasDecommissioningRoadmapStatus', 'vdmi.dossier'],
+        contextKeys: ['roadmapId'],
+        optional: false,
+      },
+      {
+        id: 'current_phase',
+        label: 'Aktuelle Roadmap-Phase',
+        resolvedBy: ['dashboard-api.gasDecommissioningRoadmapStatus', 'vdmi.dossier'],
+        contextKeys: ['currentPhase'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Roadmap-Owner',
+        resolvedBy: ['dashboard-api.gasDecommissioningRoadmapStatus', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'asset_risk_evidence',
+        label: 'Asset-Risiko-Evidenz',
+        resolvedBy: ['dashboard-api.gasDecommissioningRoadmapStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['assetRiskEvidence'],
+        optional: false,
+      },
+      {
+        id: 'dependency_map',
+        label: 'Abhaengigkeitskarte',
+        resolvedBy: ['dashboard-api.gasDecommissioningRoadmapStatus', 'vdmi.dossier', 'presentation.generate'],
+        contextKeys: ['dependencyMap'],
+        optional: false,
+      },
+      {
+        id: 'investment_impact_ref',
+        label: 'Investitionsfolge-Referenz',
+        resolvedBy: ['dashboard-api.gasDecommissioningRoadmapStatus', 'investment-planning.createPlan', 'finance-agent.analyze'],
+        contextKeys: ['investmentImpactRef'],
+        optional: false,
+      },
+      {
+        id: 'committee_gate_date',
+        label: 'Gremiengate-Termin',
+        resolvedBy: ['dashboard-api.gasDecommissioningRoadmapStatus', 'hitl.create', 'presentation.generate'],
+        contextKeys: ['committeeGateDate'],
+        optional: false,
+      },
+      {
+        id: 'execution_handover_owner',
+        label: 'Ausfuehrungsuebergabe-Owner',
+        resolvedBy: ['dashboard-api.gasDecommissioningRoadmapStatus', 'vdmi.dossier'],
+        contextKeys: ['executionHandoverOwner'],
+        optional: false,
+      },
+      {
+        id: 'next_decision_gate',
+        label: 'Naechstes Entscheidungsgate',
+        resolvedBy: ['dashboard-api.gasDecommissioningRoadmapStatus', 'presentation.generate'],
+        contextKeys: ['nextDecisionGate'],
+        optional: false,
+      },
+      {
+        id: 'source_snapshot_ref',
+        label: 'Quellensnapshot',
+        resolvedBy: ['dashboard-api.gasDecommissioningRoadmapStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceSnapshotRef'],
+        optional: false,
+      },
+      {
+        id: 'evidence_ref',
+        label: 'Evidenzreferenzen',
+        resolvedBy: ['dashboard-api.gasDecommissioningRoadmapStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['evidenceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   sap_budget_psp_gate: {
     sources: [
       {

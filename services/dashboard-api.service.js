@@ -55,6 +55,7 @@ module.exports = {
       energyTaxInformationPackageStatus: 5 * 60 * 1000, // 5 min
       investmentRiskTranslationStatus: 5 * 60 * 1000, // 5 min
       budgetWaterfallGovernanceStatus: 5 * 60 * 1000, // 5 min
+      gasDecommissioningRoadmapStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -2151,6 +2152,96 @@ module.exports = {
           this.settings.cacheTtlMs.budgetWaterfallGovernanceStatus,
           async () => ({
             ...this.buildBudgetWaterfallGovernanceStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── gasDecommissioningRoadmapStatus ─────────────────────────────────
+    /**
+     * GET /api/dashboard/gas-decommissioning-roadmap?roadmapId=...
+     *
+     * Read-only dossier-safe evidence gate for gas-network decommissioning
+     * roadmaps. It validates phase, owner, dependency, investment-impact,
+     * committee-gate and execution-handover evidence without creating a gas
+     * transformation backend, HITL item, finance/SAP mutation, external call
+     * or Personal-Agent side effect.
+     */
+    gasDecommissioningRoadmapStatus: {
+      rest: 'GET /gas-decommissioning-roadmap',
+      params: {
+        roadmapId: { type: 'string', optional: true, min: 1 },
+        currentPhase: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        assetRiskEvidence: { type: 'string', optional: true, min: 1 },
+        dependencyMap: { type: 'string', optional: true, min: 1 },
+        investmentImpactRef: { type: 'string', optional: true, min: 1 },
+        committeeGateDate: { type: 'string', optional: true, min: 1 },
+        executionHandoverOwner: { type: 'string', optional: true, min: 1 },
+        nextDecisionGate: { type: 'string', optional: true, min: 1 },
+        blocker: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceSnapshotRef: { type: 'string', optional: true, min: 1 },
+        evidenceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Gas Decommissioning Roadmap — read-only dossier-safe status',
+        description:
+          'Builds a deterministic evidence view for gas-network decommissioning roadmap readiness. ' +
+          'The endpoint is read-only and does not create gas-transformation, finance, SAP, investment, HITL, external connector or Personal-Agent side effects.',
+        parameters: [
+          { name: 'roadmapId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'currentPhase', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetRiskEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dependencyMap', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'investmentImpactRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'committeeGateDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'executionHandoverOwner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextDecisionGate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'blocker', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          { name: 'sourceSnapshotRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceRef', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only gas decommissioning roadmap status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    roadmapContext: { type: 'object' },
+                    phaseEvidence: { type: 'object' },
+                    dependencies: { type: 'object' },
+                    blockers: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `gas-decommissioning-roadmap:${params.roadmapId || 'no-roadmap'}:${params.currentPhase || 'no-phase'}:${params.owner || 'no-owner'}:${params.dependencyMap || 'no-dependencies'}:${params.committeeGateDate || 'no-gate'}:${params.executionHandoverOwner || 'no-handover'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.gasDecommissioningRoadmapStatus,
+          async () => ({
+            ...this.buildGasDecommissioningRoadmapStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -5910,6 +6001,277 @@ module.exports = {
           readinessScore,
           waterfallContext,
           governanceEvidence,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceSnapshotRef: params.sourceSnapshotRef || null,
+          evidenceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildGasDecommissioningRoadmapStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const blockers = toList(params.blocker);
+      const evidenceRefs = toList(params.evidenceRef);
+      const evidenceSpecs = [
+        {
+          id: 'roadmap_identity',
+          label: 'Roadmap identity',
+          value: params.roadmapId,
+          sourceClass: 'roadmap_source',
+          enablesDossierAddition: 'add the gas decommissioning roadmap identity',
+        },
+        {
+          id: 'current_phase',
+          label: 'Current phase',
+          value: params.currentPhase,
+          sourceClass: 'roadmap_phase',
+          enablesDossierAddition: 'state the active roadmap phase for dossier wording',
+        },
+        {
+          id: 'owner',
+          label: 'Roadmap owner',
+          value: params.owner,
+          sourceClass: 'governance_owner',
+          enablesDossierAddition: 'add accountable ownership for the roadmap decision',
+        },
+        {
+          id: 'asset_risk_evidence',
+          label: 'Asset-risk evidence',
+          value: params.assetRiskEvidence,
+          sourceClass: 'asset_risk',
+          enablesDossierAddition: 'add asset-risk basis and risk-assessment phase confidence',
+        },
+        {
+          id: 'dependency_map',
+          label: 'Dependency map',
+          value: params.dependencyMap,
+          sourceClass: 'dependency_map',
+          enablesDossierAddition: 'add blocker/dependency status for roadmap sequencing',
+        },
+        {
+          id: 'investment_impact_ref',
+          label: 'Investment-impact reference',
+          value: params.investmentImpactRef,
+          sourceClass: 'investment_impact',
+          enablesDossierAddition: 'add finance/investment handover basis',
+        },
+        {
+          id: 'committee_gate_date',
+          label: 'Committee gate date',
+          value: params.committeeGateDate,
+          sourceClass: 'committee_gate',
+          enablesDossierAddition: 'add next decision-gate scheduling evidence',
+        },
+        {
+          id: 'execution_handover_owner',
+          label: 'Execution handover owner',
+          value: params.executionHandoverOwner,
+          sourceClass: 'execution_handover',
+          enablesDossierAddition: 'add execution handover ownership',
+        },
+        {
+          id: 'next_decision_gate',
+          label: 'Next decision gate',
+          value: params.nextDecisionGate,
+          sourceClass: 'next_gate',
+          enablesDossierAddition: 'name the next management gate unlocked by the roadmap',
+        },
+        {
+          id: 'source_snapshot_ref',
+          label: 'Source snapshot',
+          value: params.sourceSnapshotRef,
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add source grounding for the roadmap evidence',
+        },
+        {
+          id: 'evidence_ref',
+          label: 'Evidence reference',
+          value: evidenceRefs.length > 0,
+          displayValue: evidenceRefs.join(', '),
+          sourceClass: 'evidence_refs',
+          enablesDossierAddition: 'add citable evidence references to the dossier',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue || spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const status =
+        blockers.length > 0
+          ? 'blocked_by_dependencies'
+          : !params.roadmapId
+            ? 'needs_roadmap_identity'
+            : !params.currentPhase
+              ? 'needs_current_phase'
+              : !params.owner
+                ? 'needs_owner'
+                : !params.assetRiskEvidence
+                  ? 'needs_asset_risk_evidence'
+                  : !params.dependencyMap
+                    ? 'needs_dependency_map'
+                    : !params.investmentImpactRef
+                      ? 'needs_investment_impact'
+                      : !params.committeeGateDate
+                        ? 'needs_committee_gate'
+                        : !params.executionHandoverOwner
+                          ? 'needs_execution_handover'
+                          : !params.nextDecisionGate
+                            ? 'needs_next_gate'
+                            : !params.sourceSnapshotRef || evidenceRefs.length === 0
+                              ? 'needs_source_evidence'
+                              : missingEvidence.length === 0
+                                ? 'ready_for_committee_gate'
+                                : 'needs_roadmap_evidence';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'gas_decommissioning_roadmap_status',
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `GDR_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: [
+          'asset_risk_evidence',
+          'dependency_map',
+          'investment_impact_ref',
+          'committee_gate_date',
+          'execution_handover_owner',
+        ].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      if (blockers.length > 0) {
+        blockingFindings.push({
+          code: 'GDR_DEPENDENCY_BLOCKER_PRESENT',
+          severity: 'high',
+          message: 'dependency or blocker evidence prevents committee-ready roadmap wording',
+        });
+      }
+      const roadmapContext = {
+        roadmapId: params.roadmapId || null,
+        currentPhase: params.currentPhase || null,
+        owner: params.owner || null,
+      };
+      const phaseEvidence = {
+        assetRiskEvidence: params.assetRiskEvidence || null,
+        investmentImpactRef: params.investmentImpactRef || null,
+        committeeGateDate: params.committeeGateDate || null,
+        executionHandoverOwner: params.executionHandoverOwner || null,
+        nextDecisionGate: params.nextDecisionGate || null,
+        sourceSnapshotRef: params.sourceSnapshotRef || null,
+      };
+      const dependencies = {
+        dependencyMap: params.dependencyMap || null,
+        blockers,
+      };
+      const phases = [
+        { id: 'intake', label: 'Intake', evidenceStatus: params.roadmapId && params.owner ? 'provided' : 'missing' },
+        { id: 'risk-assessment', label: 'Risk assessment', evidenceStatus: params.assetRiskEvidence ? 'provided' : 'missing' },
+        { id: 'investment-impact', label: 'Investment impact', evidenceStatus: params.investmentImpactRef ? 'provided' : 'missing' },
+        { id: 'committee-gate', label: 'Committee gate', evidenceStatus: params.committeeGateDate ? 'provided' : 'missing' },
+        { id: 'execution-handover', label: 'Execution handover', evidenceStatus: params.executionHandoverOwner ? 'provided' : 'missing' },
+      ];
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided gas roadmap evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.roadmapId) dossierFacts.push(`Roadmap: ${params.roadmapId}`);
+      if (params.currentPhase) dossierFacts.push(`Current phase: ${params.currentPhase}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (params.nextDecisionGate) dossierFacts.push(`Next gate: ${params.nextDecisionGate}`);
+
+      return {
+        roadmapStatusId: `gdr:${Buffer.from(`${params.roadmapId || ''}:${params.currentPhase || ''}:${params.owner || ''}:${params.committeeGateDate || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'gas_decommissioning_roadmap_status',
+        safety: 'read_only',
+        requestContext: {
+          roadmapId: params.roadmapId || null,
+          currentPhase: params.currentPhase || null,
+          owner: params.owner || null,
+        },
+        status,
+        readinessScore,
+        roadmapContext,
+        phases,
+        phaseEvidence,
+        dependencies,
+        blockers,
+        nextDecisionGate: params.nextDecisionGate || null,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          roadmapContext,
+          phaseEvidence,
+          dependencies,
+          sourceSnapshotRef: params.sourceSnapshotRef || null,
+          evidenceRefs,
+        },
+        evidenceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.gasDecommissioningRoadmapStatus'],
+          referenced: [
+            'vdmi.dossier',
+            'vdmi-evidence.inject',
+            'investment-planning.createPlan',
+            'finance-agent.analyze',
+            'hitl.create',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'gas-transformation.createRoadmap',
+            'gas-transformation.executeDecommissioning',
+            'customer-communication.dispatch',
+            'regulatory-assertion.create',
+            'finance-agent.mutate',
+            'sap.psp.write',
+            'sap.budget.write',
+            'investment-planning.createPlan',
+            'investment-planning.mutate',
+            'hitl.create',
+            'vdmi.create',
+            'settlement.exportA96',
+            'settlement.prepareBilling',
+            'billing.release',
+            'mako.dispatch',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          roadmapContext,
+          phases,
+          phaseEvidence,
+          dependencies,
+          blockers,
+          nextDecisionGate: params.nextDecisionGate || null,
           evidenceItems,
           missingEvidence,
           positiveFollowUps,

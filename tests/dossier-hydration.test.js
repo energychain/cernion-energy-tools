@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 27 static rules', () => {
+    it('loads all 28 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(27);
+      expect(rules.length).toBe(28);
     });
 
-    it('compiles all 27 static rules without error', () => {
+    it('compiles all 28 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(27);
+      expect(rules.length).toBe(28);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -756,6 +756,59 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Sign Convention: positive reduces headroom');
       expect(formatted).toContain('Leading Gap: forecast_cutoff');
       expect(formatted).toContain('Side-Effect Guard: finance-agent.mutate');
+    });
+
+    it('dashboard-api.gasDecommissioningRoadmapStatus is dossier-safe and formats roadmap facts', () => {
+      const rule = getRule('dashboard-api.gasDecommissioningRoadmapStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Gasnetz Stilllegung roadmap=gdr:190 phase=committee-gate owner=Netzstrategie laden'
+        )
+      ).toEqual({
+        roadmapId: 'gdr:190',
+        currentPhase: 'committee-gate',
+        owner: 'Netzstrategie',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_investment_impact',
+        readinessScore: 0.64,
+        requestContext: {
+          roadmapId: 'gdr:190',
+        },
+        roadmapContext: {
+          currentPhase: 'risk-assessment',
+          owner: 'Netzstrategie',
+        },
+        phaseEvidence: {
+          assetRiskEvidence: 'asset-risk:west-loop',
+          committeeGateDate: '2026-09-15',
+        },
+        nextDecisionGate: 'committee:decommissioning-q3',
+        missingEvidence: [
+          { missingDataPoint: 'investment_impact_ref' },
+        ],
+        sourceActions: {
+          notCalled: ['gas-transformation.executeDecommissioning'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_investment_impact'],
+        },
+      });
+
+      expect(formatted).toContain('Roadmap Status: needs_investment_impact');
+      expect(formatted).toContain('Readiness: 0.64');
+      expect(formatted).toContain('Roadmap: gdr:190');
+      expect(formatted).toContain('Phase: risk-assessment');
+      expect(formatted).toContain('Owner: Netzstrategie');
+      expect(formatted).toContain('Asset Risk: asset-risk:west-loop');
+      expect(formatted).toContain('Committee Gate: 2026-09-15');
+      expect(formatted).toContain('Next Gate: committee:decommissioning-q3');
+      expect(formatted).toContain('Leading Gap: investment_impact_ref');
+      expect(formatted).toContain('Side-Effect Guard: gas-transformation.executeDecommissioning');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {

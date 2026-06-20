@@ -1297,5 +1297,68 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 189
+  },
+  {
+    "id": "dashboard-api.gasDecommissioningRoadmapStatus",
+    "action": "dashboard-api.gasDecommissioningRoadmapStatus",
+    "label": "Gas Decommissioning Roadmap Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "roadmapId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:roadmapId[:= ]+|roadmap[:=]+|stilllegung[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "currentPhase": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:currentPhase[:= ]+|phase[:=]+|aktuelle phase[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner[:= ]+|roadmap owner[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Roadmap Status", "maxLen": 80 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.roadmapId", "roadmapContext.roadmapId"], "label": "Roadmap", "maxLen": 100 },
+        { "paths": ["roadmapContext.currentPhase", "dossierEvidence.roadmapContext.currentPhase"], "label": "Phase", "maxLen": 100 },
+        { "paths": ["roadmapContext.owner", "dossierEvidence.roadmapContext.owner"], "label": "Owner", "maxLen": 100 },
+        { "paths": ["phaseEvidence.assetRiskEvidence", "dossierEvidence.phaseEvidence.assetRiskEvidence"], "label": "Asset Risk", "maxLen": 120 },
+        { "paths": ["phaseEvidence.investmentImpactRef", "dossierEvidence.phaseEvidence.investmentImpactRef"], "label": "Investment Impact", "maxLen": 120 },
+        { "paths": ["phaseEvidence.committeeGateDate", "dossierEvidence.phaseEvidence.committeeGateDate"], "label": "Committee Gate", "maxLen": 80 },
+        { "paths": ["phaseEvidence.executionHandoverOwner", "dossierEvidence.phaseEvidence.executionHandoverOwner"], "label": "Execution Handover", "maxLen": 100 },
+        { "paths": ["nextDecisionGate", "dossierEvidence.nextDecisionGate"], "label": "Next Gate", "maxLen": 100 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 100 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 190
   }
 ]

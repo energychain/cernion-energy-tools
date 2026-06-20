@@ -1402,6 +1402,8 @@ module.exports = {
             'dashboard-api.investmentRiskTranslationStatus',
           'GET /dashboard/budget-waterfall-governance':
             'dashboard-api.budgetWaterfallGovernanceStatus',
+          'GET /dashboard/gas-decommissioning-roadmap':
+            'dashboard-api.gasDecommissioningRoadmapStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

@@ -2355,6 +2355,87 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── gasDecommissioningRoadmapStatus ───────────────────────────────────
+
+  describe('gasDecommissioningRoadmapStatus', () => {
+    it('reports gas roadmap gaps without creating downstream actions', async () => {
+      const result = await broker.call('dashboard-api.gasDecommissioningRoadmapStatus', {
+        roadmapId: 'gdr:190',
+        currentPhase: 'risk-assessment',
+      });
+
+      expect(result.status).toBe('needs_owner');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'owner',
+          'asset_risk_evidence',
+          'dependency_map',
+          'investment_impact_ref',
+          'committee_gate_date',
+          'execution_handover_owner',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('gas_decommissioning_roadmap_status');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'gas-transformation.executeDecommissioning',
+          'customer-communication.dispatch',
+          'investment-planning.createPlan',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_committee_gate when roadmap evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.gasDecommissioningRoadmapStatus', {
+        roadmapId: 'gdr:190',
+        currentPhase: 'committee-gate',
+        owner: 'Netzstrategie',
+        assetRiskEvidence: 'asset-risk:west-loop',
+        dependencyMap: 'dependencies:heat-plan-h2',
+        investmentImpactRef: 'investment:gas-retirement-q3',
+        committeeGateDate: '2026-09-15',
+        executionHandoverOwner: 'Netzbetrieb Gas',
+        nextDecisionGate: 'committee:decommissioning-q3',
+        sourceSnapshotRef: 'snapshot:gas-roadmap-190',
+        evidenceRef: 'vdmi:evidence-1,finance:evidence-2',
+      });
+
+      expect(result.status).toBe('ready_for_committee_gate');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.roadmapContext.roadmapId).toBe('gdr:190');
+      expect(result.phaseEvidence.investmentImpactRef).toBe('investment:gas-retirement-q3');
+      expect(result.evidenceRefs).toEqual(['vdmi:evidence-1', 'finance:evidence-2']);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided gas roadmap evidence: 11/11');
+      expect(result.sourceActions.notCalled).toContain('settlement.prepareBilling');
+    });
+
+    it('surfaces dependencies as explicit blockers', async () => {
+      const result = await broker.call('dashboard-api.gasDecommissioningRoadmapStatus', {
+        roadmapId: 'gdr:blocked',
+        currentPhase: 'investment-impact',
+        owner: 'Netzstrategie',
+        assetRiskEvidence: 'asset-risk:west-loop',
+        dependencyMap: 'dependencies:open-customer-communication',
+        investmentImpactRef: 'investment:gas-retirement-q3',
+        committeeGateDate: '2026-09-15',
+        executionHandoverOwner: 'Netzbetrieb Gas',
+        nextDecisionGate: 'committee:decommissioning-q3',
+        sourceSnapshotRef: 'snapshot:gas-roadmap-blocked',
+        evidenceRef: ['vdmi:evidence-1'],
+        blocker: ['waermeplan-not-approved'],
+      });
+
+      expect(result.status).toBe('blocked_by_dependencies');
+      expect(result.blockingFindings.map((finding) => finding.code)).toContain(
+        'GDR_DEPENDENCY_BLOCKER_PRESENT'
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(
