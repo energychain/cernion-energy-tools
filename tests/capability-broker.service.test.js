@@ -1072,6 +1072,26 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Steuerbarkeitscheck submission cockpit prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe das Steuerbarkeitscheck Abgabe-Cockpit fuer Abgabeprojekt, Quellenliste, Datenabgleich, Begruendungskatalog, Assetgruppenstatus, Handover und naechster Zyklus.',
+    });
+
+    expect(result.capability).toBe('controllability_submission_cockpit');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'controllability_submission_cockpit'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.controllabilitySubmissionCockpitStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('grid-operations.executeControl');
+    expect(actionNames).not.toContain('cls.executeControl');
+    expect(actionNames).not.toContain('smgw.switch');
+    expect(actionNames).not.toContain('device-control.execute');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

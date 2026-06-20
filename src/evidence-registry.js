@@ -1573,6 +1573,95 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  controllability_submission_cockpit: {
+    sources: [
+      {
+        id: 'submission_identity',
+        label: 'Abgabeprojekt',
+        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'vdmi.dossier'],
+        contextKeys: ['submissionId'],
+        optional: false,
+      },
+      {
+        id: 'submission_deadline',
+        label: 'Abgabefrist',
+        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'vdmi.dossier'],
+        contextKeys: ['submissionDeadline'],
+        optional: false,
+      },
+      {
+        id: 'coordinator',
+        label: 'Koordinator',
+        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'vdmi.dossier'],
+        contextKeys: ['coordinator'],
+        optional: false,
+      },
+      {
+        id: 'source_list',
+        label: 'Quellenliste',
+        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'datapoint.health', 'edm-validation.validate'],
+        contextKeys: ['sourceList'],
+        optional: false,
+      },
+      {
+        id: 'data_reconciliation_status',
+        label: 'Datenabgleich',
+        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'edm-validation.validate'],
+        contextKeys: ['dataReconciliationStatus'],
+        optional: false,
+      },
+      {
+        id: 'reason_catalog',
+        label: 'Begruendungskatalog',
+        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'vdmi.findings', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['reasonCatalog'],
+        optional: false,
+      },
+      {
+        id: 'asset_group_statuses',
+        label: 'Assetgruppenstatus',
+        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'grid-operations.controlMeasures'],
+        contextKeys: ['assetGroupStatuses'],
+        optional: false,
+      },
+      {
+        id: 'open_measures',
+        label: 'Offene Massnahmen',
+        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'hitl.summary', 'vdmi.dossier'],
+        contextKeys: ['openMeasures'],
+        optional: false,
+      },
+      {
+        id: 'handover_decision',
+        label: 'Handover-Entscheidung',
+        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'vdmi.dossier'],
+        contextKeys: ['handoverDecision'],
+        optional: false,
+      },
+      {
+        id: 'handover_owner',
+        label: 'Handover-Owner',
+        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'vdmi.dossier'],
+        contextKeys: ['handoverOwner'],
+        optional: false,
+      },
+      {
+        id: 'next_cycle_tasks',
+        label: 'Naechste Zyklusaufgaben',
+        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'vdmi.dossier'],
+        contextKeys: ['nextCycleTasks'],
+        optional: false,
+      },
+      {
+        id: 'source_evidence_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceEvidenceRefs'],
+        optional: false,
+      },
+    ],
+  },
+
   // ── Routing-matrix route-keyed entries ─────────────────────────────────
 
   'investment-grid-check': {

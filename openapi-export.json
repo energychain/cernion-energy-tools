@@ -13996,6 +13996,21 @@
         "description": "Builds a deterministic evidence view for Rundsteuertechnik/Gruppensignal transition readiness. The endpoint is read-only and does not execute grid control, CLS, SMGW, device-control, HITL, settlement, MaKo, external connector or Personal-Agent side effects."
       }
     },
+    "/api/dashboard-api/controllability-submission-cockpit": {
+      "get": {
+        "operationId": "dashboard-api_controllabilitySubmissionCockpitStatus",
+        "summary": "Controllability submission cockpit — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only controllability submission cockpit status"
+          }
+        },
+        "description": "Builds a deterministic evidence view for Steuerbarkeitscheck submission readiness and handover. The endpoint is read-only and does not create HITL items, submit filings, execute grid, CLS, SMGW or device control, mutate MaKo, billing, settlement or tariff processes, call external connectors, or use Personal-Agent shortcuts."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -52952,6 +52967,21 @@
           }
         },
         "description": "Builds a deterministic evidence view for Rundsteuertechnik/Gruppensignal transition readiness. The endpoint is read-only and does not execute grid control, CLS, SMGW, device-control, HITL, settlement, MaKo, external connector or Personal-Agent side effects."
+      }
+    },
+    "/api/dashboard/controllability-submission-cockpit": {
+      "get": {
+        "operationId": "dashboard-api_controllabilitySubmissionCockpitStatus",
+        "summary": "Controllability submission cockpit — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only controllability submission cockpit status"
+          }
+        },
+        "description": "Builds a deterministic evidence view for Steuerbarkeitscheck submission readiness and handover. The endpoint is read-only and does not create HITL items, submit filings, execute grid, CLS, SMGW or device control, mutate MaKo, billing, settlement or tariff processes, call external connectors, or use Personal-Agent shortcuts."
       }
     },
     "/api/dashboard/market-snapshot": {

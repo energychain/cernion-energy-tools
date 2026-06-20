@@ -238,6 +238,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasControllabilitySubmissionCockpitSpecificSignal =
+    /(steuerbarkeitscheck|steuerbarkeitsnachweis|controllability)/i.test(haystack) &&
+    /(abgabe.?cockpit|abgabeprojekt|submission cockpit|submission|quellenliste|datenabgleich|begruendungskatalog|begründungskatalog|assetgruppenstatus|naechster zyklus|nächster zyklus|abgabefrist)/i.test(haystack) &&
+    !/(rundsteuertechnik|gruppensignal|legacy control|cls compliance|digital.?twin|billing|settlement|abrechnung|mako|steuerung ausfuehren|steuerung ausführen|device-control|smgw switch)/i.test(haystack);
+
+  if (hasControllabilitySubmissionCockpitSpecificSignal) {
+    const submissionCapability = findCapabilityByName('controllability_submission_cockpit');
+    if (submissionCapability) {
+      return { capability: submissionCapability, score: 138, usedFallback: false };
+    }
+  }
+
   const hasLegacyControlTechnologyTransitionSpecificSignal =
     /(rundsteuertechnik|rundsteuerempfaenger|rundsteuerempfänger|gruppensignal|legacy control|bestandsanlage|steuerbox uebergang|steuerbox übergang|cls uebergang|cls übergang)/i.test(haystack) &&
     /(rueckmeldefaehigkeit|rückmeldefähigkeit|testbarkeit|nichtdurchfuehrungsbegruendung|nichtdurchführungsbegründung|steuerbarkeitsnachweis|migration|roadmap|uebergang|übergang)/i.test(haystack);

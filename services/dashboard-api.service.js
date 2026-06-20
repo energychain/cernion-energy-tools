@@ -63,6 +63,7 @@ module.exports = {
       imsysScheduleValueChainReadinessStatus: 5 * 60 * 1000, // 5 min
       clsDigitalTwinComplianceGateStatus: 5 * 60 * 1000, // 5 min
       legacyControlTechnologyTransitionStatus: 5 * 60 * 1000, // 5 min
+      controllabilitySubmissionCockpitStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -2760,6 +2761,61 @@ module.exports = {
           this.settings.cacheTtlMs.legacyControlTechnologyTransitionStatus,
           async () => ({
             ...this.buildLegacyControlTechnologyTransitionStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── controllabilitySubmissionCockpitStatus ──────────────────────────
+    /**
+     * GET /api/dashboard/controllability-submission-cockpit?submissionId=...
+     *
+     * Read-only dossier-safe evidence gate for Steuerbarkeitscheck submission
+     * and handover work. It exposes source, reconciliation, reasoning, asset
+     * group, open-measure and handover evidence without creating queues,
+     * submitting deadlines, executing controls or mutating market processes.
+     */
+    controllabilitySubmissionCockpitStatus: {
+      rest: 'GET /controllability-submission-cockpit',
+      params: {
+        submissionId: { type: 'string', optional: true, min: 1 },
+        submissionDeadline: { type: 'string', optional: true, min: 1 },
+        coordinator: { type: 'string', optional: true, min: 1 },
+        sourceList: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        dataReconciliationStatus: { type: 'string', optional: true, min: 1 },
+        reasonCatalog: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        assetGroupStatuses: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        openMeasures: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        handoverDecision: { type: 'string', optional: true, min: 1 },
+        handoverOwner: { type: 'string', optional: true, min: 1 },
+        nextCycleTasks: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        deadlineRisks: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceEvidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceSnapshot: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Controllability submission cockpit — read-only dossier-safe gate',
+        description:
+          'Builds a deterministic evidence view for Steuerbarkeitscheck submission readiness and handover. ' +
+          'The endpoint is read-only and does not create HITL items, submit filings, execute grid, CLS, SMGW or device control, mutate MaKo, billing, settlement or tariff processes, call external connectors, or use Personal-Agent shortcuts.',
+        responses: {
+          200: {
+            description: 'Read-only controllability submission cockpit status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `controllability-submission:${params.submissionId || 'no-submission'}:${params.coordinator || 'no-coordinator'}:${params.dataReconciliationStatus || 'no-reconciliation'}:${params.handoverDecision || 'no-handover'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.controllabilitySubmissionCockpitStatus,
+          async () => ({
+            ...this.buildControllabilitySubmissionCockpitStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -8456,6 +8512,168 @@ module.exports = {
           transitionContext,
           transitionEvidence,
           transitionSteps,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockedDecisions,
+          blockingFindings,
+          sourceSnapshot: params.sourceSnapshot || null,
+          sourceEvidenceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildControllabilitySubmissionCockpitStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.flatMap((item) => String(item || '').split(',')).map((item) => item.trim()).filter(Boolean)
+        : String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+      const sourceList = toList(params.sourceList);
+      const reasonCatalog = toList(params.reasonCatalog);
+      const assetGroupStatuses = toList(params.assetGroupStatuses);
+      const openMeasures = toList(params.openMeasures);
+      const nextCycleTasks = toList(params.nextCycleTasks);
+      const deadlineRisks = toList(params.deadlineRisks);
+      const sourceEvidenceRefs = toList(params.sourceEvidenceRefs);
+      const evidenceSpecs = [
+        ['submission_identity', 'Submission identity', params.submissionId, 'Abgabeprojekt kann eindeutig im Dossier referenziert werden'],
+        ['submission_deadline', 'Submission deadline', params.submissionDeadline, 'Abgabefrist kann als Steuerungs- und Eskalationsdatum erscheinen'],
+        ['coordinator', 'Coordinator', params.coordinator, 'Verantwortlicher Koordinator kann als accountable owner ergaenzt werden'],
+        ['source_list', 'Source list', sourceList.length ? sourceList.join(', ') : null, 'Quellenabdeckung und Provenienz koennen in das Dossier aufgenommen werden'],
+        ['data_reconciliation_status', 'Data reconciliation status', params.dataReconciliationStatus, 'Abgeglichener Steuerbarkeitscheck-Evidenzstand kann ergaenzt werden'],
+        ['reason_catalog', 'Reason catalog', reasonCatalog.length ? reasonCatalog.join(', ') : null, 'Formale Begruendung fuer Nichtdurchfuehrung oder Carry-over kann ergaenzt werden'],
+        ['asset_group_statuses', 'Asset group statuses', assetGroupStatuses.length ? assetGroupStatuses.join(', ') : null, 'Assetgruppenbezogene Readiness und Ausnahmen koennen sichtbar werden'],
+        ['open_measures', 'Open measures', openMeasures.length ? openMeasures.join(', ') : null, 'Offene Massnahmen, naechste Schritte und Blocker koennen ergaenzt werden'],
+        ['handover_decision', 'Handover decision', params.handoverDecision, 'Zyklusabschluss, Carry-over oder Eskalation kann als Entscheidung erscheinen'],
+        ['handover_owner', 'Handover owner', params.handoverOwner, 'Owner fuer naechsten Zyklus oder Uebergabe kann ergaenzt werden'],
+        ['next_cycle_tasks', 'Next-cycle tasks', nextCycleTasks.length ? nextCycleTasks.join(', ') : null, 'Naechste Zyklusaufgaben koennen als Follow-up-Fakten erscheinen'],
+        ['source_evidence_refs', 'Source evidence refs', sourceEvidenceRefs.length ? sourceEvidenceRefs.join(', ') : null, 'Quellenreferenzen koennen die Abgabe revisionsfaehig machen'],
+      ].map(([key, label, value, enablesDossierAddition]) => ({
+        key,
+        label,
+        value,
+        missingDataPoint: key,
+        enablesDossierAddition,
+      }));
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({ id: spec.key, label: spec.label, value: spec.value, evidenceStatus: 'provided' }));
+      const highGaps = new Set(['coordinator', 'source_list', 'data_reconciliation_status', 'reason_catalog', 'asset_group_statuses', 'handover_decision', 'handover_owner']);
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.missingDataPoint,
+          enablesDossierAddition: spec.enablesDossierAddition,
+          category: 'controllability_submission_cockpit',
+          severity: highGaps.has(spec.missingDataPoint) ? 'high' : 'medium',
+        }));
+      const lower = (value) => String(value || '').toLowerCase();
+      const reconciliationText = lower(params.dataReconciliationStatus);
+      const handoverText = lower(params.handoverDecision);
+      const blockedByDeadline = deadlineRisks.some((risk) => /blocked|critical|kritisch|overdue|verzug|frist/.test(lower(risk)));
+      let submissionReadiness = 'ready';
+      if (!params.coordinator) submissionReadiness = 'needs_owner';
+      else if (!sourceList.length) submissionReadiness = 'needs_sources';
+      else if (!params.dataReconciliationStatus || /open|missing|unabgeglichen|unknown|unbekannt/.test(reconciliationText)) submissionReadiness = 'needs_data_reconciliation';
+      else if (!reasonCatalog.length) submissionReadiness = 'needs_reasoning';
+      else if (!assetGroupStatuses.length) submissionReadiness = 'needs_asset_group_status';
+      else if (openMeasures.length && !/close|done|submitted|abgabe|carry|handover|approved/.test(handoverText)) submissionReadiness = 'needs_open_measure_closure';
+      else if (!params.handoverDecision || !params.handoverOwner) submissionReadiness = 'needs_handover_decision';
+      else if (blockedByDeadline) submissionReadiness = 'blocked_by_deadline_risk';
+      else if (/submitted|eingereicht|done|closed|abgeschlossen/.test(handoverText)) submissionReadiness = 'submitted';
+      const handoverStatus = params.handoverDecision || null;
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        category: item.category,
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `CSC_${String(item.missingDataPoint).toUpperCase()}`,
+        severity: item.severity,
+        message: item.enablesDossierAddition,
+      }));
+      if (blockedByDeadline) {
+        blockingFindings.push({
+          code: 'CSC_DEADLINE_RISK',
+          severity: 'high',
+          message: 'Abgabefrist oder Deadline-Risiko blockiert die sichere Zyklusuebergabe',
+        });
+      }
+      const blockedDecisions = missingEvidence.length || blockedByDeadline
+        ? ['submission_release', 'cycle_closure', 'handover_to_next_cycle', 'technical_readiness_claim']
+        : [];
+      const submissionContext = {
+        submissionId: params.submissionId || null,
+        submissionDeadline: params.submissionDeadline || null,
+        coordinator: params.coordinator || null,
+      };
+      const submissionEvidence = {
+        sourceList,
+        dataReconciliationStatus: params.dataReconciliationStatus || null,
+        reasonCatalog,
+        assetGroupStatuses,
+        openMeasures,
+        handoverDecision: params.handoverDecision || null,
+        handoverOwner: params.handoverOwner || null,
+        nextCycleTasks,
+        deadlineRisks,
+      };
+      const submissionSteps = [
+        { id: 'coordinator', label: 'Coordinator', evidenceStatus: params.coordinator ? 'provided' : 'missing' },
+        { id: 'source-list', label: 'Source list', evidenceStatus: sourceList.length ? 'provided' : 'missing' },
+        { id: 'data-reconciliation', label: 'Data reconciliation', evidenceStatus: params.dataReconciliationStatus ? 'provided' : 'missing' },
+        { id: 'reason-catalog', label: 'Reason catalog', evidenceStatus: reasonCatalog.length ? 'provided' : 'missing' },
+        { id: 'asset-group-status', label: 'Asset group status', evidenceStatus: assetGroupStatuses.length ? 'provided' : 'missing' },
+        { id: 'open-measures', label: 'Open measures', evidenceStatus: openMeasures.length ? 'provided' : 'missing' },
+        { id: 'handover', label: 'Handover decision and owner', evidenceStatus: params.handoverDecision && params.handoverOwner ? 'provided' : 'missing' },
+      ];
+      const dossierFacts = [
+        `Status: ${submissionReadiness}`,
+        `Provided submission evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.submissionId) dossierFacts.push(`Submission: ${params.submissionId}`);
+      if (params.coordinator) dossierFacts.push(`Coordinator: ${params.coordinator}`);
+      if (params.handoverDecision) dossierFacts.push(`Handover: ${params.handoverDecision}`);
+
+      return {
+        submissionStatusId: `csc:${Buffer.from(`${params.submissionId || ''}:${params.coordinator || ''}:${params.handoverDecision || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'controllability_submission_cockpit',
+        safety: 'read_only',
+        requestContext: submissionContext,
+        status: submissionReadiness,
+        submissionReadiness,
+        handoverStatus,
+        readinessScore,
+        submissionContext,
+        submissionEvidence,
+        submissionSteps,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockedDecisions,
+        blockingFindings,
+        sourceEvidence: {
+          submissionContext,
+          submissionEvidence,
+          sourceSnapshot: params.sourceSnapshot || null,
+          sourceEvidenceRefs,
+        },
+        sourceActions: {
+          inspected: ['dashboard-api.controllabilitySubmissionCockpitStatus'],
+          referenced: ['vdmi.dossier', 'vdmi.findings', 'hitl.summary', 'interface-placeholder.requestEvidence', 'grid-operations.controlMeasures', 'edm-validation.validate', 'datapoint.health', 'presentation.generate'],
+          notCalled: ['hitl.create', 'grid-operations.executeControl', 'cls.executeControl', 'smgw.switch', 'device-control.execute', 'mako.dispatch', 'billing.release', 'settlement.prepareBilling', 'settlement.exportA96', 'external.connector.call', 'personal-agent.execute'],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status: submissionReadiness,
+          submissionReadiness,
+          handoverStatus,
+          readinessScore,
+          submissionContext,
+          submissionEvidence,
+          submissionSteps,
           evidenceItems,
           missingEvidence,
           positiveFollowUps,

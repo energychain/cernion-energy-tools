@@ -1816,5 +1816,70 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 175
+  },
+  {
+    "id": "dashboard-api.controllabilitySubmissionCockpitStatus",
+    "action": "dashboard-api.controllabilitySubmissionCockpitStatus",
+    "label": "Controllability Submission Cockpit Evidence",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "submissionId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:submissionId[:= ]+|submission[:=]+|abgabe[:=]+|abgabeId[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "coordinator": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:coordinator[:= ]+|koordinator[:=]+|owner[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "handoverDecision": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:handoverDecision[:= ]+|handover[:=]+|entscheidung[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "submissionReadiness", "dossierEvidence.status"], "label": "Submission Status", "maxLen": 90 },
+        { "paths": ["handoverStatus", "dossierEvidence.handoverStatus"], "label": "Handover", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.submissionId", "submissionContext.submissionId"], "label": "Submission", "maxLen": 120 },
+        { "paths": ["requestContext.submissionDeadline", "submissionContext.submissionDeadline"], "label": "Deadline", "maxLen": 120 },
+        { "paths": ["requestContext.coordinator", "submissionContext.coordinator"], "label": "Coordinator", "maxLen": 120 },
+        { "paths": ["submissionEvidence.dataReconciliationStatus", "dossierEvidence.submissionEvidence.dataReconciliationStatus"], "label": "Data Reconciliation", "maxLen": 140 },
+        { "paths": ["submissionEvidence.sourceList.0", "dossierEvidence.submissionEvidence.sourceList.0"], "label": "Source", "maxLen": 140 },
+        { "paths": ["submissionEvidence.reasonCatalog.0", "dossierEvidence.submissionEvidence.reasonCatalog.0"], "label": "Reason", "maxLen": 140 },
+        { "paths": ["submissionEvidence.assetGroupStatuses.0", "dossierEvidence.submissionEvidence.assetGroupStatuses.0"], "label": "Asset Group", "maxLen": 140 },
+        { "paths": ["submissionEvidence.openMeasures.0", "dossierEvidence.submissionEvidence.openMeasures.0"], "label": "Open Measure", "maxLen": 160 },
+        { "paths": ["submissionEvidence.handoverOwner", "dossierEvidence.submissionEvidence.handoverOwner"], "label": "Handover Owner", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 176
   }
 ]

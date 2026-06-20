@@ -177,6 +177,40 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans controllability submission cockpit as explicit submission and handover evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'controllability_submission_cockpit' },
+      {
+        submissionId: 'submission-176',
+        coordinator: 'Netzbetrieb',
+        sourceList: ['vdmi:176'],
+        dataReconciliationStatus: 'reconciled',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('controllability_submission_cockpit');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining([
+        'submission_identity',
+        'coordinator',
+        'source_list',
+        'data_reconciliation_status',
+      ])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'submission_deadline',
+        'reason_catalog',
+        'asset_group_statuses',
+        'open_measures',
+        'handover_decision',
+        'handover_owner',
+        'next_cycle_tasks',
+      ])
+    );
+  });
+
   it('plans regulatory change readiness as explicit data and audit evidence', () => {
     const result = planEvidence(
       { routeLabel: 'regulatory_change_simulator_readiness' },

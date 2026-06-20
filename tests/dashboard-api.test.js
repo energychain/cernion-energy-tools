@@ -2999,6 +2999,85 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── controllabilitySubmissionCockpitStatus ────────────────────────────
+
+  describe('controllabilitySubmissionCockpitStatus', () => {
+    it('reports submission cockpit evidence gaps without creating HITL or control side effects', async () => {
+      const result = await broker.call('dashboard-api.controllabilitySubmissionCockpitStatus', {
+        submissionId: 'submission-176',
+        submissionDeadline: '2026-07-01',
+      });
+
+      expect(result.status).toBe('needs_owner');
+      expect(result.submissionReadiness).toBe('needs_owner');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'coordinator',
+          'source_list',
+          'data_reconciliation_status',
+          'reason_catalog',
+          'asset_group_statuses',
+          'handover_decision',
+          'handover_owner',
+        ])
+      );
+      expect(result.blockedDecisions).toEqual(
+        expect.arrayContaining(['submission_release', 'cycle_closure', 'technical_readiness_claim'])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('controllability_submission_cockpit');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'hitl.create',
+          'grid-operations.executeControl',
+          'cls.executeControl',
+          'smgw.switch',
+          'device-control.execute',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns submitted when submission cockpit evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.controllabilitySubmissionCockpitStatus', {
+        submissionId: 'submission-176',
+        submissionDeadline: '2026-07-01',
+        coordinator: 'Netzbetrieb',
+        sourceList: 'vdmi:176,edm:176,gridops:176',
+        dataReconciliationStatus: 'reconciled',
+        reasonCatalog: 'non-execution-reasons-complete,carry-over-reasons-complete',
+        assetGroupStatuses: 'wp-ready,wallbox-carry-over',
+        openMeasures: 'all-closed',
+        handoverDecision: 'submitted',
+        handoverOwner: 'Assetmanagement',
+        nextCycleTasks: 'review-next-cycle',
+        sourceEvidenceRefs: 'vdmi:176,datapoint:176',
+        sourceSnapshot: 'snapshot:176',
+      });
+
+      expect(result.status).toBe('submitted');
+      expect(result.submissionReadiness).toBe('submitted');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.submissionContext.coordinator).toBe('Netzbetrieb');
+      expect(result.submissionEvidence.sourceList).toEqual(
+        expect.arrayContaining(['vdmi:176', 'edm:176', 'gridops:176'])
+      );
+      expect(result.submissionEvidence.handoverDecision).toBe('submitted');
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: submitted',
+          'Provided submission evidence: 12/12',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

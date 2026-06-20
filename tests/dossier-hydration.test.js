@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 35 static rules', () => {
+    it('loads all 36 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(35);
+      expect(rules.length).toBe(36);
     });
 
-    it('compiles all 35 static rules without error', () => {
+    it('compiles all 36 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(35);
+      expect(rules.length).toBe(36);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1228,6 +1228,68 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Test Feasibility: maintenance-window');
       expect(formatted).toContain('Leading Gap: owner_next_action');
       expect(formatted).toContain('Side-Effect Guard: grid-operations.executeControl');
+    });
+
+    it('dashboard-api.controllabilitySubmissionCockpitStatus is dossier-safe and formats submission facts', () => {
+      const rule = getRule('dashboard-api.controllabilitySubmissionCockpitStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Steuerbarkeitscheck Abgabe Cockpit submission=submission-176 koordinator=netzbetrieb handover=submitted laden'
+        )
+      ).toEqual({
+        submissionId: 'submission-176',
+        coordinator: 'netzbetrieb',
+        handoverDecision: 'submitted',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_data_reconciliation',
+        submissionReadiness: 'needs_data_reconciliation',
+        handoverStatus: 'carry_over',
+        readinessScore: 0.5,
+        requestContext: {
+          submissionId: 'submission-176',
+          submissionDeadline: '2026-07-01',
+          coordinator: 'Netzbetrieb',
+        },
+        submissionContext: {
+          submissionId: 'submission-176',
+          submissionDeadline: '2026-07-01',
+          coordinator: 'Netzbetrieb',
+        },
+        submissionEvidence: {
+          sourceList: ['vdmi:176'],
+          dataReconciliationStatus: 'open',
+          reasonCatalog: ['non-execution-reason'],
+          assetGroupStatuses: ['wp-open'],
+          openMeasures: ['measure-1'],
+          handoverOwner: 'Assetmanagement',
+        },
+        missingEvidence: [
+          { missingDataPoint: 'handover_decision' },
+        ],
+        sourceActions: {
+          notCalled: ['hitl.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_data_reconciliation'],
+        },
+      });
+
+      expect(formatted).toContain('Submission Status: needs_data_reconciliation');
+      expect(formatted).toContain('Handover: carry_over');
+      expect(formatted).toContain('Submission: submission-176');
+      expect(formatted).toContain('Deadline: 2026-07-01');
+      expect(formatted).toContain('Coordinator: Netzbetrieb');
+      expect(formatted).toContain('Data Reconciliation: open');
+      expect(formatted).toContain('Source: vdmi:176');
+      expect(formatted).toContain('Reason: non-execution-reason');
+      expect(formatted).toContain('Asset Group: wp-open');
+      expect(formatted).toContain('Leading Gap: handover_decision');
+      expect(formatted).toContain('Side-Effect Guard: hitl.create');
     });
 
     it('re4de-variable-grid-fee.getEvidence is dossier-safe and formats calculation evidence', () => {
