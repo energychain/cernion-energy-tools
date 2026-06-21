@@ -5,6 +5,26 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.64.0] — 2026-06-21
+
+### Added
+- **OpenClaw Agent Sidecar MVP** (`services/agent-sidecar.service.js`, #255): Added a sidecar service that provides standardized read-only and action routing APIs for OpenClaw node integration, featuring a generic connector bridge to communicate with external agents and environments.
+- **E2E Controllability & Asset Handover Governance** (`services/controllability-asset-handover.service.js`, `services/controllability-evidence-matrix.service.js`, `services/controllability-submission-cockpit.service.js`): Implemented strict governance gates for controllability handovers, evidence mapping, and submission cockpit monitoring for grid operations.
+- **Regulatory Change Readiness Gate** (`services/regulatory-change-readiness.service.js`): Added an operational evaluation gate to track readiness against upcoming regulatory deadlines and requirements.
+- **Investment, Budget & Risk Governance Gates** (`services/investment-risk-translation.service.js`, `services/budget-waterfall-governance.service.js`, `services/sap-budget-psp-gate.service.js`, `services/investment-maturity-off-balance-gate.service.js`, `services/investment-committee-steering-cards.service.js`, `services/investment-data-review-queue.service.js`): Created multiple financial and steering evaluation gates, tracking PSP elements, carryover logic, and risk translation.
+- **Gas Infrastructure & Decommissioning Governance** (`services/gas-infrastructure-risk-governance.service.js`, `services/gas-decommissioning-roadmap.service.js`, `services/gas-capacity-order-revision-gate.service.js`): Implemented safety gates, risk registers, and revision status trackers for gas systems and decommission pathways.
+- **Smart Meter & Metering Rollout Governance** (`services/smart-meter-off-balancing-purpose-lock.service.js`, `services/metering-rollout-process-indicator.service.js`, `services/off-balancing-metering-pruefmatrix.service.js`): Added compliance gates and rollout indicators for iMSys scheduling, purpose locking, and financing models.
+- **Market Communication Evidence Chain** (`services/market-communication-evidence-chain.service.js`): Exposed robust end-to-end evidence tracking for market communication data and case handling.
+- **Receipt Grounded Presentation & Confidence Audit** (`services/receipt-grounded-presentation-contract.service.js`, `services/evidence-grounding-confidence-audit.service.js`): Added confidence scoring and presentation templates for evidence-grounded capabilities.
+- **Redispatch, Flex & Energy Gates** (`services/redispatch-call-quality-gate.service.js`, `services/redispatch-readiness-gate.service.js`, `services/battery-redispatch-special-gate.service.js`, `services/flex-strategic-demand-intake.service.js`, `services/flexibility-conductor-role-model.service.js`, `services/re4de-variable-grid-fee.service.js`): Expanded energy flexibility, redispatch readiness, and role model validation systems.
+
+### Fixed
+- **Sidecar Token RBAC Auth Gate** (`services/agent-sidecar.service.js`): Resolved access constraints to permit validated read-only API tokens through sidecar validation paths.
+- **API Market Communication Routing** (`services/api.service.js`): Correctly exposed and mapped REST endpoints for market communication evidence chains and dashboard-api routes.
+
+### Docs
+- **OpenClaw Setup Guide** (`docs/sidecar/setup.md`): Created comprehensive instructions for configuring and connecting the OpenClaw Agent Sidecar and Node bindings.
+
 ## [0.63.12] — 2026-06-18
 
 ### Added
