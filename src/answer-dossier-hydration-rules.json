@@ -2674,5 +2674,78 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 163
+  },
+  {
+    "id": "imsys-taf2-compliance-status",
+    "description": "Read-only iMSys TAF2 compliance status evidence for dossier hydration",
+    "routeLabel": "imsys_taf2_compliance_status",
+    "capability": "imsys_taf2_compliance_status",
+    "action": "dashboard-api.imsysTaf2ComplianceStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "hitl.create",
+        "vdmi.mutate",
+        "finance-agent.mutate",
+        "settlement.prepareBilling",
+        "grid-operations.executeControl",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "imsys",
+      "iMSys",
+      "taf2",
+      "taf 2",
+      "taf-2",
+      "pflichteinbaufall",
+      "smart meter rollout",
+      "msb",
+      "messstellenbetrieb",
+      "dienstleister roadmap",
+      "einbaufallquote",
+      "compliance cockpit",
+      "taf2 compliance",
+      "tarifanwendungsfall 2",
+      "zeitvariable netznutzungstarife"
+    ],
+    "paramTemplate": {
+      "meteringPointId": {
+        "extractor": "regexCaptureSafe",
+        "required": true,
+        "config": {
+          "pattern": "(?:meteringPointId[:= ]+|metering_point_id[:= ]+|meteringPoint[:= ]+|metering_point[:= ]+|melo[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Compliance Status", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.meteringPointId", "complianceContext.meteringPointId"], "label": "Metering Point ID", "maxLen": 120 },
+        { "paths": ["complianceEvidence.taf2Obligation", "dossierEvidence.complianceEvidence.taf2Obligation"], "label": "TAF2 Obligation", "maxLen": 120 },
+        { "paths": ["complianceEvidence.targetDeadline", "dossierEvidence.complianceEvidence.targetDeadline"], "label": "Target Deadline", "maxLen": 120 },
+        { "paths": ["complianceEvidence.tariffModel", "dossierEvidence.complianceEvidence.tariffModel"], "label": "Tariff Model", "maxLen": 120 },
+        { "paths": ["complianceEvidence.implementationStatus", "dossierEvidence.complianceEvidence.implementationStatus"], "label": "Implementation Status", "maxLen": 120 },
+        { "paths": ["complianceEvidence.measuredValueAccess", "dossierEvidence.complianceEvidence.measuredValueAccess"], "label": "Measured Value Access", "maxLen": 120 },
+        { "paths": ["complianceEvidence.owner", "dossierEvidence.complianceEvidence.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["complianceEvidence.nextAction", "dossierEvidence.complianceEvidence.nextAction"], "label": "Next Action", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 161
   }
 ]

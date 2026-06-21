@@ -3730,6 +3730,71 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── imsysTaf2ComplianceStatus ─────────────────────────────
+
+  describe('imsysTaf2ComplianceStatus', () => {
+    it('reports imsys TAF2 compliance gaps without creating SMGW or database side effects', async () => {
+      const result = await broker.call('dashboard-api.imsysTaf2ComplianceStatus', {
+        meteringPointId: 'melo-161',
+      });
+
+      expect(result.status).toBe('needs_taf2_obligation');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'taf2_obligation',
+          'target_deadline',
+          'tariff_model',
+          'implementation_status',
+          'measured_value_access',
+          'owner',
+          'next_action',
+          'source_refs',
+        ])
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'hitl.create',
+          'vdmi.mutate',
+          'finance-agent.mutate',
+          'settlement.prepareBilling',
+          'grid-operations.executeControl',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_compliance_decision when compliance evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.imsysTaf2ComplianceStatus', {
+        meteringPointId: 'melo-161',
+        taf2Obligation: true,
+        targetDeadline: '2026-12-31',
+        tariffModel: 'variable',
+        implementationStatus: 'completed',
+        measuredValueAccess: 'configured',
+        owner: 'MSB',
+        nextAction: 'none',
+        sourceRef: 'EnWG_40,BSI_TR-03109',
+      });
+
+      expect(result.status).toBe('ready_for_compliance_decision');
+      expect(result.readinessScore).toBe(1);
+      expect(result.complianceScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.complianceEvidence.tariffModel).toBe('variable');
+      expect(result.complianceContext.meteringPointId).toBe('melo-161');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['EnWG_40', 'BSI_TR-03109']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_compliance_decision',
+          'Provided iMSys TAF2 compliance evidence: 8/8',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

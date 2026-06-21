@@ -1461,6 +1461,8 @@ module.exports = {
             'dashboard-api.kiFloorwalkerGovernanceStatus',
           'GET /dashboard/investment-waterfall-governance':
             'dashboard-api.investmentWaterfallGovernanceStatus',
+          'GET /dashboard/imsys-taf2-compliance':
+            'dashboard-api.imsysTaf2ComplianceStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

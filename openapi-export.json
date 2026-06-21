@@ -14146,6 +14146,21 @@
         "description": "Builds deterministic investment waterfall governance evidence from supplied facts. The endpoint is read-only and does not run budget writes or write to HITL/VDMI."
       }
     },
+    "/api/dashboard-api/imsys-taf2-compliance": {
+      "get": {
+        "operationId": "dashboard-api_imsysTaf2ComplianceStatus",
+        "summary": "iMSys TAF2 compliance status — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only iMSys TAF2 compliance status"
+          }
+        },
+        "description": "Builds deterministic compliance evidence from supplied facts. The endpoint is read-only and does not run budget writes or write to HITL/VDMI."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53252,6 +53267,21 @@
           }
         },
         "description": "Builds deterministic investment waterfall governance evidence from supplied facts. The endpoint is read-only and does not run budget writes or write to HITL/VDMI."
+      }
+    },
+    "/api/dashboard/imsys-taf2-compliance": {
+      "get": {
+        "operationId": "dashboard-api_imsysTaf2ComplianceStatus",
+        "summary": "iMSys TAF2 compliance status — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only iMSys TAF2 compliance status"
+          }
+        },
+        "description": "Builds deterministic compliance evidence from supplied facts. The endpoint is read-only and does not run budget writes or write to HITL/VDMI."
       }
     },
     "/api/dashboard/market-snapshot": {

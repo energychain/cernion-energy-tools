@@ -73,6 +73,7 @@ module.exports = {
       heatTransformationLineAssetModelStatus: 5 * 60 * 1000, // 5 min
       kiFloorwalkerGovernanceStatus: 5 * 60 * 1000, // 5 min
       investmentWaterfallGovernanceStatus: 5 * 60 * 1000, // 5 min
+      imsysTaf2ComplianceStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3314,6 +3315,58 @@ module.exports = {
           this.settings.cacheTtlMs.investmentWaterfallGovernanceStatus,
           async () => ({
             ...this.buildInvestmentWaterfallGovernanceStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── imsysTaf2ComplianceStatus ─────────────────────────────
+    /**
+     * GET /api/dashboard/imsys-taf2-compliance
+     *
+     * Read-only dossier-safe iMSys TAF2 compliance status. It
+     * builds compliance evidence from supplied status facts
+     * without creating a new SMGW/meter/customer databases,
+     * or triggering automatic mutations.
+     */
+    imsysTaf2ComplianceStatus: {
+      rest: 'GET /imsys-taf2-compliance',
+      params: {
+        meteringPointId: { type: 'string', min: 1 },
+        taf2Obligation: { type: 'boolean', optional: true },
+        targetDeadline: { type: 'string', optional: true, min: 1 },
+        tariffModel: { type: 'string', optional: true, min: 1 },
+        implementationStatus: { type: 'string', optional: true, min: 1 },
+        measuredValueAccess: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        nextAction: { type: 'string', optional: true, min: 1 },
+        forecast: { type: 'boolean', optional: true },
+        date: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'iMSys TAF2 compliance status — read-only dossier-safe status',
+        description:
+          'Builds deterministic compliance evidence from supplied facts. ' +
+          'The endpoint is read-only and does not run budget writes or write to HITL/VDMI.',
+        responses: {
+          200: {
+            description: 'Read-only iMSys TAF2 compliance status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `imsys-taf2-compliance:${params.meteringPointId || 'no-id'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.imsysTaf2ComplianceStatus,
+          async () => ({
+            ...this.buildImsysTaf2ComplianceStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -11155,6 +11208,208 @@ module.exports = {
           readinessScore,
           governanceContext,
           governanceEvidence,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildImsysTaf2ComplianceStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const sourceRefs = toList(params.sourceRef);
+
+      const evidenceSpecs = [
+        {
+          id: 'taf2_obligation',
+          label: 'TAF2 Obligation',
+          value: typeof params.taf2Obligation === 'boolean' ? params.taf2Obligation : params.taf2Obligation ? String(params.taf2Obligation) === 'true' : null,
+          sourceClass: 'taf2_obligation_verification',
+          enablesDossierAddition: 'verify the TAF-2 legal requirement or rollout obligation',
+        },
+        {
+          id: 'target_deadline',
+          label: 'Target Deadline',
+          value: params.targetDeadline,
+          sourceClass: 'taf2_deadline_tracking',
+          enablesDossierAddition: 'add the target installation deadline for TAF-2 compliance',
+        },
+        {
+          id: 'tariff_model',
+          label: 'Tariff Model',
+          value: params.tariffModel,
+          sourceClass: 'tariff_model_specification',
+          enablesDossierAddition: 'specify the applicable variable or static tariff model',
+        },
+        {
+          id: 'implementation_status',
+          label: 'Implementation Status',
+          value: params.implementationStatus,
+          sourceClass: 'taf2_rollout_milestone',
+          enablesDossierAddition: 'add the hardware rollout implementation status',
+        },
+        {
+          id: 'measured_value_access',
+          label: 'Measured Value Access',
+          value: params.measuredValueAccess,
+          sourceClass: 'taf2_access_verification',
+          enablesDossierAddition: 'verify the secure measured value access or data communication route',
+        },
+        {
+          id: 'owner',
+          label: 'Accountable Owner',
+          value: params.owner,
+          sourceClass: 'compliance_responsibility',
+          enablesDossierAddition: 'add the accountable owner or process sponsor role',
+        },
+        {
+          id: 'next_action',
+          label: 'Next Action',
+          value: params.nextAction,
+          sourceClass: 'next_compliance_step',
+          enablesDossierAddition: 'add the planned next action or mitigation step',
+        },
+        {
+          id: 'source_refs',
+          label: 'Source references',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add citable regulatory source references or grounding evidence',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value !== undefined && spec.value !== null && spec.value !== false)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue ?? spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => spec.value === undefined || spec.value === null || spec.value === false)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        !params.meteringPointId
+          ? 'needs_metering_point_id'
+          : (params.taf2Obligation === undefined || params.taf2Obligation === null)
+            ? 'needs_taf2_obligation'
+            : !params.targetDeadline
+              ? 'needs_target_deadline'
+              : !params.tariffModel
+                ? 'needs_tariff_model'
+                : !params.implementationStatus
+                  ? 'needs_implementation_status'
+                  : !params.measuredValueAccess
+                    ? 'needs_measured_value_access'
+                    : !params.owner
+                      ? 'needs_owner'
+                      : !params.nextAction
+                        ? 'needs_next_action'
+                        : sourceRefs.length === 0
+                          ? 'needs_source_refs'
+                          : 'ready_for_compliance_decision';
+
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const complianceScore = readinessScore;
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'imsys_taf2_compliance_status',
+      }));
+
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `ITCS_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['taf2_obligation', 'target_deadline', 'tariff_model', 'measured_value_access'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+
+      const complianceContext = {
+        meteringPointId: params.meteringPointId || null,
+      };
+
+      const complianceEvidence = {
+        taf2Obligation: typeof params.taf2Obligation === 'boolean' ? params.taf2Obligation : params.taf2Obligation ? String(params.taf2Obligation) === 'true' : null,
+        targetDeadline: params.targetDeadline || null,
+        tariffModel: params.tariffModel || null,
+        implementationStatus: params.implementationStatus || null,
+        measuredValueAccess: params.measuredValueAccess || null,
+        owner: params.owner || null,
+        nextAction: params.nextAction || null,
+      };
+
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided iMSys TAF2 compliance evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.meteringPointId) dossierFacts.push(`Metering Point ID: ${params.meteringPointId}`);
+
+      return {
+        imsysTaf2ComplianceStatusId: `itcs:${Buffer.from(`${params.meteringPointId || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'imsys_taf2_compliance_status',
+        safety: 'read_only',
+        requestContext: complianceContext,
+        status,
+        readinessScore,
+        complianceScore,
+        complianceContext,
+        complianceEvidence,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+        },
+        sourceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.imsysTaf2ComplianceStatus'],
+          referenced: [
+            'edm-messkonzept.evaluateAll',
+            'edm-validation.validate',
+            'datapoint.health',
+            'vdmi.dossier',
+            'interface-placeholder.requestEvidence',
+            'finance-agent.analyze',
+            'hitl.create'
+          ],
+          notCalled: [
+            'hitl.create',
+            'vdmi.mutate',
+            'finance-agent.mutate',
+            'settlement.prepareBilling',
+            'grid-operations.executeControl',
+            'external.connector.call',
+            'personal-agent.execute'
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          complianceScore,
+          complianceContext,
+          complianceEvidence,
           evidenceItems,
           missingEvidence,
           positiveFollowUps,

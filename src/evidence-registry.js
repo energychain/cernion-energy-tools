@@ -2255,6 +2255,67 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  imsys_taf2_compliance_status: {
+    sources: [
+      {
+        id: 'taf2_obligation',
+        label: 'TAF2-Pflicht Einbaufall',
+        resolvedBy: ['dashboard-api.imsysTaf2ComplianceStatus', 'personal-agent.chat', 'vdmi.dossier'],
+        contextKeys: ['taf2Obligation'],
+        optional: false,
+      },
+      {
+        id: 'target_deadline',
+        label: 'Soll-Frist Einbau',
+        resolvedBy: ['dashboard-api.imsysTaf2ComplianceStatus', 'datapoint.oemetadata', 'vdmi.dossier'],
+        contextKeys: ['targetDeadline'],
+        optional: false,
+      },
+      {
+        id: 'tariff_model',
+        label: 'Variables Tarifmodell',
+        resolvedBy: ['dashboard-api.imsysTaf2ComplianceStatus', 'personal-agent.chat', 'vdmi.dossier'],
+        contextKeys: ['tariffModel'],
+        optional: false,
+      },
+      {
+        id: 'implementation_status',
+        label: 'Einbaustatus Hardware',
+        resolvedBy: ['dashboard-api.imsysTaf2ComplianceStatus', 'vdmi.dossier'],
+        contextKeys: ['implementationStatus'],
+        optional: false,
+      },
+      {
+        id: 'measured_value_access',
+        label: 'Messwert-Kommunikationskanal',
+        resolvedBy: ['dashboard-api.imsysTaf2ComplianceStatus', 'vdmi.dossier'],
+        contextKeys: ['measuredValueAccess'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Prozessverantwortung',
+        resolvedBy: ['dashboard-api.imsysTaf2ComplianceStatus', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'next_action',
+        label: 'Naechste Compliance-Massnahme',
+        resolvedBy: ['dashboard-api.imsysTaf2ComplianceStatus', 'vdmi.dossier'],
+        contextKeys: ['nextAction'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.imsysTaf2ComplianceStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   metering_rollout_process_indicator: {
     sources: [
       {
