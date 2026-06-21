@@ -1355,4 +1355,22 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('finance-agent.mutate');
     expect(actionNames).not.toContain('settlement.prepareBilling');
   });
+
+  it('routes gas and heat transformation dependency map prompts to the read-only evidence status path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Gasnetztransformation Abhaengigkeitslandkarte fuer project-155: Sparte, Transformationsknoten, Abhaengigkeiten, Datenqualitaets-Luecken, Investitionspfade, Stilllegungs- und Umwidmungspfade, Kundengruppen, Owner, naechste Schritte, naechste Massnahme und Quellenreferenzen.',
+    });
+
+    expect(result.capability).toBe('gas_transformation_dependency_map');
+    expect(result.recommendedCapabilities[0].capability).toBe('gas_transformation_dependency_map');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.gasTransformationDependencyMapStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('assets.mutate');
+    expect(actionNames).not.toContain('datapoint.mutate');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('vdmi.mutate');
+    expect(actionNames).not.toContain('personal-agent.execute');
+    expect(actionNames).not.toContain('external.connector.call');
+  });
 });

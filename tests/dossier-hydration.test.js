@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 45 static rules', () => {
+    it('loads all 49 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(45);
+      expect(rules.length).toBe(49);
     });
 
-    it('compiles all 45 static rules without error', () => {
+    it('compiles all 49 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(45);
+      expect(rules.length).toBe(49);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1104,6 +1104,57 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Control Readiness: missing');
       expect(formatted).toContain('Leading Gap: controllability_status');
       expect(formatted).toContain('Side-Effect Guard: device-control.execute');
+    });
+
+    it('dashboard-api.gasTransformationDependencyMapStatus is dossier-safe and formats dependency map facts', () => {
+      const rule = getRule('dashboard-api.gasTransformationDependencyMapStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Gasnetztransformation Abhaengigkeitslandkarte projectId=project-155 laden'
+        )
+      ).toEqual({
+        projectId: 'project-155',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_division',
+        readinessScore: 0.1,
+        requestContext: {
+          projectId: 'project-155',
+        },
+        complianceContext: {
+          projectId: 'project-155',
+        },
+        complianceEvidence: {
+          division: 'Gas',
+          nodes: [],
+          dependencies: [],
+          dataQualityGaps: [],
+          investmentPaths: [],
+          decommissionRepurposePaths: [],
+          customerGroups: [],
+          owner: null,
+          nextAction: null,
+        },
+        missingEvidence: [
+          { missingDataPoint: 'division' },
+        ],
+        sourceActions: {
+          notCalled: ['hitl.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_division'],
+        },
+      });
+
+      expect(formatted).toContain('Dependency Map Status: needs_division');
+      expect(formatted).toContain('Readiness: 0.1');
+      expect(formatted).toContain('Sparte: Gas');
+      expect(formatted).toContain('Leading Gap: division');
+      expect(formatted).toContain('Side-Effect Guard: hitl.create');
     });
 
     it('dashboard-api.clsDigitalTwinComplianceGateStatus is dossier-safe and formats compliance facts', () => {

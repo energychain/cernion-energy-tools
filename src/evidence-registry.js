@@ -2412,6 +2412,88 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  gas_transformation_dependency_map: {
+    sources: [
+      {
+        id: 'project_id',
+        label: 'Projekt-ID',
+        resolvedBy: ['dashboard-api.gasTransformationDependencyMapStatus', 'vdmi.dossier'],
+        contextKeys: ['projectId'],
+        optional: true,
+      },
+      {
+        id: 'division',
+        label: 'Sparte',
+        resolvedBy: ['dashboard-api.gasTransformationDependencyMapStatus', 'vdmi.dossier'],
+        contextKeys: ['division'],
+        optional: false,
+      },
+      {
+        id: 'nodes',
+        label: 'Transformationsknoten',
+        resolvedBy: ['dashboard-api.gasTransformationDependencyMapStatus', 'vdmi.dossier'],
+        contextKeys: ['nodes'],
+        optional: false,
+      },
+      {
+        id: 'dependencies',
+        label: 'Abhaengigkeiten',
+        resolvedBy: ['dashboard-api.gasTransformationDependencyMapStatus', 'vdmi.dossier'],
+        contextKeys: ['dependencies'],
+        optional: false,
+      },
+      {
+        id: 'data_quality_gaps',
+        label: 'Datenqualitaets-Luecken',
+        resolvedBy: ['dashboard-api.gasTransformationDependencyMapStatus', 'vdmi.dossier'],
+        contextKeys: ['dataQualityGaps'],
+        optional: false,
+      },
+      {
+        id: 'investment_paths',
+        label: 'Investitionspfade',
+        resolvedBy: ['dashboard-api.gasTransformationDependencyMapStatus', 'vdmi.dossier'],
+        contextKeys: ['investmentPaths'],
+        optional: false,
+      },
+      {
+        id: 'decommission_repurpose_paths',
+        label: 'Stilllegungs- und Umwidmungspfade',
+        resolvedBy: ['dashboard-api.gasTransformationDependencyMapStatus', 'vdmi.dossier'],
+        contextKeys: ['decommissionRepurposePaths'],
+        optional: false,
+      },
+      {
+        id: 'customer_groups',
+        label: 'Kundengruppen',
+        resolvedBy: ['dashboard-api.gasTransformationDependencyMapStatus', 'vdmi.dossier'],
+        contextKeys: ['customerGroups'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Prozessverantwortlicher Owner',
+        resolvedBy: ['dashboard-api.gasTransformationDependencyMapStatus', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'next_action',
+        label: 'Naechste Massnahme',
+        resolvedBy: ['dashboard-api.gasTransformationDependencyMapStatus', 'vdmi.dossier'],
+        contextKeys: ['nextAction'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.gasTransformationDependencyMapStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   capacity_contract_risk_asset_cockpit: {
     sources: [
       {

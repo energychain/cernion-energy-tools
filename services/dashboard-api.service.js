@@ -76,6 +76,7 @@ module.exports = {
       capacityContractRiskAssetCockpitStatus: 5 * 60 * 1000, // 5 min
       imsysTaf2ComplianceStatus: 5 * 60 * 1000, // 5 min
       scheduleManagementGovernanceRoadmapStatus: 5 * 60 * 1000, // 5 min
+      gasTransformationDependencyMapStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3482,6 +3483,59 @@ module.exports = {
           this.settings.cacheTtlMs.scheduleManagementGovernanceRoadmapStatus,
           async () => ({
             ...this.buildScheduleManagementGovernanceRoadmapStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── gasTransformationDependencyMapStatus ─────────────────────────────
+    /**
+     * GET /api/dashboard/gas-transformation-dependency-map
+     *
+     * Read-only dossier-safe Gas- und Waermetransformation Abhaengigkeitslandkarte.
+     * It builds a deterministic dependency map and status projection from supplied facts
+     * without creating a new transformations platform or database or triggering active mutations.
+     */
+    gasTransformationDependencyMapStatus: {
+      rest: 'GET /gas-transformation-dependency-map',
+      params: {
+        projectId: { type: 'string', optional: true, min: 1 },
+        division: { type: 'string', optional: true, min: 1 },
+        nodes: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        dependencies: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        dataQualityGaps: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        investmentPaths: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        decommissionRepurposePaths: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        customerGroups: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        owner: { type: 'string', optional: true, min: 1 },
+        nextAction: { type: 'string', optional: true, min: 1 },
+        forecast: { type: 'boolean', optional: true },
+        date: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Gas- und Waermetransformation Abhaengigkeitslandkarte — read-only dossier-safe status',
+        description:
+          'Builds deterministic dependency map and status from supplied facts. ' +
+          'The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI.',
+        responses: {
+          200: {
+            description: 'Read-only gas and heat transformation status and dependency map evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `gas-transformation-dependency:${params.projectId || 'no-project'}:${params.division || 'no-division'}:${params.owner || 'no-owner'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.gasTransformationDependencyMapStatus,
+          async () => ({
+            ...this.buildGasTransformationDependencyMapStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -12079,6 +12133,242 @@ module.exports = {
             'personal-agent.execute',
             'finance-agent.mutate',
             'settlement.prepareBilling'
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          complianceScore,
+          complianceContext,
+          complianceEvidence,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildGasTransformationDependencyMapStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+
+      const nodes = toList(params.nodes);
+      const dependencies = toList(params.dependencies);
+      const dataQualityGaps = toList(params.dataQualityGaps);
+      const investmentPaths = toList(params.investmentPaths);
+      const decommissionRepurposePaths = toList(params.decommissionRepurposePaths);
+      const customerGroups = toList(params.customerGroups);
+      const sourceRefs = toList(params.sourceRef);
+
+      const evidenceSpecs = [
+        {
+          id: 'division',
+          label: 'Sparte',
+          value: params.division,
+          sourceClass: 'division_specification',
+          enablesDossierAddition: 'define the division or sector context (e.g. Gas, Heat)',
+        },
+        {
+          id: 'nodes',
+          label: 'Transformationsknoten',
+          value: nodes.length > 0,
+          displayValue: nodes.join(', '),
+          sourceClass: 'transformation_nodes_specification',
+          enablesDossierAddition: 'specify the transformation nodes or options (e.g. h2_ready, heat_network, decommission, repurpose)',
+        },
+        {
+          id: 'dependencies',
+          label: 'Abhaengigkeiten',
+          value: dependencies.length > 0,
+          displayValue: dependencies.join(', '),
+          sourceClass: 'transformation_dependencies_specification',
+          enablesDossierAddition: 'define the dependencies or blockages between transformation options',
+        },
+        {
+          id: 'data_quality_gaps',
+          label: 'Datenqualitaets-Luecken',
+          value: dataQualityGaps.length > 0,
+          displayValue: dataQualityGaps.join(', '),
+          sourceClass: 'data_quality_gaps_identification',
+          enablesDossierAddition: 'identify data quality gaps for transformation planning',
+        },
+        {
+          id: 'investment_paths',
+          label: 'Investitionspfade',
+          value: investmentPaths.length > 0,
+          displayValue: investmentPaths.join(', '),
+          sourceClass: 'investment_paths_definition',
+          enablesDossierAddition: 'map required investment paths or budgets',
+        },
+        {
+          id: 'decommission_repurpose_paths',
+          label: 'Stilllegungs- und Umwidmungspfade',
+          value: decommissionRepurposePaths.length > 0,
+          displayValue: decommissionRepurposePaths.join(', '),
+          sourceClass: 'decommission_repurpose_paths_definition',
+          enablesDossierAddition: 'specify the decommission, renewal or repurposing paths',
+        },
+        {
+          id: 'customer_groups',
+          label: 'Kundengruppen',
+          value: customerGroups.length > 0,
+          displayValue: customerGroups.join(', '),
+          sourceClass: 'customer_groups_mapping',
+          enablesDossierAddition: 'map remaining customer groups or sectors',
+        },
+        {
+          id: 'owner',
+          label: 'Prozessverantwortlicher Owner',
+          value: params.owner,
+          sourceClass: 'transformation_responsibility',
+          enablesDossierAddition: 'assign an accountable owner role or process sponsor',
+        },
+        {
+          id: 'next_action',
+          label: 'Naechste Massnahme',
+          value: params.nextAction,
+          sourceClass: 'next_transformation_action',
+          enablesDossierAddition: 'define the immediate next transformation step or decision',
+        },
+        {
+          id: 'source_refs',
+          label: 'Quellenreferenzen',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add regulatory sources or documentation reference credentials',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value !== undefined && spec.value !== null && spec.value !== false)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue ?? spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => spec.value === undefined || spec.value === null || spec.value === false)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        !params.division
+          ? 'needs_division'
+          : nodes.length === 0
+            ? 'needs_nodes'
+            : dependencies.length === 0
+              ? 'needs_dependencies'
+              : dataQualityGaps.length === 0
+                ? 'needs_data_quality_gaps'
+                : investmentPaths.length === 0
+                  ? 'needs_investment_paths'
+                  : decommissionRepurposePaths.length === 0
+                    ? 'needs_decommission_repurpose_paths'
+                    : customerGroups.length === 0
+                      ? 'needs_customer_groups'
+                      : !params.owner
+                        ? 'needs_owner'
+                        : !params.nextAction
+                          ? 'needs_next_action'
+                          : sourceRefs.length === 0
+                            ? 'needs_source_refs'
+                            : 'ready_for_transformation_decision';
+
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const complianceScore = readinessScore;
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'gas_transformation_dependency_map',
+      }));
+
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `GTDM_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['division', 'nodes', 'owner', 'next_action'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+
+      const complianceContext = {
+        projectId: params.projectId || null,
+      };
+
+      const complianceEvidence = {
+        division: params.division || null,
+        nodes,
+        dependencies,
+        dataQualityGaps,
+        investmentPaths,
+        decommissionRepurposePaths,
+        customerGroups,
+        owner: params.owner || null,
+        nextAction: params.nextAction || null,
+      };
+
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided Gasnetztransformation dependency map evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.projectId) dossierFacts.push(`Project ID: ${params.projectId}`);
+
+      return {
+        gasTransformationDependencyMapStatusId: `gtdm:${Buffer.from(`${params.projectId || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'gas_transformation_dependency_map',
+        safety: 'read_only',
+        requestContext: complianceContext,
+        status,
+        readinessScore,
+        complianceScore,
+        complianceContext,
+        complianceEvidence,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+        },
+        sourceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.gasTransformationDependencyMapStatus'],
+          referenced: [
+            'znp.assessPortfolio',
+            'znp.strategicPrompts',
+            'assets.effective',
+            'datapoint.health',
+            'vdmi.dossier',
+            'interface-placeholder.requestEvidence'
+          ],
+          notCalled: [
+            'hitl.create',
+            'znp.addAssumption',
+            'assets.mutate',
+            'datapoint.mutate',
+            'finance-agent.mutate',
+            'investment-planning.createPlan',
+            'vdmi.mutate',
+            'personal-agent.execute',
+            'external.connector.call'
           ],
         },
         validationFindings: blockingFindings,

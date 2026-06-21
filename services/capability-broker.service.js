@@ -334,6 +334,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasGasTransformationDependencyMapSpecificSignal =
+    /(gasnetztransformation|gasnetz 2045|h2 readiness|wasserstoff|stilllegungspfad|umwidmung|waermenetzausbau|geothermie|abhaengigkeitslandkarte|transformationsoption)/i.test(haystack) &&
+    /(projectId|division|nodes|dependencies|dataQualityGaps|investmentPaths|decommissionRepurposePaths|customerGroups|owner|nextAction|gaps|follow.?up|readiness|projekt-id|sparte|abhaengigkeit|datenqualitaet|investitionspfad|stilllegung|umwidmungspfad|kundengruppe|melo-155)/i.test(haystack) &&
+    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|vdmi\.mutate|investment-planning\.createPlan|finance-agent\.mutate|budget\.release|settlement\.prepareBilling|external\.connector\.call|personal-agent\.execute|gas-risk-register\.create|assets\.mutate|datapoint\.mutate)/i.test(haystack);
+
+  if (hasGasTransformationDependencyMapSpecificSignal) {
+    const gasTransformationCapability = findCapabilityByName('gas_transformation_dependency_map');
+    if (gasTransformationCapability) {
+      return { capability: gasTransformationCapability, score: 138, usedFallback: false };
+    }
+  }
+
   const hasScheduleManagementGovernanceRoadmapSpecificSignal =
     /(fahrplanmanagement|netzfahrplan governance|fnav roadmap|kapazitaetsbewirtschaftung|engpasssteuerung|speicher fahrplan|edm integration|redispatch abgrenzung|governance roadmap|zielbild fahrplan)/i.test(haystack) &&
     /(targetState|capabilityMaturity|dataObjects|systemIntegrations|roleOwnership|redispatchBoundary|fnavReadiness|capacityManagementGaps|roadmapItems|decisionMeetings|owner|nextAction|gaps|follow.?up|readiness|ziel-zustand|reifegrad|datenobjekt|systemintegration|verantwortlichkeit|gremien|melo-153)/i.test(haystack) &&

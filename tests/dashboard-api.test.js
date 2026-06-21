@@ -3972,6 +3972,76 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── gasTransformationDependencyMapStatus ─────────────────────────────
+
+  describe('gasTransformationDependencyMapStatus', () => {
+    it('reports gas transformation dependency map gaps without creating stateful databases or mutation side effects', async () => {
+      const result = await broker.call('dashboard-api.gasTransformationDependencyMapStatus', {
+        projectId: 'project-155',
+      });
+
+      expect(result.status).toBe('needs_division');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'division',
+          'nodes',
+          'dependencies',
+          'data_quality_gaps',
+          'investment_paths',
+          'decommission_repurpose_paths',
+          'customer_groups',
+          'owner',
+          'next_action',
+          'source_refs',
+        ])
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'hitl.create',
+          'znp.addAssumption',
+          'assets.mutate',
+          'datapoint.mutate',
+          'finance-agent.mutate',
+          'investment-planning.createPlan',
+          'vdmi.mutate',
+          'personal-agent.execute',
+          'external.connector.call',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_transformation_decision when dependency map evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.gasTransformationDependencyMapStatus', {
+        projectId: 'project-155',
+        division: 'Gas',
+        nodes: 'h2_ready, heat_network',
+        dependencies: 'depends_on_evidence',
+        dataQualityGaps: 'missing_geothermal_potential',
+        investmentPaths: 'H2_repurposing_plan',
+        decommissionRepurposePaths: 'repurposing_east_sector',
+        customerGroups: 'industrial_remaining_groups',
+        owner: 'Assetmanagement Gas',
+        nextAction: 'define_transformation_options',
+        sourceRef: 'GasTransformation_2045,H2_Readiness_Doc',
+      });
+
+      expect(result.status).toBe('ready_for_transformation_decision');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.complianceEvidence.division).toBe('Gas');
+      expect(result.complianceContext.projectId).toBe('project-155');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['GasTransformation_2045', 'H2_Readiness_Doc']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_transformation_decision',
+          'Provided Gasnetztransformation dependency map evidence: 10/10',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(
