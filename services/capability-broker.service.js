@@ -334,10 +334,22 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasInvestmentWaterfallGovernanceSpecificSignal =
+    /(investmittel[- ]wasserfall|wasserfall[- ]gremien|investment[- ]waterfall|gremienlogik|gremienkalender|mittelbindung|investitionssteuerung|budget[- ]engpass|entscheidungsfenster|nachweisreife|strategy[- ]to[- ]execution)/i.test(haystack) &&
+    /(investmentItemId|budgetAmount|bottleneckRef|targetProcess|committeeWindow|evidenceReadiness|owner|nextAction|mandateStatus|riskIfDelayed|gaps|follow.?up|readiness)/i.test(haystack) &&
+    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|pmo-budget\.create|pmo-budget\.allocate|pmo-budget\.mutate|hitl\.create|vdmi\.mutate|investment-planning\.createPlan|finance-agent\.mutate|budget\.release|settlement\.prepareBilling|external\.connector\.call|personal-agent\.execute)/i.test(haystack);
+
+  if (hasInvestmentWaterfallGovernanceSpecificSignal) {
+    const investmentWaterfallCapability = findCapabilityByName('investment_waterfall_governance');
+    if (investmentWaterfallCapability) {
+      return { capability: investmentWaterfallCapability, score: 138, usedFallback: false };
+    }
+  }
+
   const hasInvestmentCommitteeSteeringCardsSpecificSignal =
     /(investmittel|investitionskarte|investment item|capex|committee|gremien)/i.test(haystack) &&
     /(gremiensteuerung|gremienkarte|steering card|committee card|committee window|gremienfenster|pruefstatus|prüfstatus|review status|evidenzstatus|blocked follow.?up|blockierte folgeaktion)/i.test(haystack) &&
-    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch)/i.test(haystack);
+    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|wasserfall|waterfall|gremienlogik|mittelbindung|investitionssteuerung|strategy.?to.?execution)/i.test(haystack);
 
   if (hasInvestmentCommitteeSteeringCardsSpecificSignal) {
     const investmentCardsCapability = findCapabilityByName('investment_committee_steering_cards');

@@ -2590,5 +2590,89 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 165
+  },
+  {
+    "id": "investment-waterfall-governance-status",
+    "description": "Read-only Investmittel Wasserfall Gremienlogik evidence for dossier hydration",
+    "routeLabel": "investment_waterfall_governance",
+    "capability": "investment_waterfall_governance",
+    "action": "dashboard-api.investmentWaterfallGovernanceStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "pmo-budget.create",
+        "pmo-budget.allocate",
+        "pmo-budget.mutate",
+        "hitl.create",
+        "vdmi.mutate",
+        "investment-planning.createPlan",
+        "finance-agent.mutate",
+        "budget.release",
+        "settlement.prepareBilling",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "investmittel wasserfall",
+      "investmittel-wasserfall",
+      "gremienlogik",
+      "gremienkalender",
+      "mittelbindung",
+      "investitionssteuerung",
+      "budget engpass",
+      "budget-engpass",
+      "entscheidungsfenster",
+      "nachweisreife",
+      "strategy to execution",
+      "strategy-to-execution"
+    ],
+    "paramTemplate": {
+      "investmentItemId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:investmentItemId[:= ]+|investment_item_id[:= ]+|item_id[:= ]+|item[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "targetProcess": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:targetProcess[:= ]+|target_process[:= ]+|process[:= ]+|prozess[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Waterfall Governance", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.investmentItemId", "governanceContext.investmentItemId"], "label": "Investment Item ID", "maxLen": 120 },
+        { "paths": ["requestContext.targetProcess", "governanceContext.targetProcess"], "label": "Target Process", "maxLen": 120 },
+        { "paths": ["governanceEvidence.budgetAmount", "dossierEvidence.governanceEvidence.budgetAmount"], "label": "Budget Amount", "maxLen": 120 },
+        { "paths": ["governanceEvidence.bottleneckRef", "dossierEvidence.governanceEvidence.bottleneckRef"], "label": "Bottleneck Reference", "maxLen": 120 },
+        { "paths": ["governanceEvidence.committeeWindow", "dossierEvidence.governanceEvidence.committeeWindow"], "label": "Committee Window", "maxLen": 120 },
+        { "paths": ["governanceEvidence.evidenceReadiness", "dossierEvidence.governanceEvidence.evidenceReadiness"], "label": "Evidence Readiness", "maxLen": 120 },
+        { "paths": ["governanceEvidence.owner", "dossierEvidence.governanceEvidence.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["governanceEvidence.nextAction", "dossierEvidence.governanceEvidence.nextAction"], "label": "Next Action", "maxLen": 120 },
+        { "paths": ["governanceEvidence.mandateStatus", "dossierEvidence.governanceEvidence.mandateStatus"], "label": "Mandate Status", "maxLen": 120 },
+        { "paths": ["governanceEvidence.riskIfDelayed", "dossierEvidence.governanceEvidence.riskIfDelayed"], "label": "Risk If Delayed", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 163
   }
 ]

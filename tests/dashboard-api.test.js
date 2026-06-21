@@ -3657,6 +3657,79 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── investmentWaterfallGovernanceStatus ───────────────────
+
+  describe('investmentWaterfallGovernanceStatus', () => {
+    it('reports investment waterfall governance gaps without creating PMO or budget side effects', async () => {
+      const result = await broker.call('dashboard-api.investmentWaterfallGovernanceStatus', {
+        investmentItemId: 'item-163',
+        targetProcess: 'Netzplanung-v1',
+      });
+
+      expect(result.status).toBe('needs_budget_amount');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'budget_amount',
+          'bottleneck_ref',
+          'committee_window',
+          'evidence_readiness',
+          'owner',
+          'next_action',
+          'mandate_status',
+          'risk_if_delayed',
+          'source_refs',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('investment_waterfall_governance');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'pmo-budget.create',
+          'pmo-budget.allocate',
+          'pmo-budget.mutate',
+          'hitl.create',
+          'vdmi.mutate',
+          'investment-planning.createPlan',
+          'finance-agent.mutate',
+          'budget.release',
+          'settlement.prepareBilling',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_committee_decision when investment waterfall evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.investmentWaterfallGovernanceStatus', {
+        investmentItemId: 'item-163',
+        targetProcess: 'Netzplanung-v1',
+        budgetAmount: '500000_eur',
+        bottleneckRef: 'hs-trafo-bottleneck',
+        committeeWindow: 'q3-2026',
+        evidenceReadiness: 'all-clearance-provided',
+        owner: 'Netzbetrieb/ZNP-Sparte',
+        nextAction: 'final-budget-approval',
+        mandateStatus: 'authorized',
+        riskIfDelayed: 'high-overload-probability',
+        sourceRef: 'vdmi:163,cya:163',
+      });
+
+      expect(result.status).toBe('ready_for_committee_decision');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.governanceEvidence.budgetAmount).toBe('500000_eur');
+      expect(result.governanceContext.targetProcess).toBe('Netzplanung-v1');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['vdmi:163', 'cya:163']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_committee_decision',
+          'Provided investment waterfall governance evidence: 9/9',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

@@ -2187,6 +2187,74 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  investment_waterfall_governance: {
+    sources: [
+      {
+        id: 'budget_amount',
+        label: 'Mittelbindung / Investitionsbudget',
+        resolvedBy: ['dashboard-api.investmentWaterfallGovernanceStatus', 'personal-agent.chat', 'vdmi.dossier'],
+        contextKeys: ['budgetAmount'],
+        optional: false,
+      },
+      {
+        id: 'bottleneck_ref',
+        label: 'Netzengpass / Netznutzungsbezug',
+        resolvedBy: ['dashboard-api.investmentWaterfallGovernanceStatus', 'datapoint.oemetadata', 'vdmi.dossier'],
+        contextKeys: ['bottleneckRef'],
+        optional: false,
+      },
+      {
+        id: 'committee_window',
+        label: 'Gremienfenster / Kalender-Slot',
+        resolvedBy: ['dashboard-api.investmentWaterfallGovernanceStatus', 'personal-agent.chat', 'vdmi.dossier'],
+        contextKeys: ['committeeWindow'],
+        optional: false,
+      },
+      {
+        id: 'evidence_readiness',
+        label: 'Nachweisreife / Evidenzpunkte',
+        resolvedBy: ['dashboard-api.investmentWaterfallGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['evidenceReadiness'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Strategische Zustaendigkeit',
+        resolvedBy: ['dashboard-api.investmentWaterfallGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'next_action',
+        label: 'Naechste Steuerungsmassnahme',
+        resolvedBy: ['dashboard-api.investmentWaterfallGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['nextAction'],
+        optional: false,
+      },
+      {
+        id: 'mandate_status',
+        label: 'Mandatsstatus',
+        resolvedBy: ['dashboard-api.investmentWaterfallGovernanceStatus', 'cya.generate', 'vdmi.dossier'],
+        contextKeys: ['mandateStatus'],
+        optional: false,
+      },
+      {
+        id: 'risk_if_delayed',
+        label: 'Operatives Verzugsrisiko',
+        resolvedBy: ['dashboard-api.investmentWaterfallGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['riskIfDelayed'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.investmentWaterfallGovernanceStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   metering_rollout_process_indicator: {
     sources: [
       {

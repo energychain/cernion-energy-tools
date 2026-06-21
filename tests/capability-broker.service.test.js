@@ -1233,6 +1233,28 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes to investment_waterfall_governance when investment waterfall is requested', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte Investmittel Wasserfall fuer item-163 und targetProcess Netzplanung-v1 pruefen: Budget Amount 500000_eur, Bottleneck Reference hs-trafo-bottleneck, Committee Window q3-2026, Evidence Readiness all-clearance-provided, Owner Netzbetrieb/ZNP-Sparte, Next Action final-budget-approval, Mandate Status authorized, Risk If Delayed high-overload-probability.',
+    });
+
+    expect(result.capability).toBe('investment_waterfall_governance');
+    expect(result.recommendedCapabilities[0].capability).toBe('investment_waterfall_governance');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.investmentWaterfallGovernanceStatus');
+    expect(actionNames).not.toContain('pmo-budget.create');
+    expect(actionNames).not.toContain('pmo-budget.allocate');
+    expect(actionNames).not.toContain('pmo-budget.mutate');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('vdmi.mutate');
+    expect(actionNames).not.toContain('investment-planning.createPlan');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('budget.release');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

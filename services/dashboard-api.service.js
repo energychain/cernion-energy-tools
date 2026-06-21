@@ -72,6 +72,7 @@ module.exports = {
       meteringRolloutProcessIndicatorStatus: 5 * 60 * 1000, // 5 min
       heatTransformationLineAssetModelStatus: 5 * 60 * 1000, // 5 min
       kiFloorwalkerGovernanceStatus: 5 * 60 * 1000, // 5 min
+      investmentWaterfallGovernanceStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3262,6 +3263,57 @@ module.exports = {
           this.settings.cacheTtlMs.kiFloorwalkerGovernanceStatus,
           async () => ({
             ...this.buildKiFloorwalkerGovernanceStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── investmentWaterfallGovernanceStatus ───────────────────
+    /**
+     * GET /api/dashboard/investment-waterfall-governance
+     *
+     * Read-only dossier-safe investment waterfall governance. It
+     * builds deterministic governance evidence from supplied status facts
+     * without creating a new PMO database, or triggering automatic mutations.
+     */
+    investmentWaterfallGovernanceStatus: {
+      rest: 'GET /investment-waterfall-governance',
+      params: {
+        investmentItemId: { type: 'string', optional: true, min: 1 },
+        targetProcess: { type: 'string', optional: true, min: 1 },
+        budgetAmount: { type: 'string', optional: true, min: 1 },
+        bottleneckRef: { type: 'string', optional: true, min: 1 },
+        committeeWindow: { type: 'string', optional: true, min: 1 },
+        evidenceReadiness: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        nextAction: { type: 'string', optional: true, min: 1 },
+        mandateStatus: { type: 'string', optional: true, min: 1 },
+        riskIfDelayed: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Investment waterfall governance — read-only dossier-safe status',
+        description:
+          'Builds deterministic investment waterfall governance evidence from supplied facts. ' +
+          'The endpoint is read-only and does not run budget writes or write to HITL/VDMI.',
+        responses: {
+          200: {
+            description: 'Read-only investment waterfall governance status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `investment-waterfall-governance:${params.investmentItemId || 'no-id'}:${params.targetProcess || 'no-process'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.investmentWaterfallGovernanceStatus,
+          async () => ({
+            ...this.buildInvestmentWaterfallGovernanceStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -10889,6 +10941,213 @@ module.exports = {
           inspected: ['dashboard-api.kiFloorwalkerGovernanceStatus'],
           referenced: ['personal-agent.chat', 'cya.generate', 'vdmi.dossier', 'datapoint.oemetadata', 'evidence-registry.lookup', 'presentation.generate'],
           notCalled: ['openai.call', 'hitl.create', 'vdmi.mutate', 'personal-agent.execute'],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          governanceContext,
+          governanceEvidence,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildInvestmentWaterfallGovernanceStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const sourceRefs = toList(params.sourceRef);
+
+      const evidenceSpecs = [
+        {
+          id: 'budget_amount',
+          label: 'Strategic budget allocation',
+          value: params.budgetAmount,
+          sourceClass: 'budget_allocation',
+          enablesDossierAddition: 'add the strategic budget allocation and multi-year investment volume',
+        },
+        {
+          id: 'bottleneck_ref',
+          label: 'Bottleneck relation',
+          value: params.bottleneckRef,
+          sourceClass: 'bottleneck_relation',
+          enablesDossierAddition: 'add the related grid bottleneck reference or infrastructure risk',
+        },
+        {
+          id: 'committee_window',
+          label: 'Committee calendar window',
+          value: params.committeeWindow,
+          sourceClass: 'committee_calendar_slot',
+          enablesDossierAddition: 'add the target committee window or decision calendar slot',
+        },
+        {
+          id: 'evidence_readiness',
+          label: 'Evidence readiness',
+          value: params.evidenceReadiness,
+          sourceClass: 'committee_readiness',
+          enablesDossierAddition: 'add the required evidentiary documents or milestone clearances',
+        },
+        {
+          id: 'owner',
+          label: 'Accountable owner',
+          value: params.owner,
+          sourceClass: 'strategic_responsibility',
+          enablesDossierAddition: 'add the accountable owner or executive sponsor',
+        },
+        {
+          id: 'next_action',
+          label: 'Next action',
+          value: params.nextAction,
+          sourceClass: 'next_operational_step',
+          enablesDossierAddition: 'add the planned next operational step or follow-up task',
+        },
+        {
+          id: 'mandate_status',
+          label: 'Mandate status',
+          value: params.mandateStatus,
+          sourceClass: 'management_mandate',
+          enablesDossierAddition: 'add the required management mandate or corporate authorization',
+        },
+        {
+          id: 'risk_if_delayed',
+          label: 'Risk if delayed',
+          value: params.riskIfDelayed,
+          sourceClass: 'delay_risk_analysis',
+          enablesDossierAddition: 'add the strategic or regulatory risk if the decision is delayed',
+        },
+        {
+          id: 'source_refs',
+          label: 'Source references',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add the citable source references or grounding evidence',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue ?? spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        !params.investmentItemId
+          ? 'needs_investment_item_id'
+          : !params.budgetAmount
+            ? 'needs_budget_amount'
+            : !params.bottleneckRef
+              ? 'needs_bottleneck_ref'
+              : !params.committeeWindow
+                ? 'needs_committee_window'
+                : !params.evidenceReadiness
+                  ? 'needs_evidence_readiness'
+                  : !params.owner
+                    ? 'needs_owner'
+                    : !params.nextAction
+                      ? 'needs_next_action'
+                      : !params.mandateStatus
+                        ? 'needs_mandate_status'
+                        : !params.riskIfDelayed
+                          ? 'needs_risk_if_delayed'
+                          : sourceRefs.length === 0
+                            ? 'needs_source_refs'
+                            : 'ready_for_committee_decision';
+
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'investment_waterfall_governance',
+      }));
+
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `IWG_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['budget_amount', 'committee_window', 'owner', 'mandate_status'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+
+      const governanceContext = {
+        investmentItemId: params.investmentItemId || null,
+        targetProcess: params.targetProcess || null,
+      };
+
+      const governanceEvidence = {
+        budgetAmount: params.budgetAmount || null,
+        bottleneckRef: params.bottleneckRef || null,
+        committeeWindow: params.committeeWindow || null,
+        evidenceReadiness: params.evidenceReadiness || null,
+        owner: params.owner || null,
+        nextAction: params.nextAction || null,
+        mandateStatus: params.mandateStatus || null,
+        riskIfDelayed: params.riskIfDelayed || null,
+      };
+
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided investment waterfall governance evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.investmentItemId) dossierFacts.push(`Investment Item ID: ${params.investmentItemId}`);
+      if (params.targetProcess) dossierFacts.push(`Target Process: ${params.targetProcess}`);
+
+      return {
+        investmentWaterfallGovernanceStatusId: `iwg:${Buffer.from(`${params.investmentItemId || ''}:${params.targetProcess || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'investment_waterfall_governance',
+        safety: 'read_only',
+        requestContext: governanceContext,
+        status,
+        readinessScore,
+        governanceContext,
+        governanceEvidence,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+        },
+        sourceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.investmentWaterfallGovernanceStatus'],
+          referenced: ['personal-agent.chat', 'cya.generate', 'vdmi.dossier', 'datapoint.oemetadata', 'evidence-registry.lookup', 'presentation.generate'],
+          notCalled: [
+            'pmo-budget.create',
+            'pmo-budget.allocate',
+            'pmo-budget.mutate',
+            'hitl.create',
+            'vdmi.mutate',
+            'investment-planning.createPlan',
+            'finance-agent.mutate',
+            'budget.release',
+            'settlement.prepareBilling',
+            'external.connector.call',
+            'personal-agent.execute'
+          ],
         },
         validationFindings: blockingFindings,
         dossierEvidence: {

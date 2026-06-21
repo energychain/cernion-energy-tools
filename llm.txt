@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: b12112af69202fabdfa12c1bfcd8952fcc9eaae99b86d1ff02f267ffa637c34e
+  - openapi-export.json: 60c99c2a6bc5b0fa38b546d4047ee00846d082dab9f6a1040f5cc40f82c5cb8c
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 762
-- operation_count: 867
+- path_count: 764
+- operation_count: 869
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -695,7 +695,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 72 operations
+- Dashboard API: 74 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -987,6 +987,7 @@ process:
 - GET /api/dashboard-api/investment-data-review-queue | tags: [Dashboard API] | operationId: dashboard-api_investmentDataReviewQueueStatus | summary: Investment data review queue — read-only dossier-safe status
 - GET /api/dashboard-api/investment-risk-translation | tags: [Dashboard API] | operationId: dashboard-api_investmentRiskTranslationStatus | summary: Investment Risk Translation — read-only dossier-safe status
 - GET /api/dashboard-api/investment-two-track-control | tags: [Dashboard API] | operationId: dashboard-api_investmentTwoTrackControlStatus | summary: Investment two-track control — read-only dossier-safe status
+- GET /api/dashboard-api/investment-waterfall-governance | tags: [Dashboard API] | operationId: dashboard-api_investmentWaterfallGovernanceStatus | summary: Investment waterfall governance — read-only dossier-safe status
 - GET /api/dashboard-api/jour-fixe-decision-closure | tags: [Dashboard API] | operationId: dashboard-api_jourFixeDecisionClosureStatus | summary: Jour-Fixe Decision Closure — read-only dossier-safe status
 - GET /api/dashboard-api/ki-floorwalker-governance | tags: [Dashboard API] | operationId: dashboard-api_kiFloorwalkerGovernanceStatus | summary: KI Floorwalker governance — read-only dossier-safe status
 - GET /api/dashboard-api/legacy-control-technology-transition | tags: [Dashboard API] | operationId: dashboard-api_legacyControlTechnologyTransitionStatus | summary: Legacy control technology transition — read-only dossier-safe gate
@@ -1023,6 +1024,7 @@ process:
 - GET /api/dashboard/investment-data-review-queue | tags: [Dashboard API] | operationId: dashboard-api_investmentDataReviewQueueStatus | summary: Investment data review queue — read-only dossier-safe status
 - GET /api/dashboard/investment-risk-translation | tags: [Dashboard API] | operationId: dashboard-api_investmentRiskTranslationStatus | summary: Investment Risk Translation — read-only dossier-safe status
 - GET /api/dashboard/investment-two-track-control | tags: [Dashboard API] | operationId: dashboard-api_investmentTwoTrackControlStatus | summary: Investment two-track control — read-only dossier-safe status
+- GET /api/dashboard/investment-waterfall-governance | tags: [Dashboard API] | operationId: dashboard-api_investmentWaterfallGovernanceStatus | summary: Investment waterfall governance — read-only dossier-safe status
 - GET /api/dashboard/jour-fixe-decision-closure | tags: [Dashboard API] | operationId: dashboard-api_jourFixeDecisionClosureStatus | summary: Jour-Fixe Decision Closure — read-only dossier-safe status
 - GET /api/dashboard/ki-floorwalker-governance | tags: [Dashboard API] | operationId: dashboard-api_kiFloorwalkerGovernanceStatus | summary: KI Floorwalker governance — read-only dossier-safe status
 - GET /api/dashboard/legacy-control-technology-transition | tags: [Dashboard API] | operationId: dashboard-api_legacyControlTechnologyTransitionStatus | summary: Legacy control technology transition — read-only dossier-safe gate
@@ -17092,6 +17094,21 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/investment-waterfall-governance": {
+      "get": {
+        "description": "Builds deterministic investment waterfall governance evidence from supplied facts. The endpoint is read-only and does not run budget writes or write to HITL/VDMI.",
+        "operationId": "dashboard-api_investmentWaterfallGovernanceStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only investment waterfall governance status"
+          }
+        },
+        "summary": "Investment waterfall governance — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/jour-fixe-decision-closure": {
       "get": {
         "description": "Builds a deterministic evidence view for Jour-fixe topic closure. The endpoint is read-only and does not create meeting, VDMI, NOVA, HITL, external connector or Personal-Agent side effects.",
@@ -20968,6 +20985,21 @@ process:
           }
         },
         "summary": "Investment two-track control — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
+    "/api/dashboard/investment-waterfall-governance": {
+      "get": {
+        "description": "Builds deterministic investment waterfall governance evidence from supplied facts. The endpoint is read-only and does not run budget writes or write to HITL/VDMI.",
+        "operationId": "dashboard-api_investmentWaterfallGovernanceStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only investment waterfall governance status"
+          }
+        },
+        "summary": "Investment waterfall governance — read-only dossier-safe status",
         "tags": [
           "Dashboard API"
         ]
@@ -60014,4 +60046,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: dccf0db15a8b5337566906f47f8b3773cf08c0609a5fa67b26f07e18e5a35a3d
+- llm_txt_sha256: 726304e8a979fd53f53448890299cbf56533f8efd2d6691c5a207c6c272f37db

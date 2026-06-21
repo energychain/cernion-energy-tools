@@ -1459,6 +1459,8 @@ module.exports = {
             'dashboard-api.heatTransformationLineAssetModelStatus',
           'GET /dashboard/ki-floorwalker-governance':
             'dashboard-api.kiFloorwalkerGovernanceStatus',
+          'GET /dashboard/investment-waterfall-governance':
+            'dashboard-api.investmentWaterfallGovernanceStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',
