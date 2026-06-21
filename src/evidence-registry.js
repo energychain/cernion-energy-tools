@@ -2119,6 +2119,88 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  heat_asset_tariff_steering: {
+    sources: [
+      {
+        id: 'division',
+        label: 'Sparte',
+        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'vdmi.dossier'],
+        contextKeys: ['division'],
+        optional: false,
+      },
+      {
+        id: 'technical_measures',
+        label: 'Technische Massnahmen',
+        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'assets.effective', 'vdmi.dossier'],
+        contextKeys: ['technicalMeasures'],
+        optional: false,
+      },
+      {
+        id: 'tariff_impact_status',
+        label: 'Tarifwirkung',
+        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'business-intelligence.dynamicTariffCalculator', 'vdmi.dossier'],
+        contextKeys: ['tariffImpactStatus'],
+        optional: false,
+      },
+      {
+        id: 'regulatory_uncertainty',
+        label: 'Regulatorische Unsicherheit',
+        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'finance-agent.analyze', 'eog-calculator.scenario'],
+        contextKeys: ['regulatoryUncertainty'],
+        optional: false,
+      },
+      {
+        id: 'funding_status',
+        label: 'Foerderstatus',
+        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'finance-agent.analyze', 'vdmi.dossier'],
+        contextKeys: ['fundingStatus'],
+        optional: false,
+      },
+      {
+        id: 'customer_impact',
+        label: 'Kundenauswirkung',
+        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'business-intelligence.dynamicTariffCalculator', 'vdmi.dossier'],
+        contextKeys: ['customerImpact'],
+        optional: false,
+      },
+      {
+        id: 'investment_priority',
+        label: 'Investment Priority',
+        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'finance-agent.analyze', 'investment-planning.createPlan'],
+        contextKeys: ['investmentPriority'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Accountable Owner',
+        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'next_decision_gate',
+        label: 'Next Decision Gate',
+        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'vdmi.dossier'],
+        contextKeys: ['nextDecisionGate'],
+        optional: false,
+      },
+      {
+        id: 'blocked_follow_up_action',
+        label: 'Blocked Follow-Up Action',
+        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'investment-planning.createPlan', 'vdmi.dossier'],
+        contextKeys: ['blockedFollowUpAction'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   ki_floorwalker_governance: {
     sources: [
       {

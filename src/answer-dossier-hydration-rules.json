@@ -3031,5 +3031,73 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 144
+  },
+  {
+    "id": "heat-asset-tariff-steering-status",
+    "description": "Read-only Fernwaerme Asset Tarif Steuerung status evidence for dossier hydration",
+    "routeLabel": "heat_asset_tariff_steering",
+    "capability": "heat_asset_tariff_steering",
+    "action": "dashboard-api.heatAssetTariffSteeringStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "hitl.create",
+        "vdmi.mutate",
+        "investment-planning.createPlan",
+        "finance-agent.mutate",
+        "budget.release",
+        "settlement.prepareBilling",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "fernwaerme",
+      "fernwärme",
+      "wärmenetz",
+      "waermenetz",
+      "pflichttarif",
+      "tarifwirkung",
+      "post-2030",
+      "anerkennungsrisiko"
+    ],
+    "paramTemplate": {
+      "heatPortfolioId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:heatPortfolioId[:= ]+|portfolio_id[:= ]+|portfolio[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Gate Status", "maxLen": 90 },
+        { "paths": ["gateStatus", "dossierEvidence.gateStatus"], "label": "Transformation Stage", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["complianceEvidence.division", "dossierEvidence.complianceEvidence.division"], "label": "Sparte", "maxLen": 120 },
+        { "paths": ["complianceEvidence.technicalMeasures", "dossierEvidence.complianceEvidence.technicalMeasures"], "label": "Technische Massnahmen", "maxLen": 120 },
+        { "paths": ["complianceEvidence.tariffImpactStatus", "dossierEvidence.complianceEvidence.tariffImpactStatus"], "label": "Tarifwirkung", "maxLen": 120 },
+        { "paths": ["complianceEvidence.regulatoryUncertainty", "dossierEvidence.complianceEvidence.regulatoryUncertainty"], "label": "Regulatorische Unsicherheit", "maxLen": 120 },
+        { "paths": ["complianceEvidence.fundingStatus", "dossierEvidence.complianceEvidence.fundingStatus"], "label": "Foerderstatus", "maxLen": 120 },
+        { "paths": ["complianceEvidence.customerImpact", "dossierEvidence.complianceEvidence.customerImpact"], "label": "Kundenauswirkung", "maxLen": 120 },
+        { "paths": ["complianceEvidence.owner", "dossierEvidence.complianceEvidence.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["complianceEvidence.nextDecisionGate", "dossierEvidence.complianceEvidence.nextDecisionGate"], "label": "Next Decision Gate", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 146
   }
 ]

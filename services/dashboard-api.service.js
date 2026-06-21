@@ -78,6 +78,7 @@ module.exports = {
       scheduleManagementGovernanceRoadmapStatus: 5 * 60 * 1000, // 5 min
       gasTransformationDependencyMapStatus: 5 * 60 * 1000, // 5 min
       gridConnectionTransformationGateStatus: 5 * 60 * 1000, // 5 min
+      heatAssetTariffSteeringStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3586,6 +3587,58 @@ module.exports = {
           this.settings.cacheTtlMs.gridConnectionTransformationGateStatus,
           async () => ({
             ...this.buildGridConnectionTransformationGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── heatAssetTariffSteeringStatus ─────────────────────────────────────────
+    /**
+     * GET /api/dashboard/heat-asset-tariff-steering
+     *
+     * Read-only dossier-safe Fernwaerme Asset Tarif Steuerung.
+     * It builds a deterministic gate status and evidence projection from supplied facts
+     * without creating a new district heating or pricing platform.
+     */
+    heatAssetTariffSteeringStatus: {
+      rest: 'GET /heat-asset-tariff-steering',
+      params: {
+        heatPortfolioId: { type: 'string', optional: true, min: 1 },
+        division: { type: 'string', optional: true, min: 1 },
+        technicalMeasures: { type: 'string', optional: true, min: 1 },
+        tariffImpactStatus: { type: 'string', optional: true, min: 1 },
+        regulatoryUncertainty: { type: 'string', optional: true, min: 1 },
+        fundingStatus: { type: 'string', optional: true, min: 1 },
+        customerImpact: { type: 'string', optional: true, min: 1 },
+        investmentPriority: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        nextDecisionGate: { type: 'string', optional: true, min: 1 },
+        blockedFollowUpAction: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'District Heating Asset & Tariff Steering Gate — read-only dossier-safe status',
+        description:
+          'Builds deterministic gate status and evidence from supplied facts. ' +
+          'The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI.',
+        responses: {
+          200: {
+            description: 'Read-only district heating asset and tariff status evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `heat-asset-tariff-steering:${params.heatPortfolioId || 'no-portfolio'}:${params.division || 'no-division'}:${params.owner || 'no-owner'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.heatAssetTariffSteeringStatus,
+          async () => ({
+            ...this.buildHeatAssetTariffSteeringStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -12646,6 +12699,258 @@ module.exports = {
             'vdmi.mutate',
             'personal-agent.execute',
             'external.connector.call'
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          gateStatus,
+          readinessScore,
+          complianceScore,
+          complianceContext,
+          complianceEvidence,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildHeatAssetTariffSteeringStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+
+      const sourceRefs = toList(params.sourceRef);
+
+      const evidenceSpecs = [
+        {
+          id: 'division',
+          label: 'Sparte',
+          value: params.division,
+          sourceClass: 'division_specification',
+          enablesDossierAddition: 'define the division or sector context (e.g. Gas, Electricity, Heat)',
+        },
+        {
+          id: 'technical_measures',
+          label: 'Technische Massnahmen',
+          value: params.technicalMeasures,
+          sourceClass: 'technical_measures_evaluation',
+          enablesDossierAddition: 'verify technical measures status for district heating (e.g. planned, in_progress, completed)',
+        },
+        {
+          id: 'tariff_impact_status',
+          label: 'Tarifwirkung',
+          value: params.tariffImpactStatus,
+          sourceClass: 'tariff_impact_evaluation',
+          enablesDossierAddition: 'verify tariff and pricing impact status (e.g. calculated, pending, high_risk)',
+        },
+        {
+          id: 'regulatory_uncertainty',
+          label: 'Regulatorische Unsicherheit',
+          value: params.regulatoryUncertainty,
+          sourceClass: 'regulatory_uncertainty_evaluation',
+          enablesDossierAddition: 'verify Totex/regulatory or recognition risk status (e.g. low_risk, transient, high_risk)',
+        },
+        {
+          id: 'funding_status',
+          label: 'Foerderstatus',
+          value: params.fundingStatus,
+          sourceClass: 'funding_evaluation',
+          enablesDossierAddition: 'verify subsidies and funding status (e.g. requested, approved, none)',
+        },
+        {
+          id: 'customer_impact',
+          label: 'Kundenauswirkung',
+          value: params.customerImpact,
+          sourceClass: 'customer_impact_evaluation',
+          enablesDossierAddition: 'verify customer connection obligation and cost impact (e.g. positive, neutral, negative)',
+        },
+        {
+          id: 'investment_priority',
+          label: 'Investment Priority',
+          value: params.investmentPriority,
+          sourceClass: 'investment_priority_evaluation',
+          enablesDossierAddition: 'verify investment priority and readiness score (e.g. high, medium, low)',
+        },
+        {
+          id: 'owner',
+          label: 'Owner',
+          value: params.owner,
+          sourceClass: 'responsibility_assignment',
+          enablesDossierAddition: 'assign an accountable owner role or process sponsor (e.g. Assetmanagement Fernwärme)',
+        },
+        {
+          id: 'next_decision_gate',
+          label: 'Next Decision Gate',
+          value: params.nextDecisionGate,
+          sourceClass: 'next_decision_action',
+          enablesDossierAddition: 'define immediate next decision gate (e.g. Investment Committee Window Q3)',
+        },
+        {
+          id: 'blocked_follow_up_action',
+          label: 'Blocked Follow-Up Action',
+          value: params.blockedFollowUpAction,
+          sourceClass: 'blocked_follow_up_action',
+          enablesDossierAddition: 'identify any blocked follow-up action (e.g. investment-planning.createPlan)',
+        },
+        {
+          id: 'source_refs',
+          label: 'Quellenreferenzen',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add regulatory sources or documentation reference credentials',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value !== undefined && spec.value !== null && spec.value !== false)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue ?? spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => spec.value === undefined || spec.value === null || spec.value === false)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        !params.division
+          ? 'needs_division'
+          : !params.technicalMeasures
+            ? 'needs_technical_measures'
+            : !params.tariffImpactStatus
+              ? 'needs_tariff_impact_status'
+              : !params.regulatoryUncertainty
+                ? 'needs_regulatory_uncertainty'
+                : !params.fundingStatus
+                  ? 'needs_funding_status'
+                  : !params.customerImpact
+                    ? 'needs_customer_impact'
+                    : !params.investmentPriority
+                      ? 'needs_investment_priority'
+                      : !params.owner
+                        ? 'needs_owner'
+                        : !params.nextDecisionGate
+                          ? 'needs_next_decision_gate'
+                          : !params.blockedFollowUpAction
+                            ? 'needs_blocked_follow_up_action'
+                            : sourceRefs.length === 0
+                              ? 'needs_source_refs'
+                              : 'ready_for_steering_decision';
+
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const complianceScore = readinessScore;
+
+      let gateStatus = 'needs_evidence';
+      if (status === 'ready_for_steering_decision') {
+        const priority = String(params.investmentPriority).toLowerCase();
+        if (priority.includes('high') || priority.includes('hoch')) {
+          gateStatus = 'invest';
+        } else if (priority.includes('low') || priority.includes('niedrig')) {
+          gateStatus = 'monitor';
+        } else {
+          gateStatus = 'needs_governance';
+        }
+      } else {
+        gateStatus = 'needs_evidence';
+      }
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'heat_asset_tariff_steering',
+      }));
+
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `HATS_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['division', 'technical_measures', 'owner', 'next_decision_gate'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+
+      const complianceContext = {
+        heatPortfolioId: params.heatPortfolioId || null,
+      };
+
+      const complianceEvidence = {
+        division: params.division || null,
+        technicalMeasures: params.technicalMeasures || null,
+        tariffImpactStatus: params.tariffImpactStatus || null,
+        regulatoryUncertainty: params.regulatoryUncertainty || null,
+        fundingStatus: params.fundingStatus || null,
+        customerImpact: params.customerImpact || null,
+        investmentPriority: params.investmentPriority || null,
+        owner: params.owner || null,
+        nextDecisionGate: params.nextDecisionGate || null,
+        blockedFollowUpAction: params.blockedFollowUpAction || null,
+      };
+
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Gate Status: ${gateStatus}`,
+        `Provided District Heating Asset & Tariff Steering Gate evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.heatPortfolioId) dossierFacts.push(`Heat Portfolio ID: ${params.heatPortfolioId}`);
+
+      return {
+        heatAssetTariffSteeringStatusId: `hats:${Buffer.from(`${params.heatPortfolioId || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'heat_asset_tariff_steering',
+        safety: 'read_only',
+        requestContext: complianceContext,
+        status,
+        gateStatus,
+        readinessScore,
+        complianceScore,
+        complianceContext,
+        complianceEvidence,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+        },
+        sourceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.heatAssetTariffSteeringStatus'],
+          referenced: [
+            'assets.effective',
+            'business-intelligence.dynamicTariffCalculator',
+            'finance-agent.analyze',
+            'eog-calculator.scenario',
+            'investment-planning.createPlan',
+            'vdmi.dossier',
+            'interface-placeholder.requestEvidence',
+            'hitl.create'
+          ],
+          notCalled: [
+            'hitl.create',
+            'vdmi.mutate',
+            'investment-planning.createPlan',
+            'finance-agent.mutate',
+            'budget.release',
+            'settlement.prepareBilling',
+            'external.connector.call',
+            'personal-agent.execute'
           ],
         },
         validationFindings: blockingFindings,

@@ -14323,6 +14323,21 @@
         "description": "Builds deterministic gate status and evidence from supplied facts. The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI."
       }
     },
+    "/api/dashboard-api/heat-asset-tariff-steering": {
+      "get": {
+        "operationId": "dashboard-api_heatAssetTariffSteeringStatus",
+        "summary": "District Heating Asset & Tariff Steering Gate — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only district heating asset and tariff status evidence"
+          }
+        },
+        "description": "Builds deterministic gate status and evidence from supplied facts. The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53501,6 +53516,21 @@
         "responses": {
           "200": {
             "description": "Read-only grid connection transformation status evidence"
+          }
+        },
+        "description": "Builds deterministic gate status and evidence from supplied facts. The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI."
+      }
+    },
+    "/api/dashboard/heat-asset-tariff-steering": {
+      "get": {
+        "operationId": "dashboard-api_heatAssetTariffSteeringStatus",
+        "summary": "District Heating Asset & Tariff Steering Gate — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only district heating asset and tariff status evidence"
           }
         },
         "description": "Builds deterministic gate status and evidence from supplied facts. The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI."

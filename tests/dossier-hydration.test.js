@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 50 static rules', () => {
+    it('loads all 51 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(50);
+      expect(rules.length).toBe(51);
     });
 
-    it('compiles all 50 static rules without error', () => {
+    it('compiles all 51 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(50);
+      expect(rules.length).toBe(51);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1204,6 +1204,60 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Transformation Stage: needs_evidence');
       expect(formatted).toContain('Readiness: 0.1');
       expect(formatted).toContain('Sparte: Gas');
+      expect(formatted).toContain('Leading Gap: division');
+      expect(formatted).toContain('Side-Effect Guard: hitl.create');
+    });
+
+    it('dashboard-api.heatAssetTariffSteeringStatus is dossier-safe and formats heat steering facts', () => {
+      const rule = getRule('dashboard-api.heatAssetTariffSteeringStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Fernwaerme Asset Tarif Steuerung portfolio=portfolio-146 laden'
+        )
+      ).toEqual({
+        heatPortfolioId: 'portfolio-146',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_division',
+        gateStatus: 'needs_evidence',
+        readinessScore: 0.1,
+        requestContext: {
+          heatPortfolioId: 'portfolio-146',
+        },
+        complianceContext: {
+          heatPortfolioId: 'portfolio-146',
+        },
+        complianceEvidence: {
+          division: 'Fernwärme',
+          technicalMeasures: null,
+          tariffImpactStatus: null,
+          regulatoryUncertainty: null,
+          fundingStatus: null,
+          customerImpact: null,
+          investmentPriority: null,
+          owner: null,
+          nextDecisionGate: null,
+          blockedFollowUpAction: null,
+        },
+        missingEvidence: [
+          { missingDataPoint: 'division' },
+        ],
+        sourceActions: {
+          notCalled: ['hitl.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_division'],
+        },
+      });
+
+      expect(formatted).toContain('Gate Status: needs_division');
+      expect(formatted).toContain('Transformation Stage: needs_evidence');
+      expect(formatted).toContain('Readiness: 0.1');
+      expect(formatted).toContain('Sparte: Fernwärme');
       expect(formatted).toContain('Leading Gap: division');
       expect(formatted).toContain('Side-Effect Guard: hitl.create');
     });
