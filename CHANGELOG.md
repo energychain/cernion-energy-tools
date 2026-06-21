@@ -5,6 +5,15 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.64.1] — 2026-06-21
+
+### Changed
+- **llm.txt cluster manifest** (`scripts/generate-llm-txt.js`, `src/llm-manifest-taxonomy.js`, `services/agent-manifest.service.js`): Replaced the flat ~780-operation index, full cookbook dump, and embedded OpenAPI JSON with a layered navigation manifest. A canonical 9-domain taxonomy (`redispatch`, `grid-planning`, `energy-sharing`, `grid-ops`, `inhouse-data`, `market-data`, `regulatory`, `governance`, `platform`) maps every capability, recipe, and OpenAPI operation tag through explicit, commented mapper tables — recipes are classified by tag/service signal rather than their own cross-cutting `domain` field. The manifest lists only cluster heads (capability ids, recipe ids with one-line problems, and a per-domain `resolve` call) behind a RESOLUTION PROTOCOL block; full detail is fetched in a second call. Changelog/release provenance and source-file hashes moved behind a `--- END OF AGENT-RELEVANT CONTENT ---` marker; the full OpenAPI contract is no longer duplicated into the file (points to `openapi-export.json` / `GET /api/openapi.json` instead). Reduces `llm.txt` from ~900KB to ~22KB; the agent-relevant section stays under a 3,500-token hard budget.
+- **New resolve endpoints** (`services/agent-manifest.service.js`): `GET /api/_agent/capabilities[?domain=]`, `GET /api/_agent/capabilities/:name`, and `GET /api/_agent/operations[?domain=]` resolve manifest cluster heads to full detail. The operations endpoint deduplicates `operationId`s that appear under multiple paths (trailing-slash and service-prefix aliases) into one canonical path plus an `aliases` list.
+
+### Tests
+- Added `tests/llm-manifest.test.js`: build-guard coverage for taxonomy completeness (zero unmapped capabilities/recipes/operations), deterministic output, manifest structure (one END marker, a cluster head per canonical domain, no embedded OpenAPI JSON, no leaked secrets), and the 3,500-token size budget.
+
 ## [0.64.0] — 2026-06-21
 
 ### Added

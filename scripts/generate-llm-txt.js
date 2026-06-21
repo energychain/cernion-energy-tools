@@ -5,7 +5,10 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
-const { CURATED_CAPABILITIES, INTERFACE_PLACEHOLDER_CAPABILITY } = require('../src/capability-catalog');
+const {
+  CURATED_CAPABILITIES,
+  INTERFACE_PLACEHOLDER_CAPABILITY,
+} = require('../src/capability-catalog');
 const { CANONICAL_DOMAINS, classifyAll } = require('../src/llm-manifest-taxonomy');
 
 const ROOT = path.join(__dirname, '..');
@@ -55,7 +58,9 @@ function latestReleaseHeading(changelogText) {
 }
 
 function truncateOneLine(text, maxLen) {
-  const oneLine = String(text || '').replace(/\s+/g, ' ').trim();
+  const oneLine = String(text || '')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (oneLine.length <= maxLen) return oneLine;
   const cut = oneLine.slice(0, maxLen - 1);
   const lastSpace = cut.lastIndexOf(' ');
@@ -205,7 +210,9 @@ function printDomainStats(buckets, unmapped) {
   const unmappedTotal =
     unmapped.capabilities.length + unmapped.recipes.length + unmapped.operations.length;
   if (unmappedTotal > 0) {
-    console.error('[generate-llm-txt] UNMAPPED entries found (taxonomy gap, no silent loss allowed):');
+    console.error(
+      '[generate-llm-txt] UNMAPPED entries found (taxonomy gap, no silent loss allowed):'
+    );
     if (unmapped.capabilities.length) {
       console.error('  capabilities:', unmapped.capabilities.join(', '));
     }
@@ -230,7 +237,9 @@ function buildLlmTxt() {
   const readme = readUtf8(README_PATH);
   const backendContext = readUtf8(BACKEND_CONTEXT_PATH);
   const recipesModule = require(path.join(ROOT, 'src', 'cookbook-recipes'));
-  const recipes = (recipesModule.COOKBOOK_RECIPES || []).slice().sort((a, b) => a.id.localeCompare(b.id));
+  const recipes = (recipesModule.COOKBOOK_RECIPES || [])
+    .slice()
+    .sort((a, b) => a.id.localeCompare(b.id));
   const capabilities = [...CURATED_CAPABILITIES, INTERFACE_PLACEHOLDER_CAPABILITY];
 
   const openapiRaw = JSON.parse(readUtf8(OPENAPI_PATH));

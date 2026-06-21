@@ -12,7 +12,10 @@
 const fs = require('fs');
 const path = require('path');
 const { MoleculerClientError } = require('moleculer').Errors;
-const { CURATED_CAPABILITIES, INTERFACE_PLACEHOLDER_CAPABILITY } = require('../src/capability-catalog');
+const {
+  CURATED_CAPABILITIES,
+  INTERFACE_PLACEHOLDER_CAPABILITY,
+} = require('../src/capability-catalog');
 const { mapCapabilityDomain, mapOpenApiTagsToDomain } = require('../src/llm-manifest-taxonomy');
 
 const OPENAPI_EXPORT_PATH = path.join(__dirname, '..', 'openapi-export.json');
@@ -128,7 +131,8 @@ module.exports = {
       openapi: {
         summary: 'Get a single capability-broker catalog entry',
         tags: ['Agent Manifest'],
-        description: 'Returns one capability by id including preferredActions, requiredInputs, and risksAndNotes.',
+        description:
+          'Returns one capability by id including preferredActions, requiredInputs, and risksAndNotes.',
         parameters: [
           {
             name: 'name',
@@ -170,7 +174,8 @@ module.exports = {
             in: 'query',
             required: false,
             schema: { type: 'string', example: 'redispatch' },
-            description: 'Canonical manifest domain (see llm.txt RESOLUTION PROTOCOL). Omit to list all domains.',
+            description:
+              'Canonical manifest domain (see llm.txt RESOLUTION PROTOCOL). Omit to list all domains.',
           },
         ],
       },

@@ -8,7 +8,10 @@
  * Run after: npm run generate:llm (or implicitly via buildLlmTxt() below).
  */
 
-const { CURATED_CAPABILITIES, INTERFACE_PLACEHOLDER_CAPABILITY } = require('../src/capability-catalog');
+const {
+  CURATED_CAPABILITIES,
+  INTERFACE_PLACEHOLDER_CAPABILITY,
+} = require('../src/capability-catalog');
 const { COOKBOOK_RECIPES } = require('../src/cookbook-recipes');
 const { CANONICAL_DOMAINS, classifyAll } = require('../src/llm-manifest-taxonomy');
 const { buildLlmTxt, END_OF_AGENT_RELEVANT_MARKER } = require('../scripts/generate-llm-txt');
@@ -67,7 +70,9 @@ describe('llm.txt cluster manifest', () => {
     it('renders a cluster head (capabilities/recipes/resolve) for every canonical domain', () => {
       for (const domain of CANONICAL_DOMAINS) {
         expect(built.agentRelevantBody).toContain(`### ${domain} (`);
-        expect(built.agentRelevantBody).toContain(`resolve: GET /api/_agent/operations?domain=${domain}`);
+        expect(built.agentRelevantBody).toContain(
+          `resolve: GET /api/_agent/operations?domain=${domain}`
+        );
       }
     });
 
