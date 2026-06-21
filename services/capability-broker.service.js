@@ -274,6 +274,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasHeatTransformationLineAssetModelSpecificSignal =
+    /(waermetransformation|wärmetransformation|linienasset|leitungsabschnitt|leitungsraum|fernwaermeausbau|fernwärmeausbau|stilllegungshistorie|lastflussbezug|h2.?option|gas.?waerme.?transformation|gas.?wärme.?transformation)/i.test(haystack) &&
+    /(geometry.?ref|connectedPointAssetIds|networkCalculationRef|dataQualityStatus|transformationStatus|futureOption|investmentNeed|owner|nextDecision|gaps|follow.?up|readiness)/i.test(haystack) &&
+    !/(edm timeseries|lastgang|zeitreihe|import|datasource refresh|refresh ausfuehren|refresh ausführen|billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|edm import|gas.?risiko|gas.?risk|risikoregister|risk.?register|krisenmodus|krisenroutine|crisis|controllability|governance)/i.test(haystack);
+
+  if (hasHeatTransformationLineAssetModelSpecificSignal) {
+    const heatTransformationCapability = findCapabilityByName('heat_transformation_line_asset_model');
+    if (heatTransformationCapability) {
+      return { capability: heatTransformationCapability, score: 138, usedFallback: false };
+    }
+  }
+
   const hasMeteringRolloutProcessIndicatorSpecificSignal =
     /(zaehlwechsel|zählwechsel|zaehlkennzahl|zählkennzahl|rolloutkennzahl|rollout kennzahl|metering rollout|messstellenbetrieb|msb|spartenuebergreifend|spartenübergreifend)/i.test(haystack) &&
     /(soll.?ist|target.?actual|rueckstand|rückstand|backlog|datenqualitaet|datenqualität|data quality|dienstleisterlast|contractor load|capex|opex|prozessindikator|process indicator|next control step|steuerungsschritt)/i.test(haystack) &&

@@ -2030,6 +2030,95 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  heat_transformation_line_asset_model: {
+    sources: [
+      {
+        id: 'division',
+        label: 'Sparte / Waermetransformations-Scope',
+        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'znp.listProjects', 'vdmi.dossier'],
+        contextKeys: ['division'],
+        optional: false,
+      },
+      {
+        id: 'line_asset_id',
+        label: 'Line Asset ID',
+        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'znp.getProjectAssets', 'vdmi.dossier'],
+        contextKeys: ['lineAssetId'],
+        optional: false,
+      },
+      {
+        id: 'geometry_ref',
+        label: 'Geometrie-Referenz',
+        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'assets.effective', 'vdmi.dossier'],
+        contextKeys: ['geometryRef'],
+        optional: false,
+      },
+      {
+        id: 'connected_point_asset_ids',
+        label: 'Topologische Punkt-Assets',
+        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'znp.getProjectAssets', 'assets.effective'],
+        contextKeys: ['connectedPointAssetIds'],
+        optional: false,
+      },
+      {
+        id: 'network_calculation_ref',
+        label: 'Netzberechnungsreferenz',
+        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'datapoint.health', 'vdmi.dossier'],
+        contextKeys: ['networkCalculationRef'],
+        optional: false,
+      },
+      {
+        id: 'data_quality_status',
+        label: 'Datenqualitaetsstatus',
+        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'datapoint.health', 'vdmi.dossier'],
+        contextKeys: ['dataQualityStatus'],
+        optional: false,
+      },
+      {
+        id: 'transformation_status',
+        label: 'Waermetransformationsstatus',
+        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'znp.listProjects', 'vdmi.dossier'],
+        contextKeys: ['transformationStatus'],
+        optional: false,
+      },
+      {
+        id: 'future_option',
+        label: 'Zukunftsoption / Technologieoption',
+        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'znp.listProjects', 'vdmi.dossier'],
+        contextKeys: ['futureOption'],
+        optional: false,
+      },
+      {
+        id: 'investment_need',
+        label: 'Investitionsbedarf',
+        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'finance-agent.analyze', 'investment-planning.createPlan'],
+        contextKeys: ['investmentNeed'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Accountable Owner',
+        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'next_decision',
+        label: 'Naechste Transformationsentscheidung',
+        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'vdmi.dossier'],
+        contextKeys: ['nextDecision'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   metering_rollout_process_indicator: {
     sources: [
       {

@@ -1196,6 +1196,28 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes heat transformation line-asset model prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte Waermetransformation Linienasset Modell pruefen: Linienasset ID segment-174, Geometrie-Referenz gis:poly-line-174, connectedPointAssetIds point-asset-1,point-asset-2, netzberechnung calc:hydraulic-174, datenqualitaet reviewed, transformationStatus repurpose, futureOption district_heating_network, investmentNeed 1500000, owner Assetmanagement Waerme und next decision Waermeplanung-Ausschuss-2026.',
+    });
+
+    expect(result.capability).toBe('heat_transformation_line_asset_model');
+    expect(result.recommendedCapabilities[0].capability).toBe('heat_transformation_line_asset_model');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.heatTransformationLineAssetModelStatus');
+    expect(actionNames).not.toContain('znp.createProject');
+    expect(actionNames).not.toContain('znp.addLayer0');
+    expect(actionNames).not.toContain('znp.addAssumption');
+    expect(actionNames).not.toContain('assets.mutate');
+    expect(actionNames).not.toContain('datapoint.mutate');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('vdmi.mutate');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('investment-planning.createPlan');
+    expect(actionNames).not.toContain('device-control.execute');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

@@ -2147,6 +2147,103 @@
     "sourceIssue": 170
   },
   {
+    "id": "heat-transformation-line-asset-model-status",
+    "description": "Read-only heat transformation line-asset model evidence for dossier hydration",
+    "routeLabel": "heat_transformation_line_asset_model",
+    "capability": "heat_transformation_line_asset_model",
+    "action": "dashboard-api.heatTransformationLineAssetModelStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "znp.createProject",
+        "znp.addLayer0",
+        "znp.addAssumption",
+        "assets.mutate",
+        "datapoint.mutate",
+        "hitl.create",
+        "vdmi.create",
+        "vdmi.mutate",
+        "finance-agent.mutate",
+        "investment-planning.createPlan",
+        "billing.release",
+        "settlement.prepareBilling",
+        "tariff.mutate",
+        "device-control.execute",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "waermetransformation",
+      "wärmetransformation",
+      "linienasset",
+      "leitungsabschnitt",
+      "leitungsraum",
+      "fernwaermeausbau",
+      "fernwärmeausbau",
+      "stilllegungshistorie",
+      "lastflussbezug",
+      "h2 option",
+      "gas waerme transformation"
+    ],
+    "paramTemplate": {
+      "lineAssetId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:lineAssetId[:= ]+|linienasset[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "division": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:division[:= ]+|sparte[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner[:= ]+|verantwortlich[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Heat Line Asset", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["modelContext.lineAssetId", "requestContext.lineAssetId"], "label": "Line Asset ID", "maxLen": 120 },
+        { "paths": ["modelContext.division", "requestContext.division"], "label": "Division", "maxLen": 120 },
+        { "paths": ["lineEvidence.geometryRef", "dossierEvidence.lineEvidence.geometryRef"], "label": "Geometry", "maxLen": 140 },
+        { "paths": ["lineEvidence.connectedPointAssetIds.0", "dossierEvidence.lineEvidence.connectedPointAssetIds.0"], "label": "Point Asset Link", "maxLen": 120 },
+        { "paths": ["lineEvidence.networkCalculationRef", "dossierEvidence.lineEvidence.networkCalculationRef"], "label": "Net Calc", "maxLen": 140 },
+        { "paths": ["lineEvidence.dataQualityStatus", "dossierEvidence.lineEvidence.dataQualityStatus"], "label": "Data Quality", "maxLen": 120 },
+        { "paths": ["lineEvidence.transformationStatus", "dossierEvidence.lineEvidence.transformationStatus"], "label": "Transformation Status", "maxLen": 120 },
+        { "paths": ["lineEvidence.futureOption", "dossierEvidence.lineEvidence.futureOption"], "label": "Future Option", "maxLen": 120 },
+        { "paths": ["lineEvidence.investmentNeed", "dossierEvidence.lineEvidence.investmentNeed"], "label": "Investment Need", "precision": 0 },
+        { "paths": ["modelContext.owner", "requestContext.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["modelContext.nextDecision", "requestContext.nextDecision"], "label": "Next Decision", "maxLen": 140 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 174
+  },
+  {
     "id": "metering-rollout-process-indicator-status",
     "description": "Read-only metering rollout process-indicator evidence for dossier hydration",
     "routeLabel": "metering_rollout_process_indicator",

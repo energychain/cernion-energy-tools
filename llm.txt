@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: c3bcc0b20cf73f1dda763dae4ac8acef0546f117179108c3539b7f113baf18a7
+  - openapi-export.json: 3c15d97f871ef9198c95f1ee5cc901562b2d623e8cd8c08249eca9e62654f3a6
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,11 +666,10 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 761
-- operation_count: 866
+- path_count: 760
+- operation_count: 865
 - operations_by_tag:
 - Actor Personas: 10 operations
-- Agent Manifest: 3 operations
 - Agent Receipts: 19 operations
 - Agent Sidecar: 5 operations
 - agnes-bottleneck: 3 operations
@@ -696,7 +695,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 68 operations
+- Dashboard API: 70 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -789,9 +788,6 @@ process:
 - GET /api/admin/backup/snapshots | tags: [Backup & Restore] | operationId: backup-orchestrator_list | summary: List available backup snapshots
 - DELETE /api/admin/backup/snapshots/:snapshotId | tags: [Backup & Restore] | operationId: backup-orchestrator_delete | summary: Delete a backup snapshot
 - GET /api/admin/backup/snapshots/:snapshotId | tags: [Backup & Restore] | operationId: backup-orchestrator_get | summary: Get backup snapshot manifest by ID
-- GET /api/agent-manifest/capabilities | tags: [Agent Manifest] | operationId: agent-manifest_listCapabilities | summary: List capability-broker catalog entries
-- GET /api/agent-manifest/capabilities/:name | tags: [Agent Manifest] | operationId: agent-manifest_getCapability | summary: Get a single capability-broker catalog entry
-- GET /api/agent-manifest/operations | tags: [Agent Manifest] | operationId: agent-manifest_listOperations | summary: List deduplicated OpenAPI operations, optionally filtered by manifest domain
 - PUT /api/agent-persona/personas/:id/availability | tags: [Actor Personas] | operationId: agent-persona_updateAvailability | summary: Update persona availability status and windows
 - POST /api/agent-persona/personas/:id/record-activity | tags: [Actor Personas] | operationId: agent-persona_recordPersonaActivity | summary: Record persona last-seen activity for availability tracking
 - GET /api/agent-personas | tags: [Actor Personas] | operationId: agent-persona_list | summary: List actor personas
@@ -985,6 +981,7 @@ process:
 - GET /api/dashboard-api/flex-strategic-demand-intake | tags: [Dashboard API] | operationId: dashboard-api_flexStrategicDemandIntakeStatus | summary: Strategic Flex demand intake — read-only dossier-safe status
 - GET /api/dashboard-api/gas-decommissioning-roadmap | tags: [Dashboard API] | operationId: dashboard-api_gasDecommissioningRoadmapStatus | summary: Gas Decommissioning Roadmap — read-only dossier-safe status
 - GET /api/dashboard-api/gas-infrastructure-risk-governance | tags: [Dashboard API] | operationId: dashboard-api_gasInfrastructureRiskGovernanceStatus | summary: Gas infrastructure risk governance — read-only dossier-safe status
+- GET /api/dashboard-api/heat-transformation-line-asset-model | tags: [Dashboard API] | operationId: dashboard-api_heatTransformationLineAssetModelStatus | summary: Heat transformation line-asset model — read-only dossier-safe status
 - GET /api/dashboard-api/imsys-schedule-value-chain-readiness | tags: [Dashboard API] | operationId: dashboard-api_imsysScheduleValueChainReadinessStatus | summary: iMSys schedule value-chain readiness — read-only dossier-safe gate
 - GET /api/dashboard-api/investment-committee-steering-cards | tags: [Dashboard API] | operationId: dashboard-api_investmentCommitteeSteeringCardsStatus | summary: Investment committee steering cards — read-only dossier-safe status
 - GET /api/dashboard-api/investment-data-review-queue | tags: [Dashboard API] | operationId: dashboard-api_investmentDataReviewQueueStatus | summary: Investment data review queue — read-only dossier-safe status
@@ -1019,6 +1016,7 @@ process:
 - GET /api/dashboard/flex-strategic-demand-intake | tags: [Dashboard API] | operationId: dashboard-api_flexStrategicDemandIntakeStatus | summary: Strategic Flex demand intake — read-only dossier-safe status
 - GET /api/dashboard/gas-decommissioning-roadmap | tags: [Dashboard API] | operationId: dashboard-api_gasDecommissioningRoadmapStatus | summary: Gas Decommissioning Roadmap — read-only dossier-safe status
 - GET /api/dashboard/gas-infrastructure-risk-governance | tags: [Dashboard API] | operationId: dashboard-api_gasInfrastructureRiskGovernanceStatus | summary: Gas infrastructure risk governance — read-only dossier-safe status
+- GET /api/dashboard/heat-transformation-line-asset-model | tags: [Dashboard API] | operationId: dashboard-api_heatTransformationLineAssetModelStatus | summary: Heat transformation line-asset model — read-only dossier-safe status
 - GET /api/dashboard/imsys-schedule-value-chain-readiness | tags: [Dashboard API] | operationId: dashboard-api_imsysScheduleValueChainReadinessStatus | summary: iMSys schedule value-chain readiness — read-only dossier-safe gate
 - GET /api/dashboard/investment-committee-steering-cards | tags: [Dashboard API] | operationId: dashboard-api_investmentCommitteeSteeringCardsStatus | summary: Investment committee steering cards — read-only dossier-safe status
 - GET /api/dashboard/investment-data-review-queue | tags: [Dashboard API] | operationId: dashboard-api_investmentDataReviewQueueStatus | summary: Investment data review queue — read-only dossier-safe status
@@ -1862,108 +1860,6 @@ process:
           "Backup & Restore"
         ],
         "x-oeo-class": "OEO_00140083"
-      }
-    },
-    "/api/agent-manifest/capabilities": {
-      "get": {
-        "description": "Resolves capability ids referenced in the llm.txt cluster manifest to their full routing metadata.",
-        "operationId": "agent-manifest_listCapabilities",
-        "parameters": [
-          {
-            "description": "Filter by canonical manifest domain (see llm.txt RESOLUTION PROTOCOL).",
-            "in": "query",
-            "name": "domain",
-            "required": false,
-            "schema": {
-              "example": "redispatch",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful response"
-          }
-        },
-        "summary": "List capability-broker catalog entries",
-        "tags": [
-          "Agent Manifest"
-        ]
-      }
-    },
-    "/api/agent-manifest/capabilities/:name": {
-      "get": {
-        "description": "Returns one capability by id including preferredActions, requiredInputs, and risksAndNotes.",
-        "operationId": "agent-manifest_getCapability",
-        "parameters": [
-          {
-            "description": "Capability id (CURATED_CAPABILITIES[].capability).",
-            "in": "path",
-            "name": "name",
-            "required": true,
-            "schema": {
-              "example": "redispatch_asset_register",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful response"
-          }
-        },
-        "summary": "Get a single capability-broker catalog entry",
-        "tags": [
-          "Agent Manifest"
-        ]
-      }
-    },
-    "/api/agent-manifest/operations": {
-      "get": {
-        "description": "Resolves a domain cluster from the llm.txt manifest to its operation slice. Operations sharing an operationId across multiple paths are merged into one canonical entry with an aliases list.",
-        "operationId": "agent-manifest_listOperations",
-        "parameters": [
-          {
-            "description": "Canonical manifest domain (see llm.txt RESOLUTION PROTOCOL). Omit to list all domains.",
-            "in": "query",
-            "name": "domain",
-            "required": false,
-            "schema": {
-              "example": "redispatch",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful response"
-          }
-        },
-        "summary": "List deduplicated OpenAPI operations, optionally filtered by manifest domain",
-        "tags": [
-          "Agent Manifest"
-        ]
       }
     },
     "/api/agent-persona/personas/:id/availability": {
@@ -16743,6 +16639,21 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/heat-transformation-line-asset-model": {
+      "get": {
+        "description": "Builds deterministic line-asset evidence from supplied facts. The endpoint is read-only and does not create ZNP projects, point/line assets, datapoints, VDMI dossiers, finance plans, HITL tasks, or trigger device control or external connectors.",
+        "operationId": "dashboard-api_heatTransformationLineAssetModelStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only heat transformation line-asset model status"
+          }
+        },
+        "summary": "Heat transformation line-asset model — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/imsys-schedule-value-chain-readiness": {
       "get": {
         "description": "Builds a deterministic evidence view for iMSys/CLS schedule value-chain readiness. The endpoint is read-only and does not execute device control, grid operations, HITL, MaKo, billing, settlement, external connector or Personal-Agent actions.",
@@ -20589,6 +20500,21 @@ process:
           }
         },
         "summary": "Gas infrastructure risk governance — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
+    "/api/dashboard/heat-transformation-line-asset-model": {
+      "get": {
+        "description": "Builds deterministic line-asset evidence from supplied facts. The endpoint is read-only and does not create ZNP projects, point/line assets, datapoints, VDMI dossiers, finance plans, HITL tasks, or trigger device control or external connectors.",
+        "operationId": "dashboard-api_heatTransformationLineAssetModelStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only heat transformation line-asset model status"
+          }
+        },
+        "summary": "Heat transformation line-asset model — read-only dossier-safe status",
         "tags": [
           "Dashboard API"
         ]
@@ -60056,4 +59982,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 946044e01aced33934563786074bb87323869200dcedde7331fe5baa9b128715
+- llm_txt_sha256: 7029e5a59c0eea5f58e6061815fede256e03a82a271bcacf08d8d7a5d60f7ca9

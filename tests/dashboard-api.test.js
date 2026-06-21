@@ -3511,6 +3511,86 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── heatTransformationLineAssetModelStatus ─────────────────────────────
+
+  describe('heatTransformationLineAssetModelStatus', () => {
+    it('reports heat line asset model gaps without creating ZNP, asset, datapoint, VDMI, or finance side effects', async () => {
+      const result = await broker.call('dashboard-api.heatTransformationLineAssetModelStatus', {
+        division: 'Wärme',
+        lineAssetId: 'segment-174',
+      });
+
+      expect(result.status).toBe('needs_geometry_ref');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'geometry_ref',
+          'connected_point_asset_ids',
+          'network_calculation_ref',
+          'data_quality_status',
+          'transformation_status',
+          'future_option',
+          'investment_need',
+          'owner',
+          'next_decision',
+          'source_refs',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('heat_transformation_line_asset_model');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'znp.createProject',
+          'znp.addLayer0',
+          'znp.addAssumption',
+          'assets.mutate',
+          'datapoint.mutate',
+          'hitl.create',
+          'vdmi.create',
+          'vdmi.mutate',
+          'finance-agent.mutate',
+          'investment-planning.createPlan',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'device-control.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_transformation_decision when heat transformation line asset evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.heatTransformationLineAssetModelStatus', {
+        lineAssetId: 'segment-174',
+        division: 'Wärme/Stadtmitte',
+        geometryRef: 'gis:poly-line-174',
+        connectedPointAssetIds: 'point-asset-1,point-asset-2',
+        networkCalculationRef: 'calc:hydraulic-174',
+        dataQualityStatus: 'reviewed',
+        transformationStatus: 'repurpose',
+        futureOption: 'district_heating_network',
+        investmentNeed: 1500000,
+        owner: 'Assetmanagement Waerme',
+        nextDecision: 'Waermeplanung-Ausschuss-2026',
+        sourceRef: 'znp:graph-174,datapoint:174',
+      });
+
+      expect(result.status).toBe('ready_for_transformation_decision');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.lineEvidence.connectedPointAssetIds).toEqual(['point-asset-1', 'point-asset-2']);
+      expect(result.modelContext.owner).toBe('Assetmanagement Waerme');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['znp:graph-174', 'datapoint:174']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_transformation_decision',
+          'Provided heat transformation line-asset evidence: 12/12',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

@@ -375,6 +375,36 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans heat transformation line asset model as explicit process evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'heat_transformation_line_asset_model' },
+      {
+        lineAssetId: 'segment-174',
+        division: 'Wärme/Stadtmitte',
+        geometryRef: 'gis:poly-line-174',
+        owner: 'Assetmanagement Waerme',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('heat_transformation_line_asset_model');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['line_asset_id', 'division', 'geometry_ref', 'owner'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'connected_point_asset_ids',
+        'network_calculation_ref',
+        'data_quality_status',
+        'transformation_status',
+        'future_option',
+        'investment_need',
+        'next_decision',
+        'source_refs',
+      ])
+    );
+  });
+
   it('plans regulatory change readiness as explicit data and audit evidence', () => {
     const result = planEvidence(
       { routeLabel: 'regulatory_change_simulator_readiness' },

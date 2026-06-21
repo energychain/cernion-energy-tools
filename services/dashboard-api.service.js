@@ -70,6 +70,7 @@ module.exports = {
       flexStrategicDemandIntakeStatus: 5 * 60 * 1000, // 5 min
       gasInfrastructureRiskGovernanceStatus: 5 * 60 * 1000, // 5 min
       meteringRolloutProcessIndicatorStatus: 5 * 60 * 1000, // 5 min
+      heatTransformationLineAssetModelStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3155,6 +3156,59 @@ module.exports = {
           this.settings.cacheTtlMs.meteringRolloutProcessIndicatorStatus,
           async () => ({
             ...this.buildMeteringRolloutProcessIndicatorStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── heatTransformationLineAssetModelStatus ───────────────────────────
+    /**
+     * GET /api/dashboard/heat-transformation-line-asset-model
+     *
+     * Read-only dossier-safe heat transformation line-asset model. It
+     * builds line-asset and transformation evidence from supplied status facts
+     * without creating a new GIS platform, heat-network service, GIS database
+     * migrations, or triggering automatic decommissioning or investment decisions.
+     */
+    heatTransformationLineAssetModelStatus: {
+      rest: 'GET /heat-transformation-line-asset-model',
+      params: {
+        lineAssetId: { type: 'string', optional: true, min: 1 },
+        geometryRef: { type: 'string', optional: true, min: 1 },
+        connectedPointAssetIds: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        division: { type: 'string', optional: true, min: 1 },
+        networkCalculationRef: { type: 'string', optional: true, min: 1 },
+        dataQualityStatus: { type: 'string', optional: true, min: 1 },
+        transformationStatus: { type: 'string', optional: true, min: 1 },
+        futureOption: { type: 'string', optional: true, min: 1 },
+        investmentNeed: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        owner: { type: 'string', optional: true, min: 1 },
+        nextDecision: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Heat transformation line-asset model — read-only dossier-safe status',
+        description:
+          'Builds deterministic line-asset evidence from supplied facts. ' +
+          'The endpoint is read-only and does not create ZNP projects, point/line assets, datapoints, VDMI dossiers, finance plans, HITL tasks, or trigger device control or external connectors.',
+        responses: {
+          200: {
+            description: 'Read-only heat transformation line-asset model status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `heat-transformation-line-asset-model:${params.lineAssetId || 'no-id'}:${params.division || 'no-division'}:${params.owner || 'no-owner'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.heatTransformationLineAssetModelStatus,
+          async () => ({
+            ...this.buildHeatTransformationLineAssetModelStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -10346,6 +10400,250 @@ module.exports = {
           readinessScore,
           indicatorContext,
           processEvidence,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildHeatTransformationLineAssetModelStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const toNumber = (value) => {
+        if (value === undefined || value === null || value === '') return null;
+        const n = Number(value);
+        return Number.isFinite(n) ? n : null;
+      };
+      const sourceRefs = toList(params.sourceRef);
+      const connectedPointAssetIds = toList(params.connectedPointAssetIds);
+      const investmentNeed = toNumber(params.investmentNeed);
+
+      const evidenceSpecs = [
+        {
+          id: 'division',
+          label: 'Division',
+          value: params.division,
+          sourceClass: 'heat_division_scope',
+          enablesDossierAddition: 'add the affected utility division scope (defaults to Wärme)',
+        },
+        {
+          id: 'line_asset_id',
+          label: 'Line Asset ID',
+          value: params.lineAssetId,
+          sourceClass: 'line_segment_classification',
+          enablesDossierAddition: 'add the specific line segment or pipe identifier',
+        },
+        {
+          id: 'geometry_ref',
+          label: 'Geometry reference',
+          value: params.geometryRef,
+          sourceClass: 'gis_geometry_reference',
+          enablesDossierAddition: 'add the geographic line coordinate boundary or GIS path reference',
+        },
+        {
+          id: 'connected_point_asset_ids',
+          label: 'Connected point assets',
+          value: connectedPointAssetIds.length > 0,
+          displayValue: connectedPointAssetIds.join(', '),
+          sourceClass: 'topological_point_assets',
+          enablesDossierAddition: 'add the topological point-asset connections (e.g. transformers or heating plants)',
+        },
+        {
+          id: 'network_calculation_ref',
+          label: 'Network calculation reference',
+          value: params.networkCalculationRef,
+          sourceClass: 'network_calculation_reference',
+          enablesDossierAddition: 'add the hydraulic or thermodynamic network calculation reference',
+        },
+        {
+          id: 'data_quality_status',
+          label: 'Data-quality status',
+          value: params.dataQualityStatus,
+          sourceClass: 'data_quality_risk',
+          enablesDossierAddition: 'add the GIS and asset data-quality risk assessment',
+        },
+        {
+          id: 'transformation_status',
+          label: 'Transformation status',
+          value: params.transformationStatus,
+          sourceClass: 'transformation_scenario_status',
+          enablesDossierAddition: 'add the strategic Heat/Gas transformation option or status',
+        },
+        {
+          id: 'future_option',
+          label: 'Future option',
+          value: params.futureOption,
+          sourceClass: 'future_technology_option',
+          enablesDossierAddition: 'add the specific future technology option (H2-ready vs district-heating network)',
+        },
+        {
+          id: 'investment_need',
+          label: 'Investment need',
+          value: investmentNeed !== null,
+          displayValue: investmentNeed,
+          sourceClass: 'investment_need_indicator',
+          enablesDossierAddition: 'add the indicative investment need in EUR or reference',
+        },
+        {
+          id: 'owner',
+          label: 'Owner',
+          value: params.owner,
+          sourceClass: 'accountable_owner',
+          enablesDossierAddition: 'add the accountable asset manager or owner division',
+        },
+        {
+          id: 'next_decision',
+          label: 'Next decision',
+          value: params.nextDecision,
+          sourceClass: 'next_decision_gate',
+          enablesDossierAddition: 'add the next decision gate or strategic window',
+        },
+        {
+          id: 'source_refs',
+          label: 'Source references',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add the citable source references or GIS provenance',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue ?? spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const qualityText = String(params.dataQualityStatus || '').toLowerCase();
+      const qualityBlocks = /blocked|blockiert|kritisch|critical|missing|fehlt|unvollstaendig|unvollständig/.test(qualityText);
+
+      const status =
+        qualityBlocks
+          ? 'blocked_by_data_quality'
+          : !params.division
+            ? 'needs_division'
+            : !params.lineAssetId
+              ? 'needs_line_asset_id'
+              : !params.geometryRef
+                ? 'needs_geometry_ref'
+                : connectedPointAssetIds.length === 0
+                  ? 'needs_connected_point_asset_ids'
+                  : !params.networkCalculationRef
+                    ? 'needs_network_calculation_ref'
+                    : !params.dataQualityStatus
+                      ? 'needs_data_quality_status'
+                      : !params.transformationStatus
+                        ? 'needs_transformation_status'
+                        : !params.futureOption
+                          ? 'needs_future_option'
+                          : investmentNeed === null
+                            ? 'needs_investment_need'
+                            : !params.owner
+                              ? 'needs_owner'
+                              : !params.nextDecision
+                                ? 'needs_next_decision'
+                                : sourceRefs.length === 0
+                                  ? 'needs_source_refs'
+                                  : 'ready_for_transformation_decision';
+
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'heat_transformation_line_asset_model',
+      }));
+
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `HTLAM_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['division', 'line_asset_id', 'geometry_ref', 'data_quality_status', 'owner', 'next_decision'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+
+      if (qualityBlocks) {
+        blockingFindings.push({
+          code: 'HTLAM_DATA_QUALITY_BLOCKING',
+          severity: 'high',
+          message: 'heat transformation line-asset evidence indicates a steering-relevant data-quality condition',
+        });
+      }
+
+      const modelContext = {
+        lineAssetId: params.lineAssetId || null,
+        division: params.division || null,
+        owner: params.owner || null,
+        nextDecision: params.nextDecision || null,
+      };
+
+      const lineEvidence = {
+        geometryRef: params.geometryRef || null,
+        connectedPointAssetIds,
+        networkCalculationRef: params.networkCalculationRef || null,
+        dataQualityStatus: params.dataQualityStatus || null,
+        transformationStatus: params.transformationStatus || null,
+        futureOption: params.futureOption || null,
+        investmentNeed,
+      };
+
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided heat transformation line-asset evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.division) dossierFacts.push(`Division: ${params.division}`);
+      if (params.lineAssetId) dossierFacts.push(`Line Asset ID: ${params.lineAssetId}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+
+      return {
+        lineAssetModelStatusId: `htlam:${Buffer.from(`${params.lineAssetId || ''}:${params.division || ''}:${params.owner || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'heat_transformation_line_asset_model',
+        safety: 'read_only',
+        requestContext: modelContext,
+        status,
+        readinessScore,
+        modelContext,
+        lineEvidence,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+        },
+        sourceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.heatTransformationLineAssetModelStatus'],
+          referenced: ['znp.listProjects', 'znp.getProjectAssets', 'assets.effective', 'datapoint.health', 'finance-agent.analyze', 'investment-planning.createPlan', 'vdmi.dossier', 'evidence-registry.lookup', 'presentation.generate'],
+          notCalled: ['znp.createProject', 'znp.addLayer0', 'znp.addAssumption', 'assets.mutate', 'datapoint.mutate', 'hitl.create', 'vdmi.create', 'vdmi.mutate', 'finance-agent.mutate', 'investment-planning.createPlan', 'billing.release', 'settlement.prepareBilling', 'tariff.mutate', 'device-control.execute', 'external.connector.call', 'personal-agent.execute'],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          modelContext,
+          lineEvidence,
           evidenceItems,
           missingEvidence,
           positiveFollowUps,

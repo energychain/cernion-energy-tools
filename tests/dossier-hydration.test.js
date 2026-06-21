@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 42 static rules', () => {
+    it('loads all 43 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(42);
+      expect(rules.length).toBe(43);
     });
 
-    it('compiles all 42 static rules without error', () => {
+    it('compiles all 43 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(42);
+      expect(rules.length).toBe(43);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1857,6 +1857,40 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Division: Strom/MSB');
       expect(formatted).toContain('Backlog: 60');
       expect(formatted).toContain('Side-Effect Guard: datasource-cache.query');
+    });
+
+    it('heat-transformation-line-asset-model-status formats process evidence', () => {
+      const rule = getRule('dashboard-api.heatTransformationLineAssetModelStatus');
+      const formatted = rule.formatEvidence({
+        status: 'ready_for_transformation_decision',
+        readinessScore: 1,
+        modelContext: {
+          lineAssetId: 'segment-174',
+          division: 'Wärme/Stadtmitte',
+          owner: 'Assetmanagement Waerme',
+          nextDecision: 'Waermeplanung-Ausschuss-2026',
+        },
+        lineEvidence: {
+          geometryRef: 'gis:poly-line-174',
+          connectedPointAssetIds: ['point-asset-1', 'point-asset-2'],
+          networkCalculationRef: 'calc:hydraulic-174',
+          dataQualityStatus: 'reviewed',
+          transformationStatus: 'repurpose',
+          futureOption: 'district_heating_network',
+          investmentNeed: 1500000,
+        },
+        sourceActions: {
+          notCalled: ['znp.createProject'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: ready_for_transformation_decision'],
+        },
+      });
+
+      expect(formatted).toContain('Heat Line Asset: ready_for_transformation_decision');
+      expect(formatted).toContain('Division: Wärme/Stadtmitte');
+      expect(formatted).toContain('Line Asset ID: segment-174');
+      expect(formatted).toContain('Side-Effect Guard: znp.createProject');
     });
   });
 
