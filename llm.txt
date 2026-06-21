@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: 8abe10b0f368497a4349d27c6260eb72feb306a97364422954da1eccee261b99
+  - openapi-export.json: 416fbc684ecd54b1c5106d580ecd874aafd7417e80239a02f3b76b59edd87261
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 766
-- operation_count: 871
+- path_count: 768
+- operation_count: 873
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -695,7 +695,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 76 operations
+- Dashboard API: 78 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -970,6 +970,7 @@ process:
 - GET /api/cya/templates/:templateId | tags: [CYA Agent] | operationId: cya_getTemplate | summary: Load one prebuilt CYA profile template
 - GET /api/dashboard-api/automation-requirements-decision-value | tags: [Dashboard API] | operationId: dashboard-api_automationRequirementsDecisionValueStatus | summary: Automation Requirements Decision Value — read-only dossier-safe gate
 - GET /api/dashboard-api/budget-waterfall-governance | tags: [Dashboard API] | operationId: dashboard-api_budgetWaterfallGovernanceStatus | summary: Budget Waterfall Governance — read-only dossier-safe gate
+- GET /api/dashboard-api/capacity-contract-risk-asset-cockpit | tags: [Dashboard API] | operationId: dashboard-api_capacityContractRiskAssetCockpitStatus | summary: Capacity & Contract Risk Asset Cockpit — read-only dossier-safe status
 - GET /api/dashboard-api/cls-digital-twin-compliance-gate | tags: [Dashboard API] | operationId: dashboard-api_clsDigitalTwinComplianceGateStatus | summary: CLS Digital Twin Compliance Gate — read-only dossier-safe status
 - GET /api/dashboard-api/controllability-asset-handover | tags: [Dashboard API] | operationId: dashboard-api_controllabilityAssetHandoverStatus | summary: Controllability asset handover — read-only dossier-safe status
 - GET /api/dashboard-api/controllability-submission-cockpit | tags: [Dashboard API] | operationId: dashboard-api_controllabilitySubmissionCockpitStatus | summary: Controllability submission cockpit — read-only dossier-safe gate
@@ -1008,6 +1009,7 @@ process:
 - GET /api/dashboard-api/vnb-overview | tags: [Dashboard API] | operationId: dashboard-api_vnbOverview | summary: VNB overview — aggregated dashboard data for one grid operator
 - GET /api/dashboard/automation-requirements-decision-value | tags: [Dashboard API] | operationId: dashboard-api_automationRequirementsDecisionValueStatus | summary: Automation Requirements Decision Value — read-only dossier-safe gate
 - GET /api/dashboard/budget-waterfall-governance | tags: [Dashboard API] | operationId: dashboard-api_budgetWaterfallGovernanceStatus | summary: Budget Waterfall Governance — read-only dossier-safe gate
+- GET /api/dashboard/capacity-contract-risk-asset-cockpit | tags: [Dashboard API] | operationId: dashboard-api_capacityContractRiskAssetCockpitStatus | summary: Capacity & Contract Risk Asset Cockpit — read-only dossier-safe status
 - GET /api/dashboard/cls-digital-twin-compliance-gate | tags: [Dashboard API] | operationId: dashboard-api_clsDigitalTwinComplianceGateStatus | summary: CLS Digital Twin Compliance Gate — read-only dossier-safe status
 - GET /api/dashboard/controllability-asset-handover | tags: [Dashboard API] | operationId: dashboard-api_controllabilityAssetHandoverStatus | summary: Controllability asset handover — read-only dossier-safe status
 - GET /api/dashboard/controllability-submission-cockpit | tags: [Dashboard API] | operationId: dashboard-api_controllabilitySubmissionCockpitStatus | summary: Controllability submission cockpit — read-only dossier-safe gate
@@ -15568,6 +15570,21 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/capacity-contract-risk-asset-cockpit": {
+      "get": {
+        "description": "Builds deterministic risk and decision status from supplied capacity and contract facts. The endpoint is read-only and does not run budget writes or write to ZNP, assets, HITL, or VDMI.",
+        "operationId": "dashboard-api_capacityContractRiskAssetCockpitStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only capacity and contract risk status"
+          }
+        },
+        "summary": "Capacity & Contract Risk Asset Cockpit — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/cls-digital-twin-compliance-gate": {
       "get": {
         "description": "Builds a deterministic evidence view for CLS/digital-twin procurement readiness. The endpoint is read-only and does not create procurement, legal, DSFA, RBAC, HITL, billing, settlement, MaKo, CLS, SMGW, device-control, external connector or Personal-Agent side effects.",
@@ -19474,6 +19491,21 @@ process:
           }
         },
         "summary": "Budget Waterfall Governance — read-only dossier-safe gate",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
+    "/api/dashboard/capacity-contract-risk-asset-cockpit": {
+      "get": {
+        "description": "Builds deterministic risk and decision status from supplied capacity and contract facts. The endpoint is read-only and does not run budget writes or write to ZNP, assets, HITL, or VDMI.",
+        "operationId": "dashboard-api_capacityContractRiskAssetCockpitStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only capacity and contract risk status"
+          }
+        },
+        "summary": "Capacity & Contract Risk Asset Cockpit — read-only dossier-safe status",
         "tags": [
           "Dashboard API"
         ]
@@ -60078,4 +60110,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: fc0de564f1b2a35179dda5441cb3e3d5412f6afed6f6ad640a1480cb92b76da1
+- llm_txt_sha256: dbacedb73a1798addace076c4532b591a6987000e1a9aeb7e527f583f29bd906

@@ -14146,6 +14146,21 @@
         "description": "Builds deterministic investment waterfall governance evidence from supplied facts. The endpoint is read-only and does not run budget writes or write to HITL/VDMI."
       }
     },
+    "/api/dashboard-api/capacity-contract-risk-asset-cockpit": {
+      "get": {
+        "operationId": "dashboard-api_capacityContractRiskAssetCockpitStatus",
+        "summary": "Capacity & Contract Risk Asset Cockpit — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only capacity and contract risk status"
+          }
+        },
+        "description": "Builds deterministic risk and decision status from supplied capacity and contract facts. The endpoint is read-only and does not run budget writes or write to ZNP, assets, HITL, or VDMI."
+      }
+    },
     "/api/dashboard-api/imsys-taf2-compliance": {
       "get": {
         "operationId": "dashboard-api_imsysTaf2ComplianceStatus",
@@ -53267,6 +53282,21 @@
           }
         },
         "description": "Builds deterministic investment waterfall governance evidence from supplied facts. The endpoint is read-only and does not run budget writes or write to HITL/VDMI."
+      }
+    },
+    "/api/dashboard/capacity-contract-risk-asset-cockpit": {
+      "get": {
+        "operationId": "dashboard-api_capacityContractRiskAssetCockpitStatus",
+        "summary": "Capacity & Contract Risk Asset Cockpit — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only capacity and contract risk status"
+          }
+        },
+        "description": "Builds deterministic risk and decision status from supplied capacity and contract facts. The endpoint is read-only and does not run budget writes or write to ZNP, assets, HITL, or VDMI."
       }
     },
     "/api/dashboard/imsys-taf2-compliance": {

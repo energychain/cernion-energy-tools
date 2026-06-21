@@ -2747,5 +2747,84 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 161
+  },
+  {
+    "id": "capacity-contract-risk-asset-cockpit",
+    "description": "Read-only Capacity and Contract Risk Asset Cockpit status evidence for dossier hydration",
+    "routeLabel": "capacity_contract_risk_asset_cockpit",
+    "capability": "capacity_contract_risk_asset_cockpit",
+    "action": "dashboard-api.capacityContractRiskAssetCockpitStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "znp.createProject",
+        "znp.addLayer0",
+        "znp.addAssumption",
+        "assets.mutate",
+        "datapoint.mutate",
+        "hitl.create",
+        "vdmi.create",
+        "vdmi.mutate",
+        "finance-agent.mutate",
+        "investment-planning.createPlan",
+        "billing.release",
+        "settlement.prepareBilling",
+        "tariff.mutate",
+        "device-control.execute",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "kapazitaets vertragsrisiko",
+      "kapazitäts vertragsrisiko",
+      "altvereinbarung",
+      "bezugsvertrag",
+      "vertragsgrenze",
+      "bestandsschutz",
+      "engpasswirkung",
+      "capacity contract risk",
+      "asset cockpit"
+    ],
+    "paramTemplate": {
+      "gridOperatorId": {
+        "extractor": "regexCaptureSafe",
+        "required": true,
+        "config": {
+          "pattern": "(?:gridOperatorId[:= ]+|grid_operator_id[:= ]+|gridOperator[:= ]+|grid_operator[:= ]+|vnb[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Cockpit Status", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.gridOperatorId", "complianceContext.gridOperatorId"], "label": "Grid Operator ID", "maxLen": 120 },
+        { "paths": ["riskLevel", "dossierEvidence.riskLevel"], "label": "Risk Level", "maxLen": 120 },
+        { "paths": ["decisionStatus", "dossierEvidence.decisionStatus"], "label": "Decision Status", "maxLen": 120 },
+        { "paths": ["technicalCapacity.utilization", "dossierEvidence.complianceEvidence.utilization"], "label": "Technical Utilization", "maxLen": 120 },
+        { "paths": ["technicalCapacity.bottleneck", "dossierEvidence.complianceEvidence.bottleneck"], "label": "Technical Bottleneck", "maxLen": 120 },
+        { "paths": ["contractBoundary.status", "dossierEvidence.complianceEvidence.contractStatus"], "label": "Contract Status", "maxLen": 120 },
+        { "paths": ["contractBoundary.legalStatus", "dossierEvidence.complianceEvidence.legalStatus"], "label": "Legal Status", "maxLen": 120 },
+        { "paths": ["financialImpact.capex", "dossierEvidence.complianceEvidence.capex"], "label": "CAPEX", "maxLen": 120 },
+        { "paths": ["financialImpact.opex", "dossierEvidence.complianceEvidence.opex"], "label": "OPEX", "maxLen": 120 },
+        { "paths": ["owner", "dossierEvidence.complianceEvidence.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["nextAction", "dossierEvidence.complianceEvidence.nextAction"], "label": "Next Action", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 156
   }
 ]

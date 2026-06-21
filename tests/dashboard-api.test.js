@@ -3795,6 +3795,110 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── capacityContractRiskAssetCockpitStatus ─────────────────────────────
+
+  describe('capacityContractRiskAssetCockpitStatus', () => {
+    it('reports capacity and contract risk gaps without creating risk databases, ZNP, or asset side effects', async () => {
+      const result = await broker.call('dashboard-api.capacityContractRiskAssetCockpitStatus', {
+        gridOperatorId: 'vnb-156',
+      });
+
+      expect(result.status).toBe('needs_utilization');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'utilization',
+          'bottleneck',
+          'contract_status',
+          'legal_status',
+          'capex',
+          'opex',
+          'owner',
+          'next_action',
+          'source_refs',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('capacity_contract_risk_asset_cockpit');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'znp.createProject',
+          'znp.addLayer0',
+          'znp.addAssumption',
+          'assets.mutate',
+          'datapoint.mutate',
+          'hitl.create',
+          'vdmi.create',
+          'vdmi.mutate',
+          'finance-agent.mutate',
+          'investment-planning.createPlan',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'device-control.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_with_no_risk when capacity and contract evidence is complete and clear', async () => {
+      const result = await broker.call('dashboard-api.capacityContractRiskAssetCockpitStatus', {
+        gridOperatorId: 'vnb-156',
+        utilization: 0.75,
+        bottleneck: 'none',
+        firmCapacityKW: 500,
+        flexibleCapacityKW: 100,
+        contractStatus: 'active',
+        legalStatus: 'compliant',
+        altvereinbarung: true,
+        capex: 150000,
+        opex: 12000,
+        owner: 'Assetmanagement Netze',
+        nextAction: 'regular_inspection',
+        sourceRef: 'EnWG_14a,fNAV_V1',
+      });
+
+      expect(result.status).toBe('ready_with_no_risk');
+      expect(result.readinessScore).toBe(1);
+      expect(result.decisionStatus).toBe('approve');
+      expect(result.riskLevel).toBe('low');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.technicalCapacity.utilization).toBe(0.75);
+      expect(result.contractBoundary.status).toBe('active');
+      expect(result.financialImpact.capex).toBe(150000);
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['EnWG_14a', 'fNAV_V1']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_with_no_risk',
+          'Provided capacity and contract risk evidence: 9/9',
+          'Open gaps: 0',
+        ])
+      );
+    });
+
+    it('identifies critical risk and rejects when utilization is overloaded', async () => {
+      const result = await broker.call('dashboard-api.capacityContractRiskAssetCockpitStatus', {
+        gridOperatorId: 'vnb-156',
+        utilization: 1.45,
+        bottleneck: 'critical_overload',
+        firmCapacityKW: 500,
+        flexibleCapacityKW: 100,
+        contractStatus: 'active',
+        legalStatus: 'compliant',
+        altvereinbarung: true,
+        capex: 150000,
+        opex: 12000,
+        owner: 'Assetmanagement Netze',
+        nextAction: 'escalation_to_grid_pmo',
+        sourceRef: 'EnWG_14a',
+      });
+
+      expect(result.status).toBe('ready_with_risk_findings');
+      expect(result.decisionStatus).toBe('reject_or_escalate');
+      expect(result.riskLevel).toBe('critical');
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

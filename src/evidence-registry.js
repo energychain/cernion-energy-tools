@@ -2316,6 +2316,74 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  capacity_contract_risk_asset_cockpit: {
+    sources: [
+      {
+        id: 'utilization',
+        label: 'Netzauslastung',
+        resolvedBy: ['dashboard-api.capacityContractRiskAssetCockpitStatus', 'grid-operations.capacityUtilization', 'vdmi.dossier'],
+        contextKeys: ['utilization'],
+        optional: false,
+      },
+      {
+        id: 'bottleneck',
+        label: 'Engpass-Situation',
+        resolvedBy: ['dashboard-api.capacityContractRiskAssetCockpitStatus', 'grid-operations.netzfahrplanGenerate', 'vdmi.dossier'],
+        contextKeys: ['bottleneck'],
+        optional: false,
+      },
+      {
+        id: 'contract_status',
+        label: 'Vertragsstatus',
+        resolvedBy: ['dashboard-api.capacityContractRiskAssetCockpitStatus', 'grid-operations.netzfahrplanGenerate', 'vdmi.dossier'],
+        contextKeys: ['contractStatus'],
+        optional: false,
+      },
+      {
+        id: 'legal_status',
+        label: 'Regulatorischer Legal-Status',
+        resolvedBy: ['dashboard-api.capacityContractRiskAssetCockpitStatus', 'personal-agent.chat', 'vdmi.dossier'],
+        contextKeys: ['legalStatus'],
+        optional: false,
+      },
+      {
+        id: 'capex',
+        label: 'CAPEX Investitionsoption',
+        resolvedBy: ['dashboard-api.capacityContractRiskAssetCockpitStatus', 'finance-agent.fnavEconomics', 'vdmi.dossier'],
+        contextKeys: ['capex'],
+        optional: false,
+      },
+      {
+        id: 'opex',
+        label: 'OPEX Betriebskosten',
+        resolvedBy: ['dashboard-api.capacityContractRiskAssetCockpitStatus', 'finance-agent.analyze', 'vdmi.dossier'],
+        contextKeys: ['opex'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Prozessverantwortlicher Owner',
+        resolvedBy: ['dashboard-api.capacityContractRiskAssetCockpitStatus', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'next_action',
+        label: 'Naechste Massnahme',
+        resolvedBy: ['dashboard-api.capacityContractRiskAssetCockpitStatus', 'vdmi.dossier'],
+        contextKeys: ['nextAction'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.capacityContractRiskAssetCockpitStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   metering_rollout_process_indicator: {
     sources: [
       {

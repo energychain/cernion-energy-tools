@@ -73,6 +73,7 @@ module.exports = {
       heatTransformationLineAssetModelStatus: 5 * 60 * 1000, // 5 min
       kiFloorwalkerGovernanceStatus: 5 * 60 * 1000, // 5 min
       investmentWaterfallGovernanceStatus: 5 * 60 * 1000, // 5 min
+      capacityContractRiskAssetCockpitStatus: 5 * 60 * 1000, // 5 min
       imsysTaf2ComplianceStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
@@ -3315,6 +3316,63 @@ module.exports = {
           this.settings.cacheTtlMs.investmentWaterfallGovernanceStatus,
           async () => ({
             ...this.buildInvestmentWaterfallGovernanceStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── capacityContractRiskAssetCockpitStatus ─────────────────────────────
+    /**
+     * GET /api/dashboard/capacity-contract-risk-asset-cockpit
+     *
+     * Read-only dossier-safe Capacity and Contract Risk Asset Cockpit.
+     * It builds a deterministic risk and decision status projection from
+     * supplied facts without creating a new risk database, contract-management
+     * tables, or triggering automatic mutations.
+     */
+    capacityContractRiskAssetCockpitStatus: {
+      rest: 'GET /capacity-contract-risk-asset-cockpit',
+      params: {
+        gridOperatorId: { type: 'string', min: 1 },
+        utilization: { type: 'number', optional: true },
+        bottleneck: { type: 'string', optional: true, min: 1 },
+        firmCapacityKW: { type: 'number', optional: true },
+        flexibleCapacityKW: { type: 'number', optional: true },
+        contractStatus: { type: 'string', optional: true, min: 1 },
+        legalStatus: { type: 'string', optional: true, min: 1 },
+        altvereinbarung: { type: 'boolean', optional: true },
+        capex: { type: 'number', optional: true },
+        opex: { type: 'number', optional: true },
+        priority: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        nextAction: { type: 'string', optional: true, min: 1 },
+        forecast: { type: 'boolean', optional: true },
+        date: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Capacity & Contract Risk Asset Cockpit — read-only dossier-safe status',
+        description:
+          'Builds deterministic risk and decision status from supplied capacity and contract facts. ' +
+          'The endpoint is read-only and does not run budget writes or write to ZNP, assets, HITL, or VDMI.',
+        responses: {
+          200: {
+            description: 'Read-only capacity and contract risk status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `capacity-contract-risk:${params.gridOperatorId}:${params.contractStatus || 'no-contract'}:${params.owner || 'no-owner'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.capacityContractRiskAssetCockpitStatus,
+          async () => ({
+            ...this.buildCapacityContractRiskAssetCockpitStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -11208,6 +11266,305 @@ module.exports = {
           readinessScore,
           governanceContext,
           governanceEvidence,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildCapacityContractRiskAssetCockpitStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const sourceRefs = toList(params.sourceRef);
+
+      const evidenceSpecs = [
+        {
+          id: 'utilization',
+          label: 'Netzauslastung',
+          value: typeof params.utilization === 'number' ? params.utilization : params.utilization !== undefined && params.utilization !== null && params.utilization !== '' ? Number(params.utilization) : null,
+          sourceClass: 'capacity_utilization_check',
+          enablesDossierAddition: 'verify the technical capacity utilization or load profile',
+        },
+        {
+          id: 'bottleneck',
+          label: 'Engpass-Situation',
+          value: params.bottleneck,
+          sourceClass: 'grid_bottleneck_tracking',
+          enablesDossierAddition: 'identify grid bottlenecks or network constraints',
+        },
+        {
+          id: 'contract_status',
+          label: 'Vertragsstatus',
+          value: params.contractStatus,
+          sourceClass: 'contract_agreement_verification',
+          enablesDossierAddition: 'verify contract status or connection agreements',
+        },
+        {
+          id: 'legal_status',
+          label: 'Regulatorischer Legal-Status',
+          value: params.legalStatus,
+          sourceClass: 'legal_compliance_audit',
+          enablesDossierAddition: 'verify legal or regulatory compliance status',
+        },
+        {
+          id: 'capex',
+          label: 'CAPEX Investitionsoption',
+          value: typeof params.capex === 'number' ? params.capex : params.capex !== undefined && params.capex !== null && params.capex !== '' ? Number(params.capex) : null,
+          sourceClass: 'financial_capex_specification',
+          enablesDossierAddition: 'specify capex requirements or project budget',
+        },
+        {
+          id: 'opex',
+          label: 'OPEX Betriebskosten',
+          value: typeof params.opex === 'number' ? params.opex : params.opex !== undefined && params.opex !== null && params.opex !== '' ? Number(params.opex) : null,
+          sourceClass: 'financial_opex_estimation',
+          enablesDossierAddition: 'specify opex or recurring network charges',
+        },
+        {
+          id: 'owner',
+          label: 'Accountable Owner',
+          value: params.owner,
+          sourceClass: 'accountable_owner_assignment',
+          enablesDossierAddition: 'add the accountable owner or process sponsor role',
+        },
+        {
+          id: 'next_action',
+          label: 'Next Action',
+          value: params.nextAction,
+          sourceClass: 'risk_mitigation_planning',
+          enablesDossierAddition: 'add planned next action or risk mitigation',
+        },
+        {
+          id: 'source_refs',
+          label: 'Source references',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add citable regulatory or technical source grounding',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value !== undefined && spec.value !== null && spec.value !== false && spec.value !== '')
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue ?? spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => spec.value === undefined || spec.value === null || spec.value === false || spec.value === '')
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      // Determine statuses and riskLevel
+      let riskLevel = 'low';
+      let decisionStatus = 'approve';
+
+      const ut = typeof params.utilization === 'number' ? params.utilization : params.utilization !== undefined && params.utilization !== null && params.utilization !== '' ? Number(params.utilization) : null;
+      const bn = params.bottleneck;
+      const cs = params.contractStatus;
+      const ls = params.legalStatus;
+      const cx = typeof params.capex === 'number' ? params.capex : params.capex !== undefined && params.capex !== null && params.capex !== '' ? Number(params.capex) : null;
+
+      if (ut !== null) {
+        if (ut > 1.2) {
+          riskLevel = 'critical';
+          decisionStatus = 'reject_or_escalate';
+        } else if (ut > 1.0) {
+          riskLevel = 'high';
+          decisionStatus = 'approve_conditionally';
+        } else if (ut > 0.8) {
+          riskLevel = 'medium';
+          decisionStatus = 'approve_conditionally';
+        }
+      }
+
+      if (bn && /overload|congested|critical|blocking/i.test(bn)) {
+        riskLevel = 'critical';
+        decisionStatus = 'reject_or_escalate';
+      } else if (bn && /warn|congest/i.test(bn) && decisionStatus !== 'reject_or_escalate') {
+        riskLevel = 'high';
+        decisionStatus = 'approve_conditionally';
+      }
+
+      if (cs && /clarification|dispute|missing/i.test(cs)) {
+        decisionStatus = 'needs_contract_clarification';
+        if (riskLevel === 'low') riskLevel = 'medium';
+      }
+
+      if (ls && /non-compliant|dispute|invalid/i.test(ls)) {
+        decisionStatus = 'needs_legal_clarification';
+        riskLevel = 'high';
+      }
+
+      if (cx !== null && cx > 500000 && decisionStatus === 'approve') {
+        decisionStatus = 'needs_investment_decision';
+        riskLevel = 'medium';
+      }
+
+      const status =
+        !params.gridOperatorId
+          ? 'needs_grid_operator_id'
+          : ut === null
+            ? 'needs_utilization'
+            : !bn
+              ? 'needs_bottleneck'
+              : !cs
+                ? 'needs_contract_status'
+                : !ls
+                  ? 'needs_legal_status'
+                  : cx === null
+                    ? 'needs_capex'
+                    : typeof params.opex !== 'number' && (params.opex === undefined || params.opex === null || params.opex === '')
+                      ? 'needs_opex'
+                      : !params.owner
+                        ? 'needs_owner'
+                        : !params.nextAction
+                          ? 'needs_next_action'
+                          : sourceRefs.length === 0
+                            ? 'needs_source_refs'
+                            : decisionStatus === 'approve'
+                              ? 'ready_with_no_risk'
+                              : 'ready_with_risk_findings';
+
+      // If there are missing fields, the overall decisionStatus might be forced to "needs_evidence"
+      const finalDecisionStatus = missingEvidence.length > 0 ? 'needs_evidence' : decisionStatus;
+
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const complianceScore = readinessScore;
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'capacity_contract_risk_asset_cockpit',
+      }));
+
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `CCRC_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['utilization', 'bottleneck', 'contract_status', 'legal_status'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+
+      const complianceContext = {
+        gridOperatorId: params.gridOperatorId || null,
+      };
+
+      const complianceEvidence = {
+        utilization: ut,
+        bottleneck: bn || null,
+        firmCapacityKW: typeof params.firmCapacityKW === 'number' ? params.firmCapacityKW : params.firmCapacityKW ? Number(params.firmCapacityKW) : null,
+        flexibleCapacityKW: typeof params.flexibleCapacityKW === 'number' ? params.flexibleCapacityKW : params.flexibleCapacityKW ? Number(params.flexibleCapacityKW) : null,
+        contractStatus: cs || null,
+        legalStatus: ls || null,
+        altvereinbarung: typeof params.altvereinbarung === 'boolean' ? params.altvereinbarung : params.altvereinbarung ? String(params.altvereinbarung) === 'true' : null,
+        capex: cx,
+        opex: typeof params.opex === 'number' ? params.opex : params.opex ? Number(params.opex) : null,
+        owner: params.owner || null,
+        nextAction: params.nextAction || null,
+      };
+
+      const technicalCapacity = {
+        utilization: ut,
+        bottleneck: bn || null,
+        firmCapacityKW: complianceEvidence.firmCapacityKW,
+        flexibleCapacityKW: complianceEvidence.flexibleCapacityKW,
+      };
+
+      const contractBoundary = {
+        status: cs || null,
+        legalStatus: ls || null,
+        altvereinbarung: complianceEvidence.altvereinbarung,
+      };
+
+      const financialImpact = {
+        capex: cx,
+        opex: complianceEvidence.opex,
+        priority: params.priority || null,
+      };
+
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided capacity and contract risk evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+
+      return {
+        capacityContractRiskId: `ccrc:${Buffer.from(`${params.gridOperatorId || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'capacity_contract_risk_asset_cockpit',
+        safety: 'read_only',
+        requestContext: complianceContext,
+        status,
+        readinessScore,
+        riskLevel,
+        decisionStatus: finalDecisionStatus,
+        technicalCapacity,
+        contractBoundary,
+        financialImpact,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+        },
+        sourceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.capacityContractRiskAssetCockpitStatus'],
+          referenced: [
+            'grid-operations.connectionCapacityCheck',
+            'grid-operations.capacityUtilization',
+            'grid-operations.netzfahrplanGenerate',
+            'grid-connection.validate',
+            'finance-agent.fnavEconomics',
+            'finance-agent.analyze',
+            'investment-planning.createPlan',
+            'vdmi.dossier',
+            'interface-placeholder.requestEvidence',
+            'hitl.create',
+          ],
+          notCalled: [
+            'znp.createProject',
+            'znp.addLayer0',
+            'znp.addAssumption',
+            'assets.mutate',
+            'datapoint.mutate',
+            'hitl.create',
+            'vdmi.create',
+            'vdmi.mutate',
+            'finance-agent.mutate',
+            'investment-planning.createPlan',
+            'billing.release',
+            'settlement.prepareBilling',
+            'tariff.mutate',
+            'device-control.execute',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          riskLevel,
+          decisionStatus: finalDecisionStatus,
+          technicalCapacity,
+          contractBoundary,
+          financialImpact,
           evidenceItems,
           missingEvidence,
           positiveFollowUps,
