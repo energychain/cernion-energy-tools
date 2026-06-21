@@ -516,6 +516,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/investment-committee-steering-cards']).toBe(
         'dashboard-api.investmentCommitteeSteeringCardsStatus'
       );
+      expect(aliases['GET /dashboard/investment-data-review-queue']).toBe(
+        'dashboard-api.investmentDataReviewQueueStatus'
+      );
       expect(aliases['GET /dashboard/flex-strategic-demand-intake']).toBe(
         'dashboard-api.flexStrategicDemandIntakeStatus'
       );

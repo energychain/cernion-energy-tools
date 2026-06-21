@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 39 static rules', () => {
+    it('loads all 40 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(39);
+      expect(rules.length).toBe(40);
     });
 
-    it('compiles all 39 static rules without error', () => {
+    it('compiles all 40 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(39);
+      expect(rules.length).toBe(40);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1766,6 +1766,34 @@ describe('dossier-hydration-registry (unit)', () => {
         ],
       });
       expect(formatted).toContain('Residuallast Mittel: 400.0 MW');
+    });
+
+    it('investment-data-review-queue-status formats review evidence', () => {
+      const rule = getRule('dashboard-api.investmentDataReviewQueueStatus');
+      const formatted = rule.formatEvidence({
+        status: 'review_ready',
+        readinessScore: 1,
+        reviewContext: {
+          sourceId: 'datasource-171',
+          assetRef: 'asset-171',
+          qualityStatus: 'quality-reviewed',
+          owner: 'Assetmanagement',
+          committeeWindow: '2026-Q3',
+          blockedDecision: 'CAPEX-Priorisierung',
+          reviewStatus: 'review-complete',
+        },
+        sourceActions: {
+          notCalled: ['hitl.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: review_ready'],
+        },
+      });
+
+      expect(formatted).toContain('Review Queue: review_ready');
+      expect(formatted).toContain('Source: datasource-171');
+      expect(formatted).toContain('Owner: Assetmanagement');
+      expect(formatted).toContain('Side-Effect Guard: hitl.create');
     });
   });
 

@@ -2139,5 +2139,96 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 179
+  },
+  {
+    "id": "investment-data-review-queue-status",
+    "description": "Read-only Investdaten-Pruefqueue evidence for dossier hydration",
+    "routeLabel": "investment_data_review_queue",
+    "capability": "investment_data_review_queue",
+    "action": "dashboard-api.investmentDataReviewQueueStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "hitl.create",
+        "vdmi.create",
+        "vdmi.mutate",
+        "investment-planning.createPlan",
+        "investment-planning.mutate",
+        "finance-agent.mutate",
+        "budget.release",
+        "billing.release",
+        "settlement.prepareBilling",
+        "tariff.mutate",
+        "payment.execute",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "investdaten pruefqueue",
+      "investdaten prüfqueue",
+      "investment data review queue",
+      "assetmanagement review",
+      "datenqualitaet investdaten",
+      "datenqualität investdaten",
+      "gremienfenster investdaten",
+      "blockierte folgeentscheidung investdaten"
+    ],
+    "paramTemplate": {
+      "sourceId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:sourceId[:= ]+|quelle[:=]+|datenpaket[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "assetRef": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:assetRef[:= ]+|asset[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner[:= ]+|verantwortlich[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Review Queue", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.sourceId", "reviewContext.sourceId"], "label": "Source", "maxLen": 120 },
+        { "paths": ["requestContext.dataPackageId", "reviewContext.dataPackageId"], "label": "Data Package", "maxLen": 120 },
+        { "paths": ["reviewContext.assetRef", "requestContext.assetRef"], "label": "Asset", "maxLen": 120 },
+        { "paths": ["reviewContext.projectRef", "requestContext.projectRef"], "label": "Project", "maxLen": 120 },
+        { "paths": ["reviewContext.qualityStatus"], "label": "Quality", "maxLen": 120 },
+        { "paths": ["reviewContext.division"], "label": "Division", "maxLen": 120 },
+        { "paths": ["reviewContext.bottleneckRef"], "label": "Bottleneck", "maxLen": 120 },
+        { "paths": ["reviewContext.owner", "requestContext.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["reviewContext.committeeWindow", "requestContext.committeeWindow"], "label": "Committee Window", "maxLen": 120 },
+        { "paths": ["reviewContext.blockedDecision"], "label": "Blocked Decision", "maxLen": 160 },
+        { "paths": ["reviewContext.reviewStatus"], "label": "Review Status", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 171
   }
 ]

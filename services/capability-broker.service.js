@@ -274,6 +274,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasInvestmentDataReviewQueueSpecificSignal =
+    /(investdaten|investment data|datenpaket|assetmanagement|asset-abstimmung|capex priorisierung|capex-priorisierung|pruefqueue|prüfqueue)/i.test(haystack) &&
+    /(pruefqueue|prüfqueue|review queue|datenqualitaet|datenqualität|quality status|gremienfenster|committee window|blockierte folgeentscheidung|blocked decision|bottleneck|engpass|owner)/i.test(haystack) &&
+    !/(zwei spuren|two.?track|budgetabgabe|investitionsabgabe|abgabesicherheit|iso 55001|freigabelogik|vorstandsformat|wallet|key material|schluessel|schlüssel|crypto|billing|settlement|abrechnung|tarif|payment|device-control|smgw switch|hitl create|budget release)/i.test(haystack);
+
+  if (hasInvestmentDataReviewQueueSpecificSignal) {
+    const investmentDataQueueCapability = findCapabilityByName('investment_data_review_queue');
+    if (investmentDataQueueCapability) {
+      return { capability: investmentDataQueueCapability, score: 138, usedFallback: false };
+    }
+  }
+
   const hasInvestmentCommitteeSteeringCardsSpecificSignal =
     /(investmittel|investitionskarte|investment item|capex|committee|gremien)/i.test(haystack) &&
     /(gremiensteuerung|gremienkarte|steering card|committee card|committee window|gremienfenster|pruefstatus|prüfstatus|review status|evidenzstatus|blocked follow.?up|blockierte folgeaktion)/i.test(haystack) &&

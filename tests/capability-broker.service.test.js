@@ -1125,6 +1125,23 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes investment data review queue prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte Investdaten Pruefqueue Assetmanagement fuer Datenpaket und CAPEX Priorisierung pruefen: Datenqualitaet, Engpassbezug, Gremienfenster, Owner und blockierte Folgeentscheidung.',
+    });
+
+    expect(result.capability).toBe('investment_data_review_queue');
+    expect(result.recommendedCapabilities[0].capability).toBe('investment_data_review_queue');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.investmentDataReviewQueueStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('vdmi.mutate');
+    expect(actionNames).not.toContain('investment-planning.mutate');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('budget.release');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes strategic Flex demand-intake prompts to the read-only evidence gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Bitte strategische Bedarfsanmeldung Flexibilisierung fuer Fahrplanmanagement pruefen: Risiko des Nicht-Handelns, kaufmaennische Bewertungsfrage, Ressourcenkonflikt, Stop-doing-Option, Owner, next decision gate und blockierte Folgeentscheidung.',

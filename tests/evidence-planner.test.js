@@ -264,6 +264,34 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans investment data review queue as explicit review evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'investment_data_review_queue' },
+      {
+        sourceId: 'source-171',
+        assetRef: 'asset-171',
+        qualityStatus: 'quality-open',
+        owner: 'Assetmanagement',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('investment_data_review_queue');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['source_data_package', 'asset_project_reference', 'quality_status', 'owner'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'division',
+        'bottleneck_ref',
+        'committee_window',
+        'blocked_decision',
+        'review_status',
+        'source_refs',
+      ])
+    );
+  });
+
   it('plans strategic Flex demand intake as explicit intake evidence', () => {
     const result = planEvidence(
       { routeLabel: 'flex_strategic_demand_intake' },

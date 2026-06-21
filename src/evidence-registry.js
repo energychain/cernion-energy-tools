@@ -1798,6 +1798,81 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  investment_data_review_queue: {
+    sources: [
+      {
+        id: 'source_data_package',
+        label: 'Datenpaket / Quelle',
+        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'datasource-registry.list', 'datasource-cache.query'],
+        contextKeys: ['sourceId', 'dataPackageId'],
+        optional: false,
+      },
+      {
+        id: 'asset_project_reference',
+        label: 'Asset- oder Projektbezug',
+        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'investment-planning.createPlan', 'vdmi.dossier'],
+        contextKeys: ['assetRef', 'projectRef'],
+        optional: false,
+      },
+      {
+        id: 'quality_status',
+        label: 'Datenqualitaetsstatus',
+        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'datasource-cache.query', 'vdmi.dossier'],
+        contextKeys: ['qualityStatus'],
+        optional: false,
+      },
+      {
+        id: 'division',
+        label: 'Sparte',
+        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'vdmi.dossier'],
+        contextKeys: ['division'],
+        optional: false,
+      },
+      {
+        id: 'bottleneck_ref',
+        label: 'Engpass-/Netzwirkungsbezug',
+        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'investment-planning.createPlan', 'vdmi.dossier'],
+        contextKeys: ['bottleneckRef'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Accountable Owner',
+        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'vdmi.dossier', 'hitl.summary'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'committee_window',
+        label: 'Gremienfenster',
+        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'vdmi.dossier', 'hitl.summary'],
+        contextKeys: ['committeeWindow'],
+        optional: false,
+      },
+      {
+        id: 'blocked_decision',
+        label: 'Blockierte Folgeentscheidung',
+        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'vdmi.dossier'],
+        contextKeys: ['blockedDecision'],
+        optional: false,
+      },
+      {
+        id: 'review_status',
+        label: 'Reviewstatus',
+        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'vdmi.dossier', 'hitl.summary'],
+        contextKeys: ['reviewStatus'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   flex_strategic_demand_intake: {
     sources: [
       {

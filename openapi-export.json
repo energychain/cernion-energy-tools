@@ -14041,6 +14041,21 @@
         "description": "Builds deterministic investment committee steering-card evidence. The endpoint is read-only and does not create HITL, VDMI or investment-plan records, mutate finance data, release budgets, call external connectors, trigger billing/settlement/tariff/payment effects, or use Personal-Agent shortcuts."
       }
     },
+    "/api/dashboard-api/investment-data-review-queue": {
+      "get": {
+        "operationId": "dashboard-api_investmentDataReviewQueueStatus",
+        "summary": "Investment data review queue — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only investment data review queue status"
+          }
+        },
+        "description": "Builds deterministic Investdaten-Pruefqueue evidence. The endpoint is read-only and does not create HITL tickets, VDMI records, investment plans, finance records, budget releases, settlement/billing/tariff effects, external connector calls, or Personal-Agent shortcuts."
+      }
+    },
     "/api/dashboard-api/flex-strategic-demand-intake": {
       "get": {
         "operationId": "dashboard-api_flexStrategicDemandIntakeStatus",
@@ -53057,6 +53072,21 @@
           }
         },
         "description": "Builds deterministic investment committee steering-card evidence. The endpoint is read-only and does not create HITL, VDMI or investment-plan records, mutate finance data, release budgets, call external connectors, trigger billing/settlement/tariff/payment effects, or use Personal-Agent shortcuts."
+      }
+    },
+    "/api/dashboard/investment-data-review-queue": {
+      "get": {
+        "operationId": "dashboard-api_investmentDataReviewQueueStatus",
+        "summary": "Investment data review queue — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only investment data review queue status"
+          }
+        },
+        "description": "Builds deterministic Investdaten-Pruefqueue evidence. The endpoint is read-only and does not create HITL tickets, VDMI records, investment plans, finance records, budget releases, settlement/billing/tariff effects, external connector calls, or Personal-Agent shortcuts."
       }
     },
     "/api/dashboard/flex-strategic-demand-intake": {

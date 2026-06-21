@@ -3220,6 +3220,76 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── investmentDataReviewQueueStatus ────────────────────────────────────
+
+  describe('investmentDataReviewQueueStatus', () => {
+    it('reports investment data review gaps without creating HITL, VDMI, investment or finance side effects', async () => {
+      const result = await broker.call('dashboard-api.investmentDataReviewQueueStatus', {
+        sourceId: 'source-171',
+      });
+
+      expect(result.status).toBe('needs_asset_project_reference');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'asset_project_reference',
+          'quality_status',
+          'division',
+          'bottleneck_ref',
+          'owner',
+          'committee_window',
+          'blocked_decision',
+          'review_status',
+          'source_refs',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('investment_data_review_queue');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'hitl.create',
+          'vdmi.mutate',
+          'investment-planning.createPlan',
+          'finance-agent.mutate',
+          'budget.release',
+          'settlement.prepareBilling',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns review_ready when investment data review evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.investmentDataReviewQueueStatus', {
+        sourceId: 'datasource-171',
+        dataPackageId: 'pkg-171',
+        assetRef: 'asset-171',
+        projectRef: 'project-171',
+        qualityStatus: 'quality-reviewed',
+        division: 'Assetmanagement',
+        bottleneckRef: 'engpass-west-171',
+        owner: 'Assetmanagement',
+        committeeWindow: '2026-Q3',
+        blockedDecision: 'CAPEX-Priorisierung fuer Projekt 171',
+        reviewStatus: 'review-complete',
+        sourceRef: 'datasource:171,hitl:review-171,vdmi:171',
+      });
+
+      expect(result.status).toBe('review_ready');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.reviewContext.qualityStatus).toBe('quality-reviewed');
+      expect(result.reviewContext.bottleneckRef).toBe('engpass-west-171');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['datasource:171', 'vdmi:171']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: review_ready',
+          'Provided review evidence: 10/10',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   // ── flexStrategicDemandIntakeStatus ────────────────────────────────────
 
   describe('flexStrategicDemandIntakeStatus', () => {

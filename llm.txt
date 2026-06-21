@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: b5fa3a6ab02a374c44c119d00669bff80a2df565e01523de8d3b18a32946df41
+  - openapi-export.json: 78ce6000e9358c5d196ed2611d4bc93364811c8fd7fe5559d908009e26366681
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 752
-- operation_count: 857
+- path_count: 754
+- operation_count: 859
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -695,7 +695,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 62 operations
+- Dashboard API: 64 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -982,6 +982,7 @@ process:
 - GET /api/dashboard-api/gas-decommissioning-roadmap | tags: [Dashboard API] | operationId: dashboard-api_gasDecommissioningRoadmapStatus | summary: Gas Decommissioning Roadmap — read-only dossier-safe status
 - GET /api/dashboard-api/imsys-schedule-value-chain-readiness | tags: [Dashboard API] | operationId: dashboard-api_imsysScheduleValueChainReadinessStatus | summary: iMSys schedule value-chain readiness — read-only dossier-safe gate
 - GET /api/dashboard-api/investment-committee-steering-cards | tags: [Dashboard API] | operationId: dashboard-api_investmentCommitteeSteeringCardsStatus | summary: Investment committee steering cards — read-only dossier-safe status
+- GET /api/dashboard-api/investment-data-review-queue | tags: [Dashboard API] | operationId: dashboard-api_investmentDataReviewQueueStatus | summary: Investment data review queue — read-only dossier-safe status
 - GET /api/dashboard-api/investment-risk-translation | tags: [Dashboard API] | operationId: dashboard-api_investmentRiskTranslationStatus | summary: Investment Risk Translation — read-only dossier-safe status
 - GET /api/dashboard-api/investment-two-track-control | tags: [Dashboard API] | operationId: dashboard-api_investmentTwoTrackControlStatus | summary: Investment two-track control — read-only dossier-safe status
 - GET /api/dashboard-api/jour-fixe-decision-closure | tags: [Dashboard API] | operationId: dashboard-api_jourFixeDecisionClosureStatus | summary: Jour-Fixe Decision Closure — read-only dossier-safe status
@@ -1013,6 +1014,7 @@ process:
 - GET /api/dashboard/gas-decommissioning-roadmap | tags: [Dashboard API] | operationId: dashboard-api_gasDecommissioningRoadmapStatus | summary: Gas Decommissioning Roadmap — read-only dossier-safe status
 - GET /api/dashboard/imsys-schedule-value-chain-readiness | tags: [Dashboard API] | operationId: dashboard-api_imsysScheduleValueChainReadinessStatus | summary: iMSys schedule value-chain readiness — read-only dossier-safe gate
 - GET /api/dashboard/investment-committee-steering-cards | tags: [Dashboard API] | operationId: dashboard-api_investmentCommitteeSteeringCardsStatus | summary: Investment committee steering cards — read-only dossier-safe status
+- GET /api/dashboard/investment-data-review-queue | tags: [Dashboard API] | operationId: dashboard-api_investmentDataReviewQueueStatus | summary: Investment data review queue — read-only dossier-safe status
 - GET /api/dashboard/investment-risk-translation | tags: [Dashboard API] | operationId: dashboard-api_investmentRiskTranslationStatus | summary: Investment Risk Translation — read-only dossier-safe status
 - GET /api/dashboard/investment-two-track-control | tags: [Dashboard API] | operationId: dashboard-api_investmentTwoTrackControlStatus | summary: Investment two-track control — read-only dossier-safe status
 - GET /api/dashboard/jour-fixe-decision-closure | tags: [Dashboard API] | operationId: dashboard-api_jourFixeDecisionClosureStatus | summary: Jour-Fixe Decision Closure — read-only dossier-safe status
@@ -16646,6 +16648,21 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/investment-data-review-queue": {
+      "get": {
+        "description": "Builds deterministic Investdaten-Pruefqueue evidence. The endpoint is read-only and does not create HITL tickets, VDMI records, investment plans, finance records, budget releases, settlement/billing/tariff effects, external connector calls, or Personal-Agent shortcuts.",
+        "operationId": "dashboard-api_investmentDataReviewQueueStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only investment data review queue status"
+          }
+        },
+        "summary": "Investment data review queue — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/investment-risk-translation": {
       "get": {
         "description": "Builds a deterministic evidence view for investment/risk translation material. The endpoint is read-only and does not create VDMI, HITL, Finance, Investment Planning, SAP/PSP, external connector or Personal-Agent side effects.",
@@ -20447,6 +20464,21 @@ process:
           }
         },
         "summary": "Investment committee steering cards — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
+    "/api/dashboard/investment-data-review-queue": {
+      "get": {
+        "description": "Builds deterministic Investdaten-Pruefqueue evidence. The endpoint is read-only and does not create HITL tickets, VDMI records, investment plans, finance records, budget releases, settlement/billing/tariff effects, external connector calls, or Personal-Agent shortcuts.",
+        "operationId": "dashboard-api_investmentDataReviewQueueStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only investment data review queue status"
+          }
+        },
+        "summary": "Investment data review queue — read-only dossier-safe status",
         "tags": [
           "Dashboard API"
         ]
@@ -59854,4 +59886,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 98ad62c763f9d9422cd877f98be8ac817f8c5cfcef87d38578f53c15ee7700dd
+- llm_txt_sha256: 6be6cf25fe23fec92bc63a31f4c33665dfda3df6756bf1539a16f85821a3eec9

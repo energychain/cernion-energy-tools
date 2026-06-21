@@ -66,6 +66,7 @@ module.exports = {
       controllabilitySubmissionCockpitStatus: 5 * 60 * 1000, // 5 min
       crisisDecisionRoutineStatus: 5 * 60 * 1000, // 5 min
       investmentCommitteeSteeringCardsStatus: 5 * 60 * 1000, // 5 min
+      investmentDataReviewQueueStatus: 5 * 60 * 1000, // 5 min
       flexStrategicDemandIntakeStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
@@ -2927,6 +2928,60 @@ module.exports = {
           this.settings.cacheTtlMs.investmentCommitteeSteeringCardsStatus,
           async () => ({
             ...this.buildInvestmentCommitteeSteeringCardsStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── investmentDataReviewQueueStatus ──────────────────────────────────
+    /**
+     * GET /api/dashboard/investment-data-review-queue?sourceId=...
+     *
+     * Read-only dossier-safe Investdaten-Pruefqueue view. It normalizes
+     * supplied source/data-package evidence without creating HITL, VDMI,
+     * investment-plan, finance, budget, settlement or external side effects.
+     */
+    investmentDataReviewQueueStatus: {
+      rest: 'GET /investment-data-review-queue',
+      params: {
+        sourceId: { type: 'string', optional: true, min: 1 },
+        dataPackageId: { type: 'string', optional: true, min: 1 },
+        assetRef: { type: 'string', optional: true, min: 1 },
+        projectRef: { type: 'string', optional: true, min: 1 },
+        qualityStatus: { type: 'string', optional: true, min: 1 },
+        division: { type: 'string', optional: true, min: 1 },
+        bottleneckRef: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        committeeWindow: { type: 'string', optional: true, min: 1 },
+        blockedDecision: { type: 'string', optional: true, min: 1 },
+        reviewStatus: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Investment data review queue — read-only dossier-safe status',
+        description:
+          'Builds deterministic Investdaten-Pruefqueue evidence. ' +
+          'The endpoint is read-only and does not create HITL tickets, VDMI records, investment plans, finance records, budget releases, settlement/billing/tariff effects, external connector calls, or Personal-Agent shortcuts.',
+        responses: {
+          200: {
+            description: 'Read-only investment data review queue status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const sourceRef = params.sourceId || params.dataPackageId || 'no-source';
+        const assetOrProject = params.assetRef || params.projectRef || 'no-asset-project';
+        const cacheKey = `investment-data-review-queue:${sourceRef}:${assetOrProject}:${params.owner || 'no-owner'}:${params.committeeWindow || 'no-window'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.investmentDataReviewQueueStatus,
+          async () => ({
+            ...this.buildInvestmentDataReviewQueueStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -9216,6 +9271,231 @@ module.exports = {
           readinessScore,
           cardContext,
           committeeContext,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockedDecisions,
+          blockingFindings,
+          sourceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildInvestmentDataReviewQueueStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const sourceRefs = toList(params.sourceRef);
+      const sourceOrPackage = params.sourceId || params.dataPackageId;
+      const assetOrProjectRef = params.assetRef || params.projectRef;
+      const evidenceSpecs = [
+        {
+          id: 'source_data_package',
+          label: 'Source/data package',
+          value: sourceOrPackage,
+          sourceClass: 'source_provenance',
+          enablesDossierAddition: 'add source provenance and auditability for the investment data package',
+        },
+        {
+          id: 'asset_project_reference',
+          label: 'Asset/project reference',
+          value: assetOrProjectRef,
+          sourceClass: 'asset_management_handover',
+          enablesDossierAddition: 'add Assetmanagement handover context',
+        },
+        {
+          id: 'quality_status',
+          label: 'Quality status',
+          value: params.qualityStatus,
+          sourceClass: 'data_quality_basis',
+          enablesDossierAddition: 'add review readiness and data-quality basis',
+        },
+        {
+          id: 'division',
+          label: 'Division',
+          value: params.division,
+          sourceClass: 'division_routing',
+          enablesDossierAddition: 'add responsible Sparte and routing context',
+        },
+        {
+          id: 'bottleneck_ref',
+          label: 'Bottleneck reference',
+          value: params.bottleneckRef,
+          sourceClass: 'grid_impact_reference',
+          enablesDossierAddition: 'add Engpass-/Netzwirkungsbezug',
+        },
+        {
+          id: 'owner',
+          label: 'Owner',
+          value: params.owner,
+          sourceClass: 'accountable_owner',
+          enablesDossierAddition: 'add accountable review owner',
+        },
+        {
+          id: 'committee_window',
+          label: 'Committee window',
+          value: params.committeeWindow,
+          sourceClass: 'committee_timing',
+          enablesDossierAddition: 'add Gremiensteuerung timing',
+        },
+        {
+          id: 'blocked_decision',
+          label: 'Blocked decision',
+          value: params.blockedDecision,
+          sourceClass: 'blocked_follow_up_decision',
+          enablesDossierAddition: 'add the blocked follow-up decision that can be prepared once evidence is complete',
+        },
+        {
+          id: 'review_status',
+          label: 'Review status',
+          value: params.reviewStatus,
+          sourceClass: 'review_queue_status',
+          enablesDossierAddition: 'add the current review queue status',
+        },
+        {
+          id: 'source_refs',
+          label: 'Source references',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add citable Datasource, Investment Planning, HITL or VDMI references',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue || spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const qualityText = String(params.qualityStatus || '').toLowerCase();
+      const reviewText = String(params.reviewStatus || '').toLowerCase();
+      const blockedByQuality = /blocked|blockiert|kritisch|critical|unvollstaendig|unvollständig|missing|fehlt/.test(qualityText);
+      const blockedByReview = /blocked|blockiert|rejected|abgelehnt|kritisch|critical/.test(reviewText);
+      const status =
+        blockedByQuality
+          ? 'blocked_by_quality'
+          : blockedByReview
+            ? 'blocked_by_review'
+            : !sourceOrPackage
+              ? 'needs_source_data_package'
+              : !assetOrProjectRef
+                ? 'needs_asset_project_reference'
+                : !params.qualityStatus
+                  ? 'needs_quality_status'
+                  : !params.division
+                    ? 'needs_division'
+                    : !params.bottleneckRef
+                      ? 'needs_bottleneck_reference'
+                      : !params.owner
+                        ? 'needs_owner'
+                        : !params.committeeWindow
+                          ? 'needs_committee_window'
+                          : !params.blockedDecision
+                            ? 'needs_blocked_decision'
+                            : !params.reviewStatus
+                              ? 'needs_review_status'
+                              : sourceRefs.length === 0
+                                ? 'needs_source_refs'
+                                : missingEvidence.length === 0
+                                  ? 'review_ready'
+                                  : 'needs_review_evidence';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'investment_data_review_queue',
+      }));
+      const blockedDecisions = Array.from(new Set([
+        ...missingEvidence
+          .filter((item) => ['quality_status', 'owner', 'committee_window', 'blocked_decision', 'review_status'].includes(item.missingDataPoint))
+          .map((item) => item.label),
+        ...(params.blockedDecision ? [params.blockedDecision] : []),
+      ]));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `IDRQ_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['quality_status', 'owner', 'committee_window', 'blocked_decision', 'review_status'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      if (blockedByQuality || blockedByReview) {
+        blockingFindings.push({
+          code: blockedByQuality ? 'IDRQ_QUALITY_STATUS_BLOCKING' : 'IDRQ_REVIEW_STATUS_BLOCKING',
+          severity: 'high',
+          message: 'quality or review status explicitly blocks investment data review readiness',
+        });
+      }
+      const reviewContext = {
+        sourceId: params.sourceId || null,
+        dataPackageId: params.dataPackageId || null,
+        assetRef: params.assetRef || null,
+        projectRef: params.projectRef || null,
+        qualityStatus: params.qualityStatus || null,
+        division: params.division || null,
+        bottleneckRef: params.bottleneckRef || null,
+        owner: params.owner || null,
+        committeeWindow: params.committeeWindow || null,
+        blockedDecision: params.blockedDecision || null,
+        reviewStatus: params.reviewStatus || null,
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided review evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (sourceOrPackage) dossierFacts.push(`Source Package: ${sourceOrPackage}`);
+      if (assetOrProjectRef) dossierFacts.push(`Asset/Project: ${assetOrProjectRef}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (params.committeeWindow) dossierFacts.push(`Committee Window: ${params.committeeWindow}`);
+
+      return {
+        reviewQueueStatusId: `idrq:${Buffer.from(`${sourceOrPackage || ''}:${assetOrProjectRef || ''}:${params.owner || ''}:${params.committeeWindow || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'investment_data_review_queue',
+        safety: 'read_only',
+        requestContext: {
+          sourceId: params.sourceId || null,
+          dataPackageId: params.dataPackageId || null,
+          assetRef: params.assetRef || null,
+          projectRef: params.projectRef || null,
+          owner: params.owner || null,
+          committeeWindow: params.committeeWindow || null,
+        },
+        status,
+        readinessScore,
+        reviewContext,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockedDecisions,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+        },
+        sourceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.investmentDataReviewQueueStatus'],
+          referenced: ['datasource-registry.list', 'datasource-cache.query', 'investment-planning.createPlan', 'hitl.summary', 'vdmi.dossier', 'evidence-registry.lookup', 'presentation.generate'],
+          notCalled: ['hitl.create', 'vdmi.create', 'vdmi.mutate', 'investment-planning.createPlan', 'investment-planning.mutate', 'finance-agent.mutate', 'budget.release', 'billing.release', 'settlement.prepareBilling', 'tariff.mutate', 'payment.execute', 'external.connector.call', 'personal-agent.execute'],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          reviewContext,
           evidenceItems,
           missingEvidence,
           positiveFollowUps,
