@@ -1471,6 +1471,8 @@ module.exports = {
             'dashboard-api.gasTransformationDependencyMapStatus',
           'GET /dashboard/grid-connection-transformation-gate':
             'dashboard-api.gridConnectionTransformationGateStatus',
+          'GET /dashboard/heat-asset-tariff-steering':
+            'dashboard-api.heatAssetTariffSteeringStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

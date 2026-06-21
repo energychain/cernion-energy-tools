@@ -286,6 +286,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasHeatAssetTariffSteeringSpecificSignal =
+    /(fernwaerme|fernwärme|wärmenetz|waermenetz|pflichttarif|tarifwirkung|post-2030|anerkennungsrisiko)/i.test(haystack) &&
+    /(heatPortfolioId|division|technicalMeasures|tariffImpactStatus|regulatoryUncertainty|fundingStatus|customerImpact|investmentPriority|owner|nextDecisionGate|blockedFollowUpAction|gaps|follow.?up|readiness)/i.test(haystack) &&
+    !/(edm timeseries|lastgang|zeitreihe|import|datasource refresh|refresh ausfuehren|refresh ausführen|billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|edm import|gas.?risiko|gas.?risk|risikoregister|risk.?register|krisenmodus|krisenroutine|crisis|controllability|governance)/i.test(haystack);
+
+  if (hasHeatAssetTariffSteeringSpecificSignal) {
+    const heatSteeringCapability = findCapabilityByName('heat_asset_tariff_steering');
+    if (heatSteeringCapability) {
+      return { capability: heatSteeringCapability, score: 138, usedFallback: false };
+    }
+  }
+
   const hasKiFloorwalkerGovernanceSpecificSignal =
     /(ki[- ]floorwalker|floorwalker|ki[- ]governance|ai[- ]governance|prompt[- ]standards|datenr[äa]ume|use[- ]case[- ]priorisierung)/i.test(haystack) &&
     /(use[- ]case[- ]priority|allowed[- ]dataspace|prompt[- ]standard|process[- ]boundar|roles[- ]and[- ]responsibilit|guided[- ]application|risk[- ]and[- ]approval|proof[- ]of[- ]benefit|gaps|follow[- ]up|readiness)/i.test(haystack) &&

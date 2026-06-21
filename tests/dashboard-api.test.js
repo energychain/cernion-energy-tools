@@ -4097,6 +4097,67 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── heatAssetTariffSteeringStatus ─────────────────────────────────────────
+
+  describe('heatAssetTariffSteeringStatus', () => {
+    it('reports heat asset tariff steering gate gaps without creating stateful databases or mutation side effects', async () => {
+      const result = await broker.call('dashboard-api.heatAssetTariffSteeringStatus', {
+        heatPortfolioId: 'portfolio-146',
+      });
+
+      expect(result.status).toBe('needs_division');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'division',
+          'technical_measures',
+          'tariff_impact_status',
+          'regulatory_uncertainty',
+          'funding_status',
+          'customer_impact',
+          'investment_priority',
+          'owner',
+          'next_decision_gate',
+          'blocked_follow_up_action',
+          'source_refs',
+        ])
+      );
+      expect(result.sourceActions.notCalled).toContain('hitl.create');
+    });
+
+    it('returns ready_for_steering_decision and correct gateStatus when all evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.heatAssetTariffSteeringStatus', {
+        heatPortfolioId: 'portfolio-146',
+        division: 'Fernwärme',
+        technicalMeasures: 'completed',
+        tariffImpactStatus: 'calculated',
+        regulatoryUncertainty: 'low_risk',
+        fundingStatus: 'approved',
+        customerImpact: 'positive',
+        investmentPriority: 'high',
+        owner: 'Assetmanagement Fernwärme',
+        nextDecisionGate: 'Investment Committee Window Q3',
+        blockedFollowUpAction: 'investment-planning.createPlan',
+        sourceRef: 'HeatSteeringDoc_2026,TariffImpact_Report',
+      });
+
+      expect(result.status).toBe('ready_for_steering_decision');
+      expect(result.gateStatus).toBe('invest');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.complianceEvidence.division).toBe('Fernwärme');
+      expect(result.complianceContext.heatPortfolioId).toBe('portfolio-146');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['HeatSteeringDoc_2026', 'TariffImpact_Report']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_steering_decision',
+          'Gate Status: invest',
+          'Provided District Heating Asset & Tariff Steering Gate evidence: 11/11',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(
