@@ -1338,4 +1338,21 @@ describe('Capability Broker Service', () => {
     expect(actionNames).toContain('gas-capacity-order-revision-gate.evaluate');
     expect(actionNames).not.toContain('personal-agent.execute');
   });
+
+  it('routes schedule management governance roadmap prompts to the read-only evidence status path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Fahrplanmanagement Governance Roadmap fuer melo-153: Ziel-Zustand, Faehigkeits-Reifegrad, Datenobjekt-Mapping, Systemintegrationen, Rollen-Matrix, Redispatch-Grenzbereich, fNAV-Schnittstelle, Verantwortlichkeit, naechste Schritte, Kapazitaetsmanagement-Luecken, Fahrplan-Elemente, Entscheidungsgremien und Quellenreferenzen.',
+    });
+
+    expect(result.capability).toBe('schedule_management_governance_roadmap');
+    expect(result.recommendedCapabilities[0].capability).toBe('schedule_management_governance_roadmap');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.scheduleManagementGovernanceRoadmapStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('grid-operations.executeControl');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+  });
 });

@@ -334,6 +334,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasScheduleManagementGovernanceRoadmapSpecificSignal =
+    /(fahrplanmanagement|netzfahrplan governance|fnav roadmap|kapazitaetsbewirtschaftung|engpasssteuerung|speicher fahrplan|edm integration|redispatch abgrenzung|governance roadmap|zielbild fahrplan)/i.test(haystack) &&
+    /(targetState|capabilityMaturity|dataObjects|systemIntegrations|roleOwnership|redispatchBoundary|fnavReadiness|capacityManagementGaps|roadmapItems|decisionMeetings|owner|nextAction|gaps|follow.?up|readiness|ziel-zustand|reifegrad|datenobjekt|systemintegration|verantwortlichkeit|gremien|melo-153)/i.test(haystack) &&
+    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|vdmi\.mutate|investment-planning\.createPlan|finance-agent\.mutate|budget\.release|settlement\.prepareBilling|external\.connector\.call|personal-agent\.execute|stilllegung|decommissioning|flexibilit[aä]tsdirigent)/i.test(haystack);
+
+  if (hasScheduleManagementGovernanceRoadmapSpecificSignal) {
+    const scheduleRoadmapCapability = findCapabilityByName('schedule_management_governance_roadmap');
+    if (scheduleRoadmapCapability) {
+      return { capability: scheduleRoadmapCapability, score: 138, usedFallback: false };
+    }
+  }
+
   const hasInvestmentWaterfallGovernanceSpecificSignal =
     /(investmittel[- ]wasserfall|wasserfall[- ]gremien|investment[- ]waterfall|gremienlogik|gremienkalender|mittelbindung|investitionssteuerung|budget[- ]engpass|entscheidungsfenster|nachweisreife|strategy[- ]to[- ]execution)/i.test(haystack) &&
     /(investmentItemId|budgetAmount|bottleneckRef|targetProcess|committeeWindow|evidenceReadiness|owner|nextAction|mandateStatus|riskIfDelayed|gaps|follow.?up|readiness)/i.test(haystack) &&

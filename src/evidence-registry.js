@@ -2316,6 +2316,102 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  schedule_management_governance_roadmap: {
+    sources: [
+      {
+        id: 'target_state',
+        label: 'Ziel-Zustand',
+        resolvedBy: ['dashboard-api.scheduleManagementGovernanceRoadmapStatus', 'vdmi.dossier'],
+        contextKeys: ['targetState'],
+        optional: false,
+      },
+      {
+        id: 'capability_maturity',
+        label: 'Faehigkeits-Reifegrad',
+        resolvedBy: ['dashboard-api.scheduleManagementGovernanceRoadmapStatus', 'vdmi.dossier'],
+        contextKeys: ['capabilityMaturity'],
+        optional: false,
+      },
+      {
+        id: 'data_objects',
+        label: 'Datenobjekte',
+        resolvedBy: ['dashboard-api.scheduleManagementGovernanceRoadmapStatus', 'vdmi.dossier'],
+        contextKeys: ['dataObjects'],
+        optional: false,
+      },
+      {
+        id: 'system_integrations',
+        label: 'Systemintegrationen',
+        resolvedBy: ['dashboard-api.scheduleManagementGovernanceRoadmapStatus', 'vdmi.dossier'],
+        contextKeys: ['systemIntegrations'],
+        optional: false,
+      },
+      {
+        id: 'role_ownership',
+        label: 'Rollenverantwortung',
+        resolvedBy: ['dashboard-api.scheduleManagementGovernanceRoadmapStatus', 'vdmi.dossier'],
+        contextKeys: ['roleOwnership'],
+        optional: false,
+      },
+      {
+        id: 'redispatch_boundary',
+        label: 'Redispatch-Grenzbereich',
+        resolvedBy: ['dashboard-api.scheduleManagementGovernanceRoadmapStatus', 'vdmi.dossier'],
+        contextKeys: ['redispatchBoundary'],
+        optional: false,
+      },
+      {
+        id: 'fnav_readiness',
+        label: 'fNAV-Bereitschaft',
+        resolvedBy: ['dashboard-api.scheduleManagementGovernanceRoadmapStatus', 'vdmi.dossier'],
+        contextKeys: ['fnavReadiness'],
+        optional: false,
+      },
+      {
+        id: 'capacity_management_gaps',
+        label: 'Kapazitaetsmanagement-Luecken',
+        resolvedBy: ['dashboard-api.scheduleManagementGovernanceRoadmapStatus', 'vdmi.dossier'],
+        contextKeys: ['capacityManagementGaps'],
+        optional: false,
+      },
+      {
+        id: 'roadmap_items',
+        label: 'Fahrplan-Elemente',
+        resolvedBy: ['dashboard-api.scheduleManagementGovernanceRoadmapStatus', 'vdmi.dossier'],
+        contextKeys: ['roadmapItems'],
+        optional: false,
+      },
+      {
+        id: 'decision_meetings',
+        label: 'Entscheidungsgremien',
+        resolvedBy: ['dashboard-api.scheduleManagementGovernanceRoadmapStatus', 'vdmi.dossier'],
+        contextKeys: ['decisionMeetings'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Prozessverantwortlicher Owner',
+        resolvedBy: ['dashboard-api.scheduleManagementGovernanceRoadmapStatus', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'next_action',
+        label: 'Naechste Massnahme',
+        resolvedBy: ['dashboard-api.scheduleManagementGovernanceRoadmapStatus', 'vdmi.dossier'],
+        contextKeys: ['nextAction'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.scheduleManagementGovernanceRoadmapStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   capacity_contract_risk_asset_cockpit: {
     sources: [
       {

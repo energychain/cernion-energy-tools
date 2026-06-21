@@ -75,6 +75,7 @@ module.exports = {
       investmentWaterfallGovernanceStatus: 5 * 60 * 1000, // 5 min
       capacityContractRiskAssetCockpitStatus: 5 * 60 * 1000, // 5 min
       imsysTaf2ComplianceStatus: 5 * 60 * 1000, // 5 min
+      scheduleManagementGovernanceRoadmapStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3425,6 +3426,62 @@ module.exports = {
           this.settings.cacheTtlMs.imsysTaf2ComplianceStatus,
           async () => ({
             ...this.buildImsysTaf2ComplianceStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── scheduleManagementGovernanceRoadmapStatus ─────────────────────────────
+    /**
+     * GET /api/dashboard/schedule-management-governance-roadmap
+     *
+     * Read-only dossier-safe Fahrplanmanagement Governance Roadmap.
+     * It builds a deterministic roadmap and status projection from supplied facts
+     * without creating a new scheduling database or triggering active mutations.
+     */
+    scheduleManagementGovernanceRoadmapStatus: {
+      rest: 'GET /schedule-management-governance-roadmap',
+      params: {
+        meteringPointId: { type: 'string', optional: true, min: 1 },
+        targetState: { type: 'string', optional: true, min: 1 },
+        capabilityMaturity: { type: 'string', optional: true, min: 1 },
+        dataObjects: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        systemIntegrations: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        roleOwnership: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        redispatchBoundary: { type: 'string', optional: true, min: 1 },
+        fnavReadiness: { type: 'string', optional: true, min: 1 },
+        capacityManagementGaps: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        roadmapItems: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        decisionMeetings: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        owner: { type: 'string', optional: true, min: 1 },
+        nextAction: { type: 'string', optional: true, min: 1 },
+        forecast: { type: 'boolean', optional: true },
+        date: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Fahrplanmanagement Governance Roadmap — read-only dossier-safe status',
+        description:
+          'Builds deterministic roadmap and status from supplied facts. ' +
+          'The endpoint is read-only and does not run dispatch/writes or write to ZNP, assets, HITL, or VDMI.',
+        responses: {
+          200: {
+            description: 'Read-only schedule management status and roadmap evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `schedule-management-governance:${params.meteringPointId || 'no-melo'}:${params.targetState || 'no-target'}:${params.owner || 'no-owner'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.scheduleManagementGovernanceRoadmapStatus,
+          async () => ({
+            ...this.buildScheduleManagementGovernanceRoadmapStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -11758,6 +11815,270 @@ module.exports = {
             'grid-operations.executeControl',
             'external.connector.call',
             'personal-agent.execute'
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          complianceScore,
+          complianceContext,
+          complianceEvidence,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildScheduleManagementGovernanceRoadmapStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+
+      const dataObjects = toList(params.dataObjects);
+      const systemIntegrations = toList(params.systemIntegrations);
+      const roleOwnership = toList(params.roleOwnership);
+      const capacityManagementGaps = toList(params.capacityManagementGaps);
+      const roadmapItems = toList(params.roadmapItems);
+      const decisionMeetings = toList(params.decisionMeetings);
+      const sourceRefs = toList(params.sourceRef);
+
+      const evidenceSpecs = [
+        {
+          id: 'target_state',
+          label: 'Ziel-Zustand',
+          value: params.targetState,
+          sourceClass: 'roadmap_target_state_specification',
+          enablesDossierAddition: 'define the target state or roadmap maturity goal',
+        },
+        {
+          id: 'capability_maturity',
+          label: 'Faehigkeits-Reifegrad',
+          value: params.capabilityMaturity,
+          sourceClass: 'roadmap_maturity_assessment',
+          enablesDossierAddition: 'assess the capability maturity level (concept, pilot_ready, operational)',
+        },
+        {
+          id: 'data_objects',
+          label: 'Datenobjekte',
+          value: dataObjects.length > 0,
+          displayValue: dataObjects.join(', '),
+          sourceClass: 'data_object_mapping',
+          enablesDossierAddition: 'map required data objects (Anschlussbegehren, Netzfahrplan, Messdaten, etc.)',
+        },
+        {
+          id: 'system_integrations',
+          label: 'Systemintegrationen',
+          value: systemIntegrations.length > 0,
+          displayValue: systemIntegrations.join(', '),
+          sourceClass: 'system_integration_definition',
+          enablesDossierAddition: 'define connected core systems (EDM, Redispatch, Grid Operations)',
+        },
+        {
+          id: 'role_ownership',
+          label: 'Rollenverantwortung',
+          value: roleOwnership.length > 0,
+          displayValue: roleOwnership.join(', '),
+          sourceClass: 'role_ownership_matrix',
+          enablesDossierAddition: 'assign roles and process sponsorship (Assetmanagement, Netzbetrieb, Legal, PMO)',
+        },
+        {
+          id: 'redispatch_boundary',
+          label: 'Redispatch-Grenzbereich',
+          value: params.redispatchBoundary,
+          sourceClass: 'redispatch_boundary_clarification',
+          enablesDossierAddition: 'clarify the Redispatch 2.0 system boundaries and data exchange interfaces',
+        },
+        {
+          id: 'fnav_readiness',
+          label: 'fNAV-Bereitschaft',
+          value: params.fnavReadiness,
+          sourceClass: 'fnav_readiness_validation',
+          enablesDossierAddition: 'validate fNAV/netzfahrplan legal or contract status ready for operational integration',
+        },
+        {
+          id: 'capacity_management_gaps',
+          label: 'Kapazitaetsmanagement-Luecken',
+          value: capacityManagementGaps.length > 0,
+          displayValue: capacityManagementGaps.join(', '),
+          sourceClass: 'capacity_gap_identification',
+          enablesDossierAddition: 'identify capacity bottlenecks, flexibility constraints or tariff gaps',
+        },
+        {
+          id: 'roadmap_items',
+          label: 'Fahrplan-Elemente',
+          value: roadmapItems.length > 0,
+          displayValue: roadmapItems.join(', '),
+          sourceClass: 'roadmap_backlog_items',
+          enablesDossierAddition: 'list planned roadmap milestones and implementation steps',
+        },
+        {
+          id: 'decision_meetings',
+          label: 'Entscheidungsgremien',
+          value: decisionMeetings.length > 0,
+          displayValue: decisionMeetings.join(', '),
+          sourceClass: 'steering_committee_windows',
+          enablesDossierAddition: 'specify decision meetings and steering committee windows',
+        },
+        {
+          id: 'owner',
+          label: 'Prozessverantwortlicher Owner',
+          value: params.owner,
+          sourceClass: 'roadmap_responsibility',
+          enablesDossierAddition: 'assign an accountable owner role or sponsor for the roadmap',
+        },
+        {
+          id: 'next_action',
+          label: 'Naechste Massnahme',
+          value: params.nextAction,
+          sourceClass: 'next_roadmap_action',
+          enablesDossierAddition: 'define the immediate next action step',
+        },
+        {
+          id: 'source_refs',
+          label: 'Quellenreferenzen',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add regulatory sources or documentation reference credentials',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value !== undefined && spec.value !== null && spec.value !== false)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue ?? spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => spec.value === undefined || spec.value === null || spec.value === false)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        !params.targetState
+          ? 'needs_target_state'
+          : !params.capabilityMaturity
+            ? 'needs_capability_maturity'
+            : dataObjects.length === 0
+              ? 'needs_data_objects'
+              : systemIntegrations.length === 0
+                ? 'needs_system_integrations'
+                : roleOwnership.length === 0
+                  ? 'needs_role_ownership'
+                  : !params.redispatchBoundary
+                    ? 'needs_redispatch_boundary'
+                    : !params.fnavReadiness
+                      ? 'needs_fnav_readiness'
+                      : capacityManagementGaps.length === 0
+                        ? 'needs_capacity_management_gaps'
+                        : roadmapItems.length === 0
+                          ? 'needs_roadmap_items'
+                          : decisionMeetings.length === 0
+                            ? 'needs_decision_meetings'
+                            : !params.owner
+                              ? 'needs_owner'
+                              : !params.nextAction
+                                ? 'needs_next_action'
+                                : sourceRefs.length === 0
+                                  ? 'needs_source_refs'
+                                  : 'operational';
+
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const complianceScore = readinessScore;
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'schedule_management_governance_roadmap',
+      }));
+
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `SMGR_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['target_state', 'capability_maturity', 'owner', 'next_action'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+
+      const complianceContext = {
+        meteringPointId: params.meteringPointId || null,
+      };
+
+      const complianceEvidence = {
+        targetState: params.targetState || null,
+        capabilityMaturity: params.capabilityMaturity || null,
+        dataObjects,
+        systemIntegrations,
+        roleOwnership,
+        redispatchBoundary: params.redispatchBoundary || null,
+        fnavReadiness: params.fnavReadiness || null,
+        capacityManagementGaps,
+        roadmapItems,
+        decisionMeetings,
+        owner: params.owner || null,
+        nextAction: params.nextAction || null,
+      };
+
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided Fahrplanmanagement governance roadmap evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.meteringPointId) dossierFacts.push(`Metering Point ID: ${params.meteringPointId}`);
+
+      return {
+        scheduleManagementGovernanceRoadmapStatusId: `smgr:${Buffer.from(`${params.meteringPointId || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'schedule_management_governance_roadmap',
+        safety: 'read_only',
+        requestContext: complianceContext,
+        status,
+        readinessScore,
+        complianceScore,
+        complianceContext,
+        complianceEvidence,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+        },
+        sourceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.scheduleManagementGovernanceRoadmapStatus'],
+          referenced: [
+            'grid-operations.netzfahrplanGenerate',
+            'grid-connection.fnavValidate',
+            'redispatch-expost.audit',
+            'edm-validation.validate',
+            'datapoint.health',
+            'vdmi.dossier',
+            'interface-placeholder.requestEvidence'
+          ],
+          notCalled: [
+            'hitl.create',
+            'grid-operations.executeControl',
+            'external.connector.call',
+            'personal-agent.execute',
+            'finance-agent.mutate',
+            'settlement.prepareBilling'
           ],
         },
         validationFindings: blockingFindings,

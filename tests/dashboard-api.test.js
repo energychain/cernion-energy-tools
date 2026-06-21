@@ -3899,6 +3899,79 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── scheduleManagementGovernanceRoadmapStatus ─────────────────────────────
+
+  describe('scheduleManagementGovernanceRoadmapStatus', () => {
+    it('reports schedule management governance roadmap gaps without creating stateful scheduling or database side effects', async () => {
+      const result = await broker.call('dashboard-api.scheduleManagementGovernanceRoadmapStatus', {
+        meteringPointId: 'melo-153',
+      });
+
+      expect(result.status).toBe('needs_target_state');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'target_state',
+          'capability_maturity',
+          'data_objects',
+          'system_integrations',
+          'role_ownership',
+          'redispatch_boundary',
+          'fnav_readiness',
+          'capacity_management_gaps',
+          'roadmap_items',
+          'decision_meetings',
+          'owner',
+          'next_action',
+          'source_refs',
+        ])
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'hitl.create',
+          'grid-operations.executeControl',
+          'external.connector.call',
+          'personal-agent.execute',
+          'finance-agent.mutate',
+          'settlement.prepareBilling',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns operational when roadmap evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.scheduleManagementGovernanceRoadmapStatus', {
+        meteringPointId: 'melo-153',
+        targetState: 'target_fnav_ready',
+        capabilityMaturity: 'concept',
+        dataObjects: 'Anschlussbegehren, Netzfahrplan',
+        systemIntegrations: 'EDM, Redispatch-Ex-Post',
+        roleOwnership: 'Assetmanagement, Netzbetrieb',
+        redispatchBoundary: 'redispatch_2.0_not_intersected',
+        fnavReadiness: 'validation_pending',
+        capacityManagementGaps: 'missing_storage_tariffs',
+        roadmapItems: 'define_roles, validate_edm_channels',
+        decisionMeetings: 'Q3_steering_committee',
+        owner: 'Netzbetrieb',
+        nextAction: 'define_target_state',
+        sourceRef: 'EnWG_14a,fNAV_V1',
+      });
+
+      expect(result.status).toBe('operational');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.complianceEvidence.targetState).toBe('target_fnav_ready');
+      expect(result.complianceContext.meteringPointId).toBe('melo-153');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['EnWG_14a', 'fNAV_V1']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: operational',
+          'Provided Fahrplanmanagement governance roadmap evidence: 13/13',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(
