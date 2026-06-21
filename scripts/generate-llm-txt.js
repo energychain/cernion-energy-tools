@@ -5,6 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
+const { CURATED_CAPABILITIES, INTERFACE_PLACEHOLDER_CAPABILITY } = require('../src/capability-catalog');
+const { CANONICAL_DOMAINS, classifyAll } = require('../src/llm-manifest-taxonomy');
 
 const ROOT = path.join(__dirname, '..');
 const LLM_PATH = path.join(ROOT, 'llm.txt');
@@ -12,6 +14,8 @@ const OPENAPI_PATH = path.join(ROOT, 'openapi-export.json');
 const CHANGELOG_PATH = path.join(ROOT, 'CHANGELOG.md');
 const README_PATH = path.join(ROOT, 'README.md');
 const BACKEND_CONTEXT_PATH = path.join(ROOT, 'docs', 'BACKEND_CONTEXT.md');
+
+const END_OF_AGENT_RELEVANT_MARKER = '--- END OF AGENT-RELEVANT CONTENT ---';
 
 function readUtf8(filePath) {
   return fs.readFileSync(filePath, 'utf8');
@@ -23,26 +27,6 @@ function hashText(text) {
 
 function hashFile(filePath) {
   return hashText(readUtf8(filePath));
-}
-
-function sortDeep(value) {
-  if (Array.isArray(value)) {
-    return value.map(sortDeep);
-  }
-  if (!value || typeof value !== 'object') {
-    return value;
-  }
-
-  const sorted = {};
-  const keys = Object.keys(value).sort();
-  for (const key of keys) {
-    sorted[key] = sortDeep(value[key]);
-  }
-  return sorted;
-}
-
-function stableJson(value) {
-  return JSON.stringify(sortDeep(value), null, 2);
 }
 
 function splitLines(text) {
@@ -70,10 +54,12 @@ function latestReleaseHeading(changelogText) {
   return match ? match[1] : 'unknown';
 }
 
-function sanitizeOpenApi(spec) {
-  const clone = JSON.parse(JSON.stringify(spec));
-  delete clone['x-generated-at'];
-  return clone;
+function truncateOneLine(text, maxLen) {
+  const oneLine = String(text || '').replace(/\s+/g, ' ').trim();
+  if (oneLine.length <= maxLen) return oneLine;
+  const cut = oneLine.slice(0, maxLen - 1);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trim()}…`;
 }
 
 function summarizeOpenApi(spec) {
@@ -94,57 +80,28 @@ function summarizeOpenApi(spec) {
     }
   }
 
-  const tagMap = new Map();
+  return { pathCount: paths.length, operationCount: operations.length, operations };
+}
+
+// Groups operations sharing an operationId into one canonical entry (shortest,
+// alphabetically-first path) — mirrors services/agent-manifest.service.js so the
+// manifest's per-domain operation counts match what GET /_agent/operations returns.
+function dedupeOperations(operations) {
+  const byOperationId = new Map();
   for (const op of operations) {
-    for (const tag of op.tags) {
-      tagMap.set(tag, (tagMap.get(tag) || 0) + 1);
-    }
+    const key = op.operationId || `${op.method} ${op.path}`;
+    if (!byOperationId.has(key)) byOperationId.set(key, []);
+    byOperationId.get(key).push(op);
   }
 
-  const tags = Array.from(tagMap.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([name, count]) => ({ name, count }));
-
-  return {
-    pathCount: paths.length,
-    operationCount: operations.length,
-    tags,
-    operations,
-  };
-}
-
-function formatOpenApiOperation(op) {
-  const tagText = op.tags.length > 0 ? op.tags.join(', ') : 'none';
-  return `- ${op.method} ${op.path} | tags: [${tagText}] | operationId: ${op.operationId} | summary: ${op.summary}`;
-}
-
-function formatCookbookRecipe(recipe) {
-  const tags = Array.isArray(recipe.tags) ? recipe.tags.join(', ') : '';
-  const prerequisites = Array.isArray(recipe.prerequisites)
-    ? recipe.prerequisites.join(' | ')
-    : 'none';
-
-  const steps = (Array.isArray(recipe.process) ? recipe.process : [])
-    .slice()
-    .sort((a, b) => (a.step || 0) - (b.step || 0))
-    .map((step) => {
-      const params = step.params ? stableJson(step.params).replace(/\n/g, ' ') : '{}';
-      return `  - step ${step.step}: ${step.service}.${step.action} | rest: ${step.restPath || 'n/a'} | params: ${params}`;
-    })
-    .join('\n');
-
-  return [
-    `### Recipe: ${recipe.id}`,
-    `title: ${recipe.title}`,
-    `domain: ${recipe.domain}`,
-    `deprecated: ${Boolean(recipe.deprecated)}`,
-    `tags: ${tags}`,
-    `problem: ${recipe.problem}`,
-    `expectedResult: ${recipe.expectedResult}`,
-    `prerequisites: ${prerequisites}`,
-    'process:',
-    steps,
-  ].join('\n');
+  const result = [];
+  for (const group of byOperationId.values()) {
+    const sorted = group
+      .slice()
+      .sort((a, b) => a.path.length - b.path.length || a.path.localeCompare(b.path));
+    result.push(sorted[0]);
+  }
+  return result;
 }
 
 function renderDomainKnowledge(readme, backendContext) {
@@ -177,6 +134,54 @@ function renderDomainKnowledge(readme, backendContext) {
   ].join('\n');
 }
 
+function renderResolutionProtocol() {
+  return [
+    '## RESOLUTION PROTOCOL',
+    '',
+    'CLUSTER HEADS only below (capability ids, recipe ids, domain names) — no',
+    'endpoints. Resolve a head before acting. Multiple reasoning hops (domain →',
+    'resolve → item → resolve) are expected; do not guess endpoint shapes.',
+    '',
+    '- Vague intent → closest CAPABILITY id → GET /api/_agent/capabilities/<id>',
+    '  (preferredActions, requiredInputs, risksAndNotes, keywords).',
+    '- Known workflow → closest RECIPE id → GET /api/cookbook/<id>',
+    '  (step-by-step service/action/restPath/params).',
+    '- Raw operation surface for a domain → GET /api/_agent/operations?domain=<d>',
+    '  (deduplicated operationId → canonical path + aliases).',
+    '- Full OpenAPI contract (schemas/bodies) → openapi-export.json (repo root) or',
+    '  GET /api/openapi.json. Not embedded here — would duplicate that file.',
+  ].join('\n');
+}
+
+function renderClusterManifest(buckets) {
+  const lines = ['## Cluster Manifest', ''];
+
+  for (const domain of CANONICAL_DOMAINS) {
+    const bucket = buckets[domain];
+    const capabilityIds = bucket.capabilities
+      .map((c) => c.capability)
+      .sort()
+      .join(', ');
+    const recipeLines = bucket.recipes
+      .slice()
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map((r) => `  ${r.id} "${truncateOneLine(r.problem, 100)}"`)
+      .join('\n');
+    const dedupedOps = dedupeOperations(bucket.operations);
+
+    lines.push(
+      `### ${domain} (${bucket.capabilities.length} capabilities · ${bucket.recipes.length} recipes · ${dedupedOps.length} operations)`,
+      `capabilities: ${capabilityIds || '(none)'}`,
+      'recipes:',
+      recipeLines || '  (none)',
+      `resolve: GET /api/_agent/operations?domain=${domain}`,
+      ''
+    );
+  }
+
+  return lines.join('\n').trim();
+}
+
 function regenerateOpenApiExport() {
   execSync('node scripts/export-openapi.js', {
     cwd: ROOT,
@@ -188,6 +193,35 @@ function regenerateOpenApiExport() {
   });
 }
 
+function printDomainStats(buckets, unmapped) {
+  console.log('[generate-llm-txt] Domain classification stats:');
+  for (const domain of CANONICAL_DOMAINS) {
+    const b = buckets[domain];
+    console.log(
+      `  ${domain.padEnd(16)} caps=${b.capabilities.length}  recipes=${b.recipes.length}  ops=${dedupeOperations(b.operations).length}`
+    );
+  }
+
+  const unmappedTotal =
+    unmapped.capabilities.length + unmapped.recipes.length + unmapped.operations.length;
+  if (unmappedTotal > 0) {
+    console.error('[generate-llm-txt] UNMAPPED entries found (taxonomy gap, no silent loss allowed):');
+    if (unmapped.capabilities.length) {
+      console.error('  capabilities:', unmapped.capabilities.join(', '));
+    }
+    if (unmapped.recipes.length) {
+      console.error('  recipes:', unmapped.recipes.join(', '));
+    }
+    if (unmapped.operations.length) {
+      console.error('  operations:', unmapped.operations.join(', '));
+    }
+    console.error(
+      '[generate-llm-txt] Add the missing entries to src/llm-manifest-taxonomy.js and re-run.'
+    );
+  }
+  return unmappedTotal;
+}
+
 function buildLlmTxt() {
   regenerateOpenApiExport();
 
@@ -196,84 +230,83 @@ function buildLlmTxt() {
   const readme = readUtf8(README_PATH);
   const backendContext = readUtf8(BACKEND_CONTEXT_PATH);
   const recipesModule = require(path.join(ROOT, 'src', 'cookbook-recipes'));
-  const recipes = (recipesModule.COOKBOOK_RECIPES || [])
-    .slice()
-    .sort((a, b) => a.id.localeCompare(b.id));
+  const recipes = (recipesModule.COOKBOOK_RECIPES || []).slice().sort((a, b) => a.id.localeCompare(b.id));
+  const capabilities = [...CURATED_CAPABILITIES, INTERFACE_PLACEHOLDER_CAPABILITY];
 
   const openapiRaw = JSON.parse(readUtf8(OPENAPI_PATH));
-  const openapi = sanitizeOpenApi(openapiRaw);
-  const openapiSummary = summarizeOpenApi(openapi);
+  const openapiSummary = summarizeOpenApi(openapiRaw);
 
   const unreleased = sliceMarkdownSection(changelog, '[Unreleased]');
   const latestVersion = latestReleaseHeading(changelog);
 
-  const cookbookDomains = recipes.reduce((acc, recipe) => {
-    const key = recipe.domain || 'unknown';
-    acc.set(key, (acc.get(key) || 0) + 1);
-    return acc;
-  }, new Map());
+  const { buckets, unmapped } = classifyAll({
+    capabilities,
+    recipes,
+    operations: openapiSummary.operations,
+  });
+  const unmappedTotal = printDomainStats(buckets, unmapped);
+  if (unmappedTotal > 0) {
+    console.error(
+      `[generate-llm-txt] ${unmappedTotal} unmapped entries — refusing to generate llm.txt.`
+    );
+    process.exit(1);
+  }
 
-  const cookbookDomainLines = Array.from(cookbookDomains.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([domain, count]) => `- ${domain}: ${count}`)
-    .join('\n');
-
-  const recipesRendered = recipes.map(formatCookbookRecipe).join('\n\n');
-  const operationsRendered = openapiSummary.operations.map(formatOpenApiOperation).join('\n');
-  const tagsRendered = openapiSummary.tags
-    .map((item) => `- ${item.name}: ${item.count} operations`)
-    .join('\n');
-
-  const openApiCanonicalJson = stableJson(openapi);
-
-  const lines = [
+  const agentRelevantLines = [
     '# LLM IMPLEMENTATION CONTEXT',
     '',
     '## Metadata',
     `- project: ${packageJson.name}`,
     `- version: ${packageJson.version}`,
     `- changelog_latest_release: ${latestVersion}`,
-    `- source_files_hash:`,
-    `  - CHANGELOG.md: ${hashFile(CHANGELOG_PATH)}`,
-    `  - README.md: ${hashFile(README_PATH)}`,
-    `  - docs/BACKEND_CONTEXT.md: ${hashFile(BACKEND_CONTEXT_PATH)}`,
-    `  - src/cookbook-recipes.js: ${hashFile(path.join(ROOT, 'src', 'cookbook-recipes.js'))}`,
-    `  - openapi-export.json: ${hashFile(OPENAPI_PATH)}`,
     '',
     '## Purpose',
-    'This file is generated for LLM consumption and release-time context transfer.',
-    'It provides a complete implementation picture: architecture, domain knowledge, cookbook recipes, and OpenAPI surface.',
+    'This file is a navigation manifest for LLM/agent consumers. It lists cluster',
+    'heads (capabilities, recipes, domains) — not endpoints — so a consuming agent',
+    'can pick a cluster and resolve it to detail in a second call. See RESOLUTION',
+    'PROTOCOL below.',
+    '',
+    renderResolutionProtocol(),
+    '',
+    renderDomainKnowledge(readme, backendContext),
+    '',
+    renderClusterManifest(buckets),
+  ];
+
+  const agentRelevantBody = `${agentRelevantLines.join('\n')}\n`;
+
+  const nonAgentLines = [
+    END_OF_AGENT_RELEVANT_MARKER,
+    '',
+    'Everything below is release/build provenance, not navigation content.',
+    'Agents resolving capabilities/recipes/operations do not need to read past this point.',
     '',
     '## Release Provenance',
     '### Unreleased (from CHANGELOG)',
     unreleased || 'n/a',
     '',
-    renderDomainKnowledge(readme, backendContext),
+    '## Source File Hashes',
+    `- CHANGELOG.md: ${hashFile(CHANGELOG_PATH)}`,
+    `- README.md: ${hashFile(README_PATH)}`,
+    `- docs/BACKEND_CONTEXT.md: ${hashFile(BACKEND_CONTEXT_PATH)}`,
+    `- src/cookbook-recipes.js: ${hashFile(path.join(ROOT, 'src', 'cookbook-recipes.js'))}`,
+    `- src/capability-catalog.js: ${hashFile(path.join(ROOT, 'src', 'capability-catalog.js'))}`,
+    `- openapi-export.json: ${hashFile(OPENAPI_PATH)}`,
     '',
-    '## Cookbook Summary',
-    `- total_recipes: ${recipes.length}`,
-    '- recipes_by_domain:',
-    cookbookDomainLines || 'n/a',
-    '',
-    '## Cookbook Recipes (Complete)',
-    recipesRendered,
-    '',
-    '## OpenAPI Summary',
+    '## OpenAPI Surface (full contract, not embedded)',
     `- path_count: ${openapiSummary.pathCount}`,
     `- operation_count: ${openapiSummary.operationCount}`,
-    '- operations_by_tag:',
-    tagsRendered || 'n/a',
-    '',
-    '## OpenAPI Operations (Complete Index)',
-    operationsRendered,
-    '',
-    '## OpenAPI Canonical JSON (Complete)',
-    openApiCanonicalJson,
+    '- full_spec: openapi-export.json (repo root) or GET /api/openapi.json',
   ];
 
-  const body = `${lines.join('\n')}\n`;
+  const nonAgentBody = `${nonAgentLines.join('\n')}\n`;
+
+  const body = `${agentRelevantBody}\n${nonAgentBody}`;
   const digest = hashText(body);
-  return `${body}\n## Integrity\n- llm_txt_sha256: ${digest}\n`;
+  return {
+    content: `${body}\n## Integrity\n- llm_txt_sha256: ${digest}\n`,
+    agentRelevantBody,
+  };
 }
 
 function writeIfChanged(filePath, nextContent) {
@@ -298,7 +331,7 @@ function runCheck(filePath, nextContent) {
 
 function main() {
   const checkOnly = process.argv.includes('--check');
-  const content = buildLlmTxt();
+  const { content } = buildLlmTxt();
 
   if (checkOnly) {
     runCheck(LLM_PATH, content);
@@ -314,4 +347,8 @@ function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = { buildLlmTxt, END_OF_AGENT_RELEVANT_MARKER };

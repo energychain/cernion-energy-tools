@@ -1532,6 +1532,12 @@ module.exports = {
           'POST /cookbook/search': 'cookbook.search',
           'POST /cookbook/validate': 'cookbook.validate',
 
+          // Agent Manifest — llm.txt cluster manifest resolve endpoints
+          // NOTE: static /capabilities must precede dynamic /capabilities/:name.
+          'GET /_agent/capabilities': 'agent-manifest.listCapabilities',
+          'GET /_agent/capabilities/:name': 'agent-manifest.getCapability',
+          'GET /_agent/operations': 'agent-manifest.listOperations',
+
           // Agent Receipts — runtime-managed routing receipts (v0.54.0)
           // NOTE: static /validate and /propose must precede dynamic /:id routes.
           'GET /agent-receipts': 'agent-receipts.list',

@@ -178,6 +178,108 @@
     }
   ],
   "paths": {
+    "/api/agent-manifest/capabilities": {
+      "get": {
+        "operationId": "agent-manifest_listCapabilities",
+        "summary": "List capability-broker catalog entries",
+        "tags": [
+          "Agent Manifest"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Resolves capability ids referenced in the llm.txt cluster manifest to their full routing metadata.",
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "redispatch"
+            },
+            "description": "Filter by canonical manifest domain (see llm.txt RESOLUTION PROTOCOL)."
+          }
+        ]
+      }
+    },
+    "/api/agent-manifest/capabilities/:name": {
+      "get": {
+        "operationId": "agent-manifest_getCapability",
+        "summary": "Get a single capability-broker catalog entry",
+        "tags": [
+          "Agent Manifest"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns one capability by id including preferredActions, requiredInputs, and risksAndNotes.",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "redispatch_asset_register"
+            },
+            "description": "Capability id (CURATED_CAPABILITIES[].capability)."
+          }
+        ]
+      }
+    },
+    "/api/agent-manifest/operations": {
+      "get": {
+        "operationId": "agent-manifest_listOperations",
+        "summary": "List deduplicated OpenAPI operations, optionally filtered by manifest domain",
+        "tags": [
+          "Agent Manifest"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Resolves a domain cluster from the llm.txt manifest to its operation slice. Operations sharing an operationId across multiple paths are merged into one canonical entry with an aliases list.",
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "redispatch"
+            },
+            "description": "Canonical manifest domain (see llm.txt RESOLUTION PROTOCOL). Omit to list all domains."
+          }
+        ]
+      }
+    },
     "/api/agent-persona/personas/:id/availability": {
       "put": {
         "operationId": "agent-persona_updateAvailability",
@@ -54776,6 +54878,108 @@
         ],
         "x-oeo-class": [
           "https://openenergyplatform.org/ontology/oeo/OEO_00000143"
+        ]
+      }
+    },
+    "/api/_agent/capabilities": {
+      "get": {
+        "operationId": "agent-manifest_listCapabilities",
+        "summary": "List capability-broker catalog entries",
+        "tags": [
+          "Agent Manifest"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Resolves capability ids referenced in the llm.txt cluster manifest to their full routing metadata.",
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "redispatch"
+            },
+            "description": "Filter by canonical manifest domain (see llm.txt RESOLUTION PROTOCOL)."
+          }
+        ]
+      }
+    },
+    "/api/_agent/capabilities/:name": {
+      "get": {
+        "operationId": "agent-manifest_getCapability",
+        "summary": "Get a single capability-broker catalog entry",
+        "tags": [
+          "Agent Manifest"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns one capability by id including preferredActions, requiredInputs, and risksAndNotes.",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "redispatch_asset_register"
+            },
+            "description": "Capability id (CURATED_CAPABILITIES[].capability)."
+          }
+        ]
+      }
+    },
+    "/api/_agent/operations": {
+      "get": {
+        "operationId": "agent-manifest_listOperations",
+        "summary": "List deduplicated OpenAPI operations, optionally filtered by manifest domain",
+        "tags": [
+          "Agent Manifest"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Resolves a domain cluster from the llm.txt manifest to its operation slice. Operations sharing an operationId across multiple paths are merged into one canonical entry with an aliases list.",
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "redispatch"
+            },
+            "description": "Canonical manifest domain (see llm.txt RESOLUTION PROTOCOL). Omit to list all domains."
+          }
         ]
       }
     },
