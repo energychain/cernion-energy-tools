@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: 3c15d97f871ef9198c95f1ee5cc901562b2d623e8cd8c08249eca9e62654f3a6
+  - openapi-export.json: b12112af69202fabdfa12c1bfcd8952fcc9eaae99b86d1ff02f267ffa637c34e
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 760
-- operation_count: 865
+- path_count: 762
+- operation_count: 867
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -695,7 +695,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 70 operations
+- Dashboard API: 72 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -988,6 +988,7 @@ process:
 - GET /api/dashboard-api/investment-risk-translation | tags: [Dashboard API] | operationId: dashboard-api_investmentRiskTranslationStatus | summary: Investment Risk Translation — read-only dossier-safe status
 - GET /api/dashboard-api/investment-two-track-control | tags: [Dashboard API] | operationId: dashboard-api_investmentTwoTrackControlStatus | summary: Investment two-track control — read-only dossier-safe status
 - GET /api/dashboard-api/jour-fixe-decision-closure | tags: [Dashboard API] | operationId: dashboard-api_jourFixeDecisionClosureStatus | summary: Jour-Fixe Decision Closure — read-only dossier-safe status
+- GET /api/dashboard-api/ki-floorwalker-governance | tags: [Dashboard API] | operationId: dashboard-api_kiFloorwalkerGovernanceStatus | summary: KI Floorwalker governance — read-only dossier-safe status
 - GET /api/dashboard-api/legacy-control-technology-transition | tags: [Dashboard API] | operationId: dashboard-api_legacyControlTechnologyTransitionStatus | summary: Legacy control technology transition — read-only dossier-safe gate
 - GET /api/dashboard-api/load-profile-stream-monitor | tags: [Dashboard API] | operationId: dashboard-api_loadProfileStreamMonitor | summary: Load profile movement monitor — strict anomaly-class buckets
 - GET /api/dashboard-api/market-communication-evidence-chain | tags: [Dashboard API] | operationId: dashboard-api_marketCommunicationEvidenceChainStatus | summary: Market communication evidence chain — read-only dossier-safe status
@@ -1023,6 +1024,7 @@ process:
 - GET /api/dashboard/investment-risk-translation | tags: [Dashboard API] | operationId: dashboard-api_investmentRiskTranslationStatus | summary: Investment Risk Translation — read-only dossier-safe status
 - GET /api/dashboard/investment-two-track-control | tags: [Dashboard API] | operationId: dashboard-api_investmentTwoTrackControlStatus | summary: Investment two-track control — read-only dossier-safe status
 - GET /api/dashboard/jour-fixe-decision-closure | tags: [Dashboard API] | operationId: dashboard-api_jourFixeDecisionClosureStatus | summary: Jour-Fixe Decision Closure — read-only dossier-safe status
+- GET /api/dashboard/ki-floorwalker-governance | tags: [Dashboard API] | operationId: dashboard-api_kiFloorwalkerGovernanceStatus | summary: KI Floorwalker governance — read-only dossier-safe status
 - GET /api/dashboard/legacy-control-technology-transition | tags: [Dashboard API] | operationId: dashboard-api_legacyControlTechnologyTransitionStatus | summary: Legacy control technology transition — read-only dossier-safe gate
 - GET /api/dashboard/load-profile-stream-monitor | tags: [Dashboard API] | operationId: dashboard-api_loadProfileStreamMonitor | summary: Load profile movement monitor — strict anomaly-class buckets
 - GET /api/dashboard/market-communication-evidence-chain | tags: [Dashboard API] | operationId: dashboard-api_marketCommunicationEvidenceChainStatus | summary: Market communication evidence chain — read-only dossier-safe status
@@ -17259,6 +17261,21 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/ki-floorwalker-governance": {
+      "get": {
+        "description": "Builds deterministic AI governance evidence from supplied facts. The endpoint is read-only and does not run AI/LLM models, prompt databases, or write to HITL/VDMI.",
+        "operationId": "dashboard-api_kiFloorwalkerGovernanceStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only KI Floorwalker governance status"
+          }
+        },
+        "summary": "KI Floorwalker governance — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/legacy-control-technology-transition": {
       "get": {
         "description": "Builds a deterministic evidence view for Rundsteuertechnik/Gruppensignal transition readiness. The endpoint is read-only and does not execute grid control, CLS, SMGW, device-control, HITL, settlement, MaKo, external connector or Personal-Agent side effects.",
@@ -21120,6 +21137,21 @@ process:
           }
         },
         "summary": "Jour-Fixe Decision Closure — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
+    "/api/dashboard/ki-floorwalker-governance": {
+      "get": {
+        "description": "Builds deterministic AI governance evidence from supplied facts. The endpoint is read-only and does not run AI/LLM models, prompt databases, or write to HITL/VDMI.",
+        "operationId": "dashboard-api_kiFloorwalkerGovernanceStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only KI Floorwalker governance status"
+          }
+        },
+        "summary": "KI Floorwalker governance — read-only dossier-safe status",
         "tags": [
           "Dashboard API"
         ]
@@ -59982,4 +60014,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 7029e5a59c0eea5f58e6061815fede256e03a82a271bcacf08d8d7a5d60f7ca9
+- llm_txt_sha256: dccf0db15a8b5337566906f47f8b3773cf08c0609a5fa67b26f07e18e5a35a3d

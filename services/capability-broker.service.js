@@ -286,6 +286,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasKiFloorwalkerGovernanceSpecificSignal =
+    /(ki[- ]floorwalker|floorwalker|ki[- ]governance|ai[- ]governance|prompt[- ]standards|datenr[äa]ume|use[- ]case[- ]priorisierung)/i.test(haystack) &&
+    /(use[- ]case[- ]priority|allowed[- ]dataspace|prompt[- ]standard|process[- ]boundar|roles[- ]and[- ]responsibilit|guided[- ]application|risk[- ]and[- ]approval|proof[- ]of[- ]benefit|gaps|follow[- ]up|readiness)/i.test(haystack) &&
+    !/(openai\.call|hitl\.create|vdmi\.mutate|personal-agent\.execute|openai.call|hitl.create|vdmi.mutate|personal-agent.execute)/i.test(haystack);
+
+  if (hasKiFloorwalkerGovernanceSpecificSignal) {
+    const kiFloorwalkerCapability = findCapabilityByName('ki_floorwalker_governance');
+    if (kiFloorwalkerCapability) {
+      return { capability: kiFloorwalkerCapability, score: 138, usedFallback: false };
+    }
+  }
+
   const hasMeteringRolloutProcessIndicatorSpecificSignal =
     /(zaehlwechsel|zählwechsel|zaehlkennzahl|zählkennzahl|rolloutkennzahl|rollout kennzahl|metering rollout|messstellenbetrieb|msb|spartenuebergreifend|spartenübergreifend)/i.test(haystack) &&
     /(soll.?ist|target.?actual|rueckstand|rückstand|backlog|datenqualitaet|datenqualität|data quality|dienstleisterlast|contractor load|capex|opex|prozessindikator|process indicator|next control step|steuerungsschritt)/i.test(haystack) &&

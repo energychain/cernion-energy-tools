@@ -2119,6 +2119,74 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  ki_floorwalker_governance: {
+    sources: [
+      {
+        id: 'use_case_priority',
+        label: 'Use-Case-Prioritaet',
+        resolvedBy: ['dashboard-api.kiFloorwalkerGovernanceStatus', 'personal-agent.chat', 'vdmi.dossier'],
+        contextKeys: ['useCasePriority'],
+        optional: false,
+      },
+      {
+        id: 'allowed_dataspaces',
+        label: 'Erlaubte Datenraeume',
+        resolvedBy: ['dashboard-api.kiFloorwalkerGovernanceStatus', 'datapoint.oemetadata', 'vdmi.dossier'],
+        contextKeys: ['allowedDataspaces'],
+        optional: false,
+      },
+      {
+        id: 'prompt_standards',
+        label: 'Prompt-Standards / Prompt-Bausteine',
+        resolvedBy: ['dashboard-api.kiFloorwalkerGovernanceStatus', 'personal-agent.chat', 'vdmi.dossier'],
+        contextKeys: ['promptStandards'],
+        optional: false,
+      },
+      {
+        id: 'process_boundaries',
+        label: 'Prozessgrenzen',
+        resolvedBy: ['dashboard-api.kiFloorwalkerGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['processBoundaries'],
+        optional: false,
+      },
+      {
+        id: 'roles_and_responsibilities',
+        label: 'Rollen & Verantwortlichkeiten',
+        resolvedBy: ['dashboard-api.kiFloorwalkerGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['rolesAndResponsibilities'],
+        optional: false,
+      },
+      {
+        id: 'guided_application',
+        label: 'Nachweis Begleitung/Schulung',
+        resolvedBy: ['dashboard-api.kiFloorwalkerGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['guidedApplication'],
+        optional: false,
+      },
+      {
+        id: 'risk_and_approval_status',
+        label: 'Freigabestatus und Risikoanalyse',
+        resolvedBy: ['dashboard-api.kiFloorwalkerGovernanceStatus', 'cya.generate', 'vdmi.dossier'],
+        contextKeys: ['riskAndApprovalStatus'],
+        optional: false,
+      },
+      {
+        id: 'proof_of_benefit',
+        label: 'Nutzennachweis',
+        resolvedBy: ['dashboard-api.kiFloorwalkerGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['proofOfBenefit'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.kiFloorwalkerGovernanceStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   metering_rollout_process_indicator: {
     sources: [
       {

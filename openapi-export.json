@@ -14116,6 +14116,21 @@
         "description": "Builds deterministic line-asset evidence from supplied facts. The endpoint is read-only and does not create ZNP projects, point/line assets, datapoints, VDMI dossiers, finance plans, HITL tasks, or trigger device control or external connectors."
       }
     },
+    "/api/dashboard-api/ki-floorwalker-governance": {
+      "get": {
+        "operationId": "dashboard-api_kiFloorwalkerGovernanceStatus",
+        "summary": "KI Floorwalker governance — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only KI Floorwalker governance status"
+          }
+        },
+        "description": "Builds deterministic AI governance evidence from supplied facts. The endpoint is read-only and does not run AI/LLM models, prompt databases, or write to HITL/VDMI."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53192,6 +53207,21 @@
           }
         },
         "description": "Builds deterministic line-asset evidence from supplied facts. The endpoint is read-only and does not create ZNP projects, point/line assets, datapoints, VDMI dossiers, finance plans, HITL tasks, or trigger device control or external connectors."
+      }
+    },
+    "/api/dashboard/ki-floorwalker-governance": {
+      "get": {
+        "operationId": "dashboard-api_kiFloorwalkerGovernanceStatus",
+        "summary": "KI Floorwalker governance — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only KI Floorwalker governance status"
+          }
+        },
+        "description": "Builds deterministic AI governance evidence from supplied facts. The endpoint is read-only and does not run AI/LLM models, prompt databases, or write to HITL/VDMI."
       }
     },
     "/api/dashboard/market-snapshot": {

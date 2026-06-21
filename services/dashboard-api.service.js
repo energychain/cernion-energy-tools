@@ -71,6 +71,7 @@ module.exports = {
       gasInfrastructureRiskGovernanceStatus: 5 * 60 * 1000, // 5 min
       meteringRolloutProcessIndicatorStatus: 5 * 60 * 1000, // 5 min
       heatTransformationLineAssetModelStatus: 5 * 60 * 1000, // 5 min
+      kiFloorwalkerGovernanceStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3209,6 +3210,58 @@ module.exports = {
           this.settings.cacheTtlMs.heatTransformationLineAssetModelStatus,
           async () => ({
             ...this.buildHeatTransformationLineAssetModelStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── kiFloorwalkerGovernanceStatus ───────────────────────────
+    /**
+     * GET /api/dashboard/ki-floorwalker-governance
+     *
+     * Read-only dossier-safe KI Floorwalker governance. It
+     * builds AI/floorwalker and governance evidence from supplied status facts
+     * without creating a new AI platform, prompt database, n8n connection,
+     * or triggering automatic HITL/VDMI mutations.
+     */
+    kiFloorwalkerGovernanceStatus: {
+      rest: 'GET /ki-floorwalker-governance',
+      params: {
+        useCaseId: { type: 'string', optional: true, min: 1 },
+        processOwner: { type: 'string', optional: true, min: 1 },
+        useCasePriority: { type: 'string', optional: true, min: 1 },
+        allowedDataspaces: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        promptStandards: { type: 'string', optional: true, min: 1 },
+        processBoundaries: { type: 'string', optional: true, min: 1 },
+        rolesAndResponsibilities: { type: 'string', optional: true, min: 1 },
+        guidedApplication: { type: 'string', optional: true, min: 1 },
+        riskAndApprovalStatus: { type: 'string', optional: true, min: 1 },
+        proofOfBenefit: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'KI Floorwalker governance — read-only dossier-safe status',
+        description:
+          'Builds deterministic AI governance evidence from supplied facts. ' +
+          'The endpoint is read-only and does not run AI/LLM models, prompt databases, or write to HITL/VDMI.',
+        responses: {
+          200: {
+            description: 'Read-only KI Floorwalker governance status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `ki-floorwalker-governance:${params.useCaseId || 'no-id'}:${params.processOwner || 'no-owner'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.kiFloorwalkerGovernanceStatus,
+          async () => ({
+            ...this.buildKiFloorwalkerGovernanceStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -10644,6 +10697,205 @@ module.exports = {
           readinessScore,
           modelContext,
           lineEvidence,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildKiFloorwalkerGovernanceStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const sourceRefs = toList(params.sourceRef);
+      const allowedDataspaces = toList(params.allowedDataspaces);
+
+      const evidenceSpecs = [
+        {
+          id: 'use_case_priority',
+          label: 'Use-case priority',
+          value: params.useCasePriority,
+          sourceClass: 'use_case_priority',
+          enablesDossierAddition: 'add the prioritized use-case status or strategic value tier',
+        },
+        {
+          id: 'allowed_dataspaces',
+          label: 'Allowed data spaces',
+          value: allowedDataspaces.length > 0,
+          displayValue: allowedDataspaces.join(', '),
+          sourceClass: 'allowed_data_spaces',
+          enablesDossierAddition: 'add the list of cleared and compliant enterprise data spaces',
+        },
+        {
+          id: 'prompt_standards',
+          label: 'Prompt standards',
+          value: params.promptStandards,
+          sourceClass: 'prompt_standards',
+          enablesDossierAddition: 'add the validated prompt patterns or prompt templates',
+        },
+        {
+          id: 'process_boundaries',
+          label: 'Process boundaries',
+          value: params.processBoundaries,
+          sourceClass: 'process_boundaries',
+          enablesDossierAddition: 'add the operational process boundaries or scope limits',
+        },
+        {
+          id: 'roles_and_responsibilities',
+          label: 'Roles & responsibilities',
+          value: params.rolesAndResponsibilities,
+          sourceClass: 'roles_and_responsibilities',
+          enablesDossierAddition: 'add the accountable owners, governance coordinators, or release authorities',
+        },
+        {
+          id: 'guided_application',
+          label: 'Guided application',
+          value: params.guidedApplication,
+          sourceClass: 'guided_application',
+          enablesDossierAddition: 'add the structured user enablement, training, or operating-model guidance',
+        },
+        {
+          id: 'risk_and_approval_status',
+          label: 'Risk & approval status',
+          value: params.riskAndApprovalStatus,
+          sourceClass: 'risk_and_approval_status',
+          enablesDossierAddition: 'add the regulatory risk classification (e.g. EU AI Act conformity) and approval status',
+        },
+        {
+          id: 'proof_of_benefit',
+          label: 'Proof of benefit',
+          value: params.proofOfBenefit,
+          sourceClass: 'proof_of_benefit',
+          enablesDossierAddition: 'add the strategic benefit metrics, KPIs, or productivity gains proof',
+        },
+        {
+          id: 'source_refs',
+          label: 'Source references',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add the citable source references or grounding evidence',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue ?? spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        !params.useCaseId
+          ? 'needs_use_case_id'
+          : !params.processOwner
+            ? 'needs_process_owner'
+            : !params.useCasePriority
+              ? 'needs_use_case_priority'
+              : allowedDataspaces.length === 0
+                ? 'needs_allowed_dataspaces'
+                : !params.promptStandards
+                  ? 'needs_prompt_standards'
+                  : !params.processBoundaries
+                    ? 'needs_process_boundaries'
+                    : !params.rolesAndResponsibilities
+                      ? 'needs_roles_and_responsibilities'
+                      : !params.guidedApplication
+                        ? 'needs_guided_application'
+                        : !params.riskAndApprovalStatus
+                          ? 'needs_risk_and_approval_status'
+                          : !params.proofOfBenefit
+                            ? 'needs_proof_of_benefit'
+                            : sourceRefs.length === 0
+                              ? 'needs_source_refs'
+                              : 'ready_for_floorwalker_application';
+
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'ki_floorwalker_governance',
+      }));
+
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `KIFG_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['use_case_priority', 'allowed_dataspaces', 'roles_and_responsibilities', 'risk_and_approval_status'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+
+      const governanceContext = {
+        useCaseId: params.useCaseId || null,
+        processOwner: params.processOwner || null,
+      };
+
+      const governanceEvidence = {
+        useCasePriority: params.useCasePriority || null,
+        allowedDataspaces,
+        promptStandards: params.promptStandards || null,
+        processBoundaries: params.processBoundaries || null,
+        rolesAndResponsibilities: params.rolesAndResponsibilities || null,
+        guidedApplication: params.guidedApplication || null,
+        riskAndApprovalStatus: params.riskAndApprovalStatus || null,
+        proofOfBenefit: params.proofOfBenefit || null,
+      };
+
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided KI floorwalker evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.useCaseId) dossierFacts.push(`Use Case ID: ${params.useCaseId}`);
+      if (params.processOwner) dossierFacts.push(`Process Owner: ${params.processOwner}`);
+
+      return {
+        kiFloorwalkerGovernanceStatusId: `kifg:${Buffer.from(`${params.useCaseId || ''}:${params.processOwner || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'ki_floorwalker_governance',
+        safety: 'read_only',
+        requestContext: governanceContext,
+        status,
+        readinessScore,
+        governanceContext,
+        governanceEvidence,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+        },
+        sourceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.kiFloorwalkerGovernanceStatus'],
+          referenced: ['personal-agent.chat', 'cya.generate', 'vdmi.dossier', 'datapoint.oemetadata', 'evidence-registry.lookup', 'presentation.generate'],
+          notCalled: ['openai.call', 'hitl.create', 'vdmi.mutate', 'personal-agent.execute'],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          governanceContext,
+          governanceEvidence,
           evidenceItems,
           missingEvidence,
           positiveFollowUps,

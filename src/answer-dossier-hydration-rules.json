@@ -2513,5 +2513,82 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 171
+  },
+  {
+    "id": "ki-floorwalker-governance-status",
+    "description": "Read-only KI Floorwalker governance evidence for dossier hydration",
+    "routeLabel": "ki_floorwalker_governance",
+    "capability": "ki_floorwalker_governance",
+    "action": "dashboard-api.kiFloorwalkerGovernanceStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "openai.call",
+        "hitl.create",
+        "vdmi.mutate",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "ki floorwalker",
+      "ai floorwalker",
+      "ki governance",
+      "ai governance",
+      "prompt standards",
+      "prompt-standards",
+      "datenraeume",
+      "datenräume",
+      "use-case priorisierung",
+      "use-case-priorisierung",
+      "prozessgrenze",
+      "nutzennachweis"
+    ],
+    "paramTemplate": {
+      "useCaseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:useCaseId[:= ]+|use_case_id[:= ]+|usecase[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "processOwner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:processOwner[:= ]+|owner[:= ]+|verantwortlich[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "AI Governance", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.useCaseId", "governanceContext.useCaseId"], "label": "Use Case ID", "maxLen": 120 },
+        { "paths": ["requestContext.processOwner", "governanceContext.processOwner"], "label": "Process Owner", "maxLen": 120 },
+        { "paths": ["governanceEvidence.useCasePriority", "dossierEvidence.governanceEvidence.useCasePriority"], "label": "Priority Status", "maxLen": 120 },
+        { "paths": ["governanceEvidence.allowedDataspaces.0", "dossierEvidence.governanceEvidence.allowedDataspaces.0"], "label": "Allowed Data Spaces", "maxLen": 140 },
+        { "paths": ["governanceEvidence.promptStandards", "dossierEvidence.governanceEvidence.promptStandards"], "label": "Prompt Standards", "maxLen": 120 },
+        { "paths": ["governanceEvidence.processBoundaries", "dossierEvidence.governanceEvidence.processBoundaries"], "label": "Process Boundaries", "maxLen": 120 },
+        { "paths": ["governanceEvidence.rolesAndResponsibilities", "dossierEvidence.governanceEvidence.rolesAndResponsibilities"], "label": "Roles & Responsibilities", "maxLen": 140 },
+        { "paths": ["governanceEvidence.guidedApplication", "dossierEvidence.governanceEvidence.guidedApplication"], "label": "Guided Application", "maxLen": 120 },
+        { "paths": ["governanceEvidence.riskAndApprovalStatus", "dossierEvidence.governanceEvidence.riskAndApprovalStatus"], "label": "Risk & Approval", "maxLen": 120 },
+        { "paths": ["governanceEvidence.proofOfBenefit", "dossierEvidence.governanceEvidence.proofOfBenefit"], "label": "Proof of Benefit", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 165
   }
 ]

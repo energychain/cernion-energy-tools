@@ -1218,6 +1218,21 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes to ki_floorwalker_governance when KI floorwalker or governance is requested', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte KI Floorwalker Governance fuer Use Case uc-165 und Process Owner Netzvertrieb pruefen: Use Case Priority high-priority, Allowed Dataspaces sap-sales,crm-contacts, Prompt Standards pattern-v1, Process Boundaries sales-intake-only, Roles & Responsibilities owner:netzvertrieb,gov:kicoord, Guided Application training-session-completed, Risk & Approval approved-conformant, Proof of Benefit time-saved-20-percent.',
+    });
+
+    expect(result.capability).toBe('ki_floorwalker_governance');
+    expect(result.recommendedCapabilities[0].capability).toBe('ki_floorwalker_governance');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.kiFloorwalkerGovernanceStatus');
+    expect(actionNames).not.toContain('openai.call');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('vdmi.mutate');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

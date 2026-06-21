@@ -1457,6 +1457,8 @@ module.exports = {
             'dashboard-api.meteringRolloutProcessIndicatorStatus',
           'GET /dashboard/heat-transformation-line-asset-model':
             'dashboard-api.heatTransformationLineAssetModelStatus',
+          'GET /dashboard/ki-floorwalker-governance':
+            'dashboard-api.kiFloorwalkerGovernanceStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

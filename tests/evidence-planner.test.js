@@ -405,6 +405,35 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans ki floorwalker governance as explicit process evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'ki_floorwalker_governance' },
+      {
+        useCaseId: 'uc-165',
+        processOwner: 'Netzvertrieb/KI-Lenkungskreis',
+        useCasePriority: 'high-priority',
+        allowedDataspaces: 'sap-sales,crm-contacts',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('ki_floorwalker_governance');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['use_case_priority', 'allowed_dataspaces'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'prompt_standards',
+        'process_boundaries',
+        'roles_and_responsibilities',
+        'guided_application',
+        'risk_and_approval_status',
+        'proof_of_benefit',
+        'source_refs',
+      ])
+    );
+  });
+
   it('plans regulatory change readiness as explicit data and audit evidence', () => {
     const result = planEvidence(
       { routeLabel: 'regulatory_change_simulator_readiness' },

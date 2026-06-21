@@ -3591,6 +3591,72 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── kiFloorwalkerGovernanceStatus ──────────────────────────────────────
+
+  describe('kiFloorwalkerGovernanceStatus', () => {
+    it('reports KI floorwalker governance gaps without creating AI, HITL, or VDMI side effects', async () => {
+      const result = await broker.call('dashboard-api.kiFloorwalkerGovernanceStatus', {
+        useCaseId: 'uc-165',
+        processOwner: 'Netzvertrieb',
+      });
+
+      expect(result.status).toBe('needs_use_case_priority');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'use_case_priority',
+          'allowed_dataspaces',
+          'prompt_standards',
+          'process_boundaries',
+          'roles_and_responsibilities',
+          'guided_application',
+          'risk_and_approval_status',
+          'proof_of_benefit',
+          'source_refs',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('ki_floorwalker_governance');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'openai.call',
+          'hitl.create',
+          'vdmi.mutate',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_floorwalker_application when KI floorwalker governance evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.kiFloorwalkerGovernanceStatus', {
+        useCaseId: 'uc-165',
+        processOwner: 'Netzvertrieb/KI-Lenkungskreis',
+        useCasePriority: 'high-priority',
+        allowedDataspaces: 'sap-sales,crm-contacts',
+        promptStandards: 'pattern-v1',
+        processBoundaries: 'sales-intake-only',
+        rolesAndResponsibilities: 'owner:netzvertrieb,gov:kicoord',
+        guidedApplication: 'training-session-completed',
+        riskAndApprovalStatus: 'approved-conformant',
+        proofOfBenefit: 'time-saved-20-percent',
+        sourceRef: 'vdmi:165,cya:165',
+      });
+
+      expect(result.status).toBe('ready_for_floorwalker_application');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.governanceEvidence.allowedDataspaces).toEqual(['sap-sales', 'crm-contacts']);
+      expect(result.governanceContext.processOwner).toBe('Netzvertrieb/KI-Lenkungskreis');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['vdmi:165', 'cya:165']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_floorwalker_application',
+          'Provided KI floorwalker evidence: 9/9',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(
