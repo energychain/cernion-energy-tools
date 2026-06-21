@@ -69,6 +69,7 @@ module.exports = {
       investmentDataReviewQueueStatus: 5 * 60 * 1000, // 5 min
       flexStrategicDemandIntakeStatus: 5 * 60 * 1000, // 5 min
       gasInfrastructureRiskGovernanceStatus: 5 * 60 * 1000, // 5 min
+      meteringRolloutProcessIndicatorStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3099,6 +3100,61 @@ module.exports = {
           this.settings.cacheTtlMs.gasInfrastructureRiskGovernanceStatus,
           async () => ({
             ...this.buildGasInfrastructureRiskGovernanceStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── meteringRolloutProcessIndicatorStatus ───────────────────────────
+    /**
+     * GET /api/dashboard/metering-rollout-process-indicator?division=...
+     *
+     * Read-only dossier-safe metering/rollout process indicator. It
+     * normalizes supplied monthly KPI evidence without refreshing datasources,
+     * importing EDM timeseries, creating HITL items or mutating downstream
+     * billing, settlement, tariff, device-control or finance state.
+     */
+    meteringRolloutProcessIndicatorStatus: {
+      rest: 'GET /metering-rollout-process-indicator',
+      params: {
+        indicatorId: { type: 'string', optional: true, min: 1 },
+        division: { type: 'string', optional: true, min: 1 },
+        sourceType: { type: 'string', optional: true, min: 1 },
+        targetCount: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        actualCount: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        backlogCount: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        dataQualityStatus: { type: 'string', optional: true, min: 1 },
+        contractorLoad: { type: 'string', optional: true, min: 1 },
+        capexImpactEur: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        opexImpactEur: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        owner: { type: 'string', optional: true, min: 1 },
+        nextControlStep: { type: 'string', optional: true, min: 1 },
+        blockedFollowUp: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Metering rollout process indicator — read-only dossier-safe status',
+        description:
+          'Builds deterministic metering/rollout process evidence from supplied KPI facts. ' +
+          'The endpoint is read-only and does not refresh datasources, import EDM data, create HITL tasks, mutate finance/CAPEX state, billing, tariff, settlement, device control, external connectors, or Personal-Agent shortcuts.',
+        responses: {
+          200: {
+            description: 'Read-only metering rollout process-indicator status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `metering-rollout-process-indicator:${params.indicatorId || 'no-id'}:${params.division || 'no-division'}:${params.sourceType || 'no-source'}:${params.owner || 'no-owner'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.meteringRolloutProcessIndicatorStatus,
+          async () => ({
+            ...this.buildMeteringRolloutProcessIndicatorStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -10025,6 +10081,276 @@ module.exports = {
           blockingFindings,
           sourceRefs,
           contextRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildMeteringRolloutProcessIndicatorStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const toNumber = (value) => {
+        if (value === undefined || value === null || value === '') return null;
+        const n = Number(value);
+        return Number.isFinite(n) ? n : null;
+      };
+      const sourceRefs = toList(params.sourceRef);
+      const targetCount = toNumber(params.targetCount);
+      const actualCount = toNumber(params.actualCount);
+      const suppliedBacklog = toNumber(params.backlogCount);
+      const backlogCount = suppliedBacklog ?? (
+        targetCount !== null && actualCount !== null
+          ? Math.max(0, targetCount - actualCount)
+          : null
+      );
+      const backlogRate = targetCount && targetCount > 0 && backlogCount !== null
+        ? Number((backlogCount / targetCount).toFixed(4))
+        : null;
+      const capexImpactEur = toNumber(params.capexImpactEur);
+      const opexImpactEur = toNumber(params.opexImpactEur);
+      const evidenceSpecs = [
+        {
+          id: 'division',
+          label: 'Division',
+          value: params.division,
+          sourceClass: 'metering_division_scope',
+          enablesDossierAddition: 'add the affected utility division or metering scope',
+        },
+        {
+          id: 'source_type',
+          label: 'Source type',
+          value: params.sourceType,
+          sourceClass: 'source_classification',
+          enablesDossierAddition: 'add whether evidence comes from administrative rollout statistics, EDM summary or datasource cache',
+        },
+        {
+          id: 'target_count',
+          label: 'Target count',
+          value: targetCount !== null,
+          displayValue: targetCount,
+          sourceClass: 'planned_rollout_volume',
+          enablesDossierAddition: 'add Soll count for rollout or meter-change variance',
+        },
+        {
+          id: 'actual_count',
+          label: 'Actual count',
+          value: actualCount !== null,
+          displayValue: actualCount,
+          sourceClass: 'actual_rollout_volume',
+          enablesDossierAddition: 'add Ist count for rollout progress evidence',
+        },
+        {
+          id: 'backlog_count',
+          label: 'Backlog count',
+          value: backlogCount !== null,
+          displayValue: backlogCount,
+          sourceClass: 'process_backlog_indicator',
+          enablesDossierAddition: 'add backlog count or derivable Soll/Ist delta',
+        },
+        {
+          id: 'data_quality_status',
+          label: 'Data-quality status',
+          value: params.dataQualityStatus,
+          sourceClass: 'data_quality_risk',
+          enablesDossierAddition: 'add data-quality risk assessment',
+        },
+        {
+          id: 'contractor_load',
+          label: 'Contractor load',
+          value: params.contractorLoad,
+          sourceClass: 'contractor_capacity_signal',
+          enablesDossierAddition: 'add Dienstleisterlast or capacity bottleneck evidence',
+        },
+        {
+          id: 'capex_impact',
+          label: 'CAPEX impact',
+          value: capexImpactEur !== null,
+          displayValue: capexImpactEur,
+          sourceClass: 'capex_impact_hint',
+          enablesDossierAddition: 'add CAPEX indication for investment steering',
+        },
+        {
+          id: 'opex_impact',
+          label: 'OPEX impact',
+          value: opexImpactEur !== null,
+          displayValue: opexImpactEur,
+          sourceClass: 'opex_impact_hint',
+          enablesDossierAddition: 'add OPEX indication for operational steering',
+        },
+        {
+          id: 'owner',
+          label: 'Owner',
+          value: params.owner,
+          sourceClass: 'accountable_owner',
+          enablesDossierAddition: 'add accountable process owner',
+        },
+        {
+          id: 'next_control_step',
+          label: 'Next control step',
+          value: params.nextControlStep,
+          sourceClass: 'next_steering_step',
+          enablesDossierAddition: 'add the next steering or review step',
+        },
+        {
+          id: 'blocked_follow_up',
+          label: 'Blocked follow-up',
+          value: params.blockedFollowUp,
+          sourceClass: 'blocked_follow_up',
+          enablesDossierAddition: 'add the downstream decision blocked by missing rollout evidence',
+        },
+        {
+          id: 'source_refs',
+          label: 'Source references',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add citable datasource, EDM, VDMI or monthly-statistic references',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue ?? spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const qualityText = String(params.dataQualityStatus || '').toLowerCase();
+      const contractorText = String(params.contractorLoad || '').toLowerCase();
+      const qualityBlocks = /blocked|blockiert|kritisch|critical|missing|fehlt|unvollstaendig|unvollständig/.test(qualityText);
+      const contractorBlocks = /blocked|blockiert|ueberlast|überlast|overload|kritisch|critical/.test(contractorText);
+      const highBacklog = backlogRate !== null && backlogRate >= 0.2;
+      const status =
+        qualityBlocks
+          ? 'blocked_by_data_quality'
+          : contractorBlocks
+            ? 'blocked_by_contractor_capacity'
+            : !params.division
+              ? 'needs_division'
+              : !params.sourceType
+                ? 'needs_source_type'
+                : targetCount === null
+                  ? 'needs_target_count'
+                  : actualCount === null
+                    ? 'needs_actual_count'
+                    : backlogCount === null
+                      ? 'needs_backlog_count'
+                      : !params.dataQualityStatus
+                        ? 'needs_data_quality_status'
+                        : !params.contractorLoad
+                          ? 'needs_contractor_load'
+                          : capexImpactEur === null
+                            ? 'needs_capex_impact'
+                            : opexImpactEur === null
+                              ? 'needs_opex_impact'
+                              : !params.owner
+                                ? 'needs_owner'
+                                : !params.nextControlStep
+                                  ? 'needs_next_control_step'
+                                  : !params.blockedFollowUp
+                                    ? 'needs_blocked_follow_up'
+                                    : sourceRefs.length === 0
+                                      ? 'needs_source_refs'
+                                      : highBacklog
+                                        ? 'backlog_requires_steering'
+                                        : 'process_indicator_ready';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'metering_rollout_process_indicator',
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `MRPI_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['division', 'target_count', 'actual_count', 'data_quality_status', 'owner', 'next_control_step'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      if (qualityBlocks || contractorBlocks || highBacklog) {
+        blockingFindings.push({
+          code: qualityBlocks
+            ? 'MRPI_DATA_QUALITY_BLOCKING'
+            : contractorBlocks
+              ? 'MRPI_CONTRACTOR_CAPACITY_BLOCKING'
+              : 'MRPI_BACKLOG_THRESHOLD_REACHED',
+          severity: 'high',
+          message: 'metering rollout evidence indicates a steering-relevant data-quality, contractor-capacity or backlog condition',
+        });
+      }
+      const indicatorContext = {
+        indicatorId: params.indicatorId || null,
+        division: params.division || null,
+        sourceType: params.sourceType || null,
+        owner: params.owner || null,
+        nextControlStep: params.nextControlStep || null,
+      };
+      const processEvidence = {
+        targetCount,
+        actualCount,
+        backlogCount,
+        backlogRate,
+        dataQualityStatus: params.dataQualityStatus || null,
+        contractorLoad: params.contractorLoad || null,
+        capexImpactEur,
+        opexImpactEur,
+        blockedFollowUp: params.blockedFollowUp || null,
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided metering rollout evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.division) dossierFacts.push(`Division: ${params.division}`);
+      if (params.sourceType) dossierFacts.push(`Source Type: ${params.sourceType}`);
+      if (backlogRate !== null) dossierFacts.push(`Backlog Rate: ${backlogRate}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+
+      return {
+        processIndicatorStatusId: `mrpi:${Buffer.from(`${params.indicatorId || ''}:${params.division || ''}:${params.sourceType || ''}:${params.owner || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'metering_rollout_process_indicator',
+        safety: 'read_only',
+        requestContext: indicatorContext,
+        status,
+        readinessScore,
+        indicatorContext,
+        processEvidence,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+        },
+        sourceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.meteringRolloutProcessIndicatorStatus'],
+          referenced: ['datasource-registry.list', 'datasource-cache.query', 'edm.getTimeseriesSummary', 'in-memory-join.join', 'vdmi.dossier', 'hitl.summary', 'evidence-registry.lookup', 'presentation.generate'],
+          notCalled: ['datasource-registry.refresh', 'datasource-cache.refresh', 'datasource-cache.query', 'edm.importTimeseries', 'edm.mutate', 'in-memory-join.execute', 'hitl.create', 'vdmi.create', 'vdmi.mutate', 'finance-agent.mutate', 'capex.decision', 'billing.release', 'settlement.prepareBilling', 'tariff.mutate', 'device-control.execute', 'external.connector.call', 'personal-agent.execute'],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          indicatorContext,
+          processEvidence,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceRefs,
           dossierFacts,
         },
       };

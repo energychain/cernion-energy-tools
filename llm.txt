@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: f3f8d7d43a511ae71b556c39f86cb0f752dc880ff0e303aa52a6250a0a04712d
+  - openapi-export.json: 4134c87fb7b74e0b4a9b64e0a5b28ef55995a5925c2ef225c70287155fed37d8
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 756
-- operation_count: 861
+- path_count: 758
+- operation_count: 863
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -695,7 +695,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 66 operations
+- Dashboard API: 68 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -991,6 +991,7 @@ process:
 - GET /api/dashboard-api/load-profile-stream-monitor | tags: [Dashboard API] | operationId: dashboard-api_loadProfileStreamMonitor | summary: Load profile movement monitor — strict anomaly-class buckets
 - GET /api/dashboard-api/market-communication-evidence-chain | tags: [Dashboard API] | operationId: dashboard-api_marketCommunicationEvidenceChainStatus | summary: Market communication evidence chain — read-only dossier-safe status
 - GET /api/dashboard-api/market-snapshot | tags: [Dashboard API] | operationId: dashboard-api_marketSnapshot | summary: Market snapshot — current spot prices, CO₂ intensity, renewable forecast
+- GET /api/dashboard-api/metering-rollout-process-indicator | tags: [Dashboard API] | operationId: dashboard-api_meteringRolloutProcessIndicatorStatus | summary: Metering rollout process indicator — read-only dossier-safe status
 - GET /api/dashboard-api/observability-mini | tags: [Dashboard API] | operationId: dashboard-api_observabilityMini | summary: Observability mini dashboard — compact production feedback cards
 - GET /api/dashboard-api/off-balancing-metering-pruefmatrix | tags: [Dashboard API] | operationId: dashboard-api_offBalancingMeteringPruefmatrixStatus | summary: Off-Balancing Metering Pruefmatrix — read-only dossier-safe gate
 - GET /api/dashboard-api/quality-summary | tags: [Dashboard API] | operationId: dashboard-api_qualitySummary | summary: Quality summary — recent reports from all agent pipelines
@@ -1024,6 +1025,7 @@ process:
 - GET /api/dashboard/load-profile-stream-monitor | tags: [Dashboard API] | operationId: dashboard-api_loadProfileStreamMonitor | summary: Load profile movement monitor — strict anomaly-class buckets
 - GET /api/dashboard/market-communication-evidence-chain | tags: [Dashboard API] | operationId: dashboard-api_marketCommunicationEvidenceChainStatus | summary: Market communication evidence chain — read-only dossier-safe status
 - GET /api/dashboard/market-snapshot | tags: [Dashboard API] | operationId: dashboard-api_marketSnapshot | summary: Market snapshot — current spot prices, CO₂ intensity, renewable forecast
+- GET /api/dashboard/metering-rollout-process-indicator | tags: [Dashboard API] | operationId: dashboard-api_meteringRolloutProcessIndicatorStatus | summary: Metering rollout process indicator — read-only dossier-safe status
 - GET /api/dashboard/observability-mini | tags: [Dashboard API] | operationId: dashboard-api_observabilityMini | summary: Observability mini dashboard — compact production feedback cards
 - GET /api/dashboard/off-balancing-metering-pruefmatrix | tags: [Dashboard API] | operationId: dashboard-api_offBalancingMeteringPruefmatrixStatus | summary: Off-Balancing Metering Pruefmatrix — read-only dossier-safe gate
 - GET /api/dashboard/quality-summary | tags: [Dashboard API] | operationId: dashboard-api_qualitySummary | summary: Quality summary — recent reports from all agent pipelines
@@ -17693,6 +17695,21 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/metering-rollout-process-indicator": {
+      "get": {
+        "description": "Builds deterministic metering/rollout process evidence from supplied KPI facts. The endpoint is read-only and does not refresh datasources, import EDM data, create HITL tasks, mutate finance/CAPEX state, billing, tariff, settlement, device control, external connectors, or Personal-Agent shortcuts.",
+        "operationId": "dashboard-api_meteringRolloutProcessIndicatorStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only metering rollout process-indicator status"
+          }
+        },
+        "summary": "Metering rollout process indicator — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/observability-mini": {
       "get": {
         "description": "Returns a compact operational payload from observability.summary with health, incidents, and performance cards plus recent errors and slowest actions. Optimized for dashboard widgets and agentic monitoring loops. Cache TTL: 60 seconds.",
@@ -21526,6 +21543,21 @@ process:
         "x-oeo-class": [
           "OEO_00000523",
           "OEO_00000143"
+        ]
+      }
+    },
+    "/api/dashboard/metering-rollout-process-indicator": {
+      "get": {
+        "description": "Builds deterministic metering/rollout process evidence from supplied KPI facts. The endpoint is read-only and does not refresh datasources, import EDM data, create HITL tasks, mutate finance/CAPEX state, billing, tariff, settlement, device control, external connectors, or Personal-Agent shortcuts.",
+        "operationId": "dashboard-api_meteringRolloutProcessIndicatorStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only metering rollout process-indicator status"
+          }
+        },
+        "summary": "Metering rollout process indicator — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
         ]
       }
     },
@@ -59918,4 +59950,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 35ca7b3b41990eeff57d369e6da2cb1bbcf143fe6cbe49896054fd4c3590121d
+- llm_txt_sha256: 3ef96bcf24695d868277db1562894571656e8e514c7d3e24c3260701aea5d39c

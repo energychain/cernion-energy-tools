@@ -2030,6 +2030,102 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  metering_rollout_process_indicator: {
+    sources: [
+      {
+        id: 'division',
+        label: 'Sparte / Messwesen-Scope',
+        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'datasource-registry.list', 'vdmi.dossier'],
+        contextKeys: ['division'],
+        optional: false,
+      },
+      {
+        id: 'source_type',
+        label: 'Quellentyp',
+        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'datasource-registry.list', 'edm.getTimeseriesSummary'],
+        contextKeys: ['sourceType'],
+        optional: false,
+      },
+      {
+        id: 'target_count',
+        label: 'Soll-Zaehler / Rolloutziel',
+        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'datasource-cache.query', 'vdmi.dossier'],
+        contextKeys: ['targetCount'],
+        optional: false,
+      },
+      {
+        id: 'actual_count',
+        label: 'Ist-Zaehler / Rolloutstand',
+        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'datasource-cache.query', 'edm.getTimeseriesSummary'],
+        contextKeys: ['actualCount'],
+        optional: false,
+      },
+      {
+        id: 'backlog_count',
+        label: 'Rueckstand',
+        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'in-memory-join.join', 'vdmi.dossier'],
+        contextKeys: ['backlogCount', 'targetCount', 'actualCount'],
+        optional: false,
+      },
+      {
+        id: 'data_quality_status',
+        label: 'Datenqualitaetsstatus',
+        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'datasource-cache.query', 'vdmi.dossier'],
+        contextKeys: ['dataQualityStatus'],
+        optional: false,
+      },
+      {
+        id: 'contractor_load',
+        label: 'Dienstleisterlast',
+        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'vdmi.dossier', 'hitl.summary'],
+        contextKeys: ['contractorLoad'],
+        optional: false,
+      },
+      {
+        id: 'capex_impact',
+        label: 'CAPEX-Indikation',
+        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'vdmi.dossier'],
+        contextKeys: ['capexImpactEur'],
+        optional: false,
+      },
+      {
+        id: 'opex_impact',
+        label: 'OPEX-Indikation',
+        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'vdmi.dossier'],
+        contextKeys: ['opexImpactEur'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Accountable Owner',
+        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'vdmi.dossier', 'hitl.summary'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'next_control_step',
+        label: 'Naechster Steuerungsschritt',
+        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'vdmi.dossier', 'hitl.summary'],
+        contextKeys: ['nextControlStep'],
+        optional: false,
+      },
+      {
+        id: 'blocked_follow_up',
+        label: 'Blockierte Folgeentscheidung',
+        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'vdmi.dossier'],
+        contextKeys: ['blockedFollowUp'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   // ── Routing-matrix route-keyed entries ─────────────────────────────────
 
   'investment-grid-check': {

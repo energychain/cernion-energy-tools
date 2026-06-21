@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 41 static rules', () => {
+    it('loads all 42 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(41);
+      expect(rules.length).toBe(42);
     });
 
-    it('compiles all 41 static rules without error', () => {
+    it('compiles all 42 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(41);
+      expect(rules.length).toBe(42);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1824,6 +1824,39 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Technical Fact: Hochdruckleitung HD-17');
       expect(formatted).toContain('Owner: Assetmanagement Gas');
       expect(formatted).toContain('Side-Effect Guard: gas-risk-register.create');
+    });
+
+    it('metering-rollout-process-indicator-status formats process evidence', () => {
+      const rule = getRule('dashboard-api.meteringRolloutProcessIndicatorStatus');
+      const formatted = rule.formatEvidence({
+        status: 'process_indicator_ready',
+        readinessScore: 1,
+        indicatorContext: {
+          division: 'Strom/MSB',
+          sourceType: 'administrative-monthly-statistic',
+          owner: 'Messstellenbetrieb',
+          nextControlStep: 'Rollout-Steuerkreis 2026-Q3',
+        },
+        processEvidence: {
+          targetCount: 1000,
+          actualCount: 940,
+          backlogCount: 60,
+          backlogRate: 0.06,
+          dataQualityStatus: 'quality-reviewed',
+          contractorLoad: 'normal',
+        },
+        sourceActions: {
+          notCalled: ['datasource-cache.query'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: process_indicator_ready'],
+        },
+      });
+
+      expect(formatted).toContain('Metering Rollout: process_indicator_ready');
+      expect(formatted).toContain('Division: Strom/MSB');
+      expect(formatted).toContain('Backlog: 60');
+      expect(formatted).toContain('Side-Effect Guard: datasource-cache.query');
     });
   });
 

@@ -2147,6 +2147,102 @@
     "sourceIssue": 170
   },
   {
+    "id": "metering-rollout-process-indicator-status",
+    "description": "Read-only metering rollout process-indicator evidence for dossier hydration",
+    "routeLabel": "metering_rollout_process_indicator",
+    "capability": "metering_rollout_process_indicator",
+    "action": "dashboard-api.meteringRolloutProcessIndicatorStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "datasource-registry.refresh",
+        "datasource-cache.refresh",
+        "datasource-cache.query",
+        "edm.importTimeseries",
+        "edm.mutate",
+        "hitl.create",
+        "vdmi.create",
+        "vdmi.mutate",
+        "finance-agent.mutate",
+        "capex.decision",
+        "billing.release",
+        "settlement.prepareBilling",
+        "tariff.mutate",
+        "device-control.execute",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "sparten zaehlkennzahlen",
+      "sparten zählkennzahlen",
+      "zaehlwechsel rollout",
+      "zählwechsel rollout",
+      "metering rollout process indicator",
+      "messstellenbetrieb rollout",
+      "soll ist zaehlwechsel",
+      "rollout rueckstand",
+      "rollout rückstand",
+      "dienstleisterlast rollout",
+      "datenqualitaet rollout"
+    ],
+    "paramTemplate": {
+      "division": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:division[:= ]+|sparte[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "sourceType": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:sourceType[:= ]+|quellentyp[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner[:= ]+|verantwortlich[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Metering Rollout", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["indicatorContext.division", "requestContext.division"], "label": "Division", "maxLen": 120 },
+        { "paths": ["indicatorContext.sourceType", "requestContext.sourceType"], "label": "Source Type", "maxLen": 120 },
+        { "paths": ["processEvidence.targetCount", "dossierEvidence.processEvidence.targetCount"], "label": "Target", "precision": 0 },
+        { "paths": ["processEvidence.actualCount", "dossierEvidence.processEvidence.actualCount"], "label": "Actual", "precision": 0 },
+        { "paths": ["processEvidence.backlogCount", "dossierEvidence.processEvidence.backlogCount"], "label": "Backlog", "precision": 0 },
+        { "paths": ["processEvidence.backlogRate", "dossierEvidence.processEvidence.backlogRate"], "label": "Backlog Rate", "precision": 4 },
+        { "paths": ["processEvidence.dataQualityStatus", "dossierEvidence.processEvidence.dataQualityStatus"], "label": "Data Quality", "maxLen": 120 },
+        { "paths": ["processEvidence.contractorLoad", "dossierEvidence.processEvidence.contractorLoad"], "label": "Contractor Load", "maxLen": 140 },
+        { "paths": ["indicatorContext.owner", "requestContext.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["indicatorContext.nextControlStep", "requestContext.nextControlStep"], "label": "Next Step", "maxLen": 140 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 172
+  },
+  {
     "id": "crisis-decision-routine-status",
     "description": "Read-only Krise/Ad-hoc Entscheidungsroutine evidence for dossier hydration",
     "routeLabel": "crisis_decision_routine",

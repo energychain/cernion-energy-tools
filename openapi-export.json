@@ -14086,6 +14086,21 @@
         "description": "Builds deterministic gas-infrastructure risk governance evidence. The endpoint is read-only and does not create risk-register entries, HITL tickets, VDMI records, Asset-MDM changes, monitoring/mitigation decisions, operations actions, external connector calls, or Personal-Agent shortcuts."
       }
     },
+    "/api/dashboard-api/metering-rollout-process-indicator": {
+      "get": {
+        "operationId": "dashboard-api_meteringRolloutProcessIndicatorStatus",
+        "summary": "Metering rollout process indicator — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only metering rollout process-indicator status"
+          }
+        },
+        "description": "Builds deterministic metering/rollout process evidence from supplied KPI facts. The endpoint is read-only and does not refresh datasources, import EDM data, create HITL tasks, mutate finance/CAPEX state, billing, tariff, settlement, device control, external connectors, or Personal-Agent shortcuts."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53132,6 +53147,21 @@
           }
         },
         "description": "Builds deterministic gas-infrastructure risk governance evidence. The endpoint is read-only and does not create risk-register entries, HITL tickets, VDMI records, Asset-MDM changes, monitoring/mitigation decisions, operations actions, external connector calls, or Personal-Agent shortcuts."
+      }
+    },
+    "/api/dashboard/metering-rollout-process-indicator": {
+      "get": {
+        "operationId": "dashboard-api_meteringRolloutProcessIndicatorStatus",
+        "summary": "Metering rollout process indicator — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only metering rollout process-indicator status"
+          }
+        },
+        "description": "Builds deterministic metering/rollout process evidence from supplied KPI facts. The endpoint is read-only and does not refresh datasources, import EDM data, create HITL tasks, mutate finance/CAPEX state, billing, tariff, settlement, device control, external connectors, or Personal-Agent shortcuts."
       }
     },
     "/api/dashboard/market-snapshot": {

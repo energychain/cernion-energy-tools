@@ -346,6 +346,35 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans metering rollout process indicator as explicit process evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'metering_rollout_process_indicator' },
+      {
+        division: 'Strom/MSB',
+        sourceType: 'administrative-monthly-statistic',
+        targetCount: 1000,
+        actualCount: 940,
+        owner: 'Messstellenbetrieb',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('metering_rollout_process_indicator');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['division', 'source_type', 'target_count', 'actual_count', 'owner'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'data_quality_status',
+        'contractor_load',
+        'capex_impact',
+        'opex_impact',
+        'next_control_step',
+        'blocked_follow_up',
+      ])
+    );
+  });
+
   it('plans regulatory change readiness as explicit data and audit evidence', () => {
     const result = planEvidence(
       { routeLabel: 'regulatory_change_simulator_readiness' },

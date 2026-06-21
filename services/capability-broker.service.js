@@ -274,6 +274,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasMeteringRolloutProcessIndicatorSpecificSignal =
+    /(zaehlwechsel|zählwechsel|zaehlkennzahl|zählkennzahl|rolloutkennzahl|rollout kennzahl|metering rollout|messstellenbetrieb|msb|spartenuebergreifend|spartenübergreifend)/i.test(haystack) &&
+    /(soll.?ist|target.?actual|rueckstand|rückstand|backlog|datenqualitaet|datenqualität|data quality|dienstleisterlast|contractor load|capex|opex|prozessindikator|process indicator|next control step|steuerungsschritt)/i.test(haystack) &&
+    !/(edm timeseries|lastgang|zeitreihe|import|datasource refresh|refresh ausfuehren|refresh ausführen|billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|edm import)/i.test(haystack);
+
+  if (hasMeteringRolloutProcessIndicatorSpecificSignal) {
+    const meteringCapability = findCapabilityByName('metering_rollout_process_indicator');
+    if (meteringCapability) {
+      return { capability: meteringCapability, score: 138, usedFallback: false };
+    }
+  }
+
   const hasCrisisDecisionRoutineSpecificSignal =
     /(krisenmodus|krisenroutine|ad.?hoc.?krise|crisis mode|crisis decision routine|entscheidungsroutine)/i.test(haystack) &&
     /(managemententscheidung|servicegruppenwirkung|bevoelkerungsgruppenwirkung|bevölkerungsgruppenwirkung|finanzwirkung|wissensstand|trainingsbedarf|owner|next decision gate|entscheidungsgate|blockierte folgeentscheidung)/i.test(haystack) &&

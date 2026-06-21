@@ -3433,6 +3433,84 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── meteringRolloutProcessIndicatorStatus ─────────────────────────────
+
+  describe('meteringRolloutProcessIndicatorStatus', () => {
+    it('reports metering rollout process gaps without creating datasource, EDM, HITL, finance or device-control side effects', async () => {
+      const result = await broker.call('dashboard-api.meteringRolloutProcessIndicatorStatus', {
+        division: 'Strom',
+        sourceType: 'administrative-monthly-statistic',
+        targetCount: 100,
+      });
+
+      expect(result.status).toBe('needs_actual_count');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'actual_count',
+          'backlog_count',
+          'data_quality_status',
+          'contractor_load',
+          'capex_impact',
+          'opex_impact',
+          'owner',
+          'next_control_step',
+          'blocked_follow_up',
+          'source_refs',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('metering_rollout_process_indicator');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'datasource-cache.query',
+          'edm.importTimeseries',
+          'hitl.create',
+          'vdmi.mutate',
+          'finance-agent.mutate',
+          'capex.decision',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'device-control.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns process_indicator_ready when metering rollout evidence is complete and backlog is low', async () => {
+      const result = await broker.call('dashboard-api.meteringRolloutProcessIndicatorStatus', {
+        indicatorId: 'metering-172',
+        division: 'Strom/MSB',
+        sourceType: 'administrative-monthly-statistic',
+        targetCount: 1000,
+        actualCount: 940,
+        backlogCount: 60,
+        dataQualityStatus: 'quality-reviewed',
+        contractorLoad: 'normal',
+        capexImpactEur: 25000,
+        opexImpactEur: 7000,
+        owner: 'Messstellenbetrieb',
+        nextControlStep: 'Rollout-Steuerkreis 2026-Q3',
+        blockedFollowUp: 'Dienstleister-Nachsteuerung fuer offene Wechsel',
+        sourceRef: 'datasource:rollout-172,edm:summary-172,vdmi:172',
+      });
+
+      expect(result.status).toBe('process_indicator_ready');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.processEvidence.backlogRate).toBe(0.06);
+      expect(result.indicatorContext.owner).toBe('Messstellenbetrieb');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['datasource:rollout-172', 'vdmi:172']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: process_indicator_ready',
+          'Provided metering rollout evidence: 13/13',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

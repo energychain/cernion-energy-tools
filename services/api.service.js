@@ -1453,6 +1453,8 @@ module.exports = {
             'dashboard-api.flexStrategicDemandIntakeStatus',
           'GET /dashboard/gas-infrastructure-risk-governance':
             'dashboard-api.gasInfrastructureRiskGovernanceStatus',
+          'GET /dashboard/metering-rollout-process-indicator':
+            'dashboard-api.meteringRolloutProcessIndicatorStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',
