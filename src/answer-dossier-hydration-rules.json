@@ -1883,6 +1883,92 @@
     "sourceIssue": 176
   },
   {
+    "id": "investment-committee-steering-cards-status",
+    "description": "Read-only Investmittel-Gremiensteuerung cards evidence for dossier hydration",
+    "routeLabel": "investment_committee_steering_cards",
+    "capability": "investment_committee_steering_cards",
+    "action": "dashboard-api.investmentCommitteeSteeringCardsStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "hitl.create",
+        "vdmi.create",
+        "vdmi.mutate",
+        "investment-planning.createPlan",
+        "investment-planning.mutate",
+        "finance-agent.mutate",
+        "budget.release",
+        "billing.release",
+        "settlement.prepareBilling",
+        "tariff.mutate",
+        "payment.execute",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "investmittel gremiensteuerung",
+      "investmittelkarte",
+      "gremienkarte",
+      "investment committee steering cards",
+      "committee window",
+      "capex review"
+    ],
+    "paramTemplate": {
+      "investmentItemId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:investmentItemId[:= ]+|investment[:=]+|investmittel[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "assetId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:assetId[:= ]+|asset[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner[:= ]+|verantwortlich[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Committee Card", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.investmentItemId", "cardContext.investmentItemId"], "label": "Investment Item", "maxLen": 120 },
+        { "paths": ["cardContext.assetId", "requestContext.assetId"], "label": "Asset", "maxLen": 120 },
+        { "paths": ["cardContext.projectId", "requestContext.projectId"], "label": "Project", "maxLen": 120 },
+        { "paths": ["committeeContext.reviewStatus", "dossierEvidence.committeeContext.reviewStatus"], "label": "Review", "maxLen": 120 },
+        { "paths": ["committeeContext.evidenceStatus", "dossierEvidence.committeeContext.evidenceStatus"], "label": "Evidence", "maxLen": 120 },
+        { "paths": ["committeeContext.committeeWindow", "requestContext.committeeWindow"], "label": "Committee Window", "maxLen": 120 },
+        { "paths": ["committeeContext.owner", "requestContext.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["committeeContext.blockedFollowUpAction", "dossierEvidence.committeeContext.blockedFollowUpAction"], "label": "Blocked Follow-up", "maxLen": 160 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 182
+  },
+  {
     "id": "crisis-decision-routine-status",
     "description": "Read-only Krise/Ad-hoc Entscheidungsroutine evidence for dossier hydration",
     "routeLabel": "crisis_decision_routine",

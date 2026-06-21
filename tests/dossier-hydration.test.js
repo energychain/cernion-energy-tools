@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 37 static rules', () => {
+    it('loads all 38 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(37);
+      expect(rules.length).toBe(38);
     });
 
-    it('compiles all 37 static rules without error', () => {
+    it('compiles all 38 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(37);
+      expect(rules.length).toBe(38);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1348,6 +1348,66 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Finance: unknown');
       expect(formatted).toContain('Measure: hotline priorisieren');
       expect(formatted).toContain('Leading Gap: finance_impact');
+      expect(formatted).toContain('Side-Effect Guard: hitl.create');
+    });
+
+    it('dashboard-api.investmentCommitteeSteeringCardsStatus is dossier-safe and formats committee-card facts', () => {
+      const rule = getRule('dashboard-api.investmentCommitteeSteeringCardsStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Investmittel Gremiensteuerung investment=inv-182 asset=asset-182 owner=assetmanagement laden'
+        )
+      ).toEqual({
+        investmentItemId: 'inv-182',
+        assetId: 'asset-182',
+        owner: 'assetmanagement',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_evidence',
+        readinessScore: 0.75,
+        requestContext: {
+          investmentItemId: 'inv-182',
+          assetId: 'asset-182',
+          owner: 'Assetmanagement',
+          committeeWindow: '2026-Q3',
+        },
+        cardContext: {
+          investmentItemId: 'inv-182',
+          assetId: 'asset-182',
+          projectId: 'proj-182',
+        },
+        committeeContext: {
+          reviewStatus: 'technical-review-open',
+          evidenceStatus: 'missing',
+          committeeWindow: '2026-Q3',
+          owner: 'Assetmanagement',
+          blockedFollowUpAction: 'committee-release',
+        },
+        missingEvidence: [
+          { missingDataPoint: 'source_refs' },
+        ],
+        sourceActions: {
+          notCalled: ['hitl.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_evidence'],
+        },
+      });
+
+      expect(formatted).toContain('Committee Card: needs_evidence');
+      expect(formatted).toContain('Investment Item: inv-182');
+      expect(formatted).toContain('Asset: asset-182');
+      expect(formatted).toContain('Project: proj-182');
+      expect(formatted).toContain('Review: technical-review-open');
+      expect(formatted).toContain('Evidence: missing');
+      expect(formatted).toContain('Committee Window: 2026-Q3');
+      expect(formatted).toContain('Owner: Assetmanagement');
+      expect(formatted).toContain('Blocked Follow-up: committee-release');
+      expect(formatted).toContain('Leading Gap: source_refs');
       expect(formatted).toContain('Side-Effect Guard: hitl.create');
     });
 

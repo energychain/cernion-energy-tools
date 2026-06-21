@@ -1445,6 +1445,8 @@ module.exports = {
             'dashboard-api.controllabilitySubmissionCockpitStatus',
           'GET /dashboard/crisis-decision-routine':
             'dashboard-api.crisisDecisionRoutineStatus',
+          'GET /dashboard/investment-committee-steering-cards':
+            'dashboard-api.investmentCommitteeSteeringCardsStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

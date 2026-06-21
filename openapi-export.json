@@ -14026,6 +14026,21 @@
         "description": "Builds deterministic management-readiness evidence for crisis/ad-hoc topics. The endpoint is read-only and does not create HITL, NOVA or VDMI items, mutate finance or operations data, call external connectors, close decisions, dispatch operational actions, or use Personal-Agent shortcuts."
       }
     },
+    "/api/dashboard-api/investment-committee-steering-cards": {
+      "get": {
+        "operationId": "dashboard-api_investmentCommitteeSteeringCardsStatus",
+        "summary": "Investment committee steering cards — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only investment committee steering card status"
+          }
+        },
+        "description": "Builds deterministic investment committee steering-card evidence. The endpoint is read-only and does not create HITL, VDMI or investment-plan records, mutate finance data, release budgets, call external connectors, trigger billing/settlement/tariff/payment effects, or use Personal-Agent shortcuts."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53012,6 +53027,21 @@
           }
         },
         "description": "Builds deterministic management-readiness evidence for crisis/ad-hoc topics. The endpoint is read-only and does not create HITL, NOVA or VDMI items, mutate finance or operations data, call external connectors, close decisions, dispatch operational actions, or use Personal-Agent shortcuts."
+      }
+    },
+    "/api/dashboard/investment-committee-steering-cards": {
+      "get": {
+        "operationId": "dashboard-api_investmentCommitteeSteeringCardsStatus",
+        "summary": "Investment committee steering cards — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only investment committee steering card status"
+          }
+        },
+        "description": "Builds deterministic investment committee steering-card evidence. The endpoint is read-only and does not create HITL, VDMI or investment-plan records, mutate finance data, release budgets, call external connectors, trigger billing/settlement/tariff/payment effects, or use Personal-Agent shortcuts."
       }
     },
     "/api/dashboard/market-snapshot": {

@@ -1108,6 +1108,23 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes investment committee steering card prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte baue eine Investmittel Gremiensteuerung Karte fuer CAPEX Review: Investmittelposition, Assetbezug, Pruefstatus, Evidenzstatus, Gremienfenster, Owner und blockierte Folgeaktion pruefen.',
+    });
+
+    expect(result.capability).toBe('investment_committee_steering_cards');
+    expect(result.recommendedCapabilities[0].capability).toBe('investment_committee_steering_cards');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.investmentCommitteeSteeringCardsStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('vdmi.mutate');
+    expect(actionNames).not.toContain('investment-planning.mutate');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('budget.release');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

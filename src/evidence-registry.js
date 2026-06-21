@@ -1737,6 +1737,67 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  investment_committee_steering_cards: {
+    sources: [
+      {
+        id: 'investment_item',
+        label: 'Investmittelposition',
+        resolvedBy: ['dashboard-api.investmentCommitteeSteeringCardsStatus', 'investment-planning.createPlan'],
+        contextKeys: ['investmentItemId'],
+        optional: false,
+      },
+      {
+        id: 'asset_project_reference',
+        label: 'Asset- oder Projektbezug',
+        resolvedBy: ['dashboard-api.investmentCommitteeSteeringCardsStatus', 'investment-planning.createPlan', 'vdmi.dossier'],
+        contextKeys: ['assetId', 'projectId'],
+        optional: false,
+      },
+      {
+        id: 'review_status',
+        label: 'Pruefstatus',
+        resolvedBy: ['dashboard-api.investmentCommitteeSteeringCardsStatus', 'vdmi.dossier', 'hitl.summary'],
+        contextKeys: ['reviewStatus'],
+        optional: false,
+      },
+      {
+        id: 'evidence_status',
+        label: 'Evidenzstatus',
+        resolvedBy: ['dashboard-api.investmentCommitteeSteeringCardsStatus', 'vdmi.dossier'],
+        contextKeys: ['evidenceStatus'],
+        optional: false,
+      },
+      {
+        id: 'committee_window',
+        label: 'Gremienfenster',
+        resolvedBy: ['dashboard-api.investmentCommitteeSteeringCardsStatus', 'vdmi.dossier', 'hitl.summary'],
+        contextKeys: ['committeeWindow'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Accountable Owner',
+        resolvedBy: ['dashboard-api.investmentCommitteeSteeringCardsStatus', 'vdmi.dossier', 'hitl.summary'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'blocked_follow_up_action',
+        label: 'Blockierte Folgeaktion',
+        resolvedBy: ['dashboard-api.investmentCommitteeSteeringCardsStatus', 'vdmi.dossier'],
+        contextKeys: ['blockedFollowUpAction'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.investmentCommitteeSteeringCardsStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   // ── Routing-matrix route-keyed entries ─────────────────────────────────
 
   'investment-grid-check': {

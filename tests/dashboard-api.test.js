@@ -3153,6 +3153,73 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── investmentCommitteeSteeringCardsStatus ─────────────────────────────
+
+  describe('investmentCommitteeSteeringCardsStatus', () => {
+    it('reports investment committee card gaps without creating HITL, VDMI, investment or finance side effects', async () => {
+      const result = await broker.call('dashboard-api.investmentCommitteeSteeringCardsStatus', {
+        investmentItemId: 'inv-182',
+      });
+
+      expect(result.status).toBe('needs_asset_project_reference');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'asset_project_reference',
+          'review_status',
+          'evidence_status',
+          'committee_window',
+          'owner',
+          'blocked_follow_up_action',
+          'source_refs',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('investment_committee_steering_cards');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'hitl.create',
+          'vdmi.mutate',
+          'investment-planning.createPlan',
+          'finance-agent.mutate',
+          'budget.release',
+          'settlement.prepareBilling',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_committee when committee-card evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.investmentCommitteeSteeringCardsStatus', {
+        investmentItemId: 'inv-182',
+        projectId: 'proj-182',
+        assetId: 'asset-182',
+        reviewStatus: 'technical-review-complete',
+        evidenceStatus: 'complete',
+        committeeWindow: '2026-Q3',
+        owner: 'Assetmanagement',
+        blockedFollowUpAction: 'committee-release',
+        capexEur: '1200000',
+        riskFlag: 'medium',
+        sourceRef: 'sharepoint:inv-182,vdmi:182',
+      });
+
+      expect(result.status).toBe('ready_for_committee');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.cardContext.assetId).toBe('asset-182');
+      expect(result.committeeContext.committeeWindow).toBe('2026-Q3');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['sharepoint:inv-182', 'vdmi:182']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_committee',
+          'Provided card evidence: 8/8',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

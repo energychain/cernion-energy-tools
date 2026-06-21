@@ -238,6 +238,32 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans investment committee steering cards as explicit card evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'investment_committee_steering_cards' },
+      {
+        investmentItemId: 'inv-182',
+        assetId: 'asset-182',
+        reviewStatus: 'technical-review-open',
+        owner: 'Assetmanagement',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('investment_committee_steering_cards');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['investment_item', 'asset_project_reference', 'review_status', 'owner'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'evidence_status',
+        'committee_window',
+        'blocked_follow_up_action',
+        'source_refs',
+      ])
+    );
+  });
+
   it('plans regulatory change readiness as explicit data and audit evidence', () => {
     const result = planEvidence(
       { routeLabel: 'regulatory_change_simulator_readiness' },

@@ -65,6 +65,7 @@ module.exports = {
       legacyControlTechnologyTransitionStatus: 5 * 60 * 1000, // 5 min
       controllabilitySubmissionCockpitStatus: 5 * 60 * 1000, // 5 min
       crisisDecisionRoutineStatus: 5 * 60 * 1000, // 5 min
+      investmentCommitteeSteeringCardsStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -2873,6 +2874,58 @@ module.exports = {
           this.settings.cacheTtlMs.crisisDecisionRoutineStatus,
           async () => ({
             ...this.buildCrisisDecisionRoutineStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── investmentCommitteeSteeringCardsStatus ───────────────────────────
+    /**
+     * GET /api/dashboard/investment-committee-steering-cards?investmentItemId=...
+     *
+     * Read-only dossier-safe investment committee card view. It classifies
+     * supplied investment/card evidence without creating HITL, VDMI or
+     * investment-plan records, mutating finance data, releasing budgets,
+     * calling external systems or introducing Personal-Agent shortcuts.
+     */
+    investmentCommitteeSteeringCardsStatus: {
+      rest: 'GET /investment-committee-steering-cards',
+      params: {
+        investmentItemId: { type: 'string', optional: true, min: 1 },
+        projectId: { type: 'string', optional: true, min: 1 },
+        assetId: { type: 'string', optional: true, min: 1 },
+        reviewStatus: { type: 'string', optional: true, min: 1 },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+        committeeWindow: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        blockedFollowUpAction: { type: 'string', optional: true, min: 1 },
+        capexEur: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        riskFlag: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Investment committee steering cards — read-only dossier-safe status',
+        description:
+          'Builds deterministic investment committee steering-card evidence. ' +
+          'The endpoint is read-only and does not create HITL, VDMI or investment-plan records, mutate finance data, release budgets, call external connectors, trigger billing/settlement/tariff/payment effects, or use Personal-Agent shortcuts.',
+        responses: {
+          200: {
+            description: 'Read-only investment committee steering card status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `investment-committee-steering-cards:${params.investmentItemId || 'no-item'}:${params.projectId || 'no-project'}:${params.assetId || 'no-asset'}:${params.owner || 'no-owner'}:${params.committeeWindow || 'no-window'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.investmentCommitteeSteeringCardsStatus,
+          async () => ({
+            ...this.buildInvestmentCommitteeSteeringCardsStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -8897,6 +8950,218 @@ module.exports = {
           blockedDecisions,
           blockingFindings,
           sourceEvidenceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildInvestmentCommitteeSteeringCardsStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const sourceRefs = toList(params.sourceRef);
+      const assetOrProjectRef = params.assetId || params.projectId;
+      const evidenceSpecs = [
+        {
+          id: 'investment_item',
+          label: 'Investment item',
+          value: params.investmentItemId,
+          sourceClass: 'investment_item_identity',
+          enablesDossierAddition: 'add the investment item id or card identifier',
+        },
+        {
+          id: 'asset_project_reference',
+          label: 'Asset or project reference',
+          value: assetOrProjectRef,
+          displayValue: [params.assetId, params.projectId].filter(Boolean).join(' / '),
+          sourceClass: 'asset_project_reference',
+          enablesDossierAddition: 'add asset or project reference for the committee card',
+        },
+        {
+          id: 'review_status',
+          label: 'Review status',
+          value: params.reviewStatus,
+          sourceClass: 'technical_review_status',
+          enablesDossierAddition: 'add technical or commercial review status',
+        },
+        {
+          id: 'evidence_status',
+          label: 'Evidence status',
+          value: params.evidenceStatus,
+          sourceClass: 'card_evidence_status',
+          enablesDossierAddition: 'add evidence completeness/status for the investment card',
+        },
+        {
+          id: 'committee_window',
+          label: 'Committee window',
+          value: params.committeeWindow,
+          sourceClass: 'committee_window',
+          enablesDossierAddition: 'add committee or board decision window',
+        },
+        {
+          id: 'owner',
+          label: 'Owner',
+          value: params.owner,
+          sourceClass: 'accountable_owner',
+          enablesDossierAddition: 'add accountable owner for card preparation',
+        },
+        {
+          id: 'blocked_follow_up_action',
+          label: 'Blocked follow-up action',
+          value: params.blockedFollowUpAction,
+          sourceClass: 'blocked_follow_up',
+          enablesDossierAddition: 'add the operational follow-up action blocked until committee review',
+        },
+        {
+          id: 'source_refs',
+          label: 'Source references',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add citable SharePoint, Excel, VDMI or investment-plan source references',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue || spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const reviewText = String(params.reviewStatus || '').toLowerCase();
+      const evidenceText = String(params.evidenceStatus || '').toLowerCase();
+      const blockedByReview = /block|blocked|gesperrt|rejected|abgelehnt|kritisch|critical/.test(reviewText);
+      const blockedByEvidence = /missing|fehlt|unvollstaendig|unvollständig|critical|kritisch|blocked/.test(evidenceText);
+      const status =
+        blockedByReview
+          ? 'blocked_by_review'
+          : blockedByEvidence
+            ? 'needs_evidence'
+            : !params.investmentItemId
+              ? 'needs_investment_item'
+              : !assetOrProjectRef
+                ? 'needs_asset_project_reference'
+                : !params.reviewStatus
+                  ? 'needs_review_status'
+                  : !params.evidenceStatus
+                    ? 'needs_evidence_status'
+                    : !params.owner
+                      ? 'needs_owner'
+                      : !params.committeeWindow
+                        ? 'needs_committee_window'
+                        : !params.blockedFollowUpAction
+                          ? 'needs_blocked_follow_up'
+                          : sourceRefs.length === 0
+                            ? 'needs_source_refs'
+                            : missingEvidence.length === 0
+                              ? 'ready_for_committee'
+                              : 'needs_card_evidence';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'investment_committee_steering_cards',
+      }));
+      const blockedDecisions = Array.from(new Set([
+        ...missingEvidence
+          .filter((item) => ['review_status', 'evidence_status', 'committee_window', 'owner', 'blocked_follow_up_action'].includes(item.missingDataPoint))
+          .map((item) => item.label),
+        ...(params.blockedFollowUpAction ? [params.blockedFollowUpAction] : []),
+      ]));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `ICSC_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['review_status', 'evidence_status', 'committee_window', 'owner'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      if (blockedByReview || blockedByEvidence) {
+        blockingFindings.push({
+          code: blockedByReview ? 'ICSC_REVIEW_STATUS_BLOCKING' : 'ICSC_EVIDENCE_STATUS_BLOCKING',
+          severity: 'high',
+          message: 'review or evidence status explicitly blocks committee steering readiness',
+        });
+      }
+      const cardContext = {
+        investmentItemId: params.investmentItemId || null,
+        projectId: params.projectId || null,
+        assetId: params.assetId || null,
+        capexEur: params.capexEur ?? null,
+        riskFlag: params.riskFlag || null,
+      };
+      const committeeContext = {
+        reviewStatus: params.reviewStatus || null,
+        evidenceStatus: params.evidenceStatus || null,
+        committeeWindow: params.committeeWindow || null,
+        owner: params.owner || null,
+        blockedFollowUpAction: params.blockedFollowUpAction || null,
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided card evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.investmentItemId) dossierFacts.push(`Investment Item: ${params.investmentItemId}`);
+      if (params.assetId) dossierFacts.push(`Asset: ${params.assetId}`);
+      if (params.projectId) dossierFacts.push(`Project: ${params.projectId}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (params.committeeWindow) dossierFacts.push(`Committee Window: ${params.committeeWindow}`);
+
+      return {
+        cardStatusId: `icsc:${Buffer.from(`${params.investmentItemId || ''}:${params.projectId || ''}:${params.assetId || ''}:${params.committeeWindow || ''}:${params.owner || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'investment_committee_steering_cards',
+        safety: 'read_only',
+        requestContext: {
+          investmentItemId: params.investmentItemId || null,
+          projectId: params.projectId || null,
+          assetId: params.assetId || null,
+          owner: params.owner || null,
+          committeeWindow: params.committeeWindow || null,
+        },
+        status,
+        readinessScore,
+        cardContext,
+        committeeContext,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockedDecisions,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+          capexEur: params.capexEur ?? null,
+          riskFlag: params.riskFlag || null,
+        },
+        sourceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.investmentCommitteeSteeringCardsStatus'],
+          referenced: ['investment-planning.createPlan', 'vdmi.dossier', 'hitl.summary', 'finance-agent.analyze', 'evidence-registry.lookup', 'presentation.generate'],
+          notCalled: ['hitl.create', 'vdmi.create', 'vdmi.mutate', 'investment-planning.createPlan', 'investment-planning.mutate', 'finance-agent.mutate', 'budget.release', 'billing.release', 'settlement.prepareBilling', 'tariff.mutate', 'payment.execute', 'external.connector.call', 'personal-agent.execute'],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          cardContext,
+          committeeContext,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockedDecisions,
+          blockingFindings,
+          sourceRefs,
           dossierFacts,
         },
       };
