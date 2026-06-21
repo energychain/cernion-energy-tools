@@ -1881,5 +1881,89 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 176
+  },
+  {
+    "id": "crisis-decision-routine-status",
+    "description": "Read-only Krise/Ad-hoc Entscheidungsroutine evidence for dossier hydration",
+    "routeLabel": "crisis_decision_routine",
+    "capability": "crisis_decision_routine",
+    "action": "dashboard-api.crisisDecisionRoutineStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "hitl.create",
+        "nova.apply",
+        "nova.propose",
+        "vdmi.create",
+        "vdmi.mutate",
+        "finance-agent.mutate",
+        "grid-operations.executeControl",
+        "operational-dispatch.execute",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "krisenmodus",
+      "krisenroutine",
+      "entscheidungsroutine",
+      "managemententscheidung",
+      "crisis decision routine",
+      "crisis mode"
+    ],
+    "paramTemplate": {
+      "topic": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:topic[:= ]+|thema[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner[:= ]+|verantwortlich[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "nextGate": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:nextGate[:= ]+|gate[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "decisionReadiness", "dossierEvidence.status"], "label": "Decision Routine", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.topic", "routineContext.topic"], "label": "Topic", "maxLen": 140 },
+        { "paths": ["requestContext.owner", "routineContext.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["requestContext.nextGate", "routineContext.nextGate"], "label": "Next Gate", "maxLen": 120 },
+        { "paths": ["routineEvidence.serviceImpact", "dossierEvidence.routineEvidence.serviceImpact"], "label": "Service Impact", "maxLen": 160 },
+        { "paths": ["routineEvidence.populationImpact", "dossierEvidence.routineEvidence.populationImpact"], "label": "Population Impact", "maxLen": 160 },
+        { "paths": ["routineEvidence.financeImpact", "dossierEvidence.routineEvidence.financeImpact"], "label": "Finance", "maxLen": 140 },
+        { "paths": ["routineEvidence.knowledgeState", "dossierEvidence.routineEvidence.knowledgeState"], "label": "Knowledge", "maxLen": 140 },
+        { "paths": ["routineEvidence.requiredMeasures.0", "dossierEvidence.routineEvidence.requiredMeasures.0"], "label": "Measure", "maxLen": 160 },
+        { "paths": ["routineEvidence.blockedFollowUp.0", "dossierEvidence.routineEvidence.blockedFollowUp.0"], "label": "Blocked Follow-up", "maxLen": 160 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 179
   }
 ]

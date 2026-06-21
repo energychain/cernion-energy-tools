@@ -14011,6 +14011,21 @@
         "description": "Builds a deterministic evidence view for Steuerbarkeitscheck submission readiness and handover. The endpoint is read-only and does not create HITL items, submit filings, execute grid, CLS, SMGW or device control, mutate MaKo, billing, settlement or tariff processes, call external connectors, or use Personal-Agent shortcuts."
       }
     },
+    "/api/dashboard-api/crisis-decision-routine": {
+      "get": {
+        "operationId": "dashboard-api_crisisDecisionRoutineStatus",
+        "summary": "Crisis decision routine — read-only dossier-safe management gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only crisis decision routine status"
+          }
+        },
+        "description": "Builds deterministic management-readiness evidence for crisis/ad-hoc topics. The endpoint is read-only and does not create HITL, NOVA or VDMI items, mutate finance or operations data, call external connectors, close decisions, dispatch operational actions, or use Personal-Agent shortcuts."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -52982,6 +52997,21 @@
           }
         },
         "description": "Builds a deterministic evidence view for Steuerbarkeitscheck submission readiness and handover. The endpoint is read-only and does not create HITL items, submit filings, execute grid, CLS, SMGW or device control, mutate MaKo, billing, settlement or tariff processes, call external connectors, or use Personal-Agent shortcuts."
+      }
+    },
+    "/api/dashboard/crisis-decision-routine": {
+      "get": {
+        "operationId": "dashboard-api_crisisDecisionRoutineStatus",
+        "summary": "Crisis decision routine — read-only dossier-safe management gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only crisis decision routine status"
+          }
+        },
+        "description": "Builds deterministic management-readiness evidence for crisis/ad-hoc topics. The endpoint is read-only and does not create HITL, NOVA or VDMI items, mutate finance or operations data, call external connectors, close decisions, dispatch operational actions, or use Personal-Agent shortcuts."
       }
     },
     "/api/dashboard/market-snapshot": {

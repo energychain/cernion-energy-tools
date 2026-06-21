@@ -3078,6 +3078,81 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── crisisDecisionRoutineStatus ───────────────────────────────────────
+
+  describe('crisisDecisionRoutineStatus', () => {
+    it('reports crisis decision routine gaps without creating HITL, NOVA, VDMI or finance side effects', async () => {
+      const result = await broker.call('dashboard-api.crisisDecisionRoutineStatus', {
+        caseId: 'crisis-179',
+        topic: 'Eskalation Netzbetrieb',
+      });
+
+      expect(result.status).toBe('needs_owner');
+      expect(result.decisionReadiness).toBe('needs_owner');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'service_population_impact',
+          'required_measures',
+          'finance_impact',
+          'knowledge_state',
+          'training_operating_model_need',
+          'owner',
+          'next_gate',
+        ])
+      );
+      expect(result.blockedDecisions).toEqual(
+        expect.arrayContaining(['management_decision', 'operational_prioritisation', 'finance_commitment'])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('crisis_decision_routine');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'hitl.create',
+          'nova.apply',
+          'vdmi.mutate',
+          'finance-agent.mutate',
+          'operational-dispatch.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns decision_ready when crisis routine evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.crisisDecisionRoutineStatus', {
+        caseId: 'crisis-179',
+        topic: 'Eskalation Netzbetrieb',
+        serviceImpact: 'call center and grid operations under stress',
+        populationImpact: 'affected service group is heat-pump customers',
+        requiredMeasures: 'prioritise hotline,freeze non-critical change',
+        financeImpact: 'estimated 120000 EUR exposure',
+        knowledgeState: 'evidence complete for management review',
+        trainingNeed: 'train incident owners on evidence routine',
+        owner: 'Netzbetrieb',
+        nextGate: 'GF-Lage 2026-07-01',
+        blockedFollowUp: 'finance commitment,operating model change',
+        sourceEvidenceRefs: 'vdmi:179,finance:179',
+        sourceSnapshot: 'snapshot:179',
+      });
+
+      expect(result.status).toBe('decision_ready');
+      expect(result.decisionReadiness).toBe('decision_ready');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.routineContext.owner).toBe('Netzbetrieb');
+      expect(result.routineEvidence.requiredMeasures).toEqual(
+        expect.arrayContaining(['prioritise hotline', 'freeze non-critical change'])
+      );
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: decision_ready',
+          'Provided crisis routine evidence: 10/10',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

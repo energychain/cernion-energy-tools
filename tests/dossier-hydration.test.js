@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 36 static rules', () => {
+    it('loads all 37 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(36);
+      expect(rules.length).toBe(37);
     });
 
-    it('compiles all 36 static rules without error', () => {
+    it('compiles all 37 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(36);
+      expect(rules.length).toBe(37);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1289,6 +1289,65 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Reason: non-execution-reason');
       expect(formatted).toContain('Asset Group: wp-open');
       expect(formatted).toContain('Leading Gap: handover_decision');
+      expect(formatted).toContain('Side-Effect Guard: hitl.create');
+    });
+
+    it('dashboard-api.crisisDecisionRoutineStatus is dossier-safe and formats management routine facts', () => {
+      const rule = getRule('dashboard-api.crisisDecisionRoutineStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Krisenmodus Entscheidungsroutine thema=netzstress owner=netzbetrieb gate=gf-lage laden'
+        )
+      ).toEqual({
+        topic: 'netzstress',
+        owner: 'netzbetrieb',
+        nextGate: 'gf-lage',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_finance_impact',
+        decisionReadiness: 'needs_finance_impact',
+        readinessScore: 0.7,
+        requestContext: {
+          topic: 'Netzstress',
+          owner: 'Netzbetrieb',
+          nextGate: 'GF-Lage',
+        },
+        routineContext: {
+          topic: 'Netzstress',
+          owner: 'Netzbetrieb',
+          nextGate: 'GF-Lage',
+        },
+        routineEvidence: {
+          serviceImpact: 'Leitwarte unter Druck',
+          populationImpact: 'Waermepumpen-Kundengruppe',
+          financeImpact: 'unknown',
+          knowledgeState: 'verified facts available',
+          requiredMeasures: ['hotline priorisieren'],
+          blockedFollowUp: ['budget commitment'],
+        },
+        missingEvidence: [
+          { missingDataPoint: 'finance_impact' },
+        ],
+        sourceActions: {
+          notCalled: ['hitl.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_finance_impact'],
+        },
+      });
+
+      expect(formatted).toContain('Decision Routine: needs_finance_impact');
+      expect(formatted).toContain('Topic: Netzstress');
+      expect(formatted).toContain('Owner: Netzbetrieb');
+      expect(formatted).toContain('Next Gate: GF-Lage');
+      expect(formatted).toContain('Service Impact: Leitwarte unter Druck');
+      expect(formatted).toContain('Finance: unknown');
+      expect(formatted).toContain('Measure: hotline priorisieren');
+      expect(formatted).toContain('Leading Gap: finance_impact');
       expect(formatted).toContain('Side-Effect Guard: hitl.create');
     });
 

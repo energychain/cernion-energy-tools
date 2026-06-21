@@ -211,6 +211,33 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans crisis decision routine as explicit management-readiness evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'crisis_decision_routine' },
+      {
+        topic: 'Eskalation Netzbetrieb',
+        serviceImpact: 'Leitwarte unter Druck',
+        financeImpact: '120000 EUR exposure',
+        owner: 'Netzbetrieb',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('crisis_decision_routine');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['topic', 'service_population_impact', 'finance_impact', 'owner'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'required_measures',
+        'knowledge_state',
+        'training_operating_model_need',
+        'next_gate',
+        'blocked_follow_up',
+      ])
+    );
+  });
+
   it('plans regulatory change readiness as explicit data and audit evidence', () => {
     const result = planEvidence(
       { routeLabel: 'regulatory_change_simulator_readiness' },

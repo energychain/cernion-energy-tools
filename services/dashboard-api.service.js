@@ -64,6 +64,7 @@ module.exports = {
       clsDigitalTwinComplianceGateStatus: 5 * 60 * 1000, // 5 min
       legacyControlTechnologyTransitionStatus: 5 * 60 * 1000, // 5 min
       controllabilitySubmissionCockpitStatus: 5 * 60 * 1000, // 5 min
+      crisisDecisionRoutineStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -2816,6 +2817,62 @@ module.exports = {
           this.settings.cacheTtlMs.controllabilitySubmissionCockpitStatus,
           async () => ({
             ...this.buildControllabilitySubmissionCockpitStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── crisisDecisionRoutineStatus ─────────────────────────────────────
+    /**
+     * GET /api/dashboard/crisis-decision-routine?topic=...
+     *
+     * Read-only dossier-safe management routine for ad-hoc/crisis topics. It
+     * turns crisis signals into decision-readiness evidence without creating
+     * VDMI/NOVA/HITL work items, mutating finance data, dispatching operations,
+     * calling external systems or introducing Personal-Agent shortcuts.
+     */
+    crisisDecisionRoutineStatus: {
+      rest: 'GET /crisis-decision-routine',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        topic: { type: 'string', optional: true, min: 1 },
+        serviceImpact: { type: 'string', optional: true, min: 1 },
+        populationImpact: { type: 'string', optional: true, min: 1 },
+        requiredMeasures: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        financeImpact: { type: 'string', optional: true, min: 1 },
+        knowledgeState: { type: 'string', optional: true, min: 1 },
+        trainingNeed: { type: 'string', optional: true, min: 1 },
+        operatingModelNeed: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        nextGate: { type: 'string', optional: true, min: 1 },
+        blockedFollowUp: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        decisionDeadline: { type: 'string', optional: true, min: 1 },
+        sourceEvidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceSnapshot: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Crisis decision routine — read-only dossier-safe management gate',
+        description:
+          'Builds deterministic management-readiness evidence for crisis/ad-hoc topics. ' +
+          'The endpoint is read-only and does not create HITL, NOVA or VDMI items, mutate finance or operations data, call external connectors, close decisions, dispatch operational actions, or use Personal-Agent shortcuts.',
+        responses: {
+          200: {
+            description: 'Read-only crisis decision routine status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `crisis-decision-routine:${params.caseId || 'no-case'}:${params.topic || 'no-topic'}:${params.owner || 'no-owner'}:${params.nextGate || 'no-gate'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.crisisDecisionRoutineStatus,
+          async () => ({
+            ...this.buildCrisisDecisionRoutineStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -8680,6 +8737,165 @@ module.exports = {
           blockedDecisions,
           blockingFindings,
           sourceSnapshot: params.sourceSnapshot || null,
+          sourceEvidenceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildCrisisDecisionRoutineStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.flatMap((item) => String(item || '').split(',')).map((item) => item.trim()).filter(Boolean)
+        : String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+      const requiredMeasures = toList(params.requiredMeasures);
+      const blockedFollowUp = toList(params.blockedFollowUp);
+      const sourceEvidenceRefs = toList(params.sourceEvidenceRefs);
+      const trainingOrOperatingModel = [params.trainingNeed, params.operatingModelNeed].filter(Boolean).join(' / ');
+      const serviceOrPopulationImpact = [params.serviceImpact, params.populationImpact].filter(Boolean).join(' / ');
+      const evidenceSpecs = [
+        ['topic', 'Crisis topic', params.topic || params.caseId, 'name the crisis/ad-hoc topic as a stable management object'],
+        ['service_population_impact', 'Service or population impact', serviceOrPopulationImpact, 'add service or population-group impact to the management dossier'],
+        ['required_measures', 'Required measures', requiredMeasures.length ? requiredMeasures.join(', ') : null, 'add required measures without executing them'],
+        ['finance_impact', 'Finance impact', params.financeImpact, 'quantify or qualify finance exposure for prioritisation'],
+        ['knowledge_state', 'Knowledge state', params.knowledgeState, 'document known facts, uncertainty and evidence limits'],
+        ['training_operating_model_need', 'Training or operating-model need', trainingOrOperatingModel, 'add training or operating-model follow-up need'],
+        ['owner', 'Owner', params.owner, 'assign an accountable owner for the routine'],
+        ['next_gate', 'Next decision gate', params.nextGate, 'state the next decision gate or date'],
+        ['blocked_follow_up', 'Blocked follow-up', blockedFollowUp.length ? blockedFollowUp.join(', ') : null, 'record blocked follow-up decisions without closing them'],
+        ['source_evidence_refs', 'Source evidence references', sourceEvidenceRefs.length ? sourceEvidenceRefs.join(', ') : null, 'add citable source references for the routine'],
+      ].map(([key, label, value, enablesDossierAddition]) => ({
+        key,
+        label,
+        value,
+        missingDataPoint: key,
+        enablesDossierAddition,
+      }));
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({ id: spec.key, label: spec.label, value: spec.value, evidenceStatus: 'provided' }));
+      const highGaps = new Set(['service_population_impact', 'finance_impact', 'knowledge_state', 'owner', 'next_gate']);
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.missingDataPoint,
+          enablesDossierAddition: spec.enablesDossierAddition,
+          category: 'crisis_decision_routine',
+          severity: highGaps.has(spec.missingDataPoint) ? 'high' : 'medium',
+        }));
+      const lower = (value) => String(value || '').toLowerCase();
+      const knowledgeText = lower(params.knowledgeState);
+      const financeText = lower(params.financeImpact);
+      const blockedByKnowledge = /unknown|unklar|missing|offen|unbelegt|insufficient|unsicher/.test(knowledgeText);
+      const blockedByFinance = /unknown|unklar|missing|offen|unquantified|nicht quantifiziert/.test(financeText);
+      let decisionReadiness = 'decision_ready';
+      if (!params.owner) decisionReadiness = 'needs_owner';
+      else if (!serviceOrPopulationImpact) decisionReadiness = 'needs_impact';
+      else if (!requiredMeasures.length) decisionReadiness = 'needs_measures';
+      else if (!params.financeImpact || blockedByFinance) decisionReadiness = 'needs_finance_impact';
+      else if (!params.knowledgeState || blockedByKnowledge) decisionReadiness = 'needs_knowledge_state';
+      else if (!trainingOrOperatingModel) decisionReadiness = 'needs_training_or_operating_model';
+      else if (!params.nextGate) decisionReadiness = 'needs_next_gate';
+      else if (!blockedFollowUp.length) decisionReadiness = 'needs_blocked_follow_up';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        category: item.category,
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `CDR_${String(item.missingDataPoint).toUpperCase()}`,
+        severity: item.severity,
+        message: item.enablesDossierAddition,
+      }));
+      if (blockedByKnowledge) {
+        blockingFindings.push({
+          code: 'CDR_KNOWLEDGE_STATE_UNCERTAIN',
+          severity: 'high',
+          message: 'knowledge state is explicitly uncertain and blocks a management decision claim',
+        });
+      }
+      if (blockedByFinance) {
+        blockingFindings.push({
+          code: 'CDR_FINANCE_IMPACT_UNCERTAIN',
+          severity: 'high',
+          message: 'finance impact is explicitly uncertain and blocks prioritisation wording',
+        });
+      }
+      const blockedDecisions = missingEvidence.length || blockedByKnowledge || blockedByFinance
+        ? ['management_decision', 'operational_prioritisation', 'finance_commitment', 'training_follow_up']
+        : [];
+      const routineContext = {
+        caseId: params.caseId || null,
+        topic: params.topic || null,
+        owner: params.owner || null,
+        nextGate: params.nextGate || null,
+        decisionDeadline: params.decisionDeadline || null,
+      };
+      const routineEvidence = {
+        serviceImpact: params.serviceImpact || null,
+        populationImpact: params.populationImpact || null,
+        requiredMeasures,
+        financeImpact: params.financeImpact || null,
+        knowledgeState: params.knowledgeState || null,
+        trainingNeed: params.trainingNeed || null,
+        operatingModelNeed: params.operatingModelNeed || null,
+        blockedFollowUp,
+        sourceEvidenceRefs,
+        sourceSnapshot: params.sourceSnapshot || null,
+      };
+      const routineSteps = [
+        { id: 'impact', label: 'Impact statement', evidenceStatus: serviceOrPopulationImpact ? 'provided' : 'missing' },
+        { id: 'measures', label: 'Required measures', evidenceStatus: requiredMeasures.length ? 'provided' : 'missing' },
+        { id: 'finance', label: 'Finance impact', evidenceStatus: params.financeImpact && !blockedByFinance ? 'provided' : 'missing' },
+        { id: 'knowledge', label: 'Knowledge state', evidenceStatus: params.knowledgeState && !blockedByKnowledge ? 'provided' : 'missing' },
+        { id: 'training-operating-model', label: 'Training or operating model', evidenceStatus: trainingOrOperatingModel ? 'provided' : 'missing' },
+        { id: 'owner', label: 'Owner', evidenceStatus: params.owner ? 'provided' : 'missing' },
+        { id: 'next-gate', label: 'Next decision gate', evidenceStatus: params.nextGate ? 'provided' : 'missing' },
+      ];
+      const dossierFacts = [
+        `Status: ${decisionReadiness}`,
+        `Provided crisis routine evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.topic) dossierFacts.push(`Topic: ${params.topic}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (params.nextGate) dossierFacts.push(`Next gate: ${params.nextGate}`);
+
+      return {
+        routineStatusId: `cdr:${Buffer.from(`${params.caseId || ''}:${params.topic || ''}:${params.owner || ''}:${params.nextGate || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'crisis_decision_routine',
+        safety: 'read_only',
+        requestContext: routineContext,
+        status: decisionReadiness,
+        decisionReadiness,
+        readinessScore,
+        routineContext,
+        routineEvidence,
+        routineSteps,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockedDecisions,
+        blockingFindings,
+        sourceEvidence: routineEvidence,
+        sourceActions: {
+          inspected: ['dashboard-api.crisisDecisionRoutineStatus'],
+          referenced: ['vdmi.dossier', 'nova.pendingDecisions', 'hitl.summary', 'finance-agent.analyze', 'evidence-registry.lookup', 'presentation.generate'],
+          notCalled: ['hitl.create', 'nova.apply', 'nova.propose', 'vdmi.create', 'vdmi.mutate', 'finance-agent.mutate', 'grid-operations.executeControl', 'operational-dispatch.execute', 'external.connector.call', 'personal-agent.execute'],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status: decisionReadiness,
+          decisionReadiness,
+          readinessScore,
+          routineContext,
+          routineEvidence,
+          routineSteps,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockedDecisions,
+          blockingFindings,
           sourceEvidenceRefs,
           dossierFacts,
         },

@@ -250,6 +250,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasCrisisDecisionRoutineSpecificSignal =
+    /(krisenmodus|krisenroutine|ad.?hoc.?krise|crisis mode|crisis decision routine|entscheidungsroutine)/i.test(haystack) &&
+    /(managemententscheidung|servicegruppenwirkung|bevoelkerungsgruppenwirkung|bevölkerungsgruppenwirkung|finanzwirkung|wissensstand|trainingsbedarf|owner|next decision gate|entscheidungsgate|blockierte folgeentscheidung)/i.test(haystack) &&
+    !/(steuerbarkeitscheck|redispatch|mako|marktkommunikation|settlement|billing|abrechnung|device-control|smgw|cls)/i.test(haystack);
+
+  if (hasCrisisDecisionRoutineSpecificSignal) {
+    const crisisCapability = findCapabilityByName('crisis_decision_routine');
+    if (crisisCapability) {
+      return { capability: crisisCapability, score: 137, usedFallback: false };
+    }
+  }
+
   const hasLegacyControlTechnologyTransitionSpecificSignal =
     /(rundsteuertechnik|rundsteuerempfaenger|rundsteuerempfänger|gruppensignal|legacy control|bestandsanlage|steuerbox uebergang|steuerbox übergang|cls uebergang|cls übergang)/i.test(haystack) &&
     /(rueckmeldefaehigkeit|rückmeldefähigkeit|testbarkeit|nichtdurchfuehrungsbegruendung|nichtdurchführungsbegründung|steuerbarkeitsnachweis|migration|roadmap|uebergang|übergang)/i.test(haystack);

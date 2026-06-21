@@ -1662,6 +1662,81 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  crisis_decision_routine: {
+    sources: [
+      {
+        id: 'topic',
+        label: 'Krisenthema',
+        resolvedBy: ['dashboard-api.crisisDecisionRoutineStatus', 'vdmi.dossier'],
+        contextKeys: ['topic', 'caseId'],
+        optional: false,
+      },
+      {
+        id: 'service_population_impact',
+        label: 'Service- oder Bevoelkerungsgruppenwirkung',
+        resolvedBy: ['dashboard-api.crisisDecisionRoutineStatus', 'vdmi.dossier'],
+        contextKeys: ['serviceImpact', 'populationImpact'],
+        optional: false,
+      },
+      {
+        id: 'required_measures',
+        label: 'Notwendige Massnahmen',
+        resolvedBy: ['dashboard-api.crisisDecisionRoutineStatus', 'vdmi.dossier'],
+        contextKeys: ['requiredMeasures'],
+        optional: false,
+      },
+      {
+        id: 'finance_impact',
+        label: 'Finanzwirkung',
+        resolvedBy: ['dashboard-api.crisisDecisionRoutineStatus', 'finance-agent.analyze'],
+        contextKeys: ['financeImpact'],
+        optional: false,
+      },
+      {
+        id: 'knowledge_state',
+        label: 'Wissensstand',
+        resolvedBy: ['dashboard-api.crisisDecisionRoutineStatus', 'vdmi.findings'],
+        contextKeys: ['knowledgeState'],
+        optional: false,
+      },
+      {
+        id: 'training_operating_model_need',
+        label: 'Training oder Operating-Model-Bedarf',
+        resolvedBy: ['dashboard-api.crisisDecisionRoutineStatus', 'vdmi.dossier'],
+        contextKeys: ['trainingNeed', 'operatingModelNeed'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Accountable Owner',
+        resolvedBy: ['dashboard-api.crisisDecisionRoutineStatus', 'vdmi.dossier', 'hitl.summary'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'next_gate',
+        label: 'Naechstes Entscheidungsgate',
+        resolvedBy: ['dashboard-api.crisisDecisionRoutineStatus', 'nova.pendingDecisions', 'vdmi.dossier'],
+        contextKeys: ['nextGate', 'decisionDeadline'],
+        optional: false,
+      },
+      {
+        id: 'blocked_follow_up',
+        label: 'Blockierte Folgeentscheidung',
+        resolvedBy: ['dashboard-api.crisisDecisionRoutineStatus', 'vdmi.dossier'],
+        contextKeys: ['blockedFollowUp'],
+        optional: false,
+      },
+      {
+        id: 'source_evidence_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.crisisDecisionRoutineStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceEvidenceRefs', 'sourceSnapshot'],
+        optional: false,
+      },
+    ],
+  },
+
   // ── Routing-matrix route-keyed entries ─────────────────────────────────
 
   'investment-grid-check': {
