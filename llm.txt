@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: 416fbc684ecd54b1c5106d580ecd874aafd7417e80239a02f3b76b59edd87261
+  - openapi-export.json: 961b6f70483a1f22abee3a6818b37a96949018893ff9b180b72fe99596b9a543
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 768
-- operation_count: 873
+- path_count: 774
+- operation_count: 879
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -695,7 +695,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 78 operations
+- Dashboard API: 84 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -982,6 +982,8 @@ process:
 - GET /api/dashboard-api/flex-strategic-demand-intake | tags: [Dashboard API] | operationId: dashboard-api_flexStrategicDemandIntakeStatus | summary: Strategic Flex demand intake — read-only dossier-safe status
 - GET /api/dashboard-api/gas-decommissioning-roadmap | tags: [Dashboard API] | operationId: dashboard-api_gasDecommissioningRoadmapStatus | summary: Gas Decommissioning Roadmap — read-only dossier-safe status
 - GET /api/dashboard-api/gas-infrastructure-risk-governance | tags: [Dashboard API] | operationId: dashboard-api_gasInfrastructureRiskGovernanceStatus | summary: Gas infrastructure risk governance — read-only dossier-safe status
+- GET /api/dashboard-api/gas-transformation-dependency-map | tags: [Dashboard API] | operationId: dashboard-api_gasTransformationDependencyMapStatus | summary: Gas- und Waermetransformation Abhaengigkeitslandkarte — read-only dossier-safe status
+- GET /api/dashboard-api/grid-connection-transformation-gate | tags: [Dashboard API] | operationId: dashboard-api_gridConnectionTransformationGateStatus | summary: Netzanschlusspunkt Transformations Gate — read-only dossier-safe status
 - GET /api/dashboard-api/heat-transformation-line-asset-model | tags: [Dashboard API] | operationId: dashboard-api_heatTransformationLineAssetModelStatus | summary: Heat transformation line-asset model — read-only dossier-safe status
 - GET /api/dashboard-api/imsys-schedule-value-chain-readiness | tags: [Dashboard API] | operationId: dashboard-api_imsysScheduleValueChainReadinessStatus | summary: iMSys schedule value-chain readiness — read-only dossier-safe gate
 - GET /api/dashboard-api/imsys-taf2-compliance | tags: [Dashboard API] | operationId: dashboard-api_imsysTaf2ComplianceStatus | summary: iMSys TAF2 compliance status — read-only dossier-safe status
@@ -1005,6 +1007,7 @@ process:
 - GET /api/dashboard-api/redispatch-metering-cockpit | tags: [Dashboard API] | operationId: dashboard-api_redispatchMeteringCockpit | summary: Redispatch Metering Cockpit — operator-level decision readiness
 - GET /api/dashboard-api/regulatory-change-readiness | tags: [Dashboard API] | operationId: dashboard-api_regulatoryChangeReadinessStatus | summary: Regulatory change readiness — read-only dossier-safe gate
 - GET /api/dashboard-api/sap-budget-psp-gate | tags: [Dashboard API] | operationId: dashboard-api_sapBudgetPspGateStatus | summary: SAP Budget PSP Gate — read-only dossier-safe status
+- GET /api/dashboard-api/schedule-management-governance-roadmap | tags: [Dashboard API] | operationId: dashboard-api_scheduleManagementGovernanceRoadmapStatus | summary: Fahrplanmanagement Governance Roadmap — read-only dossier-safe status
 - GET /api/dashboard-api/smart-meter-off-balancing-purpose-lock | tags: [Dashboard API] | operationId: dashboard-api_smartMeterOffBalancingPurposeLockStatus | summary: Smart Meter Off-Balancing Purpose Lock — read-only dossier-safe gate
 - GET /api/dashboard-api/vnb-overview | tags: [Dashboard API] | operationId: dashboard-api_vnbOverview | summary: VNB overview — aggregated dashboard data for one grid operator
 - GET /api/dashboard/automation-requirements-decision-value | tags: [Dashboard API] | operationId: dashboard-api_automationRequirementsDecisionValueStatus | summary: Automation Requirements Decision Value — read-only dossier-safe gate
@@ -1021,6 +1024,8 @@ process:
 - GET /api/dashboard/flex-strategic-demand-intake | tags: [Dashboard API] | operationId: dashboard-api_flexStrategicDemandIntakeStatus | summary: Strategic Flex demand intake — read-only dossier-safe status
 - GET /api/dashboard/gas-decommissioning-roadmap | tags: [Dashboard API] | operationId: dashboard-api_gasDecommissioningRoadmapStatus | summary: Gas Decommissioning Roadmap — read-only dossier-safe status
 - GET /api/dashboard/gas-infrastructure-risk-governance | tags: [Dashboard API] | operationId: dashboard-api_gasInfrastructureRiskGovernanceStatus | summary: Gas infrastructure risk governance — read-only dossier-safe status
+- GET /api/dashboard/gas-transformation-dependency-map | tags: [Dashboard API] | operationId: dashboard-api_gasTransformationDependencyMapStatus | summary: Gas- und Waermetransformation Abhaengigkeitslandkarte — read-only dossier-safe status
+- GET /api/dashboard/grid-connection-transformation-gate | tags: [Dashboard API] | operationId: dashboard-api_gridConnectionTransformationGateStatus | summary: Netzanschlusspunkt Transformations Gate — read-only dossier-safe status
 - GET /api/dashboard/heat-transformation-line-asset-model | tags: [Dashboard API] | operationId: dashboard-api_heatTransformationLineAssetModelStatus | summary: Heat transformation line-asset model — read-only dossier-safe status
 - GET /api/dashboard/imsys-schedule-value-chain-readiness | tags: [Dashboard API] | operationId: dashboard-api_imsysScheduleValueChainReadinessStatus | summary: iMSys schedule value-chain readiness — read-only dossier-safe gate
 - GET /api/dashboard/imsys-taf2-compliance | tags: [Dashboard API] | operationId: dashboard-api_imsysTaf2ComplianceStatus | summary: iMSys TAF2 compliance status — read-only dossier-safe status
@@ -1044,6 +1049,7 @@ process:
 - GET /api/dashboard/redispatch-metering-cockpit | tags: [Dashboard API] | operationId: dashboard-api_redispatchMeteringCockpit | summary: Redispatch Metering Cockpit — operator-level decision readiness
 - GET /api/dashboard/regulatory-change-readiness | tags: [Dashboard API] | operationId: dashboard-api_regulatoryChangeReadinessStatus | summary: Regulatory change readiness — read-only dossier-safe gate
 - GET /api/dashboard/sap-budget-psp-gate | tags: [Dashboard API] | operationId: dashboard-api_sapBudgetPspGateStatus | summary: SAP Budget PSP Gate — read-only dossier-safe status
+- GET /api/dashboard/schedule-management-governance-roadmap | tags: [Dashboard API] | operationId: dashboard-api_scheduleManagementGovernanceRoadmapStatus | summary: Fahrplanmanagement Governance Roadmap — read-only dossier-safe status
 - GET /api/dashboard/smart-meter-off-balancing-purpose-lock | tags: [Dashboard API] | operationId: dashboard-api_smartMeterOffBalancingPurposeLockStatus | summary: Smart Meter Off-Balancing Purpose Lock — read-only dossier-safe gate
 - GET /api/dashboard/vnb-overview | tags: [Dashboard API] | operationId: dashboard-api_vnbOverview | summary: VNB overview — aggregated dashboard data for one grid operator
 - GET /api/datapoint/ | tags: [Datapoints] | operationId: datapoint_list | summary: List all registered Datapoints
@@ -16662,6 +16668,36 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/gas-transformation-dependency-map": {
+      "get": {
+        "description": "Builds deterministic dependency map and status from supplied facts. The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI.",
+        "operationId": "dashboard-api_gasTransformationDependencyMapStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only gas and heat transformation status and dependency map evidence"
+          }
+        },
+        "summary": "Gas- und Waermetransformation Abhaengigkeitslandkarte — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
+    "/api/dashboard-api/grid-connection-transformation-gate": {
+      "get": {
+        "description": "Builds deterministic gate status and evidence from supplied facts. The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI.",
+        "operationId": "dashboard-api_gridConnectionTransformationGateStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only grid connection transformation status evidence"
+          }
+        },
+        "summary": "Netzanschlusspunkt Transformations Gate — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/heat-transformation-line-asset-model": {
       "get": {
         "description": "Builds deterministic line-asset evidence from supplied facts. The endpoint is read-only and does not create ZNP projects, point/line assets, datapoints, VDMI dossiers, finance plans, HITL tasks, or trigger device control or external connectors.",
@@ -18999,6 +19035,21 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/schedule-management-governance-roadmap": {
+      "get": {
+        "description": "Builds deterministic roadmap and status from supplied facts. The endpoint is read-only and does not run dispatch/writes or write to ZNP, assets, HITL, or VDMI.",
+        "operationId": "dashboard-api_scheduleManagementGovernanceRoadmapStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only schedule management status and roadmap evidence"
+          }
+        },
+        "summary": "Fahrplanmanagement Governance Roadmap — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/smart-meter-off-balancing-purpose-lock": {
       "get": {
         "description": "Builds a deterministic evidence view for smart-meter off-balancing purpose-lock readiness. The endpoint is read-only and does not create finance, SAP, investment, billing, settlement, MaKo, HITL, external connector or Personal-Agent side effects.",
@@ -20583,6 +20634,36 @@ process:
           }
         },
         "summary": "Gas infrastructure risk governance — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
+    "/api/dashboard/gas-transformation-dependency-map": {
+      "get": {
+        "description": "Builds deterministic dependency map and status from supplied facts. The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI.",
+        "operationId": "dashboard-api_gasTransformationDependencyMapStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only gas and heat transformation status and dependency map evidence"
+          }
+        },
+        "summary": "Gas- und Waermetransformation Abhaengigkeitslandkarte — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
+    "/api/dashboard/grid-connection-transformation-gate": {
+      "get": {
+        "description": "Builds deterministic gate status and evidence from supplied facts. The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI.",
+        "operationId": "dashboard-api_gridConnectionTransformationGateStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only grid connection transformation status evidence"
+          }
+        },
+        "summary": "Netzanschlusspunkt Transformations Gate — read-only dossier-safe status",
         "tags": [
           "Dashboard API"
         ]
@@ -22920,6 +23001,21 @@ process:
           }
         },
         "summary": "SAP Budget PSP Gate — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
+    "/api/dashboard/schedule-management-governance-roadmap": {
+      "get": {
+        "description": "Builds deterministic roadmap and status from supplied facts. The endpoint is read-only and does not run dispatch/writes or write to ZNP, assets, HITL, or VDMI.",
+        "operationId": "dashboard-api_scheduleManagementGovernanceRoadmapStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only schedule management status and roadmap evidence"
+          }
+        },
+        "summary": "Fahrplanmanagement Governance Roadmap — read-only dossier-safe status",
         "tags": [
           "Dashboard API"
         ]
@@ -60110,4 +60206,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: dbacedb73a1798addace076c4532b591a6987000e1a9aeb7e527f583f29bd906
+- llm_txt_sha256: a53088ce9600d04d15d2fc95fbddff7782729bc29fc533ccb6ef00dc24bc3848

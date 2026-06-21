@@ -1469,6 +1469,8 @@ module.exports = {
             'dashboard-api.scheduleManagementGovernanceRoadmapStatus',
           'GET /dashboard/gas-transformation-dependency-map':
             'dashboard-api.gasTransformationDependencyMapStatus',
+          'GET /dashboard/grid-connection-transformation-gate':
+            'dashboard-api.gridConnectionTransformationGateStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

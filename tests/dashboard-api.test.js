@@ -4042,6 +4042,61 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── gridConnectionTransformationGateStatus ─────────────────────────────
+
+  describe('gridConnectionTransformationGateStatus', () => {
+    it('reports grid connection transformation gate gaps without creating stateful databases or mutation side effects', async () => {
+      const result = await broker.call('dashboard-api.gridConnectionTransformationGateStatus', {
+        meteringPointId: 'melo-144',
+      });
+
+      expect(result.status).toBe('needs_division');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'division',
+          'transformation_option',
+          'data_quality_status',
+          'investment_path',
+          'decommission_path',
+          'owner',
+          'next_action',
+          'source_refs',
+        ])
+      );
+      expect(result.sourceActions.notCalled).toContain('hitl.create');
+    });
+
+    it('returns ready_for_transformation_decision and correct gateStatus when all evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.gridConnectionTransformationGateStatus', {
+        meteringPointId: 'melo-144',
+        division: 'Gas',
+        transformationOption: 'h2_ready',
+        dataQualityStatus: 'verified',
+        investmentPath: 'capex_approved',
+        decommissionPath: '2035_shut_down',
+        owner: 'Netznutzung',
+        nextAction: 'decide_umbaupfad',
+        sourceRef: 'NAPTransformation_2045,H2_Readiness_Doc',
+      });
+
+      expect(result.status).toBe('ready_for_transformation_decision');
+      expect(result.gateStatus).toBe('repurpose');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.complianceEvidence.division).toBe('Gas');
+      expect(result.complianceContext.meteringPointId).toBe('melo-144');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['NAPTransformation_2045', 'H2_Readiness_Doc']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_transformation_decision',
+          'Gate Status: repurpose',
+          'Provided Netzanschlusspunkt Transformations Gate evidence: 8/8',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

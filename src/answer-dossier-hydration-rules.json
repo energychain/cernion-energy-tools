@@ -2966,5 +2966,70 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 155
+  },
+  {
+    "id": "grid-connection-transformation-gate",
+    "description": "Read-only Netzanschlusspunkt Transformations Gate status evidence for dossier hydration",
+    "routeLabel": "grid_connection_transformation_gate",
+    "capability": "grid_connection_transformation_gate",
+    "action": "dashboard-api.gridConnectionTransformationGateStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "hitl.create",
+        "assets.mutate",
+        "datapoint.mutate",
+        "finance-agent.mutate",
+        "investment-planning.createPlan",
+        "vdmi.mutate",
+        "personal-agent.execute",
+        "external.connector.call"
+      ]
+    },
+    "triggers": [
+      "netzanschlusspunkt",
+      "transformations-gate",
+      "umbaupfad",
+      "anschluss transformation",
+      "netzanschluss",
+      "geografisch erfasst"
+    ],
+    "paramTemplate": {
+      "meteringPointId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:meteringPointId[:= ]+|metering_point_id[:= ]+|melo[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Gate Status", "maxLen": 90 },
+        { "paths": ["gateStatus", "dossierEvidence.gateStatus"], "label": "Transformation Stage", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["complianceEvidence.division", "dossierEvidence.complianceEvidence.division"], "label": "Sparte", "maxLen": 120 },
+        { "paths": ["complianceEvidence.transformationOption", "dossierEvidence.complianceEvidence.transformationOption"], "label": "Option", "maxLen": 120 },
+        { "paths": ["complianceEvidence.dataQualityStatus", "dossierEvidence.complianceEvidence.dataQualityStatus"], "label": "Datenqualitaet", "maxLen": 120 },
+        { "paths": ["complianceEvidence.investmentPath", "dossierEvidence.complianceEvidence.investmentPath"], "label": "Investitionspfad", "maxLen": 120 },
+        { "paths": ["complianceEvidence.decommissionPath", "dossierEvidence.complianceEvidence.decommissionPath"], "label": "Stilllegungspfad", "maxLen": 120 },
+        { "paths": ["complianceEvidence.owner", "dossierEvidence.complianceEvidence.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["complianceEvidence.nextAction", "dossierEvidence.complianceEvidence.nextAction"], "label": "Next Action", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 144
   }
 ]

@@ -77,6 +77,7 @@ module.exports = {
       imsysTaf2ComplianceStatus: 5 * 60 * 1000, // 5 min
       scheduleManagementGovernanceRoadmapStatus: 5 * 60 * 1000, // 5 min
       gasTransformationDependencyMapStatus: 5 * 60 * 1000, // 5 min
+      gridConnectionTransformationGateStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3536,6 +3537,55 @@ module.exports = {
           this.settings.cacheTtlMs.gasTransformationDependencyMapStatus,
           async () => ({
             ...this.buildGasTransformationDependencyMapStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── gridConnectionTransformationGateStatus ─────────────────────────────
+    /**
+     * GET /api/dashboard/grid-connection-transformation-gate
+     *
+     * Read-only dossier-safe Netzanschlusspunkt Transformations Gate.
+     * It builds a deterministic gate status and evidence projection from supplied facts
+     * without creating a new grid connection database or mapping platform.
+     */
+    gridConnectionTransformationGateStatus: {
+      rest: 'GET /grid-connection-transformation-gate',
+      params: {
+        meteringPointId: { type: 'string', optional: true, min: 1 },
+        division: { type: 'string', optional: true, min: 1 },
+        transformationOption: { type: 'string', optional: true, min: 1 },
+        dataQualityStatus: { type: 'string', optional: true, min: 1 },
+        investmentPath: { type: 'string', optional: true, min: 1 },
+        decommissionPath: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        nextAction: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Netzanschlusspunkt Transformations Gate — read-only dossier-safe status',
+        description:
+          'Builds deterministic gate status and evidence from supplied facts. ' +
+          'The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI.',
+        responses: {
+          200: {
+            description: 'Read-only grid connection transformation status evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `grid-connection-transformation-gate:${params.meteringPointId || 'no-melo'}:${params.division || 'no-division'}:${params.owner || 'no-owner'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.gridConnectionTransformationGateStatus,
+          async () => ({
+            ...this.buildGridConnectionTransformationGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -12374,6 +12424,234 @@ module.exports = {
         validationFindings: blockingFindings,
         dossierEvidence: {
           status,
+          readinessScore,
+          complianceScore,
+          complianceContext,
+          complianceEvidence,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildGridConnectionTransformationGateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+
+      const sourceRefs = toList(params.sourceRef);
+
+      const evidenceSpecs = [
+        {
+          id: 'division',
+          label: 'Sparte',
+          value: params.division,
+          sourceClass: 'division_specification',
+          enablesDossierAddition: 'define the division or sector context (e.g. Gas, Electricity, Heat)',
+        },
+        {
+          id: 'transformation_option',
+          label: 'Transformationsoption',
+          value: params.transformationOption,
+          sourceClass: 'transformation_option_specification',
+          enablesDossierAddition: 'specify the transformation option or scenario (e.g. h2_ready, electrification, hybrid, decommission)',
+        },
+        {
+          id: 'data_quality_status',
+          label: 'Datenqualitaetsstatus',
+          value: params.dataQualityStatus,
+          sourceClass: 'data_quality_evaluation',
+          enablesDossierAddition: 'verify data quality status for grid connection transformation (e.g. verified, incomplete, missing)',
+        },
+        {
+          id: 'investment_path',
+          label: 'Investitionspfad',
+          value: params.investmentPath,
+          sourceClass: 'investment_path_identification',
+          enablesDossierAddition: 'identify required investment path (e.g. capex_approved, budget_needed)',
+        },
+        {
+          id: 'decommission_path',
+          label: 'Stilllegungspfad',
+          value: params.decommissionPath,
+          sourceClass: 'decommission_path_specification',
+          enablesDossierAddition: 'define decommission or repurpose path (e.g. 2035_shut_down, repurpose)',
+        },
+        {
+          id: 'owner',
+          label: 'Owner',
+          value: params.owner,
+          sourceClass: 'responsibility_assignment',
+          enablesDossierAddition: 'assign an accountable owner role or process sponsor (e.g. Netznutzung, Assetmanagement)',
+        },
+        {
+          id: 'next_action',
+          label: 'Next Action',
+          value: params.nextAction,
+          sourceClass: 'next_decision_action',
+          enablesDossierAddition: 'define immediate next action or decision step',
+        },
+        {
+          id: 'source_refs',
+          label: 'Quellenreferenzen',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add regulatory sources or documentation reference credentials',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value !== undefined && spec.value !== null && spec.value !== false)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue ?? spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => spec.value === undefined || spec.value === null || spec.value === false)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        !params.division
+          ? 'needs_division'
+          : !params.transformationOption
+            ? 'needs_transformation_option'
+            : !params.dataQualityStatus
+              ? 'needs_data_quality_status'
+              : !params.investmentPath
+                ? 'needs_investment_path'
+                : !params.decommissionPath
+                  ? 'needs_decommission_path'
+                  : !params.owner
+                    ? 'needs_owner'
+                    : !params.nextAction
+                      ? 'needs_next_action'
+                      : sourceRefs.length === 0
+                        ? 'needs_source_refs'
+                        : 'ready_for_transformation_decision';
+
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const complianceScore = readinessScore;
+
+      // Map to the requested gateStatus: invest|repurpose|decommission|needs_evidence|needs_governance|monitor
+      let gateStatus = 'needs_evidence';
+      if (status === 'ready_for_transformation_decision') {
+        const option = String(params.transformationOption).toLowerCase();
+        const next = String(params.nextAction).toLowerCase();
+        if (option.includes('decommission') || option.includes('stilllegung') || option.includes('shut_down')) {
+          gateStatus = 'decommission';
+        } else if (option.includes('repurpose') || option.includes('umwidmung') || option.includes('h2_ready')) {
+          gateStatus = 'repurpose';
+        } else if (option.includes('invest') || option.includes('electrification') || option.includes('ausbau')) {
+          gateStatus = 'invest';
+        } else if (next.includes('governance') || next.includes('freigabe') || next.includes('entscheidung')) {
+          gateStatus = 'needs_governance';
+        } else {
+          gateStatus = 'monitor';
+        }
+      } else {
+        // If not fully decision ready, it needs evidence
+        gateStatus = 'needs_evidence';
+      }
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'grid_connection_transformation_gate',
+      }));
+
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `GCTG_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['division', 'transformation_option', 'owner', 'next_action'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+
+      const complianceContext = {
+        meteringPointId: params.meteringPointId || null,
+      };
+
+      const complianceEvidence = {
+        division: params.division || null,
+        transformationOption: params.transformationOption || null,
+        dataQualityStatus: params.dataQualityStatus || null,
+        investmentPath: params.investmentPath || null,
+        decommissionPath: params.decommissionPath || null,
+        owner: params.owner || null,
+        nextAction: params.nextAction || null,
+      };
+
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Gate Status: ${gateStatus}`,
+        `Provided Netzanschlusspunkt Transformations Gate evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.meteringPointId) dossierFacts.push(`Metering Point ID: ${params.meteringPointId}`);
+
+      return {
+        gridConnectionTransformationGateStatusId: `gctg:${Buffer.from(`${params.meteringPointId || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'grid_connection_transformation_gate',
+        safety: 'read_only',
+        requestContext: complianceContext,
+        status,
+        gateStatus,
+        readinessScore,
+        complianceScore,
+        complianceContext,
+        complianceEvidence,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+        },
+        sourceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.gridConnectionTransformationGateStatus'],
+          referenced: [
+            'mastr-quality.audit',
+            'grid-connection.validate',
+            'grid-operations.netzfahrplanGenerate',
+            'znp.assessPortfolio',
+            'assets.effective',
+            'vdmi.dossier',
+            'interface-placeholder.requestEvidence'
+          ],
+          notCalled: [
+            'hitl.create',
+            'assets.mutate',
+            'datapoint.mutate',
+            'finance-agent.mutate',
+            'investment-planning.createPlan',
+            'vdmi.mutate',
+            'personal-agent.execute',
+            'external.connector.call'
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          gateStatus,
           readinessScore,
           complianceScore,
           complianceContext,

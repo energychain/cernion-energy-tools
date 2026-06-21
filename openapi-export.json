@@ -14176,6 +14176,51 @@
         "description": "Builds deterministic compliance evidence from supplied facts. The endpoint is read-only and does not run budget writes or write to HITL/VDMI."
       }
     },
+    "/api/dashboard-api/schedule-management-governance-roadmap": {
+      "get": {
+        "operationId": "dashboard-api_scheduleManagementGovernanceRoadmapStatus",
+        "summary": "Fahrplanmanagement Governance Roadmap — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only schedule management status and roadmap evidence"
+          }
+        },
+        "description": "Builds deterministic roadmap and status from supplied facts. The endpoint is read-only and does not run dispatch/writes or write to ZNP, assets, HITL, or VDMI."
+      }
+    },
+    "/api/dashboard-api/gas-transformation-dependency-map": {
+      "get": {
+        "operationId": "dashboard-api_gasTransformationDependencyMapStatus",
+        "summary": "Gas- und Waermetransformation Abhaengigkeitslandkarte — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only gas and heat transformation status and dependency map evidence"
+          }
+        },
+        "description": "Builds deterministic dependency map and status from supplied facts. The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI."
+      }
+    },
+    "/api/dashboard-api/grid-connection-transformation-gate": {
+      "get": {
+        "operationId": "dashboard-api_gridConnectionTransformationGateStatus",
+        "summary": "Netzanschlusspunkt Transformations Gate — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only grid connection transformation status evidence"
+          }
+        },
+        "description": "Builds deterministic gate status and evidence from supplied facts. The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53312,6 +53357,51 @@
           }
         },
         "description": "Builds deterministic compliance evidence from supplied facts. The endpoint is read-only and does not run budget writes or write to HITL/VDMI."
+      }
+    },
+    "/api/dashboard/schedule-management-governance-roadmap": {
+      "get": {
+        "operationId": "dashboard-api_scheduleManagementGovernanceRoadmapStatus",
+        "summary": "Fahrplanmanagement Governance Roadmap — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only schedule management status and roadmap evidence"
+          }
+        },
+        "description": "Builds deterministic roadmap and status from supplied facts. The endpoint is read-only and does not run dispatch/writes or write to ZNP, assets, HITL, or VDMI."
+      }
+    },
+    "/api/dashboard/gas-transformation-dependency-map": {
+      "get": {
+        "operationId": "dashboard-api_gasTransformationDependencyMapStatus",
+        "summary": "Gas- und Waermetransformation Abhaengigkeitslandkarte — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only gas and heat transformation status and dependency map evidence"
+          }
+        },
+        "description": "Builds deterministic dependency map and status from supplied facts. The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI."
+      }
+    },
+    "/api/dashboard/grid-connection-transformation-gate": {
+      "get": {
+        "operationId": "dashboard-api_gridConnectionTransformationGateStatus",
+        "summary": "Netzanschlusspunkt Transformations Gate — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only grid connection transformation status evidence"
+          }
+        },
+        "description": "Builds deterministic gate status and evidence from supplied facts. The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI."
       }
     },
     "/api/dashboard/market-snapshot": {

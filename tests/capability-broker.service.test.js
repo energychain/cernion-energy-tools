@@ -1373,4 +1373,22 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
     expect(actionNames).not.toContain('external.connector.call');
   });
+
+  it('routes grid connection transformation gate prompts to the read-only evidence status path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Netzanschlusspunkt Transformations Gate fuer meteringPointId=melo-144: Sparte, Transformationsoption, Datenqualitaetsstatus, Investitionspfad, Stilllegungspfad, Owner, naechste Schritte, naechste Massnahme und Quellenreferenzen.',
+    });
+
+    expect(result.capability).toBe('grid_connection_transformation_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe('grid_connection_transformation_gate');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.gridConnectionTransformationGateStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('assets.mutate');
+    expect(actionNames).not.toContain('datapoint.mutate');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('vdmi.mutate');
+    expect(actionNames).not.toContain('personal-agent.execute');
+    expect(actionNames).not.toContain('external.connector.call');
+  });
 });

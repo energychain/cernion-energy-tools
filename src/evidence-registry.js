@@ -2494,6 +2494,74 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  grid_connection_transformation_gate: {
+    sources: [
+      {
+        id: 'metering_point_id',
+        label: 'Metering Point ID',
+        resolvedBy: ['dashboard-api.gridConnectionTransformationGateStatus', 'vdmi.dossier'],
+        contextKeys: ['meteringPointId'],
+        optional: true,
+      },
+      {
+        id: 'division',
+        label: 'Sparte',
+        resolvedBy: ['dashboard-api.gridConnectionTransformationGateStatus', 'vdmi.dossier'],
+        contextKeys: ['division'],
+        optional: false,
+      },
+      {
+        id: 'transformation_option',
+        label: 'Transformationsoption',
+        resolvedBy: ['dashboard-api.gridConnectionTransformationGateStatus', 'vdmi.dossier'],
+        contextKeys: ['transformationOption'],
+        optional: false,
+      },
+      {
+        id: 'data_quality_status',
+        label: 'Datenqualitaetsstatus',
+        resolvedBy: ['dashboard-api.gridConnectionTransformationGateStatus', 'vdmi.dossier'],
+        contextKeys: ['dataQualityStatus'],
+        optional: false,
+      },
+      {
+        id: 'investment_path',
+        label: 'Investitionspfad',
+        resolvedBy: ['dashboard-api.gridConnectionTransformationGateStatus', 'vdmi.dossier'],
+        contextKeys: ['investmentPath'],
+        optional: false,
+      },
+      {
+        id: 'decommission_path',
+        label: 'Stilllegungspfad',
+        resolvedBy: ['dashboard-api.gridConnectionTransformationGateStatus', 'vdmi.dossier'],
+        contextKeys: ['decommissionPath'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Owner',
+        resolvedBy: ['dashboard-api.gridConnectionTransformationGateStatus', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'next_action',
+        label: 'Naechste Massnahme',
+        resolvedBy: ['dashboard-api.gridConnectionTransformationGateStatus', 'vdmi.dossier'],
+        contextKeys: ['nextAction'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.gridConnectionTransformationGateStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   capacity_contract_risk_asset_cockpit: {
     sources: [
       {

@@ -334,6 +334,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasGridConnectionTransformationGateSpecificSignal =
+    /(netzanschlusspunkt|transformations-gate|umbaupfad|anschluss transformation|netzanschluss|geografisch erfasst)/i.test(haystack) &&
+    /(meteringPointId|division|transformationOption|dataQualityStatus|investmentPath|decommissionPath|owner|nextAction|gaps|follow.?up|readiness|melo-144)/i.test(haystack) &&
+    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|vdmi\.mutate|investment-planning\.createPlan|finance-agent\.mutate|budget\.release|settlement\.prepareBilling|external\.connector\.call|personal-agent\.execute|gas-risk-register\.create|assets\.mutate|datapoint\.mutate)/i.test(haystack);
+
+  if (hasGridConnectionTransformationGateSpecificSignal) {
+    const gridConnectionGateCapability = findCapabilityByName('grid_connection_transformation_gate');
+    if (gridConnectionGateCapability) {
+      return { capability: gridConnectionGateCapability, score: 138, usedFallback: false };
+    }
+  }
+
   const hasGasTransformationDependencyMapSpecificSignal =
     /(gasnetztransformation|gasnetz 2045|h2 readiness|wasserstoff|stilllegungspfad|umwidmung|waermenetzausbau|geothermie|abhaengigkeitslandkarte|transformationsoption)/i.test(haystack) &&
     /(projectId|division|nodes|dependencies|dataQualityGaps|investmentPaths|decommissionRepurposePaths|customerGroups|owner|nextAction|gaps|follow.?up|readiness|projekt-id|sparte|abhaengigkeit|datenqualitaet|investitionspfad|stilllegung|umwidmungspfad|kundengruppe|melo-155)/i.test(haystack) &&
