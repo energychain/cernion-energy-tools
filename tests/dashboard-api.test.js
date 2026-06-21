@@ -3220,6 +3220,77 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── flexStrategicDemandIntakeStatus ────────────────────────────────────
+
+  describe('flexStrategicDemandIntakeStatus', () => {
+    it('reports strategic Flex demand-intake gaps without creating HITL, NOVA, VDMI or finance side effects', async () => {
+      const result = await broker.call('dashboard-api.flexStrategicDemandIntakeStatus', {
+        topic: 'Fahrplanmanagement Flex-Portfolio priorisieren',
+        affectedProcess: 'Netzbetrieb Fahrplanmanagement',
+      });
+
+      expect(result.status).toBe('needs_risk_of_inaction');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'risk_of_inaction',
+          'commercial_question',
+          'resource_conflict',
+          'stop_doing_option',
+          'owner',
+          'next_decision_gate',
+          'blocked_follow_up',
+          'source_refs',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('flex_strategic_demand_intake');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'hitl.create',
+          'nova.createDecision',
+          'nova.apply',
+          'vdmi.mutate',
+          'finance-agent.mutate',
+          'tariff.mutate',
+          'settlement.prepareBilling',
+          'grid-operations.executeControl',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_intake when strategic Flex demand evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.flexStrategicDemandIntakeStatus', {
+        demandId: 'flex-178',
+        topic: 'Strategische Flexibilisierung fuer Quartiersfahrplaene',
+        affectedProcess: 'Fahrplanmanagement / Netzbetrieb',
+        riskOfInaction: 'Peak-shaving-Potenzial bleibt unpriorisiert',
+        commercialQuestion: 'Welche CAPEX/OPEX-Entlastung ist realistisch?',
+        resourceConflict: 'ZNP-Team und Netzbetrieb konkurrieren um Modellierungskapazitaet',
+        stopDoingOption: 'Manuelle Excel-Priorisierung fuer Q3 stoppen',
+        owner: 'Netzbetrieb',
+        nextDecisionGate: 'Portfolio-Gate 2026-Q3',
+        blockedFollowUp: 'NOVA-Optionsbewertung fuer Flex-Massnahmen',
+        sourceRef: 'vdmi:flex-178,znp:portfolio-q3,finance:flex-review',
+      });
+
+      expect(result.status).toBe('ready_for_intake');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.intakeContext.owner).toBe('Netzbetrieb');
+      expect(result.managementContext.stopDoingOption).toBe('Manuelle Excel-Priorisierung fuer Q3 stoppen');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['vdmi:flex-178', 'znp:portfolio-q3']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_intake',
+          'Provided intake evidence: 10/10',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

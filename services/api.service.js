@@ -1447,6 +1447,8 @@ module.exports = {
             'dashboard-api.crisisDecisionRoutineStatus',
           'GET /dashboard/investment-committee-steering-cards':
             'dashboard-api.investmentCommitteeSteeringCardsStatus',
+          'GET /dashboard/flex-strategic-demand-intake':
+            'dashboard-api.flexStrategicDemandIntakeStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

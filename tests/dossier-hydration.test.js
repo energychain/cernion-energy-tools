@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 38 static rules', () => {
+    it('loads all 39 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(38);
+      expect(rules.length).toBe(39);
     });
 
-    it('compiles all 38 static rules without error', () => {
+    it('compiles all 39 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(38);
+      expect(rules.length).toBe(39);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');

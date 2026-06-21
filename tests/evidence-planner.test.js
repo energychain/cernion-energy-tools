@@ -264,6 +264,33 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans strategic Flex demand intake as explicit intake evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'flex_strategic_demand_intake' },
+      {
+        topic: 'Fahrplanmanagement Flex-Portfolio priorisieren',
+        affectedProcess: 'Netzbetrieb',
+        owner: 'Netzbetrieb',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('flex_strategic_demand_intake');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['demand_topic', 'affected_process', 'owner'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'risk_of_inaction',
+        'commercial_question',
+        'resource_conflict',
+        'stop_doing_option',
+        'next_decision_gate',
+        'blocked_follow_up',
+      ])
+    );
+  });
+
   it('plans regulatory change readiness as explicit data and audit evidence', () => {
     const result = planEvidence(
       { routeLabel: 'regulatory_change_simulator_readiness' },

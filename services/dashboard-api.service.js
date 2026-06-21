@@ -66,6 +66,7 @@ module.exports = {
       controllabilitySubmissionCockpitStatus: 5 * 60 * 1000, // 5 min
       crisisDecisionRoutineStatus: 5 * 60 * 1000, // 5 min
       investmentCommitteeSteeringCardsStatus: 5 * 60 * 1000, // 5 min
+      flexStrategicDemandIntakeStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -2926,6 +2927,65 @@ module.exports = {
           this.settings.cacheTtlMs.investmentCommitteeSteeringCardsStatus,
           async () => ({
             ...this.buildInvestmentCommitteeSteeringCardsStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── flexStrategicDemandIntakeStatus ──────────────────────────────────
+    /**
+     * GET /api/dashboard/flex-strategic-demand-intake?topic=...
+     *
+     * Read-only dossier-safe strategic Flex/Fahrplanmanagement intake view.
+     * It normalizes supplied demand evidence without creating VDMI, HITL,
+     * NOVA, finance, tariff, settlement, device-control or external effects.
+     */
+    flexStrategicDemandIntakeStatus: {
+      rest: 'GET /flex-strategic-demand-intake',
+      params: {
+        demandId: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+        topic: { type: 'string', optional: true, min: 1 },
+        demandTopic: { type: 'string', optional: true, min: 1 },
+        affectedProcess: { type: 'string', optional: true, min: 1 },
+        riskOfInaction: { type: 'string', optional: true, min: 1 },
+        commercialQuestion: { type: 'string', optional: true, min: 1 },
+        resourceConflict: { type: 'string', optional: true, min: 1 },
+        stopDoingOption: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        nextDecisionGate: { type: 'string', optional: true, min: 1 },
+        blockedFollowUp: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        flexContext: { type: 'string', optional: true, min: 1 },
+        znpContext: { type: 'string', optional: true, min: 1 },
+        novaContext: { type: 'string', optional: true, min: 1 },
+        financeContext: { type: 'string', optional: true, min: 1 },
+        vdmiContext: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Strategic Flex demand intake — read-only dossier-safe status',
+        description:
+          'Builds deterministic strategic Flex/Fahrplanmanagement demand-intake evidence. ' +
+          'The endpoint is read-only and does not create VDMI cards, HITL tickets, NOVA decisions, finance records, tariff/billing/settlement/device-control effects, external connector calls, or Personal-Agent shortcuts.',
+        responses: {
+          200: {
+            description: 'Read-only strategic Flex demand intake status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const topic = params.topic || params.demandTopic || 'no-topic';
+        const cacheKey = `flex-strategic-demand-intake:${params.demandId || params.caseId || 'no-id'}:${topic}:${params.owner || 'no-owner'}:${params.nextDecisionGate || 'no-gate'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.flexStrategicDemandIntakeStatus,
+          async () => ({
+            ...this.buildFlexStrategicDemandIntakeStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -9162,6 +9222,237 @@ module.exports = {
           blockedDecisions,
           blockingFindings,
           sourceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildFlexStrategicDemandIntakeStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const sourceRefs = toList(params.sourceRef);
+      const demandTopic = params.demandTopic || params.topic;
+      const demandRef = params.demandId || params.caseId;
+      const evidenceSpecs = [
+        {
+          id: 'demand_topic',
+          label: 'Demand/topic',
+          value: demandTopic,
+          sourceClass: 'strategic_need',
+          enablesDossierAddition: 'add a clear Flex/Fahrplanmanagement demand statement',
+        },
+        {
+          id: 'affected_process',
+          label: 'Affected process',
+          value: params.affectedProcess,
+          sourceClass: 'process_impact_scope',
+          enablesDossierAddition: 'add the impacted process or operating area',
+        },
+        {
+          id: 'risk_of_inaction',
+          label: 'Risk of inaction',
+          value: params.riskOfInaction,
+          sourceClass: 'management_risk',
+          enablesDossierAddition: 'add management risk rationale for not acting',
+        },
+        {
+          id: 'commercial_question',
+          label: 'Commercial question',
+          value: params.commercialQuestion,
+          sourceClass: 'commercial_review_need',
+          enablesDossierAddition: 'add the commercial review question',
+        },
+        {
+          id: 'resource_conflict',
+          label: 'Resource conflict',
+          value: params.resourceConflict,
+          sourceClass: 'resource_tradeoff',
+          enablesDossierAddition: 'add prioritization or resource trade-off',
+        },
+        {
+          id: 'stop_doing_option',
+          label: 'Stop-doing option',
+          value: params.stopDoingOption,
+          sourceClass: 'capacity_release_option',
+          enablesDossierAddition: 'add capacity-release or stop-doing alternative',
+        },
+        {
+          id: 'owner',
+          label: 'Owner',
+          value: params.owner,
+          sourceClass: 'accountable_owner',
+          enablesDossierAddition: 'add accountable line owner',
+        },
+        {
+          id: 'next_decision_gate',
+          label: 'Next decision gate',
+          value: params.nextDecisionGate,
+          sourceClass: 'decision_calendar',
+          enablesDossierAddition: 'add decision calendar or gate readiness',
+        },
+        {
+          id: 'blocked_follow_up',
+          label: 'Blocked follow-up',
+          value: params.blockedFollowUp,
+          sourceClass: 'blocked_follow_up',
+          enablesDossierAddition: 'add the next unblockable action',
+        },
+        {
+          id: 'source_refs',
+          label: 'Source references',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add citable Flex, ZNP, NOVA, Finance or VDMI references',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue || spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const riskText = String(params.riskOfInaction || '').toLowerCase();
+      const conflictText = String(params.resourceConflict || '').toLowerCase();
+      const blockedByRisk = /blocked|blockiert|kritisch|critical|untragbar|stop/.test(riskText);
+      const blockedByResource = /blocked|blockiert|keine ressourcen|no resource|critical|kritisch/.test(conflictText);
+      const status =
+        blockedByRisk
+          ? 'risk_blocks_intake'
+          : blockedByResource
+            ? 'resource_conflict_blocks_intake'
+            : !demandTopic
+              ? 'needs_demand_topic'
+              : !params.affectedProcess
+                ? 'needs_affected_process'
+                : !params.riskOfInaction
+                  ? 'needs_risk_of_inaction'
+                  : !params.commercialQuestion
+                    ? 'needs_commercial_question'
+                    : !params.resourceConflict
+                      ? 'needs_resource_conflict'
+                      : !params.stopDoingOption
+                        ? 'needs_stop_doing_option'
+                        : !params.owner
+                          ? 'needs_owner'
+                          : !params.nextDecisionGate
+                            ? 'needs_next_decision_gate'
+                            : !params.blockedFollowUp
+                              ? 'needs_blocked_follow_up'
+                              : sourceRefs.length === 0
+                                ? 'needs_source_refs'
+                                : missingEvidence.length === 0
+                                  ? 'ready_for_intake'
+                                  : 'needs_intake_evidence';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'flex_strategic_demand_intake',
+      }));
+      const blockedDecisions = Array.from(new Set([
+        ...missingEvidence
+          .filter((item) => ['owner', 'next_decision_gate', 'blocked_follow_up', 'commercial_question', 'resource_conflict'].includes(item.missingDataPoint))
+          .map((item) => item.label),
+        ...(params.blockedFollowUp ? [params.blockedFollowUp] : []),
+      ]));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `FSDI_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['owner', 'next_decision_gate', 'blocked_follow_up', 'risk_of_inaction'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      if (blockedByRisk || blockedByResource) {
+        blockingFindings.push({
+          code: blockedByRisk ? 'FSDI_RISK_BLOCKING' : 'FSDI_RESOURCE_CONFLICT_BLOCKING',
+          severity: 'high',
+          message: 'risk or resource conflict explicitly blocks strategic Flex intake readiness',
+        });
+      }
+      const intakeContext = {
+        demandId: demandRef || null,
+        demandTopic: demandTopic || null,
+        affectedProcess: params.affectedProcess || null,
+        owner: params.owner || null,
+        nextDecisionGate: params.nextDecisionGate || null,
+      };
+      const managementContext = {
+        riskOfInaction: params.riskOfInaction || null,
+        commercialQuestion: params.commercialQuestion || null,
+        resourceConflict: params.resourceConflict || null,
+        stopDoingOption: params.stopDoingOption || null,
+        blockedFollowUp: params.blockedFollowUp || null,
+      };
+      const contextRefs = {
+        flexContext: params.flexContext || null,
+        znpContext: params.znpContext || null,
+        novaContext: params.novaContext || null,
+        financeContext: params.financeContext || null,
+        vdmiContext: params.vdmiContext || null,
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided intake evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (demandTopic) dossierFacts.push(`Demand: ${demandTopic}`);
+      if (params.affectedProcess) dossierFacts.push(`Affected Process: ${params.affectedProcess}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (params.nextDecisionGate) dossierFacts.push(`Next Gate: ${params.nextDecisionGate}`);
+
+      return {
+        intakeStatusId: `fsdi:${Buffer.from(`${demandRef || ''}:${demandTopic || ''}:${params.owner || ''}:${params.nextDecisionGate || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'flex_strategic_demand_intake',
+        safety: 'read_only',
+        requestContext: intakeContext,
+        status,
+        readinessScore,
+        intakeContext,
+        managementContext,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockedDecisions,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+          contextRefs,
+        },
+        sourceRefs,
+        contextRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.flexStrategicDemandIntakeStatus'],
+          referenced: ['flex.status', 'znp.projects', 'nova.pendingDecisions', 'vdmi.dossier', 'finance-agent.analyze', 'evidence-registry.lookup', 'presentation.generate'],
+          notCalled: ['hitl.create', 'nova.createDecision', 'nova.apply', 'vdmi.create', 'vdmi.mutate', 'finance-agent.mutate', 'tariff.mutate', 'billing.release', 'settlement.prepareBilling', 'grid-operations.executeControl', 'device-control.execute', 'external.connector.call', 'personal-agent.execute'],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          intakeContext,
+          managementContext,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockedDecisions,
+          blockingFindings,
+          sourceRefs,
+          contextRefs,
           dossierFacts,
         },
       };

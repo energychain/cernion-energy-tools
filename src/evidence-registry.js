@@ -1798,6 +1798,81 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  flex_strategic_demand_intake: {
+    sources: [
+      {
+        id: 'demand_topic',
+        label: 'Strategischer Flex-/Fahrplanmanagement-Bedarf',
+        resolvedBy: ['dashboard-api.flexStrategicDemandIntakeStatus', 'vdmi.dossier'],
+        contextKeys: ['topic', 'demandTopic', 'demandId', 'caseId'],
+        optional: false,
+      },
+      {
+        id: 'affected_process',
+        label: 'Betroffener Prozess',
+        resolvedBy: ['dashboard-api.flexStrategicDemandIntakeStatus', 'flex.status', 'znp.projects'],
+        contextKeys: ['affectedProcess'],
+        optional: false,
+      },
+      {
+        id: 'risk_of_inaction',
+        label: 'Nicht-Handeln-Risiko',
+        resolvedBy: ['dashboard-api.flexStrategicDemandIntakeStatus', 'vdmi.dossier'],
+        contextKeys: ['riskOfInaction'],
+        optional: false,
+      },
+      {
+        id: 'commercial_question',
+        label: 'Kaufmaennische Bewertungsfrage',
+        resolvedBy: ['dashboard-api.flexStrategicDemandIntakeStatus', 'finance-agent.analyze'],
+        contextKeys: ['commercialQuestion'],
+        optional: false,
+      },
+      {
+        id: 'resource_conflict',
+        label: 'Ressourcenkonflikt',
+        resolvedBy: ['dashboard-api.flexStrategicDemandIntakeStatus', 'vdmi.dossier'],
+        contextKeys: ['resourceConflict'],
+        optional: false,
+      },
+      {
+        id: 'stop_doing_option',
+        label: 'Stop-doing-Option',
+        resolvedBy: ['dashboard-api.flexStrategicDemandIntakeStatus', 'vdmi.dossier'],
+        contextKeys: ['stopDoingOption'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Accountable Owner',
+        resolvedBy: ['dashboard-api.flexStrategicDemandIntakeStatus', 'vdmi.dossier', 'hitl.summary'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'next_decision_gate',
+        label: 'Naechstes Entscheidungsgate',
+        resolvedBy: ['dashboard-api.flexStrategicDemandIntakeStatus', 'nova.pendingDecisions', 'vdmi.dossier'],
+        contextKeys: ['nextDecisionGate'],
+        optional: false,
+      },
+      {
+        id: 'blocked_follow_up',
+        label: 'Blockierte Folgeaktion',
+        resolvedBy: ['dashboard-api.flexStrategicDemandIntakeStatus', 'vdmi.dossier'],
+        contextKeys: ['blockedFollowUp'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.flexStrategicDemandIntakeStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceRef', 'flexContext', 'znpContext', 'novaContext', 'financeContext', 'vdmiContext'],
+        optional: false,
+      },
+    ],
+  },
+
   // ── Routing-matrix route-keyed entries ─────────────────────────────────
 
   'investment-grid-check': {

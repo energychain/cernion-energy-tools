@@ -250,6 +250,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasFlexStrategicDemandIntakeSpecificSignal =
+    /(flexibilisierung|fahrplanmanagement|flex strategic|flex.?bedarf|bedarfsmeldung flex|strategische bedarfsanmeldung)/i.test(haystack) &&
+    /(bedarf|intake|bedarfsmeldung|risk|risiko|nicht.?handeln|kaufmaennische|kaufmännische|commercial|ressource|resource|stop.?doing|owner|next decision gate|entscheidungsgate|blockierte folgeentscheidung)/i.test(haystack) &&
+    !/(tarif|billing|settlement|abrechnung|device-control|smgw|cls|steuerung ausfuehren|steuerung ausführen|nova apply|hitl create)/i.test(haystack);
+
+  if (hasFlexStrategicDemandIntakeSpecificSignal) {
+    const flexIntakeCapability = findCapabilityByName('flex_strategic_demand_intake');
+    if (flexIntakeCapability) {
+      return { capability: flexIntakeCapability, score: 138, usedFallback: false };
+    }
+  }
+
   const hasCrisisDecisionRoutineSpecificSignal =
     /(krisenmodus|krisenroutine|ad.?hoc.?krise|crisis mode|crisis decision routine|entscheidungsroutine)/i.test(haystack) &&
     /(managemententscheidung|servicegruppenwirkung|bevoelkerungsgruppenwirkung|bevölkerungsgruppenwirkung|finanzwirkung|wissensstand|trainingsbedarf|owner|next decision gate|entscheidungsgate|blockierte folgeentscheidung)/i.test(haystack) &&

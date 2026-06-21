@@ -1125,6 +1125,24 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes strategic Flex demand-intake prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte strategische Bedarfsanmeldung Flexibilisierung fuer Fahrplanmanagement pruefen: Risiko des Nicht-Handelns, kaufmaennische Bewertungsfrage, Ressourcenkonflikt, Stop-doing-Option, Owner, next decision gate und blockierte Folgeentscheidung.',
+    });
+
+    expect(result.capability).toBe('flex_strategic_demand_intake');
+    expect(result.recommendedCapabilities[0].capability).toBe('flex_strategic_demand_intake');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.flexStrategicDemandIntakeStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('nova.createDecision');
+    expect(actionNames).not.toContain('nova.apply');
+    expect(actionNames).not.toContain('vdmi.mutate');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Re4DE variable grid-fee prompts to the Layer-3 value service', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Berechne variable Netzentgelte als Re4DE Layer-3 Service mit Tariff Sheet, TAF-7 Intervallen, Data Product Evidence und §14a Module 3 Kontext.',

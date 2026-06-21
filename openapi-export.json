@@ -14041,6 +14041,21 @@
         "description": "Builds deterministic investment committee steering-card evidence. The endpoint is read-only and does not create HITL, VDMI or investment-plan records, mutate finance data, release budgets, call external connectors, trigger billing/settlement/tariff/payment effects, or use Personal-Agent shortcuts."
       }
     },
+    "/api/dashboard-api/flex-strategic-demand-intake": {
+      "get": {
+        "operationId": "dashboard-api_flexStrategicDemandIntakeStatus",
+        "summary": "Strategic Flex demand intake — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only strategic Flex demand intake status"
+          }
+        },
+        "description": "Builds deterministic strategic Flex/Fahrplanmanagement demand-intake evidence. The endpoint is read-only and does not create VDMI cards, HITL tickets, NOVA decisions, finance records, tariff/billing/settlement/device-control effects, external connector calls, or Personal-Agent shortcuts."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53042,6 +53057,21 @@
           }
         },
         "description": "Builds deterministic investment committee steering-card evidence. The endpoint is read-only and does not create HITL, VDMI or investment-plan records, mutate finance data, release budgets, call external connectors, trigger billing/settlement/tariff/payment effects, or use Personal-Agent shortcuts."
+      }
+    },
+    "/api/dashboard/flex-strategic-demand-intake": {
+      "get": {
+        "operationId": "dashboard-api_flexStrategicDemandIntakeStatus",
+        "summary": "Strategic Flex demand intake — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only strategic Flex demand intake status"
+          }
+        },
+        "description": "Builds deterministic strategic Flex/Fahrplanmanagement demand-intake evidence. The endpoint is read-only and does not create VDMI cards, HITL tickets, NOVA decisions, finance records, tariff/billing/settlement/device-control effects, external connector calls, or Personal-Agent shortcuts."
       }
     },
     "/api/dashboard/market-snapshot": {

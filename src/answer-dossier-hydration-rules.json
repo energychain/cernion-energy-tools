@@ -1969,6 +1969,94 @@
     "sourceIssue": 182
   },
   {
+    "id": "flex-strategic-demand-intake-status",
+    "description": "Read-only strategic Flex/Fahrplanmanagement demand-intake evidence for dossier hydration",
+    "routeLabel": "flex_strategic_demand_intake",
+    "capability": "flex_strategic_demand_intake",
+    "action": "dashboard-api.flexStrategicDemandIntakeStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "hitl.create",
+        "nova.createDecision",
+        "nova.apply",
+        "vdmi.create",
+        "vdmi.mutate",
+        "finance-agent.mutate",
+        "tariff.mutate",
+        "billing.release",
+        "settlement.prepareBilling",
+        "grid-operations.executeControl",
+        "device-control.execute",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "strategische bedarfsanmeldung flexibilisierung",
+      "flexibilisierung bedarfsmeldung",
+      "fahrplanmanagement intake",
+      "flex strategic demand intake",
+      "ressourcengate flex",
+      "stop-doing-option flex",
+      "commercial review flex"
+    ],
+    "paramTemplate": {
+      "demandId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:demandId[:= ]+|bedarf[:=]+|case[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "topic": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:topic[:= ]+|thema[:=]+)([a-zA-Z0-9_.: -]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner[:= ]+|verantwortlich[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Flex Intake", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.demandTopic", "intakeContext.demandTopic"], "label": "Demand", "maxLen": 140 },
+        { "paths": ["intakeContext.affectedProcess", "dossierEvidence.intakeContext.affectedProcess"], "label": "Process", "maxLen": 120 },
+        { "paths": ["managementContext.riskOfInaction", "dossierEvidence.managementContext.riskOfInaction"], "label": "Risk", "maxLen": 160 },
+        { "paths": ["managementContext.commercialQuestion", "dossierEvidence.managementContext.commercialQuestion"], "label": "Commercial", "maxLen": 160 },
+        { "paths": ["managementContext.resourceConflict", "dossierEvidence.managementContext.resourceConflict"], "label": "Resource", "maxLen": 160 },
+        { "paths": ["managementContext.stopDoingOption", "dossierEvidence.managementContext.stopDoingOption"], "label": "Stop-doing", "maxLen": 160 },
+        { "paths": ["intakeContext.owner", "requestContext.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["intakeContext.nextDecisionGate", "requestContext.nextDecisionGate"], "label": "Next Gate", "maxLen": 120 },
+        { "paths": ["managementContext.blockedFollowUp", "dossierEvidence.managementContext.blockedFollowUp"], "label": "Blocked Follow-up", "maxLen": 160 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 178
+  },
+  {
     "id": "crisis-decision-routine-status",
     "description": "Read-only Krise/Ad-hoc Entscheidungsroutine evidence for dossier hydration",
     "routeLabel": "crisis_decision_routine",
