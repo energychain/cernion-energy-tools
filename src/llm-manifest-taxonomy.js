@@ -43,6 +43,7 @@ const CAPABILITY_DOMAIN_MAP = {
   // fNAV / flexible connection contract gating is an operational connection concern
   grid_connection_flexibility: 'grid-ops',
   'grid-operations': 'grid-ops',
+  grid_operations: 'grid-ops', // underscore variant used by newer gate capabilities
   // AGSI/ENTSO-E cross-commodity supply security briefing
   'market-operations': 'market-data',
   // A96 redispatch settlement reconciliation

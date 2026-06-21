@@ -135,8 +135,8 @@ recipes:
   prosumer-nap-wallet-onboarding "A prosumer wants to onboard to a NAP Wallet and share their HEMS data in exchange for grid…"
 resolve: GET /api/_agent/operations?domain=energy-sharing
 
-### grid-ops (18 capabilities · 10 recipes · 114 operations)
-capabilities: agnes_bottleneck, bess_screening, capex_prioritization, connection_rejection_evidence, connection_rejection_fnav_14a_evidence, controllability_asset_handover, controllability_submission_cockpit, e2e_connection_check, flex_forecast_bess_grid_operations_advisory, flex_strategic_demand_intake, flexibilitaetskosten_raster, fnav_commercial_hedging, ghost_asset_alert, grid_operator_identity_resolution, legacy_control_technology_transition, mastr_asset_inventory, netzfahrplan_fnav_assessment, residual_load_forecast_for_dso
+### grid-ops (22 capabilities · 10 recipes · 114 operations)
+capabilities: agnes_bottleneck, bess_screening, capacity_contract_risk_asset_cockpit, capex_prioritization, connection_rejection_evidence, connection_rejection_fnav_14a_evidence, controllability_asset_handover, controllability_submission_cockpit, e2e_connection_check, flex_forecast_bess_grid_operations_advisory, flex_strategic_demand_intake, flexibilitaetskosten_raster, fnav_commercial_hedging, gas_transformation_dependency_map, ghost_asset_alert, grid_connection_transformation_gate, grid_operator_identity_resolution, legacy_control_technology_transition, mastr_asset_inventory, netzfahrplan_fnav_assessment, residual_load_forecast_for_dso, schedule_management_governance_roadmap
 recipes:
   direktvermarkter-portfolio "A user asks for installations managed by a direct marketer (Direktvermarkter). NOTE:…"
   fnav-contract-gate-netzsignal-priority "A flexible connection request should be validated only if Netzsignal priority wording and control…"
@@ -181,7 +181,7 @@ recipes:
   (none)
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (5 capabilities · 8 recipes · 293 operations)
+### platform (5 capabilities · 8 recipes · 297 operations)
 capabilities: datasource_registry_classification_governance, evidence_grounding_confidence_audit, file_ingest_monitor, hitl_role_based_evidence_request, receipt_grounded_presentation_contract
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted troubleshooting prompt derived from…"
@@ -248,13 +248,13 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-- src/capability-catalog.js: b22670b8704de00f1510fd110d092646658da91052d3ee7cd3a8a524f7a9bac5
-- openapi-export.json: b970944d80b57e1527be177491afd11493ed2a66d630d3237190cba61f852f2e
+- src/capability-catalog.js: d7bc8eb3e3e35b3f2682f123e2b93311ea185b265eafc5d21300c2901c749e03
+- openapi-export.json: 52f4f5ec7376e4177deae25bd15814003fb9f4e00d66a4a9b354fadef652b8b8
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 772
-- operation_count: 877
+- path_count: 780
+- operation_count: 885
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 83aa7dbb05b4cf98c3113f7aba747d4054c5224ce10387e8d22b330181f2af07
+- llm_txt_sha256: 3f3f690ccbdf6fd123860b93f839beb194c5758777b6879caba471966159c07b

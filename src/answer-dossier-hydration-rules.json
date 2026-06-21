@@ -2747,5 +2747,289 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 161
+  },
+  {
+    "id": "capacity-contract-risk-asset-cockpit",
+    "description": "Read-only Capacity and Contract Risk Asset Cockpit status evidence for dossier hydration",
+    "routeLabel": "capacity_contract_risk_asset_cockpit",
+    "capability": "capacity_contract_risk_asset_cockpit",
+    "action": "dashboard-api.capacityContractRiskAssetCockpitStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "znp.createProject",
+        "znp.addLayer0",
+        "znp.addAssumption",
+        "assets.mutate",
+        "datapoint.mutate",
+        "hitl.create",
+        "vdmi.create",
+        "vdmi.mutate",
+        "finance-agent.mutate",
+        "investment-planning.createPlan",
+        "billing.release",
+        "settlement.prepareBilling",
+        "tariff.mutate",
+        "device-control.execute",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "kapazitaets vertragsrisiko",
+      "kapazitäts vertragsrisiko",
+      "altvereinbarung",
+      "bezugsvertrag",
+      "vertragsgrenze",
+      "bestandsschutz",
+      "engpasswirkung",
+      "capacity contract risk",
+      "asset cockpit"
+    ],
+    "paramTemplate": {
+      "gridOperatorId": {
+        "extractor": "regexCaptureSafe",
+        "required": true,
+        "config": {
+          "pattern": "(?:gridOperatorId[:= ]+|grid_operator_id[:= ]+|gridOperator[:= ]+|grid_operator[:= ]+|vnb[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Cockpit Status", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.gridOperatorId", "complianceContext.gridOperatorId"], "label": "Grid Operator ID", "maxLen": 120 },
+        { "paths": ["riskLevel", "dossierEvidence.riskLevel"], "label": "Risk Level", "maxLen": 120 },
+        { "paths": ["decisionStatus", "dossierEvidence.decisionStatus"], "label": "Decision Status", "maxLen": 120 },
+        { "paths": ["technicalCapacity.utilization", "dossierEvidence.complianceEvidence.utilization"], "label": "Technical Utilization", "maxLen": 120 },
+        { "paths": ["technicalCapacity.bottleneck", "dossierEvidence.complianceEvidence.bottleneck"], "label": "Technical Bottleneck", "maxLen": 120 },
+        { "paths": ["contractBoundary.status", "dossierEvidence.complianceEvidence.contractStatus"], "label": "Contract Status", "maxLen": 120 },
+        { "paths": ["contractBoundary.legalStatus", "dossierEvidence.complianceEvidence.legalStatus"], "label": "Legal Status", "maxLen": 120 },
+        { "paths": ["financialImpact.capex", "dossierEvidence.complianceEvidence.capex"], "label": "CAPEX", "maxLen": 120 },
+        { "paths": ["financialImpact.opex", "dossierEvidence.complianceEvidence.opex"], "label": "OPEX", "maxLen": 120 },
+        { "paths": ["owner", "dossierEvidence.complianceEvidence.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["nextAction", "dossierEvidence.complianceEvidence.nextAction"], "label": "Next Action", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 156
+  },
+  {
+    "id": "schedule-management-governance-roadmap",
+    "description": "Read-only Fahrplanmanagement Governance Roadmap status evidence for dossier hydration",
+    "routeLabel": "schedule_management_governance_roadmap",
+    "capability": "schedule_management_governance_roadmap",
+    "action": "dashboard-api.scheduleManagementGovernanceRoadmapStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "hitl.create",
+        "grid-operations.executeControl",
+        "external.connector.call",
+        "personal-agent.execute",
+        "finance-agent.mutate",
+        "settlement.prepareBilling"
+      ]
+    },
+    "triggers": [
+      "fahrplanmanagement",
+      "netzfahrplan governance",
+      "fnav roadmap",
+      "kapazitaetsbewirtschaftung",
+      "engpasssteuerung",
+      "speicher fahrplan",
+      "edm integration",
+      "redispatch abgrenzung",
+      "governance roadmap",
+      "zielbild fahrplan"
+    ],
+    "paramTemplate": {
+      "meteringPointId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:meteringPointId[:= ]+|metering_point_id[:= ]+|meteringPoint[:= ]+|metering_point[:= ]+|melo[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Roadmap Status", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["complianceEvidence.targetState", "dossierEvidence.complianceEvidence.targetState"], "label": "Target State", "maxLen": 120 },
+        { "paths": ["complianceEvidence.capabilityMaturity", "dossierEvidence.complianceEvidence.capabilityMaturity"], "label": "Capability Maturity", "maxLen": 120 },
+        { "paths": ["complianceEvidence.dataObjects.0", "dossierEvidence.complianceEvidence.dataObjects.0"], "label": "Data Objects", "maxLen": 120 },
+        { "paths": ["complianceEvidence.systemIntegrations.0", "dossierEvidence.complianceEvidence.systemIntegrations.0"], "label": "System Integrations", "maxLen": 120 },
+        { "paths": ["complianceEvidence.roleOwnership.0", "dossierEvidence.complianceEvidence.roleOwnership.0"], "label": "Role Ownership", "maxLen": 120 },
+        { "paths": ["complianceEvidence.redispatchBoundary", "dossierEvidence.complianceEvidence.redispatchBoundary"], "label": "Redispatch Boundary", "maxLen": 120 },
+        { "paths": ["complianceEvidence.fnavReadiness", "dossierEvidence.complianceEvidence.fnavReadiness"], "label": "fNAV Readiness", "maxLen": 120 },
+        { "paths": ["complianceEvidence.owner", "dossierEvidence.complianceEvidence.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["complianceEvidence.nextAction", "dossierEvidence.complianceEvidence.nextAction"], "label": "Next Action", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 153
+  },
+  {
+    "id": "gas-transformation-dependency-map",
+    "description": "Read-only Gas- und Waermetransformation Abhaengigkeitslandkarte status evidence for dossier hydration",
+    "routeLabel": "gas_transformation_dependency_map",
+    "capability": "gas_transformation_dependency_map",
+    "action": "dashboard-api.gasTransformationDependencyMapStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "hitl.create",
+        "grid-operations.executeControl",
+        "external.connector.call",
+        "personal-agent.execute",
+        "finance-agent.mutate",
+        "settlement.prepareBilling",
+        "znp.createProject",
+        "znp.addLayer0",
+        "assets.mutate",
+        "datapoint.mutate"
+      ]
+    },
+    "triggers": [
+      "gasnetztransformation",
+      "gasnetz 2045",
+      "h2 readiness",
+      "wasserstoff",
+      "stilllegungspfad",
+      "umwidmung",
+      "waermenetzausbau",
+      "geothermie",
+      "abhaengigkeitslandkarte",
+      "transformationsoption"
+    ],
+    "paramTemplate": {
+      "projectId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:projectId[:= ]+|project_id[:= ]+|project[:= ]+|melo[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Dependency Map Status", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["complianceEvidence.division", "dossierEvidence.complianceEvidence.division"], "label": "Sparte", "maxLen": 120 },
+        { "paths": ["complianceEvidence.nodes.0", "dossierEvidence.complianceEvidence.nodes.0"], "label": "Transformationsknoten", "maxLen": 120 },
+        { "paths": ["complianceEvidence.dependencies.0", "dossierEvidence.complianceEvidence.dependencies.0"], "label": "Abhaengigkeiten", "maxLen": 120 },
+        { "paths": ["complianceEvidence.dataQualityGaps.0", "dossierEvidence.complianceEvidence.dataQualityGaps.0"], "label": "Datenqualitaets-Luecken", "maxLen": 120 },
+        { "paths": ["complianceEvidence.investmentPaths.0", "dossierEvidence.complianceEvidence.investmentPaths.0"], "label": "Investitionspfade", "maxLen": 120 },
+        { "paths": ["complianceEvidence.decommissionRepurposePaths.0", "dossierEvidence.complianceEvidence.decommissionRepurposePaths.0"], "label": "Stilllegungs-/Umwidmungspfade", "maxLen": 120 },
+        { "paths": ["complianceEvidence.customerGroups.0", "dossierEvidence.complianceEvidence.customerGroups.0"], "label": "Kundengruppen", "maxLen": 120 },
+        { "paths": ["complianceEvidence.owner", "dossierEvidence.complianceEvidence.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["complianceEvidence.nextAction", "dossierEvidence.complianceEvidence.nextAction"], "label": "Next Action", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 155
+  },
+  {
+    "id": "grid-connection-transformation-gate",
+    "description": "Read-only Netzanschlusspunkt Transformations Gate status evidence for dossier hydration",
+    "routeLabel": "grid_connection_transformation_gate",
+    "capability": "grid_connection_transformation_gate",
+    "action": "dashboard-api.gridConnectionTransformationGateStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "hitl.create",
+        "assets.mutate",
+        "datapoint.mutate",
+        "finance-agent.mutate",
+        "investment-planning.createPlan",
+        "vdmi.mutate",
+        "personal-agent.execute",
+        "external.connector.call"
+      ]
+    },
+    "triggers": [
+      "netzanschlusspunkt",
+      "transformations-gate",
+      "umbaupfad",
+      "anschluss transformation",
+      "netzanschluss",
+      "geografisch erfasst"
+    ],
+    "paramTemplate": {
+      "meteringPointId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:meteringPointId[:= ]+|metering_point_id[:= ]+|melo[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Gate Status", "maxLen": 90 },
+        { "paths": ["gateStatus", "dossierEvidence.gateStatus"], "label": "Transformation Stage", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["complianceEvidence.division", "dossierEvidence.complianceEvidence.division"], "label": "Sparte", "maxLen": 120 },
+        { "paths": ["complianceEvidence.transformationOption", "dossierEvidence.complianceEvidence.transformationOption"], "label": "Option", "maxLen": 120 },
+        { "paths": ["complianceEvidence.dataQualityStatus", "dossierEvidence.complianceEvidence.dataQualityStatus"], "label": "Datenqualitaet", "maxLen": 120 },
+        { "paths": ["complianceEvidence.investmentPath", "dossierEvidence.complianceEvidence.investmentPath"], "label": "Investitionspfad", "maxLen": 120 },
+        { "paths": ["complianceEvidence.decommissionPath", "dossierEvidence.complianceEvidence.decommissionPath"], "label": "Stilllegungspfad", "maxLen": 120 },
+        { "paths": ["complianceEvidence.owner", "dossierEvidence.complianceEvidence.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["complianceEvidence.nextAction", "dossierEvidence.complianceEvidence.nextAction"], "label": "Next Action", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 144
   }
 ]

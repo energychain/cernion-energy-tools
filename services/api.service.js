@@ -1461,8 +1461,16 @@ module.exports = {
             'dashboard-api.kiFloorwalkerGovernanceStatus',
           'GET /dashboard/investment-waterfall-governance':
             'dashboard-api.investmentWaterfallGovernanceStatus',
+          'GET /dashboard/capacity-contract-risk-asset-cockpit':
+            'dashboard-api.capacityContractRiskAssetCockpitStatus',
           'GET /dashboard/imsys-taf2-compliance':
             'dashboard-api.imsysTaf2ComplianceStatus',
+          'GET /dashboard/schedule-management-governance-roadmap':
+            'dashboard-api.scheduleManagementGovernanceRoadmapStatus',
+          'GET /dashboard/gas-transformation-dependency-map':
+            'dashboard-api.gasTransformationDependencyMapStatus',
+          'GET /dashboard/grid-connection-transformation-gate':
+            'dashboard-api.gridConnectionTransformationGateStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

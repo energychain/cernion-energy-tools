@@ -1338,4 +1338,57 @@ describe('Capability Broker Service', () => {
     expect(actionNames).toContain('gas-capacity-order-revision-gate.evaluate');
     expect(actionNames).not.toContain('personal-agent.execute');
   });
+
+  it('routes schedule management governance roadmap prompts to the read-only evidence status path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Fahrplanmanagement Governance Roadmap fuer melo-153: Ziel-Zustand, Faehigkeits-Reifegrad, Datenobjekt-Mapping, Systemintegrationen, Rollen-Matrix, Redispatch-Grenzbereich, fNAV-Schnittstelle, Verantwortlichkeit, naechste Schritte, Kapazitaetsmanagement-Luecken, Fahrplan-Elemente, Entscheidungsgremien und Quellenreferenzen.',
+    });
+
+    expect(result.capability).toBe('schedule_management_governance_roadmap');
+    expect(result.recommendedCapabilities[0].capability).toBe('schedule_management_governance_roadmap');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.scheduleManagementGovernanceRoadmapStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('grid-operations.executeControl');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+  });
+
+  it('routes gas and heat transformation dependency map prompts to the read-only evidence status path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Gasnetztransformation Abhaengigkeitslandkarte fuer project-155: Sparte, Transformationsknoten, Abhaengigkeiten, Datenqualitaets-Luecken, Investitionspfade, Stilllegungs- und Umwidmungspfade, Kundengruppen, Owner, naechste Schritte, naechste Massnahme und Quellenreferenzen.',
+    });
+
+    expect(result.capability).toBe('gas_transformation_dependency_map');
+    expect(result.recommendedCapabilities[0].capability).toBe('gas_transformation_dependency_map');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.gasTransformationDependencyMapStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('assets.mutate');
+    expect(actionNames).not.toContain('datapoint.mutate');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('vdmi.mutate');
+    expect(actionNames).not.toContain('personal-agent.execute');
+    expect(actionNames).not.toContain('external.connector.call');
+  });
+
+  it('routes grid connection transformation gate prompts to the read-only evidence status path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Netzanschlusspunkt Transformations Gate fuer meteringPointId=melo-144: Sparte, Transformationsoption, Datenqualitaetsstatus, Investitionspfad, Stilllegungspfad, Owner, naechste Schritte, naechste Massnahme und Quellenreferenzen.',
+    });
+
+    expect(result.capability).toBe('grid_connection_transformation_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe('grid_connection_transformation_gate');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.gridConnectionTransformationGateStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('assets.mutate');
+    expect(actionNames).not.toContain('datapoint.mutate');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('vdmi.mutate');
+    expect(actionNames).not.toContain('personal-agent.execute');
+    expect(actionNames).not.toContain('external.connector.call');
+  });
 });

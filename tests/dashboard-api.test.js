@@ -3795,6 +3795,308 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── capacityContractRiskAssetCockpitStatus ─────────────────────────────
+
+  describe('capacityContractRiskAssetCockpitStatus', () => {
+    it('reports capacity and contract risk gaps without creating risk databases, ZNP, or asset side effects', async () => {
+      const result = await broker.call('dashboard-api.capacityContractRiskAssetCockpitStatus', {
+        gridOperatorId: 'vnb-156',
+      });
+
+      expect(result.status).toBe('needs_utilization');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'utilization',
+          'bottleneck',
+          'contract_status',
+          'legal_status',
+          'capex',
+          'opex',
+          'owner',
+          'next_action',
+          'source_refs',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('capacity_contract_risk_asset_cockpit');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'znp.createProject',
+          'znp.addLayer0',
+          'znp.addAssumption',
+          'assets.mutate',
+          'datapoint.mutate',
+          'hitl.create',
+          'vdmi.create',
+          'vdmi.mutate',
+          'finance-agent.mutate',
+          'investment-planning.createPlan',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'device-control.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_with_no_risk when capacity and contract evidence is complete and clear', async () => {
+      const result = await broker.call('dashboard-api.capacityContractRiskAssetCockpitStatus', {
+        gridOperatorId: 'vnb-156',
+        utilization: 0.75,
+        bottleneck: 'none',
+        firmCapacityKW: 500,
+        flexibleCapacityKW: 100,
+        contractStatus: 'active',
+        legalStatus: 'compliant',
+        altvereinbarung: true,
+        capex: 150000,
+        opex: 12000,
+        owner: 'Assetmanagement Netze',
+        nextAction: 'regular_inspection',
+        sourceRef: 'EnWG_14a,fNAV_V1',
+      });
+
+      expect(result.status).toBe('ready_with_no_risk');
+      expect(result.readinessScore).toBe(1);
+      expect(result.decisionStatus).toBe('approve');
+      expect(result.riskLevel).toBe('low');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.technicalCapacity.utilization).toBe(0.75);
+      expect(result.contractBoundary.status).toBe('active');
+      expect(result.financialImpact.capex).toBe(150000);
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['EnWG_14a', 'fNAV_V1']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_with_no_risk',
+          'Provided capacity and contract risk evidence: 9/9',
+          'Open gaps: 0',
+        ])
+      );
+    });
+
+    it('identifies critical risk and rejects when utilization is overloaded', async () => {
+      const result = await broker.call('dashboard-api.capacityContractRiskAssetCockpitStatus', {
+        gridOperatorId: 'vnb-156',
+        utilization: 1.45,
+        bottleneck: 'critical_overload',
+        firmCapacityKW: 500,
+        flexibleCapacityKW: 100,
+        contractStatus: 'active',
+        legalStatus: 'compliant',
+        altvereinbarung: true,
+        capex: 150000,
+        opex: 12000,
+        owner: 'Assetmanagement Netze',
+        nextAction: 'escalation_to_grid_pmo',
+        sourceRef: 'EnWG_14a',
+      });
+
+      expect(result.status).toBe('ready_with_risk_findings');
+      expect(result.decisionStatus).toBe('reject_or_escalate');
+      expect(result.riskLevel).toBe('critical');
+    });
+  });
+
+  // ── scheduleManagementGovernanceRoadmapStatus ─────────────────────────────
+
+  describe('scheduleManagementGovernanceRoadmapStatus', () => {
+    it('reports schedule management governance roadmap gaps without creating stateful scheduling or database side effects', async () => {
+      const result = await broker.call('dashboard-api.scheduleManagementGovernanceRoadmapStatus', {
+        meteringPointId: 'melo-153',
+      });
+
+      expect(result.status).toBe('needs_target_state');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'target_state',
+          'capability_maturity',
+          'data_objects',
+          'system_integrations',
+          'role_ownership',
+          'redispatch_boundary',
+          'fnav_readiness',
+          'capacity_management_gaps',
+          'roadmap_items',
+          'decision_meetings',
+          'owner',
+          'next_action',
+          'source_refs',
+        ])
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'hitl.create',
+          'grid-operations.executeControl',
+          'external.connector.call',
+          'personal-agent.execute',
+          'finance-agent.mutate',
+          'settlement.prepareBilling',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns operational when roadmap evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.scheduleManagementGovernanceRoadmapStatus', {
+        meteringPointId: 'melo-153',
+        targetState: 'target_fnav_ready',
+        capabilityMaturity: 'concept',
+        dataObjects: 'Anschlussbegehren, Netzfahrplan',
+        systemIntegrations: 'EDM, Redispatch-Ex-Post',
+        roleOwnership: 'Assetmanagement, Netzbetrieb',
+        redispatchBoundary: 'redispatch_2.0_not_intersected',
+        fnavReadiness: 'validation_pending',
+        capacityManagementGaps: 'missing_storage_tariffs',
+        roadmapItems: 'define_roles, validate_edm_channels',
+        decisionMeetings: 'Q3_steering_committee',
+        owner: 'Netzbetrieb',
+        nextAction: 'define_target_state',
+        sourceRef: 'EnWG_14a,fNAV_V1',
+      });
+
+      expect(result.status).toBe('operational');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.complianceEvidence.targetState).toBe('target_fnav_ready');
+      expect(result.complianceContext.meteringPointId).toBe('melo-153');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['EnWG_14a', 'fNAV_V1']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: operational',
+          'Provided Fahrplanmanagement governance roadmap evidence: 13/13',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
+  // ── gasTransformationDependencyMapStatus ─────────────────────────────
+
+  describe('gasTransformationDependencyMapStatus', () => {
+    it('reports gas transformation dependency map gaps without creating stateful databases or mutation side effects', async () => {
+      const result = await broker.call('dashboard-api.gasTransformationDependencyMapStatus', {
+        projectId: 'project-155',
+      });
+
+      expect(result.status).toBe('needs_division');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'division',
+          'nodes',
+          'dependencies',
+          'data_quality_gaps',
+          'investment_paths',
+          'decommission_repurpose_paths',
+          'customer_groups',
+          'owner',
+          'next_action',
+          'source_refs',
+        ])
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'hitl.create',
+          'znp.addAssumption',
+          'assets.mutate',
+          'datapoint.mutate',
+          'finance-agent.mutate',
+          'investment-planning.createPlan',
+          'vdmi.mutate',
+          'personal-agent.execute',
+          'external.connector.call',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_transformation_decision when dependency map evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.gasTransformationDependencyMapStatus', {
+        projectId: 'project-155',
+        division: 'Gas',
+        nodes: 'h2_ready, heat_network',
+        dependencies: 'depends_on_evidence',
+        dataQualityGaps: 'missing_geothermal_potential',
+        investmentPaths: 'H2_repurposing_plan',
+        decommissionRepurposePaths: 'repurposing_east_sector',
+        customerGroups: 'industrial_remaining_groups',
+        owner: 'Assetmanagement Gas',
+        nextAction: 'define_transformation_options',
+        sourceRef: 'GasTransformation_2045,H2_Readiness_Doc',
+      });
+
+      expect(result.status).toBe('ready_for_transformation_decision');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.complianceEvidence.division).toBe('Gas');
+      expect(result.complianceContext.projectId).toBe('project-155');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['GasTransformation_2045', 'H2_Readiness_Doc']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_transformation_decision',
+          'Provided Gasnetztransformation dependency map evidence: 10/10',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
+  // ── gridConnectionTransformationGateStatus ─────────────────────────────
+
+  describe('gridConnectionTransformationGateStatus', () => {
+    it('reports grid connection transformation gate gaps without creating stateful databases or mutation side effects', async () => {
+      const result = await broker.call('dashboard-api.gridConnectionTransformationGateStatus', {
+        meteringPointId: 'melo-144',
+      });
+
+      expect(result.status).toBe('needs_division');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'division',
+          'transformation_option',
+          'data_quality_status',
+          'investment_path',
+          'decommission_path',
+          'owner',
+          'next_action',
+          'source_refs',
+        ])
+      );
+      expect(result.sourceActions.notCalled).toContain('hitl.create');
+    });
+
+    it('returns ready_for_transformation_decision and correct gateStatus when all evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.gridConnectionTransformationGateStatus', {
+        meteringPointId: 'melo-144',
+        division: 'Gas',
+        transformationOption: 'h2_ready',
+        dataQualityStatus: 'verified',
+        investmentPath: 'capex_approved',
+        decommissionPath: '2035_shut_down',
+        owner: 'Netznutzung',
+        nextAction: 'decide_umbaupfad',
+        sourceRef: 'NAPTransformation_2045,H2_Readiness_Doc',
+      });
+
+      expect(result.status).toBe('ready_for_transformation_decision');
+      expect(result.gateStatus).toBe('repurpose');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.complianceEvidence.division).toBe('Gas');
+      expect(result.complianceContext.meteringPointId).toBe('melo-144');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['NAPTransformation_2045', 'H2_Readiness_Doc']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_transformation_decision',
+          'Gate Status: repurpose',
+          'Provided Netzanschlusspunkt Transformations Gate evidence: 8/8',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(
