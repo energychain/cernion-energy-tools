@@ -262,6 +262,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasGasInfrastructureRiskGovernanceSpecificSignal =
+    /(gas.?infrastruktur|gas infrastructure|gasnetz|hochdruckleitung|netzkopplung|gas.?risiko|gas risk)/i.test(haystack) &&
+    /(risikoregister|risk register|risikoaufnahme|formal risk|formale risikoaufnahme|nicht.?aufnahme|not aufgenommen|monitoring|massnahme|maßnahme|schwellenwert|threshold|eintrittswahrscheinlichkeit|probability|criticality|kritikalitaet|kritikalität|existing mitigation|absicherung|owner|decision window|entscheidungsfenster)/i.test(haystack) &&
+    !/(stilllegung|decommissioning|roadmap|transformationsfahrplan|ausfuehrungsuebergabe|ausführungsübergabe|kapazitaetsbestellung|kapazitätsbestellung|capacity order|billing|settlement|abrechnung|tarif|payment|device-control|smgw|cls|execute|ausfuehren|ausführen|hitl create|vdmi create)/i.test(haystack);
+
+  if (hasGasInfrastructureRiskGovernanceSpecificSignal) {
+    const gasRiskCapability = findCapabilityByName('gas_infrastructure_risk_governance');
+    if (gasRiskCapability) {
+      return { capability: gasRiskCapability, score: 138, usedFallback: false };
+    }
+  }
+
   const hasCrisisDecisionRoutineSpecificSignal =
     /(krisenmodus|krisenroutine|ad.?hoc.?krise|crisis mode|crisis decision routine|entscheidungsroutine)/i.test(haystack) &&
     /(managemententscheidung|servicegruppenwirkung|bevoelkerungsgruppenwirkung|bevölkerungsgruppenwirkung|finanzwirkung|wissensstand|trainingsbedarf|owner|next decision gate|entscheidungsgate|blockierte folgeentscheidung)/i.test(haystack) &&

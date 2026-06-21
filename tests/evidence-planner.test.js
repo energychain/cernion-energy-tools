@@ -319,6 +319,33 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans gas infrastructure risk governance as explicit risk evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'gas_infrastructure_risk_governance' },
+      {
+        technicalFact: 'Hochdruckleitung HD-17 Druckhaltung auffaellig',
+        impactArea: 'Netzkopplung West',
+        owner: 'Assetmanagement Gas',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('gas_infrastructure_risk_governance');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['technical_fact', 'impact_area', 'owner'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'probability',
+        'criticality',
+        'existing_mitigation',
+        'threshold',
+        'risk_register_decision',
+        'next_decision_window',
+      ])
+    );
+  });
+
   it('plans regulatory change readiness as explicit data and audit evidence', () => {
     const result = planEvidence(
       { routeLabel: 'regulatory_change_simulator_readiness' },

@@ -9,7 +9,7 @@
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
   - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-  - openapi-export.json: 78ce6000e9358c5d196ed2611d4bc93364811c8fd7fe5559d908009e26366681
+  - openapi-export.json: f3f8d7d43a511ae71b556c39f86cb0f752dc880ff0e303aa52a6250a0a04712d
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -666,8 +666,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 754
-- operation_count: 859
+- path_count: 756
+- operation_count: 861
 - operations_by_tag:
 - Actor Personas: 10 operations
 - Agent Receipts: 19 operations
@@ -695,7 +695,7 @@ process:
 - Copilot Process: 14 operations
 - Customer Service: 3 operations
 - CYA Agent: 20 operations
-- Dashboard API: 64 operations
+- Dashboard API: 66 operations
 - Datapoints: 34 operations
 - DataSources: 30 operations
 - Decision Frame: 7 operations
@@ -980,6 +980,7 @@ process:
 - GET /api/dashboard-api/finding-codes | tags: [Dashboard API] | operationId: dashboard-api_findingCodes | summary: Finding codes reference — all 92 codes with metadata
 - GET /api/dashboard-api/flex-strategic-demand-intake | tags: [Dashboard API] | operationId: dashboard-api_flexStrategicDemandIntakeStatus | summary: Strategic Flex demand intake — read-only dossier-safe status
 - GET /api/dashboard-api/gas-decommissioning-roadmap | tags: [Dashboard API] | operationId: dashboard-api_gasDecommissioningRoadmapStatus | summary: Gas Decommissioning Roadmap — read-only dossier-safe status
+- GET /api/dashboard-api/gas-infrastructure-risk-governance | tags: [Dashboard API] | operationId: dashboard-api_gasInfrastructureRiskGovernanceStatus | summary: Gas infrastructure risk governance — read-only dossier-safe status
 - GET /api/dashboard-api/imsys-schedule-value-chain-readiness | tags: [Dashboard API] | operationId: dashboard-api_imsysScheduleValueChainReadinessStatus | summary: iMSys schedule value-chain readiness — read-only dossier-safe gate
 - GET /api/dashboard-api/investment-committee-steering-cards | tags: [Dashboard API] | operationId: dashboard-api_investmentCommitteeSteeringCardsStatus | summary: Investment committee steering cards — read-only dossier-safe status
 - GET /api/dashboard-api/investment-data-review-queue | tags: [Dashboard API] | operationId: dashboard-api_investmentDataReviewQueueStatus | summary: Investment data review queue — read-only dossier-safe status
@@ -1012,6 +1013,7 @@ process:
 - GET /api/dashboard/finding-codes | tags: [Dashboard API] | operationId: dashboard-api_findingCodes | summary: Finding codes reference — all 92 codes with metadata
 - GET /api/dashboard/flex-strategic-demand-intake | tags: [Dashboard API] | operationId: dashboard-api_flexStrategicDemandIntakeStatus | summary: Strategic Flex demand intake — read-only dossier-safe status
 - GET /api/dashboard/gas-decommissioning-roadmap | tags: [Dashboard API] | operationId: dashboard-api_gasDecommissioningRoadmapStatus | summary: Gas Decommissioning Roadmap — read-only dossier-safe status
+- GET /api/dashboard/gas-infrastructure-risk-governance | tags: [Dashboard API] | operationId: dashboard-api_gasInfrastructureRiskGovernanceStatus | summary: Gas infrastructure risk governance — read-only dossier-safe status
 - GET /api/dashboard/imsys-schedule-value-chain-readiness | tags: [Dashboard API] | operationId: dashboard-api_imsysScheduleValueChainReadinessStatus | summary: iMSys schedule value-chain readiness — read-only dossier-safe gate
 - GET /api/dashboard/investment-committee-steering-cards | tags: [Dashboard API] | operationId: dashboard-api_investmentCommitteeSteeringCardsStatus | summary: Investment committee steering cards — read-only dossier-safe status
 - GET /api/dashboard/investment-data-review-queue | tags: [Dashboard API] | operationId: dashboard-api_investmentDataReviewQueueStatus | summary: Investment data review queue — read-only dossier-safe status
@@ -16618,6 +16620,21 @@ process:
         ]
       }
     },
+    "/api/dashboard-api/gas-infrastructure-risk-governance": {
+      "get": {
+        "description": "Builds deterministic gas-infrastructure risk governance evidence. The endpoint is read-only and does not create risk-register entries, HITL tickets, VDMI records, Asset-MDM changes, monitoring/mitigation decisions, operations actions, external connector calls, or Personal-Agent shortcuts.",
+        "operationId": "dashboard-api_gasInfrastructureRiskGovernanceStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only gas infrastructure risk governance status"
+          }
+        },
+        "summary": "Gas infrastructure risk governance — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
     "/api/dashboard-api/imsys-schedule-value-chain-readiness": {
       "get": {
         "description": "Builds a deterministic evidence view for iMSys/CLS schedule value-chain readiness. The endpoint is read-only and does not execute device control, grid operations, HITL, MaKo, billing, settlement, external connector or Personal-Agent actions.",
@@ -20434,6 +20451,21 @@ process:
           }
         },
         "summary": "Gas Decommissioning Roadmap — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ]
+      }
+    },
+    "/api/dashboard/gas-infrastructure-risk-governance": {
+      "get": {
+        "description": "Builds deterministic gas-infrastructure risk governance evidence. The endpoint is read-only and does not create risk-register entries, HITL tickets, VDMI records, Asset-MDM changes, monitoring/mitigation decisions, operations actions, external connector calls, or Personal-Agent shortcuts.",
+        "operationId": "dashboard-api_gasInfrastructureRiskGovernanceStatus",
+        "responses": {
+          "200": {
+            "description": "Read-only gas infrastructure risk governance status"
+          }
+        },
+        "summary": "Gas infrastructure risk governance — read-only dossier-safe status",
         "tags": [
           "Dashboard API"
         ]
@@ -59886,4 +59918,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 6be6cf25fe23fec92bc63a31f4c33665dfda3df6756bf1539a16f85821a3eec9
+- llm_txt_sha256: 35ca7b3b41990eeff57d369e6da2cb1bbcf143fe6cbe49896054fd4c3590121d

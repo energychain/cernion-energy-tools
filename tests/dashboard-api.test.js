@@ -3361,6 +3361,78 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── gasInfrastructureRiskGovernanceStatus ─────────────────────────────
+
+  describe('gasInfrastructureRiskGovernanceStatus', () => {
+    it('reports gas infrastructure risk governance gaps without creating register, HITL, VDMI, asset or operations side effects', async () => {
+      const result = await broker.call('dashboard-api.gasInfrastructureRiskGovernanceStatus', {
+        caseId: 'gas-170',
+        technicalFact: 'Hochdruckleitung HD-17 Druckhaltung auffaellig',
+        impactArea: 'Netzkopplung West',
+      });
+
+      expect(result.status).toBe('needs_probability');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'probability',
+          'criticality',
+          'existing_mitigation',
+          'threshold',
+          'risk_register_decision',
+          'owner',
+          'next_decision_window',
+          'blocked_follow_up',
+          'source_refs',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('gas_infrastructure_risk_governance');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'gas-risk-register.create',
+          'hitl.create',
+          'vdmi.mutate',
+          'assets.mutate',
+          'grid-operations.executeControl',
+          'operational-dispatch.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_risk_decision when formal gas risk evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.gasInfrastructureRiskGovernanceStatus', {
+        caseId: 'gas-170',
+        technicalFact: 'Hochdruckleitung HD-17 Druckhaltung auffaellig',
+        impactArea: 'Netzkopplung West / Transformationskorridor',
+        probability: 'medium',
+        criticality: 'high',
+        existingMitigation: 'monatliches Monitoring und Bereitschaftsplan',
+        threshold: 'kritische Kopplung plus hohe Auswirkung',
+        riskRegisterDecision: 'formal risk register',
+        owner: 'Assetmanagement Gas',
+        nextDecisionWindow: 'Risikogremium 2026-Q3',
+        blockedFollowUp: 'formale Risikoaufnahme mit Massnahmenoption',
+        sourceRef: 'vdmi:gas-170,hitl:risk-review-170,asset:hd-17',
+      });
+
+      expect(result.status).toBe('ready_for_risk_decision');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.riskContext.owner).toBe('Assetmanagement Gas');
+      expect(result.riskEvidence.riskRegisterDecision).toBe('formal risk register');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['vdmi:gas-170', 'asset:hd-17']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_risk_decision',
+          'Provided gas risk evidence: 11/11',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

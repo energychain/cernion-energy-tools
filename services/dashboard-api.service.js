@@ -68,6 +68,7 @@ module.exports = {
       investmentCommitteeSteeringCardsStatus: 5 * 60 * 1000, // 5 min
       investmentDataReviewQueueStatus: 5 * 60 * 1000, // 5 min
       flexStrategicDemandIntakeStatus: 5 * 60 * 1000, // 5 min
+      gasInfrastructureRiskGovernanceStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3041,6 +3042,63 @@ module.exports = {
           this.settings.cacheTtlMs.flexStrategicDemandIntakeStatus,
           async () => ({
             ...this.buildFlexStrategicDemandIntakeStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── gasInfrastructureRiskGovernanceStatus ───────────────────────────
+    /**
+     * GET /api/dashboard/gas-infrastructure-risk-governance?caseId=...
+     *
+     * Read-only dossier-safe gas infrastructure risk governance view. It
+     * normalizes supplied technical/risk evidence without creating gas risk
+     * registers, HITL, VDMI, Asset-MDM, operations, monitoring or mitigation
+     * side effects.
+     */
+    gasInfrastructureRiskGovernanceStatus: {
+      rest: 'GET /gas-infrastructure-risk-governance',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        technicalFact: { type: 'string', optional: true, min: 1 },
+        impactArea: { type: 'string', optional: true, min: 1 },
+        probability: { type: 'string', optional: true, min: 1 },
+        criticality: { type: 'string', optional: true, min: 1 },
+        existingMitigation: { type: 'string', optional: true, min: 1 },
+        threshold: { type: 'string', optional: true, min: 1 },
+        riskRegisterDecision: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        nextDecisionWindow: { type: 'string', optional: true, min: 1 },
+        blockedFollowUp: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        vdmiContext: { type: 'string', optional: true, min: 1 },
+        hitlContext: { type: 'string', optional: true, min: 1 },
+        interfacePlaceholderContext: { type: 'string', optional: true, min: 1 },
+        assetContext: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Gas infrastructure risk governance — read-only dossier-safe status',
+        description:
+          'Builds deterministic gas-infrastructure risk governance evidence. ' +
+          'The endpoint is read-only and does not create risk-register entries, HITL tickets, VDMI records, Asset-MDM changes, monitoring/mitigation decisions, operations actions, external connector calls, or Personal-Agent shortcuts.',
+        responses: {
+          200: {
+            description: 'Read-only gas infrastructure risk governance status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `gas-infrastructure-risk-governance:${params.caseId || 'no-case'}:${params.technicalFact || 'no-fact'}:${params.owner || 'no-owner'}:${params.nextDecisionWindow || 'no-window'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.gasInfrastructureRiskGovernanceStatus,
+          async () => ({
+            ...this.buildGasInfrastructureRiskGovernanceStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -9730,6 +9788,240 @@ module.exports = {
           missingEvidence,
           positiveFollowUps,
           blockedDecisions,
+          blockingFindings,
+          sourceRefs,
+          contextRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildGasInfrastructureRiskGovernanceStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const sourceRefs = toList(params.sourceRef);
+      const evidenceSpecs = [
+        {
+          id: 'technical_fact',
+          label: 'Technical fact',
+          value: params.technicalFact,
+          sourceClass: 'technical_risk_fact',
+          enablesDossierAddition: 'add the technical gas-infrastructure issue or finding',
+        },
+        {
+          id: 'impact_area',
+          label: 'Impact area',
+          value: params.impactArea,
+          sourceClass: 'asset_network_impact_scope',
+          enablesDossierAddition: 'add the affected asset, network coupling point or transformation area',
+        },
+        {
+          id: 'probability',
+          label: 'Probability',
+          value: params.probability,
+          sourceClass: 'risk_rating_basis',
+          enablesDossierAddition: 'add the likelihood or probability basis',
+        },
+        {
+          id: 'criticality',
+          label: 'Criticality',
+          value: params.criticality,
+          sourceClass: 'risk_impact_rating',
+          enablesDossierAddition: 'add the impact/criticality rating',
+        },
+        {
+          id: 'existing_mitigation',
+          label: 'Existing mitigation',
+          value: params.existingMitigation,
+          sourceClass: 'mitigation_or_monitoring_basis',
+          enablesDossierAddition: 'add current safeguards, monitoring or mitigation evidence',
+        },
+        {
+          id: 'threshold',
+          label: 'Risk-register threshold',
+          value: params.threshold,
+          sourceClass: 'formal_risk_threshold',
+          enablesDossierAddition: 'add the threshold for formal risk-register handling',
+        },
+        {
+          id: 'risk_register_decision',
+          label: 'Risk-register decision',
+          value: params.riskRegisterDecision,
+          sourceClass: 'governance_decision_path',
+          enablesDossierAddition: 'add whether the case is not aufgenommen, monitoring, Massnahme, or formal risk register',
+        },
+        {
+          id: 'owner',
+          label: 'Owner',
+          value: params.owner,
+          sourceClass: 'accountable_owner',
+          enablesDossierAddition: 'add accountable governance owner',
+        },
+        {
+          id: 'next_decision_window',
+          label: 'Next decision window',
+          value: params.nextDecisionWindow,
+          sourceClass: 'decision_calendar',
+          enablesDossierAddition: 'add the next decision window or committee gate',
+        },
+        {
+          id: 'blocked_follow_up',
+          label: 'Blocked follow-up',
+          value: params.blockedFollowUp,
+          sourceClass: 'blocked_follow_up',
+          enablesDossierAddition: 'add the next unblockable action',
+        },
+        {
+          id: 'source_refs',
+          label: 'Source references',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add citable technical, VDMI, HITL or interface-placeholder references',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue || spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !spec.value)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const decisionText = String(params.riskRegisterDecision || '').toLowerCase();
+      const probabilityText = String(params.probability || '').toLowerCase();
+      const criticalityText = String(params.criticality || '').toLowerCase();
+      const isFormalRisk =
+        /(formal|risk register|risikoregister|aufnahme|aufnehmen|register)/i.test(decisionText) &&
+        !/(nicht.?aufnahme|not aufgenommen|not included|monitoring)/i.test(decisionText);
+      const isMonitoring =
+        /(monitoring|beobachtung|watch|ueberwachung|überwachung)/i.test(decisionText) ||
+        /(hoch|high|kritisch|critical|rot|red)/i.test(`${probabilityText} ${criticalityText}`);
+      const status =
+        !params.technicalFact
+          ? 'needs_technical_fact'
+          : !params.impactArea
+            ? 'needs_impact_area'
+            : !params.probability
+              ? 'needs_probability'
+              : !params.criticality
+                ? 'needs_criticality'
+                : !params.existingMitigation
+                  ? 'needs_mitigation_evidence'
+                  : !params.threshold
+                    ? 'needs_threshold'
+                    : !params.riskRegisterDecision
+                      ? 'needs_risk_register_decision'
+                      : !params.owner
+                        ? 'needs_owner'
+                        : !params.nextDecisionWindow
+                          ? 'needs_decision_window'
+                          : !params.blockedFollowUp
+                            ? 'needs_blocked_follow_up'
+                            : sourceRefs.length === 0
+                              ? 'needs_source_refs'
+                              : isFormalRisk
+                                ? 'ready_for_risk_decision'
+                                : isMonitoring
+                                  ? 'monitoring_needed'
+                                  : 'ready_for_non_inclusion_decision';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'gas_infrastructure_risk_governance',
+      }));
+      const decisionBoundary = {
+        readOnly: true,
+        allowedDecisionStates: ['not_aufgenommen', 'monitoring', 'massnahme', 'formal_risk_register'],
+        suppliedDecision: params.riskRegisterDecision || null,
+        note: 'Status evidence only; formal gas risk-register, monitoring and mitigation decisions remain downstream governance actions.',
+      };
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `GIRG_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['technical_fact', 'impact_area', 'threshold', 'risk_register_decision', 'owner'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      const riskContext = {
+        caseId: params.caseId || null,
+        technicalFact: params.technicalFact || null,
+        impactArea: params.impactArea || null,
+        owner: params.owner || null,
+        nextDecisionWindow: params.nextDecisionWindow || null,
+      };
+      const riskEvidence = {
+        probability: params.probability || null,
+        criticality: params.criticality || null,
+        existingMitigation: params.existingMitigation || null,
+        threshold: params.threshold || null,
+        riskRegisterDecision: params.riskRegisterDecision || null,
+        blockedFollowUp: params.blockedFollowUp || null,
+      };
+      const contextRefs = {
+        vdmiContext: params.vdmiContext || null,
+        hitlContext: params.hitlContext || null,
+        interfacePlaceholderContext: params.interfacePlaceholderContext || null,
+        assetContext: params.assetContext || null,
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided gas risk evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.technicalFact) dossierFacts.push(`Technical Fact: ${params.technicalFact}`);
+      if (params.impactArea) dossierFacts.push(`Impact Area: ${params.impactArea}`);
+      if (params.riskRegisterDecision) dossierFacts.push(`Risk Decision: ${params.riskRegisterDecision}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+
+      return {
+        gasRiskGovernanceStatusId: `girg:${Buffer.from(`${params.caseId || ''}:${params.technicalFact || ''}:${params.owner || ''}:${params.nextDecisionWindow || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'gas_infrastructure_risk_governance',
+        safety: 'read_only',
+        requestContext: riskContext,
+        status,
+        readinessScore,
+        riskContext,
+        riskEvidence,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        decisionBoundary,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+          contextRefs,
+        },
+        sourceRefs,
+        contextRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.gasInfrastructureRiskGovernanceStatus'],
+          referenced: ['vdmi.dossier', 'hitl.summary', 'interface-placeholder.requestEvidence', 'assets.effective', 'grid-operations.summary', 'evidence-registry.lookup', 'presentation.generate'],
+          notCalled: ['gas-risk-register.create', 'gas-risk-register.mutate', 'hitl.create', 'vdmi.create', 'vdmi.mutate', 'assets.mutate', 'asset-mdm.mutate', 'grid-operations.executeControl', 'operational-dispatch.execute', 'monitoring.createDecision', 'mitigation.execute', 'external.connector.call', 'personal-agent.execute'],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          riskContext,
+          riskEvidence,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          decisionBoundary,
           blockingFindings,
           sourceRefs,
           contextRefs,

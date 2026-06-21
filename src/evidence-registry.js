@@ -1948,6 +1948,88 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  gas_infrastructure_risk_governance: {
+    sources: [
+      {
+        id: 'technical_fact',
+        label: 'Technischer Gas-Infrastruktur-Sachverhalt',
+        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'vdmi.dossier', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['technicalFact', 'caseId'],
+        optional: false,
+      },
+      {
+        id: 'impact_area',
+        label: 'Auswirkungsraum',
+        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'assets.effective', 'grid-operations.summary', 'vdmi.dossier'],
+        contextKeys: ['impactArea', 'assetContext'],
+        optional: false,
+      },
+      {
+        id: 'probability',
+        label: 'Eintrittswahrscheinlichkeit',
+        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['probability'],
+        optional: false,
+      },
+      {
+        id: 'criticality',
+        label: 'Kritikalitaet / Auswirkung',
+        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['criticality'],
+        optional: false,
+      },
+      {
+        id: 'existing_mitigation',
+        label: 'Bestehende Absicherung / Monitoring',
+        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'vdmi.dossier', 'hitl.summary'],
+        contextKeys: ['existingMitigation'],
+        optional: false,
+      },
+      {
+        id: 'threshold',
+        label: 'Schwellenwert fuer Risikoregister',
+        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['threshold'],
+        optional: false,
+      },
+      {
+        id: 'risk_register_decision',
+        label: 'Risikoregister-Entscheidungspfad',
+        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'vdmi.dossier', 'hitl.summary'],
+        contextKeys: ['riskRegisterDecision'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Accountable Owner',
+        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'vdmi.dossier', 'hitl.summary'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'next_decision_window',
+        label: 'Naechstes Entscheidungsfenster',
+        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'vdmi.dossier', 'hitl.summary'],
+        contextKeys: ['nextDecisionWindow'],
+        optional: false,
+      },
+      {
+        id: 'blocked_follow_up',
+        label: 'Blockierte Folgeaktion',
+        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['blockedFollowUp'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceRef', 'vdmiContext', 'hitlContext', 'interfacePlaceholderContext', 'assetContext'],
+        optional: false,
+      },
+    ],
+  },
+
   // ── Routing-matrix route-keyed entries ─────────────────────────────────
 
   'investment-grid-check': {

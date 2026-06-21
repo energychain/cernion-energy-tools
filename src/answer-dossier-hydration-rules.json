@@ -2057,6 +2057,96 @@
     "sourceIssue": 178
   },
   {
+    "id": "gas-infrastructure-risk-governance-status",
+    "description": "Read-only gas infrastructure risk governance evidence for dossier hydration",
+    "routeLabel": "gas_infrastructure_risk_governance",
+    "capability": "gas_infrastructure_risk_governance",
+    "action": "dashboard-api.gasInfrastructureRiskGovernanceStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "gas-risk-register.create",
+        "gas-risk-register.mutate",
+        "hitl.create",
+        "vdmi.create",
+        "vdmi.mutate",
+        "assets.mutate",
+        "asset-mdm.mutate",
+        "grid-operations.executeControl",
+        "operational-dispatch.execute",
+        "monitoring.createDecision",
+        "mitigation.execute",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "gas infrastruktur risiko",
+      "gas-infrastruktur-risiko",
+      "gas infrastructure risk",
+      "hochdruckleitung risiko",
+      "netzkopplung risikoregister",
+      "gas risikoregister",
+      "formale risikoaufnahme",
+      "nicht-aufnahme risikoregister",
+      "monitoring entscheidung gas"
+    ],
+    "paramTemplate": {
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:caseId[:= ]+|case[:= ]+|fall[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "technicalFact": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:technicalFact[:= ]+|sachverhalt[:= ]+)([a-zA-Z0-9_.: -]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner[:= ]+|verantwortlich[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Gas Risk", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["requestContext.technicalFact", "riskContext.technicalFact"], "label": "Technical Fact", "maxLen": 160 },
+        { "paths": ["riskContext.impactArea", "requestContext.impactArea"], "label": "Impact", "maxLen": 140 },
+        { "paths": ["riskEvidence.probability", "dossierEvidence.riskEvidence.probability"], "label": "Probability", "maxLen": 100 },
+        { "paths": ["riskEvidence.criticality", "dossierEvidence.riskEvidence.criticality"], "label": "Criticality", "maxLen": 100 },
+        { "paths": ["riskEvidence.existingMitigation", "dossierEvidence.riskEvidence.existingMitigation"], "label": "Mitigation", "maxLen": 160 },
+        { "paths": ["riskEvidence.threshold", "dossierEvidence.riskEvidence.threshold"], "label": "Threshold", "maxLen": 140 },
+        { "paths": ["riskEvidence.riskRegisterDecision", "dossierEvidence.riskEvidence.riskRegisterDecision"], "label": "Risk Decision", "maxLen": 160 },
+        { "paths": ["riskContext.owner", "requestContext.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["riskContext.nextDecisionWindow", "requestContext.nextDecisionWindow"], "label": "Decision Window", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 170
+  },
+  {
     "id": "crisis-decision-routine-status",
     "description": "Read-only Krise/Ad-hoc Entscheidungsroutine evidence for dossier hydration",
     "routeLabel": "crisis_decision_routine",

@@ -14071,6 +14071,21 @@
         "description": "Builds deterministic strategic Flex/Fahrplanmanagement demand-intake evidence. The endpoint is read-only and does not create VDMI cards, HITL tickets, NOVA decisions, finance records, tariff/billing/settlement/device-control effects, external connector calls, or Personal-Agent shortcuts."
       }
     },
+    "/api/dashboard-api/gas-infrastructure-risk-governance": {
+      "get": {
+        "operationId": "dashboard-api_gasInfrastructureRiskGovernanceStatus",
+        "summary": "Gas infrastructure risk governance — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only gas infrastructure risk governance status"
+          }
+        },
+        "description": "Builds deterministic gas-infrastructure risk governance evidence. The endpoint is read-only and does not create risk-register entries, HITL tickets, VDMI records, Asset-MDM changes, monitoring/mitigation decisions, operations actions, external connector calls, or Personal-Agent shortcuts."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53102,6 +53117,21 @@
           }
         },
         "description": "Builds deterministic strategic Flex/Fahrplanmanagement demand-intake evidence. The endpoint is read-only and does not create VDMI cards, HITL tickets, NOVA decisions, finance records, tariff/billing/settlement/device-control effects, external connector calls, or Personal-Agent shortcuts."
+      }
+    },
+    "/api/dashboard/gas-infrastructure-risk-governance": {
+      "get": {
+        "operationId": "dashboard-api_gasInfrastructureRiskGovernanceStatus",
+        "summary": "Gas infrastructure risk governance — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only gas infrastructure risk governance status"
+          }
+        },
+        "description": "Builds deterministic gas-infrastructure risk governance evidence. The endpoint is read-only and does not create risk-register entries, HITL tickets, VDMI records, Asset-MDM changes, monitoring/mitigation decisions, operations actions, external connector calls, or Personal-Agent shortcuts."
       }
     },
     "/api/dashboard/market-snapshot": {

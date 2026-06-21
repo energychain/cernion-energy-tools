@@ -1451,6 +1451,8 @@ module.exports = {
             'dashboard-api.investmentDataReviewQueueStatus',
           'GET /dashboard/flex-strategic-demand-intake':
             'dashboard-api.flexStrategicDemandIntakeStatus',
+          'GET /dashboard/gas-infrastructure-risk-governance':
+            'dashboard-api.gasInfrastructureRiskGovernanceStatus',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',

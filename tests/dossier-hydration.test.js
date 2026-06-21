@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 40 static rules', () => {
+    it('loads all 41 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(40);
+      expect(rules.length).toBe(41);
     });
 
-    it('compiles all 40 static rules without error', () => {
+    it('compiles all 41 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(40);
+      expect(rules.length).toBe(41);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1794,6 +1794,36 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Source: datasource-171');
       expect(formatted).toContain('Owner: Assetmanagement');
       expect(formatted).toContain('Side-Effect Guard: hitl.create');
+    });
+
+    it('gas-infrastructure-risk-governance-status formats risk governance evidence', () => {
+      const rule = getRule('dashboard-api.gasInfrastructureRiskGovernanceStatus');
+      const formatted = rule.formatEvidence({
+        status: 'ready_for_risk_decision',
+        readinessScore: 1,
+        riskContext: {
+          technicalFact: 'Hochdruckleitung HD-17 Druckhaltung auffaellig',
+          impactArea: 'Netzkopplung West',
+          owner: 'Assetmanagement Gas',
+          nextDecisionWindow: 'Risikogremium 2026-Q3',
+        },
+        riskEvidence: {
+          probability: 'medium',
+          criticality: 'high',
+          riskRegisterDecision: 'formal risk register',
+        },
+        sourceActions: {
+          notCalled: ['gas-risk-register.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: ready_for_risk_decision'],
+        },
+      });
+
+      expect(formatted).toContain('Gas Risk: ready_for_risk_decision');
+      expect(formatted).toContain('Technical Fact: Hochdruckleitung HD-17');
+      expect(formatted).toContain('Owner: Assetmanagement Gas');
+      expect(formatted).toContain('Side-Effect Guard: gas-risk-register.create');
     });
   });
 
