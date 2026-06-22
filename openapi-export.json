@@ -46013,6 +46013,71 @@
         ]
       }
     },
+    "/api/znp/projects/:projectId/production-readiness/status": {
+      "get": {
+        "operationId": "znp_productionReadinessStatus",
+        "summary": "Read-only ZNP production-readiness evidence gate",
+        "tags": [
+          "Zielnetzplanung (ZNP)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only production-readiness status"
+          }
+        },
+        "description": "Classifies supplied ZNP Layer 1, Layer 2, G-Factor, NOVA handoff and acceptance evidence for a dossier-safe production-readiness review. This endpoint does not fetch external data, parse PDFs, create jobs, mutate projects, or apply NOVA decisions.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "layer1Evidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "layer2Evidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gfactorValidation",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "acceptanceReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "novaHandoff",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/znp/projects/:projectId/strategic-prompts": {
       "get": {
         "operationId": "znp_strategicPrompts",

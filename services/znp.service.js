@@ -1277,6 +1277,202 @@ module.exports = {
       },
     },
 
+    productionReadinessStatus: {
+      rest: 'GET /projects/:projectId/production-readiness/status',
+      params: {
+        projectId: { type: 'string' },
+        layer1Evidence: { type: 'string', optional: true, max: 120 },
+        layer2Evidence: { type: 'string', optional: true, max: 120 },
+        gfactorValidation: { type: 'string', optional: true, max: 120 },
+        acceptanceReference: { type: 'string', optional: true, max: 160 },
+        novaHandoff: { type: 'string', optional: true, max: 120 },
+        referenceDataset: { type: 'string', optional: true, max: 160 },
+        measuredGfactor: { type: 'number', optional: true, convert: true },
+        modelGfactor: { type: 'number', optional: true, convert: true },
+        owner: { type: 'string', optional: true, max: 120 },
+        nextReview: { type: 'string', optional: true, max: 120 },
+        source: { type: 'string', optional: true, max: 160 },
+      },
+      openapi: {
+        summary: 'Read-only ZNP production-readiness evidence gate',
+        tags: ['Zielnetzplanung (ZNP)'],
+        description:
+          'Classifies supplied ZNP Layer 1, Layer 2, G-Factor, NOVA handoff and acceptance evidence ' +
+          'for a dossier-safe production-readiness review. This endpoint does not fetch external data, ' +
+          'parse PDFs, create jobs, mutate projects, or apply NOVA decisions.',
+        parameters: [
+          { name: 'projectId', in: 'path', required: true, schema: { type: 'string' } },
+          { name: 'layer1Evidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'layer2Evidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'gfactorValidation', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'acceptanceReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'novaHandoff', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only production-readiness status',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = ctx.params || {};
+        const projectId = params.projectId;
+        const tenantId = getTenantId(ctx);
+        const isPresent = (value) => /^(present|ready|valid|validated|provided|complete|ok|true|yes|ja|advisory-ready|reviewed)$/i.test(String(value || '').trim());
+        const makeSignal = (code, label, value, statusWhenMissing, enablesDossierAddition) => {
+          const supplied = isPresent(value);
+          return {
+            code,
+            label,
+            status: supplied ? 'present' : 'missing',
+            value: value || null,
+            statusWhenMissing,
+            enablesDossierAddition,
+          };
+        };
+        const readinessSignals = [
+          makeSignal(
+            'layer1_evidence',
+            'Layer 1 OSM/building clustering evidence',
+            params.layer1Evidence,
+            'needs_layer1_evidence',
+            'add Layer 1 building / OSM clustering evidence reference'
+          ),
+          makeSignal(
+            'layer2_evidence',
+            'Layer 2 transformer/load profile evidence',
+            params.layer2Evidence,
+            'needs_layer2_evidence',
+            'add Layer 2 transformer or measured load profile evidence'
+          ),
+          makeSignal(
+            'gfactor_validation',
+            'G-Factor validation evidence',
+            params.gfactorValidation,
+            'needs_gfactor_validation',
+            'add measured/reference G-Factor comparison basis'
+          ),
+          makeSignal(
+            'acceptance_reference',
+            'Acceptance/reference evidence',
+            params.acceptanceReference || params.referenceDataset,
+            'needs_acceptance_reference',
+            'add acceptance fixture, reference dataset, or review record'
+          ),
+          makeSignal(
+            'nova_handoff',
+            'NOVA advisory handoff readiness',
+            params.novaHandoff,
+            'needs_nova_handoff_readiness',
+            'add advisory NOVA handoff status without applying a decision'
+          ),
+        ];
+        const missingSignals = readinessSignals.filter((signal) => signal.status !== 'present');
+        let status = 'ready_for_znp_readiness_review';
+        if (!projectId || String(projectId).trim() === '') {
+          status = 'needs_project_context';
+        } else if (missingSignals.length > 0) {
+          status = missingSignals[0].statusWhenMissing;
+        }
+        const gateStatus = status === 'ready_for_znp_readiness_review' ? 'ready' : 'evidence_gap';
+        const evidenceGaps = !projectId
+          ? [
+              {
+                missingDataPoint: 'project_context',
+                status: 'missing',
+                enablesDossierAddition: 'provide project id, municipality/territory, and planning scope',
+                category: 'znp_production_readiness_evidence_gate',
+              },
+            ]
+          : missingSignals.map((signal) => ({
+              missingDataPoint: signal.code,
+              status: signal.status,
+              enablesDossierAddition: signal.enablesDossierAddition,
+              category: 'znp_production_readiness_evidence_gate',
+            }));
+        const positiveFollowUps = evidenceGaps.map((gap) => ({
+          missingDataPoint: gap.missingDataPoint,
+          status: gap.status,
+          enablesDossierAddition: gap.enablesDossierAddition,
+          category: gap.category,
+        }));
+        const sourceActions = {
+          inspected: ['znp.productionReadinessStatus'],
+          referenced: ['znp.project.metadata', 'znp.layer1', 'znp.layer2', 'znp.gfactor', 'nova.handoff'],
+          notCalled: [
+            'overpass.fetch',
+            'znp.addLayer1',
+            'znp.addLayer2',
+            'znp.createProject',
+            'znp.updateProject',
+            'pdf.import',
+            'job.create',
+            'nova.apply',
+            'hitl.create',
+            'workflow.execute',
+            'notification.send',
+            'graph.mutate',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        };
+        const dossierFacts = [
+          `Status: ${status}`,
+          `Project: ${projectId || 'unknown'}`,
+          `Gate: ${gateStatus}`,
+          `Layer 1: ${readinessSignals[0].status}`,
+          `Layer 2: ${readinessSignals[1].status}`,
+          `G-Factor: ${readinessSignals[2].status}`,
+          `Acceptance: ${readinessSignals[3].status}`,
+          `NOVA handoff: ${readinessSignals[4].status}`,
+          `Open gaps: ${evidenceGaps.length}`,
+        ];
+
+        return {
+          productionReadinessStatusId: `znp-pr:${Buffer.from(`${tenantId || 'public'}:${projectId || 'missing'}`).toString('base64url').slice(0, 28)}`,
+          capabilityKey: 'znp_production_readiness_evidence_gate',
+          safety: 'read_only',
+          status,
+          gateStatus,
+          projectContext: {
+            projectId: projectId || null,
+            tenantId,
+            owner: params.owner || null,
+            nextReview: params.nextReview || null,
+            source: params.source || null,
+          },
+          readinessSignals,
+          evidenceGaps,
+          missingEvidence: evidenceGaps,
+          positiveFollowUps,
+          sourceActions,
+          validationFindings: evidenceGaps.map((gap, index) => ({
+            code: `ZNP_PR_${String(gap.missingDataPoint).toUpperCase()}_${index + 1}`,
+            severity: status === 'ready_for_znp_readiness_review' ? 'info' : 'medium',
+            message: gap.enablesDossierAddition,
+          })),
+          dossierEvidence: {
+            status,
+            gateStatus,
+            projectContext: {
+              projectId: projectId || null,
+              tenantId,
+              owner: params.owner || null,
+              nextReview: params.nextReview || null,
+              source: params.source || null,
+            },
+            readinessSignals,
+            evidenceGaps,
+            positiveFollowUps,
+            sourceActions: {
+              notCalled: sourceActions.notCalled,
+            },
+            dossierFacts,
+          },
+        };
+      },
+    },
+
     /**
      * strategicPrompts — LLM-generated strategic planning questions for a project.
      *

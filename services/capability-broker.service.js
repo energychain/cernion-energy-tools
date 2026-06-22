@@ -389,6 +389,26 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasZnpProductionReadinessMutationIntent =
+    /(overpass|pdf|import|extraktion|extract|async.?job|job create|nova apply|nova anwenden|entscheidung ausfuehren|entscheidung ausführen|project update|projekt aktualisieren|graph mutate|graph mutation|trl update|stub entfernen)/i.test(haystack) &&
+    /(znp|zielnetzplanung|production readiness|produktionsreife|layer 1|layer 2|g.?factor|nova|hoeheinoed|höheinöd)/i.test(haystack);
+
+  if (hasZnpProductionReadinessMutationIntent) {
+    return { capability: INTERFACE_PLACEHOLDER_CAPABILITY, score: 10, usedFallback: true };
+  }
+
+  const hasZnpProductionReadinessSpecificSignal =
+    /(znp production readiness|znp produktionsreife|znp readiness evidence gate|znp_production_readiness_evidence_gate|layer 1 layer 2 g.?factor|g.?factor validierung|hoeheinoed acceptance|höheinöd acceptance|nova handoff readiness)/i.test(haystack) &&
+    /(evidence|evidenz|readiness|produktionsreife|gate|status|review|layer 1|layer 2|g.?factor|acceptance|nova handoff)/i.test(haystack) &&
+    !/(overpass|pdf import|pdf extraktion|pdf extraction|async.?job|job create|nova apply|nova anwenden|entscheidung ausfuehren|entscheidung ausführen|project update|projekt aktualisieren|graph mutate|graph mutation|trl update|stub entfernen|tenant create|token create|support token|wallet|key material|schluessel|schlüssel|external connector|device.?control|smgw|cls|personal-agent execute)/i.test(haystack);
+
+  if (hasZnpProductionReadinessSpecificSignal) {
+    const znpProductionReadinessCapability = findCapabilityByName('znp_production_readiness_evidence_gate');
+    if (znpProductionReadinessCapability) {
+      return { capability: znpProductionReadinessCapability, score: 143, usedFallback: false };
+    }
+  }
+
   const hasNetzprozessReadinessGateSpecificSignal =
     /(netzprozess.?readiness|process readiness gate|prozessreife|portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad|blockierte folgeentscheidung)/i.test(haystack) &&
     /(portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad)/i.test(haystack) &&

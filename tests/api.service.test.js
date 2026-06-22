@@ -555,6 +555,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/stadtwerk-mauer-vdmi-profile']).toBe(
         'dashboard-api.stadtwerkMauerVdmiProfileStatus'
       );
+      expect(aliases['GET /znp/projects/:projectId/production-readiness/status']).toBe(
+        'znp.productionReadinessStatus'
+      );
       expect(aliases['GET /agent-sidecar/tools']).toBe('agent-sidecar.listTools');
       expect(aliases['POST /agent-sidecar/tools/:name/call']).toBe('agent-sidecar.callTool');
       expect(aliases['GET /agent-sidecar/descriptor']).toBe('agent-sidecar.descriptor');

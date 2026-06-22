@@ -1507,6 +1507,8 @@ module.exports = {
           // prevent route shadowing. Order: most-specific first.
           'GET /znp/projects': 'znp.listProjects',
           'POST /znp/projects': 'znp.createProject',
+          'GET /znp/projects/:projectId/production-readiness/status':
+            'znp.productionReadinessStatus',
           'GET /znp/projects/:projectId/strategic-prompts': 'znp.strategicPrompts',
           'POST /znp/projects/:projectId/assumptions': 'znp.addAssumption',
           'POST /znp/projects/:projectId/layer0': 'znp.addLayer0',

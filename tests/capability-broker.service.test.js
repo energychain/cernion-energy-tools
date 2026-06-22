@@ -1590,4 +1590,31 @@ describe('Capability Broker Service', () => {
 
     expect(result.capability).not.toBe('stadtwerk_mauer_vdmi_profile');
   });
+
+  it('routes ZNP production readiness prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte ZNP Production Readiness Evidence Gate fuer Projekt znp-71 pruefen: Layer 1 Layer 2 G-Factor Validierung, Acceptance Evidence und NOVA handoff readiness als Status.',
+    });
+
+    expect(result.capability).toBe('znp_production_readiness_evidence_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'znp_production_readiness_evidence_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('znp.productionReadinessStatus');
+    expect(actionNames).not.toContain('znp.addLayer1');
+    expect(actionNames).not.toContain('znp.addLayer2');
+    expect(actionNames).not.toContain('nova.apply');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('does not route Overpass/PDF/NOVA execution prompts to the ZNP readiness gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Starte Overpass Import, PDF Extraction, async job und NOVA apply fuer ZNP Production Readiness Layer 1 Layer 2.',
+    });
+
+    expect(result.capability).not.toBe('znp_production_readiness_evidence_gate');
+  });
 });

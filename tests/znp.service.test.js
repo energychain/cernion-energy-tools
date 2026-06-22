@@ -1677,4 +1677,61 @@ describe('ZNP Service', () => {
       expect(result.dimensionScores.regulatory).toBeLessThan(60);
     });
   });
+
+  describe('productionReadinessStatus', () => {
+    it('returns missing project context when projectId is empty', async () => {
+      const result = await broker.call('znp.productionReadinessStatus', { projectId: '' });
+
+      expect(result.status).toBe('needs_project_context');
+      expect(result.gateStatus).toBe('evidence_gap');
+      expect(result.evidenceGaps[0].missingDataPoint).toBe('project_context');
+      expect(result.sourceActions.notCalled).toContain('overpass.fetch');
+      expect(result.sourceActions.notCalled).toContain('nova.apply');
+      expect(result.sourceActions.notCalled).toContain('personal-agent.execute');
+    });
+
+    it('classifies partial Layer 1/2 and G-Factor evidence gaps without side effects', async () => {
+      const result = await broker.call('znp.productionReadinessStatus', {
+        projectId: 'znp-71',
+        layer1Evidence: 'present',
+      });
+
+      expect(result.status).toBe('needs_layer2_evidence');
+      expect(result.readinessSignals.find((signal) => signal.code === 'layer1_evidence').status).toBe(
+        'present'
+      );
+      expect(result.evidenceGaps.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'layer2_evidence',
+          'gfactor_validation',
+          'acceptance_reference',
+          'nova_handoff',
+        ])
+      );
+      expect(result.positiveFollowUps[0].enablesDossierAddition).toContain('Layer 2');
+      expect(result.sourceActions.notCalled).toContain('znp.addLayer2');
+      expect(result.sourceActions.notCalled).toContain('workflow.execute');
+    });
+
+    it('returns ready_for_znp_readiness_review when all advisory evidence is supplied', async () => {
+      const result = await broker.call('znp.productionReadinessStatus', {
+        projectId: 'znp-readiness-smoke',
+        layer1Evidence: 'present',
+        layer2Evidence: 'present',
+        gfactorValidation: 'present',
+        acceptanceReference: 'present',
+        novaHandoff: 'advisory-ready',
+      });
+
+      expect(result.status).toBe('ready_for_znp_readiness_review');
+      expect(result.gateStatus).toBe('ready');
+      expect(result.evidenceGaps).toHaveLength(0);
+      expect(result.dossierEvidence.dossierFacts).toContain(
+        'Status: ready_for_znp_readiness_review'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['overpass.fetch', 'pdf.import', 'nova.apply', 'hitl.create'])
+      );
+    });
+  });
 });

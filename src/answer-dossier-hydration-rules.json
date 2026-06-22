@@ -3846,6 +3846,117 @@
     "sourceIssue": 205
   },
   {
+    "id": "znp_production_readiness_evidence_gate",
+    "description": "Read-only ZNP production-readiness evidence gate for dossier hydration",
+    "routeLabel": "znp_production_readiness_evidence_gate",
+    "capability": "znp_production_readiness_evidence_gate",
+    "action": "znp.productionReadinessStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "overpass.fetch",
+        "znp.addLayer1",
+        "znp.addLayer2",
+        "znp.createProject",
+        "znp.updateProject",
+        "pdf.import",
+        "job.create",
+        "nova.apply",
+        "hitl.create",
+        "workflow.execute",
+        "notification.send",
+        "graph.mutate",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "znp production readiness",
+      "znp produktionsreife",
+      "znp readiness evidence gate",
+      "layer 1 layer 2 g-factor",
+      "g-factor validierung",
+      "nova handoff readiness",
+      "znp_production_readiness_evidence_gate"
+    ],
+    "paramTemplate": {
+      "projectId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:projectId|project|projekt)[:= ]+([A-Za-z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "layer1Evidence": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:layer1Evidence|layer1|layer 1)[:= ]+([A-Za-z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "layer2Evidence": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:layer2Evidence|layer2|layer 2)[:= ]+([A-Za-z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "gfactorValidation": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:gfactorValidation|g-factor|gfactor)[:= ]+([A-Za-z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "acceptanceReference": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:acceptanceReference|acceptance|referenceDataset)[:= ]+([A-Za-z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "novaHandoff": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:novaHandoff|nova handoff)[:= ]+([A-Za-z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "ZNP Readiness", "maxLen": 100 },
+        { "paths": ["gateStatus", "dossierEvidence.gateStatus"], "label": "Gate", "maxLen": 80 },
+        { "paths": ["projectContext.projectId", "dossierEvidence.projectContext.projectId"], "label": "Project", "maxLen": 120 },
+        { "paths": ["readinessSignals.0.status", "dossierEvidence.readinessSignals.0.status"], "label": "Layer 1", "maxLen": 80 },
+        { "paths": ["readinessSignals.1.status", "dossierEvidence.readinessSignals.1.status"], "label": "Layer 2", "maxLen": 80 },
+        { "paths": ["readinessSignals.2.status", "dossierEvidence.readinessSignals.2.status"], "label": "G-Factor", "maxLen": 80 },
+        { "paths": ["readinessSignals.3.status", "dossierEvidence.readinessSignals.3.status"], "label": "Acceptance", "maxLen": 80 },
+        { "paths": ["readinessSignals.4.status", "dossierEvidence.readinessSignals.4.status"], "label": "NOVA Handoff", "maxLen": 80 },
+        { "paths": ["evidenceGaps.0.missingDataPoint", "dossierEvidence.evidenceGaps.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up", "maxLen": 160 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 71
+  },
+  {
     "id": "stadtwerk_mauer_vdmi_profile",
     "description": "Read-only Stadtwerk Mauer VDMI/profile evidence",
     "routeLabel": "stadtwerk_mauer_vdmi_profile",

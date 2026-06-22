@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 62 static rules', () => {
+    it('loads all 63 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(62);
+      expect(rules.length).toBe(63);
     });
 
-    it('compiles all 62 static rules without error', () => {
+    it('compiles all 63 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(62);
+      expect(rules.length).toBe(63);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -843,6 +843,61 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Postcode: 69256');
       expect(formatted).toContain('Leading Gap: capability_projection');
       expect(formatted).toContain('Side-Effect Guard: tenant.create');
+    });
+
+    it('znp.productionReadinessStatus is dossier-safe and formats ZNP readiness facts', () => {
+      const rule = getRule('znp.productionReadinessStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte ZNP Production Readiness Evidence Gate fuer project=znp-71 layer1=present layer2=present g-factor=present acceptance=ref-71 novaHandoff=advisory-ready laden'
+        )
+      ).toEqual({
+        projectId: 'znp-71',
+        layer1Evidence: 'present',
+        layer2Evidence: 'present',
+        gfactorValidation: 'present',
+        acceptanceReference: 'ref-71',
+        novaHandoff: 'advisory-ready',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_gfactor_validation',
+        gateStatus: 'evidence_gap',
+        projectContext: { projectId: 'znp-71' },
+        readinessSignals: [
+          { code: 'layer1_evidence', status: 'present' },
+          { code: 'layer2_evidence', status: 'present' },
+          { code: 'gfactor_validation', status: 'missing' },
+          { code: 'acceptance_reference', status: 'missing' },
+          { code: 'nova_handoff', status: 'present' },
+        ],
+        evidenceGaps: [
+          {
+            missingDataPoint: 'gfactor_validation',
+            enablesDossierAddition: 'add measured/reference G-Factor comparison basis',
+          },
+        ],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add measured/reference G-Factor comparison basis',
+          },
+        ],
+        sourceActions: {
+          notCalled: ['overpass.fetch'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_gfactor_validation'],
+        },
+      });
+
+      expect(formatted).toContain('ZNP Readiness: needs_gfactor_validation');
+      expect(formatted).toContain('Project: znp-71');
+      expect(formatted).toContain('G-Factor: missing');
+      expect(formatted).toContain('Leading Gap: gfactor_validation');
+      expect(formatted).toContain('Side-Effect Guard: overpass.fetch');
     });
 
     it('dashboard-api.sapBudgetPspGateStatus is dossier-safe and formats SAP/PSP gate facts', () => {
