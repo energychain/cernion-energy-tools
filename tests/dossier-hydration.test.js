@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 63 static rules', () => {
+    it('loads all 64 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(63);
+      expect(rules.length).toBe(64);
     });
 
-    it('compiles all 63 static rules without error', () => {
+    it('compiles all 64 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(63);
+      expect(rules.length).toBe(64);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -843,6 +843,57 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Postcode: 69256');
       expect(formatted).toContain('Leading Gap: capability_projection');
       expect(formatted).toContain('Side-Effect Guard: tenant.create');
+    });
+
+    it('dashboard-api.stadtwerkMauerCapabilityProjectionStatus is dossier-safe and formats role capability facts', () => {
+      const rule = getRule('dashboard-api.stadtwerkMauerCapabilityProjectionStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Stadtwerk Mauer Capability Projection tenant=stadtwerk-mauer roles=management,grid-planning laden'
+        )
+      ).toEqual({
+        tenantId: 'stadtwerk-mauer',
+        roles: 'management,grid-planning',
+      });
+
+      const formatted = rule.formatEvidence({
+        projectionId: 'stadtwerk_mauer_capability_projection',
+        tenantId: 'stadtwerk-mauer',
+        municipality: 'Mauer',
+        postcode: '69256',
+        roles: [
+          {
+            label: 'Management',
+            readOnlyCapabilities: [{ capability: 'stadtwerk_mauer_vdmi_profile' }],
+            consequentialFollowUps: [{ capability: 'nova_proposal_for_portfolio_decision' }],
+          },
+        ],
+        classificationSummary: {
+          readOnly: 4,
+          consequentialFollowUps: 3,
+        },
+        evidenceGaps: [
+          {
+            missingDataPoint: 'missing_consequential_boundary',
+          },
+        ],
+        sourceActions: {
+          notCalled: ['eve.runtime.execute'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Projection: stadtwerk_mauer_capability_projection'],
+        },
+      });
+
+      expect(formatted).toContain('Projection: stadtwerk_mauer_capability_projection');
+      expect(formatted).toContain('Tenant: stadtwerk-mauer');
+      expect(formatted).toContain('Leading Role: Management');
+      expect(formatted).toContain('Read-only Capability: stadtwerk_mauer_vdmi_profile');
+      expect(formatted).toContain('Consequential Follow-up: nova_proposal_for_portfolio_decision');
+      expect(formatted).toContain('Side-Effect Guard: eve.runtime.execute');
     });
 
     it('znp.productionReadinessStatus is dossier-safe and formats ZNP readiness facts', () => {

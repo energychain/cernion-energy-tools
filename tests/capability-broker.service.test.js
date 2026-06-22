@@ -1591,6 +1591,32 @@ describe('Capability Broker Service', () => {
     expect(result.capability).not.toBe('stadtwerk_mauer_vdmi_profile');
   });
 
+  it('routes Stadtwerk Mauer capability projection prompts to the read-only projection capability', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Welche Cernion Capabilities hat Stadtwerk Mauer fuer Management, Grid Planning, Asset Management und Regulatory? Bitte Capability Projection mit read-only, advisory und consequential Follow-up Klassen anzeigen.',
+    });
+
+    expect(result.capability).toBe('stadtwerk_mauer_capability_projection');
+    expect(result.recommendedCapabilities[0].capability).toBe('stadtwerk_mauer_capability_projection');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.stadtwerkMauerCapabilityProjectionStatus');
+    expect(actionNames).not.toContain('eve.runtime.execute');
+    expect(actionNames).not.toContain('task.create');
+    expect(actionNames).not.toContain('workflow.execute');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('nova.mutate');
+    expect(actionNames).not.toContain('vdmi.mutate');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('does not route event simulation or Eve artifact setup to the Stadtwerk Mauer projection', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Starte Event Simulation fuer Stadtwerk Mauer, schreibe Eve Agent File, waehle Artifact Placement, erstelle Task und fuehre Workflow aus.',
+    });
+
+    expect(result.capability).not.toBe('stadtwerk_mauer_capability_projection');
+  });
+
   it('routes ZNP production readiness prompts to the read-only evidence gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Bitte ZNP Production Readiness Evidence Gate fuer Projekt znp-71 pruefen: Layer 1 Layer 2 G-Factor Validierung, Acceptance Evidence und NOVA handoff readiness als Status.',

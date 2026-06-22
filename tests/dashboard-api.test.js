@@ -4919,6 +4919,66 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- stadtwerkMauerCapabilityProjectionStatus ----------------------------
+  describe('stadtwerkMauerCapabilityProjectionStatus', () => {
+    it('returns a read-only projection for the four required core roles', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerCapabilityProjectionStatus', {
+        tenantId: 'stadtwerk-mauer',
+        roles: 'management,grid-planning,asset-management,regulatory',
+        includeDescriptorSources: true,
+      });
+
+      expect(result.projectionId).toBe('stadtwerk_mauer_capability_projection');
+      expect(result.profileId).toBe('stadtwerk_mauer_vdmi_profile');
+      expect(result.tenantId).toBe('stadtwerk-mauer');
+      expect(result.safety).toBe('read_only');
+      expect(result.status).toBe('projection_ready');
+      expect(result.roles.map((role) => role.roleId)).toEqual([
+        'management',
+        'grid-planning',
+        'asset-management',
+        'regulatory',
+      ]);
+      expect(result.classificationSummary.readOnly).toBeGreaterThanOrEqual(16);
+      expect(result.classificationSummary.advisory).toBeGreaterThanOrEqual(12);
+      expect(result.classificationSummary.consequentialFollowUps).toBeGreaterThanOrEqual(12);
+      expect(result.classificationSummary.executableConsequentialActions).toBe(0);
+      expect(result.roles[0].readOnlyCapabilities[0]).toMatchObject({
+        classification: 'read_only',
+        handoff: 'dossier_hydration_allowed',
+      });
+      expect(result.roles[0].consequentialFollowUps[0]).toMatchObject({
+        classification: 'consequential_follow_up',
+        executable: false,
+      });
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'eve.runtime.execute',
+          'task.create',
+          'workflow.execute',
+          'hitl.create',
+          'nova.mutate',
+          'vdmi.mutate',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('can filter roles and hide consequential classifications without changing safety', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerCapabilityProjectionStatus', {
+        roles: 'management,regulatory',
+        includeConsequential: false,
+        includeDescriptorSources: false,
+      });
+
+      expect(result.roles.map((role) => role.roleId)).toEqual(['management', 'regulatory']);
+      expect(result.classificationSummary.consequentialFollowUps).toBe(0);
+      expect(result.descriptorSources).toEqual([]);
+      expect(result.safety).toBe('read_only');
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

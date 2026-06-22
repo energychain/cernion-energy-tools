@@ -88,6 +88,7 @@ module.exports = {
       ownerDeadlineEvidenceGateStatus: 5 * 60 * 1000, // 5 min
       automationRiskGateStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerVdmiProfileStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerCapabilityProjectionStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -4160,6 +4161,50 @@ module.exports = {
           this.settings.cacheTtlMs.stadtwerkMauerVdmiProfileStatus,
           async () => ({
             ...this.buildStadtwerkMauerVdmiProfileStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- stadtwerkMauerCapabilityProjectionStatus --------------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-capability-projection
+     *
+     * Read-only Phase-2 projection for Stadtwerk Mauer. It derives role-scoped
+     * capability classes from the shipped VDMI profile without creating Eve
+     * agents, tasks, workflows, tenants, or a parallel role registry.
+     */
+    stadtwerkMauerCapabilityProjectionStatus: {
+      rest: 'GET /stadtwerk-mauer-capability-projection',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        roles: { type: 'string', optional: true, min: 1 },
+        includeConsequential: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
+        includeDescriptorSources: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer capability projection -- read-only role/VDMI view',
+        description:
+          'Returns a deterministic role-scoped capability projection for Stadtwerk Mauer based on existing VDMI profile, catalog, hydration, and generated descriptor sources. ' +
+          'The endpoint is read-only and does not create Eve agents, workflows, tasks, NOVA/VDMI/HITL objects, tenants, tokens, or external calls.',
+        responses: {
+          200: {
+            description: 'Read-only Stadtwerk Mauer role/capability projection',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `stadtwerk-mauer-capability-projection:${params.tenantId || 'stadtwerk-mauer'}:${params.roles || 'core'}:${params.includeConsequential ?? 'true'}:${params.includeDescriptorSources ?? 'true'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.stadtwerkMauerCapabilityProjectionStatus,
+          async () => ({
+            ...this.buildStadtwerkMauerCapabilityProjectionStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -15111,6 +15156,318 @@ module.exports = {
             'no Eve runtime, no tenant provisioning, no Personal-Agent hardcoding',
           ],
           demoQuestionAnswer,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildStadtwerkMauerCapabilityProjectionStatus(params = {}) {
+      const normalizeBoolean = (value, defaultValue = true) => {
+        if (value === undefined || value === null || value === '') return defaultValue;
+        if (typeof value === 'boolean') return value;
+        return /^(1|true|yes|ja|include|with)$/i.test(String(value).trim());
+      };
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const tenantId = params.tenantId || 'stadtwerk-mauer';
+      const includeConsequential = normalizeBoolean(params.includeConsequential, true);
+      const includeDescriptorSources = normalizeBoolean(params.includeDescriptorSources, true);
+      const requestedRoles = toList(params.roles).map((role) => role.toLowerCase());
+      const defaultRoleOrder = ['management', 'grid-planning', 'asset-management', 'regulatory'];
+      const roleOrder = requestedRoles.length > 0 ? requestedRoles : defaultRoleOrder;
+      const profile = this.buildStadtwerkMauerVdmiProfileStatus({
+        tenantId,
+        includeRoles: true,
+        includeEvidenceGaps: true,
+      });
+      const roleSpecs = {
+        management: {
+          roleId: 'management',
+          label: 'Management',
+          profileRoleIds: ['management'],
+          vdmiResponsibilities: [
+            'Portfolio priorities and escalation boundaries',
+            'Cross-sparte decision readiness for Strom, Gas, Wasser, and Waerme',
+          ],
+          readOnlyCapabilities: [
+            'stadtwerk_mauer_vdmi_profile',
+            'owner_deadline_evidence_gate',
+            'investment_committee_steering_cards',
+            'budget_waterfall_governance',
+          ],
+          advisoryCapabilities: [
+            'process_sensitization_readiness_map',
+            'automation_risk_gate',
+            'netzprozess_readiness_gate',
+          ],
+          consequentialFollowUps: [
+            'nova_proposal_for_portfolio_decision',
+            'vdmi_task_for_management_approval',
+            'budget_committee_followup',
+          ],
+          evidenceGaps: [
+            ['missing_consequential_boundary', 'add explicit NOVA/VDMI/task handoff classification for management decisions'],
+            ['missing_demo_question_context', 'enable Phase-4 demo dossier grounding for management review'],
+          ],
+        },
+        'grid-planning': {
+          roleId: 'grid-planning',
+          label: 'Grid Planning',
+          profileRoleIds: ['netzplanung', 'vnb'],
+          vdmiResponsibilities: [
+            'ZNP, grid bottleneck, target-network, and municipal planning evidence',
+            'Readiness handover for NAP, fNAV, and storage/flex Anschluss contexts',
+          ],
+          readOnlyCapabilities: [
+            'znp_production_readiness_evidence_gate',
+            'grossspeicher_anschluss_readiness_gate',
+            'netzprozess_readiness_gate',
+            'grid_connection_transformation_gate',
+          ],
+          advisoryCapabilities: [
+            'stadtwerk_mauer_vdmi_profile',
+            'e2e_controllability_check_governance',
+            'controllability_asset_handover',
+          ],
+          consequentialFollowUps: [
+            'nova_handoff_for_znp_review',
+            'vdmi_followup_for_grid_planning_owner',
+            'fnav_decision_proposal',
+          ],
+          evidenceGaps: [
+            ['missing_capability_descriptor', 'add catalog and hydration provenance for ZNP/grid-planning capabilities'],
+            ['missing_evidence_source', 'add Layer 1/2, G-Factor, NAP, or fNAV evidence source references'],
+          ],
+        },
+        'asset-management': {
+          roleId: 'asset-management',
+          label: 'Asset Management',
+          profileRoleIds: ['asset_management', 'msb', 'esa'],
+          vdmiResponsibilities: [
+            'Cross-sparte asset facts, valuation context, and investment readiness',
+            'Controllability, feedback capability, and asset handover evidence',
+          ],
+          readOnlyCapabilities: [
+            'controllability_asset_handover',
+            'imsys_taf2_compliance',
+            'cls_digital_twin_compliance_gate',
+            'legacy_control_technology_transition',
+          ],
+          advisoryCapabilities: [
+            'grossspeicher_anschluss_readiness_gate',
+            'owner_deadline_evidence_gate',
+            'automation_risk_gate',
+          ],
+          consequentialFollowUps: [
+            'asset_override_proposal',
+            'vdmi_handover_task_for_asset_owner',
+            'device_control_change_request',
+          ],
+          evidenceGaps: [
+            ['missing_role_context', 'add role-specific VDMI responsibility evidence for asset ownership'],
+            ['missing_evidence_source', 'add asset, feedback capability, and source snapshot evidence references'],
+          ],
+        },
+        regulatory: {
+          roleId: 'regulatory',
+          label: 'Regulatory',
+          profileRoleIds: ['regulierung', 'mako', 'billing', 'edm'],
+          vdmiResponsibilities: [
+            'Regulatory evidence for paragraph 14a, 14d, 42c, A96, and audit readiness',
+            'MaKo, EDM, settlement, and compliance boundary visibility',
+          ],
+          readOnlyCapabilities: [
+            'market_communication_evidence_chain',
+            'mastr_quality_oemetadata',
+            'energy_tax_information_package',
+            'regulatory_change_readiness',
+          ],
+          advisoryCapabilities: [
+            'owner_deadline_evidence_gate',
+            'process_sensitization_readiness_map',
+            'automation_risk_gate',
+          ],
+          consequentialFollowUps: [
+            'legal_review_task',
+            'regulatory_submission_proposal',
+            'billing_or_mako_change_request',
+          ],
+          evidenceGaps: [
+            ['missing_consequential_boundary', 'add explicit legal/regulatory handoff classification'],
+            ['missing_evidence_source', 'add MaKo, EDM, audit, or regulatory source evidence references'],
+          ],
+        },
+      };
+      const sourceActions = {
+        inspected: [
+          'dashboard-api.stadtwerkMauerCapabilityProjectionStatus',
+          'dashboard-api.stadtwerkMauerVdmiProfileStatus',
+        ],
+        referenced: [
+          'capability-broker.recommend',
+          'src/capability-catalog.js',
+          'src/answer-dossier-hydration-rules.json',
+          'llm.txt',
+          'vdmi.dossier',
+        ],
+        notCalled: [
+          'tenant.create',
+          'user.create',
+          'token.create',
+          'eve.runtime.execute',
+          'eve.agent.write',
+          'agent-directory.write',
+          'scheduler.create',
+          'channel.open',
+          'approval.create',
+          'task.create',
+          'workflow.execute',
+          'notification.send',
+          'hitl.create',
+          'nova.mutate',
+          'vdmi.mutate',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const roles = roleOrder
+        .filter((roleId) => roleSpecs[roleId])
+        .map((roleId) => {
+          const spec = roleSpecs[roleId];
+          const profileRoles = profile.roles.filter((role) => spec.profileRoleIds.includes(role.id));
+          const evidenceGaps = spec.evidenceGaps.map(([missingDataPoint, enablesDossierAddition]) => ({
+            missingDataPoint,
+            status: 'partial',
+            enablesDossierAddition,
+            category: 'stadtwerk_mauer_capability_projection',
+            roleId: spec.roleId,
+          }));
+          return {
+            roleId: spec.roleId,
+            label: spec.label,
+            vdmiResponsibilities: spec.vdmiResponsibilities,
+            profileRoles: profileRoles.map((role) => ({
+              id: role.id,
+              label: role.label,
+              type: role.type,
+              vdmiResponsibility: role.vdmiResponsibility,
+            })),
+            readOnlyCapabilities: spec.readOnlyCapabilities.map((capability) => ({
+              capability,
+              classification: 'read_only',
+              handoff: 'dossier_hydration_allowed',
+            })),
+            advisoryCapabilities: spec.advisoryCapabilities.map((capability) => ({
+              capability,
+              classification: 'advisory',
+              handoff: 'dossier_or_vdmi_context_only',
+            })),
+            consequentialFollowUps: includeConsequential
+              ? spec.consequentialFollowUps.map((followUp) => ({
+                  capability: followUp,
+                  classification: 'consequential_follow_up',
+                  handoff: 'proposal_task_vdmi_or_nova_only',
+                  executable: false,
+                }))
+              : [],
+            evidenceGaps,
+            positiveFollowUps: evidenceGaps.map((gap) => ({
+              missingDataPoint: gap.missingDataPoint,
+              status: gap.status,
+              enablesDossierAddition: gap.enablesDossierAddition,
+              category: gap.category,
+            })),
+            descriptorSources: includeDescriptorSources
+              ? [
+                  'stadtwerk_mauer_vdmi_profile',
+                  'capability-catalog',
+                  'hydration-registry',
+                  'llm-descriptor',
+                ]
+              : [],
+          };
+        });
+      const allEvidenceGaps = roles.flatMap((role) => role.evidenceGaps);
+      const readOnlyCount = roles.reduce((sum, role) => sum + role.readOnlyCapabilities.length, 0);
+      const advisoryCount = roles.reduce((sum, role) => sum + role.advisoryCapabilities.length, 0);
+      const consequentialCount = roles.reduce((sum, role) => sum + role.consequentialFollowUps.length, 0);
+      const dossierFacts = [
+        'Projection: stadtwerk_mauer_capability_projection',
+        `Tenant: ${tenantId}`,
+        'Municipality: Mauer',
+        'Postcode: 69256',
+        `Roles: ${roles.map((role) => role.roleId).join(', ')}`,
+        `Read-only capabilities: ${readOnlyCount}`,
+        `Advisory capabilities: ${advisoryCount}`,
+        `Consequential follow-ups: ${consequentialCount}`,
+      ];
+
+      return {
+        stadtwerkMauerCapabilityProjectionStatusId: `smcp:${Buffer.from(`${tenantId}:${roles.map((role) => role.roleId).join(',') || 'none'}`).toString('base64url').slice(0, 28)}`,
+        profileId: 'stadtwerk_mauer_vdmi_profile',
+        projectionId: 'stadtwerk_mauer_capability_projection',
+        capabilityKey: 'stadtwerk_mauer_capability_projection',
+        safety: 'read_only',
+        status: roles.length >= 4 ? 'projection_ready' : 'partial_role_projection',
+        tenantId,
+        municipality: 'Mauer',
+        postcode: '69256',
+        roles,
+        classificationSummary: {
+          readOnly: readOnlyCount,
+          advisory: advisoryCount,
+          consequentialFollowUps: consequentialCount,
+          executableConsequentialActions: 0,
+        },
+        evidenceGaps: allEvidenceGaps,
+        missingEvidence: allEvidenceGaps,
+        positiveFollowUps: roles.flatMap((role) => role.positiveFollowUps),
+        decisionBoundaries: [
+          'read-only/advisory capabilities may be used for dossier grounding',
+          'consequential capabilities are proposal/task/VDMI/NOVA handoff classes only',
+          'Eve runtime, agent skeletons, event simulation, and artifact placement stay out of this slice',
+        ],
+        descriptorSources: includeDescriptorSources
+          ? ['stadtwerk_mauer_vdmi_profile', 'capability-catalog', 'hydration-registry', 'llm-descriptor']
+          : [],
+        sourceActions,
+        validationFindings: allEvidenceGaps.map((gap, index) => ({
+          code: `SMCP_${String(gap.missingDataPoint).toUpperCase()}_${index + 1}`,
+          severity: 'medium',
+          message: gap.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          status: roles.length >= 4 ? 'projection_ready' : 'partial_role_projection',
+          profileId: 'stadtwerk_mauer_vdmi_profile',
+          projectionId: 'stadtwerk_mauer_capability_projection',
+          tenantId,
+          municipality: 'Mauer',
+          postcode: '69256',
+          roles,
+          classificationSummary: {
+            readOnly: readOnlyCount,
+            advisory: advisoryCount,
+            consequentialFollowUps: consequentialCount,
+            executableConsequentialActions: 0,
+          },
+          evidenceGaps: allEvidenceGaps,
+          positiveFollowUps: roles.flatMap((role) => role.positiveFollowUps),
+          decisionBoundaries: [
+            'read-only/advisory capabilities may be used for dossier grounding',
+            'consequential capabilities are proposal/task/VDMI/NOVA handoff classes only',
+            'Eve runtime, agent skeletons, event simulation, and artifact placement stay out of this slice',
+          ],
+          descriptorSources: includeDescriptorSources
+            ? ['stadtwerk_mauer_vdmi_profile', 'capability-catalog', 'hydration-registry', 'llm-descriptor']
+            : [],
           sourceActions: {
             notCalled: sourceActions.notCalled,
           },

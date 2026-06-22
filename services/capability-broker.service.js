@@ -377,6 +377,26 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasStadtwerkMauerCapabilityProjectionMutationIntent =
+    /(tenant create|erstelle tenant|user create|erstelle user|token create|support token|provision|provisioniere|eve runtime|scheduler|channel|approval|agent directory write|agentenverzeichnis schreiben|agent file|agenten.?datei|artifact placement|artefakt|workflow execute|workflow ausfuehren|workflow ausführen|task create|aufgabe erstellen|notification|benachrichtigung|hitl create|nova mutate|vdmi mutate|event simulation|event.?simulation|event injection|external connector|security hardening|key policy|schluessel|schlüssel|wallet)/i.test(haystack) &&
+    /(stadtwerk mauer|69256 mauer|eve stadtwerk|agentic stadtwerk|virtuelles stadtwerk|capability projection|capability.?projektion|rollenfaehigkeit|rollenfähigkeit)/i.test(haystack);
+
+  if (hasStadtwerkMauerCapabilityProjectionMutationIntent) {
+    return { capability: INTERFACE_PLACEHOLDER_CAPABILITY, score: 10, usedFallback: true };
+  }
+
+  const hasStadtwerkMauerCapabilityProjectionSpecificSignal =
+    /(stadtwerk mauer|69256 mauer|eve stadtwerk|agentic stadtwerk|virtuelles stadtwerk|stadtwerk_mauer_capability_projection)/i.test(haystack) &&
+    /(capability projection|capability.?projektion|faehigkeiten|fähigkeiten|rollenfaehigkeit|rollenfähigkeit|role capability|rollen capability|management|grid.?planning|netzplanung|asset.?management|regulatory|regulierung|read.?only|advisory|consequential|folge.?up|handoff)/i.test(haystack) &&
+    !/(tenant create|erstelle tenant|user create|erstelle user|token create|support token|provision|provisioniere|eve runtime|scheduler|channel|approval|agent directory write|agentenverzeichnis schreiben|agent file|agenten.?datei|artifact placement|artefakt|workflow execute|workflow ausfuehren|workflow ausführen|task create|aufgabe erstellen|notification|benachrichtigung|hitl create|nova mutate|vdmi mutate|event simulation|event.?simulation|event injection|external connector|connector|security hardening|key policy|wallet|key material|schluessel|schlüssel|smgw|cls|device.?control|steuerbefehl)/i.test(haystack);
+
+  if (hasStadtwerkMauerCapabilityProjectionSpecificSignal) {
+    const stadtwerkMauerProjectionCapability = findCapabilityByName('stadtwerk_mauer_capability_projection');
+    if (stadtwerkMauerProjectionCapability) {
+      return { capability: stadtwerkMauerProjectionCapability, score: 144, usedFallback: false };
+    }
+  }
+
   const hasStadtwerkMauerVdmiProfileSpecificSignal =
     /(stadtwerk mauer|69256 mauer|eve stadtwerk|agentic stadtwerk|virtuelles stadtwerk|stadtwerk_mauer_vdmi_profile)/i.test(haystack) &&
     /(vdmi|profile|profil|sparten|strom|gas|wasser|waerme|wärme|rolle|rollen|market role|marktrolle|evidenz|evidence|demo.?frage|transformation|netzrisiko)/i.test(haystack) &&

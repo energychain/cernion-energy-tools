@@ -1492,6 +1492,8 @@ module.exports = {
             'dashboard-api.automationRiskGateStatus',
           'GET /dashboard/stadtwerk-mauer-vdmi-profile':
             'dashboard-api.stadtwerkMauerVdmiProfileStatus',
+          'GET /dashboard/stadtwerk-mauer-capability-projection':
+            'dashboard-api.stadtwerkMauerCapabilityProjectionStatus',
           'POST /community/consult': 'community.consult',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',

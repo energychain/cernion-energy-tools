@@ -14495,6 +14495,21 @@
         "description": "Returns the deterministic Stadtwerk Mauer MVP profile, sparten, VDMI roles, evidence gaps, and side-effect guards. The endpoint is read-only and does not create tenants, Eve agents, workflows, NOVA/VDMI/HITL objects, or external calls."
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-capability-projection": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerCapabilityProjectionStatus",
+        "summary": "Stadtwerk Mauer capability projection -- read-only role/VDMI view",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer role/capability projection"
+          }
+        },
+        "description": "Returns a deterministic role-scoped capability projection for Stadtwerk Mauer based on existing VDMI profile, catalog, hydration, and generated descriptor sources. The endpoint is read-only and does not create Eve agents, workflows, tasks, NOVA/VDMI/HITL objects, tenants, tokens, or external calls."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53921,6 +53936,21 @@
           }
         },
         "description": "Returns the deterministic Stadtwerk Mauer MVP profile, sparten, VDMI roles, evidence gaps, and side-effect guards. The endpoint is read-only and does not create tenants, Eve agents, workflows, NOVA/VDMI/HITL objects, or external calls."
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-capability-projection": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerCapabilityProjectionStatus",
+        "summary": "Stadtwerk Mauer capability projection -- read-only role/VDMI view",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer role/capability projection"
+          }
+        },
+        "description": "Returns a deterministic role-scoped capability projection for Stadtwerk Mauer based on existing VDMI profile, catalog, hydration, and generated descriptor sources. The endpoint is read-only and does not create Eve agents, workflows, tasks, NOVA/VDMI/HITL objects, tenants, tokens, or external calls."
       }
     },
     "/api/dashboard/market-snapshot": {
