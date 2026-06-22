@@ -14405,6 +14405,21 @@
         "description": "Builds deterministic readiness evidence from supplied process facts. The endpoint is read-only and does not create trainings, HITL tasks, VDMI changes, or external calls."
       }
     },
+    "/api/dashboard-api/netzprozess-readiness-gate": {
+      "get": {
+        "operationId": "dashboard-api_netzprozessReadinessGateStatus",
+        "summary": "Netzprozess Readiness Gate -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Netzprozess readiness evidence"
+          }
+        },
+        "description": "Builds deterministic readiness evidence from supplied administrative process facts. The endpoint is read-only and does not create HITL tasks, mutate VDMI/workflow state, or call external systems."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53676,6 +53691,21 @@
           }
         },
         "description": "Builds deterministic readiness evidence from supplied process facts. The endpoint is read-only and does not create trainings, HITL tasks, VDMI changes, or external calls."
+      }
+    },
+    "/api/dashboard/netzprozess-readiness-gate": {
+      "get": {
+        "operationId": "dashboard-api_netzprozessReadinessGateStatus",
+        "summary": "Netzprozess Readiness Gate -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Netzprozess readiness evidence"
+          }
+        },
+        "description": "Builds deterministic readiness evidence from supplied administrative process facts. The endpoint is read-only and does not create HITL tasks, mutate VDMI/workflow state, or call external systems."
       }
     },
     "/api/dashboard/market-snapshot": {

@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 56 static rules', () => {
+    it('loads all 57 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(56);
+      expect(rules.length).toBe(57);
     });
 
-    it('compiles all 56 static rules without error', () => {
+    it('compiles all 57 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(56);
+      expect(rules.length).toBe(57);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -649,6 +649,50 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Readiness Score: 0.55');
       expect(formatted).toContain('Owner: Netzanschluss');
       expect(formatted).toContain('Leading Gap: rollenmatrix');
+      expect(formatted).toContain('Side-Effect Guard: hitl.create');
+    });
+
+    it('dashboard-api.netzprozessReadinessGateStatus is dossier-safe and formats readiness facts', () => {
+      const rule = getRule('dashboard-api.netzprozessReadinessGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Netzprozess Readiness Gate processType=redispatch processId=np-223 fuer Portalzugang und SFTP pruefen'
+        )
+      ).toEqual({
+        processType: 'redispatch',
+        processId: 'np-223',
+      });
+
+      const formatted = rule.formatEvidence({
+        overallStatus: 'blocked',
+        processType: 'redispatch',
+        processRef: { processId: 'np-223' },
+        readinessSignals: [{ code: 'sftp_route', status: 'blocked' }],
+        blockers: [{ code: 'sftp_route' }],
+        owners: ['Netzbetrieb'],
+        nextDecision: 'produktivreife',
+        missingEvidence: [
+          {
+            missingDataPoint: 'sftp_route',
+            enablesDossierAddition: 'adds interface route readiness proof',
+          },
+        ],
+        sourceActions: {
+          notCalled: ['hitl.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Overall Status: blocked'],
+        },
+      });
+
+      expect(formatted).toContain('Overall Status: blocked');
+      expect(formatted).toContain('Process Type: redispatch');
+      expect(formatted).toContain('Process ID: np-223');
+      expect(formatted).toContain('Leading Blocker: sftp_route');
+      expect(formatted).toContain('Owner: Netzbetrieb');
       expect(formatted).toContain('Side-Effect Guard: hitl.create');
     });
 

@@ -1480,6 +1480,8 @@ module.exports = {
             'dashboard-api.zaehlparkFinanzierungSzenarioCockpitStatus',
           'GET /dashboard/process-sensitization-readiness-map':
             'dashboard-api.processSensitizationReadinessMapStatus',
+          'GET /dashboard/netzprozess-readiness-gate':
+            'dashboard-api.netzprozessReadinessGateStatus',
           'POST /community/consult': 'community.consult',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',

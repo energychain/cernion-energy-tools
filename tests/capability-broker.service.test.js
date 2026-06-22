@@ -1442,4 +1442,20 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('external.connector.call');
     expect(actionNames).not.toContain('personal-agent.execute');
   });
+
+  it('routes Netzprozess readiness gate prompts to the read-only evidence status path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Netzprozess Readiness Gate fuer Redispatch: Portalzugang ready, SFTP blockiert, Rollenfreigabe offen, IT Security Update und Fachschulung vor blockierter Folgeentscheidung.',
+    });
+
+    expect(result.capability).toBe('netzprozess_readiness_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe('netzprozess_readiness_gate');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.netzprozessReadinessGateStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('vdmi.mutate');
+    expect(actionNames).not.toContain('workflow.execute');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
 });

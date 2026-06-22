@@ -4372,6 +4372,89 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- netzprozessReadinessGateStatus ---------------------------------------
+
+  describe('netzprozessReadinessGateStatus', () => {
+    it('reports unknown when no readiness signal evidence is supplied', async () => {
+      const result = await broker.call('dashboard-api.netzprozessReadinessGateStatus', {
+        processType: 'redispatch',
+        processId: 'np-223-empty',
+      });
+
+      expect(result.overallStatus).toBe('unknown');
+      expect(result.readinessSignals).toEqual([]);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('reports blocked when any required administrative signal is blocked', async () => {
+      const result = await broker.call('dashboard-api.netzprozessReadinessGateStatus', {
+        processType: 'redispatch',
+        processId: 'np-223',
+        portalAccess: 'ready',
+        sftpRoute: 'blocked',
+        owner: 'Netzbetrieb',
+        nextDecision: 'produktivreife',
+      });
+
+      expect(result.overallStatus).toBe('blocked');
+      expect(result.blockers.map((blocker) => blocker.code)).toContain('sftp_route');
+      expect(result.owners).toContain('Netzbetrieb');
+      expect(result.positiveFollowUps[0].category).toBe('netzprozess_readiness_gate');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'hitl.create',
+          'vdmi.mutate',
+          'workflow.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('reports partial when at least one supplied signal is partial or missing', async () => {
+      const result = await broker.call('dashboard-api.netzprozessReadinessGateStatus', {
+        processType: 'grid_connection',
+        portalAccess: 'ready',
+        rolePermission: 'partial',
+        training: 'missing',
+      });
+
+      expect(result.overallStatus).toBe('partial');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['role_permission', 'training'])
+      );
+    });
+
+    it('reports ready when all supplied readiness signals are ready', async () => {
+      const result = await broker.call('dashboard-api.netzprozessReadinessGateStatus', {
+        processType: 'netzkoppelvertrag',
+        processId: 'np-223-ready',
+        portalAccess: 'ready',
+        sftpRoute: 'ready',
+        rolePermission: 'ready',
+        itSecurityUpdate: 'ready',
+        training: 'ready',
+        dataPath: 'ready',
+        nextDecision: 'gate-release',
+        sourceRef: 'vdmi:223',
+      });
+
+      expect(result.overallStatus).toBe('ready');
+      expect(result.readinessSignals).toHaveLength(6);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.sourceRefs).toEqual(['vdmi:223']);
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Overall Status: ready',
+          'Process Type: netzkoppelvertrag',
+          'Readiness Signals: 6',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

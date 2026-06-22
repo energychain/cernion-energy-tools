@@ -82,6 +82,7 @@ module.exports = {
       techCommercialOfferCockpitStatus: 5 * 60 * 1000, // 5 min
       zaehlparkFinanzierungSzenarioCockpitStatus: 5 * 60 * 1000, // 5 min
       processSensitizationReadinessMapStatus: 5 * 60 * 1000, // 5 min
+      netzprozessReadinessGateStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3806,6 +3807,63 @@ module.exports = {
           this.settings.cacheTtlMs.processSensitizationReadinessMapStatus,
           async () => ({
             ...this.buildProcessSensitizationReadinessMapStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- netzprozessReadinessGateStatus -------------------------------------
+    /**
+     * GET /api/dashboard/netzprozess-readiness-gate
+     *
+     * Read-only dossier-safe readiness gate for administrative Netzprozess
+     * prerequisites such as portal access, SFTP routes, role permissions,
+     * IT/security updates, training, and source-data paths.
+     */
+    netzprozessReadinessGateStatus: {
+      rest: 'GET /netzprozess-readiness-gate',
+      params: {
+        processType: { type: 'string', optional: true, min: 1 },
+        processId: { type: 'string', optional: true, min: 1 },
+        processRefType: { type: 'string', optional: true, min: 1 },
+        processRefId: { type: 'string', optional: true, min: 1 },
+        portalAccess: { type: 'string', optional: true, min: 1 },
+        sftpRoute: { type: 'string', optional: true, min: 1 },
+        rolePermission: { type: 'string', optional: true, min: 1 },
+        itSecurityUpdate: { type: 'string', optional: true, min: 1 },
+        training: { type: 'string', optional: true, min: 1 },
+        dataPath: { type: 'string', optional: true, min: 1 },
+        blockedDecision: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        dueAt: { type: 'string', optional: true, min: 1 },
+        nextDecision: { type: 'string', optional: true, min: 1 },
+        missingEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        customSignals: { type: 'multi', optional: true, rules: [{ type: 'array' }, { type: 'string', min: 1 }] },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Netzprozess Readiness Gate -- read-only dossier-safe status',
+        description:
+          'Builds deterministic readiness evidence from supplied administrative process facts. ' +
+          'The endpoint is read-only and does not create HITL tasks, mutate VDMI/workflow state, or call external systems.',
+        responses: {
+          200: {
+            description: 'Read-only Netzprozess readiness evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `netzprozess-readiness-gate:${params.processType || 'general'}:${params.processId || params.processRefId || 'no-process'}:${params.portalAccess || ''}:${params.sftpRoute || ''}:${params.rolePermission || ''}:${params.itSecurityUpdate || ''}:${params.training || ''}:${params.dataPath || ''}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.netzprozessReadinessGateStatus,
+          async () => ({
+            ...this.buildNetzprozessReadinessGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -13325,6 +13383,247 @@ module.exports = {
               'external.connector.call',
               'personal-agent.execute',
             ],
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildNetzprozessReadinessGateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const normalizeStatus = (value) => {
+        const text = String(value || '').trim().toLowerCase();
+        if (!text) return 'missing';
+        if (/^(ready|ok|green|gruen|grün|verfuegbar|verfügbar|freigegeben)$/.test(text)) return 'ready';
+        if (/^(partial|partly|teilweise|pending|in_progress|in-progress|offen)$/.test(text)) return 'partial';
+        if (/^(blocked|blockiert|red|rot|failed|fehlt|missing|not_ready|not-ready|unready)$/.test(text)) return text.includes('fehlt') || text.includes('missing') ? 'missing' : 'blocked';
+        if (/unknown|unklar|unbekannt/.test(text)) return 'unknown';
+        return text;
+      };
+      const isReady = (status) => status === 'ready';
+      const isBlocked = (status) => status === 'blocked';
+      const isPartial = (status) => ['partial', 'missing', 'unknown'].includes(status) || !isReady(status);
+
+      const sourceRefs = toList(params.sourceRef);
+      const extraMissingEvidence = toList(params.missingEvidence);
+      const baseSignals = [
+        {
+          code: 'portal_access',
+          label: 'Portal Access',
+          value: params.portalAccess,
+          owner: params.owner,
+          dueAt: params.dueAt,
+          enablesDossierAddition: 'adds portal access readiness proof and removes the access blocker',
+        },
+        {
+          code: 'sftp_route',
+          label: 'SFTP Route',
+          value: params.sftpRoute,
+          owner: params.owner,
+          dueAt: params.dueAt,
+          enablesDossierAddition: 'adds interface route readiness proof',
+        },
+        {
+          code: 'role_permission',
+          label: 'Role Permission',
+          value: params.rolePermission,
+          owner: params.owner,
+          dueAt: params.dueAt,
+          enablesDossierAddition: 'adds role authorization proof',
+        },
+        {
+          code: 'it_security_update',
+          label: 'IT/Security Update',
+          value: params.itSecurityUpdate,
+          owner: params.owner,
+          dueAt: params.dueAt,
+          enablesDossierAddition: 'adds IT/security prerequisite evidence',
+        },
+        {
+          code: 'training',
+          label: 'Training',
+          value: params.training,
+          owner: params.owner,
+          dueAt: params.dueAt,
+          enablesDossierAddition: 'adds fachschulung and role readiness evidence',
+        },
+        {
+          code: 'data_path',
+          label: 'Data Path',
+          value: params.dataPath,
+          owner: params.owner,
+          dueAt: params.dueAt,
+          enablesDossierAddition: 'adds source data path readiness proof',
+        },
+      ];
+
+      const customSignals = toList(params.customSignals).map((raw, index) => {
+        const [codeRaw, statusRaw] = String(raw).split(':');
+        const code = (codeRaw || `custom_signal_${index + 1}`).trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_');
+        return {
+          code,
+          label: code.replace(/_/g, ' '),
+          value: statusRaw || raw,
+          owner: params.owner,
+          dueAt: params.dueAt,
+          enablesDossierAddition: `adds readiness proof for ${code.replace(/_/g, ' ')}`,
+        };
+      });
+
+      const readinessSignals = [...baseSignals, ...customSignals]
+        .filter((signal) => signal.value !== undefined && signal.value !== null && signal.value !== '')
+        .map((signal) => {
+          const status = normalizeStatus(signal.value);
+          return {
+            code: signal.code,
+            label: signal.label,
+            status,
+            rawStatus: signal.value,
+            owner: signal.owner || null,
+            dueAt: signal.dueAt || null,
+            evidenceRef: params.processId || params.processRefId || null,
+            finding: isReady(status) ? null : signal.enablesDossierAddition,
+            enablesDossierAddition: signal.enablesDossierAddition,
+          };
+        });
+
+      const missingFromParams = extraMissingEvidence.map((value) => ({
+        missingDataPoint: 'missing_evidence',
+        value,
+        enablesDossierAddition: `adds missing process readiness evidence for ${value}`,
+      }));
+      const missingFromSignals = readinessSignals
+        .filter((signal) => !isReady(signal.status))
+        .map((signal) => ({
+          missingDataPoint: signal.code,
+          status: signal.status,
+          value: signal.rawStatus,
+          enablesDossierAddition: signal.enablesDossierAddition,
+        }));
+      const blockedDecisionGap = params.blockedDecision
+        ? [{
+            missingDataPoint: 'blocked_decision',
+            value: params.blockedDecision,
+            enablesDossierAddition: 'adds decision-frame context for the next process gate',
+          }]
+        : [];
+      const missingEvidence = [...missingFromSignals, ...missingFromParams, ...blockedDecisionGap];
+
+      let overallStatus = 'unknown';
+      if (readinessSignals.length > 0) {
+        if (readinessSignals.some((signal) => isBlocked(signal.status)) || params.blockedDecision) {
+          overallStatus = 'blocked';
+        } else if (readinessSignals.some((signal) => isPartial(signal.status)) || missingFromParams.length > 0) {
+          overallStatus = 'partial';
+        } else {
+          overallStatus = 'ready';
+        }
+      }
+
+      const blockers = readinessSignals
+        .filter((signal) => isBlocked(signal.status))
+        .map((signal) => ({
+          code: signal.code,
+          owner: signal.owner,
+          dueAt: signal.dueAt,
+          message: signal.enablesDossierAddition,
+        }));
+      if (params.blockedDecision) {
+        blockers.push({
+          code: 'blocked_decision',
+          owner: params.owner || null,
+          dueAt: params.dueAt || null,
+          message: `Blocked next decision: ${params.blockedDecision}`,
+        });
+      }
+
+      const owners = [...new Set(readinessSignals.map((signal) => signal.owner).filter(Boolean).concat(params.owner ? [params.owner] : []))];
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        status: item.status,
+        value: item.value,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'netzprozess_readiness_gate',
+      }));
+      const validationFindings = missingEvidence.map((item, index) => ({
+        code: `NPRG_${String(item.missingDataPoint).toUpperCase()}_${index + 1}`,
+        severity: item.status === 'blocked' || item.missingDataPoint === 'blocked_decision' ? 'high' : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `Overall Status: ${overallStatus}`,
+        `Process Type: ${params.processType || 'general'}`,
+        `Readiness Signals: ${readinessSignals.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.nextDecision) dossierFacts.push(`Next Decision: ${params.nextDecision}`);
+
+      const processRef = {
+        processId: params.processId || null,
+        type: params.processRefType || null,
+        id: params.processRefId || null,
+      };
+      const sourceActions = {
+        inspected: ['dashboard-api.netzprozessReadinessGateStatus'],
+        referenced: [
+          'decision-frame.get',
+          'copilot-process.listProcessIntents',
+          'hitl.list',
+          'vdmi.dossier',
+          'grid-connection.fnavValidate',
+          'netzkoppelvertrag-workflow.get',
+        ],
+        notCalled: [
+          'hitl.create',
+          'vdmi.mutate',
+          'decision-frame.create',
+          'copilot-process.execute',
+          'znp.mutate',
+          'grid-connection.mutate',
+          'netzkoppelvertrag-workflow.mutate',
+          'workflow.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+
+      return {
+        netzprozessReadinessGateStatusId: `nprg:${Buffer.from(`${params.processType || 'general'}:${params.processId || params.processRefId || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'netzprozess_readiness_gate',
+        safety: 'read_only',
+        overallStatus,
+        status: overallStatus,
+        processType: params.processType || 'general',
+        processRef,
+        readinessSignals,
+        blockers,
+        owners,
+        nextDecision: params.nextDecision || null,
+        missingEvidence,
+        positiveFollowUps,
+        validationFindings,
+        sourceRefs,
+        sourceActions,
+        dossierEvidence: {
+          overallStatus,
+          status: overallStatus,
+          processType: params.processType || 'general',
+          processRef,
+          readinessSignals,
+          blockers,
+          owners,
+          nextDecision: params.nextDecision || null,
+          missingEvidence,
+          positiveFollowUps,
+          validationFindings,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
           },
           dossierFacts,
         },

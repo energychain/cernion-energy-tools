@@ -3396,7 +3396,7 @@
         "extractor": "regexCaptureSafe",
         "required": false,
         "config": {
-          "pattern": "(?:processType|process|prozess)[:= ]+([A-Za-z0-9:_-]+)",
+          "pattern": "(?:processType|\\bprocess\\b|\\bprozess\\b)[:= ]+([A-Za-z0-9:_-]+)",
           "group": 1
         }
       },
@@ -3430,5 +3430,83 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 139
+  },
+  {
+    "id": "netzprozess_readiness_gate",
+    "description": "Read-only Netzprozess Readiness Gate status evidence",
+    "routeLabel": "netzprozess_readiness_gate",
+    "capability": "netzprozess_readiness_gate",
+    "action": "dashboard-api.netzprozessReadinessGateStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "hitl.create",
+        "vdmi.mutate",
+        "decision-frame.create",
+        "copilot-process.execute",
+        "znp.mutate",
+        "grid-connection.mutate",
+        "netzkoppelvertrag-workflow.mutate",
+        "workflow.execute",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "netzprozess readiness",
+      "netzprozess-readiness",
+      "process readiness gate",
+      "prozessreife",
+      "portalzugang",
+      "sftp",
+      "sftp strecke",
+      "rollenfreigabe",
+      "it security update",
+      "it-sicherheitsupdate",
+      "fachschulung",
+      "blockierte folgeentscheidung"
+    ],
+    "paramTemplate": {
+      "processType": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:processType|\\bprocess\\b|\\bprozess\\b)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "processId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:processId|prozessId|prozess-id)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["overallStatus", "status", "dossierEvidence.overallStatus"], "label": "Overall Status", "maxLen": 90 },
+        { "paths": ["processType", "dossierEvidence.processType"], "label": "Process Type", "maxLen": 120 },
+        { "paths": ["processRef.processId", "dossierEvidence.processRef.processId"], "label": "Process ID", "maxLen": 120 },
+        { "paths": ["readinessSignals.0.code", "dossierEvidence.readinessSignals.0.code"], "label": "Leading Signal", "maxLen": 120 },
+        { "paths": ["blockers.0.code", "dossierEvidence.blockers.0.code"], "label": "Leading Blocker", "maxLen": 120 },
+        { "paths": ["owners.0", "dossierEvidence.owners.0"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["nextDecision", "dossierEvidence.nextDecision"], "label": "Next Decision", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.enablesDossierAddition", "dossierEvidence.missingEvidence.0.enablesDossierAddition"], "label": "Follow-up", "maxLen": 160 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 223
   }
 ]

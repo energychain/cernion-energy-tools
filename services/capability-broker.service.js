@@ -310,6 +310,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasNetzprozessReadinessGateSpecificSignal =
+    /(netzprozess.?readiness|process readiness gate|prozessreife|portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad|blockierte folgeentscheidung)/i.test(haystack) &&
+    /(portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad)/i.test(haystack) &&
+    !/(billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|vdmi create|legal opinion|rechtsgutachten|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|backup|disaster recovery|streaming|websocket|crisis|krisenroutine|krisenmodus|investment data|investment review|datenreview|review queue)/i.test(haystack);
+
+  if (hasNetzprozessReadinessGateSpecificSignal) {
+    const netzprozessCapability = findCapabilityByName('netzprozess_readiness_gate');
+    if (netzprozessCapability) {
+      return { capability: netzprozessCapability, score: 139, usedFallback: false };
+    }
+  }
+
   const hasProcessSensitizationReadinessSpecificSignal =
     /(prozess.?sensibilisierung|sensibilisierung|schulung|workshop|readiness map|prozess.?readiness)/i.test(haystack) &&
     /(rollenentscheidung|role decision|rote linie|red.?line|systembruch|medienbruch|evidenz fehlt|missing evidence|datenqualitaet|datenqualität|data quality|readiness|vor schulung|before training)/i.test(haystack) &&
