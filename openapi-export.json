@@ -14338,6 +14338,21 @@
         "description": "Builds deterministic gate status and evidence from supplied facts. The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI."
       }
     },
+    "/api/dashboard-api/tech-commercial-offer-cockpit": {
+      "get": {
+        "operationId": "dashboard-api_techCommercialOfferCockpitStatus",
+        "summary": "Technical & Commercial Offer Cockpit — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only technical and commercial offer status evidence"
+          }
+        },
+        "description": "Builds deterministic gate status and evidence from supplied facts. The endpoint is read-only and does not run writes or actual offer generation."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53534,6 +53549,21 @@
           }
         },
         "description": "Builds deterministic gate status and evidence from supplied facts. The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI."
+      }
+    },
+    "/api/dashboard/tech-commercial-offer-cockpit": {
+      "get": {
+        "operationId": "dashboard-api_techCommercialOfferCockpitStatus",
+        "summary": "Technical & Commercial Offer Cockpit — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only technical and commercial offer status evidence"
+          }
+        },
+        "description": "Builds deterministic gate status and evidence from supplied facts. The endpoint is read-only and does not run writes or actual offer generation."
       }
     },
     "/api/dashboard/market-snapshot": {
