@@ -377,6 +377,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasStadtwerkMauerVdmiProfileSpecificSignal =
+    /(stadtwerk mauer|69256 mauer|eve stadtwerk|agentic stadtwerk|virtuelles stadtwerk|stadtwerk_mauer_vdmi_profile)/i.test(haystack) &&
+    /(vdmi|profile|profil|sparten|strom|gas|wasser|waerme|wärme|rolle|rollen|market role|marktrolle|evidenz|evidence|demo.?frage|transformation|netzrisiko)/i.test(haystack) &&
+    !/(tenant create|erstelle tenant|user create|erstelle user|token create|support token|provision|provisioniere|eve runtime|scheduler|channel|approval|agent directory write|agentenverzeichnis schreiben|workflow execute|workflow ausfuehren|workflow ausführen|task create|aufgabe erstellen|notification|benachrichtigung|hitl create|nova mutate|vdmi mutate|external connector|connector|legal opinion|rechtsgutachten|wallet|key material|schluessel|schlüssel|backup|disaster recovery|streaming|websocket|smgw|cls|device.?control|steuerbefehl|rpa|bot run|automation ausfuehren|automation ausführen|gas capacity booking|wasser pricing|water pricing|capacity booking)/i.test(haystack);
+
+  if (hasStadtwerkMauerVdmiProfileSpecificSignal) {
+    const stadtwerkMauerCapability = findCapabilityByName('stadtwerk_mauer_vdmi_profile');
+    if (stadtwerkMauerCapability) {
+      return { capability: stadtwerkMauerCapability, score: 143, usedFallback: false };
+    }
+  }
+
   const hasNetzprozessReadinessGateSpecificSignal =
     /(netzprozess.?readiness|process readiness gate|prozessreife|portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad|blockierte folgeentscheidung)/i.test(haystack) &&
     /(portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad)/i.test(haystack) &&

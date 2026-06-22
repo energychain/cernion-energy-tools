@@ -87,6 +87,7 @@ module.exports = {
       rolePermissionAccessReadinessGateStatus: 5 * 60 * 1000, // 5 min
       ownerDeadlineEvidenceGateStatus: 5 * 60 * 1000, // 5 min
       automationRiskGateStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerVdmiProfileStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -4114,6 +4115,51 @@ module.exports = {
           this.settings.cacheTtlMs.automationRiskGateStatus,
           async () => ({
             ...this.buildAutomationRiskGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- stadtwerkMauerVdmiProfileStatus ---------------------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-vdmi-profile
+     *
+     * Read-only dossier-safe profile for the Stadtwerk Mauer MVP. It freezes the
+     * Phase-1 VDMI/profile foundation without creating tenants, agents, tasks, or
+     * any productive workflow side effects.
+     */
+    stadtwerkMauerVdmiProfileStatus: {
+      rest: 'GET /stadtwerk-mauer-vdmi-profile',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        includeRoles: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
+        includeEvidenceGaps: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
+        demoQuestion: { type: 'string', optional: true, min: 1 },
+        focusSparte: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer VDMI profile -- read-only dossier-safe status',
+        description:
+          'Returns the deterministic Stadtwerk Mauer MVP profile, sparten, VDMI roles, evidence gaps, and side-effect guards. ' +
+          'The endpoint is read-only and does not create tenants, Eve agents, workflows, NOVA/VDMI/HITL objects, or external calls.',
+        responses: {
+          200: {
+            description: 'Read-only Stadtwerk Mauer VDMI/profile evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `stadtwerk-mauer-vdmi-profile:${params.tenantId || 'stadtwerk-mauer'}:${params.focusSparte || ''}:${params.includeRoles || ''}:${params.includeEvidenceGaps || ''}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.stadtwerkMauerVdmiProfileStatus,
+          async () => ({
+            ...this.buildStadtwerkMauerVdmiProfileStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -14876,6 +14922,195 @@ module.exports = {
           nextActions,
           positiveFollowUps,
           validationFindings,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildStadtwerkMauerVdmiProfileStatus(params = {}) {
+      const normalizeBoolean = (value, defaultValue = true) => {
+        if (value === undefined || value === null || value === '') return defaultValue;
+        if (typeof value === 'boolean') return value;
+        return /^(1|true|yes|ja|include|with)$/i.test(String(value).trim());
+      };
+      const focusSparte = String(params.focusSparte || '').trim().toLowerCase();
+      const includeRoles = normalizeBoolean(params.includeRoles, true);
+      const includeEvidenceGaps = normalizeBoolean(params.includeEvidenceGaps, true);
+      const tenantId = params.tenantId || 'stadtwerk-mauer';
+      const allSparten = [
+        { id: 'strom', label: 'Strom', primaryMarketRoles: ['VNB', 'MSB', 'LF', 'BKV', 'EDM', 'MaKo'] },
+        { id: 'gas', label: 'Gas', primaryMarketRoles: ['VNB', 'LF', 'BKV', 'Beschaffung', 'Asset Management'] },
+        { id: 'wasser', label: 'Wasser', primaryMarketRoles: ['Infrastrukturbetreiber', 'Billing', 'Asset Management', 'Management'] },
+        { id: 'waerme', label: 'Waerme', primaryMarketRoles: ['Infrastrukturbetreiber', 'Erzeugungsplanung', 'Beschaffung', 'Billing'] },
+      ];
+      const sparten = focusSparte
+        ? allSparten.filter((sparte) => [sparte.id, sparte.label.toLowerCase()].includes(focusSparte))
+        : allSparten;
+      const roleSpecs = [
+        ['management', 'Management', 'internal', 'Decides portfolio priorities, committee readiness, and escalation boundaries.'],
+        ['regulierung', 'Regulierung', 'internal', 'Owns regulatory evidence for paragraph 14a, 14d, 42c, A96, and audit readiness.'],
+        ['asset_management', 'Asset Management', 'internal', 'Owns cross-sparte asset facts, valuation context, and investment readiness.'],
+        ['netzplanung', 'Netzplanung', 'internal', 'Owns ZNP, grid bottleneck, target-network, and municipal planning evidence.'],
+        ['netzbetrieb', 'Netzbetrieb', 'internal', 'Owns operational constraints, outage/maintenance context, and source-action guards.'],
+        ['edm', 'EDM', 'market', 'Owns load profiles, schedules, metering time series, and data-quality evidence.'],
+        ['mako', 'MaKo', 'market', 'Owns market-communication evidence chains and A96/MSCONS/GPKE-adjacent gaps.'],
+        ['billing', 'Billing', 'market', 'Owns settlement, billing, water/heat price and grid-fee impact evidence.'],
+        ['vnb', 'VNB', 'market', 'Owns DSO network process, connection, capacity, and bottleneck responsibility.'],
+        ['msb', 'MSB', 'market', 'Owns metering concept, iMSys/SMGW readiness, and device-data evidence.'],
+        ['lf', 'LF', 'market', 'Owns supplier/customer contract and tariff consequence evidence.'],
+        ['bkv', 'BKV/Bilanzkreismanagement', 'market', 'Owns balancing group, procurement schedule, and imbalance-risk evidence.'],
+        ['esa', 'ESA/Einsatz-/Steuerungsverantwortung', 'market', 'Owns Redispatch, flexibility, generation schedule, and dispatch-responsibility evidence.'],
+        ['beschaffung', 'Beschaffung', 'internal', 'Owns procurement assumptions for Strom, Gas, and Waerme quantity/price risks.'],
+        ['erzeugungsplanung', 'Erzeugungsplanung', 'internal', 'Owns local generation, heat generation and municipal supply planning evidence.'],
+      ];
+      const roles = roleSpecs.map(([id, label, type, responsibility], index) => ({
+        id,
+        label,
+        type,
+        vdmiResponsibility: responsibility,
+        involvement: index < 5 ? 'core_ring' : 'market_role',
+        decisionBoundary: 'advisory_only_in_phase_1',
+        evidenceNeeds: [
+          `${id}_source_evidence`,
+          `${id}_owner_confirmation`,
+        ],
+      }));
+      const matrix = sparten.map((sparte) => ({
+        sparte: sparte.id,
+        label: sparte.label,
+        responsibleRoles: sparte.primaryMarketRoles,
+        vdmiView: {
+          verantwortlich: sparte.primaryMarketRoles[0],
+          durchfuehrend: sparte.primaryMarketRoles.slice(1, 3),
+          mitwirkend: ['Management', 'Regulierung', 'Asset Management'],
+          informiert: ['Netzplanung', 'Netzbetrieb', 'EDM', 'MaKo', 'Billing'],
+        },
+        transformationRiskAreas: [
+          `${sparte.label} asset and data quality`,
+          `${sparte.label} investment and capacity assumptions`,
+          `${sparte.label} market / billing / evidence handover`,
+        ],
+      }));
+      const baseGaps = [
+        ['sparte_asset_facts', 'missing sparte-specific asset facts', 'add a more precise asset and network-risk section'],
+        ['mako_edm_evidence', 'missing MaKo / EDM evidence', 'add market-communication and data-quality risk assessment'],
+        ['billing_bkv_evidence', 'missing Billing / BKV evidence', 'add settlement, procurement, and balancing impact assessment'],
+        ['role_owner_confirmation', 'missing VDMI role owner confirmation', 'add accountable owner and escalation boundary'],
+        ['capability_projection', 'missing role-scoped capability projection', 'enable Phase 2 Eve-compatible capability projection'],
+      ];
+      const evidenceGaps = includeEvidenceGaps
+        ? baseGaps.map(([missingDataPoint, label, enablesDossierAddition]) => ({
+            missingDataPoint,
+            label,
+            status: 'partial',
+            enablesDossierAddition,
+            category: 'stadtwerk_mauer_vdmi_profile',
+          }))
+        : [];
+      const positiveFollowUps = evidenceGaps.map((gap) => ({
+        missingDataPoint: gap.missingDataPoint,
+        status: gap.status,
+        enablesDossierAddition: gap.enablesDossierAddition,
+        category: gap.category,
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.stadtwerkMauerVdmiProfileStatus'],
+        referenced: [
+          'capability-broker.recommend',
+          'dossier-hydration.registry',
+          'llm-descriptor.generated',
+          'vdmi.dossier',
+        ],
+        notCalled: [
+          'tenant.create',
+          'user.create',
+          'token.create',
+          'eve.runtime.execute',
+          'agent-directory.write',
+          'scheduler.create',
+          'channel.open',
+          'approval.create',
+          'task.create',
+          'workflow.execute',
+          'notification.send',
+          'hitl.create',
+          'nova.mutate',
+          'vdmi.mutate',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const demoQuestion = params.demoQuestion ||
+        'Welche Transformations- und Netzrisiken hat Stadtwerk Mauer fuer Strom, Gas, Wasser und Waerme, und welche Rollen muessen als naechstes Evidenz liefern?';
+      const demoQuestionAnswer = {
+        question: demoQuestion,
+        summary:
+          'Stadtwerk Mauer is modeled as one read-only MVP profile for PLZ 69256 with Strom, Gas, Wasser, and Waerme. The next evidence owners are Management, Regulierung, Asset Management, Netzplanung, Netzbetrieb, EDM, MaKo, Billing, VNB/MSB/LF/BKV/ESA, Beschaffung, and Erzeugungsplanung.',
+        transformationRiskAreas: matrix.flatMap((entry) => entry.transformationRiskAreas),
+        nextEvidenceRoles: roles.slice(0, 8).map((role) => role.label),
+      };
+      const dossierFacts = [
+        'Profile: stadtwerk_mauer_vdmi_profile',
+        `Tenant: ${tenantId}`,
+        'Municipality: Mauer',
+        'Postcode: 69256',
+        `Sparten: ${sparten.map((sparte) => sparte.label).join(', ')}`,
+        `Roles: ${roles.length}`,
+        `Open evidence gaps: ${evidenceGaps.length}`,
+      ];
+
+      return {
+        stadtwerkMauerVdmiProfileStatusId: `smv:${Buffer.from(`${tenantId}:${focusSparte || 'all'}`).toString('base64url').slice(0, 28)}`,
+        profileId: 'stadtwerk_mauer_vdmi_profile',
+        capabilityKey: 'stadtwerk_mauer_vdmi_profile',
+        safety: 'read_only',
+        status: evidenceGaps.length > 0 ? 'partial_profile_with_evidence_gaps' : 'profile_ready',
+        tenantId,
+        municipality: 'Mauer',
+        postcode: '69256',
+        region: {
+          country: 'DE',
+          municipality: 'Mauer',
+          postcode: '69256',
+        },
+        sparten,
+        roles: includeRoles ? roles : [],
+        matrix,
+        evidenceGaps,
+        missingEvidence: evidenceGaps,
+        positiveFollowUps,
+        decisionBoundaries: [
+          'read-only and advisory-first in Phase 1',
+          'consequential actions become later VDMI/NOVA/task proposals only',
+          'no Eve runtime, no tenant provisioning, no Personal-Agent hardcoding',
+        ],
+        demoQuestionAnswer,
+        sourceActions,
+        validationFindings: evidenceGaps.map((gap, index) => ({
+          code: `SMV_${String(gap.missingDataPoint).toUpperCase()}_${index + 1}`,
+          severity: 'medium',
+          message: gap.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          status: evidenceGaps.length > 0 ? 'partial_profile_with_evidence_gaps' : 'profile_ready',
+          profileId: 'stadtwerk_mauer_vdmi_profile',
+          tenantId,
+          municipality: 'Mauer',
+          postcode: '69256',
+          sparten,
+          roles: includeRoles ? roles : [],
+          matrix,
+          evidenceGaps,
+          positiveFollowUps,
+          decisionBoundaries: [
+            'read-only and advisory-first in Phase 1',
+            'consequential actions become later VDMI/NOVA/task proposals only',
+            'no Eve runtime, no tenant provisioning, no Personal-Agent hardcoding',
+          ],
+          demoQuestionAnswer,
           sourceActions: {
             notCalled: sourceActions.notCalled,
           },

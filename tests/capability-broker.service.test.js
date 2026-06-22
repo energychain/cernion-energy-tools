@@ -1565,4 +1565,29 @@ describe('Capability Broker Service', () => {
 
     expect(result.capability).not.toBe('automation_risk_gate');
   });
+
+  it('routes Stadtwerk Mauer VDMI profile prompts to the read-only profile capability', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erzeuge ein Stadtwerk Mauer VDMI Profile fuer 69256 Mauer mit Sparten Strom Gas Wasser Waerme, Rollen, Marktrollen, Evidenzluecken und Demo-Frage fuer Transformations- und Netzrisiken.',
+    });
+
+    expect(result.capability).toBe('stadtwerk_mauer_vdmi_profile');
+    expect(result.recommendedCapabilities[0].capability).toBe('stadtwerk_mauer_vdmi_profile');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.stadtwerkMauerVdmiProfileStatus');
+    expect(actionNames).not.toContain('tenant.create');
+    expect(actionNames).not.toContain('eve.runtime.execute');
+    expect(actionNames).not.toContain('workflow.execute');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('does not route tenant provisioning or Eve runtime execution to the Stadtwerk Mauer profile', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Provisioniere Tenant stadtwerk-mauer, erstelle User und Token, schreibe Eve Agent Directory, starte Scheduler Channel Approval und fuehre Workflow aus.',
+    });
+
+    expect(result.capability).not.toBe('stadtwerk_mauer_vdmi_profile');
+  });
 });

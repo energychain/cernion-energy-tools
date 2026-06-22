@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 61 static rules', () => {
+    it('loads all 62 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(61);
+      expect(rules.length).toBe(62);
     });
 
-    it('compiles all 61 static rules without error', () => {
+    it('compiles all 62 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(61);
+      expect(rules.length).toBe(62);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -795,6 +795,54 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Risk: critical');
       expect(formatted).toContain('Leading Gap: uncontrolled_mass_run');
       expect(formatted).toContain('Side-Effect Guard: rpa.execute');
+    });
+
+    it('dashboard-api.stadtwerkMauerVdmiProfileStatus is dossier-safe and formats Stadtwerk Mauer facts', () => {
+      const rule = getRule('dashboard-api.stadtwerkMauerVdmiProfileStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Stadtwerk Mauer VDMI Profile tenant=stadtwerk-mauer sparte=gas fuer 69256 Mauer laden'
+        )
+      ).toEqual({
+        tenantId: 'stadtwerk-mauer',
+        focusSparte: 'gas',
+      });
+
+      const formatted = rule.formatEvidence({
+        profileId: 'stadtwerk_mauer_vdmi_profile',
+        tenantId: 'stadtwerk-mauer',
+        municipality: 'Mauer',
+        postcode: '69256',
+        sparten: [{ label: 'Strom' }],
+        roles: [{ label: 'Management' }],
+        evidenceGaps: [
+          {
+            missingDataPoint: 'capability_projection',
+            enablesDossierAddition: 'enable Phase 2 Eve-compatible capability projection',
+          },
+        ],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'enable Phase 2 Eve-compatible capability projection',
+          },
+        ],
+        sourceActions: {
+          notCalled: ['tenant.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Profile: stadtwerk_mauer_vdmi_profile'],
+        },
+      });
+
+      expect(formatted).toContain('Profile: stadtwerk_mauer_vdmi_profile');
+      expect(formatted).toContain('Tenant: stadtwerk-mauer');
+      expect(formatted).toContain('Municipality: Mauer');
+      expect(formatted).toContain('Postcode: 69256');
+      expect(formatted).toContain('Leading Gap: capability_projection');
+      expect(formatted).toContain('Side-Effect Guard: tenant.create');
     });
 
     it('dashboard-api.sapBudgetPspGateStatus is dossier-safe and formats SAP/PSP gate facts', () => {

@@ -175,13 +175,13 @@ recipes:
   utility-report-ewk "A grid operator needs a structured EWK (Einspeisungswerke-Kennzahlen) compliance report in PDF…"
 resolve: GET /api/_agent/operations?domain=regulatory
 
-### governance (29 capabilities · 0 recipes · 85 operations)
-capabilities: automation_requirements_decision_value, automation_risk_gate, crisis_decision_routine, cya_assessment_briefing, e2e_controllability_check_governance, financier_due_diligence_assessment, flexibility_conductor_role_model, grossspeicher_anschluss_readiness_gate, interface_placeholder, jour_fixe_decision_closure_tracker, ki_floorwalker_governance, knowledge_continuity_governance_gate, netzkoppelvertrag_workflow, netzprozess_readiness_gate, nkp_reporting, off_balancing_metering_pruefmatrix, owner_deadline_evidence_gate, process_sensitization_readiness_map, reporting_governance, role_permission_access_readiness_gate, scqa_decision_framing, smart_meter_off_balancing_purpose_lock, vdmi_asset_validation_governance, vdmi_governance_templates, vdmi_grid_connection_decision_governance, vdmi_portfolio_gatekeeping, vdmi_role_boundary_governance, vnb_kpi_benchmark_comparison, zaehlpark_finanzierung_szenario_cockpit
+### governance (30 capabilities · 0 recipes · 85 operations)
+capabilities: automation_requirements_decision_value, automation_risk_gate, crisis_decision_routine, cya_assessment_briefing, e2e_controllability_check_governance, financier_due_diligence_assessment, flexibility_conductor_role_model, grossspeicher_anschluss_readiness_gate, interface_placeholder, jour_fixe_decision_closure_tracker, ki_floorwalker_governance, knowledge_continuity_governance_gate, netzkoppelvertrag_workflow, netzprozess_readiness_gate, nkp_reporting, off_balancing_metering_pruefmatrix, owner_deadline_evidence_gate, process_sensitization_readiness_map, reporting_governance, role_permission_access_readiness_gate, scqa_decision_framing, smart_meter_off_balancing_purpose_lock, stadtwerk_mauer_vdmi_profile, vdmi_asset_validation_governance, vdmi_governance_templates, vdmi_grid_connection_decision_governance, vdmi_portfolio_gatekeeping, vdmi_role_boundary_governance, vnb_kpi_benchmark_comparison, zaehlpark_finanzierung_szenario_cockpit
 recipes:
   (none)
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (5 capabilities · 8 recipes · 306 operations)
+### platform (5 capabilities · 8 recipes · 307 operations)
 capabilities: datasource_registry_classification_governance, evidence_grounding_confidence_audit, file_ingest_monitor, hitl_role_based_evidence_request, receipt_grounded_presentation_contract
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted troubleshooting prompt derived from…"
@@ -248,13 +248,13 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-- src/capability-catalog.js: 4345c9bde7837804fd0399e5fa79cc1506d852f4524177c817bad25d7c45245c
-- openapi-export.json: 8eacae4d9b1064ab42d5d005f6a9bf868058321bcc46209b8c50a71866b71f6b
+- src/capability-catalog.js: 2435a97515213588ba6bd09076768f180f63edadf09c4e4c3175a5f963804549
+- openapi-export.json: 71e6fda666dd9ea7a1a797f30a5d14305801685ca3d834f2ecc91aeac09e5823
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 800
-- operation_count: 905
+- path_count: 802
+- operation_count: 907
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 06a02a913cf62f70e67c986cfe30b419e6fd5ae0790eb60fe4ba2c55a03912d5
+- llm_txt_sha256: c30adf5b10c92363244cdaad6a2f145ea3c73fda4d7edd2676a19085c6bfb14c

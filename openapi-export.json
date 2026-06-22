@@ -14480,6 +14480,21 @@
         "description": "Builds deterministic RPA / automation risk readiness from supplied process facts. The endpoint is read-only and does not run bots, trigger mass-runs, mutate workflows, create approvals, or call external systems."
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-vdmi-profile": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerVdmiProfileStatus",
+        "summary": "Stadtwerk Mauer VDMI profile -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer VDMI/profile evidence"
+          }
+        },
+        "description": "Returns the deterministic Stadtwerk Mauer MVP profile, sparten, VDMI roles, evidence gaps, and side-effect guards. The endpoint is read-only and does not create tenants, Eve agents, workflows, NOVA/VDMI/HITL objects, or external calls."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53826,6 +53841,21 @@
           }
         },
         "description": "Builds deterministic RPA / automation risk readiness from supplied process facts. The endpoint is read-only and does not run bots, trigger mass-runs, mutate workflows, create approvals, or call external systems."
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-vdmi-profile": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerVdmiProfileStatus",
+        "summary": "Stadtwerk Mauer VDMI profile -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer VDMI/profile evidence"
+          }
+        },
+        "description": "Returns the deterministic Stadtwerk Mauer MVP profile, sparten, VDMI roles, evidence gaps, and side-effect guards. The endpoint is read-only and does not create tenants, Eve agents, workflows, NOVA/VDMI/HITL objects, or external calls."
       }
     },
     "/api/dashboard/market-snapshot": {

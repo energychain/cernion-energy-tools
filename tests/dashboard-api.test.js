@@ -4863,6 +4863,62 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- stadtwerkMauerVdmiProfileStatus ------------------------------------
+  describe('stadtwerkMauerVdmiProfileStatus', () => {
+    it('returns the deterministic Stadtwerk Mauer MVP profile with all four sparten', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerVdmiProfileStatus', {
+        tenantId: 'stadtwerk-mauer',
+        includeRoles: true,
+        includeEvidenceGaps: true,
+      });
+
+      expect(result.profileId).toBe('stadtwerk_mauer_vdmi_profile');
+      expect(result.tenantId).toBe('stadtwerk-mauer');
+      expect(result.municipality).toBe('Mauer');
+      expect(result.postcode).toBe('69256');
+      expect(result.safety).toBe('read_only');
+      expect(result.sparten.map((sparte) => sparte.id).sort()).toEqual([
+        'gas',
+        'strom',
+        'waerme',
+        'wasser',
+      ]);
+      expect(result.roles.map((role) => role.id)).toEqual(
+        expect.arrayContaining(['management', 'regulierung', 'asset_management', 'netzplanung', 'vnb', 'msb', 'bkv', 'esa'])
+      );
+      expect(result.evidenceGaps.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['sparte_asset_facts', 'mako_edm_evidence', 'billing_bkv_evidence', 'capability_projection'])
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'tenant.create',
+          'eve.runtime.execute',
+          'agent-directory.write',
+          'workflow.execute',
+          'hitl.create',
+          'nova.mutate',
+          'vdmi.mutate',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('can focus the read-only profile to one sparte without changing the role model', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerVdmiProfileStatus', {
+        focusSparte: 'gas',
+        includeRoles: true,
+      });
+
+      expect(result.sparten).toHaveLength(1);
+      expect(result.sparten[0].id).toBe('gas');
+      expect(result.roles.length).toBeGreaterThanOrEqual(10);
+      expect(result.demoQuestionAnswer.transformationRiskAreas).toEqual(
+        expect.arrayContaining(['Gas asset and data quality'])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

@@ -3844,5 +3844,85 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 205
+  },
+  {
+    "id": "stadtwerk_mauer_vdmi_profile",
+    "description": "Read-only Stadtwerk Mauer VDMI/profile evidence",
+    "routeLabel": "stadtwerk_mauer_vdmi_profile",
+    "capability": "stadtwerk_mauer_vdmi_profile",
+    "action": "dashboard-api.stadtwerkMauerVdmiProfileStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "tenant.create",
+        "user.create",
+        "token.create",
+        "eve.runtime.execute",
+        "agent-directory.write",
+        "scheduler.create",
+        "channel.open",
+        "approval.create",
+        "task.create",
+        "workflow.execute",
+        "notification.send",
+        "hitl.create",
+        "nova.mutate",
+        "vdmi.mutate",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "stadtwerk mauer",
+      "69256 mauer",
+      "eve stadtwerk",
+      "agentic stadtwerk",
+      "stadtwerk mauer vdmi",
+      "vdmi profile",
+      "stadtwerk_mauer_vdmi_profile",
+      "virtuelles stadtwerk"
+    ],
+    "paramTemplate": {
+      "tenantId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:tenantId|tenant)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "focusSparte": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:focusSparte|sparte)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["profileId", "dossierEvidence.profileId"], "label": "Profile", "maxLen": 120 },
+        { "paths": ["tenantId", "dossierEvidence.tenantId"], "label": "Tenant", "maxLen": 120 },
+        { "paths": ["municipality", "dossierEvidence.municipality"], "label": "Municipality", "maxLen": 120 },
+        { "paths": ["postcode", "dossierEvidence.postcode"], "label": "Postcode", "maxLen": 40 },
+        { "paths": ["sparten.0.label", "dossierEvidence.sparten.0.label"], "label": "Leading Sparte", "maxLen": 120 },
+        { "paths": ["roles.0.label", "dossierEvidence.roles.0.label"], "label": "Leading Role", "maxLen": 120 },
+        { "paths": ["evidenceGaps.0.missingDataPoint", "dossierEvidence.evidenceGaps.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up", "maxLen": 160 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 262
   }
 ]
