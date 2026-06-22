@@ -247,6 +247,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'Knowledge Continuity Governance Gate': 'governance',
   'Re4DE Variable Grid Fee': 'regulatory',
   'Redispatch Readiness Gate': 'redispatch',
+  'Community': 'energy-sharing',
 };
 
 // ── 3. recipe → canonical ────────────────────────────────────────────────────

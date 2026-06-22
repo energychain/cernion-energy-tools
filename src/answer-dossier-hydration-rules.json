@@ -3171,5 +3171,50 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 162
+  },
+  {
+    "id": "community-consult-status",
+    "description": "Read-only Corrently Community REST consultation status evidence",
+    "routeLabel": "community_consult",
+    "capability": "community_consult",
+    "action": "community.consult",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "hitl.create",
+        "vdmi.mutate",
+        "investment-planning.createPlan",
+        "finance-agent.mutate",
+        "budget.release",
+        "settlement.prepareBilling",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "corrently", "community", "mauer", "wiesloch", "laden", "grünstrom", "gsi"
+    ],
+    "paramTemplate": {
+      "message": {
+        "extractor": "locationFromPromptOrFacts",
+        "required": true
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["reply"], "label": "Response", "maxLen": 400 },
+        { "paths": ["domainIntent"], "label": "Intent", "maxLen": 90 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 5000,
+    "sourceIssue": 151
   }
 ]

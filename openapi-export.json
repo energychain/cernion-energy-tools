@@ -6332,6 +6332,28 @@
         }
       }
     },
+    "/api/community/consult": {
+      "post": {
+        "operationId": "community_consult",
+        "summary": "Consult the Corrently Community advisor on B2C/prosumer matters",
+        "tags": [
+          "Community"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Primary entrypoint for consumer-oriented queries regarding PV, balcony solar, dynamic tariffs, and §14a EnWG."
+      }
+    },
     "/api/company/companies": {
       "post": {
         "operationId": "company_create",

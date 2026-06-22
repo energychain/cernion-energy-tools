@@ -13,6 +13,7 @@ const NbpMonitorService = require('../services/nbp-monitor.service');
 const KnowledgeRagService = require('../services/knowledge-rag.service');
 const FinanceAgentService = require('../services/finance-agent.service');
 const PersonalAgentService = require('../services/personal-agent.service');
+const CommunityService = require('../services/community.service');
 const AgentPersonaService = require('../services/agent-persona.service');
 const ObservabilityService = require('../services/observability.service');
 const TenantQuotaService = require('../services/tenant-quota.service');
@@ -92,6 +93,7 @@ describe('API Gateway Service', () => {
       },
     });
     broker.createService(TenantQuotaService);
+    broker.createService(CommunityService);
     await broker.start();
   });
 
@@ -450,6 +452,7 @@ describe('API Gateway Service', () => {
       expect(aliases['POST /personal-agent/session/:sessionId/reset']).toBe(
         'personal-agent.resetSession'
       );
+      expect(aliases['POST /community/consult']).toBe('community.consult');
     });
 
     it('should have explicit aliases for Dashboard API and Observability routes', () => {

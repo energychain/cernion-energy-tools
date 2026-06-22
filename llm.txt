@@ -126,7 +126,7 @@ recipes:
   znp-strategic-assumptions "A planner wants to add forward-looking assumptions (e.g., data centres, heat-pump mandates) as…"
 resolve: GET /api/_agent/operations?domain=grid-planning
 
-### energy-sharing (1 capabilities · 4 recipes · 8 operations)
+### energy-sharing (1 capabilities · 4 recipes · 9 operations)
 capabilities: energy_sharing_prosumer_advisory
 recipes:
   energy-sharing-42c-radar "A VNB needs to identify potential Energy Sharing clusters early and pre-check eligibility before…"
@@ -249,12 +249,12 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
 - src/capability-catalog.js: a18257930428cf5658b9af1eb43c382d7d09b097f7c3b87ca5da3b21a38490a1
-- openapi-export.json: 612a3491ccbd227d057511576ac57910100e053b490833625bba83eab28af377
+- openapi-export.json: f5ba7ab304e01728695caa87ac88615a68fab09e4fb8c3357fa61c29b7b31c42
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 784
-- operation_count: 889
+- path_count: 785
+- operation_count: 890
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 1a1f4a696ab29af37e7599351dabf2758f510a46b25e12371949e085dbe5cc35
+- llm_txt_sha256: 9ea50de1770cb3828be19f6ea8c002989037abe3b52548f5fbc0747f7369e7df
