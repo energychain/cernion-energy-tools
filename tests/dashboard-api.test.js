@@ -4979,6 +4979,82 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- stadtwerkMauerEventReplayPreviewStatus ------------------------------
+  describe('stadtwerkMauerEventReplayPreviewStatus', () => {
+    it('returns a deterministic tenant-bound event catalog and replay preview', async () => {
+      const first = await broker.call('dashboard-api.stadtwerkMauerEventReplayPreviewStatus', {
+        seed: 'cron-265',
+        count: 5,
+      });
+      const second = await broker.call('dashboard-api.stadtwerkMauerEventReplayPreviewStatus', {
+        seed: 'cron-265',
+        count: 5,
+      });
+
+      expect(first.capabilityKey).toBe('stadtwerk_mauer_event_replay_preview');
+      expect(first.tenantId).toBe('stadtwerk-mauer');
+      expect(first.safety).toBe('read_only');
+      expect(first.status).toBe('catalog_ready');
+      expect(first.templateCount).toBeGreaterThanOrEqual(20);
+      expect(first.replayPreview).toHaveLength(5);
+      expect(second.replayPreview.map((event) => event.eventId)).toEqual(
+        first.replayPreview.map((event) => event.eventId)
+      );
+      expect(first.eventTemplates.map((template) => template.sparte)).toEqual(
+        expect.arrayContaining(['strom', 'gas', 'wasser', 'waerme', 'uebergreifend'])
+      );
+      expect(first.taxonomyCoverage.byMarketRole).toEqual(
+        expect.objectContaining({
+          VNB: expect.any(Number),
+          MaKo: expect.any(Number),
+          MSB: expect.any(Number),
+          BKV: expect.any(Number),
+        })
+      );
+      expect(first.replayPreview[0]).toEqual(
+        expect.objectContaining({
+          tenantId: 'stadtwerk-mauer',
+          expectedRouting: expect.objectContaining({
+            nextOwner: expect.any(String),
+            capabilities: expect.any(Array),
+          }),
+          sideEffectPolicy: expect.stringMatching(/read_only_event|advisory_only|consequential_requires_followup/),
+        })
+      );
+      expect(first.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'scheduler.create',
+          'event.inject',
+          'event.persist',
+          'eve.runtime.execute',
+          'external.connector.call',
+          'workflow.execute',
+          'task.create',
+          'hitl.create',
+          'nova.mutate',
+          'vdmi.mutate',
+          'billing.release',
+          'settlement.exportA96',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('can filter the preview by sparte without enabling side effects', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerEventReplayPreviewStatus', {
+        seed: 'strom-only',
+        count: 4,
+        sparte: 'strom',
+      });
+
+      expect(result.replayPreview).toHaveLength(4);
+      expect(result.replayPreview.every((event) => event.sparte === 'strom')).toBe(true);
+      expect(result.missingEvidence.length).toBeGreaterThanOrEqual(1);
+      expect(result.decisionBoundaries.join(' ')).toContain('deterministic replay preview only');
+      expect(result.sourceActions.notCalled).toContain('market-communication.send');
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

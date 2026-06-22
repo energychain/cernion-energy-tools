@@ -1494,6 +1494,8 @@ module.exports = {
             'dashboard-api.stadtwerkMauerVdmiProfileStatus',
           'GET /dashboard/stadtwerk-mauer-capability-projection':
             'dashboard-api.stadtwerkMauerCapabilityProjectionStatus',
+          'GET /dashboard/stadtwerk-mauer-event-replay-preview':
+            'dashboard-api.stadtwerkMauerEventReplayPreviewStatus',
           'POST /community/consult': 'community.consult',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',

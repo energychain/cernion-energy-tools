@@ -1617,6 +1617,31 @@ describe('Capability Broker Service', () => {
     expect(result.capability).not.toBe('stadtwerk_mauer_capability_projection');
   });
 
+  it('routes Stadtwerk Mauer event replay preview prompts to the read-only event catalog capability', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Zeige den Stadtwerk Mauer Event Replay Preview als read-only Ereigniskatalog mit seed=demo, synthetische Events, PV Elektriker Event, Lieferantenwechsel Simulation und Zaehlerablesung Demo.',
+    });
+
+    expect(result.capability).toBe('stadtwerk_mauer_event_replay_preview');
+    expect(result.recommendedCapabilities[0].capability).toBe('stadtwerk_mauer_event_replay_preview');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.stadtwerkMauerEventReplayPreviewStatus');
+    expect(actionNames).not.toContain('scheduler.create');
+    expect(actionNames).not.toContain('event.inject');
+    expect(actionNames).not.toContain('eve.runtime.execute');
+    expect(actionNames).not.toContain('workflow.execute');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('does not route Stadtwerk Mauer scheduler or event injection prompts to the replay preview', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Starte fuer Stadtwerk Mauer den Scheduler, injiziere Events in eine Queue, persistiere den Event Stream, fuehre Eve Runtime aus und sende MaKo Nachrichten.',
+    });
+
+    expect(result.capability).not.toBe('stadtwerk_mauer_event_replay_preview');
+  });
+
   it('routes ZNP production readiness prompts to the read-only evidence gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Bitte ZNP Production Readiness Evidence Gate fuer Projekt znp-71 pruefen: Layer 1 Layer 2 G-Factor Validierung, Acceptance Evidence und NOVA handoff readiness als Status.',

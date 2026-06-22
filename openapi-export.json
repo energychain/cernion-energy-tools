@@ -14510,6 +14510,21 @@
         "description": "Returns a deterministic role-scoped capability projection for Stadtwerk Mauer based on existing VDMI profile, catalog, hydration, and generated descriptor sources. The endpoint is read-only and does not create Eve agents, workflows, tasks, NOVA/VDMI/HITL objects, tenants, tokens, or external calls."
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-event-replay-preview": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerEventReplayPreviewStatus",
+        "summary": "Stadtwerk Mauer event replay preview -- read-only synthetic event catalog",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only deterministic Stadtwerk Mauer event replay preview"
+          }
+        },
+        "description": "Returns deterministic synthetic Stadtwerk Mauer event templates and replay envelopes. The endpoint is read-only and does not schedule, persist, inject, publish, execute, or externally send events."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53951,6 +53966,21 @@
           }
         },
         "description": "Returns a deterministic role-scoped capability projection for Stadtwerk Mauer based on existing VDMI profile, catalog, hydration, and generated descriptor sources. The endpoint is read-only and does not create Eve agents, workflows, tasks, NOVA/VDMI/HITL objects, tenants, tokens, or external calls."
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-event-replay-preview": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerEventReplayPreviewStatus",
+        "summary": "Stadtwerk Mauer event replay preview -- read-only synthetic event catalog",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only deterministic Stadtwerk Mauer event replay preview"
+          }
+        },
+        "description": "Returns deterministic synthetic Stadtwerk Mauer event templates and replay envelopes. The endpoint is read-only and does not schedule, persist, inject, publish, execute, or externally send events."
       }
     },
     "/api/dashboard/market-snapshot": {

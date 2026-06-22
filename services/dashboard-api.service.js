@@ -89,6 +89,7 @@ module.exports = {
       automationRiskGateStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerVdmiProfileStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerCapabilityProjectionStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerEventReplayPreviewStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -4205,6 +4206,52 @@ module.exports = {
           this.settings.cacheTtlMs.stadtwerkMauerCapabilityProjectionStatus,
           async () => ({
             ...this.buildStadtwerkMauerCapabilityProjectionStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- stadtwerkMauerEventReplayPreviewStatus ----------------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-event-replay-preview
+     *
+     * Read-only deterministic event catalog/replay preview for Stadtwerk Mauer.
+     * It does not schedule, persist, inject, publish, or execute events.
+     */
+    stadtwerkMauerEventReplayPreviewStatus: {
+      rest: 'GET /stadtwerk-mauer-event-replay-preview',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        seed: { type: 'string', optional: true, min: 1 },
+        count: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        eventType: { type: 'string', optional: true, min: 1 },
+        sparte: { type: 'string', optional: true, min: 1 },
+        marketRole: { type: 'string', optional: true, min: 1 },
+        sourceActor: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer event replay preview -- read-only synthetic event catalog',
+        description:
+          'Returns deterministic synthetic Stadtwerk Mauer event templates and replay envelopes. ' +
+          'The endpoint is read-only and does not schedule, persist, inject, publish, execute, or externally send events.',
+        responses: {
+          200: {
+            description: 'Read-only deterministic Stadtwerk Mauer event replay preview',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `stadtwerk-mauer-event-replay-preview:${params.seed || 'stadtwerk-mauer-demo'}:${params.count || ''}:${params.eventType || ''}:${params.sparte || ''}:${params.marketRole || ''}:${params.sourceActor || ''}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.stadtwerkMauerEventReplayPreviewStatus,
+          async () => ({
+            ...this.buildStadtwerkMauerEventReplayPreviewStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -15468,6 +15515,220 @@ module.exports = {
           descriptorSources: includeDescriptorSources
             ? ['stadtwerk_mauer_vdmi_profile', 'capability-catalog', 'hydration-registry', 'llm-descriptor']
             : [],
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildStadtwerkMauerEventReplayPreviewStatus(params = {}) {
+      const normalize = (value) => String(value || '').trim().toLowerCase();
+      const hashString = (value) => {
+        let hash = 2166136261;
+        for (const char of String(value)) {
+          hash ^= char.charCodeAt(0);
+          hash = Math.imul(hash, 16777619);
+        }
+        return (hash >>> 0).toString(36).padStart(7, '0');
+      };
+      const toCount = (value, max) => {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return Math.min(5, max);
+        return Math.max(1, Math.min(max, Math.floor(parsed)));
+      };
+      const tenantId = 'stadtwerk-mauer';
+      const seed = params.seed || 'stadtwerk-mauer-demo';
+      const templates = [
+        ['pv_anmeldung_elektriker', 'PV-Anmeldung Elektriker', 'strom', 'VNB', 'Elektriker', 'PV-Anlage mit unvollstaendiger NAP-Referenz', ['vnb', 'netzplanung'], ['grid_connection_transformation_gate', 'owner_deadline_evidence_gate'], 'Netzanschluss/Einspeiser-Dossier', 'netzanschluss', 'partial', 'advisory_only'],
+        ['pv_speicher_wallbox_kombi', 'PV + Speicher + Wallbox Kombination', 'strom', 'VNB', 'Elektriker', 'Kombinierter Anschlussfall mit Speicher und steuerbarer Verbrauchseinrichtung', ['vnb', 'asset_management', 'esa'], ['grossspeicher_anschluss_readiness_gate', 'controllability_asset_handover'], 'Flex-/Asset-Handover-Dossier', 'asset-management', 'partial', 'consequential_requires_followup'],
+        ['pv_erweiterung_bestand', 'PV-Erweiterung Bestand', 'strom', 'VNB', 'Betreiber', 'Erweiterung einer bestehenden PV-Anlage mit MaStR-Abgleich', ['vnb', 'netzplanung'], ['mastr_quality_oemetadata', 'grid_connection_transformation_gate'], 'MaStR/Netzanschluss-Klaerfall', 'netzplanung', 'partial', 'advisory_only'],
+        ['waermepumpe_wallbox_last', 'Waermepumpe/Wallbox/Gewerbe-Last', 'strom', 'VNB', 'Kunde', 'Anschlussbegehren fuer neue flexible Last', ['vnb', 'netzplanung', 'edm'], ['znp_production_readiness_evidence_gate', 'owner_deadline_evidence_gate'], 'Last-/ZNP-Folgefrage', 'netzplanung', 'missing', 'advisory_only'],
+        ['lieferantenwechsel_mako', 'Lieferantenwechsel per MaKo', 'strom', 'MaKo', 'Lieferant', 'Lieferantenwechsel mit fehlender MaLo-/MeLo-Pruefung', ['mako', 'lf', 'msb'], ['market_communication_evidence_chain'], 'MaKo-Evidenzkette', 'mako', 'partial', 'advisory_only'],
+        ['malo_melo_widerspruch', 'MaLo/MeLo Widerspruch', 'strom', 'MSB', 'MSB', 'Widerspruechliche MaLo-/MeLo-/MSB-Daten', ['msb', 'mako', 'edm'], ['market_communication_evidence_chain', 'controllability_asset_handover'], 'Messwesen-Klaerfall', 'edm', 'missing', 'advisory_only'],
+        ['gpke_mscons_status', 'GPKE/MSCONS Statusmeldung', 'strom', 'MaKo', 'Lieferant', 'Statusmeldung mit offenem Zaehlerstand', ['mako', 'edm', 'billing'], ['market_communication_evidence_chain'], 'MaKo/Abrechnung-Evidenz', 'mako', 'partial', 'advisory_only'],
+        ['zaehlerablesung_unplausibel', 'Unplausible Zaehlerablesung', 'strom', 'EDM', 'Kunde', 'Manuelle Zaehlerablesung kommt verspaetet oder widerspruechlich', ['edm', 'billing', 'msb'], ['owner_deadline_evidence_gate'], 'EDM-Plausibilitaets-Follow-up', 'edm', 'partial', 'advisory_only'],
+        ['imsys_luecken_lastgang', 'iMSys lueckenhafter Lastgang', 'strom', 'MSB', 'MSB', 'Viertelstundenwerte enthalten Luecken', ['msb', 'edm', 'esa'], ['imsys_taf2_compliance', 'cls_digital_twin_compliance_gate'], 'Messdatenqualitaet-Dossier', 'msb', 'partial', 'advisory_only'],
+        ['zaehlerwechsel_gateway_stoerung', 'Zaehlerwechsel / Gateway-Stoerung', 'strom', 'MSB', 'MSB', 'Geraetewechsel mit Gateway-Stoerungsmeldung', ['msb', 'asset_management'], ['controllability_asset_handover'], 'Asset-/Messstellen-Handover', 'msb', 'partial', 'advisory_only'],
+        ['kundenservice_netzanschlussstatus', 'Kundenfrage Netzanschlussstatus', 'uebergreifend', 'VNB', 'Kunde', 'Kunde fragt nach Bearbeitungsstand', ['vnb', 'kundenservice'], ['netzprozess_readiness_gate', 'owner_deadline_evidence_gate'], 'Owner-Frist-Evidenzsicht', 'kundenservice', 'missing', 'read_only_event'],
+        ['kundenservice_falsche_rechnung', 'Kundenmeldung falsche Rechnung', 'strom', 'Billing', 'Kunde', 'Rechnung wirkt falsch wegen unklarer Messwerte', ['billing', 'edm', 'mako'], ['market_communication_evidence_chain'], 'Billing-Grenzfall ohne Abrechnungsausloesung', 'billing', 'partial', 'consequential_requires_followup'],
+        ['umzug_zaehlerstand_fehlt', 'Umzug mit fehlendem Zaehlerstand', 'strom', 'LF', 'Kunde', 'Einzug/Auszug ohne belastbaren Zaehlerstand', ['lf', 'mako', 'billing'], ['market_communication_evidence_chain', 'owner_deadline_evidence_gate'], 'Umzugs-/MaKo-Klaerfall', 'mako', 'missing', 'advisory_only'],
+        ['gas_kapazitaetsannahme_aendert', 'Gas-Kapazitaetsannahme aendert sich', 'gas', 'VNB', 'Kommune', 'Neue Annahme fuer Gasnetz-Kapazitaet im Fotojahr', ['vnb', 'regulierung', 'asset_management'], ['gas_capacity_order_revision_gate', 'gas_transformation_dependency_map'], 'Gasnetz-Transformationsdossier', 'asset-management', 'partial', 'advisory_only'],
+        ['waermeplanung_gasfolgefrage', 'Kommunale Waermeplanung erzeugt Gasfolgefrage', 'waerme', 'VNB', 'Kommune', 'Waermeplanung kollidiert mit Gasnetzrueckbauannahme', ['regulierung', 'netzplanung', 'management'], ['heat_transformation_line_asset_model', 'gas_decommissioning_roadmap'], 'Waerme/Gas-Abhaengigkeitsdossier', 'management', 'partial', 'advisory_only'],
+        ['wasserablesung_unplausibel', 'Wasserzaehlerablesung unplausibel', 'wasser', 'VNB', 'Kunde', 'Wasserzaehlerablesung fehlt oder wirkt unplausibel', ['asset_management', 'billing'], ['owner_deadline_evidence_gate'], 'Wasser-Evidenzklaerung', 'asset-management', 'missing', 'read_only_event'],
+        ['fernwaerme_anschluss_tarif', 'Fernwaerme Anschluss-/Tariffrage', 'waerme', 'VNB', 'Kunde', 'Anschlussbegehren mit Tarif-/Asset-Folgefrage', ['vnb', 'billing', 'asset_management'], ['heat_asset_tariff_steering'], 'Waerme Asset/Tarif-Dossier', 'billing', 'partial', 'advisory_only'],
+        ['waermepumpe_ersetzt_gas', 'Waermepumpe ersetzt Gasheizung', 'uebergreifend', 'VNB', 'Kunde', 'Spartenuebergreifender Fall mit Stromnetz-, Gasnetz- und Waermefolge', ['vnb', 'netzplanung', 'asset_management', 'management'], ['stadtwerk_mauer_capability_projection', 'gas_transformation_dependency_map'], 'Spartenuebergreifendes Transformationsdossier', 'management', 'partial', 'advisory_only'],
+        ['ns_engpass_hinweis', 'Niederspannungsengpass-Hinweis', 'strom', 'VNB', 'Netzbetrieb', 'Operativer Engpasshinweis ohne Steuerhandlung', ['netzplanung', 'netzbetrieb', 'esa'], ['znp_production_readiness_evidence_gate', 'redispatch_readiness_gate'], 'Netzsignal-Dossier', 'netzbetrieb', 'partial', 'consequential_requires_followup'],
+        ['trafo_auslastungswarnung', 'Ortsnetztransformator Auslastungswarnung', 'strom', 'VNB', 'Netzbetrieb', 'Trafostation zeigt Auslastungswarnung', ['netzplanung', 'asset_management'], ['grossspeicher_anschluss_readiness_gate', 'owner_deadline_evidence_gate'], 'Asset-/ZNP-Risikodossier', 'asset-management', 'partial', 'advisory_only'],
+        ['redispatch_speicher_gemeldet', 'Redispatch-relevanter Speicher gemeldet', 'strom', 'ESA', 'Erzeuger', 'Speicher wird als flexibilitaetsrelevant gemeldet', ['esa', 'vnb', 'asset_management'], ['redispatch_readiness_gate', 'battery_redispatch_special_gate'], 'Redispatch-Speicher-Dossier', 'esa', 'partial', 'consequential_requires_followup'],
+        ['wartungsfenster_kollision', 'Wartungsfenster kollidiert mit MaKo/Kundenprozess', 'uebergreifend', 'VNB', 'Netzbetrieb', 'Wartung ueberschneidet sich mit MaKo- und Kundenservice-Fall', ['netzbetrieb', 'mako', 'kundenservice'], ['process_sensitization_readiness_map', 'owner_deadline_evidence_gate'], 'Betriebskoordination-Dossier', 'netzbetrieb', 'partial', 'advisory_only'],
+        ['bilanzkreis_prognoseabweichung', 'Bilanzkreis Prognoseabweichung', 'strom', 'BKV', 'BKV', 'Prognoseabweichung erzeugt Beschaffungs-/Erzeugungsfolge', ['bkv', 'beschaffung', 'erzeugungsplanung'], ['energy_market_price_risk', 'owner_deadline_evidence_gate'], 'BKV/Beschaffung-Dossier', 'beschaffung', 'partial', 'advisory_only'],
+        ['kommunale_erzeugung_ausfall', 'Kommunale Erzeugungsanlage faellt aus', 'strom', 'Erzeugung', 'Erzeuger', 'Erzeugungsfahrplan passt nicht zur Lastannahme', ['erzeugungsplanung', 'bkv', 'edm'], ['market_communication_evidence_chain'], 'Erzeugungs-/EDM-Klaerfall', 'erzeugungsplanung', 'partial', 'advisory_only'],
+        ['energy_sharing_42c_fall', 'Energy-Sharing / §42c Folgefall', 'uebergreifend', 'LF', 'Kommune', 'Energy-Sharing-Fall erzeugt Bilanzierungs-/Settlement-Folge', ['lf', 'bkv', 'billing', 'regulierung'], ['energy_sharing_simulation_gate', 'market_communication_evidence_chain'], '§42c/Bilanzierungs-Dossier', 'regulierung', 'partial', 'consequential_requires_followup'],
+      ].map(([eventType, title, sparte, marketRole, sourceActor, payloadSummary, vdmiRoles, capabilities, dossierPath, nextOwner, evidenceQuality, sideEffectPolicy]) => ({
+        templateId: `sm-event:${eventType}`,
+        eventType,
+        title,
+        sparte,
+        marketRole,
+        sourceActor,
+        payload: { summary: payloadSummary, municipality: 'Mauer', postcode: '69256' },
+        expectedRouting: {
+          vdmiRoles,
+          capabilities,
+          dossierPath,
+          nextOwner,
+        },
+        evidenceQuality,
+        sideEffectPolicy,
+        positiveFollowUps: [
+          {
+            missingDataPoint: `${eventType}_evidence`,
+            status: evidenceQuality === 'missing' ? 'missing' : 'partial',
+            enablesDossierAddition: `add supplied evidence for ${title} to ${dossierPath}`,
+            category: 'stadtwerk_mauer_event_replay_preview',
+          },
+        ],
+      }));
+      const match = (value, filter) => !filter || normalize(value) === normalize(filter);
+      const filteredTemplates = templates.filter((template) =>
+        match(template.eventType, params.eventType) &&
+        match(template.sparte, params.sparte) &&
+        match(template.marketRole, params.marketRole) &&
+        match(template.sourceActor, params.sourceActor)
+      );
+      const activeTemplates = filteredTemplates.length > 0 ? filteredTemplates : templates;
+      const count = toCount(params.count, activeTemplates.length);
+      const replayPreview = activeTemplates
+        .map((template) => ({ template, rank: hashString(`${seed}:${template.templateId}`) }))
+        .sort((a, b) => a.rank.localeCompare(b.rank))
+        .slice(0, count)
+        .map(({ template }, index) => ({
+          eventId: `sme:${hashString(`${seed}:${template.templateId}:${index}`)}`,
+          tenantId,
+          occurredAt: new Date(Date.UTC(2026, 0, 1, index, 0, 0)).toISOString(),
+          eventType: template.eventType,
+          sparte: template.sparte,
+          marketRole: template.marketRole,
+          sourceActor: template.sourceActor,
+          payload: template.payload,
+          expectedRouting: template.expectedRouting,
+          evidenceQuality: template.evidenceQuality,
+          sideEffectPolicy: template.sideEffectPolicy,
+          followUpClass: template.sideEffectPolicy === 'consequential_requires_followup'
+            ? 'proposal_task_vdmi_or_nova_only'
+            : 'dossier_or_owner_evidence_followup',
+        }));
+      const countBy = (items, field) => items.reduce((acc, item) => {
+        acc[item[field]] = (acc[item[field]] || 0) + 1;
+        return acc;
+      }, {});
+      const sourceActions = {
+        inspected: ['dashboard-api.stadtwerkMauerEventReplayPreviewStatus'],
+        referenced: [
+          'dashboard-api.stadtwerkMauerCapabilityProjectionStatus',
+          'dashboard-api.stadtwerkMauerVdmiProfileStatus',
+          'capability-broker.recommend',
+          'dossier-hydration.registry',
+        ],
+        notCalled: [
+          'scheduler.create',
+          'cron.schedule',
+          'event.inject',
+          'event.persist',
+          'queue.publish',
+          'stream.publish',
+          'eve.runtime.execute',
+          'agent.execute',
+          'customer-communication.send',
+          'market-communication.send',
+          'msb.portal.call',
+          'lieferant.portal.call',
+          'elektriker.portal.call',
+          'external.connector.call',
+          'workflow.execute',
+          'task.create',
+          'notification.send',
+          'hitl.create',
+          'nova.mutate',
+          'vdmi.mutate',
+          'grid-operations.executeControl',
+          'device-control.execute',
+          'billing.release',
+          'settlement.exportA96',
+          'tariff.mutate',
+          'switching.execute',
+          'personal-agent.execute',
+        ],
+      };
+      const positiveFollowUps = activeTemplates.flatMap((template) => template.positiveFollowUps);
+      const dossierFacts = [
+        'Capability: stadtwerk_mauer_event_replay_preview',
+        `Tenant: ${tenantId}`,
+        `Templates: ${templates.length}`,
+        `Replay seed: ${seed}`,
+        `Replay count: ${replayPreview.length}`,
+        `First event: ${replayPreview[0]?.eventType || 'none'}`,
+      ];
+
+      return {
+        stadtwerkMauerEventReplayPreviewStatusId: `smerp:${hashString(`${seed}:${count}:${activeTemplates.length}`)}`,
+        capabilityKey: 'stadtwerk_mauer_event_replay_preview',
+        safety: 'read_only',
+        status: templates.length >= 20 ? 'catalog_ready' : 'catalog_incomplete',
+        catalogStatus: 'deterministic_read_only_preview',
+        tenantId,
+        municipality: 'Mauer',
+        postcode: '69256',
+        seed,
+        count,
+        templateCount: templates.length,
+        filteredTemplateCount: activeTemplates.length,
+        taxonomyCoverage: {
+          bySparte: countBy(templates, 'sparte'),
+          byMarketRole: countBy(templates, 'marketRole'),
+          bySourceActor: countBy(templates, 'sourceActor'),
+          byEvidenceQuality: countBy(templates, 'evidenceQuality'),
+          bySideEffectPolicy: countBy(templates, 'sideEffectPolicy'),
+        },
+        eventTemplates: activeTemplates,
+        replayPreview,
+        evidenceGaps: positiveFollowUps,
+        missingEvidence: positiveFollowUps.filter((followUp) => followUp.status === 'missing'),
+        positiveFollowUps,
+        decisionBoundaries: [
+          'deterministic replay preview only',
+          'no scheduler, persistence, injection, queue, stream, Eve runtime, or agent execution',
+          'consequential outcomes stay proposal/task/VDMI/NOVA follow-up classes only',
+          'no real customer, MaKo, MSB, supplier, electrician, billing, settlement, tariff, switching, or device-control action',
+        ],
+        sourceActions,
+        validationFindings: positiveFollowUps.map((followUp, index) => ({
+          code: `SMERP_${String(followUp.missingDataPoint).toUpperCase()}_${index + 1}`,
+          severity: followUp.status === 'missing' ? 'medium' : 'info',
+          message: followUp.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          status: templates.length >= 20 ? 'catalog_ready' : 'catalog_incomplete',
+          capabilityKey: 'stadtwerk_mauer_event_replay_preview',
+          tenantId,
+          municipality: 'Mauer',
+          postcode: '69256',
+          seed,
+          templateCount: templates.length,
+          replayPreview,
+          taxonomyCoverage: {
+            bySparte: countBy(templates, 'sparte'),
+            byMarketRole: countBy(templates, 'marketRole'),
+            bySourceActor: countBy(templates, 'sourceActor'),
+            byEvidenceQuality: countBy(templates, 'evidenceQuality'),
+          },
+          positiveFollowUps: positiveFollowUps.slice(0, 10),
+          decisionBoundaries: [
+            'deterministic replay preview only',
+            'consequential outcomes stay proposal/task/VDMI/NOVA follow-up classes only',
+          ],
           sourceActions: {
             notCalled: sourceActions.notCalled,
           },

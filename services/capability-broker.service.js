@@ -377,6 +377,28 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasStadtwerkMauerEventReplayRuntimeIntent =
+    /(scheduler|cron starten|event injizieren|event injection|event persist|persistieren|queue|stream|eve runtime|agent execute|agent ausfuehren|agent ausführen|mako senden|marktkommunikation senden|kunde kontaktieren|customer communication|steuerbefehl|billing ausfuehren|billing ausführen|settlement ausfuehren|settlement ausführen|workflow anlegen|workflow execute|task create|notification|external connector)/i.test(haystack) &&
+    /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|event simulation|event.?simulation|event replay|ereigniskatalog|synthetic event|synthetische events)/i.test(haystack) &&
+    !/(preview|vorschau|read.?only|read only|nur lesen|katalog anzeigen|catalog|replay preview)/i.test(haystack);
+
+  if (hasStadtwerkMauerEventReplayRuntimeIntent) {
+    return { capability: INTERFACE_PLACEHOLDER_CAPABILITY, score: 10, usedFallback: true };
+  }
+
+  const hasStadtwerkMauerEventReplayPreviewSpecificSignal =
+    /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|stadtwerk_mauer_event_replay_preview)/i.test(haystack) &&
+    /(event replay preview|event.?simulation preview|ereigniskatalog|synthetic events|synthetische events|pv elektriker event|lieferantenwechsel simulation|zaehlerablesung demo|zählerablesung demo|kundenservice fall|bilanzkreis ereignis|event template|event envelope|ereignis envelope)/i.test(haystack) &&
+    /(preview|vorschau|read.?only|read only|nur lesen|katalog|catalog|replay|seed|deterministic|deterministisch|template|event template|event envelope|ereignis envelope|taxonomy|taxonomie)/i.test(haystack) &&
+    !/(scheduler|cron starten|event injizieren|event injection|event persist|persistieren|queue|stream|eve runtime ausfuehren|eve runtime ausführen|agent execute|agent ausfuehren|agent ausführen|mako senden|marktkommunikation senden|kunde kontaktieren|customer communication|steuerbefehl|billing ausfuehren|billing ausführen|settlement ausfuehren|settlement ausführen|workflow anlegen|workflow execute|task create|notification|external connector|device.?control|switching execute)/i.test(haystack);
+
+  if (hasStadtwerkMauerEventReplayPreviewSpecificSignal) {
+    const stadtwerkMauerEventReplayCapability = findCapabilityByName('stadtwerk_mauer_event_replay_preview');
+    if (stadtwerkMauerEventReplayCapability) {
+      return { capability: stadtwerkMauerEventReplayCapability, score: 145, usedFallback: false };
+    }
+  }
+
   const hasStadtwerkMauerCapabilityProjectionMutationIntent =
     /(tenant create|erstelle tenant|user create|erstelle user|token create|support token|provision|provisioniere|eve runtime|scheduler|channel|approval|agent directory write|agentenverzeichnis schreiben|agent file|agenten.?datei|artifact placement|artefakt|workflow execute|workflow ausfuehren|workflow ausführen|task create|aufgabe erstellen|notification|benachrichtigung|hitl create|nova mutate|vdmi mutate|event simulation|event.?simulation|event injection|external connector|security hardening|key policy|schluessel|schlüssel|wallet)/i.test(haystack) &&
     /(stadtwerk mauer|69256 mauer|eve stadtwerk|agentic stadtwerk|virtuelles stadtwerk|capability projection|capability.?projektion|rollenfaehigkeit|rollenfähigkeit)/i.test(haystack);

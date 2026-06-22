@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 64 static rules', () => {
+    it('loads all 65 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(64);
+      expect(rules.length).toBe(65);
     });
 
-    it('compiles all 64 static rules without error', () => {
+    it('compiles all 65 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(64);
+      expect(rules.length).toBe(65);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -894,6 +894,55 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Read-only Capability: stadtwerk_mauer_vdmi_profile');
       expect(formatted).toContain('Consequential Follow-up: nova_proposal_for_portfolio_decision');
       expect(formatted).toContain('Side-Effect Guard: eve.runtime.execute');
+    });
+
+    it('dashboard-api.stadtwerkMauerEventReplayPreviewStatus is dossier-safe and formats replay facts', () => {
+      const rule = getRule('dashboard-api.stadtwerkMauerEventReplayPreviewStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Stadtwerk Mauer Event Replay Preview seed=cron-265 count=5 sparte=strom laden'
+        )
+      ).toEqual({
+        seed: 'cron-265',
+        count: '5',
+        sparte: 'strom',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'stadtwerk_mauer_event_replay_preview',
+        tenantId: 'stadtwerk-mauer',
+        templateCount: 25,
+        seed: 'cron-265',
+        replayPreview: [
+          {
+            eventType: 'pv_anmeldung_elektriker',
+            sparte: 'strom',
+            marketRole: 'VNB',
+            expectedRouting: { nextOwner: 'netzanschluss' },
+            sideEffectPolicy: 'advisory_only',
+          },
+        ],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add supplied evidence for PV-Anmeldung Elektriker',
+          },
+        ],
+        sourceActions: {
+          notCalled: ['scheduler.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Capability: stadtwerk_mauer_event_replay_preview'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: stadtwerk_mauer_event_replay_preview');
+      expect(formatted).toContain('Tenant: stadtwerk-mauer');
+      expect(formatted).toContain('Templates: 25');
+      expect(formatted).toContain('First Event: pv_anmeldung_elektriker');
+      expect(formatted).toContain('Side-Effect Guard: scheduler.create');
     });
 
     it('znp.productionReadinessStatus is dossier-safe and formats ZNP readiness facts', () => {
