@@ -14420,6 +14420,21 @@
         "description": "Builds deterministic readiness evidence from supplied administrative process facts. The endpoint is read-only and does not create HITL tasks, mutate VDMI/workflow state, or call external systems."
       }
     },
+    "/api/dashboard-api/grossspeicher-anschluss-readiness-gate": {
+      "get": {
+        "operationId": "dashboard-api_grossspeicherAnschlussReadinessGateStatus",
+        "summary": "Grossspeicher Anschluss Readiness Gate -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Grossspeicher Anschluss readiness evidence"
+          }
+        },
+        "description": "Builds deterministic Grossspeicher/Flex Anschluss readiness evidence from supplied facts. The endpoint is read-only and does not mutate Anschluss, fNAV, ZNP, VDMI/HITL, dispatch, or device-control state."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53706,6 +53721,21 @@
           }
         },
         "description": "Builds deterministic readiness evidence from supplied administrative process facts. The endpoint is read-only and does not create HITL tasks, mutate VDMI/workflow state, or call external systems."
+      }
+    },
+    "/api/dashboard/grossspeicher-anschluss-readiness-gate": {
+      "get": {
+        "operationId": "dashboard-api_grossspeicherAnschlussReadinessGateStatus",
+        "summary": "Grossspeicher Anschluss Readiness Gate -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Grossspeicher Anschluss readiness evidence"
+          }
+        },
+        "description": "Builds deterministic Grossspeicher/Flex Anschluss readiness evidence from supplied facts. The endpoint is read-only and does not mutate Anschluss, fNAV, ZNP, VDMI/HITL, dispatch, or device-control state."
       }
     },
     "/api/dashboard/market-snapshot": {

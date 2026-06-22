@@ -540,6 +540,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/netzprozess-readiness-gate']).toBe(
         'dashboard-api.netzprozessReadinessGateStatus'
       );
+      expect(aliases['GET /dashboard/grossspeicher-anschluss-readiness-gate']).toBe(
+        'dashboard-api.grossspeicherAnschlussReadinessGateStatus'
+      );
       expect(aliases['GET /agent-sidecar/tools']).toBe('agent-sidecar.listTools');
       expect(aliases['POST /agent-sidecar/tools/:name/call']).toBe('agent-sidecar.callTool');
       expect(aliases['GET /agent-sidecar/descriptor']).toBe('agent-sidecar.descriptor');

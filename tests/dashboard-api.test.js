@@ -4455,6 +4455,108 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- grossspeicherAnschlussReadinessGateStatus ----------------------------
+
+  describe('grossspeicherAnschlussReadinessGateStatus', () => {
+    it('reports needs_asset_context when no storage evidence is supplied', async () => {
+      const result = await broker.call('dashboard-api.grossspeicherAnschlussReadinessGateStatus', {
+        gridOperatorId: 'VNB-202',
+        projectId: 'gs-202-empty',
+      });
+
+      expect(result.status).toBe('needs_asset_context');
+      expect(result.gateStatus).toBe('incomplete');
+      expect(result.safety).toBe('read_only');
+      expect(result.evidenceGaps.map((gap) => gap.missingDataPoint)).toContain('asset_context');
+    });
+
+    it('reports needs_fnav_contract_boundary when fNAV evidence is missing', async () => {
+      const result = await broker.call('dashboard-api.grossspeicherAnschlussReadinessGateStatus', {
+        gridOperatorId: 'VNB-202',
+        projectId: 'gs-202-fnav',
+        storageAssetId: 'asset-bess-1',
+        formalRequestEvidence: 'ready',
+        napMastrNummer: 'SEE987654321',
+        contractBoundaryStatus: 'missing',
+        scheduleEvidenceStatus: 'ready',
+        controllabilityStatus: 'ready',
+        controlRoomHandoverStatus: 'ready',
+        owner: 'Netzanschluss',
+        sourceRef: 'briefing:202',
+      });
+
+      expect(result.status).toBe('needs_fnav_contract_boundary');
+      expect(result.evidenceGaps.map((gap) => gap.missingDataPoint)).toContain('fnav_contract_boundary');
+      expect(result.positiveFollowUps[0].category).toBe('grossspeicher_anschluss_readiness_gate');
+    });
+
+    it('reports blocked_by_grid_signal for blocked network priority facts', async () => {
+      const result = await broker.call('dashboard-api.grossspeicherAnschlussReadinessGateStatus', {
+        gridOperatorId: 'VNB-202',
+        projectId: 'gs-202-blocked',
+        storageAssetId: 'asset-bess-2',
+        formalRequestEvidence: 'ready',
+        napMastrNummer: 'SEE123456789',
+        contractBoundaryStatus: 'ready',
+        scheduleEvidenceStatus: 'ready',
+        controllabilityStatus: 'ready',
+        controlRoomHandoverStatus: 'ready',
+        gridSignalStatus: 'blocked',
+        owner: 'Netzbetrieb',
+        sourceRef: 'netzsignal:202',
+      });
+
+      expect(result.status).toBe('blocked_by_grid_signal');
+      expect(result.gateStatus).toBe('blocked');
+      expect(result.validationFindings[0].severity).toBe('high');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'hitl.create',
+          'grid-operations.executeControl',
+          'forecast-engine.executeDispatch',
+          'flex.controlDevice',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('reports ready_for_connection_decision when all supplied evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.grossspeicherAnschlussReadinessGateStatus', {
+        gridOperatorId: 'VNB-202',
+        projectId: 'gs-202-ready',
+        storageAssetId: 'asset-bess-3',
+        requestedCapacityKW: '12000',
+        storageCapacityKWh: '48000',
+        voltageLevel: 'MS',
+        formalRequestEvidence: 'ready',
+        napMastrNummer: 'SEE202000001',
+        fnavProfile: 'ready',
+        contractBoundaryStatus: 'ready',
+        scheduleEvidenceStatus: 'ready',
+        storageDispatchAssumption: 'ready',
+        controllabilityStatus: 'ready',
+        controlRoomHandoverStatus: 'ready',
+        gridSignalStatus: 'ready',
+        owner: 'Netzanschluss',
+        nextDecision: 'anschlussentscheidung',
+        sourceRef: 'vdmi:202',
+      });
+
+      expect(result.status).toBe('ready_for_connection_decision');
+      expect(result.gateStatus).toBe('ready');
+      expect(result.evidenceGaps).toEqual([]);
+      expect(result.projectContext.requestedCapacityKW).toBe(12000);
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_connection_decision',
+          'Gate Status: ready',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

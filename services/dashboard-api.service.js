@@ -83,6 +83,7 @@ module.exports = {
       zaehlparkFinanzierungSzenarioCockpitStatus: 5 * 60 * 1000, // 5 min
       processSensitizationReadinessMapStatus: 5 * 60 * 1000, // 5 min
       netzprozessReadinessGateStatus: 5 * 60 * 1000, // 5 min
+      grossspeicherAnschlussReadinessGateStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3864,6 +3865,73 @@ module.exports = {
           this.settings.cacheTtlMs.netzprozessReadinessGateStatus,
           async () => ({
             ...this.buildNetzprozessReadinessGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- grossspeicherAnschlussReadinessGateStatus --------------------------
+    /**
+     * GET /api/dashboard/grossspeicher-anschluss-readiness-gate
+     *
+     * Read-only dossier-safe readiness gate for Grossspeicher/Flex Anschluss
+     * prerequisites such as asset context, NAP evidence, fNAV contract
+     * boundary, schedule assumptions, controllability, and handover facts.
+     */
+    grossspeicherAnschlussReadinessGateStatus: {
+      rest: 'GET /grossspeicher-anschluss-readiness-gate',
+      params: {
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        projectId: { type: 'string', optional: true, min: 1 },
+        storageAssetId: { type: 'string', optional: true, min: 1 },
+        location: { type: 'string', optional: true, min: 1 },
+        requestedCapacityKW: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        storageCapacityKWh: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        voltageLevel: { type: 'string', optional: true, min: 1 },
+        assetContextStatus: { type: 'string', optional: true, min: 1 },
+        napMastrNummer: { type: 'string', optional: true, min: 1 },
+        napEvidenceStatus: { type: 'string', optional: true, min: 1 },
+        connectionRequestStatus: { type: 'string', optional: true, min: 1 },
+        formalRequestEvidence: { type: 'string', optional: true, min: 1 },
+        networkSignalPriority: { type: 'string', optional: true, min: 1 },
+        gridSignalStatus: { type: 'string', optional: true, min: 1 },
+        fnavProfile: { type: 'string', optional: true, min: 1 },
+        contractBoundaryStatus: { type: 'string', optional: true, min: 1 },
+        scheduleRequirement: { type: 'string', optional: true, min: 1 },
+        storageDispatchAssumption: { type: 'string', optional: true, min: 1 },
+        scheduleEvidenceStatus: { type: 'string', optional: true, min: 1 },
+        controllabilityStatus: { type: 'string', optional: true, min: 1 },
+        controlRoomHandoverStatus: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        nextDecision: { type: 'string', optional: true, min: 1 },
+        source: { type: 'string', optional: true, min: 1 },
+        missingEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        evidenceGaps: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Grossspeicher Anschluss Readiness Gate -- read-only dossier-safe status',
+        description:
+          'Builds deterministic Grossspeicher/Flex Anschluss readiness evidence from supplied facts. ' +
+          'The endpoint is read-only and does not mutate Anschluss, fNAV, ZNP, VDMI/HITL, dispatch, or device-control state.',
+        responses: {
+          200: {
+            description: 'Read-only Grossspeicher Anschluss readiness evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `grossspeicher-anschluss-readiness-gate:${params.gridOperatorId || 'no-operator'}:${params.projectId || 'no-project'}:${params.storageAssetId || 'no-asset'}:${params.gridSignalStatus || ''}:${params.contractBoundaryStatus || ''}:${params.controllabilityStatus || ''}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.grossspeicherAnschlussReadinessGateStatus,
+          async () => ({
+            ...this.buildGrossspeicherAnschlussReadinessGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -13620,6 +13688,264 @@ module.exports = {
           owners,
           nextDecision: params.nextDecision || null,
           missingEvidence,
+          positiveFollowUps,
+          validationFindings,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildGrossspeicherAnschlussReadinessGateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const toNumber = (value) => {
+        if (value === undefined || value === null || value === '') return null;
+        const n = Number(typeof value === 'string' ? value.replace(/\s/g, '').replace(',', '.') : value);
+        return Number.isFinite(n) ? n : null;
+      };
+      const normalizeStatus = (value) => {
+        const text = String(value || '').trim().toLowerCase();
+        if (!text) return 'missing';
+        if (/^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|vorhanden)$/.test(text)) return 'ready';
+        if (/^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown)$/.test(text)) return 'partial';
+        if (/^(missing|fehlt|absent|not_available|not-available)$/.test(text)) return 'missing';
+        if (/^(blocked|blockiert|red|rot|failed|rejected|not_ready|not-ready|stop)$/.test(text)) return 'blocked';
+        if (/vorrang|priority|netzsignal|engpass/.test(text) && /block|stop|red|rot|reject|ablehn/.test(text)) return 'blocked';
+        return text;
+      };
+      const isReady = (status) => status === 'ready';
+      const isBlocked = (status) => status === 'blocked';
+      const sourceRefs = [...toList(params.sourceRef), ...toList(params.source)];
+      const suppliedEvidenceGaps = [...toList(params.missingEvidence), ...toList(params.evidenceGaps)];
+      const projectContext = {
+        gridOperatorId: params.gridOperatorId || null,
+        projectId: params.projectId || null,
+        storageAssetId: params.storageAssetId || null,
+        location: params.location || null,
+        requestedCapacityKW: toNumber(params.requestedCapacityKW),
+        storageCapacityKWh: toNumber(params.storageCapacityKWh),
+        voltageLevel: params.voltageLevel || null,
+      };
+      const sourceActions = {
+        inspected: ['dashboard-api.grossspeicherAnschlussReadinessGateStatus'],
+        referenced: [
+          'assets.storage',
+          'grid-connection.fnavValidate',
+          'grid-operations.netzfahrplanGenerate',
+          'forecast-engine.storageDispatch',
+          'forecast-engine.createSchedule',
+          'flex.listDevices',
+          'vdmi.dossier',
+          'presentation.generate',
+        ],
+        notCalled: [
+          'hitl.create',
+          'vdmi.mutate',
+          'grid-connection.mutate',
+          'grid-operations.executeControl',
+          'forecast-engine.executeDispatch',
+          'flex.controlDevice',
+          'device-control.execute',
+          'smgw.control',
+          'cls.execute',
+          'znp.mutate',
+          'workflow.execute',
+          'external.connector.call',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'personal-agent.execute',
+        ],
+      };
+      const signalSpecs = [
+        {
+          code: 'asset_context',
+          label: 'Storage Asset Context',
+          value: params.assetContextStatus || (params.storageAssetId ? 'ready' : ''),
+          enablesDossierAddition: 'add storage asset and project context',
+          statusWhenMissing: 'needs_asset_context',
+        },
+        {
+          code: 'formal_request',
+          label: 'Formal Connection Request',
+          value: params.formalRequestEvidence || params.connectionRequestStatus,
+          enablesDossierAddition: 'add formal connection request proof',
+          statusWhenMissing: 'needs_formal_request',
+        },
+        {
+          code: 'nap_evidence',
+          label: 'NAP/MaStR Evidence',
+          value: params.napEvidenceStatus || (params.napMastrNummer ? 'ready' : ''),
+          enablesDossierAddition: 'add NAP and MaStR Anschluss evidence',
+          statusWhenMissing: 'needs_nap_evidence',
+        },
+        {
+          code: 'fnav_contract_boundary',
+          label: 'fNAV Contract Boundary',
+          value: params.contractBoundaryStatus || params.fnavProfile,
+          enablesDossierAddition: 'add fNAV profile and contract-boundary evidence',
+          statusWhenMissing: 'needs_fnav_contract_boundary',
+        },
+        {
+          code: 'schedule_assumption',
+          label: 'Schedule / Dispatch Assumption',
+          value: params.scheduleEvidenceStatus || params.storageDispatchAssumption || params.scheduleRequirement,
+          enablesDossierAddition: 'add Speicherfahrplan or dispatch-assumption evidence',
+          statusWhenMissing: 'needs_schedule_assumption',
+        },
+        {
+          code: 'controllability_proof',
+          label: 'Controllability Proof',
+          value: params.controllabilityStatus,
+          enablesDossierAddition: 'add controllability proof for the storage asset',
+          statusWhenMissing: 'needs_controllability_proof',
+        },
+        {
+          code: 'control_room_handover',
+          label: 'Control-Room Handover',
+          value: params.controlRoomHandoverStatus,
+          enablesDossierAddition: 'add control-room handover proof and operational owner',
+          statusWhenMissing: 'needs_controllability_proof',
+        },
+      ];
+      const readinessSignals = signalSpecs.map((signal) => {
+        const status = normalizeStatus(signal.value);
+        return {
+          code: signal.code,
+          label: signal.label,
+          status,
+          rawStatus: signal.value || null,
+          owner: params.owner || null,
+          finding: isReady(status) ? null : signal.enablesDossierAddition,
+          enablesDossierAddition: signal.enablesDossierAddition,
+          statusWhenMissing: signal.statusWhenMissing,
+        };
+      });
+      const missingFromSignals = readinessSignals
+        .filter((signal) => !isReady(signal.status))
+        .map((signal) => ({
+          missingDataPoint: signal.code,
+          status: signal.status,
+          value: signal.rawStatus,
+          enablesDossierAddition: signal.enablesDossierAddition,
+        }));
+      const missingFromParams = suppliedEvidenceGaps.map((value) => ({
+        missingDataPoint: 'supplied_evidence_gap',
+        value,
+        status: 'missing',
+        enablesDossierAddition: `add evidence for ${value}`,
+      }));
+      const ownerOrSourceGap = !params.owner || sourceRefs.length === 0
+        ? [{
+            missingDataPoint: 'owner_or_source',
+            value: !params.owner ? 'owner' : 'source',
+            status: 'missing',
+            enablesDossierAddition: 'add accountable owner/source for the next connection decision',
+          }]
+        : [];
+      const gridSignalStatus = normalizeStatus(params.gridSignalStatus || params.networkSignalPriority);
+      const blockedByGridSignal = isBlocked(gridSignalStatus);
+      const gridSignalGap = params.gridSignalStatus || params.networkSignalPriority
+        ? [{
+            missingDataPoint: 'network_signal_priority',
+            value: params.gridSignalStatus || params.networkSignalPriority,
+            status: gridSignalStatus,
+            enablesDossierAddition: blockedByGridSignal
+              ? 'document blocked grid-signal priority before connection decision'
+              : 'add network-signal priority evidence',
+          }]
+        : [];
+      const evidenceGaps = [
+        ...missingFromSignals,
+        ...missingFromParams,
+        ...ownerOrSourceGap,
+        ...(blockedByGridSignal ? gridSignalGap : []),
+      ];
+
+      let status = 'unknown';
+      if (blockedByGridSignal) status = 'blocked_by_grid_signal';
+      else if (readinessSignals.some((signal) => isBlocked(signal.status))) {
+        const firstBlocked = readinessSignals.find((signal) => isBlocked(signal.status));
+        status = firstBlocked.statusWhenMissing;
+      } else if (readinessSignals.every((signal) => isReady(signal.status)) && ownerOrSourceGap.length === 0 && suppliedEvidenceGaps.length === 0) {
+        status = 'ready_for_connection_decision';
+      } else if (missingFromSignals.length > 0) {
+        status = missingFromSignals[0].missingDataPoint === 'asset_context'
+          ? 'needs_asset_context'
+          : readinessSignals.find((signal) => signal.code === missingFromSignals[0].missingDataPoint)?.statusWhenMissing || 'unknown';
+      } else if (ownerOrSourceGap.length > 0 || suppliedEvidenceGaps.length > 0) {
+        status = 'needs_asset_context';
+      }
+      const gateStatus = status === 'ready_for_connection_decision'
+        ? 'ready'
+        : status === 'blocked_by_grid_signal'
+          ? 'blocked'
+          : status === 'unknown'
+            ? 'unknown'
+            : 'incomplete';
+      const blockers = evidenceGaps
+        .filter((gap) => gap.status === 'blocked' || status === 'blocked_by_grid_signal')
+        .map((gap) => ({
+          code: gap.missingDataPoint,
+          owner: params.owner || null,
+          message: gap.enablesDossierAddition,
+        }));
+      const positiveFollowUps = evidenceGaps.map((gap) => ({
+        missingDataPoint: gap.missingDataPoint,
+        status: gap.status,
+        value: gap.value,
+        enablesDossierAddition: gap.enablesDossierAddition,
+        category: 'grossspeicher_anschluss_readiness_gate',
+      }));
+      const validationFindings = evidenceGaps.map((gap, index) => ({
+        code: `GSARG_${String(gap.missingDataPoint).toUpperCase()}_${index + 1}`,
+        severity: gap.status === 'blocked' || gap.missingDataPoint === 'network_signal_priority' ? 'high' : 'medium',
+        message: gap.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Gate Status: ${gateStatus}`,
+        `Readiness Signals: ${readinessSignals.length}`,
+        `Open gaps: ${evidenceGaps.length}`,
+      ];
+      if (params.nextDecision) dossierFacts.push(`Next Decision: ${params.nextDecision}`);
+
+      return {
+        grossspeicherAnschlussReadinessGateStatusId: `gsarg:${Buffer.from(`${params.gridOperatorId || ''}:${params.projectId || ''}:${params.storageAssetId || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'grossspeicher_anschluss_readiness_gate',
+        safety: 'read_only',
+        status,
+        gateStatus,
+        projectContext,
+        readinessSignals,
+        evidenceGaps,
+        missingEvidence: evidenceGaps,
+        blockers,
+        nextActions: positiveFollowUps.map((followUp) => ({
+          owner: params.owner || null,
+          action: followUp.enablesDossierAddition,
+          missingDataPoint: followUp.missingDataPoint,
+        })),
+        positiveFollowUps,
+        sourceRefs,
+        sourceActions,
+        validationFindings,
+        dossierEvidence: {
+          status,
+          gateStatus,
+          projectContext,
+          readinessSignals,
+          evidenceGaps,
+          blockers,
+          nextOwner: params.owner || null,
+          nextDecision: params.nextDecision || null,
           positiveFollowUps,
           validationFindings,
           sourceActions: {

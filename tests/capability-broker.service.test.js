@@ -1458,4 +1458,29 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('external.connector.call');
     expect(actionNames).not.toContain('personal-agent.execute');
   });
+
+  it('routes Grossspeicher Anschluss readiness prompts to the read-only evidence status path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Grossspeicher Anschluss Readiness Gate fuer BESS: NAP MaStR, fNAV Speicher, Speicherfahrplan, Netzsignal Vorrang, Steuerbarkeit Speicher und Control-Room Handover vor Anschlussentscheidung.',
+    });
+
+    expect(result.capability).toBe('grossspeicher_anschluss_readiness_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe('grossspeicher_anschluss_readiness_gate');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.grossspeicherAnschlussReadinessGateStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('grid-operations.executeControl');
+    expect(actionNames).not.toContain('forecast-engine.executeDispatch');
+    expect(actionNames).not.toContain('flex.controlDevice');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('does not route explicit storage device-control prompts to the read-only Grossspeicher gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Fuehre SMGW CLS device-control Steuerbefehl fuer Batteriespeicher aus und starte Dispatch Optimierung.',
+    });
+
+    expect(result.capability).not.toBe('grossspeicher_anschluss_readiness_gate');
+  });
 });

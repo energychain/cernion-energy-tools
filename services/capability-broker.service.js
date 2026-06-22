@@ -310,6 +310,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasGrossspeicherReadinessSpecificSignal =
+    /(grossspeicher|großspeicher|bess|batteriespeicher|speicher anschluss|speicheranschluss|flexibler netzanschluss speicher|fnav speicher)/i.test(haystack) &&
+    /(anschluss readiness|anschluss.?gate|readiness gate|nap|mastr|fnav|vertrag|contract boundary|speicherfahrplan|fahrplan|netzsignal|steuerbarkeit|control.?room|leitwarte|handover|anschlussentscheidung)/i.test(haystack) &&
+    !/(redispatch|sondergate|malo|melo|testabruf|clearing|wallet|key material|schluessel|schlüssel|crypto|backup|disaster recovery|streaming|websocket|billing|settlement|abrechnung|tarif|smgw|cls|device.?control|steuerbefehl|execute|ausfuehren|ausführen|dispatch.?optimierung|optimierung|legal opinion|rechtsgutachten)/i.test(haystack);
+
+  if (hasGrossspeicherReadinessSpecificSignal) {
+    const grossspeicherCapability = findCapabilityByName('grossspeicher_anschluss_readiness_gate');
+    if (grossspeicherCapability) {
+      return { capability: grossspeicherCapability, score: 140, usedFallback: false };
+    }
+  }
+
   const hasNetzprozessReadinessGateSpecificSignal =
     /(netzprozess.?readiness|process readiness gate|prozessreife|portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad|blockierte folgeentscheidung)/i.test(haystack) &&
     /(portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad)/i.test(haystack) &&

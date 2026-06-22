@@ -1482,6 +1482,8 @@ module.exports = {
             'dashboard-api.processSensitizationReadinessMapStatus',
           'GET /dashboard/netzprozess-readiness-gate':
             'dashboard-api.netzprozessReadinessGateStatus',
+          'GET /dashboard/grossspeicher-anschluss-readiness-gate':
+            'dashboard-api.grossspeicherAnschlussReadinessGateStatus',
           'POST /community/consult': 'community.consult',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
