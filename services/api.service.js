@@ -1303,6 +1303,7 @@ module.exports = {
           'GET /mastr-quality/audits/:id/findings/:findingId/details':
             'mastr-quality.findingDetails',
           'GET /mastr-quality/audits/:id': 'mastr-quality.get',
+          'GET /mastr-quality/audits/:id/oemetadata': 'mastr-quality.oemetadata',
           // Redispatch Ex-Post (v0.18)
           'POST /redispatch/audit': 'redispatch-expost.audit',
           'GET /redispatch/audits': 'redispatch-expost.list',

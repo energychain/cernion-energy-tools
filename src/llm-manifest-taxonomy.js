@@ -126,6 +126,7 @@ const CAPABILITY_DOMAIN_MAP = {
   market_communication: 'market-data',
   // agent's own answer-evidence/dossier-quality infrastructure
   answer_evidence: 'platform',
+  compliance: 'regulatory',
 };
 
 // ── 2. OpenAPI operation tag → canonical ─────────────────────────────────────

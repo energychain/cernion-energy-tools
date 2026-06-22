@@ -420,6 +420,48 @@ module.exports = {
     },
 
     /**
+     * Retrieve the OEMetadata v2.0 FAIR metadata for a specific audit report.
+     */
+    oemetadata: {
+      rest: 'GET /audits/:id/oemetadata',
+      params: {
+        id: { type: 'string' },
+      },
+      openapi: {
+        summary: 'Get OEMetadata v2.0 FAIR metadata for an audit report by ID',
+        description:
+          'Returns a fully OEMetadata v2.0 conformant JSON-LD metadata document.',
+        tags: ['MaStR Data Quality'],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-1234-5678-90ab-cdef12345678' },
+            description: 'Audit report UUID',
+          },
+        ],
+        responses: {
+          200: { description: 'OEMetadata JSON-LD document' },
+          404: { description: 'Audit report not found' },
+        },
+      },
+      async handler(ctx) {
+        try {
+          const doc = await this.db.get(`mq:${ctx.params.id}`);
+          const { buildOemetadataForAudit } = require('../src/audit-oemetadata-builder');
+          return buildOemetadataForAudit(doc);
+        } catch (err) {
+          if (err.status === 404 || err.name === 'not_found') {
+            ctx.meta.$statusCode = 404;
+            return { success: false, message: `Audit ${ctx.params.id} not found` };
+          }
+          throw err;
+        }
+      },
+    },
+
+    /**
      * Retrieve enriched details for a single finding within an audit.
      * Useful for UI drilldown without relying on compact rows only.
      */

@@ -3216,5 +3216,64 @@
     "evidenceQuality": "validated",
     "timeoutMs": 5000,
     "sourceIssue": 151
+  },
+  {
+    "id": "mastr-quality.oemetadata",
+    "description": "Read-only MaStR Quality Audit Report FAIR OEMetadata v2.0 for dossier hydration",
+    "routeLabel": "mastr_quality_oemetadata",
+    "capability": "mastr_quality_oemetadata",
+    "action": "mastr-quality.oemetadata",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "hitl.create",
+        "vdmi.mutate",
+        "investment-planning.createPlan",
+        "finance-agent.mutate",
+        "budget.release",
+        "settlement.prepareBilling",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "mastr quality oemetadata",
+      "mastr fair-export",
+      "mastr quality fair-export",
+      "audit oemetadata",
+      "mastr oemetadata",
+      "fair-export",
+      "oemetadata"
+    ],
+    "paramTemplate": {
+      "id": {
+        "extractor": "regexCaptureSafe",
+        "required": true,
+        "config": {
+          "pattern": "(?:id|auditId|audit_id|mq)[:= ]+([a-zA-Z0-9_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "_cernion.provenance.hashStable"], "label": "Handover Status", "maxLen": 90 },
+        { "paths": ["qualityScore", "_cernion.qualityScore"], "label": "Overall Score" },
+        { "paths": ["_cernion.findings.length", "summary.findingsCount.total"], "label": "Findings Count" },
+        { "paths": ["subject.0.name"], "label": "OEO Subject Class", "maxLen": 120 },
+        { "paths": ["licenses.0.name", "license.0.name"], "label": "License", "maxLen": 90 },
+        { "paths": ["_cernion.provenance.lastRefresh", "temporal.referenceDate"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 73
   }
 ]

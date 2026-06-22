@@ -300,7 +300,7 @@ function findBestCapability(taskText, options = {}) {
 
   const hasTechCommercialOfferCockpitSpecificSignal =
     /(angebots cockpit|technisch kaufmaennisch|technisch kaufmännisch|indikatives angebot|anschlussangebot|pooling option|vertragsstatus|zielnetzbezug|commercial offer|offer cockpit)/i.test(haystack) &&
-    /(connectionRequestId|gridOperatorId|znpAlignment|gridNode|technicalRestriction|requestedCapacityKW|technicalStatus|capacityUtilization|fnavContractLogic|commercialAssumptions|legalAgreementStatus|legalBoundaries|gaps|follow.?up|readiness)/i.test(haystack) &&
+    /(connectionRequestId|gridOperatorId|znpAlignment|gridNode|technicalRestriction|requestedCapacityKW|technicalStatus|capacityUtilization|fnavContractLogic|commercialAssumptions|legalAgreementStatus|legalBoundaries|gaps|follow.?up|readiness|request id|netzbetreiber id|zielnetzbezug|grid node|technische restriktion|anfrageleistung|technischer status|auslastung|vertragslage|annahmen|rechtsstatus|boundaries)/i.test(haystack) &&
     !/(edm timeseries|lastgang|zeitreihe|import|datasource refresh|refresh ausfuehren|refresh ausführen|billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|edm import|gas.?risiko|gas.?risk|risikoregister|risk.?register|krisenmodus|krisenroutine|crisis|controllability|governance)/i.test(haystack);
 
   if (hasTechCommercialOfferCockpitSpecificSignal) {
@@ -319,6 +319,18 @@ function findBestCapability(taskText, options = {}) {
     const kiFloorwalkerCapability = findCapabilityByName('ki_floorwalker_governance');
     if (kiFloorwalkerCapability) {
       return { capability: kiFloorwalkerCapability, score: 138, usedFallback: false };
+    }
+  }
+
+  const hasMastrQualityOemetadataSpecificSignal =
+    /(mastr quality oemetadata|mastr fair-export|mastr quality fair-export|audit oemetadata|mastr oemetadata|fair-export f[üu]r audit-reports)/i.test(haystack) &&
+    /(id|auditId|mq:id|gridOperatorId|oemetadata|fair-export|dossier|readiness)/i.test(haystack) &&
+    !/(mint-doi|mint_doi|doi|consequential|sap|billing|settlement|mutation|write|delete)/i.test(haystack);
+
+  if (hasMastrQualityOemetadataSpecificSignal) {
+    const mastrQualityOemetadataCapability = findCapabilityByName('mastr_quality_oemetadata');
+    if (mastrQualityOemetadataCapability) {
+      return { capability: mastrQualityOemetadataCapability, score: 138, usedFallback: false };
     }
   }
 

@@ -34385,6 +34385,36 @@
         ]
       }
     },
+    "/api/mastr-quality/audits/:id/oemetadata": {
+      "get": {
+        "operationId": "mastr-quality_oemetadata",
+        "summary": "Get OEMetadata v2.0 FAIR metadata for an audit report by ID",
+        "tags": [
+          "MaStR Data Quality"
+        ],
+        "responses": {
+          "200": {
+            "description": "OEMetadata JSON-LD document"
+          },
+          "404": {
+            "description": "Audit report not found"
+          }
+        },
+        "description": "Returns a fully OEMetadata v2.0 conformant JSON-LD metadata document.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "a1b2c3d4-1234-5678-90ab-cdef12345678"
+            },
+            "description": "Audit report UUID"
+          }
+        ]
+      }
+    },
     "/api/mastr-quality/audits/:id/findings/:findingId/details": {
       "get": {
         "operationId": "mastr-quality_findingDetails",
