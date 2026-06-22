@@ -79,6 +79,7 @@ module.exports = {
       gasTransformationDependencyMapStatus: 5 * 60 * 1000, // 5 min
       gridConnectionTransformationGateStatus: 5 * 60 * 1000, // 5 min
       heatAssetTariffSteeringStatus: 5 * 60 * 1000, // 5 min
+      techCommercialOfferCockpitStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3639,6 +3640,59 @@ module.exports = {
           this.settings.cacheTtlMs.heatAssetTariffSteeringStatus,
           async () => ({
             ...this.buildHeatAssetTariffSteeringStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── techCommercialOfferCockpitStatus ─────────────────────────────────────
+    /**
+     * GET /api/dashboard/tech-commercial-offer-cockpit
+     *
+     * Read-only dossier-safe Technisch Kaufmaennisches Angebots Cockpit.
+     * It builds a deterministic gate status and evidence projection from supplied facts
+     * without running any mutations, writes, or actual offer generation.
+     */
+    techCommercialOfferCockpitStatus: {
+      rest: 'GET /tech-commercial-offer-cockpit',
+      params: {
+        connectionRequestId: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        znpAlignment: { type: 'string', optional: true, min: 1 },
+        gridNode: { type: 'string', optional: true, min: 1 },
+        technicalRestriction: { type: 'string', optional: true, min: 1 },
+        requestedCapacityKW: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string' }] },
+        technicalStatus: { type: 'string', optional: true, min: 1 },
+        capacityUtilization: { type: 'string', optional: true, min: 1 },
+        fnavContractLogic: { type: 'string', optional: true, min: 1 },
+        commercialAssumptions: { type: 'string', optional: true, min: 1 },
+        legalAgreementStatus: { type: 'string', optional: true, min: 1 },
+        legalBoundaries: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Technical & Commercial Offer Cockpit — read-only dossier-safe status',
+        description:
+          'Builds deterministic gate status and evidence from supplied facts. ' +
+          'The endpoint is read-only and does not run writes or actual offer generation.',
+        responses: {
+          200: {
+            description: 'Read-only technical and commercial offer status evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `tech-commercial-offer-cockpit:${params.connectionRequestId || 'no-request'}:${params.gridOperatorId || 'no-operator'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.techCommercialOfferCockpitStatus,
+          async () => ({
+            ...this.buildTechCommercialOfferCockpitStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -12941,6 +12995,284 @@ module.exports = {
             'vdmi.dossier',
             'interface-placeholder.requestEvidence',
             'hitl.create'
+          ],
+          notCalled: [
+            'hitl.create',
+            'vdmi.mutate',
+            'investment-planning.createPlan',
+            'finance-agent.mutate',
+            'budget.release',
+            'settlement.prepareBilling',
+            'external.connector.call',
+            'personal-agent.execute'
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          gateStatus,
+          readinessScore,
+          complianceScore,
+          complianceContext,
+          complianceEvidence,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildTechCommercialOfferCockpitStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+
+      const sourceRefs = toList(params.sourceRef);
+
+      const evidenceSpecs = [
+        {
+          id: 'connection_request_id',
+          label: 'Request ID',
+          value: params.connectionRequestId,
+          sourceClass: 'connection_request_id',
+          enablesDossierAddition: 'verify connection request reference ID',
+        },
+        {
+          id: 'grid_operator_id',
+          label: 'Netzbetreiber ID',
+          value: params.gridOperatorId,
+          sourceClass: 'grid_operator_identity',
+          enablesDossierAddition: 'verify DSO identification and market partner metadata',
+        },
+        {
+          id: 'znp_alignment',
+          label: 'Zielnetzbezug',
+          value: params.znpAlignment,
+          sourceClass: 'znp_alignment',
+          enablesDossierAddition: 'verify alignment with target grid planning (ZNP)',
+        },
+        {
+          id: 'grid_node',
+          label: 'Grid Node',
+          value: params.gridNode,
+          sourceClass: 'grid_node',
+          enablesDossierAddition: 'verify grid substation or feed-in node association',
+        },
+        {
+          id: 'technical_restriction',
+          label: 'Technische Restriktion',
+          value: params.technicalRestriction,
+          sourceClass: 'technical_restriction_evaluation',
+          enablesDossierAddition: 'verify technical restrictions and network capacity limitations',
+        },
+        {
+          id: 'requested_capacity_kw',
+          label: 'Anfrageleistung',
+          value: params.requestedCapacityKW,
+          sourceClass: 'requested_capacity',
+          enablesDossierAddition: 'verify requested connection capacity in kW',
+        },
+        {
+          id: 'technical_status',
+          label: 'Technischer Status',
+          value: params.technicalStatus,
+          sourceClass: 'technical_status',
+          enablesDossierAddition: 'verify technical connection feasibility status',
+        },
+        {
+          id: 'capacity_utilization',
+          label: 'Auslastung',
+          value: params.capacityUtilization,
+          sourceClass: 'capacity_utilization',
+          enablesDossierAddition: 'verify capacity utilization and headroom context',
+        },
+        {
+          id: 'fnav_contract_logic',
+          label: 'fNAV Vertragslage',
+          value: params.fnavContractLogic,
+          sourceClass: 'fnav_contract_logic',
+          enablesDossierAddition: 'verify fNAV agreement or flexible-capacity contract options',
+        },
+        {
+          id: 'commercial_assumptions',
+          label: 'Kaufmännische Annahmen',
+          value: params.commercialAssumptions,
+          sourceClass: 'commercial_assumptions',
+          enablesDossierAddition: 'verify CAPEX, OPEX and pricing model parameters',
+        },
+        {
+          id: 'legal_agreement_status',
+          label: 'Rechtsstatus',
+          value: params.legalAgreementStatus,
+          sourceClass: 'legal_agreement_status',
+          enablesDossierAddition: 'verify public-law permissions or municipal agreement status',
+        },
+        {
+          id: 'legal_boundaries',
+          label: 'Legal Boundaries',
+          value: params.legalBoundaries,
+          sourceClass: 'legal_boundaries',
+          enablesDossierAddition: 'verify regulatory boundary rules or easement status',
+        },
+        {
+          id: 'source_refs',
+          label: 'Quellenreferenzen',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add regulatory sources or documentation reference credentials',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value !== undefined && spec.value !== null && spec.value !== false)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue ?? spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => spec.value === undefined || spec.value === null || spec.value === false)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        !params.connectionRequestId
+          ? 'needs_connection_request'
+          : !params.gridOperatorId
+            ? 'needs_grid_operator'
+            : !params.znpAlignment
+              ? 'needs_znp_alignment'
+              : !params.gridNode
+                ? 'needs_grid_node'
+                : !params.technicalRestriction
+                  ? 'needs_technical_restriction'
+                  : !params.requestedCapacityKW
+                    ? 'needs_requested_capacity'
+                    : !params.technicalStatus
+                      ? 'needs_technical_status'
+                      : !params.capacityUtilization
+                        ? 'needs_capacity_utilization'
+                        : sourceRefs.length === 0
+                          ? 'needs_source_refs'
+                          : 'ready_for_offer_decision';
+
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const complianceScore = readinessScore;
+
+      let gateStatus = 'needs_evidence';
+      if (status === 'ready_for_offer_decision') {
+        const restriction = String(params.technicalRestriction || '').toLowerCase();
+        const utilization = String(params.capacityUtilization || '').toLowerCase();
+        const feasibility = String(params.technicalStatus || '').toLowerCase();
+
+        const isOkOrLow = (str) => {
+          return str.includes('ok') || str.includes('low') || str.includes('niedrig') || str.includes('none') || str.includes('freigegeben') || str.includes('approved') || str.includes('feasible');
+        };
+
+        const isConditionalOrFlexible = (str) => {
+          return str.includes('conditional') || str.includes('flexible') || str.includes('fnav') || str.includes('monitor') || str.includes('eingeschränkt');
+        };
+
+        if ((isOkOrLow(restriction) || isOkOrLow(feasibility)) && isOkOrLow(utilization)) {
+          gateStatus = 'invest';
+        } else if (isConditionalOrFlexible(restriction) || isConditionalOrFlexible(feasibility) || isConditionalOrFlexible(utilization)) {
+          gateStatus = 'monitor';
+        } else {
+          gateStatus = 'reject';
+        }
+      } else {
+        gateStatus = 'needs_evidence';
+      }
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'tech_commercial_offer_cockpit',
+      }));
+
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `TCOC_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['connection_request_id', 'grid_operator_id', 'technical_restriction', 'requested_capacity_kw', 'technical_status'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+
+      const complianceContext = {
+        connectionRequestId: params.connectionRequestId || null,
+      };
+
+      const complianceEvidence = {
+        gridOperatorId: params.gridOperatorId || null,
+        znpAlignment: params.znpAlignment || null,
+        technicalRestriction: params.technicalRestriction || null,
+        requestedCapacityKW: params.requestedCapacityKW || null,
+        technicalStatus: params.technicalStatus || null,
+        capacityUtilization: params.capacityUtilization || null,
+        fnavContractLogic: params.fnavContractLogic || null,
+        commercialAssumptions: params.commercialAssumptions || null,
+        legalAgreementStatus: params.legalAgreementStatus || null,
+        owner: params.owner || 'Assetmanagement Netzanschluss',
+      };
+
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Gate Status: ${gateStatus}`,
+        `Provided Technical & Commercial Offer Cockpit Gate evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.connectionRequestId) dossierFacts.push(`Connection Request ID: ${params.connectionRequestId}`);
+
+      return {
+        techCommercialOfferCockpitStatusId: `tcoc:${Buffer.from(`${params.connectionRequestId || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'tech_commercial_offer_cockpit',
+        safety: 'read_only',
+        requestContext: complianceContext,
+        status,
+        gateStatus,
+        readinessScore,
+        complianceScore,
+        complianceContext,
+        complianceEvidence,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+        },
+        sourceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.techCommercialOfferCockpitStatus'],
+          referenced: [
+            'grid-connection.validate',
+            'grid-connection.fnavValidate',
+            'grid-operations.connectionCapacityCheck',
+            'grid-operations.capacityUtilization',
+            'grid-operations.netzfahrplanGenerate',
+            'finance-agent.analyze',
+            'finance-agent.fnavEconomics',
+            'investment-planning.createPlan',
+            'znp.assessPortfolio',
+            'datapoint.health',
+            'mastr-quality.audit',
+            'edm-validation.validate',
+            'vdmi.dossier'
           ],
           notCalled: [
             'hitl.create',

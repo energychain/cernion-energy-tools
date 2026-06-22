@@ -298,6 +298,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasTechCommercialOfferCockpitSpecificSignal =
+    /(angebots cockpit|technisch kaufmaennisch|technisch kaufmännisch|indikatives angebot|anschlussangebot|pooling option|vertragsstatus|zielnetzbezug|commercial offer|offer cockpit)/i.test(haystack) &&
+    /(connectionRequestId|gridOperatorId|znpAlignment|gridNode|technicalRestriction|requestedCapacityKW|technicalStatus|capacityUtilization|fnavContractLogic|commercialAssumptions|legalAgreementStatus|legalBoundaries|gaps|follow.?up|readiness)/i.test(haystack) &&
+    !/(edm timeseries|lastgang|zeitreihe|import|datasource refresh|refresh ausfuehren|refresh ausführen|billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|edm import|gas.?risiko|gas.?risk|risikoregister|risk.?register|krisenmodus|krisenroutine|crisis|controllability|governance)/i.test(haystack);
+
+  if (hasTechCommercialOfferCockpitSpecificSignal) {
+    const techCommercialCapability = findCapabilityByName('tech_commercial_offer_cockpit');
+    if (techCommercialCapability) {
+      return { capability: techCommercialCapability, score: 138, usedFallback: false };
+    }
+  }
+
   const hasKiFloorwalkerGovernanceSpecificSignal =
     /(ki[- ]floorwalker|floorwalker|ki[- ]governance|ai[- ]governance|prompt[- ]standards|datenr[äa]ume|use[- ]case[- ]priorisierung)/i.test(haystack) &&
     /(use[- ]case[- ]priority|allowed[- ]dataspace|prompt[- ]standard|process[- ]boundar|roles[- ]and[- ]responsibilit|guided[- ]application|risk[- ]and[- ]approval|proof[- ]of[- ]benefit|gaps|follow[- ]up|readiness)/i.test(haystack) &&

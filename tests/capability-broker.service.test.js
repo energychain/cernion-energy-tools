@@ -1391,4 +1391,22 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
     expect(actionNames).not.toContain('external.connector.call');
   });
+
+  it('routes Technisch Kaufmaennisches Angebots Cockpit prompts to the read-only evidence status path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Technisch Kaufmaennisches Angebots Cockpit fuer request-162: Request ID, Netzbetreiber ID, Zielnetzbezug, Grid Node, Technische Restriktion, Anfrageleistung, Technischer Status, Auslastung, fNAV Vertragslage, Kaufmännische Annahmen, Rechtsstatus, Legal Boundaries und Quellenreferenzen.',
+    });
+
+    expect(result.capability).toBe('tech_commercial_offer_cockpit');
+    expect(result.recommendedCapabilities[0].capability).toBe('tech_commercial_offer_cockpit');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.techCommercialOfferCockpitStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('assets.mutate');
+    expect(actionNames).not.toContain('datapoint.mutate');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('vdmi.mutate');
+    expect(actionNames).not.toContain('personal-agent.execute');
+    expect(actionNames).not.toContain('external.connector.call');
+  });
 });

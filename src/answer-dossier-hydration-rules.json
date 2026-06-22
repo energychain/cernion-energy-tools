@@ -3099,5 +3099,77 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 146
+  },
+  {
+    "id": "tech-commercial-offer-cockpit-status",
+    "description": "Read-only Technisch Kaufmaennisches Angebots Cockpit status evidence for dossier hydration",
+    "routeLabel": "tech_commercial_offer_cockpit",
+    "capability": "tech_commercial_offer_cockpit",
+    "action": "dashboard-api.techCommercialOfferCockpitStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "hitl.create",
+        "vdmi.mutate",
+        "investment-planning.createPlan",
+        "finance-agent.mutate",
+        "budget.release",
+        "settlement.prepareBilling",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "angebots cockpit",
+      "technisch kaufmaennisch",
+      "technisch kaufmännisch",
+      "indikatives angebot",
+      "anschlussangebot",
+      "pooling option",
+      "vertragsstatus",
+      "zielnetzbezug",
+      "commercial offer",
+      "offer cockpit"
+    ],
+    "paramTemplate": {
+      "connectionRequestId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:connectionRequestId[:= ]+|request_id[:= ]+|request[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Offer Readiness", "maxLen": 90 },
+        { "paths": ["gateStatus", "dossierEvidence.gateStatus"], "label": "Decision Status", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["complianceEvidence.gridOperatorId", "dossierEvidence.complianceEvidence.gridOperatorId"], "label": "Netzbetreiber ID", "maxLen": 120 },
+        { "paths": ["complianceEvidence.znpAlignment", "dossierEvidence.complianceEvidence.znpAlignment"], "label": "Zielnetzbezug", "maxLen": 120 },
+        { "paths": ["complianceEvidence.technicalRestriction", "dossierEvidence.complianceEvidence.technicalRestriction"], "label": "Technische Restriktion", "maxLen": 120 },
+        { "paths": ["complianceEvidence.requestedCapacityKW", "dossierEvidence.complianceEvidence.requestedCapacityKW"], "label": "Anfrageleistung", "maxLen": 120 },
+        { "paths": ["complianceEvidence.technicalStatus", "dossierEvidence.complianceEvidence.technicalStatus"], "label": "Technischer Status", "maxLen": 120 },
+        { "paths": ["complianceEvidence.capacityUtilization", "dossierEvidence.complianceEvidence.capacityUtilization"], "label": "Auslastung", "maxLen": 120 },
+        { "paths": ["complianceEvidence.fnavContractLogic", "dossierEvidence.complianceEvidence.fnavContractLogic"], "label": "fNAV Vertragslage", "maxLen": 120 },
+        { "paths": ["complianceEvidence.commercialAssumptions", "dossierEvidence.complianceEvidence.commercialAssumptions"], "label": "Kaufmännische Annahmen", "maxLen": 120 },
+        { "paths": ["complianceEvidence.legalAgreementStatus", "dossierEvidence.complianceEvidence.legalAgreementStatus"], "label": "Rechtsstatus", "maxLen": 120 },
+        { "paths": ["complianceEvidence.owner", "dossierEvidence.complianceEvidence.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 162
   }
 ]

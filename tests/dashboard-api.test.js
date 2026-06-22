@@ -4158,6 +4158,69 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── techCommercialOfferCockpitStatus ─────────────────────────────────────
+
+  describe('techCommercialOfferCockpitStatus', () => {
+    it('reports tech commercial offer cockpit gate gaps without creating stateful databases or mutation side effects', async () => {
+      const result = await broker.call('dashboard-api.techCommercialOfferCockpitStatus', {
+        connectionRequestId: 'request-162',
+      });
+
+      expect(result.status).toBe('needs_grid_operator');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'grid_operator_id',
+          'znp_alignment',
+          'grid_node',
+          'technical_restriction',
+          'requested_capacity_kw',
+          'technical_status',
+          'capacity_utilization',
+          'fnav_contract_logic',
+          'commercial_assumptions',
+          'legal_agreement_status',
+          'legal_boundaries',
+          'source_refs',
+        ])
+      );
+      expect(result.sourceActions.notCalled).toContain('hitl.create');
+    });
+
+    it('returns ready_for_offer_decision and correct gateStatus when all evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.techCommercialOfferCockpitStatus', {
+        connectionRequestId: 'request-162',
+        gridOperatorId: 'VNB-162',
+        znpAlignment: 'in_alignment',
+        gridNode: 'node-A',
+        technicalRestriction: 'none',
+        requestedCapacityKW: 500,
+        technicalStatus: 'approved',
+        capacityUtilization: 'low',
+        fnavContractLogic: 'ok',
+        commercialAssumptions: 'calculated',
+        legalAgreementStatus: 'approved',
+        legalBoundaries: 'easement_cleared',
+        sourceRef: 'OfferDoc_2026,Anschluss_Report',
+      });
+
+      expect(result.status).toBe('ready_for_offer_decision');
+      expect(result.gateStatus).toBe('invest');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.complianceEvidence.gridOperatorId).toBe('VNB-162');
+      expect(result.complianceContext.connectionRequestId).toBe('request-162');
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['OfferDoc_2026', 'Anschluss_Report']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_offer_decision',
+          'Gate Status: invest',
+          'Provided Technical & Commercial Offer Cockpit Gate evidence: 13/13',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

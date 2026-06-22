@@ -2201,6 +2201,102 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  tech_commercial_offer_cockpit: {
+    sources: [
+      {
+        id: 'connection_request_id',
+        label: 'Request ID',
+        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'vdmi.dossier'],
+        contextKeys: ['connectionRequestId'],
+        optional: false,
+      },
+      {
+        id: 'grid_operator_id',
+        label: 'Netzbetreiber ID',
+        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'vdmi.dossier'],
+        contextKeys: ['gridOperatorId'],
+        optional: false,
+      },
+      {
+        id: 'znp_alignment',
+        label: 'Zielnetzbezug',
+        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'znp.assessPortfolio', 'vdmi.dossier'],
+        contextKeys: ['znpAlignment'],
+        optional: false,
+      },
+      {
+        id: 'grid_node',
+        label: 'Grid Node',
+        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'vdmi.dossier'],
+        contextKeys: ['gridNode'],
+        optional: false,
+      },
+      {
+        id: 'technical_restriction',
+        label: 'Technische Restriktion',
+        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'grid-connection.validate', 'grid-operations.connectionCapacityCheck', 'vdmi.dossier'],
+        contextKeys: ['technicalRestriction'],
+        optional: false,
+      },
+      {
+        id: 'requested_capacity_kw',
+        label: 'Anfrageleistung',
+        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'vdmi.dossier'],
+        contextKeys: ['requestedCapacityKW'],
+        optional: false,
+      },
+      {
+        id: 'technical_status',
+        label: 'Technischer Status',
+        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'grid-connection.validate', 'vdmi.dossier'],
+        contextKeys: ['technicalStatus'],
+        optional: false,
+      },
+      {
+        id: 'capacity_utilization',
+        label: 'Auslastung',
+        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'grid-operations.capacityUtilization', 'vdmi.dossier'],
+        contextKeys: ['capacityUtilization'],
+        optional: false,
+      },
+      {
+        id: 'fnav_contract_logic',
+        label: 'fNAV Vertragslage',
+        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'grid-connection.fnavValidate', 'grid-operations.netzfahrplanGenerate', 'vdmi.dossier'],
+        contextKeys: ['fnavContractLogic'],
+        optional: false,
+      },
+      {
+        id: 'commercial_assumptions',
+        label: 'Kaufmännische Annahmen',
+        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'finance-agent.fnavEconomics', 'finance-agent.analyze', 'vdmi.dossier'],
+        contextKeys: ['commercialAssumptions'],
+        optional: false,
+      },
+      {
+        id: 'legal_agreement_status',
+        label: 'Rechtsstatus',
+        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'vdmi.dossier'],
+        contextKeys: ['legalAgreementStatus'],
+        optional: false,
+      },
+      {
+        id: 'legal_boundaries',
+        label: 'Legal Boundaries',
+        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'vdmi.dossier'],
+        contextKeys: ['legalBoundaries'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['sourceRef'],
+        optional: false,
+      },
+    ],
+  },
+
   ki_floorwalker_governance: {
     sources: [
       {
