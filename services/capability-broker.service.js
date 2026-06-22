@@ -346,6 +346,37 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasAutomationRequirementsDecisionValueSpecificSignal =
+    /(automation_requirements_decision_value|automation requirements decision value|requirements card|powerbi dashboard wunsch|bewegungsdatenfluss|entscheidungswert|folgeprozess|rollback criterion)/i.test(haystack) &&
+    !/(rpa.?fehlerfolgen|automation risk gate|bot.?stopfbarkeit|sonderfallkatalog|edge case catalog|massenlauf risiko|automatisierungsfreigabe)/i.test(haystack);
+
+  if (hasAutomationRequirementsDecisionValueSpecificSignal) {
+    const automationRequirementsCapability = findCapabilityByName('automation_requirements_decision_value');
+    if (automationRequirementsCapability) {
+      return { capability: automationRequirementsCapability, score: 144, usedFallback: false };
+    }
+  }
+
+  const hasAutomationExecutionIntent =
+    /(bot.?run|rpa.?execute|automation ausfuehren|automation ausführen|workflow execute|workflow ausfuehren|workflow ausführen|sende marktkommunikation|market.?communication send|external connector)/i.test(haystack) &&
+    /(rpa.?fehlerfolgen|automation risk gate|automatisierungs.?risiko|prozessautomatisierung risiko|massenlauf risiko|automatisierungsfreigabe)/i.test(haystack);
+
+  if (hasAutomationExecutionIntent) {
+    return { capability: INTERFACE_PLACEHOLDER_CAPABILITY, score: 10, usedFallback: true };
+  }
+
+  const hasAutomationRiskGateSpecificSignal =
+    /(rpa.?fehlerfolgen|automation risk gate|automatisierungs.?risiko|prozessautomatisierung risiko|bot.?stopfbarkeit|rueckrollpfad|rückrollpfad|rollback|sonderfallkatalog|edge case catalog|massenlauf risiko|automatisierungsfreigabe)/i.test(haystack) &&
+    /(test.?coverage|testabdeckung|testfall|edge case|sonderfall|stop.?kriterien|stopfbarkeit|rollback|rueckrollpfad|rückrollpfad|monitoring|owner|process owner|massenlauf|mass.?run|risk|risiko|freigabe)/i.test(haystack) &&
+    !/(mail.?ingest|mail.?scrap|teams|loop|external connector|connector|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|bot.?run|rpa.?execute|automation ausfuehren|automation ausführen|notification|benachrichtigung|eskalation|billing|settlement|abrechnung|tarif|marktkommunikation senden|mako mutation|legal opinion|rechtsgutachten|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|backup|disaster recovery|streaming|websocket|smgw|cls|device.?control|steuerbefehl|accessmanager|access manager|iam provision|rollenberechtigung|grossspeicher|großspeicher|owner.?frist|owner deadline|netzprozess readiness|prozessreife|krisenroutine|krisenmodus|crisis|automation_requirements_decision_value|requirements card|powerbi dashboard wunsch|bewegungsdatenfluss|entscheidungswert)/i.test(haystack);
+
+  if (hasAutomationRiskGateSpecificSignal) {
+    const automationRiskCapability = findCapabilityByName('automation_risk_gate');
+    if (automationRiskCapability) {
+      return { capability: automationRiskCapability, score: 143, usedFallback: false };
+    }
+  }
+
   const hasNetzprozessReadinessGateSpecificSignal =
     /(netzprozess.?readiness|process readiness gate|prozessreife|portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad|blockierte folgeentscheidung)/i.test(haystack) &&
     /(portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad)/i.test(haystack) &&

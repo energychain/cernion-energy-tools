@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 60 static rules', () => {
+    it('loads all 61 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(60);
+      expect(rules.length).toBe(61);
     });
 
-    it('compiles all 60 static rules without error', () => {
+    it('compiles all 61 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(60);
+      expect(rules.length).toBe(61);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -744,6 +744,57 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Leading Signal: reapproval_status');
       expect(formatted).toContain('Leading Gap: reapproval_status');
       expect(formatted).toContain('Side-Effect Guard: access-manager.call');
+    });
+
+    it('dashboard-api.automationRiskGateStatus is dossier-safe and formats automation risk facts', () => {
+      const rule = getRule('dashboard-api.automationRiskGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Automation Risk Gate processId=rpa-205 processName=Billing-Massenlauf'
+        )
+      ).toEqual({
+        processId: 'rpa-205',
+        processName: 'Billing-Massenlauf',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'blocked_by_uncontrolled_mass_run',
+        processContext: {
+          processId: 'rpa-205',
+          processName: 'Billing Massenlauf',
+        },
+        riskContext: {
+          riskLevel: 'critical',
+        },
+        readinessSignals: [{ code: 'rollback_path', status: 'blocked' }],
+        evidenceGaps: [
+          {
+            missingDataPoint: 'uncontrolled_mass_run',
+            enablesDossierAddition: 'document stop criteria, rollback path, monitoring, and risk acceptance before any mass automation run',
+          },
+        ],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'document stop criteria, rollback path, monitoring, and risk acceptance before any mass automation run',
+          },
+        ],
+        sourceActions: {
+          notCalled: ['rpa.execute'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: blocked_by_uncontrolled_mass_run'],
+        },
+      });
+
+      expect(formatted).toContain('Status: blocked_by_uncontrolled_mass_run');
+      expect(formatted).toContain('Process ID: rpa-205');
+      expect(formatted).toContain('Process: Billing Massenlauf');
+      expect(formatted).toContain('Risk: critical');
+      expect(formatted).toContain('Leading Gap: uncontrolled_mass_run');
+      expect(formatted).toContain('Side-Effect Guard: rpa.execute');
     });
 
     it('dashboard-api.sapBudgetPspGateStatus is dossier-safe and formats SAP/PSP gate facts', () => {

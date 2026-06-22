@@ -1540,4 +1540,29 @@ describe('Capability Broker Service', () => {
 
     expect(result.capability).not.toBe('owner_deadline_evidence_gate');
   });
+
+  it('routes RPA Fehlerfolgen / automation risk prompts to the read-only gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe RPA Fehlerfolgen Gate fuer Automatisierungsfreigabe: Bot Stopfbarkeit, Rueckrollpfad, Rollback, Sonderfallkatalog, Edge Case Catalog, Massenlauf Risiko, Testabdeckung und Monitoring.',
+    });
+
+    expect(result.capability).toBe('automation_risk_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe('automation_risk_gate');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.automationRiskGateStatus');
+    expect(actionNames).not.toContain('rpa.execute');
+    expect(actionNames).not.toContain('bot.run');
+    expect(actionNames).not.toContain('workflow.execute');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('does not route bot execution or workflow execution prompts to the automation risk gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Fuehre RPA Bot Run aus, starte Workflow Execute, sende Marktkommunikation und triggere External Connector fuer Automation Risk Gate.',
+    });
+
+    expect(result.capability).not.toBe('automation_risk_gate');
+  });
 });

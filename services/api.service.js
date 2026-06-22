@@ -1488,6 +1488,8 @@ module.exports = {
             'dashboard-api.rolePermissionAccessReadinessGateStatus',
           'GET /dashboard/owner-deadline-evidence-gate':
             'dashboard-api.ownerDeadlineEvidenceGateStatus',
+          'GET /dashboard/automation-risk-gate':
+            'dashboard-api.automationRiskGateStatus',
           'POST /community/consult': 'community.consult',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',

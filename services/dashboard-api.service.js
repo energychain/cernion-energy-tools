@@ -86,6 +86,7 @@ module.exports = {
       grossspeicherAnschlussReadinessGateStatus: 5 * 60 * 1000, // 5 min
       rolePermissionAccessReadinessGateStatus: 5 * 60 * 1000, // 5 min
       ownerDeadlineEvidenceGateStatus: 5 * 60 * 1000, // 5 min
+      automationRiskGateStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -4051,6 +4052,68 @@ module.exports = {
           this.settings.cacheTtlMs.ownerDeadlineEvidenceGateStatus,
           async () => ({
             ...this.buildOwnerDeadlineEvidenceGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- automationRiskGateStatus -----------------------------------------
+    /**
+     * GET /api/dashboard/automation-risk-gate
+     *
+     * Read-only dossier-safe gate for supplied RPA / automation risk facts.
+     * It does not execute bots, trigger mass-runs, mutate workflows, or create approvals.
+     */
+    automationRiskGateStatus: {
+      rest: 'GET /automation-risk-gate',
+      params: {
+        processId: { type: 'string', optional: true, min: 1 },
+        processName: { type: 'string', optional: true, min: 1 },
+        processClass: { type: 'string', optional: true, min: 1 },
+        runFrequency: { type: 'string', optional: true, min: 1 },
+        massRunVolume: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        affectedDomains: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        customerCommunicationImpact: { type: 'string', optional: true, min: 1 },
+        billingImpact: { type: 'string', optional: true, min: 1 },
+        marketCommunicationImpact: { type: 'string', optional: true, min: 1 },
+        massDataImpact: { type: 'string', optional: true, min: 1 },
+        testCaseCoverage: { type: 'string', optional: true, min: 1 },
+        edgeCaseCatalog: { type: 'string', optional: true, min: 1 },
+        acceptanceMethod: { type: 'string', optional: true, min: 1 },
+        monitoringSignals: { type: 'string', optional: true, min: 1 },
+        stopCriteria: { type: 'string', optional: true, min: 1 },
+        rollbackPath: { type: 'string', optional: true, min: 1 },
+        processOwner: { type: 'string', optional: true, min: 1 },
+        operationsOwner: { type: 'string', optional: true, min: 1 },
+        blockedDecision: { type: 'string', optional: true, min: 1 },
+        missingEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        riskLevel: { type: 'string', optional: true, min: 1 },
+        source: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Automation Risk Gate -- read-only dossier-safe status',
+        description:
+          'Builds deterministic RPA / automation risk readiness from supplied process facts. ' +
+          'The endpoint is read-only and does not run bots, trigger mass-runs, mutate workflows, create approvals, or call external systems.',
+        responses: {
+          200: {
+            description: 'Read-only automation-risk readiness evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `automation-risk-gate:${params.processId || params.processName || 'no-process'}:${params.testCaseCoverage || ''}:${params.edgeCaseCatalog || ''}:${params.stopCriteria || ''}:${params.rollbackPath || ''}:${params.monitoringSignals || ''}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.automationRiskGateStatus,
+          async () => ({
+            ...this.buildAutomationRiskGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -14561,6 +14624,252 @@ module.exports = {
           status,
           signalContext,
           ownerContext,
+          readinessSignals,
+          evidenceGaps,
+          blockers,
+          nextActions,
+          positiveFollowUps,
+          validationFindings,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildAutomationRiskGateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const normalizeStatus = (value) => {
+        const text = String(value || '').trim().toLowerCase();
+        if (!text) return 'missing';
+        if (/^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|present|vorhanden|covered|documented|ja|yes)$/.test(text)) return 'ready';
+        if (/^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown|scheduled)$/.test(text)) return 'partial';
+        if (/^(missing|fehlt|absent|not_available|not-available|none|nein|no)$/.test(text)) return 'missing';
+        if (/^(blocked|blockiert|red|rot|failed|rejected|denied|uncontrolled|critical|kritisch|stop|no_rollback|no-stop)$/.test(text)) return 'blocked';
+        if (/(block|reject|uncontrolled|kritisch|critical|fehlend|missing|ohne rollback|no rollback|ohne stopp|no stop)/.test(text)) return 'blocked';
+        return text;
+      };
+      const toNumber = (value) => {
+        if (value === undefined || value === null || value === '') return null;
+        const normalized = typeof value === 'string' ? value.replace(/\s/g, '').replace(',', '.') : value;
+        const parsed = Number(normalized);
+        return Number.isFinite(parsed) ? parsed : null;
+      };
+      const isReady = (status) => status === 'ready';
+      const isBlocked = (status) => status === 'blocked';
+      const suppliedEvidenceGaps = toList(params.missingEvidence);
+      const affectedDomains = toList(params.affectedDomains);
+      const sourceRefs = toList(params.sourceRef || params.source);
+      const massRunVolume = toNumber(params.massRunVolume);
+      const sourceActions = {
+        inspected: ['dashboard-api.automationRiskGateStatus'],
+        referenced: [
+          'vdmi.dossier',
+          'datapoint.health',
+          'datasource-registry.list',
+          'interface-placeholder.listGaps',
+          'presentation.generate',
+        ],
+        notCalled: [
+          'rpa.execute',
+          'bot.run',
+          'mass-run.trigger',
+          'workflow.execute',
+          'hitl.create',
+          'vdmi.mutate',
+          'customer-communication.send',
+          'settlement.prepareBilling',
+          'settlement.exportA96',
+          'market-communication.send',
+          'notification.send',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const processContext = {
+        processId: params.processId || null,
+        processName: params.processName || null,
+        processClass: params.processClass || null,
+        runFrequency: params.runFrequency || null,
+        massRunVolume,
+        affectedDomains,
+        blockedDecision: params.blockedDecision || null,
+        sourceRef: sourceRefs,
+      };
+      const riskContext = {
+        riskLevel: params.riskLevel || null,
+        customerCommunicationImpact: params.customerCommunicationImpact || null,
+        billingImpact: params.billingImpact || null,
+        marketCommunicationImpact: params.marketCommunicationImpact || null,
+        massDataImpact: params.massDataImpact || null,
+      };
+      const signalSpecs = [
+        {
+          code: 'process_context',
+          label: 'Process Context',
+          value: params.processId || params.processName ? 'ready' : '',
+          enablesDossierAddition: 'add process id, process name, class, frequency, mass-run scope, and affected domains',
+          statusWhenMissing: 'needs_process_context',
+        },
+        {
+          code: 'process_owner',
+          label: 'Process Owner',
+          value: params.processOwner || params.operationsOwner ? 'ready' : '',
+          enablesDossierAddition: 'add accountable automation and operations owners',
+          statusWhenMissing: 'needs_process_owner',
+        },
+        {
+          code: 'test_case_coverage',
+          label: 'Test Coverage',
+          value: params.testCaseCoverage,
+          enablesDossierAddition: 'add test-case coverage and acceptance confidence',
+          statusWhenMissing: 'needs_test_coverage',
+        },
+        {
+          code: 'edge_case_catalog',
+          label: 'Edge Case Catalog',
+          value: params.edgeCaseCatalog,
+          enablesDossierAddition: 'add Sonderfall / edge-case catalog completeness',
+          statusWhenMissing: 'needs_edge_case_catalog',
+        },
+        {
+          code: 'stop_criteria',
+          label: 'Stop Criteria',
+          value: params.stopCriteria,
+          enablesDossierAddition: 'add documented stop criteria and operational kill switch evidence',
+          statusWhenMissing: 'needs_stop_criteria',
+        },
+        {
+          code: 'rollback_path',
+          label: 'Rollback Path',
+          value: params.rollbackPath,
+          enablesDossierAddition: 'add rollback path and damage containment evidence',
+          statusWhenMissing: 'needs_rollback_path',
+        },
+        {
+          code: 'monitoring_signals',
+          label: 'Monitoring Signals',
+          value: params.monitoringSignals,
+          enablesDossierAddition: 'add monitoring signals and operational observability evidence',
+          statusWhenMissing: 'needs_monitoring',
+        },
+      ];
+      const readinessSignals = signalSpecs.map((signal) => {
+        const status = normalizeStatus(signal.value);
+        return {
+          code: signal.code,
+          label: signal.label,
+          status,
+          rawStatus: signal.value || null,
+          finding: isReady(status) ? null : signal.enablesDossierAddition,
+          enablesDossierAddition: signal.enablesDossierAddition,
+          statusWhenMissing: signal.statusWhenMissing,
+        };
+      });
+      const missingFromSignals = readinessSignals
+        .filter((signal) => !isReady(signal.status))
+        .map((signal) => ({
+          missingDataPoint: signal.code,
+          status: signal.status,
+          value: signal.rawStatus,
+          enablesDossierAddition: signal.enablesDossierAddition,
+        }));
+      const missingFromParams = suppliedEvidenceGaps.map((value) => ({
+        missingDataPoint: 'supplied_evidence_gap',
+        value,
+        status: 'missing',
+        enablesDossierAddition: `add evidence for ${value}`,
+      }));
+      const hasCriticalDomain = [params.customerCommunicationImpact, params.billingImpact, params.marketCommunicationImpact, params.massDataImpact, params.riskLevel]
+        .some((value) => /critical|kritisch|hoch|high|blocked|blockiert|uncontrolled|unkontrolliert|mass/i.test(String(value || '')));
+      const uncontrolledMassRun = (massRunVolume !== null && massRunVolume >= 1000 && hasCriticalDomain) ||
+        readinessSignals.some((signal) => ['stop_criteria', 'rollback_path'].includes(signal.code) && isBlocked(signal.status));
+      const blockerGaps = [
+        uncontrolledMassRun ? {
+          missingDataPoint: 'uncontrolled_mass_run',
+          value: massRunVolume || params.riskLevel || true,
+          status: 'blocked',
+          enablesDossierAddition: 'document stop criteria, rollback path, monitoring, and risk acceptance before any mass automation run',
+        } : null,
+      ].filter(Boolean);
+      const evidenceGaps = [
+        ...missingFromSignals,
+        ...missingFromParams,
+        ...blockerGaps,
+      ];
+      let status = 'unknown';
+      if (uncontrolledMassRun) status = 'blocked_by_uncontrolled_mass_run';
+      else if (!params.processId && !params.processName) status = 'needs_process_context';
+      else if (!params.processOwner && !params.operationsOwner) status = 'needs_process_owner';
+      else if (!isReady(normalizeStatus(params.testCaseCoverage))) status = 'needs_test_coverage';
+      else if (!isReady(normalizeStatus(params.edgeCaseCatalog))) status = 'needs_edge_case_catalog';
+      else if (!isReady(normalizeStatus(params.stopCriteria))) status = 'needs_stop_criteria';
+      else if (!isReady(normalizeStatus(params.rollbackPath))) status = 'needs_rollback_path';
+      else if (!isReady(normalizeStatus(params.monitoringSignals))) status = 'needs_monitoring';
+      else if (evidenceGaps.length === 0) status = 'ready_for_automation_decision';
+      else if (missingFromSignals.length > 0) {
+        status = readinessSignals.find((signal) => signal.code === missingFromSignals[0].missingDataPoint)?.statusWhenMissing || 'unknown';
+      }
+      const blockers = evidenceGaps
+        .filter((gap) => gap.status === 'blocked')
+        .map((gap) => ({
+          code: gap.missingDataPoint,
+          processOwner: params.processOwner || null,
+          operationsOwner: params.operationsOwner || null,
+          blockedDecision: params.blockedDecision || null,
+          message: gap.enablesDossierAddition,
+        }));
+      const positiveFollowUps = evidenceGaps.map((gap) => ({
+        missingDataPoint: gap.missingDataPoint,
+        status: gap.status,
+        value: gap.value,
+        enablesDossierAddition: gap.enablesDossierAddition,
+        category: 'automation_risk_gate',
+      }));
+      const nextActions = positiveFollowUps.map((followUp) => ({
+        owner: params.processOwner || params.operationsOwner || null,
+        action: followUp.enablesDossierAddition,
+        missingDataPoint: followUp.missingDataPoint,
+      }));
+      const validationFindings = evidenceGaps.map((gap, index) => ({
+        code: `ARG_${String(gap.missingDataPoint).toUpperCase()}_${index + 1}`,
+        severity: gap.status === 'blocked' || /critical|kritisch|hoch|high/i.test(String(params.riskLevel || '')) ? 'high' : 'medium',
+        message: gap.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Process: ${params.processId || params.processName || 'unknown'}`,
+        `Risk: ${params.riskLevel || 'unknown'}`,
+        `Open gaps: ${evidenceGaps.length}`,
+      ];
+      if (params.blockedDecision) dossierFacts.push(`Blocked Decision: ${params.blockedDecision}`);
+
+      return {
+        automationRiskGateStatusId: `arg:${Buffer.from(`${params.processId || params.processName || ''}:${params.processOwner || params.operationsOwner || ''}:${params.riskLevel || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'automation_risk_gate',
+        safety: 'read_only',
+        status,
+        processContext,
+        riskContext,
+        readinessSignals,
+        evidenceGaps,
+        missingEvidence: evidenceGaps,
+        blockers,
+        nextActions,
+        positiveFollowUps,
+        sourceActions,
+        validationFindings,
+        dossierEvidence: {
+          status,
+          processContext,
+          riskContext,
           readinessSignals,
           evidenceGaps,
           blockers,

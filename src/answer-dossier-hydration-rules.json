@@ -3767,5 +3767,82 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 256
+  },
+  {
+    "id": "automation_risk_gate",
+    "description": "Read-only RPA / Automation Risk Gate evidence",
+    "routeLabel": "automation_risk_gate",
+    "capability": "automation_risk_gate",
+    "action": "dashboard-api.automationRiskGateStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "rpa.execute",
+        "bot.run",
+        "mass-run.trigger",
+        "workflow.execute",
+        "hitl.create",
+        "vdmi.mutate",
+        "customer-communication.send",
+        "settlement.prepareBilling",
+        "settlement.exportA96",
+        "market-communication.send",
+        "notification.send",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "rpa fehlerfolgen gate",
+      "automation risk gate",
+      "bot stopfbarkeit",
+      "rueckrollpfad",
+      "rollback",
+      "sonderfallkatalog",
+      "edge case catalog",
+      "massenlauf risiko",
+      "automatisierungsfreigabe"
+    ],
+    "paramTemplate": {
+      "processId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:processId|process-id|prozess)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "processName": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:processName|process-name|prozessname)[:= ]+([A-Za-z0-9:_ -]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Status", "maxLen": 90 },
+        { "paths": ["processContext.processId", "dossierEvidence.processContext.processId"], "label": "Process ID", "maxLen": 120 },
+        { "paths": ["processContext.processName", "dossierEvidence.processContext.processName"], "label": "Process", "maxLen": 120 },
+        { "paths": ["riskContext.riskLevel", "dossierEvidence.riskContext.riskLevel"], "label": "Risk", "maxLen": 120 },
+        { "paths": ["readinessSignals.0.code", "dossierEvidence.readinessSignals.0.code"], "label": "Leading Signal", "maxLen": 120 },
+        { "paths": ["evidenceGaps.0.missingDataPoint", "dossierEvidence.evidenceGaps.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up", "maxLen": 160 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 205
   }
 ]

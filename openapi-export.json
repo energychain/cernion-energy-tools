@@ -14465,6 +14465,21 @@
         "description": "Builds deterministic owner/deadline/evidence readiness from supplied VNB signal facts. The endpoint is read-only and does not ingest mail/Teams/Loop, mutate workflows, send notifications, create tasks, or call external systems."
       }
     },
+    "/api/dashboard-api/automation-risk-gate": {
+      "get": {
+        "operationId": "dashboard-api_automationRiskGateStatus",
+        "summary": "Automation Risk Gate -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only automation-risk readiness evidence"
+          }
+        },
+        "description": "Builds deterministic RPA / automation risk readiness from supplied process facts. The endpoint is read-only and does not run bots, trigger mass-runs, mutate workflows, create approvals, or call external systems."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53796,6 +53811,21 @@
           }
         },
         "description": "Builds deterministic owner/deadline/evidence readiness from supplied VNB signal facts. The endpoint is read-only and does not ingest mail/Teams/Loop, mutate workflows, send notifications, create tasks, or call external systems."
+      }
+    },
+    "/api/dashboard/automation-risk-gate": {
+      "get": {
+        "operationId": "dashboard-api_automationRiskGateStatus",
+        "summary": "Automation Risk Gate -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only automation-risk readiness evidence"
+          }
+        },
+        "description": "Builds deterministic RPA / automation risk readiness from supplied process facts. The endpoint is read-only and does not run bots, trigger mass-runs, mutate workflows, create approvals, or call external systems."
       }
     },
     "/api/dashboard/market-snapshot": {

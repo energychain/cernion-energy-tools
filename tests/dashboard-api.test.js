@@ -4756,6 +4756,113 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- automationRiskGateStatus -------------------------------------------
+  describe('automationRiskGateStatus', () => {
+    it('reports needs_process_context when no automation process is supplied', async () => {
+      const result = await broker.call('dashboard-api.automationRiskGateStatus', {
+        processOwner: 'Prozessmanagement',
+      });
+
+      expect(result.status).toBe('needs_process_context');
+      expect(result.safety).toBe('read_only');
+      expect(result.evidenceGaps.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['process_context', 'test_case_coverage', 'edge_case_catalog'])
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'rpa.execute',
+          'bot.run',
+          'mass-run.trigger',
+          'workflow.execute',
+          'hitl.create',
+          'vdmi.mutate',
+          'customer-communication.send',
+          'settlement.prepareBilling',
+          'market-communication.send',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('reports needs_test_coverage after process context and owner are known', async () => {
+      const result = await broker.call('dashboard-api.automationRiskGateStatus', {
+        processId: 'rpa-205',
+        processName: 'MSCONS Reklamationsvorbereitung',
+        processClass: 'marktkommunikation',
+        processOwner: 'MaKo',
+        operationsOwner: 'Netzbetrieb',
+        edgeCaseCatalog: 'covered',
+        stopCriteria: 'present',
+        rollbackPath: 'documented',
+        monitoringSignals: 'ready',
+      });
+
+      expect(result.status).toBe('needs_test_coverage');
+      expect(result.evidenceGaps.map((gap) => gap.missingDataPoint)).toContain('test_case_coverage');
+      expect(result.positiveFollowUps[0].category).toBe('automation_risk_gate');
+    });
+
+    it('blocks uncontrolled mass-runs with critical domain impact', async () => {
+      const result = await broker.call('dashboard-api.automationRiskGateStatus', {
+        processId: 'rpa-205',
+        processName: 'Billing Massenlauf',
+        processOwner: 'Abrechnung',
+        operationsOwner: 'IT Betrieb',
+        massRunVolume: '2500',
+        affectedDomains: 'billing,market-communication',
+        billingImpact: 'critical',
+        marketCommunicationImpact: 'critical',
+        testCaseCoverage: 'covered',
+        edgeCaseCatalog: 'covered',
+        stopCriteria: 'present',
+        rollbackPath: 'documented',
+        monitoringSignals: 'ready',
+        riskLevel: 'critical',
+      });
+
+      expect(result.status).toBe('blocked_by_uncontrolled_mass_run');
+      expect(result.blockers.map((blocker) => blocker.code)).toContain('uncontrolled_mass_run');
+      expect(result.validationFindings.some((finding) => finding.severity === 'high')).toBe(true);
+    });
+
+    it('reports ready_for_automation_decision when supplied evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.automationRiskGateStatus', {
+        processId: 'rpa-205',
+        processName: 'Stammdaten Plausibilisierung',
+        processClass: 'backoffice',
+        runFrequency: 'weekly',
+        massRunVolume: '100',
+        affectedDomains: 'asset-mdm',
+        customerCommunicationImpact: 'none',
+        billingImpact: 'none',
+        marketCommunicationImpact: 'none',
+        massDataImpact: 'low',
+        testCaseCoverage: 'covered',
+        edgeCaseCatalog: 'covered',
+        acceptanceMethod: 'shadow-run',
+        monitoringSignals: 'ready',
+        stopCriteria: 'present',
+        rollbackPath: 'documented',
+        processOwner: 'Asset Management',
+        operationsOwner: 'IT Betrieb',
+        riskLevel: 'low',
+      });
+
+      expect(result.status).toBe('ready_for_automation_decision');
+      expect(result.evidenceGaps).toEqual([]);
+      expect(result.processContext.processId).toBe('rpa-205');
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_automation_decision',
+          'Process: rpa-205',
+          'Risk: low',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

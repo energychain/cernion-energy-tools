@@ -549,6 +549,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/owner-deadline-evidence-gate']).toBe(
         'dashboard-api.ownerDeadlineEvidenceGateStatus'
       );
+      expect(aliases['GET /dashboard/automation-risk-gate']).toBe(
+        'dashboard-api.automationRiskGateStatus'
+      );
       expect(aliases['GET /agent-sidecar/tools']).toBe('agent-sidecar.listTools');
       expect(aliases['POST /agent-sidecar/tools/:name/call']).toBe('agent-sidecar.callTool');
       expect(aliases['GET /agent-sidecar/descriptor']).toBe('agent-sidecar.descriptor');
