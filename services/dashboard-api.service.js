@@ -85,6 +85,7 @@ module.exports = {
       netzprozessReadinessGateStatus: 5 * 60 * 1000, // 5 min
       grossspeicherAnschlussReadinessGateStatus: 5 * 60 * 1000, // 5 min
       rolePermissionAccessReadinessGateStatus: 5 * 60 * 1000, // 5 min
+      ownerDeadlineEvidenceGateStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3993,6 +3994,63 @@ module.exports = {
           this.settings.cacheTtlMs.rolePermissionAccessReadinessGateStatus,
           async () => ({
             ...this.buildRolePermissionAccessReadinessGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- ownerDeadlineEvidenceGateStatus -----------------------------------
+    /**
+     * GET /api/dashboard/owner-deadline-evidence-gate
+     *
+     * Read-only dossier-safe gate for supplied Owner-Frist-Evidenz facts.
+     * It does not ingest external messages, mutate deadlines, or create tasks.
+     */
+    ownerDeadlineEvidenceGateStatus: {
+      rest: 'GET /owner-deadline-evidence-gate',
+      params: {
+        signalId: { type: 'string', optional: true, min: 1 },
+        sourceType: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        processType: { type: 'string', optional: true, min: 1 },
+        riskLevel: { type: 'string', optional: true, min: 1 },
+        ownerRole: { type: 'string', optional: true, min: 1 },
+        ownerContact: { type: 'string', optional: true, min: 1 },
+        dueAt: { type: 'string', optional: true, min: 1 },
+        evidenceRef: { type: 'string', optional: true, min: 1 },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+        blockedDecision: { type: 'string', optional: true, min: 1 },
+        linkedEntity: { type: 'string', optional: true, min: 1 },
+        blockedByMissingEvidence: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
+        overdue: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
+        signalContextStatus: { type: 'string', optional: true, min: 1 },
+        missingEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        evidenceGaps: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        caseId: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Owner-Frist-Evidenz Gate -- read-only dossier-safe status',
+        description:
+          'Builds deterministic owner/deadline/evidence readiness from supplied VNB signal facts. ' +
+          'The endpoint is read-only and does not ingest mail/Teams/Loop, mutate workflows, send notifications, create tasks, or call external systems.',
+        responses: {
+          200: {
+            description: 'Read-only Owner-Frist-Evidenz readiness evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `owner-deadline-evidence-gate:${params.signalId || params.caseId || 'no-signal'}:${params.ownerRole || ''}:${params.dueAt || ''}:${params.evidenceRef || ''}:${params.blockedDecision || ''}:${params.linkedEntity || ''}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.ownerDeadlineEvidenceGateStatus,
+          async () => ({
+            ...this.buildOwnerDeadlineEvidenceGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -14257,6 +14315,255 @@ module.exports = {
           blockers,
           owner: params.owner || null,
           dueDate: params.dueDate || null,
+          nextActions,
+          positiveFollowUps,
+          validationFindings,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildOwnerDeadlineEvidenceGateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const normalizeStatus = (value) => {
+        const text = String(value || '').trim().toLowerCase();
+        if (!text) return 'missing';
+        if (/^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|present|vorhanden|cleared|attached|linked)$/.test(text)) return 'ready';
+        if (/^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown|scheduled)$/.test(text)) return 'partial';
+        if (/^(missing|fehlt|absent|not_available|not-available)$/.test(text)) return 'missing';
+        if (/^(blocked|blockiert|red|rot|failed|rejected|denied|expired|overdue|ueberfaellig|überfällig|not_ready|not-ready|stop)$/.test(text)) return 'blocked';
+        if (/(block|denied|reject|expired|overdue|ueberfaellig|überfällig|gesperrt|abgelehnt)/.test(text)) return 'blocked';
+        return text;
+      };
+      const flagIsTrue = (value) => value === true || /^(true|yes|ja|1|blocked|blockiert|overdue|ueberfaellig|überfällig)$/i.test(String(value || '').trim());
+      const isReady = (status) => status === 'ready';
+      const isBlocked = (status) => status === 'blocked';
+      const sourceRefs = toList(params.sourceRef);
+      const suppliedEvidenceGaps = [...toList(params.missingEvidence), ...toList(params.evidenceGaps)];
+      const signalContext = {
+        signalId: params.signalId || params.caseId || null,
+        sourceType: params.sourceType || null,
+        processType: params.processType || null,
+        riskLevel: params.riskLevel || null,
+        blockedDecision: params.blockedDecision || null,
+        linkedEntity: params.linkedEntity || null,
+        sourceRef: sourceRefs,
+      };
+      const ownerContext = {
+        ownerRole: params.ownerRole || null,
+        ownerContact: params.ownerContact || null,
+        dueAt: params.dueAt || null,
+      };
+      const sourceActions = {
+        inspected: ['dashboard-api.ownerDeadlineEvidenceGateStatus'],
+        referenced: [
+          'vdmi.myResponsibilities',
+          'copilot-process.listProcessIntents',
+          'decision-frame.list',
+          'evidence-registry.findings',
+          'dashboard-api.rolePermissionAccessReadinessGateStatus',
+        ],
+        notCalled: [
+          'mail.fetch',
+          'teams.fetch',
+          'loop.fetch',
+          'external.connector.call',
+          'workflow.execute',
+          'notification.send',
+          'deadline.mutate',
+          'task.create',
+          'owner.assign',
+          'hitl.create',
+          'vdmi.mutate',
+          'decision-frame.mutate',
+          'copilot-process.mutate',
+          'personal-agent.execute',
+        ],
+      };
+      const signalSpecs = [
+        {
+          code: 'signal_context',
+          label: 'Signal Context',
+          value: params.signalContextStatus || (params.signalId && params.sourceType ? 'ready' : ''),
+          enablesDossierAddition: 'add signal provenance and process context',
+          statusWhenMissing: 'needs_signal_context',
+        },
+        {
+          code: 'owner',
+          label: 'Owner',
+          value: params.ownerRole || params.ownerContact ? 'ready' : '',
+          enablesDossierAddition: 'add accountable VNB owner role or contact evidence',
+          statusWhenMissing: 'needs_owner',
+        },
+        {
+          code: 'deadline',
+          label: 'Deadline',
+          value: params.dueAt ? 'ready' : '',
+          enablesDossierAddition: 'add deadline tracking evidence',
+          statusWhenMissing: 'needs_deadline',
+        },
+        {
+          code: 'evidence_ref',
+          label: 'Evidence Reference',
+          value: params.evidenceRef ? 'ready' : params.evidenceStatus,
+          enablesDossierAddition: 'attach the blocking evidence proof',
+          statusWhenMissing: 'needs_evidence_ref',
+        },
+        {
+          code: 'blocked_decision',
+          label: 'Blocked Decision',
+          value: params.blockedDecision ? 'ready' : '',
+          enablesDossierAddition: 'explain which operational decision is blocked',
+          statusWhenMissing: 'needs_signal_context',
+        },
+        {
+          code: 'linked_entity',
+          label: 'Linked Entity',
+          value: params.linkedEntity ? 'ready' : '',
+          enablesDossierAddition: 'link the signal to asset, process, market role, Redispatch, security, finance, or governance context',
+          statusWhenMissing: 'needs_signal_context',
+        },
+      ];
+      const readinessSignals = signalSpecs.map((signal) => {
+        const status = normalizeStatus(signal.value);
+        return {
+          code: signal.code,
+          label: signal.label,
+          status,
+          rawStatus: signal.value || null,
+          ownerRole: params.ownerRole || null,
+          dueAt: params.dueAt || null,
+          finding: isReady(status) ? null : signal.enablesDossierAddition,
+          enablesDossierAddition: signal.enablesDossierAddition,
+          statusWhenMissing: signal.statusWhenMissing,
+        };
+      });
+      const missingFromSignals = readinessSignals
+        .filter((signal) => !isReady(signal.status))
+        .map((signal) => ({
+          missingDataPoint: signal.code,
+          status: signal.status,
+          value: signal.rawStatus,
+          enablesDossierAddition: signal.enablesDossierAddition,
+        }));
+      const missingFromParams = suppliedEvidenceGaps.map((value) => ({
+        missingDataPoint: 'supplied_evidence_gap',
+        value,
+        status: 'missing',
+        enablesDossierAddition: `add evidence for ${value}`,
+      }));
+      const sourceGap = sourceRefs.length === 0
+        ? [{
+            missingDataPoint: 'source_ref',
+            value: null,
+            status: 'missing',
+            enablesDossierAddition: 'add source reference for auditability',
+          }]
+        : [];
+      const evidenceStatus = normalizeStatus(params.evidenceStatus);
+      const blockedByMissingEvidence = flagIsTrue(params.blockedByMissingEvidence) || isBlocked(evidenceStatus);
+      const overdue = flagIsTrue(params.overdue);
+      const blockerGaps = [
+        blockedByMissingEvidence ? {
+          missingDataPoint: 'blocked_by_missing_evidence',
+          value: params.evidenceStatus || params.blockedByMissingEvidence || true,
+          status: 'blocked',
+          enablesDossierAddition: 'document missing evidence before the blocked decision can proceed',
+        } : null,
+        overdue ? {
+          missingDataPoint: 'overdue_deadline',
+          value: params.dueAt || params.overdue,
+          status: 'blocked',
+          enablesDossierAddition: 'document overdue deadline handling and owner follow-up',
+        } : null,
+      ].filter(Boolean);
+      const evidenceGaps = [
+        ...missingFromSignals,
+        ...missingFromParams,
+        ...sourceGap,
+        ...blockerGaps,
+      ];
+
+      let status = 'unknown';
+      if (overdue) status = 'blocked_by_overdue_deadline';
+      else if (blockedByMissingEvidence) status = 'blocked_by_missing_evidence';
+      else if (!params.signalId || !params.sourceType) status = 'needs_signal_context';
+      else if (!params.ownerRole && !params.ownerContact) status = 'needs_owner';
+      else if (!params.dueAt) status = 'needs_deadline';
+      else if (!params.evidenceRef && !params.evidenceStatus) status = 'needs_evidence_ref';
+      else if (readinessSignals.every((signal) => isReady(signal.status)) && sourceGap.length === 0 && suppliedEvidenceGaps.length === 0) {
+        status = 'ready_for_decision_followup';
+      } else if (missingFromSignals.length > 0) {
+        status = readinessSignals.find((signal) => signal.code === missingFromSignals[0].missingDataPoint)?.statusWhenMissing || 'unknown';
+      } else if (sourceGap.length > 0 || suppliedEvidenceGaps.length > 0) {
+        status = 'needs_evidence_ref';
+      }
+      const blockers = evidenceGaps
+        .filter((gap) => gap.status === 'blocked')
+        .map((gap) => ({
+          code: gap.missingDataPoint,
+          ownerRole: params.ownerRole || null,
+          dueAt: params.dueAt || null,
+          blockedDecision: params.blockedDecision || null,
+          message: gap.enablesDossierAddition,
+        }));
+      const positiveFollowUps = evidenceGaps.map((gap) => ({
+        missingDataPoint: gap.missingDataPoint,
+        status: gap.status,
+        value: gap.value,
+        enablesDossierAddition: gap.enablesDossierAddition,
+        category: 'owner_deadline_evidence_gate',
+      }));
+      const nextActions = positiveFollowUps.map((followUp) => ({
+        ownerRole: params.ownerRole || null,
+        dueAt: params.dueAt || null,
+        action: followUp.enablesDossierAddition,
+        missingDataPoint: followUp.missingDataPoint,
+      }));
+      const validationFindings = evidenceGaps.map((gap, index) => ({
+        code: `ODEG_${String(gap.missingDataPoint).toUpperCase()}_${index + 1}`,
+        severity: gap.status === 'blocked' || /critical|hoch|high/i.test(String(params.riskLevel || '')) ? 'high' : 'medium',
+        message: gap.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Signal: ${params.signalId || params.caseId || 'unknown'}`,
+        `Owner: ${params.ownerRole || params.ownerContact || 'unknown'}`,
+        `Open gaps: ${evidenceGaps.length}`,
+      ];
+      if (params.blockedDecision) dossierFacts.push(`Blocked Decision: ${params.blockedDecision}`);
+
+      return {
+        ownerDeadlineEvidenceGateStatusId: `odeg:${Buffer.from(`${params.signalId || params.caseId || ''}:${params.ownerRole || params.ownerContact || ''}:${params.dueAt || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'owner_deadline_evidence_gate',
+        safety: 'read_only',
+        status,
+        signalContext,
+        ownerContext,
+        readinessSignals,
+        evidenceGaps,
+        missingEvidence: evidenceGaps,
+        blockers,
+        nextActions,
+        positiveFollowUps,
+        sourceActions,
+        validationFindings,
+        dossierEvidence: {
+          status,
+          signalContext,
+          ownerContext,
+          readinessSignals,
+          evidenceGaps,
+          blockers,
           nextActions,
           positiveFollowUps,
           validationFindings,

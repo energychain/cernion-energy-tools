@@ -334,6 +334,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasOwnerDeadlineEvidenceSpecificSignal =
+    /(owner.?frist.?evidenz|owner deadline evidence|vnb.?signal|signal.?nachhaltung|frist.?nachhaltung|evidenz.?cockpit|management.?nachhaltung|blockierte folgeentscheidung)/i.test(haystack) &&
+    /(owner|frist|deadline|evidenz|evidence|quelle|source|blocked decision|blockierte folgeentscheidung|linked entity|verknuepfte entitaet|verknüpfte entität|risiko|risk)/i.test(haystack) &&
+    !/(mail.?ingest|mail.?scrap|teams|loop|external connector|connector|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|notification|benachrichtigung|eskalation|deadline mutate|frist setzen|frist aendern|frist ändern|task create|aufgabe erstellen|legal opinion|rechtsgutachten|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|backup|disaster recovery|streaming|websocket|smgw|cls|device.?control|steuerbefehl|accessmanager|access manager|iam provision|rollenberechtigung|grossspeicher|großspeicher|netzprozess readiness|prozessreife|redispatch sondergate|krisenroutine|krisenmodus|crisis|investment data|investment review|datenreview|review queue|investitionsdaten|investdaten|pruefqueue|prüfqueue|capex|assetmanagement)/i.test(haystack);
+
+  if (hasOwnerDeadlineEvidenceSpecificSignal) {
+    const ownerDeadlineCapability = findCapabilityByName('owner_deadline_evidence_gate');
+    if (ownerDeadlineCapability) {
+      return { capability: ownerDeadlineCapability, score: 142, usedFallback: false };
+    }
+  }
+
   const hasNetzprozessReadinessGateSpecificSignal =
     /(netzprozess.?readiness|process readiness gate|prozessreife|portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad|blockierte folgeentscheidung)/i.test(haystack) &&
     /(portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad)/i.test(haystack) &&

@@ -1508,4 +1508,36 @@ describe('Capability Broker Service', () => {
 
     expect(result.capability).not.toBe('role_permission_access_readiness_gate');
   });
+
+  it('routes Owner-Frist-Evidenz VNB signal prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Owner Frist Evidenz fuer VNB Signal: blockierte Folgeentscheidung, Frist Nachhaltung, Evidenz Cockpit, Source, linked entity und Management Nachhaltung.',
+    });
+
+    expect(result.capability).toBe('owner_deadline_evidence_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe('owner_deadline_evidence_gate');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.ownerDeadlineEvidenceGateStatus');
+    expect(actionNames).not.toContain('mail.fetch');
+    expect(actionNames).not.toContain('workflow.execute');
+    expect(actionNames).not.toContain('notification.send');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('does not route mail ingestion or external connector prompts to the Owner-Frist-Evidenz gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Scrape Mail Teams und Loop, baue External Connector Ingestion und erstelle Workflow Eskalation fuer Owner Frist Evidenz.',
+    });
+
+    expect(result.capability).not.toBe('owner_deadline_evidence_gate');
+  });
+
+  it('does not route legal-opinion or AccessManager provisioning prompts to the Owner-Frist-Evidenz gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle Rechtsgutachten und provisioniere AccessManager IAM Rollen mit Credentials fuer Frist Nachhaltung.',
+    });
+
+    expect(result.capability).not.toBe('owner_deadline_evidence_gate');
+  });
 });

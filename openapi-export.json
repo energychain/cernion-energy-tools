@@ -14450,6 +14450,21 @@
         "description": "Builds deterministic role/access readiness evidence from supplied facts. The endpoint is read-only and does not call AccessManager, mutate IAM/RBAC state, store credentials, create workflows, or call external systems."
       }
     },
+    "/api/dashboard-api/owner-deadline-evidence-gate": {
+      "get": {
+        "operationId": "dashboard-api_ownerDeadlineEvidenceGateStatus",
+        "summary": "Owner-Frist-Evidenz Gate -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Owner-Frist-Evidenz readiness evidence"
+          }
+        },
+        "description": "Builds deterministic owner/deadline/evidence readiness from supplied VNB signal facts. The endpoint is read-only and does not ingest mail/Teams/Loop, mutate workflows, send notifications, create tasks, or call external systems."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53766,6 +53781,21 @@
           }
         },
         "description": "Builds deterministic role/access readiness evidence from supplied facts. The endpoint is read-only and does not call AccessManager, mutate IAM/RBAC state, store credentials, create workflows, or call external systems."
+      }
+    },
+    "/api/dashboard/owner-deadline-evidence-gate": {
+      "get": {
+        "operationId": "dashboard-api_ownerDeadlineEvidenceGateStatus",
+        "summary": "Owner-Frist-Evidenz Gate -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Owner-Frist-Evidenz readiness evidence"
+          }
+        },
+        "description": "Builds deterministic owner/deadline/evidence readiness from supplied VNB signal facts. The endpoint is read-only and does not ingest mail/Teams/Loop, mutate workflows, send notifications, create tasks, or call external systems."
       }
     },
     "/api/dashboard/market-snapshot": {

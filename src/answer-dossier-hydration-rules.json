@@ -3681,5 +3681,91 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 261
+  },
+  {
+    "id": "owner_deadline_evidence_gate",
+    "description": "Read-only Owner-Frist-Evidenz readiness evidence",
+    "routeLabel": "owner_deadline_evidence_gate",
+    "capability": "owner_deadline_evidence_gate",
+    "action": "dashboard-api.ownerDeadlineEvidenceGateStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "mail.fetch",
+        "teams.fetch",
+        "loop.fetch",
+        "external.connector.call",
+        "workflow.execute",
+        "notification.send",
+        "deadline.mutate",
+        "task.create",
+        "owner.assign",
+        "hitl.create",
+        "vdmi.mutate",
+        "decision-frame.mutate",
+        "copilot-process.mutate",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "owner frist evidenz",
+      "owner deadline evidence",
+      "vnb signal",
+      "blockierte folgeentscheidung",
+      "frist nachhaltung",
+      "evidenz cockpit",
+      "management nachhaltung",
+      "signal nachhaltung"
+    ],
+    "paramTemplate": {
+      "signalId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:signalId|signal-id|signal)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "ownerRole": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:ownerRole|owner|rolle)[:= ]+([A-Za-z0-9:_ -]+)",
+          "group": 1
+        }
+      },
+      "dueAt": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:dueAt|frist|deadline)[:= ]+([0-9]{4}-[0-9]{2}-[0-9]{2}|[A-Za-z0-9:_ -]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Status", "maxLen": 90 },
+        { "paths": ["signalContext.signalId", "dossierEvidence.signalContext.signalId"], "label": "Signal", "maxLen": 120 },
+        { "paths": ["signalContext.sourceType", "dossierEvidence.signalContext.sourceType"], "label": "Quelle", "maxLen": 120 },
+        { "paths": ["ownerContext.ownerRole", "dossierEvidence.ownerContext.ownerRole"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["ownerContext.dueAt", "dossierEvidence.ownerContext.dueAt"], "label": "Frist", "maxLen": 120 },
+        { "paths": ["signalContext.blockedDecision", "dossierEvidence.signalContext.blockedDecision"], "label": "Blockierte Entscheidung", "maxLen": 160 },
+        { "paths": ["evidenceGaps.0.missingDataPoint", "dossierEvidence.evidenceGaps.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up", "maxLen": 160 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 256
   }
 ]

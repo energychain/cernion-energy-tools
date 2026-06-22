@@ -4655,6 +4655,107 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- ownerDeadlineEvidenceGateStatus -------------------------------------
+  describe('ownerDeadlineEvidenceGateStatus', () => {
+    it('reports needs_signal_context when no signal provenance is supplied', async () => {
+      const result = await broker.call('dashboard-api.ownerDeadlineEvidenceGateStatus', {
+        ownerRole: 'Netzbetrieb',
+      });
+
+      expect(result.status).toBe('needs_signal_context');
+      expect(result.safety).toBe('read_only');
+      expect(result.evidenceGaps.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['signal_context', 'source_ref'])
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'mail.fetch',
+          'teams.fetch',
+          'loop.fetch',
+          'external.connector.call',
+          'workflow.execute',
+          'notification.send',
+          'deadline.mutate',
+          'task.create',
+          'owner.assign',
+          'hitl.create',
+          'vdmi.mutate',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('reports needs_owner after signal context is known', async () => {
+      const result = await broker.call('dashboard-api.ownerDeadlineEvidenceGateStatus', {
+        signalId: 'sig-256',
+        sourceType: 'vdmi_task',
+        sourceRef: 'vdmi:task-256',
+        dueAt: '2026-09-30',
+        evidenceRef: 'evidence:256',
+        evidenceStatus: 'present',
+        blockedDecision: 'Redispatch Nachhaltung',
+        linkedEntity: 'process:redispatch',
+      });
+
+      expect(result.status).toBe('needs_owner');
+      expect(result.evidenceGaps.map((gap) => gap.missingDataPoint)).toContain('owner');
+      expect(result.positiveFollowUps[0].category).toBe('owner_deadline_evidence_gate');
+    });
+
+    it('reports blocked statuses for overdue or missing evidence blockers', async () => {
+      const result = await broker.call('dashboard-api.ownerDeadlineEvidenceGateStatus', {
+        signalId: 'sig-256',
+        sourceType: 'process_intent',
+        sourceRef: 'process:intent-256',
+        ownerRole: 'Regulierungsmanagement',
+        ownerContact: 'steuerung@example.invalid',
+        dueAt: '2026-06-01',
+        evidenceRef: 'evidence:missing',
+        evidenceStatus: 'blocked',
+        blockedDecision: 'Management Nachhaltung',
+        linkedEntity: 'asset:nap-1',
+        blockedByMissingEvidence: true,
+        overdue: true,
+        riskLevel: 'critical',
+      });
+
+      expect(result.status).toBe('blocked_by_overdue_deadline');
+      expect(result.blockers.map((blocker) => blocker.code)).toEqual(
+        expect.arrayContaining(['blocked_by_missing_evidence', 'overdue_deadline'])
+      );
+      expect(result.validationFindings.some((finding) => finding.severity === 'high')).toBe(true);
+    });
+
+    it('reports ready_for_decision_followup when supplied signal facts are complete', async () => {
+      const result = await broker.call('dashboard-api.ownerDeadlineEvidenceGateStatus', {
+        signalId: 'sig-256',
+        sourceType: 'decision_frame',
+        sourceRef: 'decision-frame:df-256',
+        processType: 'redispatch',
+        riskLevel: 'medium',
+        ownerRole: 'Netzbetrieb',
+        ownerContact: 'nb@example.invalid',
+        dueAt: '2026-09-30',
+        evidenceRef: 'evidence:receipt-256',
+        evidenceStatus: 'present',
+        blockedDecision: 'Freigabe Folgeentscheidung',
+        linkedEntity: 'malo:DE001256',
+      });
+
+      expect(result.status).toBe('ready_for_decision_followup');
+      expect(result.evidenceGaps).toEqual([]);
+      expect(result.signalContext.blockedDecision).toBe('Freigabe Folgeentscheidung');
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_decision_followup',
+          'Signal: sig-256',
+          'Owner: Netzbetrieb',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

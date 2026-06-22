@@ -1486,6 +1486,8 @@ module.exports = {
             'dashboard-api.grossspeicherAnschlussReadinessGateStatus',
           'GET /dashboard/role-permission-access-readiness-gate':
             'dashboard-api.rolePermissionAccessReadinessGateStatus',
+          'GET /dashboard/owner-deadline-evidence-gate':
+            'dashboard-api.ownerDeadlineEvidenceGateStatus',
           'POST /community/consult': 'community.consult',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
