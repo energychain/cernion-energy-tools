@@ -4221,6 +4221,78 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- zaehlparkFinanzierungSzenarioCockpitStatus ----------------------------
+
+  describe('zaehlparkFinanzierungSzenarioCockpitStatus', () => {
+    it('reports Zaehlpark financing scenario gaps without external connectors or mutation side effects', async () => {
+      const result = await broker.call('dashboard-api.zaehlparkFinanzierungSzenarioCockpitStatus', {
+        gridOperatorId: 'VNB-143',
+      });
+
+      expect(result.status).toBe('needs_scenario');
+      expect(result.gateStatus).toBe('insufficient_data');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'scenario_id',
+          'asset_scope',
+          'metering_scope',
+          'period',
+          'investment_volume',
+          'imsys_count',
+          'financing_model',
+          'opex_annual',
+          'regulatory_relevance',
+          'source_refs',
+        ])
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'hitl.create',
+          'settlement.prepareBilling',
+          'external.bank.call',
+          'external.leasing.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_decision and review_required for complete leasing scenario evidence', async () => {
+      const result = await broker.call('dashboard-api.zaehlparkFinanzierungSzenarioCockpitStatus', {
+        gridOperatorId: 'VNB-143',
+        scenarioId: 'sc-2026-rollout',
+        assetScope: 'imsys,gateway,mme',
+        meteringScope: 'cross-sector',
+        period: '2026-2030',
+        investmentVolume: 6200000,
+        imsysCount: 4200,
+        financingModel: 'leasing',
+        opexAnnual: 310000,
+        regulatoryRelevance: 'paragraph_14a',
+        sourceRef: 'ZaehlparkPlan_2026,Finance_Assumptions',
+      });
+
+      expect(result.status).toBe('ready_for_decision');
+      expect(result.gateStatus).toBe('review_required');
+      expect(result.overallStatus).toBe('review_required');
+      expect(result.readinessScore).toBe(1);
+      expect(result.complianceScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.technical.capexPerImsys).toBe(1476.19);
+      expect(result.financial.totexFirstYear).toBe(6510000);
+      expect(result.regulatory.paragraph14aRelevant).toBe(true);
+      expect(result.sourceRefs).toEqual(expect.arrayContaining(['ZaehlparkPlan_2026', 'Finance_Assumptions']));
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_decision',
+          'Gate Status: review_required',
+          'Readiness Score: 1',
+          'Provided Zaehlpark Finanzierung Szenario Cockpit evidence: 11/11',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

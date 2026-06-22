@@ -80,6 +80,7 @@ module.exports = {
       gridConnectionTransformationGateStatus: 5 * 60 * 1000, // 5 min
       heatAssetTariffSteeringStatus: 5 * 60 * 1000, // 5 min
       techCommercialOfferCockpitStatus: 5 * 60 * 1000, // 5 min
+      zaehlparkFinanzierungSzenarioCockpitStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3693,6 +3694,57 @@ module.exports = {
           this.settings.cacheTtlMs.techCommercialOfferCockpitStatus,
           async () => ({
             ...this.buildTechCommercialOfferCockpitStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- zaehlparkFinanzierungSzenarioCockpitStatus ----------------------------
+    /**
+     * GET /api/dashboard/zaehlpark-finanzierung-szenario-cockpit
+     *
+     * Read-only dossier-safe Zaehlpark Finanzierung Szenario Cockpit.
+     * It evaluates metering rollout financing evidence from supplied facts
+     * without calling banks, ERP systems, billing, settlement, or mutation paths.
+     */
+    zaehlparkFinanzierungSzenarioCockpitStatus: {
+      rest: 'GET /zaehlpark-finanzierung-szenario-cockpit',
+      params: {
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        scenarioId: { type: 'string', optional: true, min: 1 },
+        assetScope: { type: 'string', optional: true, min: 1 },
+        meteringScope: { type: 'string', optional: true, min: 1 },
+        period: { type: 'string', optional: true, min: 1 },
+        investmentVolume: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string' }] },
+        imsysCount: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string' }] },
+        financingModel: { type: 'string', optional: true, min: 1 },
+        opexAnnual: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string' }] },
+        regulatoryRelevance: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Zaehlpark Finanzierung Szenario Cockpit -- read-only dossier-safe status',
+        description:
+          'Builds deterministic rollout and financing scenario status from supplied facts. ' +
+          'The endpoint is read-only and does not run external financing, billing, settlement, or mutation paths.',
+        responses: {
+          200: {
+            description: 'Read-only metering rollout financing scenario evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `zaehlpark-finanzierung-szenario-cockpit:${params.gridOperatorId || 'no-operator'}:${params.scenarioId || 'no-scenario'}:${params.assetScope || 'no-asset-scope'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.zaehlparkFinanzierungSzenarioCockpitStatus,
+          async () => ({
+            ...this.buildZaehlparkFinanzierungSzenarioCockpitStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -13013,6 +13065,310 @@ module.exports = {
           gateStatus,
           readinessScore,
           complianceScore,
+          complianceContext,
+          complianceEvidence,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildZaehlparkFinanzierungSzenarioCockpitStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+
+      const toNumber = (value) => {
+        if (value === undefined || value === null || value === '') return null;
+        const normalized = typeof value === 'string'
+          ? value.replace(/\s/g, '').replace(',', '.')
+          : value;
+        const n = Number(normalized);
+        return Number.isFinite(n) ? n : null;
+      };
+
+      const sourceRefs = toList(params.sourceRef);
+      const investmentVolume = toNumber(params.investmentVolume);
+      const imsysCount = toNumber(params.imsysCount);
+      const opexAnnual = toNumber(params.opexAnnual);
+
+      const evidenceSpecs = [
+        {
+          id: 'grid_operator_id',
+          label: 'Netzbetreiber ID',
+          value: params.gridOperatorId,
+          sourceClass: 'grid_operator_identity',
+          enablesDossierAddition: 'verify DSO identification and metering portfolio owner',
+        },
+        {
+          id: 'scenario_id',
+          label: 'Scenario ID',
+          value: params.scenarioId,
+          sourceClass: 'scenario_reference',
+          enablesDossierAddition: 'bind rollout and financing assumptions to a named scenario',
+        },
+        {
+          id: 'asset_scope',
+          label: 'Asset Scope',
+          value: params.assetScope,
+          sourceClass: 'metering_asset_scope',
+          enablesDossierAddition: 'confirm whether iMSys, gateways, mME, water or heat meters are in scope',
+        },
+        {
+          id: 'metering_scope',
+          label: 'Metering Scope',
+          value: params.meteringScope,
+          sourceClass: 'metering_scope',
+          enablesDossierAddition: 'confirm intelligent, standard or cross-sector metering scope',
+        },
+        {
+          id: 'period',
+          label: 'Period',
+          value: params.period,
+          sourceClass: 'scenario_period',
+          enablesDossierAddition: 'add rollout period for CAPEX/OPEX timing',
+        },
+        {
+          id: 'investment_volume',
+          label: 'Investment Volume',
+          value: investmentVolume,
+          sourceClass: 'capex_budget',
+          enablesDossierAddition: 'add total CAPEX budget for financing scenario comparison',
+        },
+        {
+          id: 'imsys_count',
+          label: 'iMSys Count',
+          value: imsysCount,
+          sourceClass: 'smart_meter_rollout_quantity',
+          enablesDossierAddition: 'add target iMSys rollout quantity',
+        },
+        {
+          id: 'financing_model',
+          label: 'Financing Model',
+          value: params.financingModel,
+          sourceClass: 'financing_model',
+          enablesDossierAddition: 'add financing model such as own capital, leasing, credit or contracting',
+        },
+        {
+          id: 'opex_annual',
+          label: 'OPEX Annual',
+          value: opexAnnual,
+          sourceClass: 'annual_opex',
+          enablesDossierAddition: 'add annual OPEX estimate for TOTEX view',
+        },
+        {
+          id: 'regulatory_relevance',
+          label: 'Regulatory Relevance',
+          value: params.regulatoryRelevance,
+          sourceClass: 'regulatory_context',
+          enablesDossierAddition: 'add regulatory context such as paragraph_14a, paragraph_14d or MaStR validation',
+        },
+        {
+          id: 'source_refs',
+          label: 'Quellenreferenzen',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition: 'add source references for scenario assumptions and evidence status',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value !== undefined && spec.value !== null && spec.value !== false)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue ?? spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => spec.value === undefined || spec.value === null || spec.value === false)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        !params.gridOperatorId
+          ? 'needs_grid_operator'
+          : !params.scenarioId
+            ? 'needs_scenario'
+            : !params.assetScope
+              ? 'needs_asset_scope'
+              : investmentVolume === null
+                ? 'needs_investment_volume'
+                : imsysCount === null
+                  ? 'needs_imsys_count'
+                  : !params.financingModel
+                    ? 'needs_financing_model'
+                    : sourceRefs.length === 0
+                      ? 'needs_source_refs'
+                      : 'ready_for_decision';
+
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const complianceScore = Number((
+        evidenceItems.filter((item) => [
+          'grid_operator_id',
+          'scenario_id',
+          'asset_scope',
+          'metering_scope',
+          'regulatory_relevance',
+          'source_refs',
+        ].includes(item.id)).length / 6
+      ).toFixed(2));
+
+      const financingModel = String(params.financingModel || '').toLowerCase();
+      const regulatory = String(params.regulatoryRelevance || '').toLowerCase();
+      const capexPerImsys = investmentVolume !== null && imsysCount > 0
+        ? Number((investmentVolume / imsysCount).toFixed(2))
+        : null;
+
+      let gateStatus = 'insufficient_data';
+      if (status === 'ready_for_decision') {
+        const debtOrLease = /leasing|credit|kredit|contracting|fremd/.test(financingModel);
+        const regulatorySensitive = /14a|14d|mastr|regulatory|regulator/.test(regulatory);
+        if (readinessScore >= 1 && complianceScore >= 1 && investmentVolume <= 5000000 && !debtOrLease) {
+          gateStatus = 'committee_ready';
+        } else if (readinessScore >= 1 && complianceScore >= 0.83 && (debtOrLease || regulatorySensitive || investmentVolume > 5000000)) {
+          gateStatus = 'review_required';
+        } else {
+          gateStatus = 'insufficient_data';
+        }
+      }
+
+      const technical = {
+        assetScope: params.assetScope || null,
+        meteringScope: params.meteringScope || null,
+        imsysCount,
+        capexPerImsys,
+      };
+      const financial = {
+        investmentVolume,
+        financingModel: params.financingModel || null,
+        opexAnnual,
+        totexFirstYear: investmentVolume !== null || opexAnnual !== null
+          ? Number(((investmentVolume || 0) + (opexAnnual || 0)).toFixed(2))
+          : null,
+      };
+      const regulatoryContext = {
+        regulatoryRelevance: params.regulatoryRelevance || null,
+        paragraph14aRelevant: /14a/.test(regulatory),
+        paragraph14dRelevant: /14d/.test(regulatory),
+        mastrValidationRelevant: /mastr/.test(regulatory),
+      };
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'zaehlpark_finanzierung_szenario_cockpit',
+      }));
+
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `ZFS_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['grid_operator_id', 'scenario_id', 'asset_scope', 'investment_volume', 'imsys_count', 'financing_model'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+
+      const complianceContext = {
+        scenarioId: params.scenarioId || null,
+        period: params.period || null,
+      };
+
+      const complianceEvidence = {
+        gridOperatorId: params.gridOperatorId || null,
+        assetScope: params.assetScope || null,
+        meteringScope: params.meteringScope || null,
+        investmentVolume,
+        imsysCount,
+        financingModel: params.financingModel || null,
+        opexAnnual,
+        regulatoryRelevance: params.regulatoryRelevance || null,
+      };
+
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Gate Status: ${gateStatus}`,
+        `Readiness Score: ${readinessScore}`,
+        `Provided Zaehlpark Finanzierung Szenario Cockpit evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.scenarioId) dossierFacts.push(`Scenario ID: ${params.scenarioId}`);
+
+      return {
+        zaehlparkFinanzierungSzenarioCockpitStatusId: `zfs:${Buffer.from(`${params.gridOperatorId || ''}:${params.scenarioId || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'zaehlpark_finanzierung_szenario_cockpit',
+        safety: 'read_only',
+        requestContext: {
+          gridOperatorId: params.gridOperatorId || null,
+          scenarioId: params.scenarioId || null,
+          period: params.period || null,
+        },
+        status,
+        gateStatus,
+        overallStatus: gateStatus,
+        readinessScore,
+        complianceScore,
+        technical,
+        financial,
+        regulatory: regulatoryContext,
+        complianceContext,
+        complianceEvidence,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+        },
+        sourceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.zaehlparkFinanzierungSzenarioCockpitStatus'],
+          referenced: [
+            'edm-messkonzept.evaluateAll',
+            'edm-validation.validate',
+            'datapoint.health',
+            'datapoint.validateSnapshot',
+            'eog-calculator.scenario',
+            'finance-agent.analyze',
+            'investment-planning.createPlan',
+            'off_balancing_metering_pruefmatrix',
+          ],
+          notCalled: [
+            'hitl.create',
+            'vdmi.mutate',
+            'investment-planning.createPlan',
+            'finance-agent.mutate',
+            'budget.release',
+            'settlement.prepareBilling',
+            'external.bank.call',
+            'external.leasing.call',
+            'external.connector.call',
+            'personal-agent.execute'
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          gateStatus,
+          readinessScore,
+          complianceScore,
+          technical,
+          financial,
+          regulatory: regulatoryContext,
           complianceContext,
           complianceEvidence,
           evidenceItems,

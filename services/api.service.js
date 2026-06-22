@@ -1476,6 +1476,8 @@ module.exports = {
             'dashboard-api.heatAssetTariffSteeringStatus',
           'GET /dashboard/tech-commercial-offer-cockpit':
             'dashboard-api.techCommercialOfferCockpitStatus',
+          'GET /dashboard/zaehlpark-finanzierung-szenario-cockpit':
+            'dashboard-api.zaehlparkFinanzierungSzenarioCockpitStatus',
           'POST /community/consult': 'community.consult',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',

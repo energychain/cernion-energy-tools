@@ -1409,4 +1409,22 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
     expect(actionNames).not.toContain('external.connector.call');
   });
+
+  it('routes Zaehlpark financing scenario prompts to the read-only evidence status path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Zaehlpark Finanzierung Szenario Cockpit fuer gridOperatorId=VNB-143 und scenarioId=sc-2026-rollout: iMSys Rollout, Gateway Finanzierung, mME, Wasser/Waerme, CAPEX, OPEX, TOTEX, Leasing und Quellenreferenzen.',
+    });
+
+    expect(result.capability).toBe('zaehlpark_finanzierung_szenario_cockpit');
+    expect(result.recommendedCapabilities[0].capability).toBe('zaehlpark_finanzierung_szenario_cockpit');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.zaehlparkFinanzierungSzenarioCockpitStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('assets.mutate');
+    expect(actionNames).not.toContain('datapoint.mutate');
+    expect(actionNames).not.toContain('finance-agent.mutate');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
 });

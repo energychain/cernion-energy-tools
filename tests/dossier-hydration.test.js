@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 54 static rules', () => {
+    it('loads all 55 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(54);
+      expect(rules.length).toBe(55);
     });
 
-    it('compiles all 54 static rules without error', () => {
+    it('compiles all 55 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(54);
+      expect(rules.length).toBe(55);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -555,6 +555,53 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Submission: submission:2026-capex');
       expect(formatted).toContain('Tactical Owner: Assetmanagement');
       expect(formatted).toContain('Leading Gap: finance_review');
+    });
+
+    it('dashboard-api.zaehlparkFinanzierungSzenarioCockpitStatus is dossier-safe and formats scenario facts', () => {
+      const rule = getRule('dashboard-api.zaehlparkFinanzierungSzenarioCockpitStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Zaehlpark Finanzierung Szenario fuer gridOperatorId=VNB-143 und scenarioId=sc-2026-rollout pruefen'
+        )
+      ).toEqual({
+        gridOperatorId: 'VNB-143',
+        scenarioId: 'sc-2026-rollout',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'ready_for_decision',
+        gateStatus: 'review_required',
+        readinessScore: 1,
+        requestContext: {
+          gridOperatorId: 'VNB-143',
+          scenarioId: 'sc-2026-rollout',
+        },
+        complianceEvidence: {
+          assetScope: 'imsys,gateway',
+          investmentVolume: 6200000,
+          imsysCount: 4200,
+          financingModel: 'leasing',
+          opexAnnual: 310000,
+          regulatoryRelevance: 'paragraph_14a',
+        },
+        missingEvidence: [],
+        sourceActions: {
+          notCalled: ['hitl.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: ready_for_decision'],
+        },
+      });
+
+      expect(formatted).toContain('Scenario Readiness: ready_for_decision');
+      expect(formatted).toContain('Decision Status: review_required');
+      expect(formatted).toContain('DSO ID: VNB-143');
+      expect(formatted).toContain('Scenario ID: sc-2026-rollout');
+      expect(formatted).toContain('Financing Model: leasing');
+      expect(formatted).toContain('Side-Effect Guard: hitl.create');
     });
 
     it('dashboard-api.sapBudgetPspGateStatus is dossier-safe and formats SAP/PSP gate facts', () => {

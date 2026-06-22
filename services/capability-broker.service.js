@@ -553,6 +553,36 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const zaehlparkFinancingSignals = [
+    'zaehlpark szenario',
+    'zaehlpark finanzierung',
+    'zählpark szenario',
+    'zählpark finanzierung',
+    'metering rollout',
+    'imsys rollout',
+    'imsys finanzierung',
+    'smart meter gateway finanzierung',
+    'rolloutpfad',
+    'rollout pfad',
+    'szenariocockpit',
+  ];
+  const hasOffBalancingMeteringSignal =
+    /(off.?balancing|purpose.?lock|zweckbindung|scheinspielraum|kostenanerkennung|eog)/i.test(haystack);
+  const hasZaehlparkFinancingCombo =
+    !hasOffBalancingMeteringSignal &&
+    /(zaehlpark|zählpark|imsys|smart.?meter|gateway|mme|metering|messpunkt)/i.test(haystack) &&
+    /(finanzierung|finance|szenario|scenario|rollout|totex|capex|opex|leasing|kredit|contracting)/i.test(haystack);
+
+  if (
+    (!hasOffBalancingMeteringSignal && zaehlparkFinancingSignals.some((signal) => haystack.includes(signal))) ||
+    hasZaehlparkFinancingCombo
+  ) {
+    const zaehlparkCapability = findCapabilityByName('zaehlpark_finanzierung_szenario_cockpit');
+    if (zaehlparkCapability) {
+      return { capability: zaehlparkCapability, score: 129, usedFallback: false };
+    }
+  }
+
   const hasSmartMeterPurposeLockSignal =
     /(smart.?meter|imsys|z[aä]hlpark)/i.test(haystack) &&
     /(off.?balancing|purpose.?lock|zweckbindung|budgetverwaesserung|budgetverw[aä]sserung|freiwerdende liquidit[aä]t|leitwarte invest|steuerbarkeit finanzieren)/i.test(

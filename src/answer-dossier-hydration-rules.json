@@ -3275,5 +3275,84 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 73
+  },
+  {
+    "id": "zaehlpark_finanzierung_szenario_cockpit",
+    "description": "Read-only Zaehlpark Finanzierung Szenario Cockpit status evidence",
+    "routeLabel": "zaehlpark_finanzierung_szenario_cockpit",
+    "capability": "zaehlpark_finanzierung_szenario_cockpit",
+    "action": "dashboard-api.zaehlparkFinanzierungSzenarioCockpitStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "hitl.create",
+        "vdmi.mutate",
+        "investment-planning.createPlan",
+        "finance-agent.mutate",
+        "budget.release",
+        "settlement.prepareBilling",
+        "external.bank.call",
+        "external.leasing.call",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "zaehlpark szenario",
+      "zaehlpark finanzierung",
+      "zählpark szenario",
+      "zählpark finanzierung",
+      "metering rollout",
+      "imsys rollout",
+      "imsys finanzierung",
+      "rolloutpfad",
+      "szenariocockpit"
+    ],
+    "paramTemplate": {
+      "gridOperatorId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:gridOperatorId|netzbetreiber|dso|vnb)[:= ]+([A-Za-z0-9_-]+)",
+          "group": 1
+        }
+      },
+      "scenarioId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:scenarioId|scenario_id)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Scenario Readiness", "maxLen": 90 },
+        { "paths": ["gateStatus", "overallStatus", "dossierEvidence.gateStatus"], "label": "Decision Status", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness Score" },
+        { "paths": ["complianceEvidence.gridOperatorId", "requestContext.gridOperatorId"], "label": "DSO ID", "maxLen": 120 },
+        { "paths": ["complianceContext.scenarioId", "requestContext.scenarioId"], "label": "Scenario ID", "maxLen": 120 },
+        { "paths": ["complianceEvidence.assetScope", "technical.assetScope"], "label": "Asset Scope", "maxLen": 120 },
+        { "paths": ["complianceEvidence.investmentVolume", "financial.investmentVolume"], "label": "Investment Volume" },
+        { "paths": ["complianceEvidence.imsysCount", "technical.imsysCount"], "label": "iMSys Count" },
+        { "paths": ["complianceEvidence.financingModel", "financial.financingModel"], "label": "Financing Model", "maxLen": 120 },
+        { "paths": ["complianceEvidence.opexAnnual", "financial.opexAnnual"], "label": "OPEX Annual" },
+        { "paths": ["complianceEvidence.regulatoryRelevance", "regulatory.regulatoryRelevance"], "label": "Regulatory Relevance", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 143
   }
 ]

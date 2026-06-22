@@ -14375,6 +14375,21 @@
         "description": "Builds deterministic gate status and evidence from supplied facts. The endpoint is read-only and does not run writes or actual offer generation."
       }
     },
+    "/api/dashboard-api/zaehlpark-finanzierung-szenario-cockpit": {
+      "get": {
+        "operationId": "dashboard-api_zaehlparkFinanzierungSzenarioCockpitStatus",
+        "summary": "Zaehlpark Finanzierung Szenario Cockpit -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only metering rollout financing scenario evidence"
+          }
+        },
+        "description": "Builds deterministic rollout and financing scenario status from supplied facts. The endpoint is read-only and does not run external financing, billing, settlement, or mutation paths."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53616,6 +53631,21 @@
           }
         },
         "description": "Builds deterministic gate status and evidence from supplied facts. The endpoint is read-only and does not run writes or actual offer generation."
+      }
+    },
+    "/api/dashboard/zaehlpark-finanzierung-szenario-cockpit": {
+      "get": {
+        "operationId": "dashboard-api_zaehlparkFinanzierungSzenarioCockpitStatus",
+        "summary": "Zaehlpark Finanzierung Szenario Cockpit -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only metering rollout financing scenario evidence"
+          }
+        },
+        "description": "Builds deterministic rollout and financing scenario status from supplied facts. The endpoint is read-only and does not run external financing, billing, settlement, or mutation paths."
       }
     },
     "/api/dashboard/market-snapshot": {
