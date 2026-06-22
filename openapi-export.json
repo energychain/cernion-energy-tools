@@ -14390,6 +14390,21 @@
         "description": "Builds deterministic rollout and financing scenario status from supplied facts. The endpoint is read-only and does not run external financing, billing, settlement, or mutation paths."
       }
     },
+    "/api/dashboard-api/process-sensitization-readiness-map": {
+      "get": {
+        "operationId": "dashboard-api_processSensitizationReadinessMapStatus",
+        "summary": "Process Sensitization Readiness Map -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only process sensitization readiness evidence"
+          }
+        },
+        "description": "Builds deterministic readiness evidence from supplied process facts. The endpoint is read-only and does not create trainings, HITL tasks, VDMI changes, or external calls."
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -53646,6 +53661,21 @@
           }
         },
         "description": "Builds deterministic rollout and financing scenario status from supplied facts. The endpoint is read-only and does not run external financing, billing, settlement, or mutation paths."
+      }
+    },
+    "/api/dashboard/process-sensitization-readiness-map": {
+      "get": {
+        "operationId": "dashboard-api_processSensitizationReadinessMapStatus",
+        "summary": "Process Sensitization Readiness Map -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only process sensitization readiness evidence"
+          }
+        },
+        "description": "Builds deterministic readiness evidence from supplied process facts. The endpoint is read-only and does not create trainings, HITL tasks, VDMI changes, or external calls."
       }
     },
     "/api/dashboard/market-snapshot": {

@@ -4293,6 +4293,85 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- processSensitizationReadinessMapStatus -------------------------------
+
+  describe('processSensitizationReadinessMapStatus', () => {
+    it('reports needs_evidence when evidence gaps or system breaks are supplied', async () => {
+      const result = await broker.call('dashboard-api.processSensitizationReadinessMapStatus', {
+        processType: 'netzanschluss',
+        missingEvidence: 'rollenmatrix',
+        systemBreaks: 'medienbruch',
+        redLineStatus: 'clear',
+        owner: 'Netzanschluss',
+      });
+
+      expect(result.readinessStatus).toBe('needs_evidence');
+      expect(result.status).toBe('needs_evidence');
+      expect(result.trainingTopics).toEqual([]);
+      expect(result.missingEvidence.map((gap) => gap.value)).toEqual(
+        expect.arrayContaining(['rollenmatrix', 'medienbruch'])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('process_sensitization_readiness_map');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'hitl.create',
+          'vdmi.mutate',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('reports needs_process_decision when role decisions are missing', async () => {
+      const result = await broker.call('dashboard-api.processSensitizationReadinessMapStatus', {
+        processType: 'redispatch',
+        roleDecisionStatus: 'open',
+        roleDecisionGaps: 'betriebsverantwortung',
+      });
+
+      expect(result.readinessStatus).toBe('needs_process_decision');
+      expect(result.roleDecisionGaps).toEqual(['betriebsverantwortung']);
+      expect(result.readinessScore).toBe(0.35);
+    });
+
+    it('reports blocked_by_red_line when non-negotiable constraints are supplied', async () => {
+      const result = await broker.call('dashboard-api.processSensitizationReadinessMapStatus', {
+        processType: 'netzsicherheit',
+        redLineStatus: 'blocked',
+        nonNegotiableConstraints: 'netzsicherheit',
+      });
+
+      expect(result.readinessStatus).toBe('blocked_by_red_line');
+      expect(result.nonNegotiableConstraints).toEqual(['netzsicherheit']);
+      expect(result.blockingFindings[0].severity).toBe('high');
+    });
+
+    it('reports ready_for_sensitization when no blockers are supplied', async () => {
+      const result = await broker.call('dashboard-api.processSensitizationReadinessMapStatus', {
+        processType: 'vdmi',
+        evidenceStatus: 'complete',
+        roleDecisionStatus: 'decided',
+        dataQualityStatus: 'ok',
+        systemBreakStatus: 'clear',
+        redLineStatus: 'clear',
+        sourceRef: 'VDMI-Map-139',
+      });
+
+      expect(result.readinessStatus).toBe('ready_for_sensitization');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.trainingTopics.length).toBeGreaterThan(0);
+      expect(result.sourceRefs).toEqual(['VDMI-Map-139']);
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Readiness Status: ready_for_sensitization',
+          'Process Topic: vdmi',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

@@ -1427,4 +1427,19 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('external.connector.call');
     expect(actionNames).not.toContain('personal-agent.execute');
   });
+
+  it('routes process sensitization readiness prompts to the read-only evidence status path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Prozess-Sensibilisierung Readiness Map fuer Netzanschluss Workshop: Rollenentscheidung offen, rote Linie Netzsicherheit, Systembruch und Evidenz fehlt vor Schulung.',
+    });
+
+    expect(result.capability).toBe('process_sensitization_readiness_map');
+    expect(result.recommendedCapabilities[0].capability).toBe('process_sensitization_readiness_map');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.processSensitizationReadinessMapStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('vdmi.mutate');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
 });

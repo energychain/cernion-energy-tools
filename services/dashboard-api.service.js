@@ -81,6 +81,7 @@ module.exports = {
       heatAssetTariffSteeringStatus: 5 * 60 * 1000, // 5 min
       techCommercialOfferCockpitStatus: 5 * 60 * 1000, // 5 min
       zaehlparkFinanzierungSzenarioCockpitStatus: 5 * 60 * 1000, // 5 min
+      processSensitizationReadinessMapStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3745,6 +3746,66 @@ module.exports = {
           this.settings.cacheTtlMs.zaehlparkFinanzierungSzenarioCockpitStatus,
           async () => ({
             ...this.buildZaehlparkFinanzierungSzenarioCockpitStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- processSensitizationReadinessMapStatus ------------------------------
+    /**
+     * GET /api/dashboard/process-sensitization-readiness-map
+     *
+     * Read-only dossier-safe Process Sensitization Readiness Map.
+     * It classifies supplied process, evidence, role, system-break, and
+     * red-line facts before training or workshop recommendations are made.
+     */
+    processSensitizationReadinessMapStatus: {
+      rest: 'GET /process-sensitization-readiness-map',
+      params: {
+        processType: { type: 'string', optional: true, min: 1 },
+        topic: { type: 'string', optional: true, min: 1 },
+        roleDecision: { type: 'string', optional: true, min: 1 },
+        roleDecisionStatus: { type: 'string', optional: true, min: 1 },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+        dataQualityStatus: { type: 'string', optional: true, min: 1 },
+        systemBreakStatus: { type: 'string', optional: true, min: 1 },
+        redLineStatus: { type: 'string', optional: true, min: 1 },
+        missingEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        roleDecisionGaps: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        dataQualityGaps: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        systemBreaks: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        nonNegotiableConstraints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        owner: { type: 'string', optional: true, min: 1 },
+        dueDate: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        taskId: { type: 'string', optional: true, min: 1 },
+        matrixId: { type: 'string', optional: true, min: 1 },
+        assetId: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Process Sensitization Readiness Map -- read-only dossier-safe status',
+        description:
+          'Builds deterministic readiness evidence from supplied process facts. ' +
+          'The endpoint is read-only and does not create trainings, HITL tasks, VDMI changes, or external calls.',
+        responses: {
+          200: {
+            description: 'Read-only process sensitization readiness evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `process-sensitization-readiness-map:${params.processType || params.topic || 'no-topic'}:${params.gridOperatorId || 'no-operator'}:${params.taskId || params.matrixId || params.assetId || 'no-context'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.processSensitizationReadinessMapStatus,
+          async () => ({
+            ...this.buildProcessSensitizationReadinessMapStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -13072,6 +13133,199 @@ module.exports = {
           positiveFollowUps,
           blockingFindings,
           sourceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildProcessSensitizationReadinessMapStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const statusText = (...values) => values.map((value) => String(value || '').toLowerCase()).join(' ');
+      const includesAny = (text, terms) => terms.some((term) => text.includes(term));
+
+      const processTopic = params.processType || params.topic || 'unspecified_process';
+      const missingEvidence = toList(params.missingEvidence);
+      const roleDecisionGaps = toList(params.roleDecisionGaps);
+      const dataQualityGaps = toList(params.dataQualityGaps);
+      const systemBreaks = toList(params.systemBreaks);
+      const nonNegotiableConstraints = toList(params.nonNegotiableConstraints);
+      const sourceRefs = toList(params.sourceRef);
+
+      const roleDecisionText = statusText(params.roleDecision, params.roleDecisionStatus);
+      const evidenceText = statusText(params.evidenceStatus);
+      const dataQualityText = statusText(params.dataQualityStatus);
+      const systemBreakText = statusText(params.systemBreakStatus);
+      const redLineText = statusText(params.redLineStatus);
+
+      const hasRedLineBlocker =
+        nonNegotiableConstraints.length > 0 ||
+        includesAny(redLineText, ['blocked', 'blockiert', 'red-line', 'red line', 'rote linie', 'netzsicherheit', 'nicht verhandelbar']);
+      const hasRoleDecisionGap =
+        roleDecisionGaps.length > 0 ||
+        includesAny(roleDecisionText, ['missing', 'fehlt', 'open', 'offen', 'unclear', 'unklar', 'pending', 'decision needed']);
+      const hasEvidenceGap =
+        missingEvidence.length > 0 ||
+        dataQualityGaps.length > 0 ||
+        systemBreaks.length > 0 ||
+        includesAny(evidenceText, ['missing', 'fehlt', 'open', 'offen', 'incomplete', 'unvollstaendig', 'unvollständig']) ||
+        includesAny(dataQualityText, ['gap', 'missing', 'fehlt', 'poor', 'insufficient', 'bruch', 'offen']) ||
+        includesAny(systemBreakText, ['break', 'bruch', 'medienbruch', 'blocked', 'blockiert', 'open', 'offen']);
+
+      let readinessStatus = 'ready_for_sensitization';
+      if (hasRedLineBlocker) readinessStatus = 'blocked_by_red_line';
+      else if (hasRoleDecisionGap) readinessStatus = 'needs_process_decision';
+      else if (hasEvidenceGap) readinessStatus = 'needs_evidence';
+
+      const gapSpecs = [
+        ...missingEvidence.map((value) => ({
+          missingDataPoint: 'missing_evidence',
+          value,
+          enablesDossierAddition: `add evidence-backed readiness statement for ${value}`,
+        })),
+        ...roleDecisionGaps.map((value) => ({
+          missingDataPoint: 'role_decision_gap',
+          value,
+          enablesDossierAddition: `add named owner and role decision boundary for ${value}`,
+        })),
+        ...dataQualityGaps.map((value) => ({
+          missingDataPoint: 'data_quality_gap',
+          value,
+          enablesDossierAddition: `separate sensitization need from data-quality remediation for ${value}`,
+        })),
+        ...systemBreaks.map((value) => ({
+          missingDataPoint: 'system_break',
+          value,
+          enablesDossierAddition: `document system-break remediation before sensitization for ${value}`,
+        })),
+        ...nonNegotiableConstraints.map((value) => ({
+          missingDataPoint: 'non_negotiable_constraint',
+          value,
+          enablesDossierAddition: `explain non-negotiable red-line constraint ${value}`,
+        })),
+      ];
+
+      const positiveFollowUps = gapSpecs.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        value: item.value,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'process_sensitization_readiness_map',
+      }));
+
+      const blockingFindings = gapSpecs.map((item, index) => ({
+        code: `PSRM_${String(item.missingDataPoint).toUpperCase()}_${index + 1}`,
+        severity: item.missingDataPoint === 'non_negotiable_constraint' ? 'high' : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+
+      const trainingTopics = readinessStatus === 'ready_for_sensitization'
+        ? [
+            `${processTopic}: Rollen- und Evidenzlage`,
+            `${processTopic}: Prozesskommunikation und Automatisierungsgrenzen`,
+          ]
+        : [];
+
+      const readinessScore = readinessStatus === 'ready_for_sensitization'
+        ? 1
+        : readinessStatus === 'needs_evidence'
+          ? 0.55
+          : readinessStatus === 'needs_process_decision'
+            ? 0.35
+            : 0.1;
+
+      const context = {
+        processType: params.processType || null,
+        topic: params.topic || null,
+        owner: params.owner || null,
+        dueDate: params.dueDate || null,
+        gridOperatorId: params.gridOperatorId || null,
+        taskId: params.taskId || null,
+        matrixId: params.matrixId || null,
+        assetId: params.assetId || null,
+      };
+      const dossierFacts = [
+        `Readiness Status: ${readinessStatus}`,
+        `Process Topic: ${processTopic}`,
+        `Open gaps: ${gapSpecs.length}`,
+      ];
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+
+      return {
+        processSensitizationReadinessMapStatusId: `psrm:${Buffer.from(`${processTopic}:${params.gridOperatorId || ''}:${params.taskId || params.matrixId || params.assetId || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'process_sensitization_readiness_map',
+        safety: 'read_only',
+        requestContext: context,
+        processTopic,
+        readinessStatus,
+        status: readinessStatus,
+        overallStatus: readinessStatus,
+        readinessScore,
+        trainingTopics,
+        dataQualityGaps,
+        systemBreaks,
+        roleDecisionGaps,
+        nonNegotiableConstraints,
+        missingEvidence: gapSpecs,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: {
+          sourceRefs,
+        },
+        sourceRefs,
+        sourceActions: {
+          inspected: ['dashboard-api.processSensitizationReadinessMapStatus'],
+          referenced: [
+            'dashboard-api.qualitySummary',
+            'vdmi.dossier',
+            'vdmi.agentRole',
+            'vdmi.findings',
+            'vdmi.evidence',
+            'mastr-quality.audit',
+            'grid-connection.fnavValidate',
+            'redispatch-expost.audit',
+            'edm-validation.validate',
+            'datapoint.health',
+            'interface-placeholder.requestEvidence',
+          ],
+          notCalled: [
+            'hitl.create',
+            'vdmi.mutate',
+            'vdmi.update',
+            'training.create',
+            'workshop.create',
+            'datastore.write',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          readinessStatus,
+          status: readinessStatus,
+          processTopic,
+          readinessScore,
+          trainingTopics,
+          dataQualityGaps,
+          systemBreaks,
+          roleDecisionGaps,
+          nonNegotiableConstraints,
+          missingEvidence: gapSpecs,
+          positiveFollowUps,
+          blockingFindings,
+          sourceRefs,
+          sourceActions: {
+            notCalled: [
+              'hitl.create',
+              'vdmi.mutate',
+              'external.connector.call',
+              'personal-agent.execute',
+            ],
+          },
           dossierFacts,
         },
       };

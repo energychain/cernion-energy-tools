@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 55 static rules', () => {
+    it('loads all 56 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(55);
+      expect(rules.length).toBe(56);
     });
 
-    it('compiles all 55 static rules without error', () => {
+    it('compiles all 56 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(55);
+      expect(rules.length).toBe(56);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -601,6 +601,54 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('DSO ID: VNB-143');
       expect(formatted).toContain('Scenario ID: sc-2026-rollout');
       expect(formatted).toContain('Financing Model: leasing');
+      expect(formatted).toContain('Side-Effect Guard: hitl.create');
+    });
+
+    it('dashboard-api.processSensitizationReadinessMapStatus is dossier-safe and formats readiness facts', () => {
+      const rule = getRule('dashboard-api.processSensitizationReadinessMapStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Prozess-Sensibilisierung processType=netzanschluss als Readiness Map pruefen'
+        )
+      ).toEqual({
+        processType: 'netzanschluss',
+      });
+
+      const formatted = rule.formatEvidence({
+        readinessStatus: 'needs_evidence',
+        processTopic: 'netzanschluss',
+        readinessScore: 0.55,
+        requestContext: {
+          owner: 'Netzanschluss',
+          dueDate: '2026-07-01',
+        },
+        missingEvidence: [
+          {
+            missingDataPoint: 'missing_evidence',
+            value: 'rollenmatrix',
+          },
+        ],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add evidence-backed readiness statement for rollenmatrix',
+          },
+        ],
+        sourceActions: {
+          notCalled: ['hitl.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Readiness Status: needs_evidence'],
+        },
+      });
+
+      expect(formatted).toContain('Readiness Status: needs_evidence');
+      expect(formatted).toContain('Process Topic: netzanschluss');
+      expect(formatted).toContain('Readiness Score: 0.55');
+      expect(formatted).toContain('Owner: Netzanschluss');
+      expect(formatted).toContain('Leading Gap: rollenmatrix');
       expect(formatted).toContain('Side-Effect Guard: hitl.create');
     });
 

@@ -1478,6 +1478,8 @@ module.exports = {
             'dashboard-api.techCommercialOfferCockpitStatus',
           'GET /dashboard/zaehlpark-finanzierung-szenario-cockpit':
             'dashboard-api.zaehlparkFinanzierungSzenarioCockpitStatus',
+          'GET /dashboard/process-sensitization-readiness-map':
+            'dashboard-api.processSensitizationReadinessMapStatus',
           'POST /community/consult': 'community.consult',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',

@@ -3354,5 +3354,81 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 143
+  },
+  {
+    "id": "process_sensitization_readiness_map",
+    "description": "Read-only Process Sensitization Readiness Map status evidence",
+    "routeLabel": "process_sensitization_readiness_map",
+    "capability": "process_sensitization_readiness_map",
+    "action": "dashboard-api.processSensitizationReadinessMapStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "hitl.create",
+        "vdmi.mutate",
+        "vdmi.update",
+        "training.create",
+        "workshop.create",
+        "datastore.write",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "prozess sensibilisierung",
+      "prozess-sensibilisierung",
+      "sensibilisierung readiness",
+      "readiness map",
+      "prozess-readiness",
+      "schulung readiness",
+      "workshop readiness",
+      "rollenentscheidung",
+      "rote linie",
+      "systembruch",
+      "evidenz fehlt",
+      "datenqualitaet vor schulung",
+      "datenqualität vor schulung"
+    ],
+    "paramTemplate": {
+      "processType": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:processType|process|prozess)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "topic": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:topic|thema)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["readinessStatus", "status", "dossierEvidence.readinessStatus"], "label": "Readiness Status", "maxLen": 90 },
+        { "paths": ["processTopic", "dossierEvidence.processTopic"], "label": "Process Topic", "maxLen": 120 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness Score" },
+        { "paths": ["requestContext.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["requestContext.dueDate"], "label": "Due Date", "maxLen": 80 },
+        { "paths": ["missingEvidence.0.value", "dossierEvidence.missingEvidence.0.value"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up", "maxLen": 160 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 139
   }
 ]

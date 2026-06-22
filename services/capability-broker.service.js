@@ -310,6 +310,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasProcessSensitizationReadinessSpecificSignal =
+    /(prozess.?sensibilisierung|sensibilisierung|schulung|workshop|readiness map|prozess.?readiness)/i.test(haystack) &&
+    /(rollenentscheidung|role decision|rote linie|red.?line|systembruch|medienbruch|evidenz fehlt|missing evidence|datenqualitaet|datenqualität|data quality|readiness|vor schulung|before training)/i.test(haystack) &&
+    !/(billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|vdmi create|legal opinion|rechtsgutachten|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto)/i.test(haystack);
+
+  if (hasProcessSensitizationReadinessSpecificSignal) {
+    const processSensitizationCapability = findCapabilityByName('process_sensitization_readiness_map');
+    if (processSensitizationCapability) {
+      return { capability: processSensitizationCapability, score: 138, usedFallback: false };
+    }
+  }
+
   const hasKiFloorwalkerGovernanceSpecificSignal =
     /(ki[- ]floorwalker|floorwalker|ki[- ]governance|ai[- ]governance|prompt[- ]standards|datenr[äa]ume|use[- ]case[- ]priorisierung)/i.test(haystack) &&
     /(use[- ]case[- ]priority|allowed[- ]dataspace|prompt[- ]standard|process[- ]boundar|roles[- ]and[- ]responsibilit|guided[- ]application|risk[- ]and[- ]approval|proof[- ]of[- ]benefit|gaps|follow[- ]up|readiness)/i.test(haystack) &&
