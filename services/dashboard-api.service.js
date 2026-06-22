@@ -84,6 +84,7 @@ module.exports = {
       processSensitizationReadinessMapStatus: 5 * 60 * 1000, // 5 min
       netzprozessReadinessGateStatus: 5 * 60 * 1000, // 5 min
       grossspeicherAnschlussReadinessGateStatus: 5 * 60 * 1000, // 5 min
+      rolePermissionAccessReadinessGateStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -3932,6 +3933,66 @@ module.exports = {
           this.settings.cacheTtlMs.grossspeicherAnschlussReadinessGateStatus,
           async () => ({
             ...this.buildGrossspeicherAnschlussReadinessGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- rolePermissionAccessReadinessGateStatus ----------------------------
+    /**
+     * GET /api/dashboard/role-permission-access-readiness-gate
+     *
+     * Read-only dossier-safe readiness gate for supplied Role-Permission /
+     * AccessManager facts. It does not call AccessManager or mutate IAM state.
+     */
+    rolePermissionAccessReadinessGateStatus: {
+      rest: 'GET /role-permission-access-readiness-gate',
+      params: {
+        roleId: { type: 'string', optional: true, min: 1 },
+        roleName: { type: 'string', optional: true, min: 1 },
+        processType: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        accessManagerRef: { type: 'string', optional: true, min: 1 },
+        tenantScope: { type: 'string', optional: true, min: 1 },
+        portalAccess: { type: 'string', optional: true, min: 1 },
+        sftpRoute: { type: 'string', optional: true, min: 1 },
+        rolePermission: { type: 'string', optional: true, min: 1 },
+        securityClearance: { type: 'string', optional: true, min: 1 },
+        trainingProof: { type: 'string', optional: true, min: 1 },
+        reapprovalStatus: { type: 'string', optional: true, min: 1 },
+        sourcePath: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        dueDate: { type: 'string', optional: true, min: 1 },
+        blockedAccess: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+        source: { type: 'string', optional: true, min: 1 },
+        missingEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        evidenceGaps: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Role-Permission / AccessManager Readiness Gate -- read-only dossier-safe status',
+        description:
+          'Builds deterministic role/access readiness evidence from supplied facts. ' +
+          'The endpoint is read-only and does not call AccessManager, mutate IAM/RBAC state, store credentials, create workflows, or call external systems.',
+        responses: {
+          200: {
+            description: 'Read-only Role-Permission / AccessManager readiness evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `role-permission-access-readiness-gate:${params.roleId || params.roleName || 'no-role'}:${params.portalAccess || ''}:${params.sftpRoute || ''}:${params.rolePermission || ''}:${params.securityClearance || ''}:${params.trainingProof || ''}:${params.reapprovalStatus || ''}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.rolePermissionAccessReadinessGateStatus,
+          async () => ({
+            ...this.buildRolePermissionAccessReadinessGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -13946,6 +14007,257 @@ module.exports = {
           blockers,
           nextOwner: params.owner || null,
           nextDecision: params.nextDecision || null,
+          positiveFollowUps,
+          validationFindings,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildRolePermissionAccessReadinessGateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const normalizeStatus = (value) => {
+        const text = String(value || '').trim().toLowerCase();
+        if (!text) return 'missing';
+        if (/^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|present|vorhanden|cleared|synced)$/.test(text)) return 'ready';
+        if (/^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown|scheduled)$/.test(text)) return 'partial';
+        if (/^(missing|fehlt|absent|not_available|not-available)$/.test(text)) return 'missing';
+        if (/^(blocked|blockiert|red|rot|failed|rejected|denied|expired|not_ready|not-ready|stop|revoked)$/.test(text)) return 'blocked';
+        if (/(block|denied|reject|expired|revoked|gesperrt|abgelehnt)/.test(text)) return 'blocked';
+        return text;
+      };
+      const isReady = (status) => status === 'ready';
+      const isBlocked = (status) => status === 'blocked';
+      const sourceRefs = [...toList(params.sourceRef), ...toList(params.source), ...toList(params.sourcePath)];
+      const suppliedEvidenceGaps = [...toList(params.missingEvidence), ...toList(params.evidenceGaps)];
+      const roleContext = {
+        roleId: params.roleId || null,
+        roleName: params.roleName || null,
+        processType: params.processType || null,
+        gridOperatorId: params.gridOperatorId || null,
+        accessManagerRef: params.accessManagerRef || null,
+        tenantScope: params.tenantScope || null,
+        caseId: params.caseId || null,
+      };
+      const sourceActions = {
+        inspected: ['dashboard-api.rolePermissionAccessReadinessGateStatus'],
+        referenced: [
+          'auth.groupRoleMap',
+          'agent-persona.metadata',
+          'vdmi-governance-templates.checklist',
+          'vdmi.myResponsibilities',
+          'dashboard-api.netzprozessReadinessGateStatus',
+        ],
+        notCalled: [
+          'access-manager.call',
+          'iam.provision',
+          'rbac.mutate',
+          'auth.createUser',
+          'tenant.create',
+          'token.create',
+          'credential.store',
+          'hitl.create',
+          'vdmi.mutate',
+          'workflow.execute',
+          'notification.send',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const signalSpecs = [
+        {
+          code: 'role_profile',
+          label: 'Role Profile',
+          value: params.roleId || params.roleName ? 'ready' : '',
+          enablesDossierAddition: 'add role profile and responsibility context',
+          statusWhenMissing: 'needs_role_profile',
+        },
+        {
+          code: 'portal_access',
+          label: 'Portal Access',
+          value: params.portalAccess,
+          enablesDossierAddition: 'add portal readiness evidence',
+          statusWhenMissing: 'needs_portal_access',
+        },
+        {
+          code: 'sftp_route',
+          label: 'sFTP Route',
+          value: params.sftpRoute,
+          enablesDossierAddition: 'add interface readiness evidence',
+          statusWhenMissing: 'needs_sftp_route',
+        },
+        {
+          code: 'role_permission',
+          label: 'Role Permission',
+          value: params.rolePermission,
+          enablesDossierAddition: 'add permission-release evidence',
+          statusWhenMissing: 'needs_role_permission',
+        },
+        {
+          code: 'security_clearance',
+          label: 'IT/Security Clearance',
+          value: params.securityClearance,
+          enablesDossierAddition: 'add IT/security clearance evidence',
+          statusWhenMissing: 'needs_security_clearance',
+        },
+        {
+          code: 'training_proof',
+          label: 'Training Proof',
+          value: params.trainingProof,
+          enablesDossierAddition: 'add training readiness evidence',
+          statusWhenMissing: 'needs_training_proof',
+        },
+        {
+          code: 'reapproval_status',
+          label: 'AccessManager Reapproval',
+          value: params.reapprovalStatus,
+          enablesDossierAddition: 'add AccessManager reapproval evidence',
+          statusWhenMissing: 'needs_reapproval_decision',
+        },
+      ];
+      const readinessSignals = signalSpecs.map((signal) => {
+        const status = normalizeStatus(signal.value);
+        return {
+          code: signal.code,
+          label: signal.label,
+          status,
+          rawStatus: signal.value || null,
+          owner: params.owner || null,
+          dueDate: params.dueDate || null,
+          finding: isReady(status) ? null : signal.enablesDossierAddition,
+          enablesDossierAddition: signal.enablesDossierAddition,
+          statusWhenMissing: signal.statusWhenMissing,
+        };
+      });
+      const missingFromSignals = readinessSignals
+        .filter((signal) => !isReady(signal.status))
+        .map((signal) => ({
+          missingDataPoint: signal.code,
+          status: signal.status,
+          value: signal.rawStatus,
+          enablesDossierAddition: signal.enablesDossierAddition,
+        }));
+      const missingFromParams = suppliedEvidenceGaps.map((value) => ({
+        missingDataPoint: 'supplied_evidence_gap',
+        value,
+        status: 'missing',
+        enablesDossierAddition: `add evidence for ${value}`,
+      }));
+      const ownerDueSourceGaps = [
+        !params.owner ? {
+          missingDataPoint: 'owner',
+          value: null,
+          status: 'missing',
+          enablesDossierAddition: 'add accountable owner for role/access follow-up',
+        } : null,
+        !params.dueDate ? {
+          missingDataPoint: 'due_date',
+          value: null,
+          status: 'missing',
+          enablesDossierAddition: 'add due date for reapproval or access readiness follow-up',
+        } : null,
+        sourceRefs.length === 0 ? {
+          missingDataPoint: 'source_path',
+          value: null,
+          status: 'missing',
+          enablesDossierAddition: 'add source path or evidence snapshot for access readiness',
+        } : null,
+      ].filter(Boolean);
+      const blockedAccessStatus = normalizeStatus(params.blockedAccess);
+      const blockedAccessGap = params.blockedAccess
+        ? [{
+            missingDataPoint: 'blocked_access',
+            value: params.blockedAccess,
+            status: blockedAccessStatus === 'ready' ? 'partial' : blockedAccessStatus,
+            enablesDossierAddition: 'document blocked access or rejected permission before operational use',
+          }]
+        : [];
+      const evidenceGaps = [
+        ...missingFromSignals,
+        ...missingFromParams,
+        ...ownerDueSourceGaps,
+        ...(isBlocked(blockedAccessStatus) ? blockedAccessGap : []),
+      ];
+
+      let status = 'unknown';
+      if (isBlocked(blockedAccessStatus) || readinessSignals.some((signal) => isBlocked(signal.status))) {
+        status = 'blocked_by_access_gap';
+      } else if (!params.roleId && !params.roleName) {
+        status = 'needs_role_profile';
+      } else if (readinessSignals.every((signal) => isReady(signal.status)) && ownerDueSourceGaps.length === 0 && suppliedEvidenceGaps.length === 0) {
+        status = 'ready_for_operational_role';
+      } else if (missingFromSignals.length > 0) {
+        status = readinessSignals.find((signal) => signal.code === missingFromSignals[0].missingDataPoint)?.statusWhenMissing || 'unknown';
+      } else if (ownerDueSourceGaps.length > 0 || suppliedEvidenceGaps.length > 0) {
+        status = 'needs_reapproval_decision';
+      }
+      const blockers = evidenceGaps
+        .filter((gap) => gap.status === 'blocked' || status === 'blocked_by_access_gap')
+        .map((gap) => ({
+          code: gap.missingDataPoint,
+          owner: params.owner || null,
+          dueDate: params.dueDate || null,
+          message: gap.enablesDossierAddition,
+        }));
+      const positiveFollowUps = evidenceGaps.map((gap) => ({
+        missingDataPoint: gap.missingDataPoint,
+        status: gap.status,
+        value: gap.value,
+        enablesDossierAddition: gap.enablesDossierAddition,
+        category: 'role_permission_access_readiness_gate',
+      }));
+      const nextActions = positiveFollowUps.map((followUp) => ({
+        owner: params.owner || null,
+        dueDate: params.dueDate || null,
+        action: followUp.enablesDossierAddition,
+        missingDataPoint: followUp.missingDataPoint,
+      }));
+      const validationFindings = evidenceGaps.map((gap, index) => ({
+        code: `RPAR_${String(gap.missingDataPoint).toUpperCase()}_${index + 1}`,
+        severity: gap.status === 'blocked' || gap.missingDataPoint === 'blocked_access' ? 'high' : 'medium',
+        message: gap.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Role: ${params.roleName || params.roleId || 'unknown'}`,
+        `Readiness Signals: ${readinessSignals.length}`,
+        `Open gaps: ${evidenceGaps.length}`,
+      ];
+      if (params.accessManagerRef) dossierFacts.push(`AccessManager Ref: ${params.accessManagerRef}`);
+
+      return {
+        rolePermissionAccessReadinessGateStatusId: `rpar:${Buffer.from(`${params.roleId || ''}:${params.roleName || ''}:${params.accessManagerRef || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'role_permission_access_readiness_gate',
+        safety: 'read_only',
+        status,
+        roleContext,
+        readinessSignals,
+        evidenceGaps,
+        missingEvidence: evidenceGaps,
+        blockers,
+        nextActions,
+        positiveFollowUps,
+        sourceRefs,
+        sourceActions,
+        validationFindings,
+        dossierEvidence: {
+          status,
+          roleContext,
+          readinessSignals,
+          evidenceGaps,
+          blockers,
+          owner: params.owner || null,
+          dueDate: params.dueDate || null,
+          nextActions,
           positiveFollowUps,
           validationFindings,
           sourceActions: {

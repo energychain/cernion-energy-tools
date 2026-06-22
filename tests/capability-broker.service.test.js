@@ -1483,4 +1483,29 @@ describe('Capability Broker Service', () => {
 
     expect(result.capability).not.toBe('grossspeicher_anschluss_readiness_gate');
   });
+
+  it('routes Role-Permission / AccessManager readiness prompts to the read-only evidence path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Role Permission Readiness fuer AccessManager reapproval, Portalzugang, sFTP Berechtigung, Rollenfreigabe, IT-Sicherheitsfreigabe und Fachschulungsnachweis.',
+    });
+
+    expect(result.capability).toBe('role_permission_access_readiness_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe('role_permission_access_readiness_gate');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.rolePermissionAccessReadinessGateStatus');
+    expect(actionNames).not.toContain('access-manager.call');
+    expect(actionNames).not.toContain('iam.provision');
+    expect(actionNames).not.toContain('rbac.mutate');
+    expect(actionNames).not.toContain('token.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('does not route explicit IAM provisioning prompts to the read-only Role-Permission gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Provisioniere IAM Rollen, erstelle User und Tenant, speichere Credentials und fuehre AccessManager Sync aus.',
+    });
+
+    expect(result.capability).not.toBe('role_permission_access_readiness_gate');
+  });
 });

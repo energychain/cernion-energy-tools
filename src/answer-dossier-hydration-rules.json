@@ -3595,5 +3595,91 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 202
+  },
+  {
+    "id": "role_permission_access_readiness_gate",
+    "description": "Read-only Role-Permission / AccessManager readiness evidence",
+    "routeLabel": "role_permission_access_readiness_gate",
+    "capability": "role_permission_access_readiness_gate",
+    "action": "dashboard-api.rolePermissionAccessReadinessGateStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "access-manager.call",
+        "iam.provision",
+        "rbac.mutate",
+        "auth.createUser",
+        "tenant.create",
+        "token.create",
+        "credential.store",
+        "hitl.create",
+        "vdmi.mutate",
+        "workflow.execute",
+        "notification.send",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "role permission readiness",
+      "rollenberechtigung",
+      "accessmanager reapproval",
+      "access manager reapproval",
+      "portalzugang",
+      "sftp berechtigung",
+      "rollenfreigabe",
+      "it-sicherheitsfreigabe",
+      "it security clearance",
+      "fachschulungsnachweis"
+    ],
+    "paramTemplate": {
+      "roleId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:roleId|rollenId|rollen-id)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "roleName": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:roleName|rolle|rollenname)[:= ]+([A-Za-z0-9:_ -]+)",
+          "group": 1
+        }
+      },
+      "accessManagerRef": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:accessManagerRef|access-manager-ref|amRef)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Status", "maxLen": 90 },
+        { "paths": ["roleContext.roleId", "dossierEvidence.roleContext.roleId"], "label": "Role ID", "maxLen": 120 },
+        { "paths": ["roleContext.roleName", "dossierEvidence.roleContext.roleName"], "label": "Role", "maxLen": 120 },
+        { "paths": ["roleContext.accessManagerRef", "dossierEvidence.roleContext.accessManagerRef"], "label": "AccessManager Ref", "maxLen": 120 },
+        { "paths": ["readinessSignals.0.code", "dossierEvidence.readinessSignals.0.code"], "label": "Leading Signal", "maxLen": 120 },
+        { "paths": ["evidenceGaps.0.missingDataPoint", "dossierEvidence.evidenceGaps.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up", "maxLen": 160 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 261
   }
 ]

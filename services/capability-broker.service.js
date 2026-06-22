@@ -322,6 +322,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasRolePermissionAccessReadinessSpecificSignal =
+    /(role permission readiness|rollenberechtigung|rollen.?permission|accessmanager|access manager|reapproval)/i.test(haystack) &&
+    /(readiness|gate|reapproval|portalzugang|sftp|rollenfreigabe|rollenberechtigung|accessmanager|it.?sicherheitsfreigabe|fachschulungsnachweis)/i.test(haystack) &&
+    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|token mint|support token|backup|disaster recovery|streaming|websocket|smgw|cls|device.?control|steuerbefehl|execute|ausfuehren|ausführen|legal opinion|rechtsgutachten|external connector|iam provision|iam rollen|provisioniere|user create|erstelle user|tenant create|erstelle tenant|credential|credentials|sync aus)/i.test(haystack);
+
+  if (hasRolePermissionAccessReadinessSpecificSignal) {
+    const rolePermissionCapability = findCapabilityByName('role_permission_access_readiness_gate');
+    if (rolePermissionCapability) {
+      return { capability: rolePermissionCapability, score: 141, usedFallback: false };
+    }
+  }
+
   const hasNetzprozessReadinessGateSpecificSignal =
     /(netzprozess.?readiness|process readiness gate|prozessreife|portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad|blockierte folgeentscheidung)/i.test(haystack) &&
     /(portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad)/i.test(haystack) &&

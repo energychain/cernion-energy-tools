@@ -4557,6 +4557,104 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- rolePermissionAccessReadinessGateStatus ------------------------------
+  describe('rolePermissionAccessReadinessGateStatus', () => {
+    it('reports needs_role_profile when no role context is supplied', async () => {
+      const result = await broker.call('dashboard-api.rolePermissionAccessReadinessGateStatus', {
+        portalAccess: 'present',
+      });
+
+      expect(result.status).toBe('needs_role_profile');
+      expect(result.safety).toBe('read_only');
+      expect(result.evidenceGaps.map((gap) => gap.missingDataPoint)).toContain('role_profile');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'access-manager.call',
+          'iam.provision',
+          'rbac.mutate',
+          'token.create',
+          'hitl.create',
+          'workflow.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('reports needs_portal_access when the first access fact is missing', async () => {
+      const result = await broker.call('dashboard-api.rolePermissionAccessReadinessGateStatus', {
+        roleId: 'role-261',
+        roleName: 'Flexibilitaetsdirigent',
+        sftpRoute: 'present',
+        rolePermission: 'approved',
+        securityClearance: 'cleared',
+        trainingProof: 'present',
+        reapprovalStatus: 'approved',
+        owner: 'Netzbetrieb',
+        dueDate: '2026-09-15',
+        sourcePath: 'accessmanager:reapproval-3',
+      });
+
+      expect(result.status).toBe('needs_portal_access');
+      expect(result.evidenceGaps.map((gap) => gap.missingDataPoint)).toContain('portal_access');
+      expect(result.positiveFollowUps[0].category).toBe('role_permission_access_readiness_gate');
+    });
+
+    it('reports blocked_by_access_gap for rejected or expired access facts', async () => {
+      const result = await broker.call('dashboard-api.rolePermissionAccessReadinessGateStatus', {
+        roleId: 'role-261',
+        roleName: 'Waermedirigent',
+        portalAccess: 'present',
+        sftpRoute: 'present',
+        rolePermission: 'rejected',
+        securityClearance: 'cleared',
+        trainingProof: 'present',
+        reapprovalStatus: 'expired',
+        blockedAccess: 'AccessManager reapproval expired',
+        owner: 'IT-Security',
+        dueDate: '2026-09-15',
+        sourcePath: 'accessmanager:reapproval-3',
+      });
+
+      expect(result.status).toBe('blocked_by_access_gap');
+      expect(result.blockers.map((blocker) => blocker.code)).toEqual(
+        expect.arrayContaining(['role_permission', 'reapproval_status', 'blocked_access'])
+      );
+      expect(result.validationFindings.some((finding) => finding.severity === 'high')).toBe(true);
+    });
+
+    it('reports ready_for_operational_role when supplied evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.rolePermissionAccessReadinessGateStatus', {
+        roleId: 'role-261',
+        roleName: 'Flexibilitaetsdirigent',
+        processType: 'redispatch',
+        gridOperatorId: 'VNB-261',
+        accessManagerRef: 'am:reapproval-3',
+        tenantScope: 'public',
+        portalAccess: 'present',
+        sftpRoute: 'present',
+        rolePermission: 'approved',
+        securityClearance: 'cleared',
+        trainingProof: 'present',
+        reapprovalStatus: 'approved',
+        owner: 'Netzbetrieb',
+        dueDate: '2026-09-15',
+        sourcePath: 'accessmanager:reapproval-3',
+      });
+
+      expect(result.status).toBe('ready_for_operational_role');
+      expect(result.evidenceGaps).toEqual([]);
+      expect(result.roleContext.accessManagerRef).toBe('am:reapproval-3');
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_operational_role',
+          'Role: Flexibilitaetsdirigent',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(

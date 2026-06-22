@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 58 static rules', () => {
+    it('loads all 59 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(58);
+      expect(rules.length).toBe(59);
     });
 
-    it('compiles all 58 static rules without error', () => {
+    it('compiles all 59 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(58);
+      expect(rules.length).toBe(59);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -694,6 +694,56 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Leading Blocker: sftp_route');
       expect(formatted).toContain('Owner: Netzbetrieb');
       expect(formatted).toContain('Side-Effect Guard: hitl.create');
+    });
+
+    it('dashboard-api.rolePermissionAccessReadinessGateStatus is dossier-safe and formats access readiness facts', () => {
+      const rule = getRule('dashboard-api.rolePermissionAccessReadinessGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Role Permission Readiness roleId=role-261 accessManagerRef=am:reapproval-3 pruefen'
+        )
+      ).toEqual({
+        roleId: 'role-261',
+        accessManagerRef: 'am:reapproval-3',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'blocked_by_access_gap',
+        roleContext: {
+          roleId: 'role-261',
+          roleName: 'Flexibilitaetsdirigent',
+          accessManagerRef: 'am:reapproval-3',
+        },
+        readinessSignals: [{ code: 'reapproval_status', status: 'blocked' }],
+        evidenceGaps: [
+          {
+            missingDataPoint: 'reapproval_status',
+            enablesDossierAddition: 'add AccessManager reapproval evidence',
+          },
+        ],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add AccessManager reapproval evidence',
+          },
+        ],
+        sourceActions: {
+          notCalled: ['access-manager.call'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: blocked_by_access_gap'],
+        },
+      });
+
+      expect(formatted).toContain('Status: blocked_by_access_gap');
+      expect(formatted).toContain('Role ID: role-261');
+      expect(formatted).toContain('Role: Flexibilitaetsdirigent');
+      expect(formatted).toContain('AccessManager Ref: am:reapproval-3');
+      expect(formatted).toContain('Leading Signal: reapproval_status');
+      expect(formatted).toContain('Leading Gap: reapproval_status');
+      expect(formatted).toContain('Side-Effect Guard: access-manager.call');
     });
 
     it('dashboard-api.sapBudgetPspGateStatus is dossier-safe and formats SAP/PSP gate facts', () => {
