@@ -1037,6 +1037,36 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('dashboard-api.gasNetworkDecisionChainStatus');
   });
 
+  it('routes water-pricing net-investment alignment prompts to the read-only gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe kalkulatorischer Wasserpreis Netzinvestition mit Pachtnetz Anlagenbuchhaltung Regulierungswirkung Gremienvorlage und Alignment Entscheidung.',
+    });
+
+    expect(result.capability).toBe('water_pricing_net_investment_alignment_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'water_pricing_net_investment_alignment_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.waterPricingNetInvestmentAlignmentStatus');
+    expect(actionNames).not.toContain('water-pricing.calculate');
+    expect(actionNames).not.toContain('asset-accounting.import');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('tariff.mutate');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('keeps generic waterfall wording away from water-pricing alignment', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe investment waterfall governance fuer Budgetfreigabe, Ueberhang, Forecast und Gremienreife.',
+    });
+
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).not.toContain('dashboard-api.waterPricingNetInvestmentAlignmentStatus');
+  });
+
   it('routes special grid usage prompts to the read-only impact map', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe besondere Netznutzung Paragraf 19 StromNEV mit Frist, Formular, Mengenbasis, Rueckverguetung, EOG Wirkung und Abrechnungswirkung.',

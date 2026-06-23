@@ -1442,6 +1442,8 @@ module.exports = {
             'dashboard-api.gasCapacityBookingReviewGateStatus',
           'GET /dashboard/gas-network-decision-chain':
             'dashboard-api.gasNetworkDecisionChainStatus',
+          'GET /dashboard/water-pricing-net-investment-alignment':
+            'dashboard-api.waterPricingNetInvestmentAlignmentStatus',
           'POST /stadtwerk-mauer-sandbox-runtime/events':
             'stadtwerk-mauer-sandbox-runtime.ingestEvent',
           'POST /stadtwerk-mauer-sandbox-runtime/reset':

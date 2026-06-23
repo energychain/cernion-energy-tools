@@ -1466,6 +1466,30 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('water_pricing_net_investment_alignment_gate: requires committee-ready alignment evidence', () => {
+    const plan = { routeKey: 'water_pricing_net_investment_alignment_gate' };
+    const result = planEvidence(plan, {
+      waterPriceReference: 'wasserpreis:calc-2026',
+      netInvestmentReference: 'investment:water-grid-42',
+      sourceRefs: ['water:calc-42'],
+    });
+
+    expect(result.registryKey).toBe('water_pricing_net_investment_alignment_gate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['water_price_reference', 'net_investment_reference', 'source_refs'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'asset_accounting_reference',
+        'lease_condition_reference',
+        'regulatory_impact_reference',
+        'governance_owner',
+        'review_window',
+        'alignment_decision',
+      ])
+    );
+  });
+
   it('forecast-flex: requires forecast_location', () => {
     const plan = { routeKey: 'forecast-flex' };
     const result = planEvidence(plan, {});

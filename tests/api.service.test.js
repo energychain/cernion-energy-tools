@@ -515,6 +515,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/gas-network-decision-chain']).toBe(
         'dashboard-api.gasNetworkDecisionChainStatus'
       );
+      expect(aliases['GET /dashboard/water-pricing-net-investment-alignment']).toBe(
+        'dashboard-api.waterPricingNetInvestmentAlignmentStatus'
+      );
       expect(aliases['POST /stadtwerk-mauer-sandbox-runtime/events']).toBe(
         'stadtwerk-mauer-sandbox-runtime.ingestEvent'
       );

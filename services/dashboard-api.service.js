@@ -105,6 +105,7 @@ module.exports = {
       assetValuationTransformationGateStatus: 5 * 60 * 1000, // 5 min
       gasCapacityBookingReviewGateStatus: 5 * 60 * 1000, // 5 min
       gasNetworkDecisionChainStatus: 5 * 60 * 1000, // 5 min
+      waterPricingNetInvestmentAlignmentStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -5574,6 +5575,105 @@ module.exports = {
           this.settings.cacheTtlMs.gasNetworkDecisionChainStatus,
           async () => ({
             ...this.buildGasNetworkDecisionChainStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- waterPricingNetInvestmentAlignmentStatus --------------------------
+    /**
+     * GET /api/dashboard/water-pricing-net-investment-alignment
+     *
+     * Read-only dossier-safe projection for aligning water-price assumptions
+     * with net-investment and Pachtnetz / asset-accounting evidence. It does
+     * not calculate official prices, claim regulatory approval, or mutate
+     * accounting, billing, tariff, contract, committee or external systems.
+     */
+    waterPricingNetInvestmentAlignmentStatus: {
+      rest: 'GET /water-pricing-net-investment-alignment',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        projectId: { type: 'string', optional: true, min: 1 },
+        tenantId: { type: 'string', optional: true, min: 1 },
+        waterPriceReference: { type: 'string', optional: true, min: 1 },
+        calculationReference: { type: 'string', optional: true, min: 1 },
+        netInvestmentReference: { type: 'string', optional: true, min: 1 },
+        infrastructureMeasureReference: { type: 'string', optional: true, min: 1 },
+        assetAccountingReference: { type: 'string', optional: true, min: 1 },
+        leaseOrConcessionReference: { type: 'string', optional: true, min: 1 },
+        pachtnetzReference: { type: 'string', optional: true, min: 1 },
+        regulatoryImpactReference: { type: 'string', optional: true, min: 1 },
+        tariffLogicReference: { type: 'string', optional: true, min: 1 },
+        governanceOwner: { type: 'string', optional: true, min: 1 },
+        committeeOwner: { type: 'string', optional: true, min: 1 },
+        reviewPeriod: { type: 'string', optional: true, min: 1 },
+        targetCommitteeDate: { type: 'string', optional: true, min: 1 },
+        alignmentDecision: { type: 'string', optional: true, min: 1 },
+        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Water pricing / net-investment alignment -- read-only evidence gate',
+        description:
+          'Returns a deterministic dossier-safe alignment view over water-price assumptions, net-investment references, asset-accounting evidence, Pachtnetz/concession references, regulatory-impact evidence, owner, review period and committee decision state. ' +
+          'The endpoint is read-only and never calculates an official water price, claims regulatory approval, mutates accounting, billing, settlement, tariff, MaKo, contract or payment data, creates HITL/notifications, or calls external connectors.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'projectId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'waterPriceReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'calculationReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'netInvestmentReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetAccountingReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'pachtnetzReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryImpactReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'governanceOwner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'reviewPeriod', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'targetCommitteeDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'alignmentDecision', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only water pricing / net-investment alignment evidence',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    alignmentScope: { type: 'object' },
+                    pricingEvidence: { type: 'object' },
+                    investmentEvidence: { type: 'object' },
+                    assetAccountingEvidence: { type: 'object' },
+                    leaseConditionEvidence: { type: 'object' },
+                    regulatoryBoundaryEvidence: { type: 'object' },
+                    owner: { type: 'object' },
+                    reviewWindow: { type: 'object' },
+                    alignmentDecision: { type: 'string' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `water-pricing-net-investment-alignment:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.waterPricingNetInvestmentAlignmentStatus,
+          async () => ({
+            ...this.buildWaterPricingNetInvestmentAlignmentStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -19964,6 +20064,193 @@ module.exports = {
           owner: params.owner || params.ownerRole || null,
           blockedFollowUpDecision: params.blockedFollowUpDecision || null,
           nextEvidenceStep: params.nextEvidenceStep || null,
+          sourceRefs,
+          missingEvidence,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildWaterPricingNetInvestmentAlignmentStatus(params = {}) {
+      const isProvided = (value) => {
+        if (Array.isArray(value)) return value.length > 0;
+        return value !== undefined && value !== null && String(value).trim() !== '';
+      };
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+
+      const missingMap = {
+        water_price_reference: 'add sourced water-price assumption or calculation reference',
+        net_investment_reference: 'add net-investment or infrastructure-measure reference',
+        asset_accounting_reference: 'add sourced Anlagenbuchhaltung evidence',
+        lease_condition_reference: 'add Pachtnetz, concession or lease-condition traceability',
+        regulatory_impact_reference: 'add regulatory-impact or tariff-logic boundary evidence without claiming approval',
+        governance_owner: 'add accountable governance or committee owner',
+        review_window: 'add review period or target committee date',
+        alignment_decision: 'add clear blocked or committee-review decision status',
+        source_refs: 'add source references for dossier provenance',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint) => {
+        missingEvidence.push({
+          missingDataPoint,
+          status: 'missing',
+          enablesDossierAddition: missingMap[missingDataPoint],
+        });
+      };
+
+      const sourceRefs = toList(params.sourceRefs);
+      if (!isProvided(params.waterPriceReference) && !isProvided(params.calculationReference)) {
+        addGap('water_price_reference');
+      }
+      if (!isProvided(params.netInvestmentReference) && !isProvided(params.infrastructureMeasureReference)) {
+        addGap('net_investment_reference');
+      }
+      if (!isProvided(params.assetAccountingReference)) addGap('asset_accounting_reference');
+      if (!isProvided(params.leaseOrConcessionReference) && !isProvided(params.pachtnetzReference)) {
+        addGap('lease_condition_reference');
+      }
+      if (!isProvided(params.regulatoryImpactReference) && !isProvided(params.tariffLogicReference)) {
+        addGap('regulatory_impact_reference');
+      }
+      if (!isProvided(params.governanceOwner) && !isProvided(params.committeeOwner)) addGap('governance_owner');
+      if (!isProvided(params.reviewPeriod) && !isProvided(params.targetCommitteeDate)) addGap('review_window');
+      if (!isProvided(params.alignmentDecision)) addGap('alignment_decision');
+      if (sourceRefs.length === 0) addGap('source_refs');
+
+      let status = 'committee_review_ready';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'water_price_reference')) {
+        status = 'needs_water_price_reference';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'net_investment_reference')) {
+        status = 'needs_net_investment_reference';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'asset_accounting_reference')) {
+        status = 'needs_asset_accounting_reference';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'lease_condition_reference')) {
+        status = 'needs_lease_condition_reference';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_impact_reference')) {
+        status = 'needs_regulatory_impact_reference';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'governance_owner')) {
+        status = 'needs_governance_owner';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_alignment_provenance';
+      }
+
+      const requiredCount = Object.keys(missingMap).length;
+      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const sourceActions = {
+        inspected: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus'],
+        referenced: [
+          'investment-planning.review',
+          'reporting-governance.evaluate',
+          'regulatorische-entgeltlogik.evaluate',
+          'vdmi-portfolio-gatekeeping.evaluate',
+          'vdmi.dossier',
+        ],
+        notCalled: [
+          'water-pricing.calculate',
+          'regulatorische-entgeltlogik.executeWaterPricing',
+          'asset-accounting.import',
+          'sap.import',
+          'excel.import',
+          'pachtnetz.parseContract',
+          'legal.approve',
+          'accounting.mutate',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'mako.dispatch',
+          'contract.release',
+          'payment.execute',
+          'hitl.create',
+          'notification.dispatchInternal',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const alignmentScope = {
+        caseId: params.caseId || null,
+        projectId: params.projectId || null,
+        tenantId: params.tenantId || null,
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'water_pricing_net_investment_alignment_gate',
+      }));
+      const dossierFacts = [
+        `Alignment Status: ${status}`,
+        `Case: ${alignmentScope.caseId || alignmentScope.projectId || 'missing'}`,
+        `Water Price Reference: ${params.waterPriceReference || params.calculationReference || 'missing'}`,
+        `Net Investment Reference: ${params.netInvestmentReference || params.infrastructureMeasureReference || 'missing'}`,
+        `Asset Accounting: ${params.assetAccountingReference || 'missing'}`,
+        `Lease Condition: ${params.leaseOrConcessionReference || params.pachtnetzReference || 'missing'}`,
+        `Regulatory Boundary: ${params.regulatoryImpactReference || params.tariffLogicReference || 'missing'}`,
+        `Owner: ${params.governanceOwner || params.committeeOwner || 'missing'}`,
+        `Review Window: ${params.reviewPeriod || params.targetCommitteeDate || 'missing'}`,
+      ];
+
+      return {
+        capabilityKey: 'water_pricing_net_investment_alignment_gate',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        alignmentScope,
+        pricingEvidence: {
+          waterPriceReference: params.waterPriceReference || null,
+          calculationReference: params.calculationReference || null,
+          officialPriceCalculated: false,
+        },
+        investmentEvidence: {
+          netInvestmentReference: params.netInvestmentReference || null,
+          infrastructureMeasureReference: params.infrastructureMeasureReference || null,
+        },
+        assetAccountingEvidence: {
+          assetAccountingReference: params.assetAccountingReference || null,
+          accountingMutated: false,
+        },
+        leaseConditionEvidence: {
+          leaseOrConcessionReference: params.leaseOrConcessionReference || null,
+          pachtnetzReference: params.pachtnetzReference || null,
+          contractParsed: false,
+        },
+        regulatoryBoundaryEvidence: {
+          regulatoryImpactReference: params.regulatoryImpactReference || null,
+          tariffLogicReference: params.tariffLogicReference || null,
+          approvalClaimed: false,
+        },
+        owner: {
+          governanceOwner: params.governanceOwner || null,
+          committeeOwner: params.committeeOwner || null,
+        },
+        reviewWindow: {
+          reviewPeriod: params.reviewPeriod || null,
+          targetCommitteeDate: params.targetCommitteeDate || null,
+        },
+        alignmentDecision: params.alignmentDecision || null,
+        sourceRefs,
+        missingEvidence,
+        positiveFollowUps,
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'water_pricing_net_investment_alignment_gate',
+          status,
+          readinessScore,
+          alignmentScope,
+          waterPriceReference: params.waterPriceReference || params.calculationReference || null,
+          netInvestmentReference: params.netInvestmentReference || params.infrastructureMeasureReference || null,
+          assetAccountingReference: params.assetAccountingReference || null,
+          leaseConditionReference: params.leaseOrConcessionReference || params.pachtnetzReference || null,
+          regulatoryImpactReference: params.regulatoryImpactReference || params.tariffLogicReference || null,
+          owner: params.governanceOwner || params.committeeOwner || null,
+          reviewWindow: params.reviewPeriod || params.targetCommitteeDate || null,
+          alignmentDecision: params.alignmentDecision || null,
+          regulatoryApprovalClaimed: false,
           sourceRefs,
           missingEvidence,
           positiveFollowUps,

@@ -2747,6 +2747,82 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- waterPricingNetInvestmentAlignmentStatus ----------------------------
+
+  describe('waterPricingNetInvestmentAlignmentStatus', () => {
+    it('reports missing water-pricing alignment evidence without executing mutations', async () => {
+      const result = await broker.call('dashboard-api.waterPricingNetInvestmentAlignmentStatus', {
+        caseId: 'water-259',
+        waterPriceReference: 'wasserpreis:assumption-q3',
+      });
+
+      expect(result.status).toBe('needs_net_investment_reference');
+      expect(result.safety).toBe('read_only');
+      expect(result.alignmentScope.caseId).toBe('water-259');
+      expect(result.pricingEvidence.officialPriceCalculated).toBe(false);
+      expect(result.regulatoryBoundaryEvidence.approvalClaimed).toBe(false);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'net_investment_reference',
+          'asset_accounting_reference',
+          'lease_condition_reference',
+          'regulatory_impact_reference',
+          'governance_owner',
+          'review_window',
+          'alignment_decision',
+          'source_refs',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe(
+        'water_pricing_net_investment_alignment_gate'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'water-pricing.calculate',
+          'asset-accounting.import',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'mako.dispatch',
+          'contract.release',
+          'payment.execute',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns committee_review_ready for complete caller-supplied evidence', async () => {
+      const result = await broker.call('dashboard-api.waterPricingNetInvestmentAlignmentStatus', {
+        caseId: 'water-ready-259',
+        projectId: 'project-water-north',
+        waterPriceReference: 'wasserpreis:calc-assumption-2026',
+        netInvestmentReference: 'investment:water-grid-42',
+        assetAccountingReference: 'anlagenbuchhaltung:asset-export-42',
+        pachtnetzReference: 'pachtnetz:lease-42',
+        regulatoryImpactReference: 'regulatory:water-impact-2026',
+        governanceOwner: 'commercial-lead',
+        reviewPeriod: '2026-Q3',
+        targetCommitteeDate: '2026-09-30',
+        alignmentDecision: 'committee-review-ready',
+        sourceRefs: 'water:calc-42,asset:export-42,pachtnetz:lease-42',
+      });
+
+      expect(result.status).toBe('committee_review_ready');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.assetAccountingEvidence.accountingMutated).toBe(false);
+      expect(result.leaseConditionEvidence.contractParsed).toBe(false);
+      expect(result.dossierEvidence.dossierFacts).toContain(
+        'Alignment Status: committee_review_ready'
+      );
+      expect(result.dossierEvidence.sourceRefs).toEqual(
+        expect.arrayContaining(['water:calc-42', 'asset:export-42', 'pachtnetz:lease-42'])
+      );
+    });
+  });
+
   // -- energySharingSimulationGateStatus ----------------------------------
 
   describe('energySharingSimulationGateStatus', () => {

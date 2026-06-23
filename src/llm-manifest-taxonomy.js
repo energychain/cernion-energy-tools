@@ -129,6 +129,7 @@ const CAPABILITY_DOMAIN_MAP = {
   tax_finance_data_handover: 'regulatory',
   regulatory_readiness: 'regulatory',
   re4de_grid_fees: 'regulatory',
+  water_pricing_governance: 'regulatory',
   // market communication/messaging evidence chain
   market_communication: 'market-data',
   // agent's own answer-evidence/dossier-quality infrastructure

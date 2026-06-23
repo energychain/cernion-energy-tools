@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 80 static rules', () => {
+    it('loads all 81 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(80);
+      expect(rules.length).toBe(81);
     });
 
-    it('compiles all 80 static rules without error', () => {
+    it('compiles all 81 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(80);
+      expect(rules.length).toBe(81);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1424,6 +1424,52 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Grid Operator: vnb-gas');
       expect(formatted).toContain('Leading Gap: regulatory_impact_refs');
       expect(formatted).toContain('Side-Effect Guard: gas-network-flow.calculate');
+    });
+
+    it('dashboard-api.waterPricingNetInvestmentAlignmentStatus is dossier-safe and formats alignment facts', () => {
+      const rule = getRule('dashboard-api.waterPricingNetInvestmentAlignmentStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Alignment Gate case=water-259 waterPriceReference=wp-2026 netInvestmentReference=invest-42 anlagenbuchhaltung=asset-export pachtnetz=lease-42 regulierungswirkung=reg-42 owner=commercial-lead periode=2026-Q3 entscheidung=committee-ready pruefen'
+        )
+      ).toEqual({
+        caseId: 'water-259',
+        waterPriceReference: 'wp-2026',
+        netInvestmentReference: 'invest-42',
+        assetAccountingReference: 'asset-export',
+        pachtnetzReference: 'lease-42',
+        regulatoryImpactReference: 'reg-42',
+        governanceOwner: 'commercial-lead',
+        reviewPeriod: '2026-Q3',
+        alignmentDecision: 'committee-ready',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'water_pricing_net_investment_alignment_gate',
+        status: 'needs_asset_accounting_reference',
+        alignmentScope: { caseId: 'water-259' },
+        pricingEvidence: { waterPriceReference: 'wp-2026' },
+        investmentEvidence: { netInvestmentReference: 'invest-42' },
+        leaseConditionEvidence: { pachtnetzReference: 'lease-42' },
+        regulatoryBoundaryEvidence: { regulatoryImpactReference: 'reg-42' },
+        owner: { governanceOwner: 'commercial-lead' },
+        reviewWindow: { reviewPeriod: '2026-Q3' },
+        alignmentDecision: 'committee-ready',
+        missingEvidence: [{ missingDataPoint: 'asset_accounting_reference' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add Anlagenbuchhaltung evidence' }],
+        sourceActions: {
+          notCalled: ['water-pricing.calculate'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: water_pricing_net_investment_alignment_gate');
+      expect(formatted).toContain('Alignment Status: needs_asset_accounting_reference');
+      expect(formatted).toContain('Water Price Ref: wp-2026');
+      expect(formatted).toContain('Leading Gap: asset_accounting_reference');
+      expect(formatted).toContain('Side-Effect Guard: water-pricing.calculate');
     });
 
     it('dashboard-api.specialGridUsageImpactMapStatus is dossier-safe and formats impact-map facts', () => {

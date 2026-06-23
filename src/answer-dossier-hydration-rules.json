@@ -1076,6 +1076,101 @@
     "sourceIssue": 255
   },
   {
+    "id": "dashboard-api.waterPricingNetInvestmentAlignmentStatus",
+    "action": "dashboard-api.waterPricingNetInvestmentAlignmentStatus",
+    "label": "Water Pricing / Net-Investment Alignment Gate",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:caseId|case|fall)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "projectId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:projectId|projekt)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "waterPriceReference": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:waterPriceReference|wasserpreis|wasserpreisRef)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "netInvestmentReference": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:netInvestmentReference|netzinvestition|investment)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "assetAccountingReference": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:assetAccountingReference|anlagenbuchhaltung)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "pachtnetzReference": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:pachtnetzReference|pachtnetz)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "regulatoryImpactReference": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:regulatoryImpactReference|regulierungswirkung|regulatorik)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "governanceOwner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:governanceOwner|owner|gremienowner)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "reviewPeriod": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:reviewPeriod|periode)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "targetCommitteeDate": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:targetCommitteeDate|gremium|committeeDate)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "alignmentDecision": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:alignmentDecision|entscheidung)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 100 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Alignment Status", "maxLen": 100 },
+        { "paths": ["alignmentScope.caseId", "dossierEvidence.alignmentScope.caseId", "alignmentScope.projectId"], "label": "Case", "maxLen": 120 },
+        { "paths": ["pricingEvidence.waterPriceReference", "dossierEvidence.waterPriceReference", "pricingEvidence.calculationReference"], "label": "Water Price Ref", "maxLen": 140 },
+        { "paths": ["investmentEvidence.netInvestmentReference", "dossierEvidence.netInvestmentReference", "investmentEvidence.infrastructureMeasureReference"], "label": "Net Investment Ref", "maxLen": 140 },
+        { "paths": ["assetAccountingEvidence.assetAccountingReference", "dossierEvidence.assetAccountingReference"], "label": "Asset Accounting", "maxLen": 140 },
+        { "paths": ["leaseConditionEvidence.pachtnetzReference", "dossierEvidence.leaseConditionReference", "leaseConditionEvidence.leaseOrConcessionReference"], "label": "Lease Condition", "maxLen": 140 },
+        { "paths": ["regulatoryBoundaryEvidence.regulatoryImpactReference", "dossierEvidence.regulatoryImpactReference", "regulatoryBoundaryEvidence.tariffLogicReference"], "label": "Regulatory Boundary", "maxLen": 140 },
+        { "paths": ["owner.governanceOwner", "dossierEvidence.owner", "owner.committeeOwner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["reviewWindow.reviewPeriod", "dossierEvidence.reviewWindow", "reviewWindow.targetCommitteeDate"], "label": "Review Window", "maxLen": 120 },
+        { "paths": ["alignmentDecision", "dossierEvidence.alignmentDecision"], "label": "Alignment Decision", "maxLen": 140 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 259
+  },
+  {
     "id": "dashboard-api.receiptGroundedPresentationContract",
     "action": "dashboard-api.receiptGroundedPresentationContract",
     "label": "Receipt Grounded Presentation Contract",

@@ -16602,6 +16602,183 @@
         ]
       }
     },
+    "/api/dashboard-api/water-pricing-net-investment-alignment": {
+      "get": {
+        "operationId": "dashboard-api_waterPricingNetInvestmentAlignmentStatus",
+        "summary": "Water pricing / net-investment alignment -- read-only evidence gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only water pricing / net-investment alignment evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "alignmentScope": {
+                      "type": "object"
+                    },
+                    "pricingEvidence": {
+                      "type": "object"
+                    },
+                    "investmentEvidence": {
+                      "type": "object"
+                    },
+                    "assetAccountingEvidence": {
+                      "type": "object"
+                    },
+                    "leaseConditionEvidence": {
+                      "type": "object"
+                    },
+                    "regulatoryBoundaryEvidence": {
+                      "type": "object"
+                    },
+                    "owner": {
+                      "type": "object"
+                    },
+                    "reviewWindow": {
+                      "type": "object"
+                    },
+                    "alignmentDecision": {
+                      "type": "string"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a deterministic dossier-safe alignment view over water-price assumptions, net-investment references, asset-accounting evidence, Pachtnetz/concession references, regulatory-impact evidence, owner, review period and committee decision state. The endpoint is read-only and never calculates an official water price, claims regulatory approval, mutates accounting, billing, settlement, tariff, MaKo, contract or payment data, creates HITL/notifications, or calls external connectors.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "waterPriceReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "calculationReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "netInvestmentReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetAccountingReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pachtnetzReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryImpactReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "governanceOwner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reviewPeriod",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetCommitteeDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "alignmentDecision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -55857,6 +56034,183 @@
           },
           {
             "name": "nextEvidenceStep",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/water-pricing-net-investment-alignment": {
+      "get": {
+        "operationId": "dashboard-api_waterPricingNetInvestmentAlignmentStatus",
+        "summary": "Water pricing / net-investment alignment -- read-only evidence gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only water pricing / net-investment alignment evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "alignmentScope": {
+                      "type": "object"
+                    },
+                    "pricingEvidence": {
+                      "type": "object"
+                    },
+                    "investmentEvidence": {
+                      "type": "object"
+                    },
+                    "assetAccountingEvidence": {
+                      "type": "object"
+                    },
+                    "leaseConditionEvidence": {
+                      "type": "object"
+                    },
+                    "regulatoryBoundaryEvidence": {
+                      "type": "object"
+                    },
+                    "owner": {
+                      "type": "object"
+                    },
+                    "reviewWindow": {
+                      "type": "object"
+                    },
+                    "alignmentDecision": {
+                      "type": "string"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a deterministic dossier-safe alignment view over water-price assumptions, net-investment references, asset-accounting evidence, Pachtnetz/concession references, regulatory-impact evidence, owner, review period and committee decision state. The endpoint is read-only and never calculates an official water price, claims regulatory approval, mutates accounting, billing, settlement, tariff, MaKo, contract or payment data, creates HITL/notifications, or calls external connectors.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "waterPriceReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "calculationReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "netInvestmentReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetAccountingReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pachtnetzReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryImpactReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "governanceOwner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reviewPeriod",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetCommitteeDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "alignmentDecision",
             "in": "query",
             "required": false,
             "schema": {

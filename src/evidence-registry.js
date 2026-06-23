@@ -3939,6 +3939,74 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  water_pricing_net_investment_alignment_gate: {
+    sources: [
+      {
+        id: 'water_price_reference',
+        label: 'Water-price assumption or calculation reference',
+        resolvedBy: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus', 'regulatorische-entgeltlogik.evaluate'],
+        contextKeys: ['waterPriceReference', 'calculationReference'],
+        optional: false,
+      },
+      {
+        id: 'net_investment_reference',
+        label: 'Net-investment or infrastructure-measure reference',
+        resolvedBy: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus', 'investment-planning.review'],
+        contextKeys: ['netInvestmentReference', 'infrastructureMeasureReference'],
+        optional: false,
+      },
+      {
+        id: 'asset_accounting_reference',
+        label: 'Anlagenbuchhaltung evidence reference',
+        resolvedBy: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus', 'reporting-governance.evaluate'],
+        contextKeys: ['assetAccountingReference'],
+        optional: false,
+      },
+      {
+        id: 'lease_condition_reference',
+        label: 'Pachtnetz, concession or lease-condition reference',
+        resolvedBy: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus', 'vdmi.dossier'],
+        contextKeys: ['leaseOrConcessionReference', 'pachtnetzReference'],
+        optional: false,
+      },
+      {
+        id: 'regulatory_impact_reference',
+        label: 'Regulatory-impact or tariff-logic boundary reference',
+        resolvedBy: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus', 'regulatorische-entgeltlogik.evaluate'],
+        contextKeys: ['regulatoryImpactReference', 'tariffLogicReference'],
+        optional: false,
+      },
+      {
+        id: 'governance_owner',
+        label: 'Governance or committee owner',
+        resolvedBy: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus', 'reporting-governance.evaluate'],
+        contextKeys: ['governanceOwner', 'committeeOwner'],
+        optional: false,
+      },
+      {
+        id: 'review_window',
+        label: 'Review period or target committee date',
+        resolvedBy: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus', 'vdmi-portfolio-gatekeeping.evaluate'],
+        contextKeys: ['reviewPeriod', 'targetCommitteeDate'],
+        optional: false,
+      },
+      {
+        id: 'alignment_decision',
+        label: 'Alignment decision state',
+        resolvedBy: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus', 'vdmi-portfolio-gatekeeping.evaluate'],
+        contextKeys: ['alignmentDecision'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Source references',
+        resolvedBy: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus'],
+        contextKeys: ['sourceRefs'],
+        optional: false,
+      },
+    ],
+  },
+
   'forecast-flex': {
     sources: [
       {
