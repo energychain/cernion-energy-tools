@@ -4311,6 +4311,114 @@
     "sourceIssue": 141
   },
   {
+    "id": "dr_readiness_evidence_gate",
+    "description": "Read-only disaster-recovery readiness evidence gate",
+    "routeLabel": "dr_readiness_evidence_gate",
+    "capability": "dr_readiness_evidence_gate",
+    "action": "dashboard-api.drReadinessEvidenceStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "backup.full",
+        "backup.tenant",
+        "backup.restore",
+        "backup-orchestrator.schedule",
+        "replication.start",
+        "tenant.snapshot",
+        "tenant.restore",
+        "archive.encrypt",
+        "external-storage.write",
+        "webhooks.emit",
+        "tenant-data.mutate",
+        "hitl.create",
+        "personal-agent.execute",
+        "external.connector.call"
+      ]
+    },
+    "triggers": [
+      "disaster recovery",
+      "dr readiness",
+      "backup readiness",
+      "restore drill",
+      "restore-test",
+      "restore test",
+      "rto",
+      "rpo",
+      "snapshot manifest",
+      "cutover snapshot",
+      "multi-tenant backup",
+      "tenant restore",
+      "backup evidence",
+      "dr_readiness_evidence_gate"
+    ],
+    "paramTemplate": {
+      "tenantScope": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:tenantScope|tenant-scope|tenant)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "restoreDrillStatus": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:restoreDrillStatus|restore-drill|drill)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "rtoTarget": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:rtoTarget|rto)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "rpoTarget": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:rpoTarget|rpo)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner|verantwortlich)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 120 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Status", "maxLen": 120 },
+        { "paths": ["readinessLevel", "dossierEvidence.readinessLevel"], "label": "Readiness Level", "maxLen": 120 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness Score", "maxLen": 40 },
+        { "paths": ["requestContext.tenantScope", "dossierEvidence.tenantScope"], "label": "Tenant Scope", "maxLen": 120 },
+        { "paths": ["owner", "dossierEvidence.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "First Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Positive Follow-up", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 74
+  },
+  {
     "id": "redispatch_project_controlling_kpi_cockpit",
     "description": "Read-only Redispatch project-controlling and KPI evidence gate",
     "routeLabel": "redispatch_project_controlling_kpi_cockpit",

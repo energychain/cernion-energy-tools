@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 67 static rules', () => {
+    it('loads all 68 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(67);
+      expect(rules.length).toBe(68);
     });
 
-    it('compiles all 67 static rules without error', () => {
+    it('compiles all 68 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(67);
+      expect(rules.length).toBe(68);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -989,6 +989,49 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Decision Readiness: blocked_by_pending_legal_clarification');
       expect(formatted).toContain('Clarification: Kapazitaetsfrage');
       expect(formatted).toContain('Side-Effect Guard: legal.approve');
+    });
+
+    it('dashboard-api.drReadinessEvidenceStatus is dossier-safe and formats DR evidence facts', () => {
+      const rule = getRule('dashboard-api.drReadinessEvidenceStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte DR Readiness tenant=public restore-drill=passed rto=2h rpo=1h owner=ops laden'
+        )
+      ).toEqual({
+        tenantScope: 'public',
+        restoreDrillStatus: 'passed',
+        rtoTarget: '2h',
+        rpoTarget: '1h',
+        owner: 'ops',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'dr_readiness_evidence_gate',
+        status: 'needs_snapshot_manifest',
+        readinessLevel: 'needs_evidence',
+        readinessScore: 0.38,
+        requestContext: { tenantScope: 'public' },
+        owner: 'Operations',
+        missingEvidence: [{ missingDataPoint: 'snapshot_manifest' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add cutover snapshot manifest evidence' },
+        ],
+        sourceActions: {
+          notCalled: ['backup.restore'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_snapshot_manifest'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: dr_readiness_evidence_gate');
+      expect(formatted).toContain('Status: needs_snapshot_manifest');
+      expect(formatted).toContain('Readiness Level: needs_evidence');
+      expect(formatted).toContain('Tenant Scope: public');
+      expect(formatted).toContain('Side-Effect Guard: backup.restore');
     });
 
     it('dashboard-api.redispatchProjectControllingKpiCockpitStatus is dossier-safe and formats controlling facts', () => {

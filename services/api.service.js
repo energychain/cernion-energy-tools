@@ -1416,6 +1416,8 @@ module.exports = {
             'dashboard-api.controllabilityAssetHandoverStatus',
           'GET /dashboard/legal-clarification-operating-model':
             'dashboard-api.legalClarificationOperatingModelStatus',
+          'GET /dashboard/dr-readiness-evidence':
+            'dashboard-api.drReadinessEvidenceStatus',
           'GET /dashboard/regulatory-change-readiness':
             'dashboard-api.regulatoryChangeReadinessStatus',
           'GET /dashboard/investment-two-track-control':

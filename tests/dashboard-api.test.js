@@ -1930,6 +1930,63 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- drReadinessEvidenceStatus -----------------------------------------
+
+  describe('drReadinessEvidenceStatus', () => {
+    it('reports missing DR evidence without executing backup, restore or tenant mutations', async () => {
+      const result = await broker.call('dashboard-api.drReadinessEvidenceStatus', {
+        tenantScope: 'public',
+        storeInventoryStatus: 'ready',
+        rtoTarget: '2h',
+        owner: 'Operations',
+      });
+
+      expect(result.status).toBe('needs_snapshot_manifest');
+      expect(result.readinessLevel).toBe('needs_evidence');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'snapshot_manifest',
+          'restore_drill',
+          'rpo_target',
+          'per_tenant_restore',
+          'next_drill_due',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('dr_readiness_evidence_gate');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'backup.restore',
+          'backup-orchestrator.schedule',
+          'replication.start',
+          'tenant.restore',
+          'tenant-data.mutate',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_dr_evidence when DR readiness evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.drReadinessEvidenceStatus', {
+        tenantScope: 'public',
+        storeInventoryStatus: 'ready',
+        snapshotManifestStatus: 'ready',
+        restoreDrillStatus: 'passed',
+        rtoTarget: '2h',
+        rpoTarget: '1h',
+        perTenantRestoreStatus: 'confirmed',
+        owner: 'Operations',
+        nextDrillDue: '2026-Q3',
+      });
+
+      expect(result.status).toBe('ready_for_dr_evidence');
+      expect(result.readinessLevel).toBe('ready');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided DR evidence: 8/8');
+    });
+  });
+
   // ── regulatoryChangeReadinessStatus ─────────────────────────────────────
 
   describe('regulatoryChangeReadinessStatus', () => {

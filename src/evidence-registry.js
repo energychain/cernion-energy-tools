@@ -1435,6 +1435,67 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  dr_readiness_evidence_gate: {
+    sources: [
+      {
+        id: 'store_inventory',
+        label: 'Store-Inventar',
+        resolvedBy: ['dashboard-api.drReadinessEvidenceStatus', 'datapoint.health'],
+        contextKeys: ['storeInventoryStatus'],
+        optional: false,
+      },
+      {
+        id: 'snapshot_manifest',
+        label: 'Snapshot-Manifest',
+        resolvedBy: ['dashboard-api.drReadinessEvidenceStatus', 'vdmi.dossier'],
+        contextKeys: ['snapshotManifestStatus'],
+        optional: false,
+      },
+      {
+        id: 'restore_drill',
+        label: 'Restore-Drill-Nachweis',
+        resolvedBy: ['dashboard-api.drReadinessEvidenceStatus', 'audit.report'],
+        contextKeys: ['restoreDrillStatus', 'lastDrillDate'],
+        optional: false,
+      },
+      {
+        id: 'rto_target',
+        label: 'RTO-Ziel',
+        resolvedBy: ['dashboard-api.drReadinessEvidenceStatus', 'deployment.runbook'],
+        contextKeys: ['rtoTarget'],
+        optional: false,
+      },
+      {
+        id: 'rpo_target',
+        label: 'RPO-Ziel',
+        resolvedBy: ['dashboard-api.drReadinessEvidenceStatus', 'deployment.runbook'],
+        contextKeys: ['rpoTarget'],
+        optional: false,
+      },
+      {
+        id: 'per_tenant_restore',
+        label: 'Per-Tenant-Restore-Nachweis',
+        resolvedBy: ['dashboard-api.drReadinessEvidenceStatus', 'vdmi.dossier'],
+        contextKeys: ['perTenantRestoreStatus'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'DR Owner',
+        resolvedBy: ['dashboard-api.drReadinessEvidenceStatus', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'next_drill_due',
+        label: 'Naechster DR-Drill',
+        resolvedBy: ['dashboard-api.drReadinessEvidenceStatus', 'deployment.runbook'],
+        contextKeys: ['nextDrillDue'],
+        optional: false,
+      },
+    ],
+  },
+
   cls_digital_twin_compliance_gate: {
     sources: [
       {

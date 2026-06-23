@@ -119,6 +119,7 @@ const CAPABILITY_DOMAIN_MAP = {
   steuerbarkeitscheck_governance: 'grid-ops',
   asset_governance: 'grid-ops',
   flex_governance: 'grid-ops',
+  operations: 'platform',
   // tax/regulatory data handover
   tax_finance_data_handover: 'regulatory',
   regulatory_readiness: 'regulatory',

@@ -476,6 +476,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/legal-clarification-operating-model']).toBe(
         'dashboard-api.legalClarificationOperatingModelStatus'
       );
+      expect(aliases['GET /dashboard/dr-readiness-evidence']).toBe(
+        'dashboard-api.drReadinessEvidenceStatus'
+      );
       expect(aliases['GET /dashboard/regulatory-change-readiness']).toBe(
         'dashboard-api.regulatoryChangeReadinessStatus'
       );

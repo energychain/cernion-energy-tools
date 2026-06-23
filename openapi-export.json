@@ -12308,6 +12308,160 @@
         ]
       }
     },
+    "/api/dashboard-api/dr-readiness-evidence": {
+      "get": {
+        "operationId": "dashboard-api_drReadinessEvidenceStatus",
+        "summary": "DR readiness evidence gate - read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only DR readiness evidence status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessLevel": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "evidenceItems": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "riskFlags": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds deterministic disaster-recovery readiness evidence for backup, restore-drill, RTO/RPO and tenant-scope cutover checks. The endpoint is read-only and does not execute backup, restore, scheduler, replication, external connector, webhook, key handling, tenant-data mutation or Personal Agent actions.",
+        "parameters": [
+          {
+            "name": "tenantScope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "storeInventoryStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "snapshotManifestStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "restoreDrillStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rtoTarget",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rpoTarget",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lastDrillDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextDrillDue",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "perTenantRestoreStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "notes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/regulatory-change-readiness": {
       "get": {
         "operationId": "dashboard-api_regulatoryChangeReadinessStatus",
@@ -51979,6 +52133,160 @@
           },
           {
             "name": "decisionReadiness",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/dr-readiness-evidence": {
+      "get": {
+        "operationId": "dashboard-api_drReadinessEvidenceStatus",
+        "summary": "DR readiness evidence gate - read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only DR readiness evidence status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessLevel": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "evidenceItems": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "riskFlags": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds deterministic disaster-recovery readiness evidence for backup, restore-drill, RTO/RPO and tenant-scope cutover checks. The endpoint is read-only and does not execute backup, restore, scheduler, replication, external connector, webhook, key handling, tenant-data mutation or Personal Agent actions.",
+        "parameters": [
+          {
+            "name": "tenantScope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "storeInventoryStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "snapshotManifestStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "restoreDrillStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rtoTarget",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rpoTarget",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lastDrillDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextDrillDue",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "perTenantRestoreStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "notes",
             "in": "query",
             "required": false,
             "schema": {

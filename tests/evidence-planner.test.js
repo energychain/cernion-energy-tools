@@ -203,6 +203,33 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans DR readiness gate as backup and restore evidence without execution', () => {
+    const result = planEvidence(
+      { routeLabel: 'dr_readiness_evidence_gate' },
+      {
+        tenantScope: 'public',
+        storeInventoryStatus: 'ready',
+        restoreDrillStatus: 'passed',
+        rtoTarget: '2h',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('dr_readiness_evidence_gate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['store_inventory', 'restore_drill', 'rto_target'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'snapshot_manifest',
+        'rpo_target',
+        'per_tenant_restore',
+        'owner',
+        'next_drill_due',
+      ])
+    );
+  });
+
   it('plans controllability submission cockpit as explicit submission and handover evidence', () => {
     const result = planEvidence(
       { routeLabel: 'controllability_submission_cockpit' },

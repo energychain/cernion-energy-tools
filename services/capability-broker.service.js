@@ -238,6 +238,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasDrReadinessEvidenceSpecificSignal =
+    /(disaster recovery|\\bdr\\b|backup|restore|wiederherstellung|notfall)/i.test(haystack) &&
+    /(readiness|evidence|evidenz|nachweis|drill|rto|rpo|snapshot|manifest|multi.?tenant|tenant.?restore|cutover)/i.test(haystack) &&
+    !/(restore ausfuehren|restore ausführen|backup starten|backup ausfuehren|backup ausführen|tenant restore ausfuehren|tenant restore ausführen|scheduler starten|replication start)/i.test(haystack);
+
+  if (hasDrReadinessEvidenceSpecificSignal) {
+    const drCapability = findCapabilityByName('dr_readiness_evidence_gate');
+    if (drCapability) {
+      return { capability: drCapability, score: 138, usedFallback: false };
+    }
+  }
+
   const hasControllabilitySubmissionCockpitSpecificSignal =
     /(steuerbarkeitscheck|steuerbarkeitsnachweis|controllability)/i.test(haystack) &&
     /(abgabe.?cockpit|abgabeprojekt|submission cockpit|submission|quellenliste|datenabgleich|begruendungskatalog|begründungskatalog|assetgruppenstatus|naechster zyklus|nächster zyklus|abgabefrist)/i.test(haystack) &&

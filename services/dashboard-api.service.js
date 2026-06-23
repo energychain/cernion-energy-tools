@@ -50,6 +50,7 @@ module.exports = {
       e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
       legalClarificationOperatingModelStatus: 5 * 60 * 1000, // 5 min
+      drReadinessEvidenceStatus: 5 * 60 * 1000, // 5 min
       regulatoryChangeReadinessStatus: 5 * 60 * 1000, // 5 min
       investmentTwoTrackControlStatus: 5 * 60 * 1000, // 5 min
       sapBudgetPspGateStatus: 5 * 60 * 1000, // 5 min
@@ -1703,6 +1704,91 @@ module.exports = {
           this.settings.cacheTtlMs.legalClarificationOperatingModelStatus,
           async () => ({
             ...this.buildLegalClarificationOperatingModelStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- drReadinessEvidenceStatus ----------------------------------------
+    /**
+     * GET /api/dashboard/dr-readiness-evidence?tenantScope=...
+     *
+     * Read-only dossier-safe DR readiness evidence gate. It structures
+     * backup/restore/cutover evidence without executing backup, restore,
+     * scheduler, replication, external storage, webhook, or tenant-data actions.
+     */
+    drReadinessEvidenceStatus: {
+      rest: 'GET /dr-readiness-evidence',
+      params: {
+        tenantScope: { type: 'string', optional: true, min: 1 },
+        storeInventoryStatus: { type: 'string', optional: true, min: 1 },
+        snapshotManifestStatus: { type: 'string', optional: true, min: 1 },
+        restoreDrillStatus: { type: 'string', optional: true, min: 1 },
+        rtoTarget: { type: 'string', optional: true, min: 1 },
+        rpoTarget: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        lastDrillDate: { type: 'string', optional: true, min: 1 },
+        nextDrillDue: { type: 'string', optional: true, min: 1 },
+        perTenantRestoreStatus: { type: 'string', optional: true, min: 1 },
+        notes: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'DR readiness evidence gate - read-only dossier-safe status',
+        description:
+          'Builds deterministic disaster-recovery readiness evidence for backup, restore-drill, RTO/RPO and tenant-scope cutover checks. ' +
+          'The endpoint is read-only and does not execute backup, restore, scheduler, replication, external connector, webhook, key handling, tenant-data mutation or Personal Agent actions.',
+        parameters: [
+          { name: 'tenantScope', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'storeInventoryStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'snapshotManifestStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'restoreDrillStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'rtoTarget', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'rpoTarget', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'lastDrillDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextDrillDue', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'perTenantRestoreStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'notes', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only DR readiness evidence status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    readinessLevel: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    evidenceItems: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    riskFlags: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `dr-readiness-evidence:${params.tenantScope || 'no-tenant'}:${params.storeInventoryStatus || 'no-store'}:${params.snapshotManifestStatus || 'no-snapshot'}:${params.restoreDrillStatus || 'no-drill'}:${params.rtoTarget || 'no-rto'}:${params.rpoTarget || 'no-rpo'}:${params.perTenantRestoreStatus || 'no-tenant-restore'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.drReadinessEvidenceStatus,
+          async () => ({
+            ...this.buildDrReadinessEvidenceStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -6894,6 +6980,219 @@ module.exports = {
           missingEvidence,
           positiveFollowUps,
           blockingFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildDrReadinessEvidenceStatus(params = {}) {
+      const normalizeStatus = (value) => {
+        const text = String(value || '').trim().toLowerCase();
+        if (!text) return 'missing';
+        if (/^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|present|vorhanden|tested|passed)$/.test(text)) return 'ready';
+        if (/^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|scheduled|planned|unknown|unklar)$/.test(text)) return 'partial';
+        if (/^(missing|fehlt|absent|not_available|not-available)$/.test(text)) return 'missing';
+        if (/^(blocked|blockiert|red|rot|failed|fail|rejected|not_ready|not-ready|stop)$/.test(text)) return 'blocked';
+        if (/(block|fail|fehl|kritisch|red|rot|reject)/.test(text)) return 'blocked';
+        return 'ready';
+      };
+      const tenantScope = params.tenantScope || 'request';
+      const evidenceSpecs = [
+        {
+          id: 'store_inventory',
+          label: 'Store inventory',
+          value: params.storeInventoryStatus,
+          sourceClass: 'dr_store_inventory',
+          enablesDossierAddition: 'add PouchDB/job/observability/MQTT store inventory evidence',
+          statusWhenMissing: 'needs_store_inventory',
+        },
+        {
+          id: 'snapshot_manifest',
+          label: 'Snapshot manifest',
+          value: params.snapshotManifestStatus,
+          sourceClass: 'dr_snapshot_manifest',
+          enablesDossierAddition: 'add cutover snapshot manifest evidence',
+          statusWhenMissing: 'needs_snapshot_manifest',
+        },
+        {
+          id: 'restore_drill',
+          label: 'Restore drill',
+          value: params.restoreDrillStatus || params.lastDrillDate,
+          displayValue: params.restoreDrillStatus || params.lastDrillDate,
+          sourceClass: 'dr_restore_drill',
+          enablesDossierAddition: 'add restore-drill proof and drill date',
+          statusWhenMissing: 'needs_restore_drill',
+        },
+        {
+          id: 'rto_target',
+          label: 'RTO target',
+          value: params.rtoTarget,
+          sourceClass: 'dr_rto_objective',
+          enablesDossierAddition: 'add Recovery Time Objective evidence',
+          statusWhenMissing: 'needs_rto_rpo',
+        },
+        {
+          id: 'rpo_target',
+          label: 'RPO target',
+          value: params.rpoTarget,
+          sourceClass: 'dr_rpo_objective',
+          enablesDossierAddition: 'add Recovery Point Objective evidence',
+          statusWhenMissing: 'needs_rto_rpo',
+        },
+        {
+          id: 'per_tenant_restore',
+          label: 'Per-tenant restore proof',
+          value: params.perTenantRestoreStatus,
+          sourceClass: 'dr_tenant_restore',
+          enablesDossierAddition: 'add tenant-scope restore evidence',
+          statusWhenMissing: 'needs_per_tenant_restore',
+        },
+        {
+          id: 'owner',
+          label: 'DR owner',
+          value: params.owner,
+          sourceClass: 'dr_owner',
+          enablesDossierAddition: 'add accountable DR owner',
+          statusWhenMissing: 'needs_owner',
+        },
+        {
+          id: 'next_drill_due',
+          label: 'Next drill due',
+          value: params.nextDrillDue,
+          sourceClass: 'dr_drill_schedule',
+          enablesDossierAddition: 'add next DR drill due date',
+          statusWhenMissing: 'needs_next_drill_due',
+        },
+      ];
+      const signals = evidenceSpecs.map((spec) => {
+        const status = normalizeStatus(spec.value);
+        return {
+          id: spec.id,
+          label: spec.label,
+          status,
+          value: spec.displayValue || spec.value || null,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+          statusWhenMissing: spec.statusWhenMissing,
+        };
+      });
+      const evidenceItems = signals
+        .filter((signal) => signal.status === 'ready')
+        .map((signal) => ({
+          id: signal.id,
+          label: signal.label,
+          value: signal.value || signal.status,
+          sourceClass: signal.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = signals
+        .filter((signal) => signal.status !== 'ready')
+        .map((signal) => ({
+          missingDataPoint: signal.id,
+          label: signal.label,
+          status: signal.status,
+          value: signal.value,
+          sourceClass: signal.sourceClass,
+          enablesDossierAddition: signal.enablesDossierAddition,
+          statusWhenMissing: signal.statusWhenMissing,
+        }));
+      const riskFlags = missingEvidence
+        .filter((item) => ['store_inventory', 'snapshot_manifest', 'restore_drill', 'rto_target', 'rpo_target'].includes(item.missingDataPoint) || item.status === 'blocked')
+        .map((item) => ({
+          code: `DR_${String(item.missingDataPoint).toUpperCase()}_${item.status === 'blocked' ? 'BLOCKED' : 'MISSING'}`,
+          severity: item.status === 'blocked' ? 'high' : 'medium',
+          message: item.enablesDossierAddition,
+        }));
+      const firstGap = missingEvidence[0];
+      const status = missingEvidence.length === 0
+        ? 'ready_for_dr_evidence'
+        : missingEvidence.some((item) => item.status === 'blocked')
+          ? 'blocked_by_dr_evidence'
+          : firstGap?.statusWhenMissing || 'needs_dr_evidence';
+      const readinessLevel = missingEvidence.length === 0
+        ? 'ready'
+        : riskFlags.some((flag) => flag.severity === 'high')
+          ? 'blocked'
+          : evidenceItems.length >= 4
+            ? 'partial'
+            : 'needs_evidence';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        status: item.status,
+        value: item.value,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'dr_readiness_evidence_gate',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.drReadinessEvidenceStatus'],
+        referenced: [
+          'vdmi.dossier',
+          'datapoint.health',
+          'audit.report',
+          'deployment.runbook',
+          'interface-placeholder.requestEvidence',
+        ],
+        notCalled: [
+          'backup.full',
+          'backup.tenant',
+          'backup.restore',
+          'backup-orchestrator.schedule',
+          'replication.start',
+          'tenant.snapshot',
+          'tenant.restore',
+          'archive.encrypt',
+          'external-storage.write',
+          'webhooks.emit',
+          'tenant-data.mutate',
+          'hitl.create',
+          'personal-agent.execute',
+          'external.connector.call',
+        ],
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Readiness Level: ${readinessLevel}`,
+        `Provided DR evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (tenantScope) dossierFacts.push(`Tenant Scope: ${tenantScope}`);
+      if (params.rtoTarget) dossierFacts.push(`RTO: ${params.rtoTarget}`);
+      if (params.rpoTarget) dossierFacts.push(`RPO: ${params.rpoTarget}`);
+
+      return {
+        drReadinessEvidenceId: `drreg:${Buffer.from(`${tenantScope}:${params.snapshotManifestStatus || ''}:${params.restoreDrillStatus || ''}:${params.owner || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'dr_readiness_evidence_gate',
+        safety: 'read_only',
+        requestContext: {
+          tenantScope,
+          notes: params.notes || null,
+        },
+        status,
+        readinessLevel,
+        readinessScore,
+        evidenceItems,
+        missingEvidence,
+        riskFlags,
+        owner: params.owner || null,
+        nextAction: positiveFollowUps[0]?.enablesDossierAddition || 'keep DR evidence current',
+        positiveFollowUps,
+        sourceActions,
+        validationFindings: riskFlags,
+        dossierEvidence: {
+          status,
+          readinessLevel,
+          readinessScore,
+          tenantScope,
+          evidenceItems,
+          missingEvidence,
+          riskFlags,
+          owner: params.owner || null,
+          nextAction: positiveFollowUps[0]?.enablesDossierAddition || 'keep DR evidence current',
+          positiveFollowUps,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
           dossierFacts,
         },
       };
