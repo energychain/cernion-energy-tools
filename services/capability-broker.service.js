@@ -623,6 +623,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasAssetValuationTransformationGateSpecificSignal =
+    /(asset valuation|asset.?bewertung|assetbewertung|restwert|buchwert|assetzustand|asset valuation transformation gate|transformation gate|transformationsgate)/i.test(haystack) &&
+    /(book.?value|buchwert|restwert|assetzustand|condition|zustand|stilllegung|umwidmung|h2 option|h2.?option|waermebezug|wärmebezug|vertragsrisiko|regulatorische unsicherheit|datenqualitaet|datenqualität|decision owner|next decision|management gate)/i.test(haystack) &&
+    !/(valuation record create|accounting posting|asset.?mutation|assets\.applyOverride|investment approve|investment\.approve|stilllegung ausfuehren|stilllegung ausführen|umwidmung ausfuehren|umwidmung ausführen|hitl create|billing|settlement|abrechnung|tarif|mako|device-control|external connector|personal-agent execute)/i.test(haystack);
+
+  if (hasAssetValuationTransformationGateSpecificSignal) {
+    const assetValuationCapability = findCapabilityByName('asset_valuation_transformation_gate');
+    if (assetValuationCapability) {
+      return { capability: assetValuationCapability, score: 145, usedFallback: false };
+    }
+  }
+
   const hasGasTransformationDependencyMapSpecificSignal =
     /(gasnetztransformation|gasnetz 2045|h2 readiness|wasserstoff|stilllegungspfad|umwidmung|waermenetzausbau|geothermie|abhaengigkeitslandkarte|transformationsoption)/i.test(haystack) &&
     /(projectId|division|nodes|dependencies|dataQualityGaps|investmentPaths|decommissionRepurposePaths|customerGroups|owner|nextAction|gaps|follow.?up|readiness|projekt-id|sparte|abhaengigkeit|datenqualitaet|investitionspfad|stilllegung|umwidmungspfad|kundengruppe|melo-155)/i.test(haystack) &&

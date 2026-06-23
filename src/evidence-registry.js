@@ -3742,6 +3742,67 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  asset_valuation_transformation_gate: {
+    sources: [
+      {
+        id: 'book_value_source',
+        label: 'Book value or residual-value source',
+        resolvedBy: ['dashboard-api.assetValuationTransformationGateStatus', 'finance-agent.analyze'],
+        contextKeys: ['bookValueStatus', 'bookValueSource'],
+        optional: false,
+      },
+      {
+        id: 'asset_condition_source',
+        label: 'Asset condition evidence',
+        resolvedBy: ['dashboard-api.assetValuationTransformationGateStatus', 'assets.effective'],
+        contextKeys: ['assetConditionStatus', 'assetConditionSource'],
+        optional: false,
+      },
+      {
+        id: 'transformation_option_basis',
+        label: 'Transformation option basis',
+        resolvedBy: ['dashboard-api.assetValuationTransformationGateStatus', 'gasnetz-waermeplanung.reconcile'],
+        contextKeys: ['transformationOption', 'transformationOptionBasis'],
+        optional: false,
+      },
+      {
+        id: 'contract_risk_basis',
+        label: 'Contract and revenue-path risk basis',
+        resolvedBy: ['dashboard-api.assetValuationTransformationGateStatus', 'vdmi.dossier'],
+        contextKeys: ['contractRisk', 'contractRiskBasis'],
+        optional: false,
+      },
+      {
+        id: 'regulatory_uncertainty_basis',
+        label: 'Regulatory uncertainty basis',
+        resolvedBy: ['dashboard-api.assetValuationTransformationGateStatus', 'vdmi.dossier'],
+        contextKeys: ['regulatoryUncertainty', 'regulatoryUncertaintyBasis'],
+        optional: false,
+      },
+      {
+        id: 'data_quality_status',
+        label: 'Data quality status',
+        resolvedBy: ['dashboard-api.assetValuationTransformationGateStatus', 'datapoint.health'],
+        contextKeys: ['dataQualityStatus'],
+        optional: false,
+      },
+      {
+        id: 'decision_owner',
+        label: 'Decision owner',
+        resolvedBy: ['dashboard-api.assetValuationTransformationGateStatus', 'vdmi.dossier'],
+        contextKeys: ['decisionOwner'],
+        optional: false,
+      },
+      {
+        id: 'next_decision',
+        label: 'Next management decision',
+        resolvedBy: ['dashboard-api.assetValuationTransformationGateStatus', 'presentation.render'],
+        contextKeys: ['nextDecision'],
+        optional: false,
+      },
+    ],
+  },
+
   'forecast-flex': {
     sources: [
       {

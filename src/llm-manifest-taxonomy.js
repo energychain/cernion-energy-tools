@@ -121,6 +121,7 @@ const CAPABILITY_DOMAIN_MAP = {
   // Steuerbarkeitscheck / §14a controllability — operational connection mechanism
   steuerbarkeitscheck_governance: 'grid-ops',
   asset_governance: 'grid-ops',
+  asset_strategy: 'grid-planning',
   flex_governance: 'grid-ops',
   operations: 'platform',
   // tax/regulatory data handover

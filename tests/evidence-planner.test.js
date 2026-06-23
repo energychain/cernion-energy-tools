@@ -1395,6 +1395,29 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('asset_valuation_transformation_gate: requires valuation, condition, transformation and decision evidence', () => {
+    const plan = { routeKey: 'asset_valuation_transformation_gate' };
+    const result = planEvidence(plan, {
+      bookValueSource: 'erp:book-value-2026',
+      assetConditionSource: 'inspection:2026',
+      dataQualityStatus: 'high',
+    });
+
+    expect(result.registryKey).toBe('asset_valuation_transformation_gate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['book_value_source', 'asset_condition_source', 'data_quality_status'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'transformation_option_basis',
+        'contract_risk_basis',
+        'regulatory_uncertainty_basis',
+        'decision_owner',
+        'next_decision',
+      ])
+    );
+  });
+
   it('forecast-flex: requires forecast_location', () => {
     const plan = { routeKey: 'forecast-flex' };
     const result = planEvidence(plan, {});

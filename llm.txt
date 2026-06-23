@@ -113,8 +113,8 @@ recipes:
   redispatch-settlement-audit "Check settlement readiness and financial risk exposure for Redispatch 2.0…"
 resolve: GET /api/_agent/operations?domain=redispatch
 
-### grid-planning (16 capabilities · 8 recipes · 46 operations)
-capabilities: altdaten_assessment, automatisierungsradar, blindflug_radar_anomaly_detection, budget_waterfall_governance, finance_nkp_capex_reinvest_governance, investment_committee_steering_cards, investment_data_review_queue, investment_maturity_off_balance_gate, investment_risk_translation_status, investment_two_track_control, investment_waterfall_governance, reinvest_signal, sap_budget_psp_gate, vnb_100_tage_assessment, znp_portfolio_assessment, znp_production_readiness_evidence_gate
+### grid-planning (17 capabilities · 8 recipes · 46 operations)
+capabilities: altdaten_assessment, asset_valuation_transformation_gate, automatisierungsradar, blindflug_radar_anomaly_detection, budget_waterfall_governance, finance_nkp_capex_reinvest_governance, investment_committee_steering_cards, investment_data_review_queue, investment_maturity_off_balance_gate, investment_risk_translation_status, investment_two_track_control, investment_waterfall_governance, reinvest_signal, sap_budget_psp_gate, vnb_100_tage_assessment, znp_portfolio_assessment, znp_production_readiness_evidence_gate
 recipes:
   cybergrid-counter-location-scout "A VNB wants to proactively identify storage locations near stressed…"
   nova-capex-defender "A planner wants to test whether operational/asset optimization can defer…"
@@ -181,7 +181,7 @@ recipes:
   (none)
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (10 capabilities · 8 recipes · 329 operations)
+### platform (10 capabilities · 8 recipes · 330 operations)
 capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, evidence_grounding_confidence_audit, file_ingest_monitor, hitl_role_based_evidence_request, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted troubleshooting…"
@@ -248,13 +248,13 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-- src/capability-catalog.js: 0ea6203f6115485f4fea6f8ff04c0bd86b97c2cc62ca4e305128fdbb69cec76b
-- openapi-export.json: 5b2a34cef879bc4b6f39ac6bf455a28a1d771125eceb0d4ca174fc57614bcfb8
+- src/capability-catalog.js: 5808eec22d837871468f7fbde7f7923eef9e3c140ca562e4dd4a9698e0c979f0
+- openapi-export.json: 38a4e06fc86bb0aa5aad9d886bacdbfd9a885131ce54b7f955913deb985ec418
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 844
-- operation_count: 949
+- path_count: 846
+- operation_count: 951
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 32d48e9548853f99454d4bcee5059c74260042aaea7da61a9c3461eb2aa34926
+- llm_txt_sha256: a33d15301df29cbad2fa81fd313aa71faee2ddbbcd5b42650541053eef3ed83a

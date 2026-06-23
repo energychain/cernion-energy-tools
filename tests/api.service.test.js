@@ -506,6 +506,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/cross-channel-vnb-signal-queue']).toBe(
         'dashboard-api.crossChannelVnbSignalQueueStatus'
       );
+      expect(aliases['GET /dashboard/asset-valuation-transformation-gate']).toBe(
+        'dashboard-api.assetValuationTransformationGateStatus'
+      );
       expect(aliases['POST /stadtwerk-mauer-sandbox-runtime/events']).toBe(
         'stadtwerk-mauer-sandbox-runtime.ingestEvent'
       );

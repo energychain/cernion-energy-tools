@@ -102,6 +102,7 @@ module.exports = {
       stadtwerkMauerMastrDataOverlayStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
+      assetValuationTransformationGateStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -5282,6 +5283,103 @@ module.exports = {
           this.settings.cacheTtlMs.crossChannelVnbSignalQueueStatus,
           async () => ({
             ...this.buildCrossChannelVnbSignalQueueStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- assetValuationTransformationGateStatus ----------------------------
+    /**
+     * GET /api/dashboard/asset-valuation-transformation-gate
+     *
+     * Read-only dossier-safe projection for caller-supplied asset valuation
+     * and transformation evidence. It does not create valuation records,
+     * mutate assets, approve investments, or execute decommissioning.
+     */
+    assetValuationTransformationGateStatus: {
+      rest: 'GET /asset-valuation-transformation-gate',
+      params: {
+        gateId: { type: 'string', optional: true, min: 1 },
+        assetId: { type: 'string', optional: true, min: 1 },
+        assetGroupId: { type: 'string', optional: true, min: 1 },
+        assetType: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        bookValueStatus: { type: 'string', optional: true, min: 1 },
+        bookValueSource: { type: 'string', optional: true, min: 1 },
+        assetConditionStatus: { type: 'string', optional: true, min: 1 },
+        assetConditionSource: { type: 'string', optional: true, min: 1 },
+        transformationOption: { type: 'string', optional: true, min: 1 },
+        transformationOptionBasis: { type: 'string', optional: true, min: 1 },
+        contractRisk: { type: 'string', optional: true, min: 1 },
+        contractRiskBasis: { type: 'string', optional: true, min: 1 },
+        regulatoryUncertainty: { type: 'string', optional: true, min: 1 },
+        regulatoryUncertaintyBasis: { type: 'string', optional: true, min: 1 },
+        dataQualityStatus: { type: 'string', optional: true, min: 1 },
+        decisionOwner: { type: 'string', optional: true, min: 1 },
+        nextDecision: { type: 'string', optional: true, min: 1 },
+        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Asset valuation transformation gate -- read-only evidence projection',
+        description:
+          'Returns a deterministic dossier-safe management gate view over book value, asset condition, transformation option, contract/regulatory risk and data quality. ' +
+          'The endpoint is read-only and never mutates asset records, creates valuation/accounting records, approves investments, creates HITL items, or executes decommissioning/repurposing.',
+        parameters: [
+          { name: 'assetId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetGroupId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'bookValueStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetConditionStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'transformationOption', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'contractRisk', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryUncertainty', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataQualityStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionOwner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextDecision', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only asset valuation transformation gate evidence',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    decisionReadiness: { type: 'string' },
+                    assetScope: { type: 'object' },
+                    bookValueStatus: { type: 'object' },
+                    assetConditionStatus: { type: 'object' },
+                    transformationOption: { type: 'object' },
+                    contractRisk: { type: 'object' },
+                    regulatoryUncertainty: { type: 'object' },
+                    dataQualityStatus: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `asset-valuation-transformation-gate:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.assetValuationTransformationGateStatus,
+          async () => ({
+            ...this.buildAssetValuationTransformationGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -19148,6 +19246,186 @@ module.exports = {
           topRiskTypes: Object.keys(byRiskType),
           affectedProcesses: Object.keys(byProcess),
           nextDatapoints,
+          missingEvidence,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildAssetValuationTransformationGateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean).map(String);
+        if (value == null || value === '') return [];
+        return String(value)
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+      };
+      const normalize = (value) => String(value || '').trim().toLowerCase();
+      const isProvided = (value) =>
+        Boolean(value) && !['missing', 'unknown', 'open', 'pending', 'none', 'null'].includes(normalize(value));
+      const isLowQuality = (value) =>
+        ['low', 'poor', 'blocked', 'invalid', 'insufficient', 'red'].includes(normalize(value));
+
+      const missingMap = {
+        asset_scope: 'add asset or asset-group scope for the management gate',
+        book_value_source: 'add book-value and residual-value basis to the management gate',
+        asset_condition_source: 'add technical condition and replacement/maintenance risk',
+        transformation_option_basis: 'add Stilllegung/Umwidmung/H2/heat option evidence',
+        contract_risk_basis: 'add contract and revenue-path risk statement',
+        regulatory_uncertainty_basis: 'add regulatory impact caveat and decision boundary',
+        data_quality_status: 'add confidence/readiness scoring',
+        decision_owner: 'add accountable decision owner',
+        next_decision: 'add next management-decision wording',
+      };
+
+      const missingEvidence = [];
+      const addGap = (missingDataPoint, status = 'missing') => {
+        missingEvidence.push({
+          missingDataPoint,
+          status,
+          enablesDossierAddition: missingMap[missingDataPoint],
+        });
+      };
+
+      const assetScope = {
+        gateId: params.gateId || null,
+        assetId: params.assetId || null,
+        assetGroupId: params.assetGroupId || null,
+        assetType: params.assetType || 'unspecified_asset',
+        gridOperatorId: params.gridOperatorId || null,
+      };
+      if (!assetScope.assetId && !assetScope.assetGroupId) addGap('asset_scope');
+      if (!isProvided(params.bookValueStatus) && !isProvided(params.bookValueSource)) addGap('book_value_source');
+      if (!isProvided(params.assetConditionStatus) && !isProvided(params.assetConditionSource)) {
+        addGap('asset_condition_source');
+      }
+      if (!isProvided(params.transformationOption) && !isProvided(params.transformationOptionBasis)) {
+        addGap('transformation_option_basis');
+      }
+      if (!isProvided(params.contractRisk) && !isProvided(params.contractRiskBasis)) addGap('contract_risk_basis');
+      if (!isProvided(params.regulatoryUncertainty) && !isProvided(params.regulatoryUncertaintyBasis)) {
+        addGap('regulatory_uncertainty_basis');
+      }
+      if (!isProvided(params.dataQualityStatus)) addGap('data_quality_status');
+      if (!isProvided(params.decisionOwner)) addGap('decision_owner');
+      if (!isProvided(params.nextDecision)) addGap('next_decision');
+
+      let decisionReadiness = 'ready_for_gate';
+      if (isLowQuality(params.dataQualityStatus)) {
+        decisionReadiness = 'blocked_by_low_data_quality';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'book_value_source')) {
+        decisionReadiness = 'needs_book_value';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'asset_condition_source')) {
+        decisionReadiness = 'needs_asset_condition';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'contract_risk_basis')) {
+        decisionReadiness = 'needs_contract_evidence';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'transformation_option_basis')) {
+        decisionReadiness = 'needs_transformation_option';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_uncertainty_basis')) {
+        decisionReadiness = 'needs_regulatory_assessment';
+      } else if (missingEvidence.length > 0) {
+        decisionReadiness = 'needs_gate_metadata';
+      }
+
+      const sourceDatapoints = toList(params.sourceDatapoints);
+      const sourceRefs = toList(params.sourceRefs);
+      const sourceActions = {
+        inspected: ['dashboard-api.assetValuationTransformationGateStatus'],
+        referenced: [
+          'assets.effective',
+          'gasnetz-waermeplanung.reconcile',
+          'finance-agent.analyze',
+          'investment-planning.createPlan',
+          'vdmi.dossier',
+          'datapoint.health',
+          'presentation.render',
+        ],
+        notCalled: [
+          'valuation.recordCreate',
+          'accounting.postingCreate',
+          'assets.applyOverride',
+          'investment.approve',
+          'asset-lifecycle.decommission',
+          'asset-lifecycle.repurpose',
+          'contract.release',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'mako.dispatch',
+          'hitl.create',
+          'device-control.execute',
+          'external.connector.call',
+          'notification.dispatchInternal',
+          'personal-agent.execute',
+        ],
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'asset_valuation_transformation_gate',
+      }));
+      const dossierFacts = [
+        `Decision Readiness: ${decisionReadiness}`,
+        `Asset Scope: ${assetScope.assetId || assetScope.assetGroupId || 'missing'}`,
+        `Book Value: ${params.bookValueStatus || (params.bookValueSource ? 'provided' : 'missing')}`,
+        `Asset Condition: ${params.assetConditionStatus || (params.assetConditionSource ? 'provided' : 'missing')}`,
+        `Transformation Option: ${params.transformationOption || 'missing'}`,
+        `Data Quality: ${params.dataQualityStatus || 'missing'}`,
+      ];
+
+      return {
+        capabilityKey: 'asset_valuation_transformation_gate',
+        safety: 'read_only',
+        decisionReadiness,
+        status: decisionReadiness,
+        assetScope,
+        bookValueStatus: {
+          status: params.bookValueStatus || (params.bookValueSource ? 'provided' : 'missing'),
+          source: params.bookValueSource || null,
+        },
+        assetConditionStatus: {
+          status: params.assetConditionStatus || (params.assetConditionSource ? 'provided' : 'missing'),
+          source: params.assetConditionSource || null,
+        },
+        transformationOption: {
+          option: params.transformationOption || null,
+          basis: params.transformationOptionBasis || null,
+        },
+        contractRisk: {
+          status: params.contractRisk || null,
+          basis: params.contractRiskBasis || null,
+        },
+        regulatoryUncertainty: {
+          status: params.regulatoryUncertainty || null,
+          basis: params.regulatoryUncertaintyBasis || null,
+        },
+        dataQualityStatus: {
+          status: params.dataQualityStatus || null,
+          blocked: isLowQuality(params.dataQualityStatus),
+        },
+        decisionOwner: params.decisionOwner || null,
+        nextDecision: params.nextDecision || null,
+        sourceDatapoints,
+        sourceRefs,
+        missingEvidence,
+        positiveFollowUps,
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'asset_valuation_transformation_gate',
+          decisionReadiness,
+          assetScope,
+          bookValueStatus: params.bookValueStatus || (params.bookValueSource ? 'provided' : 'missing'),
+          assetConditionStatus: params.assetConditionStatus || (params.assetConditionSource ? 'provided' : 'missing'),
+          transformationOption: params.transformationOption || null,
+          contractRisk: params.contractRisk || null,
+          regulatoryUncertainty: params.regulatoryUncertainty || null,
+          dataQualityStatus: params.dataQualityStatus || null,
+          decisionOwner: params.decisionOwner || null,
+          nextDecision: params.nextDecision || null,
+          sourceDatapoints,
+          sourceRefs,
           missingEvidence,
           positiveFollowUps,
           sourceActions: { notCalled: sourceActions.notCalled },

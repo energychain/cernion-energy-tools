@@ -2349,6 +2349,92 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- assetValuationTransformationGateStatus ------------------------------
+
+  describe('assetValuationTransformationGateStatus', () => {
+    it('reports missing valuation evidence without executing asset or finance mutations', async () => {
+      const result = await broker.call('dashboard-api.assetValuationTransformationGateStatus', {
+        assetId: 'asset-219',
+        transformationOption: 'h2-ready-repurpose',
+        dataQualityStatus: 'medium',
+        decisionOwner: 'asset-management',
+      });
+
+      expect(result.status).toBe('needs_book_value');
+      expect(result.safety).toBe('read_only');
+      expect(result.assetScope.assetId).toBe('asset-219');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'book_value_source',
+          'asset_condition_source',
+          'contract_risk_basis',
+          'regulatory_uncertainty_basis',
+          'next_decision',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('asset_valuation_transformation_gate');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'valuation.recordCreate',
+          'accounting.postingCreate',
+          'assets.applyOverride',
+          'investment.approve',
+          'asset-lifecycle.decommission',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_gate for complete caller-supplied gate evidence', async () => {
+      const result = await broker.call('dashboard-api.assetValuationTransformationGateStatus', {
+        gateId: 'gate-219',
+        assetGroupId: 'gas-line-north',
+        assetType: 'gas_grid_segment',
+        gridOperatorId: 'SNB219',
+        bookValueStatus: 'provided',
+        bookValueSource: 'erp:book-value-2026',
+        assetConditionStatus: 'provided',
+        assetConditionSource: 'inspection:2026',
+        transformationOption: 'heat-grid-repurpose',
+        transformationOptionBasis: 'waermeplanung:zone-7',
+        contractRisk: 'reviewed',
+        contractRiskBasis: 'contract:file-42',
+        regulatoryUncertainty: 'bounded',
+        regulatoryUncertaintyBasis: 'regulatory-note-9',
+        dataQualityStatus: 'high',
+        decisionOwner: 'netzentwicklung',
+        nextDecision: 'investment-committee-q3',
+        sourceDatapoints: 'erp:book-value-2026,inspection:2026',
+      });
+
+      expect(result.status).toBe('ready_for_gate');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.dossierEvidence.dossierFacts).toContain('Decision Readiness: ready_for_gate');
+      expect(result.dossierEvidence.sourceDatapoints).toEqual(
+        expect.arrayContaining(['erp:book-value-2026', 'inspection:2026'])
+      );
+    });
+
+    it('blocks management readiness on low data quality', async () => {
+      const result = await broker.call('dashboard-api.assetValuationTransformationGateStatus', {
+        assetId: 'asset-low-quality',
+        bookValueStatus: 'provided',
+        assetConditionStatus: 'provided',
+        transformationOption: 'decommission',
+        contractRisk: 'reviewed',
+        regulatoryUncertainty: 'bounded',
+        dataQualityStatus: 'low',
+        decisionOwner: 'finance',
+        nextDecision: 'hold',
+      });
+
+      expect(result.status).toBe('blocked_by_low_data_quality');
+      expect(result.dataQualityStatus.blocked).toBe(true);
+    });
+  });
+
   // -- specialGridUsageImpactMapStatus ------------------------------------
 
   describe('specialGridUsageImpactMapStatus', () => {

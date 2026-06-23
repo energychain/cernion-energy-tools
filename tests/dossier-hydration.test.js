@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 77 static rules', () => {
+    it('loads all 78 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(77);
+      expect(rules.length).toBe(78);
     });
 
-    it('compiles all 77 static rules without error', () => {
+    it('compiles all 78 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(77);
+      expect(rules.length).toBe(78);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1283,6 +1283,53 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Signals: 1');
       expect(formatted).toContain('Leading Gap: evidence_status');
       expect(formatted).toContain('Side-Effect Guard: mail.connector.ingest');
+    });
+
+    it('dashboard-api.assetValuationTransformationGateStatus is dossier-safe and formats gate facts', () => {
+      const rule = getRule('dashboard-api.assetValuationTransformationGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Asset Valuation Transformation Gate asset=asset-219 buchwert=provided zustand=provided option=h2-ready vertragsrisiko=reviewed regulatorik=bounded datenqualitaet=high owner=finance entscheidung=committee-q3 pruefen'
+        )
+      ).toEqual({
+        assetId: 'asset-219',
+        bookValueStatus: 'provided',
+        assetConditionStatus: 'provided',
+        transformationOption: 'h2-ready',
+        contractRisk: 'reviewed',
+        regulatoryUncertainty: 'bounded',
+        dataQualityStatus: 'high',
+        decisionOwner: 'finance',
+        nextDecision: 'committee-q3',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'asset_valuation_transformation_gate',
+        decisionReadiness: 'needs_book_value',
+        assetScope: { assetId: 'asset-219' },
+        bookValueStatus: { status: 'missing' },
+        assetConditionStatus: { status: 'provided' },
+        transformationOption: { option: 'h2-ready' },
+        contractRisk: { status: 'reviewed' },
+        regulatoryUncertainty: { status: 'bounded' },
+        dataQualityStatus: { status: 'high' },
+        missingEvidence: [{ missingDataPoint: 'book_value_source' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add book-value and residual-value basis to the management gate' },
+        ],
+        sourceActions: {
+          notCalled: ['valuation.recordCreate'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: asset_valuation_transformation_gate');
+      expect(formatted).toContain('Decision Readiness: needs_book_value');
+      expect(formatted).toContain('Asset Scope: asset-219');
+      expect(formatted).toContain('Leading Gap: book_value_source');
+      expect(formatted).toContain('Side-Effect Guard: valuation.recordCreate');
     });
 
     it('dashboard-api.specialGridUsageImpactMapStatus is dossier-safe and formats impact-map facts', () => {
