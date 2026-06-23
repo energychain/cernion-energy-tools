@@ -2286,6 +2286,69 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- crossChannelVnbSignalQueueStatus -----------------------------------
+
+  describe('crossChannelVnbSignalQueueStatus', () => {
+    it('reports missing owner/source/evidence without executing queue or connector actions', async () => {
+      const result = await broker.call('dashboard-api.crossChannelVnbSignalQueueStatus', {
+        signalId: 'sig-218',
+        channel: 'mail',
+        affectedProcess: 'netzanschluss',
+        riskType: 'owner_deadline',
+        dueAt: '2026-07-01',
+        nextDatapoint: 'owner-role',
+      });
+
+      expect(result.status).toBe('needs_owner');
+      expect(result.safety).toBe('read_only');
+      expect(result.signalCount).toBe(1);
+      expect(result.normalizedSignals[0].contentPolicy).toBe(
+        'references_and_summary_only_no_raw_private_content'
+      );
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['owner', 'source_ref', 'evidence_status', 'dedupe_key'])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('cross_channel_vnb_signal_queue');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'mail.connector.ingest',
+          'persona-inbox.enqueue',
+          'notification.dispatchInternal',
+          'hitl.create',
+          'vdmi.taskMutate',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_action for complete caller-supplied signal evidence', async () => {
+      const result = await broker.call('dashboard-api.crossChannelVnbSignalQueueStatus', {
+        signalId: 'sig-ready',
+        channel: 'portal',
+        sourceSystem: 'vnb-portal',
+        sourceRef: 'portal:ticket-42',
+        receivedAt: '2026-06-23T10:00:00Z',
+        affectedProcess: 'redispatch',
+        riskType: 'evidence_gap',
+        riskSeverity: 'high',
+        ownerRole: 'netzbetrieb',
+        dueAt: '2026-12-31',
+        evidenceStatus: 'ready',
+        evidenceRefs: 'vdmi:case-42',
+        nextDatapoint: 'redispatch-proof',
+        dedupeKey: 'sig-ready:portal:42',
+      });
+
+      expect(result.status).toBe('ready_for_action');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.readyForActionSignals).toHaveLength(1);
+      expect(result.byProcess.redispatch).toBe(1);
+      expect(result.byRiskType.evidence_gap).toBe(1);
+      expect(result.dossierEvidence.dossierFacts).toContain('Queue Status: ready_for_action');
+    });
+  });
+
   // -- specialGridUsageImpactMapStatus ------------------------------------
 
   describe('specialGridUsageImpactMapStatus', () => {

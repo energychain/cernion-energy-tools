@@ -3667,6 +3667,81 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  cross_channel_vnb_signal_queue: {
+    sources: [
+      {
+        id: 'source_channel',
+        label: 'Source channel',
+        resolvedBy: ['dashboard-api.crossChannelVnbSignalQueueStatus'],
+        contextKeys: ['channel', 'sourceSystem'],
+        optional: false,
+      },
+      {
+        id: 'source_ref',
+        label: 'Auditable source reference',
+        resolvedBy: ['dashboard-api.crossChannelVnbSignalQueueStatus'],
+        contextKeys: ['sourceRef', 'sourceRefs'],
+        optional: false,
+      },
+      {
+        id: 'affected_process',
+        label: 'Affected VNB process',
+        resolvedBy: ['dashboard-api.crossChannelVnbSignalQueueStatus', 'vdmi.dossier'],
+        contextKeys: ['affectedProcess', 'processType'],
+        optional: false,
+      },
+      {
+        id: 'owner_role',
+        label: 'Owner role or persona',
+        resolvedBy: ['dashboard-api.crossChannelVnbSignalQueueStatus', 'vdmi.dossier'],
+        contextKeys: ['ownerRole', 'ownerPersonaId'],
+        optional: false,
+      },
+      {
+        id: 'due_date',
+        label: 'SLA due date',
+        resolvedBy: ['dashboard-api.crossChannelVnbSignalQueueStatus', 'hitl.create'],
+        contextKeys: ['dueAt'],
+        optional: false,
+      },
+      {
+        id: 'evidence_status',
+        label: 'Evidence status',
+        resolvedBy: ['dashboard-api.crossChannelVnbSignalQueueStatus', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['evidenceStatus', 'evidenceRefs'],
+        optional: false,
+      },
+      {
+        id: 'risk_type',
+        label: 'Risk type and severity',
+        resolvedBy: ['dashboard-api.crossChannelVnbSignalQueueStatus'],
+        contextKeys: ['riskType', 'riskSeverity'],
+        optional: false,
+      },
+      {
+        id: 'next_datapoint',
+        label: 'Next operational datapoint',
+        resolvedBy: ['dashboard-api.crossChannelVnbSignalQueueStatus', 'datapoint.health'],
+        contextKeys: ['nextDatapoint'],
+        optional: false,
+      },
+      {
+        id: 'dedupe_key',
+        label: 'Dedupe and provenance key',
+        resolvedBy: ['dashboard-api.crossChannelVnbSignalQueueStatus'],
+        contextKeys: ['dedupeKey'],
+        optional: false,
+      },
+      {
+        id: 'content_minimization',
+        label: 'Privacy/content minimization confirmation',
+        resolvedBy: ['dashboard-api.crossChannelVnbSignalQueueStatus'],
+        contextKeys: ['privacy.contentMinimization', 'contentPolicy'],
+        optional: false,
+      },
+    ],
+  },
+
   'forecast-flex': {
     sources: [
       {

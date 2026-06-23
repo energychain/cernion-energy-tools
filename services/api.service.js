@@ -1434,6 +1434,8 @@ module.exports = {
             'dashboard-api.stadtwerkMauerMastrDataOverlayStatus',
           'GET /dashboard/fnav-fast-track-contract-gate':
             'dashboard-api.fnavFastTrackContractGateStatus',
+          'GET /dashboard/cross-channel-vnb-signal-queue':
+            'dashboard-api.crossChannelVnbSignalQueueStatus',
           'POST /stadtwerk-mauer-sandbox-runtime/events':
             'stadtwerk-mauer-sandbox-runtime.ingestEvent',
           'POST /stadtwerk-mauer-sandbox-runtime/reset':

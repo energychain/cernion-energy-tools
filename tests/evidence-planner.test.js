@@ -1378,6 +1378,23 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('cross_channel_vnb_signal_queue: requires signal source, owner, due date and evidence status', () => {
+    const plan = { routeKey: 'cross_channel_vnb_signal_queue' };
+    const result = planEvidence(plan, {
+      sourceRef: 'mail:42',
+      affectedProcess: 'netzanschluss',
+      riskType: 'owner_deadline',
+    });
+
+    expect(result.registryKey).toBe('cross_channel_vnb_signal_queue');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['source_ref', 'affected_process', 'risk_type'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining(['owner_role', 'due_date', 'evidence_status', 'next_datapoint'])
+    );
+  });
+
   it('forecast-flex: requires forecast_location', () => {
     const plan = { routeKey: 'forecast-flex' };
     const result = planEvidence(plan, {});

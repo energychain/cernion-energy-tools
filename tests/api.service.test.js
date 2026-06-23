@@ -503,6 +503,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/fnav-fast-track-contract-gate']).toBe(
         'dashboard-api.fnavFastTrackContractGateStatus'
       );
+      expect(aliases['GET /dashboard/cross-channel-vnb-signal-queue']).toBe(
+        'dashboard-api.crossChannelVnbSignalQueueStatus'
+      );
       expect(aliases['POST /stadtwerk-mauer-sandbox-runtime/events']).toBe(
         'stadtwerk-mauer-sandbox-runtime.ingestEvent'
       );

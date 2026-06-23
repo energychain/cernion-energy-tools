@@ -951,6 +951,24 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes cross-channel VNB signal queue prompts to the read-only evidence projection', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Cross Channel VNB Signal Queue fuer Mail Hinweis, Chat Hinweis und Portal Hinweis mit Owner Frist, Evidenzstatus, Netzanschluss Blocker, Redispatch Hinweis, Zielnetzplanung Signal, IT Freigabe, Berechtigung und Schulung.',
+    });
+
+    expect(result.capability).toBe('cross_channel_vnb_signal_queue');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'cross_channel_vnb_signal_queue'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.crossChannelVnbSignalQueueStatus');
+    expect(actionNames).not.toContain('mail.connector.ingest');
+    expect(actionNames).not.toContain('persona-inbox.enqueue');
+    expect(actionNames).not.toContain('notification.dispatchInternal');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes special grid usage prompts to the read-only impact map', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe besondere Netznutzung Paragraf 19 StromNEV mit Frist, Formular, Mengenbasis, Rueckverguetung, EOG Wirkung und Abrechnungswirkung.',

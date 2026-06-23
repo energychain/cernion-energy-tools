@@ -101,6 +101,7 @@ module.exports = {
       stadtwerkMauerE2eProcessDemoStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerMastrDataOverlayStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
+      crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -5191,6 +5192,96 @@ module.exports = {
           this.settings.cacheTtlMs.fnavFastTrackContractGateStatus,
           async () => ({
             ...this.buildFnavFastTrackContractGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- crossChannelVnbSignalQueueStatus ----------------------------------
+    /**
+     * GET /api/dashboard/cross-channel-vnb-signal-queue
+     *
+     * Read-only dossier-safe projection for caller-supplied VNB signals. It
+     * normalizes references and summaries only; it does not ingest channels,
+     * persist a queue, create HITL/inbox/notification items, or mutate VDMI.
+     */
+    crossChannelVnbSignalQueueStatus: {
+      rest: 'GET /cross-channel-vnb-signal-queue',
+      params: {
+        signalId: { type: 'string', optional: true, min: 1 },
+        channel: { type: 'string', optional: true, min: 1 },
+        sourceSystem: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        receivedAt: { type: 'string', optional: true, min: 1 },
+        affectedProcess: { type: 'string', optional: true, min: 1 },
+        processType: { type: 'string', optional: true, min: 1 },
+        riskType: { type: 'string', optional: true, min: 1 },
+        riskSeverity: { type: 'string', optional: true, min: 1 },
+        ownerRole: { type: 'string', optional: true, min: 1 },
+        ownerPersonaId: { type: 'string', optional: true, min: 1 },
+        dueAt: { type: 'string', optional: true, min: 1 },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+        evidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        nextDatapoint: { type: 'string', optional: true, min: 1 },
+        dedupeKey: { type: 'string', optional: true, min: 1 },
+        status: { type: 'string', optional: true, min: 1 },
+        signals: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Cross-channel VNB signal queue -- read-only evidence projection',
+        description:
+          'Normalizes caller-supplied signal references and summaries into a dossier-safe VNB queue evidence view. ' +
+          'The endpoint is read-only and never ingests mail/chat/portal content, stores raw private content, persists a queue, creates HITL/inbox/notification/VDMI items, or dispatches operational actions.',
+        parameters: [
+          { name: 'signalId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'channel', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceSystem', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'affectedProcess', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'riskType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dueAt', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextDatapoint', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only cross-channel VNB signal queue evidence',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    queueStatus: { type: 'string' },
+                    signalCount: { type: 'number' },
+                    normalizedSignals: { type: 'array' },
+                    byProcess: { type: 'object' },
+                    byRiskType: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `cross-channel-vnb-signal-queue:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.crossChannelVnbSignalQueueStatus,
+          async () => ({
+            ...this.buildCrossChannelVnbSignalQueueStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -18810,6 +18901,254 @@ module.exports = {
             legalStatus: params.legalStatus || null,
           },
           missingEvidence: evidenceGaps,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildCrossChannelVnbSignalQueueStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter((item) => item !== undefined && item !== null && item !== '');
+        if (value && typeof value === 'string') {
+          const trimmed = value.trim();
+          if (!trimmed) return [];
+          if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+            try {
+              const parsed = JSON.parse(trimmed);
+              return Array.isArray(parsed) ? parsed : [parsed];
+            } catch (_err) {
+              return [trimmed];
+            }
+          }
+          return trimmed.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return value && typeof value === 'object' ? [value] : [];
+      };
+
+      const normalizeStatus = (value) => String(value || '').trim().toLowerCase();
+      const isReady = (value) => {
+        const status = normalizeStatus(value);
+        return ['ready', 'complete', 'completed', 'confirmed', 'resolved', 'valid', 'provided', 'ok'].includes(status);
+      };
+      const isBlocked = (value) => {
+        const status = normalizeStatus(value);
+        return ['blocked', 'rejected', 'failed', 'missing', 'invalid'].includes(status);
+      };
+      const isOverdue = (dueAt) => {
+        if (!dueAt) return false;
+        const ts = Date.parse(dueAt);
+        return Number.isFinite(ts) && ts < Date.now();
+      };
+      const inc = (target, key) => {
+        const normalized = key || 'unknown';
+        target[normalized] = (target[normalized] || 0) + 1;
+      };
+
+      const rawSignals = toList(params.signals);
+      const signals = rawSignals.length > 0 && rawSignals.every((item) => item && typeof item === 'object' && !Array.isArray(item))
+        ? rawSignals
+        : [{
+            signalId: params.signalId,
+            channel: params.channel,
+            sourceSystem: params.sourceSystem,
+            sourceRef: params.sourceRef,
+            receivedAt: params.receivedAt,
+            affectedProcess: params.affectedProcess,
+            processType: params.processType,
+            riskType: params.riskType,
+            riskSeverity: params.riskSeverity,
+            ownerRole: params.ownerRole,
+            ownerPersonaId: params.ownerPersonaId,
+            dueAt: params.dueAt,
+            evidenceStatus: params.evidenceStatus,
+            evidenceRefs: params.evidenceRefs,
+            nextDatapoint: params.nextDatapoint,
+            dedupeKey: params.dedupeKey,
+            status: params.status,
+          }];
+
+      const normalizedSignals = signals.map((signal, index) => {
+        const sourceRefs = toList(signal.sourceRef || signal.sourceRefs);
+        const evidenceRefs = toList(signal.evidenceRefs || signal.evidenceRef);
+        const missing = [];
+        const owner = signal.ownerRole || signal.ownerPersonaId || null;
+        if (!owner) missing.push('owner');
+        if (!signal.dueAt) missing.push('due_date');
+        if (sourceRefs.length === 0) missing.push('source_ref');
+        if (!signal.evidenceStatus && evidenceRefs.length === 0) missing.push('evidence_status');
+        if (!signal.nextDatapoint) missing.push('next_datapoint');
+        if (!signal.dedupeKey) missing.push('dedupe_key');
+
+        let queueStatus = signal.status || 'ready_for_action';
+        if (isBlocked(signal.evidenceStatus) || isBlocked(signal.status)) {
+          queueStatus = 'blocked';
+        } else if (missing.includes('owner')) {
+          queueStatus = 'needs_owner';
+        } else if (missing.includes('source_ref')) {
+          queueStatus = 'needs_source_reference';
+        } else if (missing.includes('evidence_status')) {
+          queueStatus = 'needs_evidence';
+        } else if (missing.includes('due_date')) {
+          queueStatus = 'needs_due_date';
+        } else if (isOverdue(signal.dueAt)) {
+          queueStatus = 'overdue';
+        } else if (!isReady(signal.evidenceStatus) && signal.evidenceStatus) {
+          queueStatus = 'needs_evidence';
+        }
+
+        return {
+          signalId: signal.signalId || `vnb-signal:${index + 1}`,
+          channel: signal.channel || 'caller_supplied',
+          sourceSystem: signal.sourceSystem || null,
+          sourceRefs,
+          receivedAt: signal.receivedAt || null,
+          affectedProcess: signal.affectedProcess || signal.processType || 'unclassified_process',
+          processType: signal.processType || signal.affectedProcess || null,
+          riskType: signal.riskType || 'operational_signal',
+          riskSeverity: signal.riskSeverity || 'medium',
+          ownerRole: signal.ownerRole || null,
+          ownerPersonaId: signal.ownerPersonaId || null,
+          dueAt: signal.dueAt || null,
+          evidenceStatus: signal.evidenceStatus || (evidenceRefs.length > 0 ? 'provided' : null),
+          evidenceRefs,
+          nextDatapoint: signal.nextDatapoint || null,
+          dedupeKey: signal.dedupeKey || null,
+          status: queueStatus,
+          missing,
+          overdue: isOverdue(signal.dueAt),
+          contentPolicy: 'references_and_summary_only_no_raw_private_content',
+        };
+      });
+
+      const byProcess = {};
+      const byRiskType = {};
+      normalizedSignals.forEach((signal) => {
+        inc(byProcess, signal.affectedProcess);
+        inc(byRiskType, signal.riskType);
+      });
+
+      const missingMap = {
+        owner: 'add accountable owner role or persona for signal routing',
+        due_date: 'add SLA due date for escalation timing',
+        source_ref: 'add auditable source reference without raw private content',
+        evidence_status: 'add evidence status or evidence reference',
+        next_datapoint: 'add next operational datapoint request',
+        dedupe_key: 'add duplicate suppression and provenance key',
+      };
+      const missingEvidence = [];
+      normalizedSignals.forEach((signal) => {
+        signal.missing.forEach((missingDataPoint) => {
+          missingEvidence.push({
+            signalId: signal.signalId,
+            missingDataPoint,
+            affectedProcess: signal.affectedProcess,
+            status: signal.status,
+            enablesDossierAddition: missingMap[missingDataPoint],
+          });
+        });
+      });
+
+      const sourceActions = {
+        inspected: ['dashboard-api.crossChannelVnbSignalQueueStatus'],
+        referenced: [
+          'persona-inbox.enqueue',
+          'notification.dispatchInternal',
+          'hitl.create',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+          'datapoint.health',
+          'presentation.render',
+        ],
+        notCalled: [
+          'mail.connector.ingest',
+          'chat.connector.ingest',
+          'portal.connector.ingest',
+          'persona-inbox.enqueue',
+          'notification.dispatchInternal',
+          'hitl.create',
+          'vdmi.taskMutate',
+          'interface-placeholder.requestEvidence',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'device-control.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const statusCounts = normalizedSignals.reduce((acc, signal) => {
+        inc(acc, signal.status);
+        return acc;
+      }, {});
+      let queueStatus = 'ready_for_action';
+      if (normalizedSignals.length === 0) {
+        queueStatus = 'empty';
+      } else if (statusCounts.blocked) {
+        queueStatus = 'blocked';
+      } else if (statusCounts.needs_owner) {
+        queueStatus = 'needs_owner';
+      } else if (statusCounts.needs_source_reference) {
+        queueStatus = 'needs_source_reference';
+      } else if (statusCounts.needs_evidence) {
+        queueStatus = 'needs_evidence';
+      } else if (statusCounts.overdue) {
+        queueStatus = 'overdue';
+      } else if (missingEvidence.length > 0) {
+        queueStatus = 'needs_queue_metadata';
+      }
+
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'cross_channel_vnb_signal_queue',
+      }));
+      const readyForActionSignals = normalizedSignals.filter((signal) => signal.status === 'ready_for_action');
+      const overdueSignals = normalizedSignals.filter((signal) => signal.overdue || signal.status === 'overdue');
+      const nextDatapoints = [...new Set(normalizedSignals.map((signal) => signal.nextDatapoint).filter(Boolean))];
+      const dossierFacts = [
+        `Queue Status: ${queueStatus}`,
+        `Signals: ${normalizedSignals.length}`,
+        `Overdue: ${overdueSignals.length}`,
+        `Needs Owner: ${statusCounts.needs_owner || 0}`,
+        `Needs Evidence: ${statusCounts.needs_evidence || 0}`,
+      ];
+
+      return {
+        capabilityKey: 'cross_channel_vnb_signal_queue',
+        safety: 'read_only',
+        queueStatus,
+        status: queueStatus,
+        signalCount: normalizedSignals.length,
+        normalizedSignals,
+        byProcess,
+        byRiskType,
+        overdueSignals,
+        needsOwnerSignals: normalizedSignals.filter((signal) => signal.status === 'needs_owner'),
+        needsEvidenceSignals: normalizedSignals.filter((signal) => signal.status === 'needs_evidence'),
+        readyForActionSignals,
+        missingEvidence,
+        positiveFollowUps,
+        nextDatapoints,
+        sourceActions,
+        privacy: {
+          contentMinimization: 'store references and caller summaries only',
+          rawPrivateContentStored: false,
+          externalIngestion: false,
+        },
+        dossierEvidence: {
+          capabilityKey: 'cross_channel_vnb_signal_queue',
+          queueStatus,
+          signalCount: normalizedSignals.length,
+          overdueCount: overdueSignals.length,
+          needsOwnerCount: statusCounts.needs_owner || 0,
+          needsEvidenceCount: statusCounts.needs_evidence || 0,
+          readyForActionCount: readyForActionSignals.length,
+          topRiskTypes: Object.keys(byRiskType),
+          affectedProcesses: Object.keys(byProcess),
+          nextDatapoints,
+          missingEvidence,
           positiveFollowUps,
           sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,

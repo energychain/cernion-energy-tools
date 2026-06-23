@@ -358,6 +358,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasCrossChannelVnbSignalQueueSpecificSignal =
+    /(cross.?channel|cross_channel_vnb_signal_queue|signal queue|signal.?queue|mail hinweis|chat hinweis|portal hinweis|fachsystem signal)/i.test(haystack) &&
+    /(owner.?frist|owner|frist|deadline|evidenzstatus|evidence status|netzanschluss blocker|redispatch hinweis|zielnetzplanung signal|it freigabe|berechtigung|schulung|vertragsklaerung|vertragsklärung|naechster datenpunkt|nächster datenpunkt)/i.test(haystack) &&
+    !/(mail.?ingest|mail.?scrap|teams ingest|external connector|connector ausfuehren|connector ausführen|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|notification dispatch|benachrichtigung senden|hitl create|task create|aufgabe erstellen|queue persist|persistiere queue|vdmi mutate|vdmi task mutate|personal-agent execute)/i.test(haystack);
+
+  if (hasCrossChannelVnbSignalQueueSpecificSignal) {
+    const crossChannelQueueCapability = findCapabilityByName('cross_channel_vnb_signal_queue');
+    if (crossChannelQueueCapability) {
+      return { capability: crossChannelQueueCapability, score: 143, usedFallback: false };
+    }
+  }
+
   const hasOwnerDeadlineEvidenceSpecificSignal =
     /(owner.?frist.?evidenz|owner deadline evidence|vnb.?signal|signal.?nachhaltung|frist.?nachhaltung|evidenz.?cockpit|management.?nachhaltung|blockierte folgeentscheidung)/i.test(haystack) &&
     /(owner|frist|deadline|evidenz|evidence|quelle|source|blocked decision|blockierte folgeentscheidung|linked entity|verknuepfte entitaet|verknüpfte entität|risiko|risk)/i.test(haystack) &&

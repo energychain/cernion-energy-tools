@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 76 static rules', () => {
+    it('loads all 77 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(76);
+      expect(rules.length).toBe(77);
     });
 
-    it('compiles all 76 static rules without error', () => {
+    it('compiles all 77 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(76);
+      expect(rules.length).toBe(77);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1237,6 +1237,52 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Gate: gate-221');
       expect(formatted).toContain('Netzsignal Priority: approved');
       expect(formatted).toContain('Side-Effect Guard: contract.approve');
+    });
+
+    it('dashboard-api.crossChannelVnbSignalQueueStatus is dossier-safe and formats queue facts', () => {
+      const rule = getRule('dashboard-api.crossChannelVnbSignalQueueStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Cross Channel VNB Signal Queue signal=sig-218 quelle=mail:42 prozess=netzanschluss risiko=owner_deadline owner=netzbetrieb frist=2026-12-31 evidenz=ready datenpunkt=malo pruefen'
+        )
+      ).toEqual({
+        signalId: 'sig-218',
+        sourceRef: 'mail:42',
+        affectedProcess: 'netzanschluss',
+        riskType: 'owner_deadline',
+        ownerRole: 'netzbetrieb',
+        dueAt: '2026-12-31',
+        evidenceStatus: 'ready',
+        nextDatapoint: 'malo',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'cross_channel_vnb_signal_queue',
+        queueStatus: 'needs_evidence',
+        signalCount: 1,
+        normalizedSignals: [{ affectedProcess: 'netzanschluss', riskType: 'owner_deadline' }],
+        missingEvidence: [{ missingDataPoint: 'evidence_status' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add evidence status or evidence reference' },
+        ],
+        sourceActions: {
+          notCalled: ['mail.connector.ingest'],
+        },
+        dossierEvidence: {
+          overdueCount: 0,
+          needsOwnerCount: 0,
+          needsEvidenceCount: 1,
+        },
+      });
+
+      expect(formatted).toContain('Capability: cross_channel_vnb_signal_queue');
+      expect(formatted).toContain('Queue Status: needs_evidence');
+      expect(formatted).toContain('Signals: 1');
+      expect(formatted).toContain('Leading Gap: evidence_status');
+      expect(formatted).toContain('Side-Effect Guard: mail.connector.ingest');
     });
 
     it('dashboard-api.specialGridUsageImpactMapStatus is dossier-safe and formats impact-map facts', () => {

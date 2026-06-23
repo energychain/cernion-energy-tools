@@ -706,6 +706,83 @@
     "sourceIssue": 221
   },
   {
+    "id": "dashboard-api.crossChannelVnbSignalQueueStatus",
+    "action": "dashboard-api.crossChannelVnbSignalQueueStatus",
+    "label": "Cross-Channel VNB Signal Queue",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "signalId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:signalId|signal)[:=]+\\s*([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "sourceRef": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:sourceRef|quelle)[:= ]+([a-zA-Z0-9_.:@/-]+)", "group": 1 }
+      },
+      "affectedProcess": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:process|prozess)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "riskType": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:risk|risiko)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "ownerRole": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:owner|ownerRole)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "dueAt": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:due|frist)[:= ]+([0-9]{4}-[0-9]{2}-[0-9]{2})", "group": 1 }
+      },
+      "evidenceStatus": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:evidence|evidenz)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "nextDatapoint": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:next|datenpunkt)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 100 },
+        { "paths": ["queueStatus", "dossierEvidence.queueStatus", "status"], "label": "Queue Status", "maxLen": 100 },
+        { "paths": ["signalCount", "dossierEvidence.signalCount"], "label": "Signals", "maxLen": 40 },
+        { "paths": ["dossierEvidence.overdueCount"], "label": "Overdue", "maxLen": 40 },
+        { "paths": ["dossierEvidence.needsOwnerCount"], "label": "Needs Owner", "maxLen": 40 },
+        { "paths": ["dossierEvidence.needsEvidenceCount"], "label": "Needs Evidence", "maxLen": 40 },
+        { "paths": ["normalizedSignals.0.affectedProcess", "dossierEvidence.affectedProcesses.0"], "label": "Leading Process", "maxLen": 120 },
+        { "paths": ["normalizedSignals.0.riskType", "dossierEvidence.topRiskTypes.0"], "label": "Leading Risk", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 218
+  },
+  {
     "id": "dashboard-api.receiptGroundedPresentationContract",
     "action": "dashboard-api.receiptGroundedPresentationContract",
     "label": "Receipt Grounded Presentation Contract",

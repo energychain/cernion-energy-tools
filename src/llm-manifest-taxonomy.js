@@ -44,6 +44,7 @@ const CAPABILITY_DOMAIN_MAP = {
   grid_connection_flexibility: 'grid-ops',
   'grid-operations': 'grid-ops',
   grid_operations: 'grid-ops', // underscore variant used by newer gate capabilities
+  vnb_operations: 'grid-ops',
   // AGSI/ENTSO-E cross-commodity supply security briefing
   'market-operations': 'market-data',
   // A96 redispatch settlement reconciliation
