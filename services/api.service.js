@@ -1490,6 +1490,8 @@ module.exports = {
             'dashboard-api.ownerDeadlineEvidenceGateStatus',
           'GET /dashboard/automation-risk-gate':
             'dashboard-api.automationRiskGateStatus',
+          'GET /dashboard/redispatch-project-controlling-kpi-cockpit':
+            'dashboard-api.redispatchProjectControllingKpiCockpitStatus',
           'GET /dashboard/stadtwerk-mauer-vdmi-profile':
             'dashboard-api.stadtwerkMauerVdmiProfileStatus',
           'GET /dashboard/stadtwerk-mauer-capability-projection':

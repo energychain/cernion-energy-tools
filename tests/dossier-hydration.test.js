@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 65 static rules', () => {
+    it('loads all 66 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(65);
+      expect(rules.length).toBe(66);
     });
 
-    it('compiles all 65 static rules without error', () => {
+    it('compiles all 66 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(65);
+      expect(rules.length).toBe(66);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -943,6 +943,54 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Templates: 25');
       expect(formatted).toContain('First Event: pv_anmeldung_elektriker');
       expect(formatted).toContain('Side-Effect Guard: scheduler.create');
+    });
+
+    it('dashboard-api.redispatchProjectControllingKpiCockpitStatus is dossier-safe and formats controlling facts', () => {
+      const rule = getRule('dashboard-api.redispatchProjectControllingKpiCockpitStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Redispatch KPI Cockpit cockpitId=rd-222 period=2026-Q3 audit=aud-222 settlement=sett-222 owner=netzbetrieb laden'
+        )
+      ).toEqual({
+        cockpitId: 'rd-222',
+        period: '2026-Q3',
+        redispatchAuditId: 'aud-222',
+        settlementRef: 'sett-222',
+        taskOwner: 'netzbetrieb',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'redispatch_project_controlling_kpi_cockpit',
+        status: 'blocked_by_decision_gap',
+        projectContext: {
+          cockpitId: 'rd-222',
+          period: '2026-Q3',
+          redispatchAuditId: 'aud-222',
+          settlementRef: 'sett-222',
+        },
+        taskSignals: [{ owner: 'Netzbetrieb' }],
+        evidenceGaps: [{ missingDataPoint: 'blocked_decision' }],
+        decisionBlockers: [{ message: 'add explicit blocker and required decision context' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add explicit blocker and required decision context' },
+        ],
+        sourceActions: {
+          notCalled: ['redispatch.execute'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: blocked_by_decision_gap'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: redispatch_project_controlling_kpi_cockpit');
+      expect(formatted).toContain('Status: blocked_by_decision_gap');
+      expect(formatted).toContain('Cockpit: rd-222');
+      expect(formatted).toContain('Redispatch Audit: aud-222');
+      expect(formatted).toContain('Decision Blocker: add explicit blocker and required decision context');
+      expect(formatted).toContain('Side-Effect Guard: redispatch.execute');
     });
 
     it('znp.productionReadinessStatus is dossier-safe and formats ZNP readiness facts', () => {

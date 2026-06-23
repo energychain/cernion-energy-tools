@@ -1566,6 +1566,33 @@ describe('Capability Broker Service', () => {
     expect(result.capability).not.toBe('automation_risk_gate');
   });
 
+  it('routes Redispatch Projektcontrolling KPI Cockpit prompts to the read-only gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Redispatch Projektcontrolling KPI Cockpit als read-only Gate: Lastgang Evidenz, MaStR Evidenz, Datenquelle belastbar, Owner Faelligkeit Redispatch und Entscheidungsblocker Redispatch.',
+    });
+
+    expect(result.capability).toBe('redispatch_project_controlling_kpi_cockpit');
+    expect(result.recommendedCapabilities[0].capability).toBe('redispatch_project_controlling_kpi_cockpit');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.redispatchProjectControllingKpiCockpitStatus');
+    expect(actionNames).not.toContain('redispatch.execute');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('task.create');
+    expect(actionNames).not.toContain('workflow.execute');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('does not route settlement execution or device-control prompts to the Redispatch KPI cockpit', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Fuehre fuer Redispatch KPI Cockpit Settlement aus, exportiere A96, erstelle Redispatch Order, sende Steuerbefehl und starte Workflow Execute.',
+    });
+
+    expect(result.capability).not.toBe('redispatch_project_controlling_kpi_cockpit');
+  });
+
   it('routes Stadtwerk Mauer VDMI profile prompts to the read-only profile capability', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Erzeuge ein Stadtwerk Mauer VDMI Profile fuer 69256 Mauer mit Sparten Strom Gas Wasser Waerme, Rollen, Marktrollen, Evidenzluecken und Demo-Frage fuer Transformations- und Netzrisiken.',

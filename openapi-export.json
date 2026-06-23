@@ -14480,6 +14480,21 @@
         "description": "Builds deterministic RPA / automation risk readiness from supplied process facts. The endpoint is read-only and does not run bots, trigger mass-runs, mutate workflows, create approvals, or call external systems."
       }
     },
+    "/api/dashboard-api/redispatch-project-controlling-kpi-cockpit": {
+      "get": {
+        "operationId": "dashboard-api_redispatchProjectControllingKpiCockpitStatus",
+        "summary": "Redispatch project-controlling KPI cockpit -- read-only evidence gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Redispatch project-controlling KPI evidence"
+          }
+        },
+        "description": "Builds deterministic Redispatch project-controlling and KPI readiness from supplied facts and references. The endpoint is read-only and does not execute Redispatch orders, settlement, billing, task/workflow/HITL/VDMI mutation, datasource ingestion, asset mutation, or external calls."
+      }
+    },
     "/api/dashboard-api/stadtwerk-mauer-vdmi-profile": {
       "get": {
         "operationId": "dashboard-api_stadtwerkMauerVdmiProfileStatus",
@@ -53936,6 +53951,21 @@
           }
         },
         "description": "Builds deterministic RPA / automation risk readiness from supplied process facts. The endpoint is read-only and does not run bots, trigger mass-runs, mutate workflows, create approvals, or call external systems."
+      }
+    },
+    "/api/dashboard/redispatch-project-controlling-kpi-cockpit": {
+      "get": {
+        "operationId": "dashboard-api_redispatchProjectControllingKpiCockpitStatus",
+        "summary": "Redispatch project-controlling KPI cockpit -- read-only evidence gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Redispatch project-controlling KPI evidence"
+          }
+        },
+        "description": "Builds deterministic Redispatch project-controlling and KPI readiness from supplied facts and references. The endpoint is read-only and does not execute Redispatch orders, settlement, billing, task/workflow/HITL/VDMI mutation, datasource ingestion, asset mutation, or external calls."
       }
     },
     "/api/dashboard/stadtwerk-mauer-vdmi-profile": {

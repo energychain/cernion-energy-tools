@@ -4863,6 +4863,114 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- redispatchProjectControllingKpiCockpitStatus -----------------------
+  describe('redispatchProjectControllingKpiCockpitStatus', () => {
+    it('reports needs_redispatch_audit when no audit chain is supplied', async () => {
+      const result = await broker.call('dashboard-api.redispatchProjectControllingKpiCockpitStatus', {
+        taskOwner: 'Netzbetrieb',
+      });
+
+      expect(result.status).toBe('needs_redispatch_audit');
+      expect(result.safety).toBe('read_only');
+      expect(result.evidenceGaps.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['redispatch_audit', 'source_health', 'asset_evidence'])
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'redispatch.execute',
+          'redispatch.order.create',
+          'settlement.exportA96',
+          'settlement.prepareBilling',
+          'task.create',
+          'workflow.execute',
+          'hitl.create',
+          'vdmi.mutate',
+          'datasource.ingest',
+          'assets.applyOverride',
+          'device-control.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('reports needs_source_health after Redispatch audit is known', async () => {
+      const result = await broker.call('dashboard-api.redispatchProjectControllingKpiCockpitStatus', {
+        cockpitId: 'rdpck-222',
+        period: '2026-Q3',
+        redispatchAuditId: 'audit-222',
+        hasAssetEvidence: true,
+        hasMastrEvidence: true,
+        hasLoadProfileEvidence: true,
+        hasSettlementReadiness: true,
+        hasKpiReference: true,
+        taskOwner: 'Netzbetrieb',
+        dueDate: '2026-07-15',
+      });
+
+      expect(result.status).toBe('needs_source_health');
+      expect(result.evidenceGaps.map((gap) => gap.missingDataPoint)).toContain('source_health');
+      expect(result.positiveFollowUps[0].category).toBe('redispatch_project_controlling_kpi_cockpit');
+    });
+
+    it('blocks explicit Redispatch decision gaps', async () => {
+      const result = await broker.call('dashboard-api.redispatchProjectControllingKpiCockpitStatus', {
+        cockpitId: 'rdpck-222',
+        period: '2026-Q3',
+        redispatchAuditId: 'audit-222',
+        datasourceHealth: 'ready',
+        hasAssetEvidence: true,
+        hasMastrEvidence: true,
+        hasLoadProfileEvidence: true,
+        hasSettlementReadiness: true,
+        hasKpiReference: true,
+        taskOwner: 'Netzbetrieb',
+        dueDate: '2026-07-15',
+        blockedDecision: 'Lastgangquelle widerspricht MaStR-Anlagenstatus',
+      });
+
+      expect(result.status).toBe('blocked_by_decision_gap');
+      expect(result.decisionBlockers.map((blocker) => blocker.code)).toContain('blocked_decision');
+      expect(result.validationFindings.some((finding) => finding.severity === 'high')).toBe(true);
+    });
+
+    it('reports ready_for_project_review when supplied evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.redispatchProjectControllingKpiCockpitStatus', {
+        cockpitId: 'rdpck-222',
+        gridOperatorId: 'vnb-demo',
+        period: '2026-Q3',
+        redispatchAuditId: 'audit-222',
+        settlementRef: 'settlement-222',
+        vdmiProcessId: 'vdmi-222',
+        taskId: 'task-222',
+        taskStatus: 'ready',
+        taskOwner: 'Netzbetrieb',
+        dueDate: '2026-07-15',
+        hasAssetEvidence: true,
+        hasMastrEvidence: true,
+        hasLoadProfileEvidence: true,
+        hasSettlementReadiness: true,
+        hasKpiReference: true,
+        datasourceHealth: 'ready',
+        sourceFreshness: 'ready',
+        qualityStatus: 'ready',
+        affectedAssets: 'asset-1,asset-2',
+      });
+
+      expect(result.status).toBe('ready_for_project_review');
+      expect(result.evidenceGaps).toEqual([]);
+      expect(result.projectContext.cockpitId).toBe('rdpck-222');
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Status: ready_for_project_review',
+          'Cockpit: rdpck-222',
+          'Period: 2026-Q3',
+          'Open gaps: 0',
+        ])
+      );
+    });
+  });
+
   // -- stadtwerkMauerVdmiProfileStatus ------------------------------------
   describe('stadtwerkMauerVdmiProfileStatus', () => {
     it('returns the deterministic Stadtwerk Mauer MVP profile with all four sparten', async () => {

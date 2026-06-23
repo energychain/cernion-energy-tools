@@ -77,6 +77,7 @@ const CAPABILITY_DOMAIN_MAP = {
   'edm-customer-service': 'inhouse-data',
   'energy-sharing': 'energy-sharing',
   'redispatch-rcs': 'redispatch',
+  redispatch_governance: 'redispatch',
   // datasource registry/cache/classifier governance — cross-cutting data infra
   'datasource-governance': 'platform',
   // human-in-the-loop request plumbing — agent/process infrastructure

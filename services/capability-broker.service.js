@@ -377,6 +377,26 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasRedispatchProjectControllingExecutionIntent =
+    /(settlement execute|settlement ausfuehren|settlement ausführen|billing|abrechnung|a96 export|redispatch order|redispatch.?auftrag|device.?control|steuerbefehl|workflow execute|workflow ausfuehren|workflow ausführen|task create|hitl create|vdmi mutate|external connector|datasource ingest|mastr import|asset override|tariff mutate)/i.test(haystack) &&
+    /(redispatch projektcontrolling|redispatch kpi cockpit|redispatch e2e controlling|lastgang evidenz|mastr evidenz|entscheidungsblocker redispatch)/i.test(haystack);
+
+  if (hasRedispatchProjectControllingExecutionIntent) {
+    return { capability: INTERFACE_PLACEHOLDER_CAPABILITY, score: 10, usedFallback: true };
+  }
+
+  const hasRedispatchProjectControllingSpecificSignal =
+    /(redispatch projektcontrolling|redispatch kpi cockpit|redispatch e2e controlling|redispatch aufgabenliste kpi|lastgang evidenz|mastr evidenz|datenquelle belastbar|entscheidungsblocker redispatch|owner faelligkeit redispatch|owner fälligkeit redispatch|redispatch_project_controlling_kpi_cockpit)/i.test(haystack) &&
+    /(redispatch|kpi|cockpit|projektcontrolling|lastgang|mastr|datenquelle|owner|faelligkeit|fälligkeit|entscheidungsblocker|e2e|evidenz|evidence)/i.test(haystack) &&
+    !/(settlement execute|settlement ausfuehren|settlement ausführen|billing|abrechnung ausfuehren|abrechnung ausführen|a96 export|redispatch order|redispatch.?auftrag|device.?control|steuerbefehl|workflow execute|workflow ausfuehren|workflow ausführen|task create|hitl create|vdmi mutate|notification|external connector|datasource ingest|mastr import|asset override|tariff mutate|streaming|websocket|backup|disaster recovery|security token|support token|admin token|legal opinion|rechtsgutachten|stadtwerk mauer|gas capacity|gasnetz|water pricing|wasserpreis|finance gate|investment review|owner.?frist|automation risk gate|rpa.?fehlerfolgen|accessmanager|smgw|cls|wallet|key material|schluessel|schlüssel)/i.test(haystack);
+
+  if (hasRedispatchProjectControllingSpecificSignal) {
+    const redispatchProjectControllingCapability = findCapabilityByName('redispatch_project_controlling_kpi_cockpit');
+    if (redispatchProjectControllingCapability) {
+      return { capability: redispatchProjectControllingCapability, score: 144, usedFallback: false };
+    }
+  }
+
   const hasStadtwerkMauerEventReplayRuntimeIntent =
     /(scheduler|cron starten|event injizieren|event injection|event persist|persistieren|queue|stream|eve runtime|agent execute|agent ausfuehren|agent ausführen|mako senden|marktkommunikation senden|kunde kontaktieren|customer communication|steuerbefehl|billing ausfuehren|billing ausführen|settlement ausfuehren|settlement ausführen|workflow anlegen|workflow execute|task create|notification|external connector)/i.test(haystack) &&
     /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|event simulation|event.?simulation|event replay|ereigniskatalog|synthetic event|synthetische events)/i.test(haystack) &&

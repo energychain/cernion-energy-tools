@@ -87,6 +87,7 @@ module.exports = {
       rolePermissionAccessReadinessGateStatus: 5 * 60 * 1000, // 5 min
       ownerDeadlineEvidenceGateStatus: 5 * 60 * 1000, // 5 min
       automationRiskGateStatus: 5 * 60 * 1000, // 5 min
+      redispatchProjectControllingKpiCockpitStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerVdmiProfileStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerCapabilityProjectionStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerEventReplayPreviewStatus: 5 * 60 * 1000, // 5 min
@@ -4117,6 +4118,73 @@ module.exports = {
           this.settings.cacheTtlMs.automationRiskGateStatus,
           async () => ({
             ...this.buildAutomationRiskGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- redispatchProjectControllingKpiCockpitStatus ----------------------
+    /**
+     * GET /api/dashboard/redispatch-project-controlling-kpi-cockpit
+     *
+     * Read-only dossier-safe gate for supplied Redispatch project-controlling
+     * and KPI evidence facts. It does not execute Redispatch, settlement,
+     * task/workflow, HITL/VDMI, datasource, asset, or external actions.
+     */
+    redispatchProjectControllingKpiCockpitStatus: {
+      rest: 'GET /redispatch-project-controlling-kpi-cockpit',
+      params: {
+        cockpitId: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        period: { type: 'string', optional: true, min: 1 },
+        redispatchAuditId: { type: 'string', optional: true, min: 1 },
+        settlementRef: { type: 'string', optional: true, min: 1 },
+        vdmiProcessId: { type: 'string', optional: true, min: 1 },
+        taskId: { type: 'string', optional: true, min: 1 },
+        taskStatus: { type: 'string', optional: true, min: 1 },
+        taskOwner: { type: 'string', optional: true, min: 1 },
+        dueDate: { type: 'string', optional: true, min: 1 },
+        blockedDecision: { type: 'string', optional: true, min: 1 },
+        decisionBlocker: { type: 'string', optional: true, min: 1 },
+        hasRedispatchAudit: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
+        hasAssetEvidence: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
+        hasMastrEvidence: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
+        hasLoadProfileEvidence: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
+        hasSettlementReadiness: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
+        hasKpiReference: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
+        datasourceHealth: { type: 'string', optional: true, min: 1 },
+        sourceFreshness: { type: 'string', optional: true, min: 1 },
+        qualityStatus: { type: 'string', optional: true, min: 1 },
+        staleSources: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        tasks: { type: 'multi', optional: true, rules: [{ type: 'array' }, { type: 'string', min: 1 }] },
+        kpiSignals: { type: 'multi', optional: true, rules: [{ type: 'array' }, { type: 'string', min: 1 }] },
+        sourceHealth: { type: 'multi', optional: true, rules: [{ type: 'array' }, { type: 'string', min: 1 }] },
+        affectedAssets: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        missingEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Redispatch project-controlling KPI cockpit -- read-only evidence gate',
+        description:
+          'Builds deterministic Redispatch project-controlling and KPI readiness from supplied facts and references. ' +
+          'The endpoint is read-only and does not execute Redispatch orders, settlement, billing, task/workflow/HITL/VDMI mutation, datasource ingestion, asset mutation, or external calls.',
+        responses: {
+          200: {
+            description: 'Read-only Redispatch project-controlling KPI evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `redispatch-project-controlling-kpi:${params.cockpitId || params.redispatchAuditId || 'no-cockpit'}:${params.period || ''}:${params.redispatchAuditId || ''}:${params.settlementRef || ''}:${params.taskOwner || ''}:${params.blockedDecision || ''}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.redispatchProjectControllingKpiCockpitStatus,
+          async () => ({
+            ...this.buildRedispatchProjectControllingKpiCockpitStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -15011,6 +15079,303 @@ module.exports = {
           readinessSignals,
           evidenceGaps,
           blockers,
+          nextActions,
+          positiveFollowUps,
+          validationFindings,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildRedispatchProjectControllingKpiCockpitStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const normalizeStatus = (value) => {
+        const text = String(value || '').trim().toLowerCase();
+        if (!text) return 'missing';
+        if (/^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|present|vorhanden|covered|documented|ja|yes|true)$/.test(text)) return 'ready';
+        if (/^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown|scheduled)$/.test(text)) return 'partial';
+        if (/^(missing|fehlt|absent|not_available|not-available|none|nein|no|false)$/.test(text)) return 'missing';
+        if (/^(stale|veraltet|expired|outdated)$/.test(text)) return 'stale';
+        if (/^(blocked|blockiert|red|rot|failed|rejected|denied|conflicting|conflict|stop)$/.test(text)) return 'blocked';
+        if (/(block|reject|conflict|stale|veraltet|expired|fehlend|missing)/.test(text)) return text.includes('stale') || text.includes('veraltet') || text.includes('expired') ? 'stale' : 'blocked';
+        return text;
+      };
+      const flagIsReady = (value) => value === true || normalizeStatus(value) === 'ready';
+      const isReady = (status) => status === 'ready';
+      const isBlocked = (status) => status === 'blocked';
+      const suppliedEvidenceGaps = toList(params.missingEvidence);
+      const affectedAssets = toList(params.affectedAssets);
+      const staleSources = toList(params.staleSources);
+      const projectContext = {
+        cockpitId: params.cockpitId || params.redispatchAuditId || null,
+        gridOperatorId: params.gridOperatorId || null,
+        period: params.period || null,
+        redispatchAuditId: params.redispatchAuditId || null,
+        settlementRef: params.settlementRef || null,
+        vdmiProcessId: params.vdmiProcessId || null,
+      };
+      const taskSignals = [
+        {
+          taskId: params.taskId || null,
+          status: params.taskStatus || null,
+          owner: params.taskOwner || null,
+          dueDate: params.dueDate || null,
+          blockedDecision: params.blockedDecision || null,
+          decisionBlocker: params.decisionBlocker || null,
+          affectedAssets,
+        },
+        ...toList(params.tasks).map((task) => ({ taskId: task, status: null, owner: null, dueDate: null })),
+      ].filter((task) => task.taskId || task.status || task.owner || task.dueDate || task.blockedDecision || task.decisionBlocker || task.affectedAssets?.length);
+      const kpiSignals = toList(params.kpiSignals);
+      if (params.hasKpiReference || params.settlementRef) {
+        kpiSignals.unshift(params.settlementRef || 'supplied-kpi-reference');
+      }
+      const sourceHealth = toList(params.sourceHealth);
+      if (params.datasourceHealth || params.sourceFreshness || params.qualityStatus) {
+        sourceHealth.unshift(`datasource=${params.datasourceHealth || 'unknown'}; freshness=${params.sourceFreshness || 'unknown'}; quality=${params.qualityStatus || 'unknown'}`);
+      }
+      const sourceActions = {
+        inspected: ['dashboard-api.redispatchProjectControllingKpiCockpitStatus'],
+        referenced: [
+          'redispatch-expost.audit',
+          'redispatch-expost.list',
+          'settlement.calculateRedispatch',
+          'datapoint.health',
+          'datasource-registry.get',
+          'mastr-quality.audit',
+          'assets.effective',
+          'vdmi.dossier',
+          'vdmi.findings',
+          'hitl.list',
+          'presentation.render',
+        ],
+        notCalled: [
+          'redispatch.execute',
+          'redispatch.order.create',
+          'settlement.calculateRedispatch',
+          'settlement.prepareBilling',
+          'settlement.exportA96',
+          'billing.release',
+          'task.create',
+          'workflow.execute',
+          'hitl.create',
+          'vdmi.mutate',
+          'notification.send',
+          'datasource.ingest',
+          'datapoint.write',
+          'mastr.import',
+          'assets.applyOverride',
+          'tariff.mutate',
+          'grid-operations.executeControl',
+          'device-control.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const signalSpecs = [
+        {
+          code: 'redispatch_audit',
+          label: 'Redispatch Audit',
+          ready: params.redispatchAuditId || flagIsReady(params.hasRedispatchAudit),
+          value: params.redispatchAuditId || params.hasRedispatchAudit,
+          enablesDossierAddition: 'add Redispatch audit chain, steps, findings, and audit-readiness summary',
+          statusWhenMissing: 'needs_redispatch_audit',
+        },
+        {
+          code: 'source_health',
+          label: 'Datasource Health',
+          ready: flagIsReady(params.datasourceHealth) && (flagIsReady(params.sourceFreshness) || !params.sourceFreshness),
+          value: params.datasourceHealth || params.sourceFreshness,
+          enablesDossierAddition: 'add source quality, freshness, and provenance evidence',
+          statusWhenMissing: 'needs_source_health',
+        },
+        {
+          code: 'asset_evidence',
+          label: 'Asset / MaStR Evidence',
+          ready: flagIsReady(params.hasAssetEvidence) && flagIsReady(params.hasMastrEvidence),
+          value: `${params.hasAssetEvidence || ''}/${params.hasMastrEvidence || ''}`,
+          enablesDossierAddition: 'add affected asset and MaStR evidence context',
+          statusWhenMissing: 'needs_asset_evidence',
+        },
+        {
+          code: 'load_profile_evidence',
+          label: 'Load Profile Evidence',
+          ready: flagIsReady(params.hasLoadProfileEvidence),
+          value: params.hasLoadProfileEvidence,
+          enablesDossierAddition: 'add load-profile / Lastgang evidence for the controlling period',
+          statusWhenMissing: 'needs_load_profile_evidence',
+        },
+        {
+          code: 'settlement_readiness',
+          label: 'Settlement Readiness',
+          ready: params.settlementRef || flagIsReady(params.hasSettlementReadiness),
+          value: params.settlementRef || params.hasSettlementReadiness,
+          enablesDossierAddition: 'add settlement-readiness and KPI-impact evidence without executing settlement',
+          statusWhenMissing: 'needs_settlement_readiness',
+        },
+        {
+          code: 'owner',
+          label: 'Task Owner',
+          ready: Boolean(params.taskOwner),
+          value: params.taskOwner,
+          enablesDossierAddition: 'add owner/accountability context',
+          statusWhenMissing: 'needs_owner',
+        },
+        {
+          code: 'due_date',
+          label: 'Due Date',
+          ready: Boolean(params.dueDate),
+          value: params.dueDate,
+          enablesDossierAddition: 'add urgency and deadline evidence',
+          statusWhenMissing: 'needs_owner',
+        },
+        {
+          code: 'kpi_reference',
+          label: 'KPI Reference',
+          ready: flagIsReady(params.hasKpiReference) || kpiSignals.length > 0,
+          value: params.hasKpiReference || kpiSignals[0],
+          enablesDossierAddition: 'add KPI definition/source traceability',
+          statusWhenMissing: 'needs_settlement_readiness',
+        },
+      ];
+      const readinessSignals = signalSpecs.map((signal) => {
+        const normalized = signal.ready ? 'ready' : normalizeStatus(signal.value);
+        return {
+          code: signal.code,
+          label: signal.label,
+          status: signal.ready ? 'ready' : normalized,
+          rawStatus: signal.value || null,
+          finding: signal.ready ? null : signal.enablesDossierAddition,
+          enablesDossierAddition: signal.enablesDossierAddition,
+          statusWhenMissing: signal.statusWhenMissing,
+        };
+      });
+      const missingFromSignals = readinessSignals
+        .filter((signal) => !isReady(signal.status))
+        .map((signal) => ({
+          missingDataPoint: signal.code,
+          status: signal.status,
+          value: signal.rawStatus,
+          enablesDossierAddition: signal.enablesDossierAddition,
+        }));
+      const missingFromParams = suppliedEvidenceGaps.map((value) => ({
+        missingDataPoint: 'supplied_evidence_gap',
+        value,
+        status: 'missing',
+        enablesDossierAddition: `add evidence for ${value}`,
+      }));
+      const staleSourceGaps = staleSources.map((value) => ({
+        missingDataPoint: 'stale_source',
+        value,
+        status: 'stale',
+        enablesDossierAddition: `refresh stale Redispatch source ${value}`,
+      }));
+      const datasourceStatus = normalizeStatus(params.datasourceHealth || params.qualityStatus || params.sourceFreshness);
+      const blockedGap = params.blockedDecision || params.decisionBlocker
+        ? [{
+            missingDataPoint: 'blocked_decision',
+            value: params.blockedDecision || params.decisionBlocker,
+            status: 'blocked',
+            enablesDossierAddition: 'add explicit blocker and required decision context',
+          }]
+        : [];
+      const staleHealthGap = datasourceStatus === 'stale'
+        ? [{
+            missingDataPoint: 'source_health',
+            value: params.datasourceHealth || params.sourceFreshness || params.qualityStatus,
+            status: 'stale',
+            enablesDossierAddition: 'refresh stale datasource or quality signal before project review',
+          }]
+        : [];
+      const evidenceGaps = [
+        ...missingFromSignals,
+        ...missingFromParams,
+        ...staleSourceGaps,
+        ...staleHealthGap,
+        ...blockedGap,
+      ];
+
+      let status = 'unknown';
+      if (blockedGap.length > 0) status = 'blocked_by_decision_gap';
+      else if (!params.redispatchAuditId && !flagIsReady(params.hasRedispatchAudit)) status = 'needs_redispatch_audit';
+      else if (!flagIsReady(params.datasourceHealth) || datasourceStatus === 'stale' || staleSources.length > 0) status = 'needs_source_health';
+      else if (!flagIsReady(params.hasAssetEvidence) || !flagIsReady(params.hasMastrEvidence)) status = 'needs_asset_evidence';
+      else if (!flagIsReady(params.hasLoadProfileEvidence)) status = 'needs_load_profile_evidence';
+      else if (!params.settlementRef && !flagIsReady(params.hasSettlementReadiness)) status = 'needs_settlement_readiness';
+      else if (!params.taskOwner || !params.dueDate) status = 'needs_owner';
+      else if (!flagIsReady(params.hasKpiReference) && kpiSignals.length === 0) status = 'needs_settlement_readiness';
+      else if (evidenceGaps.length === 0 && readinessSignals.every((signal) => isReady(signal.status))) status = 'ready_for_project_review';
+      else if (missingFromSignals.length > 0) status = readinessSignals.find((signal) => signal.code === missingFromSignals[0].missingDataPoint)?.statusWhenMissing || 'unknown';
+
+      const decisionBlockers = evidenceGaps
+        .filter((gap) => isBlocked(gap.status))
+        .map((gap) => ({
+          code: gap.missingDataPoint,
+          blockedDecision: params.blockedDecision || null,
+          decisionBlocker: params.decisionBlocker || null,
+          owner: params.taskOwner || null,
+          message: gap.enablesDossierAddition,
+        }));
+      const positiveFollowUps = evidenceGaps.map((gap) => ({
+        missingDataPoint: gap.missingDataPoint,
+        status: gap.status,
+        value: gap.value,
+        enablesDossierAddition: gap.enablesDossierAddition,
+        category: 'redispatch_project_controlling_kpi_cockpit',
+      }));
+      const nextActions = positiveFollowUps.map((followUp) => ({
+        owner: params.taskOwner || null,
+        dueDate: params.dueDate || null,
+        action: followUp.enablesDossierAddition,
+        missingDataPoint: followUp.missingDataPoint,
+      }));
+      const validationFindings = evidenceGaps.map((gap, index) => ({
+        code: `RDPKPI_${String(gap.missingDataPoint).toUpperCase()}_${index + 1}`,
+        severity: gap.status === 'blocked' || gap.status === 'stale' ? 'high' : 'medium',
+        message: gap.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Cockpit: ${projectContext.cockpitId || 'unknown'}`,
+        `Period: ${params.period || 'unknown'}`,
+        `Open gaps: ${evidenceGaps.length}`,
+      ];
+      if (params.blockedDecision) dossierFacts.push(`Blocked Decision: ${params.blockedDecision}`);
+
+      return {
+        redispatchProjectControllingKpiCockpitStatusId: `rdpck:${Buffer.from(`${projectContext.cockpitId || ''}:${params.period || ''}:${params.redispatchAuditId || ''}:${params.taskOwner || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'redispatch_project_controlling_kpi_cockpit',
+        safety: 'read_only',
+        status,
+        projectContext,
+        taskSignals,
+        kpiSignals,
+        sourceHealth,
+        evidenceGaps,
+        missingEvidence: evidenceGaps,
+        decisionBlockers,
+        blockers: decisionBlockers,
+        nextActions,
+        positiveFollowUps,
+        sourceActions,
+        validationFindings,
+        dossierEvidence: {
+          status,
+          projectContext,
+          taskSignals,
+          kpiSignals,
+          sourceHealth,
+          evidenceGaps,
+          decisionBlockers,
           nextActions,
           positiveFollowUps,
           validationFindings,

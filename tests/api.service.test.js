@@ -552,6 +552,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/automation-risk-gate']).toBe(
         'dashboard-api.automationRiskGateStatus'
       );
+      expect(aliases['GET /dashboard/redispatch-project-controlling-kpi-cockpit']).toBe(
+        'dashboard-api.redispatchProjectControllingKpiCockpitStatus'
+      );
       expect(aliases['GET /dashboard/stadtwerk-mauer-vdmi-profile']).toBe(
         'dashboard-api.stadtwerkMauerVdmiProfileStatus'
       );

@@ -4218,5 +4218,115 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 265
+  },
+  {
+    "id": "redispatch_project_controlling_kpi_cockpit",
+    "description": "Read-only Redispatch project-controlling and KPI evidence gate",
+    "routeLabel": "redispatch_project_controlling_kpi_cockpit",
+    "capability": "redispatch_project_controlling_kpi_cockpit",
+    "action": "dashboard-api.redispatchProjectControllingKpiCockpitStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "redispatch.execute",
+        "redispatch.order.create",
+        "settlement.prepareBilling",
+        "settlement.exportA96",
+        "billing.release",
+        "task.create",
+        "workflow.execute",
+        "hitl.create",
+        "vdmi.mutate",
+        "notification.send",
+        "datasource.ingest",
+        "datapoint.write",
+        "mastr.import",
+        "assets.applyOverride",
+        "tariff.mutate",
+        "grid-operations.executeControl",
+        "device-control.execute",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "redispatch projektcontrolling",
+      "redispatch kpi cockpit",
+      "redispatch e2e controlling",
+      "lastgang evidenz",
+      "mastr evidenz",
+      "datenquelle belastbar",
+      "owner faelligkeit redispatch",
+      "entscheidungsblocker redispatch",
+      "redispatch_project_controlling_kpi_cockpit"
+    ],
+    "paramTemplate": {
+      "cockpitId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:cockpitId|cockpit-id|cockpit)[:=]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "period": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:period|zeitraum)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "redispatchAuditId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:redispatchAuditId|audit|audit-id)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "settlementRef": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:settlementRef|settlement|settlement-ref)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "taskOwner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner|taskOwner|task-owner)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 120 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Status", "maxLen": 120 },
+        { "paths": ["projectContext.cockpitId", "dossierEvidence.projectContext.cockpitId"], "label": "Cockpit", "maxLen": 120 },
+        { "paths": ["projectContext.period", "dossierEvidence.projectContext.period"], "label": "Period", "maxLen": 120 },
+        { "paths": ["projectContext.redispatchAuditId", "dossierEvidence.projectContext.redispatchAuditId"], "label": "Redispatch Audit", "maxLen": 120 },
+        { "paths": ["projectContext.settlementRef", "dossierEvidence.projectContext.settlementRef"], "label": "Settlement Ref", "maxLen": 120 },
+        { "paths": ["taskSignals.0.owner", "dossierEvidence.taskSignals.0.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["evidenceGaps.0.missingDataPoint", "dossierEvidence.evidenceGaps.0.missingDataPoint"], "label": "First Gap", "maxLen": 120 },
+        { "paths": ["decisionBlockers.0.message", "dossierEvidence.decisionBlockers.0.message"], "label": "Decision Blocker", "maxLen": 180 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Positive Follow-up", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 222
   }
 ]
