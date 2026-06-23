@@ -1438,6 +1438,8 @@ module.exports = {
             'dashboard-api.crossChannelVnbSignalQueueStatus',
           'GET /dashboard/asset-valuation-transformation-gate':
             'dashboard-api.assetValuationTransformationGateStatus',
+          'GET /dashboard/gas-capacity-booking-review-gate':
+            'dashboard-api.gasCapacityBookingReviewGateStatus',
           'POST /stadtwerk-mauer-sandbox-runtime/events':
             'stadtwerk-mauer-sandbox-runtime.ingestEvent',
           'POST /stadtwerk-mauer-sandbox-runtime/reset':

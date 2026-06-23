@@ -2435,6 +2435,77 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- gasCapacityBookingReviewGateStatus ---------------------------------
+
+  describe('gasCapacityBookingReviewGateStatus', () => {
+    it('reports missing gas booking review evidence without executing bookings or workflow mutations', async () => {
+      const result = await broker.call('dashboard-api.gasCapacityBookingReviewGateStatus', {
+        reviewId: 'gas-260',
+        bookingYear: '2027',
+        networkArea: 'gas-north',
+        capacityAssumption: 'rlm-plus-12',
+        vdmiOwner: 'gas-planning',
+      });
+
+      expect(result.status).toBe('needs_scenario_evidence');
+      expect(result.safety).toBe('read_only');
+      expect(result.reviewScope.networkArea).toBe('gas-north');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'cold_year_evidence',
+          'rlm_rebound_evidence',
+          'congestion_history_evidence',
+          'decision_frame_ref',
+          'commercial_signoff',
+          'source_refs',
+          'risk_scenarios',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('gas_capacity_booking_review_gate');
+      expect(result.commercialSignoff.approvalClaimed).toBe(false);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'gas-capacity-booking.submit',
+          'upstream-network-operator.submitBooking',
+          'vdmi.taskMutate',
+          'hitl.create',
+          'notification.dispatchInternal',
+          'billing.release',
+          'settlement.prepareBilling',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_review for complete caller-supplied review evidence', async () => {
+      const result = await broker.call('dashboard-api.gasCapacityBookingReviewGateStatus', {
+        reviewId: 'gas-ready-260',
+        bookingYear: '2027',
+        networkArea: 'gas-south',
+        capacityAssumption: 'rlm-rebound-plus-12',
+        capacityAssumptionSource: 'waermeplanung:reconciliation-42',
+        coldYearEvidence: 'cold-year:2025-stress',
+        rlmReboundEvidence: 'rlm:rebound-8pct',
+        congestionHistoryEvidence: 'congestion:hist-2023-2026',
+        vdmiOwner: 'gas-fachbereichsleitung',
+        decisionFrameRef: 'decision-frame:gas-260',
+        commercialSignoff: 'commercial-review-present',
+        riskScenarios: 'underbooking,overbooking',
+        sourceRefs: 'waermeplanung:42,decision-frame:gas-260',
+      });
+
+      expect(result.status).toBe('ready_for_review');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.scenarioEvidenceStatus.complete).toBe(true);
+      expect(result.dossierEvidence.dossierFacts).toContain('Gate Status: ready_for_review');
+      expect(result.dossierEvidence.sourceRefs).toEqual(
+        expect.arrayContaining(['waermeplanung:42', 'decision-frame:gas-260'])
+      );
+    });
+  });
+
   // -- specialGridUsageImpactMapStatus ------------------------------------
 
   describe('specialGridUsageImpactMapStatus', () => {

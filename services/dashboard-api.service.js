@@ -103,6 +103,7 @@ module.exports = {
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
       assetValuationTransformationGateStatus: 5 * 60 * 1000, // 5 min
+      gasCapacityBookingReviewGateStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -5380,6 +5381,94 @@ module.exports = {
           this.settings.cacheTtlMs.assetValuationTransformationGateStatus,
           async () => ({
             ...this.buildAssetValuationTransformationGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- gasCapacityBookingReviewGateStatus --------------------------------
+    /**
+     * GET /api/dashboard/gas-capacity-booking-review-gate
+     *
+     * Read-only dossier-safe projection for caller-supplied annual gas
+     * capacity booking review evidence. It does not submit bookings, mutate
+     * VDMI/HITL workflows, create persistence, or call external systems.
+     */
+    gasCapacityBookingReviewGateStatus: {
+      rest: 'GET /gas-capacity-booking-review-gate',
+      params: {
+        reviewId: { type: 'string', optional: true, min: 1 },
+        bookingYear: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string' }] },
+        networkArea: { type: 'string', optional: true, min: 1 },
+        capacityAssumption: { type: 'string', optional: true, min: 1 },
+        capacityAssumptionSource: { type: 'string', optional: true, min: 1 },
+        coldYearEvidence: { type: 'string', optional: true, min: 1 },
+        rlmReboundEvidence: { type: 'string', optional: true, min: 1 },
+        congestionHistoryEvidence: { type: 'string', optional: true, min: 1 },
+        vdmiOwner: { type: 'string', optional: true, min: 1 },
+        decisionFrameRef: { type: 'string', optional: true, min: 1 },
+        commercialSignoff: { type: 'string', optional: true, min: 1 },
+        riskScenarios: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Gas capacity booking review gate -- read-only evidence projection',
+        description:
+          'Returns a deterministic dossier-safe review gate over gas capacity assumptions, cold-year/RLM/congestion evidence, VDMI ownership and commercial sign-off. ' +
+          'The endpoint is read-only and never submits bookings, mutates VDMI/HITL workflows, dispatches notifications, creates booking persistence, or calls external systems.',
+        parameters: [
+          { name: 'reviewId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'bookingYear', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'networkArea', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'capacityAssumption', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'coldYearEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'rlmReboundEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'congestionHistoryEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'vdmiOwner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionFrameRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'commercialSignoff', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only gas capacity booking review gate evidence',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    reviewScope: { type: 'object' },
+                    capacityAssumptionSummary: { type: 'object' },
+                    scenarioEvidenceStatus: { type: 'object' },
+                    vdmiReview: { type: 'object' },
+                    commercialSignoff: { type: 'object' },
+                    riskScenarios: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `gas-capacity-booking-review-gate:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.gasCapacityBookingReviewGateStatus,
+          async () => ({
+            ...this.buildGasCapacityBookingReviewGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -19425,6 +19514,170 @@ module.exports = {
           decisionOwner: params.decisionOwner || null,
           nextDecision: params.nextDecision || null,
           sourceDatapoints,
+          sourceRefs,
+          missingEvidence,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildGasCapacityBookingReviewGateStatus(params = {}) {
+      const isProvided = (value) => {
+        if (Array.isArray(value)) return value.length > 0;
+        return value !== undefined && value !== null && String(value).trim() !== '';
+      };
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const missingMap = {
+        capacity_assumption: 'add auditable capacity-ordering basis',
+        cold_year_evidence: 'add cold-year stress evidence',
+        rlm_rebound_evidence: 'add RLM rebound risk assessment',
+        congestion_history_evidence: 'add congestion-history grounding',
+        vdmi_owner: 'add accountable VDMI review owner',
+        decision_frame_ref: 'add decision-frame traceability',
+        commercial_signoff: 'add commercial review status without treating it as automatic approval',
+        source_refs: 'add source references for review provenance',
+        risk_scenarios: 'add risk-scenario comparison for over- and under-booking',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint, status = 'missing') => {
+        missingEvidence.push({
+          missingDataPoint,
+          status,
+          enablesDossierAddition: missingMap[missingDataPoint],
+        });
+      };
+
+      const riskScenarios = toList(params.riskScenarios);
+      const sourceRefs = toList(params.sourceRefs);
+      if (!isProvided(params.capacityAssumption) && !isProvided(params.capacityAssumptionSource)) {
+        addGap('capacity_assumption');
+      }
+      if (!isProvided(params.coldYearEvidence)) addGap('cold_year_evidence');
+      if (!isProvided(params.rlmReboundEvidence)) addGap('rlm_rebound_evidence');
+      if (!isProvided(params.congestionHistoryEvidence)) addGap('congestion_history_evidence');
+      if (!isProvided(params.vdmiOwner)) addGap('vdmi_owner');
+      if (!isProvided(params.decisionFrameRef)) addGap('decision_frame_ref');
+      if (!isProvided(params.commercialSignoff)) addGap('commercial_signoff');
+      if (sourceRefs.length === 0) addGap('source_refs');
+      if (riskScenarios.length === 0) addGap('risk_scenarios');
+
+      let status = 'ready_for_review';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'capacity_assumption')) {
+        status = 'needs_capacity_assumption';
+      } else if (
+        missingEvidence.some((gap) =>
+          ['cold_year_evidence', 'rlm_rebound_evidence', 'congestion_history_evidence'].includes(gap.missingDataPoint)
+        )
+      ) {
+        status = 'needs_scenario_evidence';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'vdmi_owner')) {
+        status = 'needs_vdmi_owner';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'commercial_signoff')) {
+        status = 'needs_commercial_review';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_review_provenance';
+      }
+
+      const requiredCount = Object.keys(missingMap).length;
+      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const sourceActions = {
+        inspected: ['dashboard-api.gasCapacityBookingReviewGateStatus'],
+        referenced: [
+          'gasnetz-waermeplanung.reconcile',
+          'decision-frame.get',
+          'vdmi.dossier',
+          'vdmi-portfolio-gatekeeping.gate',
+          'datapoint.health',
+          'presentation.render',
+        ],
+        notCalled: [
+          'gas-capacity-booking.submit',
+          'upstream-network-operator.submitBooking',
+          'vdmi.taskMutate',
+          'hitl.create',
+          'notification.dispatchInternal',
+          'booking-persistence.create',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'mako.dispatch',
+          'contract.release',
+          'device-control.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const reviewScope = {
+        reviewId: params.reviewId || null,
+        bookingYear: params.bookingYear || null,
+        networkArea: params.networkArea || null,
+      };
+      const scenarioEvidenceStatus = {
+        coldYearEvidence: params.coldYearEvidence || null,
+        rlmReboundEvidence: params.rlmReboundEvidence || null,
+        congestionHistoryEvidence: params.congestionHistoryEvidence || null,
+        complete:
+          isProvided(params.coldYearEvidence) &&
+          isProvided(params.rlmReboundEvidence) &&
+          isProvided(params.congestionHistoryEvidence),
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'gas_capacity_booking_review_gate',
+      }));
+      const dossierFacts = [
+        `Gate Status: ${status}`,
+        `Network Area: ${reviewScope.networkArea || 'missing'}`,
+        `Booking Year: ${reviewScope.bookingYear || 'missing'}`,
+        `Capacity Assumption: ${params.capacityAssumption || (params.capacityAssumptionSource ? 'provided' : 'missing')}`,
+        `Scenario Evidence Complete: ${scenarioEvidenceStatus.complete ? 'yes' : 'no'}`,
+        `VDMI Owner: ${params.vdmiOwner || 'missing'}`,
+        `Commercial Signoff: ${params.commercialSignoff || 'missing'}`,
+      ];
+
+      return {
+        capabilityKey: 'gas_capacity_booking_review_gate',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        reviewScope,
+        capacityAssumptionSummary: {
+          assumption: params.capacityAssumption || null,
+          source: params.capacityAssumptionSource || null,
+        },
+        scenarioEvidenceStatus,
+        vdmiReview: {
+          owner: params.vdmiOwner || null,
+          decisionFrameRef: params.decisionFrameRef || null,
+        },
+        commercialSignoff: {
+          status: params.commercialSignoff || null,
+          approvalClaimed: false,
+        },
+        riskScenarios,
+        sourceRefs,
+        missingEvidence,
+        positiveFollowUps,
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'gas_capacity_booking_review_gate',
+          status,
+          readinessScore,
+          reviewScope,
+          capacityAssumptionStatus: params.capacityAssumption || (params.capacityAssumptionSource ? 'provided' : 'missing'),
+          scenarioEvidenceStatus,
+          vdmiOwner: params.vdmiOwner || null,
+          decisionFrameRef: params.decisionFrameRef || null,
+          commercialSignoff: params.commercialSignoff || null,
+          riskScenarios,
           sourceRefs,
           missingEvidence,
           positiveFollowUps,

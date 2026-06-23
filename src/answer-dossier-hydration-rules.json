@@ -871,6 +871,95 @@
     "sourceIssue": 219
   },
   {
+    "id": "dashboard-api.gasCapacityBookingReviewGateStatus",
+    "action": "dashboard-api.gasCapacityBookingReviewGateStatus",
+    "label": "Gas Capacity Booking Review Gate",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "reviewId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:reviewId|review)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "bookingYear": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:bookingYear|bestelljahr|jahr)[:= ]+([0-9]{4})", "group": 1 }
+      },
+      "networkArea": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:networkArea|netzgebiet)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "capacityAssumption": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:capacityAssumption|kapazitaetsannahme|kapazitätsannahme)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "coldYearEvidence": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:coldYear|kaltjahr)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "rlmReboundEvidence": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:rlmRebound|rlm-rebound)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "congestionHistoryEvidence": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:congestionHistory|engpasshistorie)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "vdmiOwner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:vdmiOwner|owner|vdmi)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "decisionFrameRef": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:decisionFrame|decisionFrameRef|entscheidungsrahmen)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "commercialSignoff": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:commercialSignoff|commercial|kaufmaennisch|kaufmännisch)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 100 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Gate Status", "maxLen": 100 },
+        { "paths": ["reviewScope.networkArea", "dossierEvidence.reviewScope.networkArea"], "label": "Network Area", "maxLen": 120 },
+        { "paths": ["reviewScope.bookingYear", "dossierEvidence.reviewScope.bookingYear"], "label": "Booking Year", "maxLen": 40 },
+        { "paths": ["capacityAssumptionSummary.assumption", "dossierEvidence.capacityAssumptionStatus"], "label": "Capacity Assumption", "maxLen": 140 },
+        { "paths": ["scenarioEvidenceStatus.coldYearEvidence", "dossierEvidence.scenarioEvidenceStatus.coldYearEvidence"], "label": "Cold Year", "maxLen": 120 },
+        { "paths": ["scenarioEvidenceStatus.rlmReboundEvidence", "dossierEvidence.scenarioEvidenceStatus.rlmReboundEvidence"], "label": "RLM Rebound", "maxLen": 120 },
+        { "paths": ["scenarioEvidenceStatus.congestionHistoryEvidence", "dossierEvidence.scenarioEvidenceStatus.congestionHistoryEvidence"], "label": "Congestion History", "maxLen": 120 },
+        { "paths": ["vdmiReview.owner", "dossierEvidence.vdmiOwner"], "label": "VDMI Owner", "maxLen": 120 },
+        { "paths": ["commercialSignoff.status", "dossierEvidence.commercialSignoff"], "label": "Commercial Signoff", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 260
+  },
+  {
     "id": "dashboard-api.receiptGroundedPresentationContract",
     "action": "dashboard-api.receiptGroundedPresentationContract",
     "label": "Receipt Grounded Presentation Contract",

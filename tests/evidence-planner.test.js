@@ -1418,6 +1418,30 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('gas_capacity_booking_review_gate: requires scenario, VDMI and commercial evidence', () => {
+    const plan = { routeKey: 'gas_capacity_booking_review_gate' };
+    const result = planEvidence(plan, {
+      capacityAssumption: 'rlm-plus-12',
+      coldYearEvidence: 'cold-year:2025',
+      sourceRefs: ['waermeplanung:42'],
+    });
+
+    expect(result.registryKey).toBe('gas_capacity_booking_review_gate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['capacity_assumption', 'cold_year_evidence', 'source_refs'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'rlm_rebound_evidence',
+        'congestion_history_evidence',
+        'vdmi_owner',
+        'decision_frame_ref',
+        'commercial_signoff',
+        'risk_scenarios',
+      ])
+    );
+  });
+
   it('forecast-flex: requires forecast_location', () => {
     const plan = { routeKey: 'forecast-flex' };
     const result = planEvidence(plan, {});

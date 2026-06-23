@@ -635,6 +635,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasGasCapacityBookingReviewGateSpecificSignal =
+    /(gas capacity booking|annual gas capacity booking|gas.?kapazitaetsbestellung|gas.?kapazitätsbestellung|kapazitaetsreview|kapazitätsreview|capacity booking review|gas_capacity_booking_review_gate)/i.test(haystack) &&
+    /(kaltjahr|rlm.?rebound|engpasshistorie|vdmi.?abnahme|vdmi owner|commercial signoff|kaufmaennisch|kaufmännisch|decision frame|capacity assumption|kapazitaetsannahme|kapazitätsannahme|review gate)/i.test(haystack) &&
+    !/(jahresbestellung|bestellbeschluss|netzkopplungspunkt|nkp|sicherheitsaufschlag|druckflexibilitaet|druckflexibilität|wartungsfenster|industrie.?rebound|reversible rlm|order revision|gas_capacity_order_revision_gate|booking submit|submit booking|buchung senden|buchung einreichen|upstream connector|external connector|vdmi mutate|vdmi task mutate|hitl create|notification dispatch|persistence create|billing|settlement|abrechnung|tarif|mako|contract release|device-control|personal-agent execute|gasfluss simulation|thermo simulation)/i.test(haystack);
+
+  if (hasGasCapacityBookingReviewGateSpecificSignal) {
+    const gasCapacityBookingCapability = findCapabilityByName('gas_capacity_booking_review_gate');
+    if (gasCapacityBookingCapability) {
+      return { capability: gasCapacityBookingCapability, score: 146, usedFallback: false };
+    }
+  }
+
   const hasGasTransformationDependencyMapSpecificSignal =
     /(gasnetztransformation|gasnetz 2045|h2 readiness|wasserstoff|stilllegungspfad|umwidmung|waermenetzausbau|geothermie|abhaengigkeitslandkarte|transformationsoption)/i.test(haystack) &&
     /(projectId|division|nodes|dependencies|dataQualityGaps|investmentPaths|decommissionRepurposePaths|customerGroups|owner|nextAction|gaps|follow.?up|readiness|projekt-id|sparte|abhaengigkeit|datenqualitaet|investitionspfad|stilllegung|umwidmungspfad|kundengruppe|melo-155)/i.test(haystack) &&

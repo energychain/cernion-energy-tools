@@ -987,6 +987,25 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes gas capacity booking review prompts to the read-only gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Gas-Kapazitaetsbestellung als Capacity Booking Review Gate mit Kaltjahr, RLM-Rebound, Engpasshistorie, VDMI-Abnahme, Decision Frame und kaufmaennischem Review.',
+    });
+
+    expect(result.capability).toBe('gas_capacity_booking_review_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'gas_capacity_booking_review_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.gasCapacityBookingReviewGateStatus');
+    expect(actionNames).not.toContain('gas-capacity-booking.submit');
+    expect(actionNames).not.toContain('upstream-network-operator.submitBooking');
+    expect(actionNames).not.toContain('vdmi.taskMutate');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes special grid usage prompts to the read-only impact map', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe besondere Netznutzung Paragraf 19 StromNEV mit Frist, Formular, Mengenbasis, Rueckverguetung, EOG Wirkung und Abrechnungswirkung.',

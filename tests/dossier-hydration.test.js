@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 78 static rules', () => {
+    it('loads all 79 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(78);
+      expect(rules.length).toBe(79);
     });
 
-    it('compiles all 78 static rules without error', () => {
+    it('compiles all 79 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(78);
+      expect(rules.length).toBe(79);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1330,6 +1330,50 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Asset Scope: asset-219');
       expect(formatted).toContain('Leading Gap: book_value_source');
       expect(formatted).toContain('Side-Effect Guard: valuation.recordCreate');
+    });
+
+    it('dashboard-api.gasCapacityBookingReviewGateStatus is dossier-safe and formats review-gate facts', () => {
+      const rule = getRule('dashboard-api.gasCapacityBookingReviewGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Gas-Kapazitaetsbestellung review=gas-260 jahr=2027 netzgebiet=gas-nord kapazitaetsannahme=rlm-plus-12 kaltjahr=stress-2025 rlm-rebound=rebound-8 engpasshistorie=hist-3 vdmi=gas-leitung decisionFrame=df-260 commercial=reviewed pruefen'
+        )
+      ).toEqual({
+        reviewId: 'gas-260',
+        bookingYear: '2027',
+        networkArea: 'gas-nord',
+        capacityAssumption: 'rlm-plus-12',
+        coldYearEvidence: 'stress-2025',
+        rlmReboundEvidence: 'rebound-8',
+        congestionHistoryEvidence: 'hist-3',
+        vdmiOwner: 'gas-leitung',
+        decisionFrameRef: 'df-260',
+        commercialSignoff: 'reviewed',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'gas_capacity_booking_review_gate',
+        status: 'needs_scenario_evidence',
+        reviewScope: { networkArea: 'gas-nord', bookingYear: '2027' },
+        capacityAssumptionSummary: { assumption: 'rlm-plus-12' },
+        scenarioEvidenceStatus: { coldYearEvidence: null, rlmReboundEvidence: 'rebound-8' },
+        vdmiReview: { owner: 'gas-leitung' },
+        commercialSignoff: { status: 'reviewed' },
+        missingEvidence: [{ missingDataPoint: 'cold_year_evidence' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add cold-year stress evidence' }],
+        sourceActions: {
+          notCalled: ['gas-capacity-booking.submit'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: gas_capacity_booking_review_gate');
+      expect(formatted).toContain('Gate Status: needs_scenario_evidence');
+      expect(formatted).toContain('Network Area: gas-nord');
+      expect(formatted).toContain('Leading Gap: cold_year_evidence');
+      expect(formatted).toContain('Side-Effect Guard: gas-capacity-booking.submit');
     });
 
     it('dashboard-api.specialGridUsageImpactMapStatus is dossier-safe and formats impact-map facts', () => {

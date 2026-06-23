@@ -3803,6 +3803,74 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  gas_capacity_booking_review_gate: {
+    sources: [
+      {
+        id: 'capacity_assumption',
+        label: 'Capacity assumption basis',
+        resolvedBy: ['dashboard-api.gasCapacityBookingReviewGateStatus', 'gasnetz-waermeplanung.reconcile'],
+        contextKeys: ['capacityAssumption', 'capacityAssumptionSource'],
+        optional: false,
+      },
+      {
+        id: 'cold_year_evidence',
+        label: 'Cold-year stress evidence',
+        resolvedBy: ['dashboard-api.gasCapacityBookingReviewGateStatus', 'gasnetz-waermeplanung.reconcile'],
+        contextKeys: ['coldYearEvidence'],
+        optional: false,
+      },
+      {
+        id: 'rlm_rebound_evidence',
+        label: 'RLM rebound evidence',
+        resolvedBy: ['dashboard-api.gasCapacityBookingReviewGateStatus', 'datapoint.health'],
+        contextKeys: ['rlmReboundEvidence'],
+        optional: false,
+      },
+      {
+        id: 'congestion_history_evidence',
+        label: 'Congestion-history evidence',
+        resolvedBy: ['dashboard-api.gasCapacityBookingReviewGateStatus', 'gasnetz-waermeplanung.reconcile'],
+        contextKeys: ['congestionHistoryEvidence'],
+        optional: false,
+      },
+      {
+        id: 'vdmi_owner',
+        label: 'VDMI review owner',
+        resolvedBy: ['dashboard-api.gasCapacityBookingReviewGateStatus', 'vdmi.dossier'],
+        contextKeys: ['vdmiOwner'],
+        optional: false,
+      },
+      {
+        id: 'decision_frame_ref',
+        label: 'Decision-frame reference',
+        resolvedBy: ['dashboard-api.gasCapacityBookingReviewGateStatus', 'decision-frame.get'],
+        contextKeys: ['decisionFrameRef'],
+        optional: false,
+      },
+      {
+        id: 'commercial_signoff',
+        label: 'Commercial review status',
+        resolvedBy: ['dashboard-api.gasCapacityBookingReviewGateStatus', 'vdmi-portfolio-gatekeeping.gate'],
+        contextKeys: ['commercialSignoff'],
+        optional: false,
+      },
+      {
+        id: 'risk_scenarios',
+        label: 'Risk scenarios',
+        resolvedBy: ['dashboard-api.gasCapacityBookingReviewGateStatus', 'presentation.render'],
+        contextKeys: ['riskScenarios'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Source references',
+        resolvedBy: ['dashboard-api.gasCapacityBookingReviewGateStatus'],
+        contextKeys: ['sourceRefs'],
+        optional: false,
+      },
+    ],
+  },
+
   'forecast-flex': {
     sources: [
       {

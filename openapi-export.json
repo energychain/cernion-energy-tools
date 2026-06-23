@@ -16257,6 +16257,158 @@
         ]
       }
     },
+    "/api/dashboard-api/gas-capacity-booking-review-gate": {
+      "get": {
+        "operationId": "dashboard-api_gasCapacityBookingReviewGateStatus",
+        "summary": "Gas capacity booking review gate -- read-only evidence projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only gas capacity booking review gate evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "reviewScope": {
+                      "type": "object"
+                    },
+                    "capacityAssumptionSummary": {
+                      "type": "object"
+                    },
+                    "scenarioEvidenceStatus": {
+                      "type": "object"
+                    },
+                    "vdmiReview": {
+                      "type": "object"
+                    },
+                    "commercialSignoff": {
+                      "type": "object"
+                    },
+                    "riskScenarios": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a deterministic dossier-safe review gate over gas capacity assumptions, cold-year/RLM/congestion evidence, VDMI ownership and commercial sign-off. The endpoint is read-only and never submits bookings, mutates VDMI/HITL workflows, dispatches notifications, creates booking persistence, or calls external systems.",
+        "parameters": [
+          {
+            "name": "reviewId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bookingYear",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "networkArea",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "capacityAssumption",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "coldYearEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rlmReboundEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "congestionHistoryEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "vdmiOwner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionFrameRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commercialSignoff",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -55167,6 +55319,158 @@
           },
           {
             "name": "nextDecision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/gas-capacity-booking-review-gate": {
+      "get": {
+        "operationId": "dashboard-api_gasCapacityBookingReviewGateStatus",
+        "summary": "Gas capacity booking review gate -- read-only evidence projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only gas capacity booking review gate evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "reviewScope": {
+                      "type": "object"
+                    },
+                    "capacityAssumptionSummary": {
+                      "type": "object"
+                    },
+                    "scenarioEvidenceStatus": {
+                      "type": "object"
+                    },
+                    "vdmiReview": {
+                      "type": "object"
+                    },
+                    "commercialSignoff": {
+                      "type": "object"
+                    },
+                    "riskScenarios": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a deterministic dossier-safe review gate over gas capacity assumptions, cold-year/RLM/congestion evidence, VDMI ownership and commercial sign-off. The endpoint is read-only and never submits bookings, mutates VDMI/HITL workflows, dispatches notifications, creates booking persistence, or calls external systems.",
+        "parameters": [
+          {
+            "name": "reviewId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bookingYear",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "networkArea",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "capacityAssumption",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "coldYearEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rlmReboundEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "congestionHistoryEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "vdmiOwner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionFrameRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commercialSignoff",
             "in": "query",
             "required": false,
             "schema": {
