@@ -97,6 +97,7 @@ module.exports = {
       stadtwerkMauerEventReplayPreviewStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerSandboxRuntimeStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerExternalInterfaceStubsStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerE2eProcessDemoStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -4830,6 +4831,85 @@ module.exports = {
           this.buildMissingStadtwerkMauerExternalInterfaceStubsStatus(tenantId),
           errors,
           'stadtwerk-mauer-external-interface-stubs.getStatus'
+        );
+        return {
+          ...status,
+          timestamp: new Date().toISOString(),
+          _errors: errors,
+        };
+      },
+    },
+
+    // -- stadtwerkMauerE2eProcessDemoStatus -------------------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-e2e-process-demo
+     *
+     * Read-only dossier-safe status for the Stadtwerk Mauer E2E process demo.
+     * Mutating demo runs live in the process-demo service and are deliberately
+     * not allowlisted for dossier hydration.
+     */
+    stadtwerkMauerE2eProcessDemoStatus: {
+      rest: 'GET /stadtwerk-mauer-e2e-process-demo',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+        limit: { type: 'number', optional: true, convert: true, min: 1, max: 50 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer E2E process demo -- read-only status',
+        description:
+          'Reports deterministic Stadtwerk Mauer E2E demo traces, VDMI role/capability routing, ' +
+          'stub transcript evidence, missing evidence, reset boundary and no-call guards. The endpoint ' +
+          'is read-only; demo runs are separate sandbox-only non-consequential mutations.',
+        parameters: [
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'limit', in: 'query', required: false, schema: { type: 'number' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Stadtwerk Mauer E2E process demo status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    tenantId: { type: 'string' },
+                    demoPath: { type: 'string' },
+                    caseId: { type: 'string', nullable: true },
+                    traceCount: { type: 'number' },
+                    artifactCount: { type: 'number' },
+                    recentTraces: { type: 'array' },
+                    rolesAndCapabilities: { type: 'array' },
+                    evidenceQuality: { type: 'string' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    resetBoundary: { type: 'object' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const errors = [];
+        const status = await this.safeCall(
+          ctx,
+          'stadtwerk-mauer-e2e-process-demo.getStatus',
+          { tenantId, caseId: params.caseId, limit: params.limit },
+          this.buildMissingStadtwerkMauerE2eProcessDemoStatus(tenantId, params.caseId),
+          errors,
+          'stadtwerk-mauer-e2e-process-demo.getStatus'
         );
         return {
           ...status,
@@ -17732,6 +17812,81 @@ module.exports = {
             'Stub Status: stub_status_unavailable',
             `Tenant: ${tenantId}`,
             'Transcripts: 0',
+          ],
+        },
+      };
+    },
+
+    buildMissingStadtwerkMauerE2eProcessDemoStatus(tenantId = 'stadtwerk-mauer', caseId = null) {
+      const missingEvidence = [
+        {
+          missingDataPoint: 'e2e_demo_status',
+          enablesDossierAddition: 'add Stadtwerk Mauer E2E demo trace status evidence',
+        },
+      ];
+      const sourceActions = {
+        inspected: ['dashboard-api.stadtwerkMauerE2eProcessDemoStatus'],
+        referenced: ['stadtwerk-mauer-e2e-process-demo.getStatus'],
+        notCalled: [
+          'mako.dispatch',
+          'msb.connector.call',
+          'edm.connector.call',
+          'customer-service.send',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'switching.execute',
+          'webhook.emit',
+          'device-control.execute',
+          'smgw.connector.call',
+          'cls.control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'personal-agent.execute',
+          'tenant.delete.production',
+        ],
+      };
+      return {
+        capabilityKey: 'stadtwerk_mauer_e2e_process_demo',
+        safety: 'sandbox_only_non_consequential_e2e_demo_with_read_only_status',
+        tenantId,
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: tenantId === 'stadtwerk-mauer',
+        status: 'e2e_demo_status_unavailable',
+        demoPath: 'pv_registration_electrician_missing_nap',
+        caseId,
+        traceCount: 0,
+        artifactCount: 0,
+        recentTraces: [],
+        rolesAndCapabilities: [],
+        evidenceQuality: 'unavailable',
+        missingEvidence,
+        positiveFollowUps: missingEvidence.map((item) => ({
+          ...item,
+          category: 'stadtwerk_mauer_e2e_process_demo',
+        })),
+        resetBoundary: {
+          service: 'stadtwerk-mauer-sandbox-runtime.reset',
+          scopedToTenant: 'stadtwerk-mauer',
+        },
+        sourceActions,
+        dossierEvidence: {
+          status: 'e2e_demo_status_unavailable',
+          tenantId,
+          demoPath: 'pv_registration_electrician_missing_nap',
+          caseId,
+          traceCount: 0,
+          artifactCount: 0,
+          missingEvidence,
+          positiveFollowUps: missingEvidence.map((item) => ({
+            ...item,
+            category: 'stadtwerk_mauer_e2e_process_demo',
+          })),
+          sourceActions,
+          dossierFacts: [
+            'E2E Demo Status: e2e_demo_status_unavailable',
+            `Tenant: ${tenantId}`,
+            'Traces: 0',
           ],
         },
       };

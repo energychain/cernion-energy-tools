@@ -458,6 +458,59 @@
     "sourceIssue": 267
   },
   {
+    "id": "dashboard-api.stadtwerkMauerE2eProcessDemoStatus",
+    "action": "dashboard-api.stadtwerkMauerE2eProcessDemoStatus",
+    "label": "Stadtwerk Mauer E2E Process Demo",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "tenantId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:tenant|tenantId)[:= ]+([a-z0-9-]+)",
+          "group": 1
+        }
+      },
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:case|caseId|fall)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "E2E Demo Status", "maxLen": 100 },
+        { "paths": ["tenantId", "dossierEvidence.tenantId"], "label": "Tenant", "maxLen": 80 },
+        { "paths": ["demoPath", "dossierEvidence.demoPath"], "label": "Demo Path", "maxLen": 120 },
+        { "paths": ["caseId", "dossierEvidence.caseId"], "label": "Case", "maxLen": 100 },
+        { "paths": ["traceCount", "dossierEvidence.traceCount"], "label": "Traces" },
+        { "paths": ["artifactCount", "dossierEvidence.artifactCount"], "label": "Artifacts" },
+        { "paths": ["recentTraces.0.transcriptId", "dossierEvidence.recentTraces.0.transcriptId"], "label": "Stub Transcript", "maxLen": 100 },
+        { "paths": ["evidenceQuality", "dossierEvidence.evidenceQuality"], "label": "Evidence Quality", "maxLen": 100 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 160 },
+        { "paths": ["timestamp"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 266
+  },
+  {
     "id": "dashboard-api.marketCommunicationEvidenceChainStatus",
     "action": "dashboard-api.marketCommunicationEvidenceChainStatus",
     "label": "Market Communication Evidence Chain",

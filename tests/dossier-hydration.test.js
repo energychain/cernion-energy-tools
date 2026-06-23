@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 72 static rules', () => {
+    it('loads all 73 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(72);
+      expect(rules.length).toBe(73);
     });
 
-    it('compiles all 72 static rules without error', () => {
+    it('compiles all 73 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(72);
+      expect(rules.length).toBe(73);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1017,6 +1017,46 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Transcripts: 2');
       expect(formatted).toContain('Latest Stub: mako_lieferantenwechsel');
       expect(formatted).toContain('Leading Gap: meloId');
+    });
+
+    it('dashboard-api.stadtwerkMauerE2eProcessDemoStatus is dossier-safe and formats demo facts', () => {
+      const rule = getRule('dashboard-api.stadtwerkMauerE2eProcessDemoStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Stadtwerk Mauer E2E Prozessdemo tenant=stadtwerk-mauer case=case-266 laden'
+        )
+      ).toEqual({
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'case-266',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'e2e_demo_trace_needs_evidence',
+        tenantId: 'stadtwerk-mauer',
+        demoPath: 'pv_registration_electrician_missing_nap',
+        caseId: 'case-266',
+        traceCount: 1,
+        artifactCount: 5,
+        recentTraces: [{ transcriptId: 'smm-stub:test' }],
+        evidenceQuality: 'incomplete_demo_evidence',
+        missingEvidence: [{ missingDataPoint: 'napReference' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add NAP / Netzanschlusspunkt reference evidence to complete PV registration trace',
+          },
+        ],
+        timestamp: '2026-06-23T10:40:00.000Z',
+      });
+
+      expect(formatted).toContain('E2E Demo Status: e2e_demo_trace_needs_evidence');
+      expect(formatted).toContain('Tenant: stadtwerk-mauer');
+      expect(formatted).toContain('Demo Path: pv_registration_electrician_missing_nap');
+      expect(formatted).toContain('Case: case-266');
+      expect(formatted).toContain('Stub Transcript: smm-stub:test');
+      expect(formatted).toContain('Leading Gap: napReference');
     });
 
     it('dashboard-api.legalClarificationOperatingModelStatus is dossier-safe and formats operating-model facts', () => {

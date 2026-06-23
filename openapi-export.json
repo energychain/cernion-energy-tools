@@ -15397,6 +15397,112 @@
         ]
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-e2e-process-demo": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerE2eProcessDemoStatus",
+        "summary": "Stadtwerk Mauer E2E process demo -- read-only status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer E2E process demo status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "demoPath": {
+                      "type": "string"
+                    },
+                    "caseId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "traceCount": {
+                      "type": "number"
+                    },
+                    "artifactCount": {
+                      "type": "number"
+                    },
+                    "recentTraces": {
+                      "type": "array"
+                    },
+                    "rolesAndCapabilities": {
+                      "type": "array"
+                    },
+                    "evidenceQuality": {
+                      "type": "string"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "resetBoundary": {
+                      "type": "object"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Reports deterministic Stadtwerk Mauer E2E demo traces, VDMI role/capability routing, stub transcript evidence, missing evidence, reset boundary and no-call guards. The endpoint is read-only; demo runs are separate sandbox-only non-consequential mutations.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -43120,6 +43226,48 @@
         }
       }
     },
+    "/api/stadtwerk-mauer-e2e-process-demo/run": {
+      "post": {
+        "operationId": "stadtwerk-mauer-e2e-process-demo_runDemo",
+        "summary": "stadtwerk-mauer-e2e-process-demo.runDemo",
+        "tags": [
+          "stadtwerk-mauer-e2e-process-demo"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stadtwerk-mauer-e2e-process-demo/status": {
+      "get": {
+        "operationId": "stadtwerk-mauer-e2e-process-demo_getStatus",
+        "summary": "stadtwerk-mauer-e2e-process-demo.getStatus",
+        "tags": [
+          "stadtwerk-mauer-e2e-process-demo"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stadtwerk-mauer-external-interface-stubs/call": {
       "post": {
         "operationId": "stadtwerk-mauer-external-interface-stubs_callStub",
@@ -53393,6 +53541,112 @@
         ]
       }
     },
+    "/api/dashboard/stadtwerk-mauer-e2e-process-demo": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerE2eProcessDemoStatus",
+        "summary": "Stadtwerk Mauer E2E process demo -- read-only status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer E2E process demo status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "demoPath": {
+                      "type": "string"
+                    },
+                    "caseId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "traceCount": {
+                      "type": "number"
+                    },
+                    "artifactCount": {
+                      "type": "number"
+                    },
+                    "recentTraces": {
+                      "type": "array"
+                    },
+                    "rolesAndCapabilities": {
+                      "type": "array"
+                    },
+                    "evidenceQuality": {
+                      "type": "string"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "resetBoundary": {
+                      "type": "object"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Reports deterministic Stadtwerk Mauer E2E demo traces, VDMI role/capability routing, stub transcript evidence, missing evidence, reset boundary and no-call guards. The endpoint is read-only; demo runs are separate sandbox-only non-consequential mutations.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ]
+      }
+    },
     "/api/stadtwerk-mauer/external-interface-stubs/call": {
       "post": {
         "operationId": "stadtwerk-mauer-external-interface-stubs_callStub",
@@ -53420,6 +53674,48 @@
         "summary": "stadtwerk-mauer-external-interface-stubs.getStatus",
         "tags": [
           "stadtwerk-mauer-external-interface-stubs"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stadtwerk-mauer/e2e-process-demo/run": {
+      "post": {
+        "operationId": "stadtwerk-mauer-e2e-process-demo_runDemo",
+        "summary": "stadtwerk-mauer-e2e-process-demo.runDemo",
+        "tags": [
+          "stadtwerk-mauer-e2e-process-demo"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stadtwerk-mauer/e2e-process-demo/status": {
+      "get": {
+        "operationId": "stadtwerk-mauer-e2e-process-demo_getStatus",
+        "summary": "stadtwerk-mauer-e2e-process-demo.getStatus",
+        "tags": [
+          "stadtwerk-mauer-e2e-process-demo"
         ],
         "responses": {
           "200": {

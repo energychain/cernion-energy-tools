@@ -657,6 +657,67 @@ describe('dashboard-api.service', () => {
       },
     });
 
+    broker.createService({
+      name: 'stadtwerk-mauer-e2e-process-demo',
+      actions: {
+        getStatus: makeHandler('stadtwerkMauerE2eProcessDemoStatus', {
+          capabilityKey: 'stadtwerk_mauer_e2e_process_demo',
+          safety: 'sandbox_only_non_consequential_e2e_demo_with_read_only_status',
+          tenantId: 'stadtwerk-mauer',
+          requiredTenantId: 'stadtwerk-mauer',
+          sandboxBoundaryAllowed: true,
+          status: 'e2e_demo_ready_for_run',
+          demoPath: 'pv_registration_electrician_missing_nap',
+          caseId: null,
+          traceCount: 0,
+          artifactCount: 0,
+          recentTraces: [],
+          rolesAndCapabilities: [
+            { role: 'Elektriker', capability: 'PV Anmeldung erfassen' },
+            { role: 'Netzanschluss', capability: 'NAP/reference evidence check' },
+          ],
+          evidenceQuality: 'no_demo_trace_yet',
+          missingEvidence: [
+            {
+              missingDataPoint: 'e2e_demo_trace',
+              enablesDossierAddition: 'run the deterministic PV Anmeldung demo trace',
+            },
+          ],
+          positiveFollowUps: [
+            {
+              missingDataPoint: 'e2e_demo_trace',
+              enablesDossierAddition: 'run the deterministic PV Anmeldung demo trace',
+              category: 'stadtwerk_mauer_e2e_process_demo',
+            },
+          ],
+          resetBoundary: {
+            service: 'stadtwerk-mauer-sandbox-runtime.reset',
+            scopedToTenant: 'stadtwerk-mauer',
+          },
+          sourceActions: {
+            inspected: ['stadtwerk-mauer-e2e-process-demo.getStatus'],
+            referenced: ['stadtwerk-mauer-sandbox-runtime.ingestEvent', 'object-store.query'],
+            notCalled: ['mako.dispatch', 'billing.release', 'external.connector.call', 'personal-agent.execute'],
+          },
+          dossierEvidence: {
+            status: 'e2e_demo_ready_for_run',
+            tenantId: 'stadtwerk-mauer',
+            demoPath: 'pv_registration_electrician_missing_nap',
+            caseId: null,
+            traceCount: 0,
+            artifactCount: 0,
+            missingEvidence: [{ missingDataPoint: 'e2e_demo_trace' }],
+            positiveFollowUps: [
+              {
+                enablesDossierAddition: 'run the deterministic PV Anmeldung demo trace',
+              },
+            ],
+            dossierFacts: ['E2E Demo Status: e2e_demo_ready_for_run', 'Traces: 0'],
+          },
+        }),
+      },
+    });
+
     broker.createService(DashboardApiService);
 
     await broker.start();
@@ -5686,6 +5747,81 @@ describe('dashboard-api.service', () => {
 
       expect(result.status).toBe('stub_transcripts_need_evidence');
       expect(result.recentTranscripts[0].stubFamily).toBe('mako_lieferantenwechsel');
+      expect(result.sourceActions.notCalled).toContain('external.connector.call');
+    });
+  });
+
+  // -- stadtwerkMauerE2eProcessDemoStatus --------------------------------
+  describe('stadtwerkMauerE2eProcessDemoStatus', () => {
+    it('reports E2E demo readiness without executing mutating actions', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerE2eProcessDemoStatus', {
+        tenantId: 'stadtwerk-mauer',
+      });
+
+      expect(result.status).toBe('e2e_demo_ready_for_run');
+      expect(result.tenantId).toBe('stadtwerk-mauer');
+      expect(result.demoPath).toBe('pv_registration_electrician_missing_nap');
+      expect(result.traceCount).toBe(0);
+      expect(result.positiveFollowUps[0].category).toBe('stadtwerk_mauer_e2e_process_demo');
+      expect(result.resetBoundary.service).toBe('stadtwerk-mauer-sandbox-runtime.reset');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['mako.dispatch', 'external.connector.call', 'personal-agent.execute'])
+      );
+      expect(result.safety).toBe('sandbox_only_non_consequential_e2e_demo_with_read_only_status');
+    });
+
+    it('surfaces demo traces through the read-only dashboard action', async () => {
+      handlers.stadtwerkMauerE2eProcessDemoStatus = () => ({
+        capabilityKey: 'stadtwerk_mauer_e2e_process_demo',
+        safety: 'sandbox_only_non_consequential_e2e_demo_with_read_only_status',
+        tenantId: 'stadtwerk-mauer',
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: true,
+        status: 'e2e_demo_trace_needs_evidence',
+        demoPath: 'pv_registration_electrician_missing_nap',
+        caseId: 'case-266',
+        traceCount: 1,
+        artifactCount: 5,
+        recentTraces: [
+          {
+            traceId: 'smm-e2e-trace:test',
+            caseId: 'case-266',
+            transcriptId: 'smm-stub:test',
+            evidenceQuality: 'incomplete_demo_evidence',
+          },
+        ],
+        rolesAndCapabilities: [{ role: 'Elektriker', capability: 'PV Anmeldung erfassen' }],
+        evidenceQuality: 'incomplete_demo_evidence',
+        missingEvidence: [{ missingDataPoint: 'napReference' }],
+        positiveFollowUps: [{ missingDataPoint: 'napReference' }],
+        resetBoundary: { service: 'stadtwerk-mauer-sandbox-runtime.reset' },
+        sourceActions: {
+          inspected: ['stadtwerk-mauer-e2e-process-demo.getStatus'],
+          referenced: ['stadtwerk-mauer-external-interface-stubs.callStub'],
+          notCalled: ['mako.dispatch', 'external.connector.call', 'personal-agent.execute'],
+        },
+        dossierEvidence: {
+          status: 'e2e_demo_trace_needs_evidence',
+          tenantId: 'stadtwerk-mauer',
+          demoPath: 'pv_registration_electrician_missing_nap',
+          caseId: 'case-266',
+          traceCount: 1,
+          artifactCount: 5,
+          recentTraces: [{ transcriptId: 'smm-stub:test' }],
+          missingEvidence: [{ missingDataPoint: 'napReference' }],
+          positiveFollowUps: [{ missingDataPoint: 'napReference' }],
+          dossierFacts: ['E2E Demo Status: e2e_demo_trace_needs_evidence', 'Traces: 1'],
+        },
+      });
+
+      const result = await broker.call('dashboard-api.stadtwerkMauerE2eProcessDemoStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'case-266',
+      });
+
+      expect(result.status).toBe('e2e_demo_trace_needs_evidence');
+      expect(result.recentTraces[0].transcriptId).toBe('smm-stub:test');
+      expect(result.missingEvidence[0].missingDataPoint).toBe('napReference');
       expect(result.sourceActions.notCalled).toContain('external.connector.call');
     });
   });

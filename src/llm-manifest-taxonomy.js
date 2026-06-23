@@ -256,6 +256,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'Community': 'energy-sharing',
   'stadtwerk-mauer-sandbox-runtime': 'platform',
   'stadtwerk-mauer-external-interface-stubs': 'platform',
+  'stadtwerk-mauer-e2e-process-demo': 'platform',
 };
 
 // ── 3. recipe → canonical ────────────────────────────────────────────────────

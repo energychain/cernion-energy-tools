@@ -850,6 +850,24 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Stadtwerk Mauer E2E demo prompts to the read-only status view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Stadtwerk Mauer E2E Prozessdemo fuer PV Anmeldung durch Elektriker, fehlende NAP Referenz, Prozessspur, Stub Transcript, Dossier Growth und Reset Proof.',
+    });
+
+    expect(result.capability).toBe('stadtwerk_mauer_e2e_process_demo');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'stadtwerk_mauer_e2e_process_demo'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.stadtwerkMauerE2eProcessDemoStatus');
+    expect(actionNames).not.toContain('stadtwerk-mauer-e2e-process-demo.runDemo');
+    expect(actionNames).not.toContain('stadtwerk-mauer-external-interface-stubs.callStub');
+    expect(actionNames).not.toContain('mako.dispatch');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes legal clarification operating-model prompts to the read-only preparation view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Erstelle ein operatives Steuerungsmodell fuer Rechtsklaerung Kapazitaetsfrage mit no-regret Datenbedarf, roter Linie und Entscheidung nach Rechtsantwort.',

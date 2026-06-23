@@ -1426,6 +1426,8 @@ module.exports = {
             'dashboard-api.stadtwerkMauerSandboxRuntimeStatus',
           'GET /dashboard/stadtwerk-mauer-external-interface-stubs':
             'dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus',
+          'GET /dashboard/stadtwerk-mauer-e2e-process-demo':
+            'dashboard-api.stadtwerkMauerE2eProcessDemoStatus',
           'POST /stadtwerk-mauer-sandbox-runtime/events':
             'stadtwerk-mauer-sandbox-runtime.ingestEvent',
           'POST /stadtwerk-mauer-sandbox-runtime/reset':
@@ -1436,6 +1438,10 @@ module.exports = {
             'stadtwerk-mauer-external-interface-stubs.callStub',
           'GET /stadtwerk-mauer/external-interface-stubs/status':
             'stadtwerk-mauer-external-interface-stubs.getStatus',
+          'POST /stadtwerk-mauer/e2e-process-demo/run':
+            'stadtwerk-mauer-e2e-process-demo.runDemo',
+          'GET /stadtwerk-mauer/e2e-process-demo/status':
+            'stadtwerk-mauer-e2e-process-demo.getStatus',
           'GET /dashboard/regulatory-change-readiness':
             'dashboard-api.regulatoryChangeReadinessStatus',
           'GET /dashboard/investment-two-track-control':

@@ -1324,6 +1324,62 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  stadtwerk_mauer_e2e_process_demo: {
+    sources: [
+      {
+        id: 'e2e_demo_trace',
+        label: 'Deterministische E2E-Prozessspur',
+        resolvedBy: [
+          'dashboard-api.stadtwerkMauerE2eProcessDemoStatus',
+          'stadtwerk-mauer-e2e-process-demo.runDemo',
+        ],
+        contextKeys: ['recentTraces', 'traceCount', 'caseId', 'demoPath'],
+        optional: false,
+      },
+      {
+        id: 'role_capability_routing',
+        label: 'VDMI-Rollen- und Capability-Spur',
+        resolvedBy: ['dashboard-api.stadtwerkMauerE2eProcessDemoStatus'],
+        contextKeys: ['rolesAndCapabilities'],
+        optional: false,
+      },
+      {
+        id: 'stub_transcript_summary',
+        label: 'Stub-Transkript-Zusammenfassung',
+        resolvedBy: [
+          'dashboard-api.stadtwerkMauerE2eProcessDemoStatus',
+          'stadtwerk-mauer-external-interface-stubs.callStub',
+        ],
+        contextKeys: ['recentTraces.transcriptId', 'sourceActions.referenced'],
+        optional: false,
+      },
+      {
+        id: 'missing_evidence_followups',
+        label: 'Fehlende Evidenz und positive Follow-ups',
+        resolvedBy: ['dashboard-api.stadtwerkMauerE2eProcessDemoStatus'],
+        contextKeys: ['missingEvidence', 'positiveFollowUps'],
+        optional: false,
+      },
+      {
+        id: 'reset_cleanup_boundary',
+        label: 'Reset-sichere Cleanup-Grenze',
+        resolvedBy: [
+          'dashboard-api.stadtwerkMauerE2eProcessDemoStatus',
+          'stadtwerk-mauer-sandbox-runtime.reset',
+        ],
+        contextKeys: ['resetBoundary', 'artifactCount'],
+        optional: false,
+      },
+      {
+        id: 'source_action_guards',
+        label: 'No-Call-Guards fuer echte Aktionen',
+        resolvedBy: ['dashboard-api.stadtwerkMauerE2eProcessDemoStatus'],
+        contextKeys: ['sourceActions.notCalled'],
+        optional: false,
+      },
+    ],
+  },
+
   e2e_controllability_check_governance: {
     sources: [
       {
