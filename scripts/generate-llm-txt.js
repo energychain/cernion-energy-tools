@@ -170,7 +170,7 @@ function renderClusterManifest(buckets) {
     const recipeLines = bucket.recipes
       .slice()
       .sort((a, b) => a.id.localeCompare(b.id))
-      .map((r) => `  ${r.id} "${truncateOneLine(r.problem, 100)}"`)
+      .map((r) => `  ${r.id} "${truncateOneLine(r.problem, 80)}"`)
       .join('\n');
     const dedupedOps = dedupeOperations(bucket.operations);
 

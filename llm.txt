@@ -2,8 +2,8 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.64.1
-- changelog_latest_release: 0.64.1
+- version: 0.64.2
+- changelog_latest_release: 0.64.2
 
 ## Purpose
 This file is a navigation manifest for LLM/agent consumers. It lists cluster
@@ -109,70 +109,70 @@ FINDING_CODE_METADATA['MQ_ZERO_CAPACITY']
 ### redispatch (10 capabilities · 2 recipes · 61 operations)
 capabilities: battery_redispatch_special_gate, redispatch_asset_register, redispatch_call_data_quality_gate, redispatch_data_governance, redispatch_project_controlling_kpi_cockpit, redispatch_rcs_special_case_governance, redispatch_readiness_gate, redispatch_settlement_sandbox, redispatch_special_case_gate, settlement_a96_reconciliation
 recipes:
-  redispatch-forensic-audit "A VNB wants to compare Redispatch-relevant units against internal reporting and identify missing…"
-  redispatch-settlement-audit "Check settlement readiness and financial risk exposure for Redispatch 2.0 ex-post processes."
+  redispatch-forensic-audit "A VNB wants to compare Redispatch-relevant units against internal reporting…"
+  redispatch-settlement-audit "Check settlement readiness and financial risk exposure for Redispatch 2.0…"
 resolve: GET /api/_agent/operations?domain=redispatch
 
 ### grid-planning (16 capabilities · 8 recipes · 46 operations)
 capabilities: altdaten_assessment, automatisierungsradar, blindflug_radar_anomaly_detection, budget_waterfall_governance, finance_nkp_capex_reinvest_governance, investment_committee_steering_cards, investment_data_review_queue, investment_maturity_off_balance_gate, investment_risk_translation_status, investment_two_track_control, investment_waterfall_governance, reinvest_signal, sap_budget_psp_gate, vnb_100_tage_assessment, znp_portfolio_assessment, znp_production_readiness_evidence_gate
 recipes:
-  cybergrid-counter-location-scout "A VNB wants to proactively identify storage locations near stressed substations instead of…"
-  nova-capex-defender "A planner wants to test whether operational/asset optimization can defer costly cable expansion…"
-  znp-conversational-planner-strategic-prompts "A planner wants to retrieve KI-gestützte Rückfragen that are grounded in the current grid topology…"
-  znp-flexible-nav-stresstest "A planner wants to quantify the impact of flexible NAV assumptions (for example g=0 for…"
-  znp-layer0-to-gfactor "A grid planner needs to estimate the theoretical simultaneous load factor (g-factor) for a…"
-  znp-layer2-pdf-extraction "A grid planner needs to ingest real transformer load profiles from a VNB PDF so measured peak load…"
-  znp-mastr-inventory-drill-down "A grid planner wants a Tiefenprüfung of the Layer 0 MaStR inventory and needs to filter…"
-  znp-strategic-assumptions "A planner wants to add forward-looking assumptions (e.g., data centres, heat-pump mandates) as…"
+  cybergrid-counter-location-scout "A VNB wants to proactively identify storage locations near stressed…"
+  nova-capex-defender "A planner wants to test whether operational/asset optimization can defer…"
+  znp-conversational-planner-strategic-prompts "A planner wants to retrieve KI-gestützte Rückfragen that are grounded in the…"
+  znp-flexible-nav-stresstest "A planner wants to quantify the impact of flexible NAV assumptions (for…"
+  znp-layer0-to-gfactor "A grid planner needs to estimate the theoretical simultaneous load factor…"
+  znp-layer2-pdf-extraction "A grid planner needs to ingest real transformer load profiles from a VNB PDF…"
+  znp-mastr-inventory-drill-down "A grid planner wants a Tiefenprüfung of the Layer 0 MaStR inventory and needs…"
+  znp-strategic-assumptions "A planner wants to add forward-looking assumptions (e.g., data centres,…"
 resolve: GET /api/_agent/operations?domain=grid-planning
 
 ### energy-sharing (1 capabilities · 4 recipes · 9 operations)
 capabilities: energy_sharing_prosumer_advisory
 recipes:
-  energy-sharing-42c-radar "A VNB needs to identify potential Energy Sharing clusters early and pre-check eligibility before…"
-  energy-sharing-full-pipeline "A §42c EnWG energy sharing community needs full validation followed by allocation and…"
-  energy-sharing-validation "Validate generators, direct marketing constraints, and allocation eligibility for an energy…"
-  prosumer-nap-wallet-onboarding "A prosumer wants to onboard to a NAP Wallet and share their HEMS data in exchange for grid…"
+  energy-sharing-42c-radar "A VNB needs to identify potential Energy Sharing clusters early and pre-check…"
+  energy-sharing-full-pipeline "A §42c EnWG energy sharing community needs full validation followed by…"
+  energy-sharing-validation "Validate generators, direct marketing constraints, and allocation eligibility…"
+  prosumer-nap-wallet-onboarding "A prosumer wants to onboard to a NAP Wallet and share their HEMS data in…"
 resolve: GET /api/_agent/operations?domain=energy-sharing
 
 ### grid-ops (23 capabilities · 10 recipes · 115 operations)
 capabilities: agnes_bottleneck, bess_screening, capacity_contract_risk_asset_cockpit, capex_prioritization, connection_rejection_evidence, connection_rejection_fnav_14a_evidence, controllability_asset_handover, controllability_submission_cockpit, e2e_connection_check, flex_forecast_bess_grid_operations_advisory, flex_strategic_demand_intake, flexibilitaetskosten_raster, fnav_commercial_hedging, gas_transformation_dependency_map, ghost_asset_alert, grid_connection_transformation_gate, grid_operator_identity_resolution, legacy_control_technology_transition, mastr_asset_inventory, netzfahrplan_fnav_assessment, residual_load_forecast_for_dso, schedule_management_governance_roadmap, tech_commercial_offer_cockpit
 recipes:
-  direktvermarkter-portfolio "A user asks for installations managed by a direct marketer (Direktvermarkter). NOTE:…"
-  fnav-contract-gate-netzsignal-priority "A flexible connection request should be validated only if Netzsignal priority wording and control…"
-  grid-connection-validation "Assess Netzanschluss readiness and risk with deterministic findings for a VNB portfolio."
+  direktvermarkter-portfolio "A user asks for installations managed by a direct marketer (Direktvermarkter).…"
+  fnav-contract-gate-netzsignal-priority "A flexible connection request should be validated only if Netzsignal priority…"
+  grid-connection-validation "Assess Netzanschluss readiness and risk with deterministic findings for a VNB…"
   mastr-quality-audit "Audit completeness and data-quality risks for a full VNB portfolio."
-  nbp-parameter-management "A compliance team needs to review and adjust NBP (Netzanschlussprozess) KPI 2 scoring parameters."
-  osm-infrastructure-nearby "A grid operator needs to identify all transformer stations, power lines, and substations within a…"
-  osm-substation-and-grid-topology "A grid planner needs to identify candidate substations in a region and map the connected network…"
-  self-healing-data-crowdsourcing-trigger "A utility wants to detect likely master-data inconsistencies early and trigger customer…"
-  vnb-assets-from-name "A user mentions a grid operator by name and wants installations without knowing BDEW or MaStR IDs."
-  vnb-full-snapshot "A grid operator needs a full health check combining KPI metrics, EWK benchmarks, and live alert…"
+  nbp-parameter-management "A compliance team needs to review and adjust NBP (Netzanschlussprozess) KPI 2…"
+  osm-infrastructure-nearby "A grid operator needs to identify all transformer stations, power lines, and…"
+  osm-substation-and-grid-topology "A grid planner needs to identify candidate substations in a region and map the…"
+  self-healing-data-crowdsourcing-trigger "A utility wants to detect likely master-data inconsistencies early and trigger…"
+  vnb-assets-from-name "A user mentions a grid operator by name and wants installations without…"
+  vnb-full-snapshot "A grid operator needs a full health check combining KPI metrics, EWK…"
 resolve: GET /api/_agent/operations?domain=grid-ops
 
 ### inhouse-data (8 capabilities · 3 recipes · 32 operations)
 capabilities: bilanzkreis_slp_edm_operations, edm_customer_moveout_billing_evidence, edm_metering_concept_evidence, imsys_schedule_value_chain_readiness, imsys_taf2_compliance_status, inhouse_timeseries_analysis, load_profile_stream_monitor, metering_rollout_process_indicator
 recipes:
-  datasource-register-and-classify "A user has uploaded a CSV or XLSX file and needs to register it, confirm its semantic domain, and…"
-  in-memory-multi-join "Two uploaded inhouse datasets (e.g., metering and plant inventory) need to be merged on a shared…"
-  inhouse-metering-spot-cost "An uploaded inhouse load profile should be priced against spot market values without SQL."
+  datasource-register-and-classify "A user has uploaded a CSV or XLSX file and needs to register it, confirm its…"
+  in-memory-multi-join "Two uploaded inhouse datasets (e.g., metering and plant inventory) need to be…"
+  inhouse-metering-spot-cost "An uploaded inhouse load profile should be priced against spot market values…"
 resolve: GET /api/_agent/operations?domain=inhouse-data
 
 ### market-data (3 capabilities · 5 recipes · 39 operations)
 capabilities: cross_commodity_supply_security_lagebild, market_communication_evidence_chain, oep_research_dataset_discovery
 recipes:
-  forecast-vs-actual-comparison "A generation operator wants to measure forecast accuracy by comparing iMSys metering against MaStR…"
+  forecast-vs-actual-comparison "A generation operator wants to measure forecast accuracy by comparing iMSys…"
   oep-research-dataset-discovery "A research question requires scenario data from Open Energy Platform datasets."
-  oep-schema-to-rows "A researcher has identified an OEP schema and wants to list its tables, inspect metadata, then…"
-  procurement-vs-spot-cost "A trading team wants to evaluate their contracted procurement periods against actual EPEX…"
-  residual-load-co2-price-window "A Stadtwerk needs time-window guidance for flexible loads based on residual load, CO₂ intensity,…"
+  oep-schema-to-rows "A researcher has identified an OEP schema and wants to list its tables,…"
+  procurement-vs-spot-cost "A trading team wants to evaluate their contracted procurement periods against…"
+  residual-load-co2-price-window "A Stadtwerk needs time-window guidance for flexible loads based on residual…"
 resolve: GET /api/_agent/operations?domain=market-data
 
 ### regulatory (15 capabilities · 2 recipes · 38 operations)
 capabilities: cls_digital_twin_compliance_gate, eeg_clawback_ewk_monitoring, energy_tax_information_package, gas_capacity_order_revision_gate, gas_decommissioning_roadmap_status, gas_infrastructure_risk_governance, gasnetz_waermeplanung, gasnetz_waermeplanung_assessment, heat_asset_tariff_steering, heat_transformation_line_asset_model, mastr_quality_oemetadata, re4de_variable_grid_fee_layer3, regulatorische_entgeltlogik, regulatory_change_simulator_readiness, special_grid_usage_impact_map
 recipes:
-  section14a-compliance-autopilot "A grid operator needs a recurring process to detect controllability and process gaps relevant for…"
-  utility-report-ewk "A grid operator needs a structured EWK (Einspeisungswerke-Kennzahlen) compliance report in PDF…"
+  section14a-compliance-autopilot "A grid operator needs a recurring process to detect controllability and…"
+  utility-report-ewk "A grid operator needs a structured EWK (Einspeisungswerke-Kennzahlen)…"
 resolve: GET /api/_agent/operations?domain=regulatory
 
 ### governance (34 capabilities · 0 recipes · 85 operations)
@@ -184,14 +184,14 @@ resolve: GET /api/_agent/operations?domain=governance
 ### platform (9 capabilities · 8 recipes · 324 operations)
 capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, evidence_grounding_confidence_audit, file_ingest_monitor, hitl_role_based_evidence_request, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_sandbox_runtime
 recipes:
-  agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted troubleshooting prompt derived from…"
-  dashboard-load-profile-stream-monitor "Operations teams need a single read-only view that separates data-quality gaps, real anomalies,…"
-  dashboard-market-snapshot "A UI needs day-ahead price, CO₂ intensity, and 24h renewable generation forecast in one call."
-  dashboard-observability-mini "A dashboard widget needs a compact production-feedback payload with operational health, incidents,…"
-  dashboard-quality-summary "A compliance team needs a bird's-eye view of all four agent audit scores for one operator."
-  dashboard-vnb-overview "A frontend needs a single-call composite response combining VNB identity, KPIs, latest agent…"
-  datapoint-promote-and-schedule "A registered datasource should be promoted to a managed datapoint with auto-refresh scheduling."
-  datapoint-snapshot-lifecycle "Multiple datapoints need to be sealed into a tamper-evident consistency snapshot for regulatory…"
+  agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted troubleshooting…"
+  dashboard-load-profile-stream-monitor "Operations teams need a single read-only view that separates data-quality…"
+  dashboard-market-snapshot "A UI needs day-ahead price, CO₂ intensity, and 24h renewable generation…"
+  dashboard-observability-mini "A dashboard widget needs a compact production-feedback payload with…"
+  dashboard-quality-summary "A compliance team needs a bird's-eye view of all four agent audit scores for…"
+  dashboard-vnb-overview "A frontend needs a single-call composite response combining VNB identity,…"
+  datapoint-promote-and-schedule "A registered datasource should be promoted to a managed datapoint with…"
+  datapoint-snapshot-lifecycle "Multiple datapoints need to be sealed into a tamper-evident consistency…"
 resolve: GET /api/_agent/operations?domain=platform
 
 --- END OF AGENT-RELEVANT CONTENT ---
@@ -244,12 +244,12 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: 11183195fb88b4467811fb9790b44b249c880b39c42633f4148224552c83dd79
+- CHANGELOG.md: 314e334b8303d5fe5004ecf078b669ea3b2767c3743cf6c4e3cdd70f900d989d
 - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
 - src/capability-catalog.js: f968c9bdebd853b9601023c33b3c621083201a63ab768d73ff38054ae4e8c84e
-- openapi-export.json: fe76e0bd989a8b9004a563b3f644a2bd437f8df6433ba4f3c2ea88d04a064d81
+- openapi-export.json: af7138c7bb27704639e51435a96872e8dafb0994cf2460330b8bdb1393c2d6fe
 
 ## OpenAPI Surface (full contract, not embedded)
 - path_count: 834
@@ -257,4 +257,4 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: d09181f049eeb21106e3e027f2757b7c850551f21a8023f90cbd89c7033ef2d0
+- llm_txt_sha256: 8a01b4fadbad6830d57a2081b6d4ca5500178f481e4e65539f0a255d9a61dab0

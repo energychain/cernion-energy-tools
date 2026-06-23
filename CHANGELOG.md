@@ -5,6 +5,20 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.64.2] — 2026-06-23
+
+### Added
+- **Governance Readiness & Risk Gates** (`services/dashboard-api.service.js`, `services/znp.service.js`): Nine new read-only evidence gates added to the Capability Broker catalog and dashboard surface: `process_sensitization_readiness_map`, `netzprozess_readiness_gate`, `grossspeicher_anschluss_readiness_gate`, `role_permission_access_readiness_gate`, `owner_deadline_evidence_gate`, `automation_risk_gate`, `dr_readiness_evidence_gate`, `legal_clarification_operating_model`, and `znp_production_readiness_evidence_gate`. Each follows the established read-only dossier-safe pattern (deterministic status, no write/control paths).
+- **Stadtwerk Mauer Sandbox** (`services/stadtwerk-mauer-sandbox-runtime.service.js`, `services/stadtwerk-mauer-external-interface-stubs.service.js`, `services/stadtwerk-mauer-e2e-process-demo.service.js`): New sandbox runtime, external-interface stub layer, and end-to-end process demo for a synthetic "Stadtwerk Mauer" tenant, plus three dashboard status capabilities (`stadtwerk_mauer_vdmi_profile`, `stadtwerk_mauer_capability_projection`, `stadtwerk_mauer_event_replay_preview`) that compose VDMI profile, capability projection, and event-replay views over it.
+- **Finance & Metering Cockpits** (`services/dashboard-api.service.js`): `liquidity_planning_governance_module` (liquidity/cashflow governance evidence), `zaehlpark_finanzierung_szenario_cockpit` (Zählpark financing scenario cockpit), `redispatch_project_controlling_kpi_cockpit` (Redispatch project-controlling KPIs), and `special_grid_usage_impact_map` (besondere Netznutzung impact mapping).
+- **MaStR-Quality FAIR OEMetadata v2.0** (`services/mastr-quality.service.js`, #73): `GET /api/mastr-quality/audits/:id/oemetadata` exposes a read-only FAIR-compliant OEMetadata v2.0 document (`src/audit-oemetadata-builder.js`) derived from an existing MaStR-Quality audit, for Open Energy Metadata interoperability.
+- **B2C Community Consult** (`services/community.service.js`, #151): `POST /api/community/consult` routes prosumer/B2C questions to the Corrently Community advisor.
+- **Netzanschluss Technical & Commercial Offer Cockpit** (`services/dashboard-api.service.js`, #162): `tech_commercial_offer_cockpit` read-only status combining technical feasibility and commercial offer evidence for a grid connection request.
+- **Fernwärme Asset Tarif Steuerung** (`services/dashboard-api.service.js`, #146): `heat_asset_tariff_steering` read-only status for district-heating tariff steering and post-2030 recognition risk. (Shipped in the v0.64.1 push but undocumented at the time — recorded here for completeness.)
+
+### Maintenance
+- **llm.txt taxonomy upkeep** (`src/llm-manifest-taxonomy.js`): Canonical domain mappings extended for all 22 capabilities above (`redispatch_governance`, `finance_governance`, `operations`, `compliance`, `sandbox_governance`, `heat_steering` raw `domain` values) — zero unmapped entries, build guard (`tests/llm-manifest.test.js`) green.
+
 ## [0.64.1] — 2026-06-21
 
 ### Changed
