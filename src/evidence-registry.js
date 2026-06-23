@@ -1374,6 +1374,88 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  liquidity_planning_governance_module: {
+    sources: [
+      {
+        id: 'source_register',
+        label: 'Quellenregister Finance',
+        resolvedBy: ['dashboard-api.liquidityPlanningGovernanceStatus', 'datasource-registry.get'],
+        contextKeys: ['sourceRegister'],
+        optional: false,
+      },
+      {
+        id: 'dictionary_version',
+        label: 'Dictionary-/Versionsnachweis',
+        resolvedBy: ['dashboard-api.liquidityPlanningGovernanceStatus', 'datasource-registry.check'],
+        contextKeys: ['dictionaryVersion'],
+        optional: false,
+      },
+      {
+        id: 'sap_account_mapping',
+        label: 'SAP-Sachkontoquellen',
+        resolvedBy: ['dashboard-api.liquidityPlanningGovernanceStatus', 'datapoint.health'],
+        contextKeys: ['sapAccountSources'],
+        optional: false,
+      },
+      {
+        id: 'controlling_source',
+        label: 'Controlling-Quellen',
+        resolvedBy: ['dashboard-api.liquidityPlanningGovernanceStatus', 'datapoint.health'],
+        contextKeys: ['controllingSourceIds'],
+        optional: false,
+      },
+      {
+        id: 'loan_tms_source',
+        label: 'Darlehens-/TMS-Quellen',
+        resolvedBy: ['dashboard-api.liquidityPlanningGovernanceStatus', 'datapoint.health'],
+        contextKeys: ['loanTmsSourceIds'],
+        optional: false,
+      },
+      {
+        id: 'vat_logic_reference',
+        label: 'Umsatzsteuerlogik-Referenz',
+        resolvedBy: ['dashboard-api.liquidityPlanningGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['vatLogicRef'],
+        optional: false,
+      },
+      {
+        id: 'cash_pool_logic',
+        label: 'Cash-Pool-Logiknachweis',
+        resolvedBy: ['dashboard-api.liquidityPlanningGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['cashPoolSettlementRef'],
+        optional: false,
+      },
+      {
+        id: 'scenario_assumption',
+        label: 'Szenarioannahmen',
+        resolvedBy: ['dashboard-api.liquidityPlanningGovernanceStatus', 'finance-agent.analyze'],
+        contextKeys: ['scenarioAssumptions'],
+        optional: false,
+      },
+      {
+        id: 'validation_rule',
+        label: 'Validierungsregeln',
+        resolvedBy: ['dashboard-api.liquidityPlanningGovernanceStatus', 'datasource-registry.check'],
+        contextKeys: ['validationRules', 'plausibilityChecks'],
+        optional: false,
+      },
+      {
+        id: 'correction_owner',
+        label: 'Korrektur-Owner/-Workflow',
+        resolvedBy: ['dashboard-api.liquidityPlanningGovernanceStatus', 'vdmi.dossier', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['ownerRaci', 'correctionWorkflow'],
+        optional: false,
+      },
+      {
+        id: 'approval_status',
+        label: 'Review-/Freigabestatus als Evidenz',
+        resolvedBy: ['dashboard-api.liquidityPlanningGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['approvalStatus'],
+        optional: false,
+      },
+    ],
+  },
+
   legal_clarification_operating_model: {
     sources: [
       {

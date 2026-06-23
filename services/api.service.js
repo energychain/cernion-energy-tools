@@ -1420,6 +1420,8 @@ module.exports = {
             'dashboard-api.drReadinessEvidenceStatus',
           'GET /dashboard/special-grid-usage-impact-map':
             'dashboard-api.specialGridUsageImpactMapStatus',
+          'GET /dashboard/liquidity-planning-governance':
+            'dashboard-api.liquidityPlanningGovernanceStatus',
           'GET /dashboard/regulatory-change-readiness':
             'dashboard-api.regulatoryChangeReadinessStatus',
           'GET /dashboard/investment-two-track-control':

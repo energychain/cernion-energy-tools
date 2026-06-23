@@ -108,6 +108,7 @@ const CAPABILITY_DOMAIN_MAP = {
   // metering asset financial/accounting governance (off-balance treatment) —
   // a finance/compliance gate, not operational metering data
   metering_finance_governance: 'governance',
+  finance_governance: 'governance',
   // iMSys/CLS smart-meter-gateway value chain — internal metering infrastructure
   imsys_cls_value_chain: 'inhouse-data',
   metering_governance: 'inhouse-data',

@@ -482,6 +482,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/special-grid-usage-impact-map']).toBe(
         'dashboard-api.specialGridUsageImpactMapStatus'
       );
+      expect(aliases['GET /dashboard/liquidity-planning-governance']).toBe(
+        'dashboard-api.liquidityPlanningGovernanceStatus'
+      );
       expect(aliases['GET /dashboard/regulatory-change-readiness']).toBe(
         'dashboard-api.regulatoryChangeReadinessStatus'
       );

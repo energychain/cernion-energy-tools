@@ -4504,6 +4504,120 @@
     "sourceIssue": 201
   },
   {
+    "id": "liquidity_planning_governance_module",
+    "description": "Read-only liquidity planning governance evidence",
+    "routeLabel": "liquidity_planning_governance_module",
+    "capability": "liquidity_planning_governance_module",
+    "action": "dashboard-api.liquidityPlanningGovernanceStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "treasury.calculate",
+        "cashflow.calculate",
+        "interest.calculate",
+        "vat.calculate",
+        "sap.connector.call",
+        "tms.connector.call",
+        "cash-pool.connector.call",
+        "payment.execute",
+        "approval.release",
+        "billing.release",
+        "settlement.prepareBilling",
+        "settlement.exportA96",
+        "tariff.mutate",
+        "contract.mutate",
+        "eog-calculator.recalculate",
+        "hitl.create",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "liquiditaetsplanung",
+      "liquiditätsplanung",
+      "liquidity planning",
+      "cash planning",
+      "cash pool",
+      "zinsplanung",
+      "treasury governance",
+      "sap sachkonto",
+      "tms darlehen",
+      "umsatzsteuerlogik",
+      "plausibilitaetscheck",
+      "szenarioannahme",
+      "korrekturworkflow",
+      "quellenregister finance",
+      "liquidity_planning_governance_module"
+    ],
+    "paramTemplate": {
+      "planningRunId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:planningRunId|run|case)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "sourceRegister": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:sourceRegister|quellenregister)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "dictionaryVersion": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:dictionaryVersion|dictionary|version)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "ownerRaci": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:ownerRaci|owner|raci)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "cashPoolSettlementRef": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:cashPoolSettlementRef|cashPool|cash-pool)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 120 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Status", "maxLen": 120 },
+        { "paths": ["readinessLevel", "dossierEvidence.readinessLevel"], "label": "Readiness Level", "maxLen": 120 },
+        { "paths": ["planningRunId", "dossierEvidence.planningRunId"], "label": "Planning Run", "maxLen": 120 },
+        { "paths": ["planningHorizon", "dossierEvidence.planningHorizon"], "label": "Horizon", "maxLen": 120 },
+        { "paths": ["sourceCoverage.sourceRegister", "dossierEvidence.sourceCoverage.sourceRegister"], "label": "Source Register", "maxLen": 120 },
+        { "paths": ["governanceState.ownerRaci", "dossierEvidence.governanceState.ownerRaci"], "label": "Owner/RACI", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "First Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Positive Follow-up", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 204
+  },
+  {
     "id": "dr_readiness_evidence_gate",
     "description": "Read-only disaster-recovery readiness evidence gate",
     "routeLabel": "dr_readiness_evidence_gate",

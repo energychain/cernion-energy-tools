@@ -882,6 +882,23 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes liquidity planning governance prompts to the read-only evidence module', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Liquiditaetsplanung Governance mit Cash Planning, Cash Pool, Zinsplanung, SAP Sachkonto, TMS Darlehen, Umsatzsteuerlogik, Plausibilitaetscheck, Szenarioannahme und Korrekturworkflow.',
+    });
+
+    expect(result.capability).toBe('liquidity_planning_governance_module');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'liquidity_planning_governance_module'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.liquidityPlanningGovernanceStatus');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('payment.execute');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes investment two-track control prompts to the read-only evidence gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Investitionsprozess Zwei Spuren fuer Budgetabgabe, Investitionsabgabe, Abgabesicherheit, Investdaten Datenqualitaet, ISO 55001 Zielbild, Freigabelogik und Vorstandsformat.',

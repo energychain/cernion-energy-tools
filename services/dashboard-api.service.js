@@ -52,6 +52,7 @@ module.exports = {
       legalClarificationOperatingModelStatus: 5 * 60 * 1000, // 5 min
       drReadinessEvidenceStatus: 5 * 60 * 1000, // 5 min
       specialGridUsageImpactMapStatus: 5 * 60 * 1000, // 5 min
+      liquidityPlanningGovernanceStatus: 5 * 60 * 1000, // 5 min
       regulatoryChangeReadinessStatus: 5 * 60 * 1000, // 5 min
       investmentTwoTrackControlStatus: 5 * 60 * 1000, // 5 min
       sapBudgetPspGateStatus: 5 * 60 * 1000, // 5 min
@@ -1883,6 +1884,100 @@ module.exports = {
           this.settings.cacheTtlMs.specialGridUsageImpactMapStatus,
           async () => ({
             ...this.buildSpecialGridUsageImpactMapStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- liquidityPlanningGovernanceStatus --------------------------------
+    /**
+     * GET /api/dashboard/liquidity-planning-governance?planningRunId=...
+     *
+     * Read-only dossier-safe liquidity planning governance module. It projects
+     * source, dictionary, VAT, cash-pool, scenario, correction and approval
+     * evidence without calculating cashflow, approving finance workflows, or
+     * calling SAP/TMS/cash-pool connectors.
+     */
+    liquidityPlanningGovernanceStatus: {
+      rest: 'GET /liquidity-planning-governance',
+      params: {
+        planningRunId: { type: 'string', optional: true, min: 1 },
+        planningHorizon: { type: 'string', optional: true, min: 1 },
+        sourceRegister: { type: 'string', optional: true, min: 1 },
+        sapAccountSources: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        controllingSourceIds: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        loanTmsSourceIds: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        vatLogicRef: { type: 'string', optional: true, min: 1 },
+        cashPoolSettlementRef: { type: 'string', optional: true, min: 1 },
+        dictionaryVersion: { type: 'string', optional: true, min: 1 },
+        scenarioAssumptions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        validationRules: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        plausibilityChecks: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceHealth: { type: 'string', optional: true, min: 1 },
+        ownerRaci: { type: 'string', optional: true, min: 1 },
+        correctionWorkflow: { type: 'string', optional: true, min: 1 },
+        approvalStatus: { type: 'string', optional: true, min: 1 },
+        liquidityRiskFlags: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        interestRiskFlags: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        investmentLinkRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Liquidity planning governance - read-only dossier-safe status',
+        description:
+          'Builds deterministic governance evidence for liquidity, interest, SAP account, TMS loan, VAT logic and cash-pool planning contexts. ' +
+          'The endpoint is read-only and does not calculate Treasury/cashflow/VAT values, approve finance workflows, send payments, mutate billing/settlement/tariffs/contracts/EOG, call connectors, create HITL items or execute Personal Agent actions.',
+        parameters: [
+          { name: 'planningRunId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'planningHorizon', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceRegister', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dictionaryVersion', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'vatLogicRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'cashPoolSettlementRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerRaci', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'correctionWorkflow', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'approvalStatus', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only liquidity planning governance status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    readinessLevel: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    sourceCoverage: { type: 'object' },
+                    evidenceItems: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    riskFlags: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `liquidity-planning-governance:${params.planningRunId || 'no-run'}:${params.planningHorizon || 'no-horizon'}:${params.sourceRegister || 'no-register'}:${params.dictionaryVersion || 'no-dictionary'}:${params.vatLogicRef || 'no-vat'}:${params.cashPoolSettlementRef || 'no-cash-pool'}:${params.ownerRaci || 'no-owner'}:${params.correctionWorkflow || 'no-correction'}:${params.approvalStatus || 'no-approval'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.liquidityPlanningGovernanceStatus,
+          async () => ({
+            ...this.buildLiquidityPlanningGovernanceStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -7549,6 +7644,287 @@ module.exports = {
           calculationStatus: normalizeStatus(params.calculationLogicRef),
           impactReferences,
           missingEvidence,
+          positiveFollowUps,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildLiquidityPlanningGovernanceStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const normalizeStatus = (value) => {
+        if (value === true) return 'ready';
+        if (value === false || value == null || value === '') return 'missing';
+        const normalized = String(value).trim().toLowerCase();
+        if (['ready', 'complete', 'completed', 'available', 'provided', 'confirmed', 'ok', 'valid', 'mapped', 'reviewed', 'approved'].includes(normalized)) return 'ready';
+        if (['risk', 'risky', 'stale', 'outdated', 'late', 'overdue'].includes(normalized)) return 'risk';
+        if (['blocked', 'unclear', 'unvalidated', 'invalid', 'pending', 'rejected'].includes(normalized)) return 'blocked';
+        if (['missing', 'open', 'needed', 'required', 'unknown', 'none', 'no'].includes(normalized)) return 'missing';
+        return 'ready';
+      };
+      const sapAccountSources = toList(params.sapAccountSources);
+      const controllingSourceIds = toList(params.controllingSourceIds);
+      const loanTmsSourceIds = toList(params.loanTmsSourceIds);
+      const scenarioAssumptions = toList(params.scenarioAssumptions);
+      const validationRules = toList(params.validationRules);
+      const plausibilityChecks = toList(params.plausibilityChecks);
+      const sourceDatapoints = toList(params.sourceDatapoints);
+      const liquidityRiskFlags = toList(params.liquidityRiskFlags);
+      const interestRiskFlags = toList(params.interestRiskFlags);
+      const investmentLinkRefs = toList(params.investmentLinkRefs);
+      const planningRunId = params.planningRunId || `liquidity-governance:${Buffer.from(`${params.planningHorizon || ''}:${params.ownerRaci || ''}:${params.sourceRegister || ''}`).toString('base64url').slice(0, 24)}`;
+      const evidenceSpecs = [
+        {
+          id: 'source_register',
+          label: 'Source register',
+          value: params.sourceRegister,
+          sourceClass: 'finance_source_register',
+          enablesDossierAddition: 'add source coverage and owner accountability',
+          statusWhenMissing: 'needs_source_register',
+        },
+        {
+          id: 'dictionary_version',
+          label: 'Dictionary/version evidence',
+          value: params.dictionaryVersion,
+          sourceClass: 'data_dictionary',
+          enablesDossierAddition: 'add traceable SAP/controlling/TMS source interpretation',
+          statusWhenMissing: 'needs_dictionary_version',
+        },
+        {
+          id: 'sap_account_sources',
+          label: 'SAP account sources',
+          value: sapAccountSources.length > 0,
+          displayValue: sapAccountSources.join(', '),
+          sourceClass: 'sap_account_mapping',
+          enablesDossierAddition: 'add SAP account source mapping evidence',
+          statusWhenMissing: 'needs_sap_account_sources',
+        },
+        {
+          id: 'controlling_sources',
+          label: 'Controlling sources',
+          value: controllingSourceIds.length > 0,
+          displayValue: controllingSourceIds.join(', '),
+          sourceClass: 'controlling_source',
+          enablesDossierAddition: 'add controlling source snapshot evidence',
+          statusWhenMissing: 'needs_controlling_sources',
+        },
+        {
+          id: 'loan_tms_sources',
+          label: 'Loan/TMS sources',
+          value: loanTmsSourceIds.length > 0,
+          displayValue: loanTmsSourceIds.join(', '),
+          sourceClass: 'loan_tms_source',
+          enablesDossierAddition: 'add loan/TMS source evidence',
+          statusWhenMissing: 'needs_loan_tms_sources',
+        },
+        {
+          id: 'vat_logic_reference',
+          label: 'VAT logic reference',
+          value: params.vatLogicRef,
+          sourceClass: 'vat_logic_reference',
+          enablesDossierAddition: 'add evidence boundary for Umsatzsteuer assumptions',
+          statusWhenMissing: 'needs_vat_logic_reference',
+        },
+        {
+          id: 'cash_pool_settlement_reference',
+          label: 'Cash-pool settlement reference',
+          value: params.cashPoolSettlementRef,
+          sourceClass: 'cash_pool_logic',
+          enablesDossierAddition: 'add cash-pool evidence boundary',
+          statusWhenMissing: 'blocked_by_unvalidated_cash_pool_logic',
+        },
+        {
+          id: 'validation_rules',
+          label: 'Validation rules',
+          value: validationRules.length > 0,
+          displayValue: validationRules.join(', '),
+          sourceClass: 'validation_rule',
+          enablesDossierAddition: 'add deterministic plausibility review basis',
+          statusWhenMissing: 'needs_validation_rules',
+        },
+        {
+          id: 'scenario_assumptions',
+          label: 'Scenario assumptions',
+          value: scenarioAssumptions.length > 0,
+          displayValue: scenarioAssumptions.join(', '),
+          sourceClass: 'scenario_assumption',
+          enablesDossierAddition: 'add scenario comparison basis',
+          statusWhenMissing: 'needs_scenario_assumption_review',
+        },
+        {
+          id: 'correction_owner',
+          label: 'Correction owner/workflow',
+          value: params.correctionWorkflow || params.ownerRaci,
+          sourceClass: 'correction_workflow',
+          enablesDossierAddition: 'add accountable correction workflow',
+          statusWhenMissing: 'needs_correction_owner',
+        },
+        {
+          id: 'approval_evidence',
+          label: 'Approval/review evidence',
+          value: params.approvalStatus,
+          sourceClass: 'approval_status',
+          enablesDossierAddition: 'add review-state evidence, not automatic approval',
+          statusWhenMissing: 'needs_approval_evidence',
+        },
+      ];
+      const signals = evidenceSpecs.map((spec) => {
+        const status = normalizeStatus(spec.value);
+        return {
+          id: spec.id,
+          label: spec.label,
+          status,
+          value: spec.displayValue || spec.value || null,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+          statusWhenMissing: spec.statusWhenMissing,
+        };
+      });
+      const evidenceItems = signals
+        .filter((signal) => signal.status === 'ready')
+        .map((signal) => ({
+          id: signal.id,
+          label: signal.label,
+          value: signal.value || signal.status,
+          sourceClass: signal.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = signals
+        .filter((signal) => signal.status !== 'ready')
+        .map((signal) => ({
+          missingDataPoint: signal.id,
+          label: signal.label,
+          status: signal.status,
+          value: signal.value,
+          sourceClass: signal.sourceClass,
+          enablesDossierAddition: signal.enablesDossierAddition,
+          statusWhenMissing: signal.statusWhenMissing,
+        }));
+      const firstGap = missingEvidence[0];
+      const status = missingEvidence.length === 0
+        ? 'ready_for_treasury_review'
+        : missingEvidence.some((item) => item.missingDataPoint === 'cash_pool_settlement_reference')
+          ? 'blocked_by_unvalidated_cash_pool_logic'
+          : firstGap?.statusWhenMissing || 'needs_liquidity_governance_evidence';
+      const readinessLevel = missingEvidence.length === 0
+        ? 'ready'
+        : status === 'blocked_by_unvalidated_cash_pool_logic'
+          ? 'blocked'
+          : evidenceItems.length >= 6
+            ? 'partial'
+            : 'needs_evidence';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const riskFlags = [
+        ...liquidityRiskFlags.map((flag) => ({ type: 'liquidity', severity: 'medium', message: flag })),
+        ...interestRiskFlags.map((flag) => ({ type: 'interest', severity: 'medium', message: flag })),
+        ...missingEvidence
+          .filter((item) => item.status === 'blocked' || item.missingDataPoint === 'cash_pool_settlement_reference')
+          .map((item) => ({
+            type: item.missingDataPoint,
+            severity: item.status === 'blocked' ? 'high' : 'medium',
+            message: item.enablesDossierAddition,
+          })),
+      ];
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        status: item.status,
+        value: item.value,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'liquidity_planning_governance_module',
+      }));
+      const sourceCoverage = {
+        sourceRegister: params.sourceRegister || null,
+        sapAccountSources,
+        controllingSourceIds,
+        loanTmsSourceIds,
+        sourceDatapoints,
+        sourceHealth: params.sourceHealth || null,
+        plausibilityChecks,
+      };
+      const governanceState = {
+        ownerRaci: params.ownerRaci || null,
+        correctionWorkflow: params.correctionWorkflow || null,
+        approvalStatus: params.approvalStatus || null,
+        scenarioAssumptions,
+        validationRules,
+        investmentLinkRefs,
+      };
+      const sourceActions = {
+        inspected: ['dashboard-api.liquidityPlanningGovernanceStatus'],
+        referenced: [
+          'datasource-registry.get',
+          'datasource-registry.check',
+          'datapoint.health',
+          'finance-agent.analyze',
+          'investment-planning.createPlan',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+          'presentation.generate',
+        ],
+        notCalled: [
+          'treasury.calculate',
+          'cashflow.calculate',
+          'interest.calculate',
+          'vat.calculate',
+          'sap.connector.call',
+          'tms.connector.call',
+          'cash-pool.connector.call',
+          'payment.execute',
+          'approval.release',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'contract.mutate',
+          'eog-calculator.recalculate',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Readiness Level: ${readinessLevel}`,
+        `Provided liquidity governance evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.planningHorizon) dossierFacts.push(`Planning Horizon: ${params.planningHorizon}`);
+      if (params.ownerRaci) dossierFacts.push(`Owner/RACI: ${params.ownerRaci}`);
+
+      return {
+        liquidityPlanningGovernanceId: planningRunId,
+        capabilityKey: 'liquidity_planning_governance_module',
+        safety: 'read_only',
+        status,
+        readinessLevel,
+        readinessScore,
+        planningRunId,
+        planningHorizon: params.planningHorizon || null,
+        sourceCoverage,
+        governanceState,
+        evidenceItems,
+        missingEvidence,
+        riskFlags,
+        positiveFollowUps,
+        sourceActions,
+        validationFindings: riskFlags,
+        dossierEvidence: {
+          status,
+          readinessLevel,
+          readinessScore,
+          planningRunId,
+          planningHorizon: params.planningHorizon || null,
+          sourceCoverage,
+          governanceState,
+          evidenceItems,
+          missingEvidence,
+          riskFlags,
           positiveFollowUps,
           sourceActions: {
             notCalled: sourceActions.notCalled,

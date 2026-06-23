@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 69 static rules', () => {
+    it('loads all 70 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(69);
+      expect(rules.length).toBe(70);
     });
 
-    it('compiles all 69 static rules without error', () => {
+    it('compiles all 70 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(69);
+      expect(rules.length).toBe(70);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1078,6 +1078,49 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Readiness Level: risk');
       expect(formatted).toContain('Case: sgu-201');
       expect(formatted).toContain('Side-Effect Guard: settlement.prepareBilling');
+    });
+
+    it('dashboard-api.liquidityPlanningGovernanceStatus is dossier-safe and formats liquidity facts', () => {
+      const rule = getRule('dashboard-api.liquidityPlanningGovernanceStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Liquiditaetsplanung run=liq-204 quellenregister=finance-register dictionary=dict-v1 owner=treasury cashPool=cash-pool-v1 pruefen'
+        )
+      ).toEqual({
+        planningRunId: 'liq-204',
+        sourceRegister: 'finance-register',
+        dictionaryVersion: 'dict-v1',
+        ownerRaci: 'treasury',
+        cashPoolSettlementRef: 'cash-pool-v1',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'liquidity_planning_governance_module',
+        status: 'blocked_by_unvalidated_cash_pool_logic',
+        readinessLevel: 'blocked',
+        planningRunId: 'liq-204',
+        sourceCoverage: { sourceRegister: 'finance-register' },
+        governanceState: { ownerRaci: 'treasury' },
+        missingEvidence: [{ missingDataPoint: 'vat_logic_reference' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add evidence boundary for Umsatzsteuer assumptions' },
+        ],
+        sourceActions: {
+          notCalled: ['cashflow.calculate', 'sap.connector.call'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: blocked_by_unvalidated_cash_pool_logic'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: liquidity_planning_governance_module');
+      expect(formatted).toContain('Status: blocked_by_unvalidated_cash_pool_logic');
+      expect(formatted).toContain('Readiness Level: blocked');
+      expect(formatted).toContain('Planning Run: liq-204');
+      expect(formatted).toContain('Side-Effect Guard: cashflow.calculate');
     });
 
     it('dashboard-api.redispatchProjectControllingKpiCockpitStatus is dossier-safe and formats controlling facts', () => {

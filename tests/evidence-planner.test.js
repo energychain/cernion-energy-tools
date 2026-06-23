@@ -259,6 +259,33 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans liquidity governance as source and correction evidence without execution', () => {
+    const result = planEvidence(
+      { routeLabel: 'liquidity_planning_governance_module' },
+      {
+        sourceRegister: 'finance-register',
+        dictionaryVersion: 'dict-v1',
+        sapAccountSources: ['sap-1000'],
+        validationRules: ['rule-1'],
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('liquidity_planning_governance_module');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['source_register', 'dictionary_version', 'sap_account_mapping'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'vat_logic_reference',
+        'cash_pool_logic',
+        'scenario_assumption',
+        'correction_owner',
+        'approval_status',
+      ])
+    );
+  });
+
   it('plans controllability submission cockpit as explicit submission and handover evidence', () => {
     const result = planEvidence(
       { routeLabel: 'controllability_submission_cockpit' },

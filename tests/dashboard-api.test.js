@@ -2075,6 +2075,77 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- liquidityPlanningGovernanceStatus ----------------------------------
+
+  describe('liquidityPlanningGovernanceStatus', () => {
+    it('reports missing liquidity governance evidence without executing finance actions', async () => {
+      const result = await broker.call('dashboard-api.liquidityPlanningGovernanceStatus', {
+        planningRunId: 'liq-204',
+        planningHorizon: '2026-Q3',
+        sourceRegister: 'finance-source-register',
+        dictionaryVersion: 'dict-v1',
+        sapAccountSources: ['sap-1000'],
+        validationRules: ['rule:liquidity-bounds'],
+        ownerRaci: 'treasury-owner',
+      });
+
+      expect(result.status).toBe('blocked_by_unvalidated_cash_pool_logic');
+      expect(result.readinessLevel).toBe('blocked');
+      expect(result.evidenceItems.map((item) => item.id)).toEqual(
+        expect.arrayContaining(['source_register', 'dictionary_version', 'sap_account_sources'])
+      );
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'controlling_sources',
+          'loan_tms_sources',
+          'vat_logic_reference',
+          'cash_pool_settlement_reference',
+          'scenario_assumptions',
+          'approval_evidence',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('liquidity_planning_governance_module');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'cashflow.calculate',
+          'sap.connector.call',
+          'payment.execute',
+          'approval.release',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_treasury_review when governance evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.liquidityPlanningGovernanceStatus', {
+        planningRunId: 'liq-204',
+        planningHorizon: '2026-Q3',
+        sourceRegister: 'finance-source-register',
+        sapAccountSources: ['sap-1000'],
+        controllingSourceIds: ['controlling-plan'],
+        loanTmsSourceIds: ['tms-loan-book'],
+        vatLogicRef: 'vat-logic-v1',
+        cashPoolSettlementRef: 'cash-pool-rule-v1',
+        dictionaryVersion: 'dict-v1',
+        scenarioAssumptions: ['base-case'],
+        validationRules: ['rule:liquidity-bounds'],
+        sourceHealth: 'ready',
+        ownerRaci: 'treasury-owner',
+        correctionWorkflow: 'vdmi-correction',
+        approvalStatus: 'reviewed',
+      });
+
+      expect(result.status).toBe('ready_for_treasury_review');
+      expect(result.readinessLevel).toBe('ready');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.sourceCoverage.sapAccountSources).toEqual(['sap-1000']);
+      expect(result.governanceState.approvalStatus).toBe('reviewed');
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided liquidity governance evidence: 11/11');
+    });
+  });
+
   // ── regulatoryChangeReadinessStatus ─────────────────────────────────────
 
   describe('regulatoryChangeReadinessStatus', () => {
