@@ -2165,6 +2165,67 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- fnavFastTrackContractGateStatus ------------------------------------
+
+  describe('fnavFastTrackContractGateStatus', () => {
+    it('reports control evidence blockers without executing contract or control actions', async () => {
+      const result = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+        gateId: 'fnav-ft-221',
+        gridOperatorId: 'SNB935578300972',
+        requestType: 'storage',
+        assetOrLoadType: 'battery',
+        requestedCapacityKW: 2500,
+        netzsignalPriorityPolicy: 'approved',
+        scheduleObligation: 'ready',
+        contractStatus: 'draft',
+        legalStatus: 'approved',
+        ownerContact: 'netzplanung',
+        commercialImpact: 'ready',
+      });
+
+      expect(result.status).toBe('needs_control_evidence');
+      expect(result.safety).toBe('read_only');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['metering_requirement', 'control_evidence_ref'])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('fnav_fast_track_contract_gate');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'contract.approve',
+          'hitl.create',
+          'device-control.execute',
+          'settlement.prepareBilling',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_fast_track when all required evidence is present', async () => {
+      const result = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+        gateId: 'fnav-ft-ready',
+        gridOperatorId: 'SNB935578300972',
+        requestType: 'data_center',
+        assetOrLoadType: 'large_load',
+        requestedCapacityKW: 10000,
+        netzsignalPriorityPolicy: 'approved',
+        scheduleObligation: 'confirmed',
+        meteringRequirements: 'confirmed',
+        controlEvidenceRef: 'ctrl-proof-1',
+        contractStatus: 'signed',
+        legalStatus: 'approved',
+        ownerContact: 'vertrieb',
+        commercialImpact: 'ready',
+        marketingBoundaries: 'ready',
+      });
+
+      expect(result.status).toBe('ready_for_fast_track');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.evidenceStatus.provided).toBe(result.evidenceStatus.required);
+      expect(result.dossierEvidence.dossierFacts).toContain('Status: ready_for_fast_track');
+    });
+  });
+
   // -- specialGridUsageImpactMapStatus ------------------------------------
 
   describe('specialGridUsageImpactMapStatus', () => {

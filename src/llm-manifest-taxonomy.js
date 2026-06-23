@@ -59,6 +59,7 @@ const CAPABILITY_DOMAIN_MAP = {
   'finance-agent': 'governance',
   // Domain 1: Netzanschluss & BESS — connection-request lifecycle, all operational
   netzanschluss: 'grid-ops',
+  grid_connection: 'grid-ops',
   // fNAV commercial hedging / flexibility cost grid — operational flex contracts
   flexibilitaet: 'grid-ops',
   // NKP/reporting maturity governance for grid operators

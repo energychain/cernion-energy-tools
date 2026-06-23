@@ -310,6 +310,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasFnavFastTrackContractGateSpecificSignal =
+    /(fnav_fast_track_contract_gate|fnav fast track|fast.?track vertragsgate|fnav vertragsgate|fnav contract gate)/i.test(haystack) &&
+    /(netzsignal|fahrplanpflicht|messdaten|steuerdaten|steuernachweis|vermarktungsgrenze|abbruchkriterium|eskalationslogik|vertragsstatus|rechtsstatus|rechenzentrum|grosslast|großlast|speicheranschluss)/i.test(haystack) &&
+    !/(device.?control|steuerbefehl|execute|ausfuehren|ausführen|billing|settlement|abrechnung|tarif.?mutation|smgw|cls|mako.?dispatch|external connector|hitl create)/i.test(haystack);
+
+  if (hasFnavFastTrackContractGateSpecificSignal) {
+    const fnavFastTrackCapability = findCapabilityByName('fnav_fast_track_contract_gate');
+    if (fnavFastTrackCapability) {
+      return { capability: fnavFastTrackCapability, score: 140, usedFallback: false };
+    }
+  }
+
   const hasTechCommercialOfferCockpitSpecificSignal =
     /(angebots cockpit|technisch kaufmaennisch|technisch kaufmännisch|indikatives angebot|anschlussangebot|pooling option|vertragsstatus|zielnetzbezug|commercial offer|offer cockpit)/i.test(haystack) &&
     /(connectionRequestId|gridOperatorId|znpAlignment|gridNode|technicalRestriction|requestedCapacityKW|technicalStatus|capacityUtilization|fnavContractLogic|commercialAssumptions|legalAgreementStatus|legalBoundaries|gaps|follow.?up|readiness|request id|netzbetreiber id|zielnetzbezug|grid node|technische restriktion|anfrageleistung|technischer status|auslastung|vertragslage|annahmen|rechtsstatus|boundaries)/i.test(haystack) &&

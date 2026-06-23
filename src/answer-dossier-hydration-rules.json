@@ -568,6 +568,83 @@
     "sourceIssue": 180
   },
   {
+    "id": "dashboard-api.fnavFastTrackContractGateStatus",
+    "action": "dashboard-api.fnavFastTrackContractGateStatus",
+    "label": "fNAV Fast-Track Contract Gate",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "gateId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:gate|gateId)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "gridOperatorId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:gridOperatorId|netzbetreiber)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "requestType": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:requestType|anfrage)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "netzsignalPriorityPolicy": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:netzsignal|priority|vorrang)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "controlEvidenceRef": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:controlEvidenceRef|steuernachweis)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "contractStatus": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:contractStatus|vertrag)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "legalStatus": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:legalStatus|recht)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "ownerContact": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:owner|ownerContact)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 100 },
+        { "paths": ["decisionReadiness", "dossierEvidence.decisionReadiness", "status"], "label": "Decision Readiness", "maxLen": 100 },
+        { "paths": ["gateId", "dossierEvidence.gateId"], "label": "Gate", "maxLen": 120 },
+        { "paths": ["requestSummary.requestType", "dossierEvidence.requestSummary.requestType"], "label": "Request Type", "maxLen": 100 },
+        { "paths": ["technicalGate.netzsignalPriorityPolicy", "dossierEvidence.technicalGate.netzsignalPriorityPolicy"], "label": "Netzsignal Priority", "maxLen": 120 },
+        { "paths": ["technicalGate.controlEvidenceRef", "dossierEvidence.technicalGate.controlEvidenceRef"], "label": "Control Evidence", "maxLen": 120 },
+        { "paths": ["contractGate.contractStatus", "dossierEvidence.contractGate.contractStatus"], "label": "Contract Status", "maxLen": 100 },
+        { "paths": ["contractGate.legalStatus", "dossierEvidence.contractGate.legalStatus"], "label": "Legal Status", "maxLen": 100 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 221
+  },
+  {
     "id": "dashboard-api.receiptGroundedPresentationContract",
     "action": "dashboard-api.receiptGroundedPresentationContract",
     "label": "Receipt Grounded Presentation Contract",

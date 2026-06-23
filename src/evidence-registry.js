@@ -3462,6 +3462,95 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  fnav_fast_track_contract_gate: {
+    sources: [
+      {
+        id: 'fnav_profile',
+        label: 'fNAV request profile',
+        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'grid-connection.fnavValidate'],
+        contextKeys: ['requestType', 'assetOrLoadType', 'requestedCapacityKW', 'fnavProfile'],
+        optional: false,
+      },
+      {
+        id: 'grid_operator_identity',
+        label: 'Grid operator identity',
+        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'grid-operations.vnbLookup'],
+        contextKeys: ['gridOperatorId', 'bdewCode', 'gridOperatorName'],
+        optional: false,
+      },
+      {
+        id: 'netzsignal_priority_policy',
+        label: 'Network-signal priority policy',
+        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'grid-connection.fnavValidate'],
+        contextKeys: ['netzsignalPriorityPolicy', 'networkSignalPriority'],
+        optional: false,
+      },
+      {
+        id: 'schedule_obligation',
+        label: 'Fahrplanpflicht',
+        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'grid-operations.netzfahrplanGenerate'],
+        contextKeys: ['scheduleObligation'],
+        optional: false,
+      },
+      {
+        id: 'metering_requirement',
+        label: 'Metering requirement',
+        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'edm-messkonzept.evaluate'],
+        contextKeys: ['meteringRequirements'],
+        optional: false,
+      },
+      {
+        id: 'control_evidence_ref',
+        label: 'Control evidence reference',
+        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['controlEvidenceRef'],
+        optional: false,
+      },
+      {
+        id: 'contract_status',
+        label: 'Contract status',
+        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'vdmi.dossier'],
+        contextKeys: ['contractStatus'],
+        optional: false,
+      },
+      {
+        id: 'legal_status',
+        label: 'Legal status',
+        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'vdmi.dossier'],
+        contextKeys: ['legalStatus'],
+        optional: false,
+      },
+      {
+        id: 'owner_contact',
+        label: 'Owner contact',
+        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'vdmi.dossier'],
+        contextKeys: ['ownerContact', 'escalationOwner'],
+        optional: false,
+      },
+      {
+        id: 'commercial_impact',
+        label: 'Commercial impact',
+        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'finance-agent.fnavEconomics'],
+        contextKeys: ['commercialImpact'],
+        optional: true,
+      },
+      {
+        id: 'marketing_boundary',
+        label: 'Marketing boundary',
+        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'fnav-commercial-hedging.createScenario'],
+        contextKeys: ['marketingBoundaries'],
+        optional: true,
+      },
+      {
+        id: 'break_criteria',
+        label: 'Break criteria',
+        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'vdmi-portfolio-gatekeeping.gate'],
+        contextKeys: ['breakCriteria'],
+        optional: true,
+      },
+    ],
+  },
+
   'forecast-flex': {
     sources: [
       {

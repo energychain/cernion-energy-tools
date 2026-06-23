@@ -98,6 +98,7 @@ module.exports = {
       stadtwerkMauerSandboxRuntimeStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerExternalInterfaceStubsStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerE2eProcessDemoStatus: 5 * 60 * 1000, // 5 min
+      fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -4916,6 +4917,103 @@ module.exports = {
           timestamp: new Date().toISOString(),
           _errors: errors,
         };
+      },
+    },
+
+    // -- fnavFastTrackContractGateStatus -----------------------------------
+    /**
+     * GET /api/dashboard/fnav-fast-track-contract-gate
+     *
+     * Read-only dossier-safe decision-readiness projection for fNAV fast-track
+     * contract gates. It does not create contracts, approvals, HITL items, or
+     * operational control actions.
+     */
+    fnavFastTrackContractGateStatus: {
+      rest: 'GET /fnav-fast-track-contract-gate',
+      params: {
+        gateId: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        requestType: { type: 'string', optional: true, min: 1 },
+        assetOrLoadType: { type: 'string', optional: true, min: 1 },
+        requestedCapacityKW: { type: 'number', optional: true, convert: true },
+        firmCapacityKW: { type: 'number', optional: true, convert: true },
+        flexibleCapacityKW: { type: 'number', optional: true, convert: true },
+        curtailmentWindow: { type: 'string', optional: true, min: 1 },
+        voltageLevel: { type: 'string', optional: true, min: 1 },
+        netzsignalPriorityPolicy: { type: 'string', optional: true, min: 1 },
+        scheduleObligation: { type: 'string', optional: true, min: 1 },
+        meteringRequirements: { type: 'string', optional: true, min: 1 },
+        controlEvidenceRef: { type: 'string', optional: true, min: 1 },
+        marketingBoundaries: { type: 'string', optional: true, min: 1 },
+        commercialImpact: { type: 'string', optional: true, min: 1 },
+        contractStatus: { type: 'string', optional: true, min: 1 },
+        legalStatus: { type: 'string', optional: true, min: 1 },
+        breakCriteria: { type: 'string', optional: true, min: 1 },
+        escalationOwner: { type: 'string', optional: true, min: 1 },
+        ownerContact: { type: 'string', optional: true, min: 1 },
+        vdmiProcessId: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'fNAV fast-track contract gate -- read-only decision readiness',
+        description:
+          'Projects fNAV fast-track request, network-signal, metering/control, commercial, contract, legal and owner evidence into a dossier-safe gate status. ' +
+          'The endpoint is read-only and never creates contracts, HITL items, MaKo, billing, settlement, tariff, control, SMGW/CLS or external actions.',
+        parameters: [
+          { name: 'gateId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'requestType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetOrLoadType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'netzsignalPriorityPolicy', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'controlEvidenceRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'contractStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'legalStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerContact', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only fNAV fast-track contract-gate status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    gateId: { type: 'string' },
+                    decisionReadiness: { type: 'string' },
+                    status: { type: 'string' },
+                    requestSummary: { type: 'object' },
+                    technicalGate: { type: 'object' },
+                    commercialGate: { type: 'object' },
+                    contractGate: { type: 'object' },
+                    evidenceStatus: { type: 'object' },
+                    governanceBlockers: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `fnav-fast-track-contract-gate:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.fnavFastTrackContractGateStatus,
+          async () => ({
+            ...this.buildFnavFastTrackContractGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
       },
     },
 
@@ -17888,6 +17986,262 @@ module.exports = {
             `Tenant: ${tenantId}`,
             'Traces: 0',
           ],
+        },
+      };
+    },
+
+    buildFnavFastTrackContractGateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const normalizeStatus = (value) => {
+        const text = String(value || '').trim().toLowerCase();
+        if (!text) return 'missing';
+        if (/^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|signed|vorhanden|ja|yes)$/.test(text)) return 'ready';
+        if (/^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown|draft)$/.test(text)) return 'partial';
+        if (/^(missing|fehlt|absent|not_available|not-available|none)$/.test(text)) return 'missing';
+        if (/^(blocked|blockiert|red|rot|failed|rejected|not_ready|not-ready|stop|verboten)$/.test(text)) return 'blocked';
+        if (/legal|recht/.test(text) && /pending|open|unklar|not/.test(text)) return 'partial';
+        if (/stop|abort|abbruch|reject|ablehn|block/.test(text)) return 'blocked';
+        return 'ready';
+      };
+      const isReady = (status) => status === 'ready';
+      const isBlocked = (status) => status === 'blocked';
+      const sourceRefs = toList(params.sourceRef);
+      const gateId = params.gateId || `fnav-ft:${Buffer.from(`${params.gridOperatorId || ''}:${params.requestType || ''}:${params.assetOrLoadType || ''}:${params.requestedCapacityKW || ''}`).toString('base64url').slice(0, 28)}`;
+      const evidenceSpecs = [
+        {
+          code: 'fnav_profile',
+          label: 'fNAV Profile',
+          value: params.requestType || params.assetOrLoadType || params.requestedCapacityKW,
+          enablesDossierAddition: 'add fNAV request profile for storage, data-center or large-load fast-track review',
+          statusWhenMissing: 'needs_contract_evidence',
+        },
+        {
+          code: 'grid_operator_identity',
+          label: 'Grid Operator',
+          value: params.gridOperatorId,
+          enablesDossierAddition: 'bind the fast-track gate to the responsible grid operator',
+          statusWhenMissing: 'requires_governance_decision',
+        },
+        {
+          code: 'netzsignal_priority_policy',
+          label: 'Network-Signal Priority',
+          value: params.netzsignalPriorityPolicy,
+          enablesDossierAddition: 'add the network-signal priority boundary for the fast-track decision',
+          statusWhenMissing: 'requires_governance_decision',
+        },
+        {
+          code: 'schedule_obligation',
+          label: 'Fahrplanpflicht',
+          value: params.scheduleObligation,
+          enablesDossierAddition: 'add schedule obligation evidence for operational fNAV boundary',
+          statusWhenMissing: 'needs_contract_evidence',
+        },
+        {
+          code: 'metering_requirement',
+          label: 'Metering Requirement',
+          value: params.meteringRequirements,
+          enablesDossierAddition: 'add metering requirement evidence for the contract gate',
+          statusWhenMissing: 'needs_control_evidence',
+        },
+        {
+          code: 'control_evidence_ref',
+          label: 'Control Evidence',
+          value: params.controlEvidenceRef,
+          enablesDossierAddition: 'add metering/control proof before fast-track release review',
+          statusWhenMissing: 'needs_control_evidence',
+        },
+        {
+          code: 'contract_status',
+          label: 'Contract Status',
+          value: params.contractStatus,
+          enablesDossierAddition: 'add draft or signed contract evidence for the fast-track gate',
+          statusWhenMissing: 'needs_contract_evidence',
+        },
+        {
+          code: 'legal_status',
+          label: 'Legal Status',
+          value: params.legalStatus,
+          enablesDossierAddition: 'state whether legal release is approved or still pending',
+          statusWhenMissing: 'blocked_by_legal_status',
+        },
+        {
+          code: 'owner_contact',
+          label: 'Owner Contact',
+          value: params.ownerContact || params.escalationOwner,
+          enablesDossierAddition: 'add accountable owner and escalation path',
+          statusWhenMissing: 'requires_governance_decision',
+        },
+      ];
+      const signals = evidenceSpecs.map((spec) => {
+        const status = normalizeStatus(spec.value);
+        return {
+          code: spec.code,
+          label: spec.label,
+          status,
+          rawStatus: spec.value || null,
+          enablesDossierAddition: spec.enablesDossierAddition,
+          statusWhenMissing: spec.statusWhenMissing,
+        };
+      });
+      const evidenceGaps = signals
+        .filter((signal) => !isReady(signal.status))
+        .map((signal) => ({
+          missingDataPoint: signal.code,
+          status: signal.status,
+          value: signal.rawStatus,
+          enablesDossierAddition: signal.enablesDossierAddition,
+        }));
+      if (params.breakCriteria && isBlocked(normalizeStatus(params.breakCriteria))) {
+        evidenceGaps.push({
+          missingDataPoint: 'break_criteria',
+          status: 'blocked',
+          value: params.breakCriteria,
+          enablesDossierAddition: 'document fast-track stop or abort criteria before continuing',
+        });
+      }
+      const commercialStatus = normalizeStatus(params.commercialImpact || params.marketingBoundaries);
+      if (!isReady(commercialStatus)) {
+        evidenceGaps.push({
+          missingDataPoint: 'commercial_impact',
+          status: commercialStatus,
+          value: params.commercialImpact || params.marketingBoundaries || null,
+          enablesDossierAddition: 'add commercial impact and marketing-boundary evidence',
+        });
+      }
+      let decisionReadiness = 'ready_for_fast_track';
+      if (evidenceGaps.some((gap) => gap.missingDataPoint === 'break_criteria' || gap.status === 'blocked')) {
+        decisionReadiness = 'stop_fast_track';
+      } else if (evidenceGaps.some((gap) => gap.missingDataPoint === 'legal_status')) {
+        decisionReadiness = 'blocked_by_legal_status';
+      } else if (evidenceGaps.some((gap) => gap.missingDataPoint === 'control_evidence_ref' || gap.missingDataPoint === 'metering_requirement')) {
+        decisionReadiness = 'needs_control_evidence';
+      } else if (evidenceGaps.some((gap) => gap.missingDataPoint === 'contract_status' || gap.missingDataPoint === 'fnav_profile' || gap.missingDataPoint === 'schedule_obligation')) {
+        decisionReadiness = 'needs_contract_evidence';
+      } else if (evidenceGaps.some((gap) => gap.missingDataPoint === 'commercial_impact')) {
+        decisionReadiness = 'needs_commercial_review';
+      } else if (evidenceGaps.length > 0) {
+        decisionReadiness = 'requires_governance_decision';
+      }
+      const sourceActions = {
+        inspected: ['dashboard-api.fnavFastTrackContractGateStatus'],
+        referenced: [
+          'grid-connection.fnavValidate',
+          'grid-operations.netzfahrplanGenerate',
+          'finance-agent.fnavEconomics',
+          'fnav-commercial-hedging.createScenario',
+          'vdmi.dossier',
+          'vdmi-portfolio-gatekeeping.gate',
+          'presentation.render',
+        ],
+        notCalled: [
+          'contract.approve',
+          'contract.release',
+          'grid-connection.mutate',
+          'hitl.create',
+          'device-control.execute',
+          'smgw.connector.call',
+          'cls.control.execute',
+          'tariff.mutate',
+          'billing.release',
+          'settlement.prepareBilling',
+          'mako.dispatch',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const positiveFollowUps = evidenceGaps.map((gap) => ({
+        missingDataPoint: gap.missingDataPoint,
+        status: gap.status,
+        value: gap.value,
+        enablesDossierAddition: gap.enablesDossierAddition,
+        category: 'fnav_fast_track_contract_gate',
+      }));
+      const governanceBlockers = evidenceGaps
+        .filter((gap) => ['grid_operator_identity', 'netzsignal_priority_policy', 'owner_contact', 'legal_status', 'break_criteria'].includes(gap.missingDataPoint) || isBlocked(gap.status))
+        .map((gap) => ({
+          code: gap.missingDataPoint,
+          owner: params.ownerContact || params.escalationOwner || null,
+          message: gap.enablesDossierAddition,
+        }));
+      const requestSummary = {
+        gateId,
+        gridOperatorId: params.gridOperatorId || null,
+        requestType: params.requestType || null,
+        assetOrLoadType: params.assetOrLoadType || null,
+        requestedCapacityKW: params.requestedCapacityKW ?? null,
+        firmCapacityKW: params.firmCapacityKW ?? null,
+        flexibleCapacityKW: params.flexibleCapacityKW ?? null,
+        voltageLevel: params.voltageLevel || null,
+        sourceRefs,
+      };
+      const dossierFacts = [
+        `Status: ${decisionReadiness}`,
+        `Gate: ${gateId}`,
+        `Request Type: ${params.requestType || 'unknown'}`,
+        `Open gaps: ${evidenceGaps.length}`,
+      ];
+      return {
+        capabilityKey: 'fnav_fast_track_contract_gate',
+        safety: 'read_only',
+        gateId,
+        decisionReadiness,
+        status: decisionReadiness,
+        requestSummary,
+        technicalGate: {
+          netzsignalPriorityPolicy: params.netzsignalPriorityPolicy || null,
+          scheduleObligation: params.scheduleObligation || null,
+          meteringRequirements: params.meteringRequirements || null,
+          controlEvidenceRef: params.controlEvidenceRef || null,
+          curtailmentWindow: params.curtailmentWindow || null,
+        },
+        commercialGate: {
+          marketingBoundaries: params.marketingBoundaries || null,
+          commercialImpact: params.commercialImpact || null,
+        },
+        contractGate: {
+          contractStatus: params.contractStatus || null,
+          legalStatus: params.legalStatus || null,
+          breakCriteria: params.breakCriteria || null,
+        },
+        evidenceStatus: {
+          provided: signals.filter((signal) => isReady(signal.status)).length,
+          required: signals.length,
+          commercialStatus,
+        },
+        governanceBlockers,
+        escalationPath: {
+          escalationOwner: params.escalationOwner || null,
+          ownerContact: params.ownerContact || null,
+          vdmiProcessId: params.vdmiProcessId || null,
+        },
+        missingEvidence: evidenceGaps,
+        positiveFollowUps,
+        sourceActions,
+        sourceDatapoints: signals,
+        dossierEvidence: {
+          capabilityKey: 'fnav_fast_track_contract_gate',
+          gateId,
+          decisionReadiness,
+          status: decisionReadiness,
+          requestSummary,
+          technicalGate: {
+            netzsignalPriorityPolicy: params.netzsignalPriorityPolicy || null,
+            controlEvidenceRef: params.controlEvidenceRef || null,
+          },
+          contractGate: {
+            contractStatus: params.contractStatus || null,
+            legalStatus: params.legalStatus || null,
+          },
+          missingEvidence: evidenceGaps,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
         },
       };
     },

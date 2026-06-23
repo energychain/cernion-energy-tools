@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 73 static rules', () => {
+    it('loads all 74 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(73);
+      expect(rules.length).toBe(74);
     });
 
-    it('compiles all 73 static rules without error', () => {
+    it('compiles all 74 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(73);
+      expect(rules.length).toBe(74);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1146,6 +1146,55 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Readiness Level: needs_evidence');
       expect(formatted).toContain('Tenant Scope: public');
       expect(formatted).toContain('Side-Effect Guard: backup.restore');
+    });
+
+    it('dashboard-api.fnavFastTrackContractGateStatus is dossier-safe and formats gate facts', () => {
+      const rule = getRule('dashboard-api.fnavFastTrackContractGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte fNAV Fast Track gate=gate-221 netzbetreiber=SNB935578300972 anfrage=storage netzsignal=approved steuernachweis=ctrl-1 vertrag=signed recht=approved owner=netzplanung laden'
+        )
+      ).toEqual({
+        gateId: 'gate-221',
+        gridOperatorId: 'SNB935578300972',
+        requestType: 'storage',
+        netzsignalPriorityPolicy: 'approved',
+        controlEvidenceRef: 'ctrl-1',
+        contractStatus: 'signed',
+        legalStatus: 'approved',
+        ownerContact: 'netzplanung',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'fnav_fast_track_contract_gate',
+        gateId: 'gate-221',
+        decisionReadiness: 'needs_control_evidence',
+        requestSummary: { requestType: 'storage' },
+        technicalGate: {
+          netzsignalPriorityPolicy: 'approved',
+          controlEvidenceRef: null,
+        },
+        contractGate: {
+          contractStatus: 'draft',
+          legalStatus: 'approved',
+        },
+        missingEvidence: [{ missingDataPoint: 'control_evidence_ref' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add metering/control proof before fast-track release review' },
+        ],
+        sourceActions: {
+          notCalled: ['contract.approve'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: fnav_fast_track_contract_gate');
+      expect(formatted).toContain('Decision Readiness: needs_control_evidence');
+      expect(formatted).toContain('Gate: gate-221');
+      expect(formatted).toContain('Netzsignal Priority: approved');
+      expect(formatted).toContain('Side-Effect Guard: contract.approve');
     });
 
     it('dashboard-api.specialGridUsageImpactMapStatus is dossier-safe and formats impact-map facts', () => {

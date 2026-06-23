@@ -1428,6 +1428,8 @@ module.exports = {
             'dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus',
           'GET /dashboard/stadtwerk-mauer-e2e-process-demo':
             'dashboard-api.stadtwerkMauerE2eProcessDemoStatus',
+          'GET /dashboard/fnav-fast-track-contract-gate':
+            'dashboard-api.fnavFastTrackContractGateStatus',
           'POST /stadtwerk-mauer-sandbox-runtime/events':
             'stadtwerk-mauer-sandbox-runtime.ingestEvent',
           'POST /stadtwerk-mauer-sandbox-runtime/reset':

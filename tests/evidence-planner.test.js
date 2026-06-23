@@ -1349,6 +1349,24 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     expect(ownerSrc?.optional).toBe(true);
   });
 
+  it('fnav_fast_track_contract_gate: requires contract-gate evidence sources', () => {
+    const plan = { routeKey: 'fnav_fast_track_contract_gate' };
+    const result = planEvidence(plan, {});
+
+    const requiredIds = result.requiredSources.filter((s) => !s.optional).map((s) => s.id);
+    expect(requiredIds).toEqual(
+      expect.arrayContaining([
+        'fnav_profile',
+        'grid_operator_identity',
+        'netzsignal_priority_policy',
+        'control_evidence_ref',
+        'contract_status',
+        'legal_status',
+        'owner_contact',
+      ])
+    );
+  });
+
   it('forecast-flex: requires forecast_location', () => {
     const plan = { routeKey: 'forecast-flex' };
     const result = planEvidence(plan, {});
