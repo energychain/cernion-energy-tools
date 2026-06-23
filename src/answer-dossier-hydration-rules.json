@@ -4311,6 +4311,199 @@
     "sourceIssue": 141
   },
   {
+    "id": "special_grid_usage_impact_map",
+    "description": "Read-only special-grid-usage impact map",
+    "routeLabel": "special_grid_usage_impact_map",
+    "capability": "special_grid_usage_impact_map",
+    "action": "dashboard-api.specialGridUsageImpactMapStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "legal.interpret",
+        "legal.approve",
+        "eog-calculator.recalculate",
+        "par19.calculate",
+        "billing.release",
+        "settlement.prepareBilling",
+        "settlement.exportA96",
+        "tariff.mutate",
+        "customer-service.send",
+        "hitl.create",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "besondere netznutzung",
+      "sondernetznutzung",
+      "paragraf 19 stromnev",
+      "paragraph 19 stromnev",
+      "par. 19 stromnev",
+      "stromnev 19",
+      "selbstverbrauch",
+      "rueckverguetung",
+      "rückvergütung",
+      "netzentgeltreduzierung",
+      "frist formular mengenbasis",
+      "eog wirkung",
+      "abrechnungswirkung",
+      "special_grid_usage_impact_map"
+    ],
+    "paramTemplate": {
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:caseId|case|fall)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "caseType": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:caseType|falltyp|type)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "deadlineStatus": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:deadlineStatus|deadline|frist)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "quantityBasis": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:quantityBasis|mengenbasis|quantity)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "calculationLogicRef": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:calculationLogicRef|calculation|berechnung)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "ownerRole": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:ownerRole|owner|rolle)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        {
+          "paths": [
+            "capabilityKey",
+            "dossierEvidence.capabilityKey"
+          ],
+          "label": "Capability",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "status",
+            "dossierEvidence.status"
+          ],
+          "label": "Status",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "readinessLevel",
+            "dossierEvidence.readinessLevel"
+          ],
+          "label": "Readiness Level",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "caseSummary.caseId",
+            "dossierEvidence.caseSummary.caseId"
+          ],
+          "label": "Case",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "caseSummary.caseType",
+            "dossierEvidence.caseSummary.caseType"
+          ],
+          "label": "Case Type",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "deadlineRisk",
+            "dossierEvidence.deadlineRisk"
+          ],
+          "label": "Deadline Risk",
+          "maxLen": 40
+        },
+        {
+          "paths": [
+            "ownerRole",
+            "dossierEvidence.caseSummary.ownerRole"
+          ],
+          "label": "Owner",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "missingEvidence.0.missingDataPoint",
+            "dossierEvidence.missingEvidence.0.missingDataPoint"
+          ],
+          "label": "First Gap",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "positiveFollowUps.0.enablesDossierAddition",
+            "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"
+          ],
+          "label": "Positive Follow-up",
+          "maxLen": 180
+        },
+        {
+          "paths": [
+            "sourceActions.notCalled.0",
+            "dossierEvidence.sourceActions.notCalled.0"
+          ],
+          "label": "Side-Effect Guard",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "dossierEvidence.dossierFacts.0"
+          ],
+          "label": "Fact",
+          "maxLen": 160
+        }
+      ],
+      "errorFallback": {
+        "paths": [
+          "message"
+        ],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 201
+  },
+  {
     "id": "dr_readiness_evidence_gate",
     "description": "Read-only disaster-recovery readiness evidence gate",
     "routeLabel": "dr_readiness_evidence_gate",

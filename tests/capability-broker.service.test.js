@@ -865,6 +865,23 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes special grid usage prompts to the read-only impact map', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe besondere Netznutzung Paragraf 19 StromNEV mit Frist, Formular, Mengenbasis, Rueckverguetung, EOG Wirkung und Abrechnungswirkung.',
+    });
+
+    expect(result.capability).toBe('special_grid_usage_impact_map');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'special_grid_usage_impact_map'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.specialGridUsageImpactMapStatus');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('tariff.mutate');
+    expect(actionNames).not.toContain('customer-service.send');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes investment two-track control prompts to the read-only evidence gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Investitionsprozess Zwei Spuren fuer Budgetabgabe, Investitionsabgabe, Abgabesicherheit, Investdaten Datenqualitaet, ISO 55001 Zielbild, Freigabelogik und Vorstandsformat.',

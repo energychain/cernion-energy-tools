@@ -1987,6 +1987,94 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- specialGridUsageImpactMapStatus ------------------------------------
+
+  describe('specialGridUsageImpactMapStatus', () => {
+    it('reports missing special-grid-usage evidence without executing downstream actions', async () => {
+      const result = await broker.call('dashboard-api.specialGridUsageImpactMapStatus', {
+        caseId: 'sgu-201',
+        caseType: 'stromnev19',
+        applicationStatus: 'available',
+        deadlineStatus: 'risk',
+        ownerRole: 'Regulierungsmanagement',
+      });
+
+      expect(result.status).toBe('deadline_risk');
+      expect(result.readinessLevel).toBe('risk');
+      expect(result.deadlineRisk).toBe(true);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'form_status',
+          'quantity_basis',
+          'calculation_logic_ref',
+          'billing_impact',
+          'eog_impact',
+          'tariff_impact',
+          'communication_status',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('special_grid_usage_impact_map');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'legal.interpret',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'customer-service.send',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_processing when the impact map evidence is complete', async () => {
+      const result = await broker.call('dashboard-api.specialGridUsageImpactMapStatus', {
+        caseId: 'sgu-201',
+        caseType: 'selfConsumption',
+        customerId: 'cust-201',
+        applicationStatus: 'complete',
+        formStatus: 'complete',
+        deadlineStatus: 'ok',
+        quantityBasis: 'metered-2025',
+        calculationLogicRef: 'par19-review-v1',
+        billingImpact: 'billing-ref-201',
+        eogImpact: 'eog-ref-201',
+        tariffImpact: 'tariff-ref-201',
+        communicationStatus: 'ready',
+        ownerRole: 'Regulierungsmanagement',
+        sourceDatapoints: ['dp-201'],
+      });
+
+      expect(result.status).toBe('ready_for_processing');
+      expect(result.readinessLevel).toBe('ready');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided impact-map evidence: 10/10');
+      expect(result.sourceDatapoints).toEqual(['dp-201']);
+    });
+
+    it('blocks readiness when regulatory uncertainty is explicit', async () => {
+      const result = await broker.call('dashboard-api.specialGridUsageImpactMapStatus', {
+        caseId: 'sgu-201',
+        applicationStatus: 'complete',
+        formStatus: 'complete',
+        deadlineStatus: 'ok',
+        quantityBasis: 'metered-2025',
+        calculationLogicRef: 'par19-review-v1',
+        billingImpact: 'billing-ref-201',
+        eogImpact: 'eog-ref-201',
+        tariffImpact: 'tariff-ref-201',
+        communicationStatus: 'ready',
+        ownerRole: 'Regulierungsmanagement',
+        regulatoryUncertainty: 'unclear',
+      });
+
+      expect(result.status).toBe('blocked_by_regulatory_uncertainty');
+      expect(result.readinessLevel).toBe('blocked');
+      expect(result.missingEvidence[0].missingDataPoint).toBe('regulatory_uncertainty');
+    });
+  });
+
   // ── regulatoryChangeReadinessStatus ─────────────────────────────────────
 
   describe('regulatoryChangeReadinessStatus', () => {

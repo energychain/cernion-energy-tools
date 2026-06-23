@@ -51,6 +51,7 @@ module.exports = {
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
       legalClarificationOperatingModelStatus: 5 * 60 * 1000, // 5 min
       drReadinessEvidenceStatus: 5 * 60 * 1000, // 5 min
+      specialGridUsageImpactMapStatus: 5 * 60 * 1000, // 5 min
       regulatoryChangeReadinessStatus: 5 * 60 * 1000, // 5 min
       investmentTwoTrackControlStatus: 5 * 60 * 1000, // 5 min
       sapBudgetPspGateStatus: 5 * 60 * 1000, // 5 min
@@ -1789,6 +1790,99 @@ module.exports = {
           this.settings.cacheTtlMs.drReadinessEvidenceStatus,
           async () => ({
             ...this.buildDrReadinessEvidenceStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- specialGridUsageImpactMapStatus ----------------------------------
+    /**
+     * GET /api/dashboard/special-grid-usage-impact-map?caseId=...
+     *
+     * Read-only dossier-safe impact map for Par. 19 StromNEV, self-consumption
+     * and special-grid-usage cases. It turns supplied evidence references into
+     * explicit process gaps and does not decide legal entitlement, calculate
+     * refunds, mutate tariffs, trigger billing/settlement or send communication.
+     */
+    specialGridUsageImpactMapStatus: {
+      rest: 'GET /special-grid-usage-impact-map',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        caseType: { type: 'string', optional: true, min: 1 },
+        customerId: { type: 'string', optional: true, min: 1 },
+        applicationStatus: { type: 'string', optional: true, min: 1 },
+        formStatus: { type: 'string', optional: true, min: 1 },
+        deadlineStatus: { type: 'string', optional: true, min: 1 },
+        quantityBasis: { type: 'string', optional: true, min: 1 },
+        calculationLogicRef: { type: 'string', optional: true, min: 1 },
+        billingImpact: { type: 'string', optional: true, min: 1 },
+        eogImpact: { type: 'string', optional: true, min: 1 },
+        tariffImpact: { type: 'string', optional: true, min: 1 },
+        communicationStatus: { type: 'string', optional: true, min: 1 },
+        ownerRole: { type: 'string', optional: true, min: 1 },
+        regulatoryUncertainty: { type: 'string', optional: true, min: 1 },
+        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Special-grid-usage impact map - read-only dossier-safe status',
+        description:
+          'Builds a deterministic impact map for Par. 19 StromNEV, self-consumption and special-grid-usage cases. ' +
+          'The endpoint is read-only and does not execute legal interpretation, calculation, billing, settlement, tariff, customer communication, HITL, external connector or Personal Agent actions.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'caseType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'customerId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'applicationStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'formStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'deadlineStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'quantityBasis', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'calculationLogicRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'billingImpact', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'eogImpact', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'tariffImpact', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'communicationStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryUncertainty', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceDatapoints', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only special-grid-usage impact map status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    readinessLevel: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    caseSummary: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `special-grid-usage-impact-map:${params.caseId || 'no-case'}:${params.caseType || 'no-type'}:${params.applicationStatus || 'no-application'}:${params.deadlineStatus || 'no-deadline'}:${params.quantityBasis || 'no-quantity'}:${params.calculationLogicRef || 'no-calculation'}:${params.billingImpact || 'no-billing'}:${params.regulatoryUncertainty || 'no-regulatory-uncertainty'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.specialGridUsageImpactMapStatus,
+          async () => ({
+            ...this.buildSpecialGridUsageImpactMapStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -7189,6 +7283,272 @@ module.exports = {
           riskFlags,
           owner: params.owner || null,
           nextAction: positiveFollowUps[0]?.enablesDossierAddition || 'keep DR evidence current',
+          positiveFollowUps,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildSpecialGridUsageImpactMapStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const normalizeStatus = (value) => {
+        if (value === true) return 'ready';
+        if (value === false || value == null || value === '') return 'missing';
+        const normalized = String(value).trim().toLowerCase();
+        if (['ready', 'complete', 'completed', 'available', 'provided', 'confirmed', 'ok', 'valid', 'mapped', 'reviewed', 'approved', 'sent'].includes(normalized)) return 'ready';
+        if (['risk', 'risky', 'overdue', 'late', 'expired', 'critical', 'deadline_risk'].includes(normalized)) return 'risk';
+        if (['blocked', 'unclear', 'pending_legal', 'regulatory_uncertainty', 'legal_uncertainty', 'pending'].includes(normalized)) return 'blocked';
+        if (['missing', 'open', 'needed', 'required', 'unknown', 'none', 'no'].includes(normalized)) return 'missing';
+        return 'ready';
+      };
+      const sourceDatapoints = toList(params.sourceDatapoints);
+      const caseType = params.caseType || 'specialGridUsage';
+      const caseId = params.caseId || `special-grid-usage:${Buffer.from(`${caseType}:${params.customerId || ''}:${params.ownerRole || ''}`).toString('base64url').slice(0, 24)}`;
+      const evidenceSpecs = [
+        {
+          id: 'application_status',
+          label: 'Application intake/proof',
+          value: params.applicationStatus,
+          sourceClass: 'application_evidence',
+          enablesDossierAddition: 'add application intake/proof status',
+          statusWhenMissing: 'needs_application_evidence',
+        },
+        {
+          id: 'form_status',
+          label: 'Required-form completeness',
+          value: params.formStatus,
+          sourceClass: 'form_evidence',
+          enablesDossierAddition: 'add required-form completeness',
+          statusWhenMissing: 'needs_form_evidence',
+        },
+        {
+          id: 'deadline_status',
+          label: 'Deadline status',
+          value: params.deadlineStatus,
+          sourceClass: 'deadline_evidence',
+          enablesDossierAddition: 'add deadline and filing-window evidence',
+          statusWhenMissing: 'needs_deadline_evidence',
+        },
+        {
+          id: 'quantity_basis',
+          label: 'Quantity basis',
+          value: params.quantityBasis,
+          sourceClass: 'quantity_evidence',
+          enablesDossierAddition: 'add source-backed quantity evidence',
+          statusWhenMissing: 'needs_quantity_basis',
+        },
+        {
+          id: 'calculation_logic_ref',
+          label: 'Calculation/legal-review reference',
+          value: params.calculationLogicRef,
+          sourceClass: 'calculation_reference',
+          enablesDossierAddition: 'add referenced calculation or legal-review basis',
+          statusWhenMissing: 'needs_calculation_review',
+        },
+        {
+          id: 'billing_impact',
+          label: 'Billing impact reference',
+          value: params.billingImpact,
+          sourceClass: 'billing_reference',
+          enablesDossierAddition: 'add billing impact reference without executing billing',
+          statusWhenMissing: 'needs_billing_mapping',
+        },
+        {
+          id: 'eog_impact',
+          label: 'EOG/net-fee impact reference',
+          value: params.eogImpact,
+          sourceClass: 'eog_reference',
+          enablesDossierAddition: 'add EOG/net-fee impact reference without recalculation',
+          statusWhenMissing: 'needs_eog_mapping',
+        },
+        {
+          id: 'tariff_impact',
+          label: 'Tariff impact reference',
+          value: params.tariffImpact,
+          sourceClass: 'tariff_reference',
+          enablesDossierAddition: 'add tariff impact reference without tariff mutation',
+          statusWhenMissing: 'needs_tariff_mapping',
+        },
+        {
+          id: 'communication_status',
+          label: 'Customer communication readiness',
+          value: params.communicationStatus,
+          sourceClass: 'communication_reference',
+          enablesDossierAddition: 'add customer communication readiness without sending communication',
+          statusWhenMissing: 'needs_communication_status',
+        },
+        {
+          id: 'owner_role',
+          label: 'Owner role',
+          value: params.ownerRole,
+          sourceClass: 'owner_reference',
+          enablesDossierAddition: 'add accountable owner role for the next process step',
+          statusWhenMissing: 'needs_owner_role',
+        },
+      ];
+      const regulatoryStatus = normalizeStatus(params.regulatoryUncertainty);
+      const signals = evidenceSpecs.map((spec) => {
+        const status = normalizeStatus(spec.value);
+        return {
+          id: spec.id,
+          label: spec.label,
+          status,
+          value: spec.value || null,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+          statusWhenMissing: spec.statusWhenMissing,
+        };
+      });
+      const evidenceItems = signals
+        .filter((signal) => signal.status === 'ready')
+        .map((signal) => ({
+          id: signal.id,
+          label: signal.label,
+          value: signal.value || signal.status,
+          sourceClass: signal.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = signals
+        .filter((signal) => signal.status !== 'ready')
+        .map((signal) => ({
+          missingDataPoint: signal.id,
+          label: signal.label,
+          status: signal.status,
+          value: signal.value,
+          sourceClass: signal.sourceClass,
+          enablesDossierAddition: signal.enablesDossierAddition,
+          statusWhenMissing: signal.statusWhenMissing,
+        }));
+      if (regulatoryStatus === 'blocked') {
+        missingEvidence.unshift({
+          missingDataPoint: 'regulatory_uncertainty',
+          label: 'Regulatory/legal uncertainty',
+          status: 'blocked',
+          value: params.regulatoryUncertainty,
+          sourceClass: 'regulatory_review',
+          enablesDossierAddition: 'add clarified regulatory/legal basis before process readiness is claimed',
+          statusWhenMissing: 'blocked_by_regulatory_uncertainty',
+        });
+      }
+      const firstGap = missingEvidence[0];
+      const status = missingEvidence.length === 0
+        ? 'ready_for_processing'
+        : missingEvidence.some((item) => item.missingDataPoint === 'regulatory_uncertainty')
+          ? 'blocked_by_regulatory_uncertainty'
+          : missingEvidence.some((item) => item.missingDataPoint === 'deadline_status' && item.status === 'risk')
+            ? 'deadline_risk'
+            : firstGap?.statusWhenMissing || 'needs_special_grid_usage_evidence';
+      const readinessLevel = missingEvidence.length === 0
+        ? 'ready'
+        : status === 'blocked_by_regulatory_uncertainty'
+          ? 'blocked'
+          : status === 'deadline_risk'
+            ? 'risk'
+            : evidenceItems.length >= 5
+              ? 'partial'
+              : 'needs_evidence';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        status: item.status,
+        value: item.value,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'special_grid_usage_impact_map',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.specialGridUsageImpactMapStatus'],
+        referenced: [
+          'datapoint.health',
+          'datasource-registry.get',
+          'eog-calculator.scenario',
+          'finance-agent.analyze',
+          'settlement.readiness',
+          'customer-service.get',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+          'presentation.generate',
+        ],
+        notCalled: [
+          'legal.interpret',
+          'legal.approve',
+          'eog-calculator.recalculate',
+          'par19.calculate',
+          'billing.release',
+          'settlement.prepareBilling',
+          'settlement.exportA96',
+          'tariff.mutate',
+          'customer-service.send',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const caseSummary = {
+        caseId,
+        caseType,
+        customerId: params.customerId || null,
+        ownerRole: params.ownerRole || null,
+      };
+      const impactReferences = {
+        calculationLogicRef: params.calculationLogicRef || null,
+        billingImpact: params.billingImpact || null,
+        eogImpact: params.eogImpact || null,
+        tariffImpact: params.tariffImpact || null,
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Readiness Level: ${readinessLevel}`,
+        `Provided impact-map evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+        `Case Type: ${caseType}`,
+      ];
+      if (params.deadlineStatus) dossierFacts.push(`Deadline: ${params.deadlineStatus}`);
+      if (params.ownerRole) dossierFacts.push(`Owner: ${params.ownerRole}`);
+
+      return {
+        specialGridUsageImpactMapId: caseId,
+        capabilityKey: 'special_grid_usage_impact_map',
+        safety: 'read_only',
+        status,
+        readinessLevel,
+        readinessScore,
+        caseSummary,
+        deadlineRisk: normalizeStatus(params.deadlineStatus) === 'risk',
+        quantityEvidenceStatus: normalizeStatus(params.quantityBasis),
+        calculationStatus: normalizeStatus(params.calculationLogicRef),
+        billingImpact: params.billingImpact || null,
+        eogImpact: params.eogImpact || null,
+        tariffImpact: params.tariffImpact || null,
+        communicationStatus: params.communicationStatus || null,
+        ownerRole: params.ownerRole || null,
+        sourceDatapoints,
+        impactReferences,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        sourceActions,
+        validationFindings: missingEvidence.map((item) => ({
+          code: `SPECIAL_GRID_USAGE_${String(item.missingDataPoint).toUpperCase()}`,
+          severity: item.status === 'blocked' ? 'high' : item.status === 'risk' ? 'medium' : 'info',
+          message: item.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          status,
+          readinessLevel,
+          readinessScore,
+          caseSummary,
+          deadlineRisk: normalizeStatus(params.deadlineStatus) === 'risk',
+          quantityEvidenceStatus: normalizeStatus(params.quantityBasis),
+          calculationStatus: normalizeStatus(params.calculationLogicRef),
+          impactReferences,
+          missingEvidence,
           positiveFollowUps,
           sourceActions: {
             notCalled: sourceActions.notCalled,

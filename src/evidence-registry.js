@@ -1435,6 +1435,81 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  special_grid_usage_impact_map: {
+    sources: [
+      {
+        id: 'application_status',
+        label: 'Antrags-/Intake-Nachweis',
+        resolvedBy: ['dashboard-api.specialGridUsageImpactMapStatus', 'datapoint.health', 'datasource-registry.get'],
+        contextKeys: ['applicationStatus', 'caseId'],
+        optional: false,
+      },
+      {
+        id: 'form_status',
+        label: 'Formularvollstaendigkeit',
+        resolvedBy: ['dashboard-api.specialGridUsageImpactMapStatus', 'datasource-registry.get'],
+        contextKeys: ['formStatus'],
+        optional: false,
+      },
+      {
+        id: 'deadline_status',
+        label: 'Friststatus',
+        resolvedBy: ['dashboard-api.specialGridUsageImpactMapStatus', 'vdmi.dossier'],
+        contextKeys: ['deadlineStatus'],
+        optional: false,
+      },
+      {
+        id: 'quantity_basis',
+        label: 'Mengenbasis',
+        resolvedBy: ['dashboard-api.specialGridUsageImpactMapStatus', 'datapoint.health', 'datasource-registry.get'],
+        contextKeys: ['quantityBasis', 'sourceDatapoints'],
+        optional: false,
+      },
+      {
+        id: 'calculation_logic_ref',
+        label: 'Berechnungs-/Rechtsreview-Referenz',
+        resolvedBy: ['dashboard-api.specialGridUsageImpactMapStatus', 'finance-agent.analyze'],
+        contextKeys: ['calculationLogicRef', 'regulatoryUncertainty'],
+        optional: false,
+      },
+      {
+        id: 'billing_impact',
+        label: 'Abrechnungswirkung',
+        resolvedBy: ['dashboard-api.specialGridUsageImpactMapStatus', 'settlement.readiness'],
+        contextKeys: ['billingImpact'],
+        optional: false,
+      },
+      {
+        id: 'eog_impact',
+        label: 'EOG-/Netzentgeltwirkung',
+        resolvedBy: ['dashboard-api.specialGridUsageImpactMapStatus', 'eog-calculator.scenario'],
+        contextKeys: ['eogImpact'],
+        optional: false,
+      },
+      {
+        id: 'tariff_impact',
+        label: 'Tarifwirkungsreferenz',
+        resolvedBy: ['dashboard-api.specialGridUsageImpactMapStatus', 'finance-agent.analyze'],
+        contextKeys: ['tariffImpact'],
+        optional: false,
+      },
+      {
+        id: 'communication_status',
+        label: 'Kundenkommunikationsstatus',
+        resolvedBy: ['dashboard-api.specialGridUsageImpactMapStatus', 'customer-service.get'],
+        contextKeys: ['communicationStatus'],
+        optional: false,
+      },
+      {
+        id: 'owner_role',
+        label: 'Owner / naechste Rolle',
+        resolvedBy: ['dashboard-api.specialGridUsageImpactMapStatus', 'vdmi.dossier', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['ownerRole'],
+        optional: false,
+      },
+    ],
+  },
+
   dr_readiness_evidence_gate: {
     sources: [
       {

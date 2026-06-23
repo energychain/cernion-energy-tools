@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 68 static rules', () => {
+    it('loads all 69 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(68);
+      expect(rules.length).toBe(69);
     });
 
-    it('compiles all 68 static rules without error', () => {
+    it('compiles all 69 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(68);
+      expect(rules.length).toBe(69);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1032,6 +1032,52 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Readiness Level: needs_evidence');
       expect(formatted).toContain('Tenant Scope: public');
       expect(formatted).toContain('Side-Effect Guard: backup.restore');
+    });
+
+    it('dashboard-api.specialGridUsageImpactMapStatus is dossier-safe and formats impact-map facts', () => {
+      const rule = getRule('dashboard-api.specialGridUsageImpactMapStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte besondere Netznutzung fall=sgu-201 frist=risk mengenbasis=metered-2025 berechnung=par19-v1 owner=regulierung laden'
+        )
+      ).toEqual({
+        caseId: 'sgu-201',
+        deadlineStatus: 'risk',
+        quantityBasis: 'metered-2025',
+        calculationLogicRef: 'par19-v1',
+        ownerRole: 'regulierung',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'special_grid_usage_impact_map',
+        status: 'deadline_risk',
+        readinessLevel: 'risk',
+        caseSummary: {
+          caseId: 'sgu-201',
+          caseType: 'stromnev19',
+          ownerRole: 'Regulierungsmanagement',
+        },
+        deadlineRisk: true,
+        missingEvidence: [{ missingDataPoint: 'quantity_basis' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add source-backed quantity evidence' },
+        ],
+        sourceActions: {
+          notCalled: ['settlement.prepareBilling'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: deadline_risk'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: special_grid_usage_impact_map');
+      expect(formatted).toContain('Status: deadline_risk');
+      expect(formatted).toContain('Readiness Level: risk');
+      expect(formatted).toContain('Case: sgu-201');
+      expect(formatted).toContain('Side-Effect Guard: settlement.prepareBilling');
     });
 
     it('dashboard-api.redispatchProjectControllingKpiCockpitStatus is dossier-safe and formats controlling facts', () => {

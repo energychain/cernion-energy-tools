@@ -479,6 +479,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/dr-readiness-evidence']).toBe(
         'dashboard-api.drReadinessEvidenceStatus'
       );
+      expect(aliases['GET /dashboard/special-grid-usage-impact-map']).toBe(
+        'dashboard-api.specialGridUsageImpactMapStatus'
+      );
       expect(aliases['GET /dashboard/regulatory-change-readiness']).toBe(
         'dashboard-api.regulatoryChangeReadinessStatus'
       );

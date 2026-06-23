@@ -230,6 +230,35 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans special grid usage impact map as process evidence without execution', () => {
+    const result = planEvidence(
+      { routeLabel: 'special_grid_usage_impact_map' },
+      {
+        caseId: 'sgu-201',
+        applicationStatus: 'complete',
+        deadlineStatus: 'risk',
+        quantityBasis: 'metered-2025',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('special_grid_usage_impact_map');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['application_status', 'deadline_status', 'quantity_basis'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'form_status',
+        'calculation_logic_ref',
+        'billing_impact',
+        'eog_impact',
+        'tariff_impact',
+        'communication_status',
+        'owner_role',
+      ])
+    );
+  });
+
   it('plans controllability submission cockpit as explicit submission and handover evidence', () => {
     const result = planEvidence(
       { routeLabel: 'controllability_submission_cockpit' },
