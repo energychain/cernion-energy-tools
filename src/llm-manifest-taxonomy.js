@@ -255,9 +255,11 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'Re4DE Variable Grid Fee': 'regulatory',
   'Redispatch Readiness Gate': 'redispatch',
   'Community': 'energy-sharing',
+  operations: 'platform',
   'stadtwerk-mauer-sandbox-runtime': 'platform',
   'stadtwerk-mauer-external-interface-stubs': 'platform',
   'stadtwerk-mauer-e2e-process-demo': 'platform',
+  'stadtwerk-mauer-mastr-data-overlay': 'platform',
 };
 
 // ── 3. recipe → canonical ────────────────────────────────────────────────────

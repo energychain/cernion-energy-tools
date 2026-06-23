@@ -511,6 +511,67 @@
     "sourceIssue": 266
   },
   {
+    "id": "dashboard-api.stadtwerkMauerMastrDataOverlayStatus",
+    "action": "dashboard-api.stadtwerkMauerMastrDataOverlayStatus",
+    "label": "Stadtwerk Mauer Blended MaStR Data Overlay",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "tenantId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:tenant|tenantId)[:= ]+([a-z0-9-]+)",
+          "group": 1
+        }
+      },
+      "postalCode": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:plz|postleitzahl|postalCode)[:= ]+(\\d{5})",
+          "group": 1
+        }
+      },
+      "municipality": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:gemeinde|municipality|ort)[:= ]+([A-Za-zÄÖÜäöüß-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Overlay Status", "maxLen": 100 },
+        { "paths": ["tenantId", "dossierEvidence.tenantId"], "label": "Tenant", "maxLen": 80 },
+        { "paths": ["municipality", "dossierEvidence.municipality"], "label": "Municipality", "maxLen": 80 },
+        { "paths": ["postalCode", "dossierEvidence.postalCode"], "label": "Postal Code", "maxLen": 20 },
+        { "paths": ["assetCount", "dossierEvidence.assetCount"], "label": "MaStR Assets" },
+        { "paths": ["totalCapacityKw", "dossierEvidence.totalCapacityKw"], "label": "Capacity kW" },
+        { "paths": ["operatorOverlay.virtualGridOperator.name", "dossierEvidence.virtualGridOperatorName"], "label": "Virtual Grid Operator", "maxLen": 100 },
+        { "paths": ["operatorOverlay.realWorldOperatorHint.name", "dossierEvidence.realWorldOperatorHint"], "label": "Real-world Operator", "maxLen": 100 },
+        { "paths": ["originalGridOperators.0.name", "dossierEvidence.originalGridOperators.0.name"], "label": "Original Operator Evidence", "maxLen": 120 },
+        { "paths": ["sampleAssets.0.mastrNummer", "dossierEvidence.sampleAssets.0.mastrNummer"], "label": "Sample Asset", "maxLen": 100 },
+        { "paths": ["operatorOverlay.mutatesMastrRecords"], "label": "Mutates MaStR" },
+        { "paths": ["timestamp"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000
+  },
+  {
     "id": "dashboard-api.marketCommunicationEvidenceChainStatus",
     "action": "dashboard-api.marketCommunicationEvidenceChainStatus",
     "label": "Market Communication Evidence Chain",

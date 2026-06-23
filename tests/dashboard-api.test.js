@@ -718,6 +718,66 @@ describe('dashboard-api.service', () => {
       },
     });
 
+    broker.createService({
+      name: 'stadtwerk-mauer-mastr-data-overlay',
+      actions: {
+        getStatus: makeHandler('stadtwerkMauerMastrDataOverlayStatus', {
+          capabilityKey: 'stadtwerk_mauer_mastr_data_overlay',
+          safety: 'read_only_real_mastr_baseline_with_virtual_operator_overlay',
+          tenantId: 'stadtwerk-mauer',
+          requiredTenantId: 'stadtwerk-mauer',
+          sandboxBoundaryAllowed: true,
+          status: 'blended_overlay_ready',
+          municipality: 'Mauer',
+          postalCode: '69256',
+          assetCount: 2,
+          totalCapacityKw: 20,
+          typeCounts: { solar: 1, storage: 1 },
+          originalGridOperators: [{ name: 'Syna GmbH', mastrId: 'SNB-SYNA', assetCount: 2 }],
+          operatorOverlay: {
+            mode: 'tenant_role_process_overlay',
+            virtualGridOperator: { name: 'Stadtwerk Mauer' },
+            realWorldOperatorHint: { name: 'Syna GmbH' },
+            preservesOriginalMastrFacts: true,
+            mutatesMastrRecords: false,
+          },
+          sampleAssets: [
+            {
+              mastrNummer: 'SEE-MAUER-001',
+              originalGridOperatorName: 'Syna GmbH',
+              virtualGridOperatorName: 'Stadtwerk Mauer',
+            },
+          ],
+          evidenceQuality: 'real_mastr_baseline_with_virtual_operator_overlay',
+          missingEvidence: [],
+          positiveFollowUps: [],
+          resetBoundary: {
+            service: 'stadtwerk-mauer-sandbox-runtime.reset',
+            deletesImportedMastrBaseline: false,
+            deletesDerivedSandboxArtifacts: true,
+          },
+          sourceActions: {
+            inspected: ['stadtwerk-mauer-mastr-data-overlay.getStatus'],
+            referenced: ['energy-market.installations'],
+            notCalled: ['mako.dispatch', 'external.connector.call', 'mastr.write'],
+          },
+          dossierEvidence: {
+            status: 'blended_overlay_ready',
+            tenantId: 'stadtwerk-mauer',
+            municipality: 'Mauer',
+            postalCode: '69256',
+            assetCount: 2,
+            totalCapacityKw: 20,
+            virtualGridOperatorName: 'Stadtwerk Mauer',
+            realWorldOperatorHint: 'Syna GmbH',
+            originalGridOperators: [{ name: 'Syna GmbH', mastrId: 'SNB-SYNA', assetCount: 2 }],
+            sampleAssets: [{ mastrNummer: 'SEE-MAUER-001' }],
+            dossierFacts: ['Overlay Status: blended_overlay_ready', 'MaStR Assets: 2'],
+          },
+        }),
+      },
+    });
+
     broker.createService(DashboardApiService);
 
     await broker.start();
@@ -5953,6 +6013,85 @@ describe('dashboard-api.service', () => {
       expect(result.recentTraces[0].transcriptId).toBe('smm-stub:test');
       expect(result.missingEvidence[0].missingDataPoint).toBe('napReference');
       expect(result.sourceActions.notCalled).toContain('external.connector.call');
+    });
+  });
+
+  describe('stadtwerkMauerMastrDataOverlayStatus', () => {
+    it('reports the blended MaStR overlay without mutating source records', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerMastrDataOverlayStatus', {
+        tenantId: 'stadtwerk-mauer',
+      });
+
+      expect(result.status).toBe('blended_overlay_ready');
+      expect(result.tenantId).toBe('stadtwerk-mauer');
+      expect(result.municipality).toBe('Mauer');
+      expect(result.postalCode).toBe('69256');
+      expect(result.assetCount).toBe(2);
+      expect(result.operatorOverlay.virtualGridOperator.name).toBe('Stadtwerk Mauer');
+      expect(result.operatorOverlay.realWorldOperatorHint.name).toBe('Syna GmbH');
+      expect(result.operatorOverlay.preservesOriginalMastrFacts).toBe(true);
+      expect(result.operatorOverlay.mutatesMastrRecords).toBe(false);
+      expect(result.resetBoundary.deletesImportedMastrBaseline).toBe(false);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['mako.dispatch', 'external.connector.call', 'mastr.write'])
+      );
+      expect(result.safety).toBe('read_only_real_mastr_baseline_with_virtual_operator_overlay');
+    });
+
+    it('surfaces overlay evidence through the read-only dashboard action', async () => {
+      handlers.stadtwerkMauerMastrDataOverlayStatus = () => ({
+        capabilityKey: 'stadtwerk_mauer_mastr_data_overlay',
+        safety: 'read_only_real_mastr_baseline_with_virtual_operator_overlay',
+        tenantId: 'stadtwerk-mauer',
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: true,
+        status: 'blended_overlay_ready',
+        municipality: 'Mauer',
+        postalCode: '69256',
+        assetCount: 1,
+        totalCapacityKw: 12.5,
+        originalGridOperators: [{ name: 'Syna GmbH', mastrId: 'SNB-SYNA', assetCount: 1 }],
+        operatorOverlay: {
+          virtualGridOperator: { name: 'Stadtwerk Mauer' },
+          realWorldOperatorHint: { name: 'Syna GmbH' },
+          preservesOriginalMastrFacts: true,
+          mutatesMastrRecords: false,
+        },
+        sampleAssets: [
+          {
+            mastrNummer: 'SEE-MAUER-001',
+            originalGridOperatorName: 'Syna GmbH',
+            virtualGridOperatorName: 'Stadtwerk Mauer',
+          },
+        ],
+        missingEvidence: [],
+        positiveFollowUps: [],
+        sourceActions: {
+          inspected: ['stadtwerk-mauer-mastr-data-overlay.getStatus'],
+          referenced: ['energy-market.installations'],
+          notCalled: ['mako.dispatch', 'external.connector.call', 'mastr.write'],
+        },
+        dossierEvidence: {
+          status: 'blended_overlay_ready',
+          tenantId: 'stadtwerk-mauer',
+          municipality: 'Mauer',
+          postalCode: '69256',
+          assetCount: 1,
+          totalCapacityKw: 12.5,
+          virtualGridOperatorName: 'Stadtwerk Mauer',
+          realWorldOperatorHint: 'Syna GmbH',
+        },
+      });
+
+      const result = await broker.call('dashboard-api.stadtwerkMauerMastrDataOverlayStatus', {
+        tenantId: 'stadtwerk-mauer',
+        limit: 10,
+      });
+
+      expect(result.status).toBe('blended_overlay_ready');
+      expect(result.originalGridOperators[0].name).toBe('Syna GmbH');
+      expect(result.sampleAssets[0].virtualGridOperatorName).toBe('Stadtwerk Mauer');
+      expect(result.sourceActions.notCalled).toContain('mastr.write');
     });
   });
 

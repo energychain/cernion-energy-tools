@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 75 static rules', () => {
+    it('loads all 76 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(75);
+      expect(rules.length).toBe(76);
     });
 
-    it('compiles all 75 static rules without error', () => {
+    it('compiles all 76 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(75);
+      expect(rules.length).toBe(76);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1057,6 +1057,48 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Case: case-266');
       expect(formatted).toContain('Stub Transcript: smm-stub:test');
       expect(formatted).toContain('Leading Gap: napReference');
+    });
+
+    it('dashboard-api.stadtwerkMauerMastrDataOverlayStatus is dossier-safe and formats overlay facts', () => {
+      const rule = getRule('dashboard-api.stadtwerkMauerMastrDataOverlayStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Stadtwerk Mauer Blended MaStR Overlay tenant=stadtwerk-mauer plz=69256 ort=Mauer laden'
+        )
+      ).toEqual({
+        tenantId: 'stadtwerk-mauer',
+        postalCode: '69256',
+        municipality: 'Mauer',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'blended_overlay_ready',
+        tenantId: 'stadtwerk-mauer',
+        municipality: 'Mauer',
+        postalCode: '69256',
+        assetCount: 2,
+        totalCapacityKw: 20,
+        operatorOverlay: {
+          virtualGridOperator: { name: 'Stadtwerk Mauer' },
+          realWorldOperatorHint: { name: 'Syna GmbH' },
+          mutatesMastrRecords: false,
+        },
+        originalGridOperators: [{ name: 'Syna GmbH' }],
+        sampleAssets: [{ mastrNummer: 'SEE-MAUER-001' }],
+        timestamp: '2026-06-23T14:00:00.000Z',
+      });
+
+      expect(formatted).toContain('Overlay Status: blended_overlay_ready');
+      expect(formatted).toContain('Tenant: stadtwerk-mauer');
+      expect(formatted).toContain('MaStR Assets: 2');
+      expect(formatted).toContain('Virtual Grid Operator: Stadtwerk Mauer');
+      expect(formatted).toContain('Real-world Operator: Syna GmbH');
+      expect(formatted).toContain('Original Operator Evidence: Syna GmbH');
+      expect(formatted).toContain('Sample Asset: SEE-MAUER-001');
+      expect(formatted).toContain('Mutates MaStR: false');
     });
 
     it('dashboard-api.legalClarificationOperatingModelStatus is dossier-safe and formats operating-model facts', () => {

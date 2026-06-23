@@ -868,6 +868,25 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Stadtwerk Mauer blended MaStR overlay prompts to the read-only status view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Stadtwerk Mauer Blended MaStR Data Overlay: reale MaStR Daten Mauer 1:1, Syna als Realwelt-Provenienz, virtuelles Stadtwerk Mauer als Netzbetreiber Overlay.',
+    });
+
+    expect(result.capability).toBe('stadtwerk_mauer_mastr_data_overlay');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'stadtwerk_mauer_mastr_data_overlay'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.stadtwerkMauerMastrDataOverlayStatus');
+    expect(actionNames).not.toContain('stadtwerk-mauer-e2e-process-demo.runDemo');
+    expect(actionNames).not.toContain('stadtwerk-mauer-external-interface-stubs.callStub');
+    expect(actionNames).not.toContain('mako.dispatch');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('mastr.write');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes legal clarification operating-model prompts to the read-only preparation view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Erstelle ein operatives Steuerungsmodell fuer Rechtsklaerung Kapazitaetsfrage mit no-regret Datenbedarf, roter Linie und Entscheidung nach Rechtsantwort.',

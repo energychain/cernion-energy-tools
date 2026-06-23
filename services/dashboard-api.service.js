@@ -99,6 +99,7 @@ module.exports = {
       stadtwerkMauerSandboxRuntimeStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerExternalInterfaceStubsStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerE2eProcessDemoStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerMastrDataOverlayStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
@@ -5004,6 +5005,93 @@ module.exports = {
           this.buildMissingStadtwerkMauerE2eProcessDemoStatus(tenantId, params.caseId),
           errors,
           'stadtwerk-mauer-e2e-process-demo.getStatus'
+        );
+        return {
+          ...status,
+          timestamp: new Date().toISOString(),
+          _errors: errors,
+        };
+      },
+    },
+
+    // -- stadtwerkMauerMastrDataOverlayStatus -----------------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay
+     *
+     * Read-only dossier-safe status for the Stadtwerk Mauer blended MaStR data
+     * overlay. The endpoint reads public MaStR facts and presents Stadtwerk
+     * Mauer as tenant/process operator without mutating MaStR records.
+     */
+    stadtwerkMauerMastrDataOverlayStatus: {
+      rest: 'GET /stadtwerk-mauer-mastr-data-overlay',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        postalCode: { type: 'string', optional: true, min: 5, max: 5 },
+        municipality: { type: 'string', optional: true, min: 1 },
+        limit: { type: 'any', optional: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer blended MaStR data overlay -- read-only status',
+        description:
+          'Reports the real MaStR baseline for Mauer and the virtual Stadtwerk Mauer ' +
+          'operator overlay. Original MaStR facts and real-world operator provenance remain ' +
+          'visible; no MaStR records, MaKo, device-control or external connectors are mutated.',
+        parameters: [
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'postalCode', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'municipality', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'limit', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Stadtwerk Mauer blended MaStR data overlay status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    tenantId: { type: 'string' },
+                    municipality: { type: 'string' },
+                    postalCode: { type: 'string' },
+                    assetCount: { type: 'number' },
+                    totalCapacityKw: { type: 'number' },
+                    originalGridOperators: { type: 'array' },
+                    operatorOverlay: { type: 'object' },
+                    sampleAssets: { type: 'array' },
+                    evidenceQuality: { type: 'string' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    resetBoundary: { type: 'object' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const errors = [];
+        const status = await this.safeCall(
+          ctx,
+          'stadtwerk-mauer-mastr-data-overlay.getStatus',
+          {
+            tenantId,
+            postalCode: params.postalCode,
+            municipality: params.municipality,
+            limit: params.limit,
+          },
+          this.buildMissingStadtwerkMauerMastrDataOverlayStatus(tenantId, params),
+          errors,
+          'stadtwerk-mauer-mastr-data-overlay.getStatus'
         );
         return {
           ...status,
@@ -18358,6 +18446,116 @@ module.exports = {
             'E2E Demo Status: e2e_demo_status_unavailable',
             `Tenant: ${tenantId}`,
             'Traces: 0',
+          ],
+        },
+      };
+    },
+
+    buildMissingStadtwerkMauerMastrDataOverlayStatus(
+      tenantId = 'stadtwerk-mauer',
+      params = {}
+    ) {
+      const missingEvidence = [
+        {
+          missingDataPoint: 'mastr_overlay_status',
+          enablesDossierAddition: 'add Stadtwerk Mauer blended MaStR overlay status evidence',
+        },
+      ];
+      const sourceActions = {
+        inspected: ['dashboard-api.stadtwerkMauerMastrDataOverlayStatus'],
+        referenced: ['stadtwerk-mauer-mastr-data-overlay.getStatus', 'energy-market.installations'],
+        notCalled: [
+          'mako.dispatch',
+          'msb.connector.call',
+          'edm.connector.call',
+          'customer-service.send',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'switching.execute',
+          'webhook.emit',
+          'device-control.execute',
+          'smgw.connector.call',
+          'cls.control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'personal-agent.execute',
+          'tenant.delete.production',
+          'mastr.write',
+        ],
+      };
+      const municipality = params.municipality || 'Mauer';
+      const postalCode = params.postalCode || '69256';
+      return {
+        capabilityKey: 'stadtwerk_mauer_mastr_data_overlay',
+        safety: 'read_only_real_mastr_baseline_with_virtual_operator_overlay',
+        tenantId,
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: tenantId === 'stadtwerk-mauer',
+        status: 'blended_overlay_status_unavailable',
+        municipality,
+        postalCode,
+        mastrQuery: {
+          action: 'energy-market.installations',
+          installationType: 'all',
+          postleitzahl: postalCode,
+          location: municipality,
+          queryFailed: true,
+        },
+        assetCount: 0,
+        totalCapacityKw: 0,
+        typeCounts: {},
+        originalGridOperators: [],
+        operatorOverlay: {
+          mode: 'tenant_role_process_overlay',
+          virtualGridOperator: {
+            name: 'Stadtwerk Mauer',
+            role: 'virtual_distribution_system_operator',
+            tenantId: 'stadtwerk-mauer',
+          },
+          realWorldOperatorHint: {
+            name: 'Syna GmbH',
+            role: 'real_world_grid_operator',
+          },
+          preservesOriginalMastrFacts: true,
+          mutatesMastrRecords: false,
+        },
+        sampleAssets: [],
+        evidenceQuality: 'unavailable',
+        missingEvidence,
+        positiveFollowUps: missingEvidence.map((item) => ({
+          ...item,
+          category: 'stadtwerk_mauer_mastr_data_overlay',
+        })),
+        resetBoundary: {
+          service: 'stadtwerk-mauer-sandbox-runtime.reset',
+          scopedToTenant: 'stadtwerk-mauer',
+          deletesImportedMastrBaseline: false,
+          deletesDerivedSandboxArtifacts: true,
+        },
+        sourceActions,
+        dossierEvidence: {
+          status: 'blended_overlay_status_unavailable',
+          tenantId,
+          municipality,
+          postalCode,
+          assetCount: 0,
+          totalCapacityKw: 0,
+          virtualGridOperatorName: 'Stadtwerk Mauer',
+          realWorldOperatorHint: 'Syna GmbH',
+          originalGridOperators: [],
+          sampleAssets: [],
+          missingEvidence,
+          positiveFollowUps: missingEvidence.map((item) => ({
+            ...item,
+            category: 'stadtwerk_mauer_mastr_data_overlay',
+          })),
+          sourceActions,
+          dossierFacts: [
+            'Overlay Status: blended_overlay_status_unavailable',
+            `Tenant: ${tenantId}`,
+            `Municipality: ${municipality}`,
+            `Postal Code: ${postalCode}`,
           ],
         },
       };

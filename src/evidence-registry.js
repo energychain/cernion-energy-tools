@@ -1324,6 +1324,54 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  stadtwerk_mauer_mastr_data_overlay: {
+    sources: [
+      {
+        id: 'real_mastr_baseline',
+        label: 'Realer MaStR-Anlagenbestand Mauer',
+        resolvedBy: [
+          'dashboard-api.stadtwerkMauerMastrDataOverlayStatus',
+          'stadtwerk-mauer-mastr-data-overlay.getStatus',
+          'energy-market.installations',
+        ],
+        contextKeys: ['assetCount', 'sampleAssets', 'mastrQuery', 'typeCounts'],
+        optional: false,
+      },
+      {
+        id: 'original_operator_provenance',
+        label: 'Originale Netzbetreiber-Provenienz',
+        resolvedBy: ['dashboard-api.stadtwerkMauerMastrDataOverlayStatus'],
+        contextKeys: ['originalGridOperators', 'operatorOverlay.realWorldOperatorHint'],
+        optional: false,
+      },
+      {
+        id: 'virtual_operator_overlay',
+        label: 'Virtuelles Stadtwerk-Mauer-Betreiberoverlay',
+        resolvedBy: ['dashboard-api.stadtwerkMauerMastrDataOverlayStatus'],
+        contextKeys: ['operatorOverlay.virtualGridOperator', 'operatorOverlay.mode'],
+        optional: false,
+      },
+      {
+        id: 'mastr_non_mutation_guard',
+        label: 'MaStR-Nichtveraenderungsnachweis',
+        resolvedBy: ['dashboard-api.stadtwerkMauerMastrDataOverlayStatus'],
+        contextKeys: [
+          'operatorOverlay.preservesOriginalMastrFacts',
+          'operatorOverlay.mutatesMastrRecords',
+          'sourceActions.notCalled',
+        ],
+        optional: false,
+      },
+      {
+        id: 'reset_boundary',
+        label: 'Reset-Grenze ohne MaStR-Baseline-Loeschung',
+        resolvedBy: ['dashboard-api.stadtwerkMauerMastrDataOverlayStatus'],
+        contextKeys: ['resetBoundary.deletesImportedMastrBaseline', 'resetBoundary.deletesDerivedSandboxArtifacts'],
+        optional: false,
+      },
+    ],
+  },
+
   stadtwerk_mauer_e2e_process_demo: {
     sources: [
       {

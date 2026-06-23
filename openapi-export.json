@@ -15683,6 +15683,122 @@
         ]
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-mastr-data-overlay": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerMastrDataOverlayStatus",
+        "summary": "Stadtwerk Mauer blended MaStR data overlay -- read-only status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer blended MaStR data overlay status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "municipality": {
+                      "type": "string"
+                    },
+                    "postalCode": {
+                      "type": "string"
+                    },
+                    "assetCount": {
+                      "type": "number"
+                    },
+                    "totalCapacityKw": {
+                      "type": "number"
+                    },
+                    "originalGridOperators": {
+                      "type": "array"
+                    },
+                    "operatorOverlay": {
+                      "type": "object"
+                    },
+                    "sampleAssets": {
+                      "type": "array"
+                    },
+                    "evidenceQuality": {
+                      "type": "string"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "resetBoundary": {
+                      "type": "object"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Reports the real MaStR baseline for Mauer and the virtual Stadtwerk Mauer operator overlay. Original MaStR facts and real-world operator provenance remain visible; no MaStR records, MaKo, device-control or external connectors are mutated.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "postalCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "municipality",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/fnav-fast-track-contract-gate": {
       "get": {
         "operationId": "dashboard-api_fnavFastTrackContractGateStatus",
@@ -43637,6 +43753,27 @@
         }
       }
     },
+    "/api/stadtwerk-mauer-mastr-data-overlay/status": {
+      "get": {
+        "operationId": "stadtwerk-mauer-mastr-data-overlay_getStatus",
+        "summary": "stadtwerk-mauer-mastr-data-overlay.getStatus",
+        "tags": [
+          "stadtwerk-mauer-mastr-data-overlay"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stadtwerk-mauer-sandbox-runtime/events": {
       "post": {
         "operationId": "stadtwerk-mauer-sandbox-runtime_ingestEvent",
@@ -54154,6 +54291,122 @@
         ]
       }
     },
+    "/api/dashboard/stadtwerk-mauer-mastr-data-overlay": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerMastrDataOverlayStatus",
+        "summary": "Stadtwerk Mauer blended MaStR data overlay -- read-only status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer blended MaStR data overlay status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "municipality": {
+                      "type": "string"
+                    },
+                    "postalCode": {
+                      "type": "string"
+                    },
+                    "assetCount": {
+                      "type": "number"
+                    },
+                    "totalCapacityKw": {
+                      "type": "number"
+                    },
+                    "originalGridOperators": {
+                      "type": "array"
+                    },
+                    "operatorOverlay": {
+                      "type": "object"
+                    },
+                    "sampleAssets": {
+                      "type": "array"
+                    },
+                    "evidenceQuality": {
+                      "type": "string"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "resetBoundary": {
+                      "type": "object"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Reports the real MaStR baseline for Mauer and the virtual Stadtwerk Mauer operator overlay. Original MaStR facts and real-world operator provenance remain visible; no MaStR records, MaKo, device-control or external connectors are mutated.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "postalCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "municipality",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard/fnav-fast-track-contract-gate": {
       "get": {
         "operationId": "dashboard-api_fnavFastTrackContractGateStatus",
@@ -54370,6 +54623,27 @@
         "summary": "stadtwerk-mauer-e2e-process-demo.getStatus",
         "tags": [
           "stadtwerk-mauer-e2e-process-demo"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stadtwerk-mauer/mastr-data-overlay/status": {
+      "get": {
+        "operationId": "stadtwerk-mauer-mastr-data-overlay_getStatus",
+        "summary": "stadtwerk-mauer-mastr-data-overlay.getStatus",
+        "tags": [
+          "stadtwerk-mauer-mastr-data-overlay"
         ],
         "responses": {
           "200": {

@@ -430,6 +430,26 @@ function findBestCapability(taskText, options = {}) {
     return { capability: INTERFACE_PLACEHOLDER_CAPABILITY, score: 10, usedFallback: true };
   }
 
+  const hasStadtwerkMauerMastrOverlayMutationIntent =
+    /(mastr write|mastr schreiben|mastr import|mastr update|mastr aktualisieren|netzbetreiber im mastr aendern|netzbetreiber im mastr ändern|syna ersetzen|source records mutate|asset override|external connector|mako senden|steuerbefehl|device.?control|workflow execute|workflow ausfuehren|workflow ausführen|tenant delete production)/i.test(haystack) &&
+    /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|blended|mastr overlay|syna)/i.test(haystack);
+
+  if (hasStadtwerkMauerMastrOverlayMutationIntent) {
+    return { capability: INTERFACE_PLACEHOLDER_CAPABILITY, score: 10, usedFallback: true };
+  }
+
+  const hasStadtwerkMauerMastrOverlaySpecificSignal =
+    /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|stadtwerk_mauer_mastr_data_overlay)/i.test(haystack) &&
+    /(blended|real.?data|reale mastr|mastr daten|mastr baseline|mastr overlay|operator overlay|netzbetreiber overlay|syna|1.?1|eins zu eins|virtual operator|virtueller netzbetreiber)/i.test(haystack) &&
+    !/(mastr write|mastr schreiben|mastr import|mastr update|mastr aktualisieren|netzbetreiber im mastr aendern|netzbetreiber im mastr ändern|syna ersetzen|source records mutate|asset override|external connector|mako senden|steuerbefehl|device.?control|workflow execute|workflow ausfuehren|workflow ausführen|tenant delete production|hitl create|personal-agent execute)/i.test(haystack);
+
+  if (hasStadtwerkMauerMastrOverlaySpecificSignal) {
+    const stadtwerkMauerMastrOverlayCapability = findCapabilityByName('stadtwerk_mauer_mastr_data_overlay');
+    if (stadtwerkMauerMastrOverlayCapability) {
+      return { capability: stadtwerkMauerMastrOverlayCapability, score: 146, usedFallback: false };
+    }
+  }
+
   const hasStadtwerkMauerEventReplayPreviewSpecificSignal =
     /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|stadtwerk_mauer_event_replay_preview)/i.test(haystack) &&
     /(event replay preview|event.?simulation preview|ereigniskatalog|synthetic events|synthetische events|pv elektriker event|lieferantenwechsel simulation|zaehlerablesung demo|zählerablesung demo|kundenservice fall|bilanzkreis ereignis|event template|event envelope|ereignis envelope)/i.test(haystack) &&
