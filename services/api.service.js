@@ -1422,6 +1422,8 @@ module.exports = {
             'dashboard-api.specialGridUsageImpactMapStatus',
           'GET /dashboard/liquidity-planning-governance':
             'dashboard-api.liquidityPlanningGovernanceStatus',
+          'GET /dashboard/energy-sharing-simulation-gate':
+            'dashboard-api.energySharingSimulationGateStatus',
           'GET /dashboard/stadtwerk-mauer-sandbox-runtime':
             'dashboard-api.stadtwerkMauerSandboxRuntimeStatus',
           'GET /dashboard/stadtwerk-mauer-external-interface-stubs':

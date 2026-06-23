@@ -1598,6 +1598,74 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  energy_sharing_simulation_gate: {
+    sources: [
+      {
+        id: 'project_identity',
+        label: 'Energy-Sharing Community und VNB-Kontext',
+        resolvedBy: ['dashboard-api.energySharingSimulationGateStatus', 'energy-sharing.validate', 'grid-connection.validate'],
+        contextKeys: ['communityId', 'gridOperatorId'],
+        optional: false,
+      },
+      {
+        id: 'participant_dataset',
+        label: 'Teilnehmerliste und Teilnehmerevidenz',
+        resolvedBy: ['dashboard-api.energySharingSimulationGateStatus', 'energy-sharing.validate'],
+        contextKeys: ['participantCount', 'participantEvidenceRef'],
+        optional: false,
+      },
+      {
+        id: 'malo_metering_readiness',
+        label: 'MaLo-/iMSys-/MSCONS-Reife',
+        resolvedBy: ['dashboard-api.energySharingSimulationGateStatus', 'datapoint.health', 'edm-validation.validate'],
+        contextKeys: ['maloStatus', 'meteringReadiness'],
+        optional: false,
+      },
+      {
+        id: 'market_role_readiness',
+        label: 'Marktrollen- und Bilanzkreisreife',
+        resolvedBy: ['dashboard-api.energySharingSimulationGateStatus', 'vdmi.dossier'],
+        contextKeys: ['marketRoleReadiness'],
+        optional: false,
+      },
+      {
+        id: 'data_basis',
+        label: 'Datenbasis fuer Lernpilot oder abrechnungsnahe Bewertung',
+        resolvedBy: ['dashboard-api.energySharingSimulationGateStatus', 'energy-sharing-allocation.allocate'],
+        contextKeys: ['dataBasis'],
+        optional: false,
+      },
+      {
+        id: 'settlement_a96_evidence',
+        label: 'Settlement-/A96-Evidenz',
+        resolvedBy: ['dashboard-api.energySharingSimulationGateStatus', 'settlement.prepareA96', 'settlement.reconcileA96'],
+        contextKeys: ['a96EvidenceRef', 'settlementEvidenceRef'],
+        optional: false,
+      },
+      {
+        id: 'contract_evidence',
+        label: 'Liefer-/Teilnahmevertrags-Evidenz',
+        resolvedBy: ['dashboard-api.energySharingSimulationGateStatus', 'vdmi.dossier', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['contractEvidenceRef'],
+        optional: false,
+      },
+      {
+        id: 'economics_assumption',
+        label: 'Wirtschaftlichkeitsannahmen',
+        resolvedBy: ['dashboard-api.energySharingSimulationGateStatus', 'vdmi.dossier'],
+        contextKeys: ['economicsAssumptionRef'],
+        optional: false,
+      },
+      {
+        id: 'owner_escalation',
+        label: 'Owner und Eskalationskontakt',
+        resolvedBy: ['dashboard-api.energySharingSimulationGateStatus', 'vdmi.dossier', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['owner', 'escalationContact'],
+        optional: false,
+      },
+    ],
+  },
+
   legal_clarification_operating_model: {
     sources: [
       {

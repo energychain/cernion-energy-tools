@@ -1308,6 +1308,17 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     expect(znpSource.optional).toBe(true);
   });
 
+  it('energy_sharing_simulation_gate: requires metering, market role and settlement evidence', () => {
+    const plan = { routeKey: 'energy_sharing_simulation_gate' };
+    const result = planEvidence(plan, {});
+
+    const requiredIds = result.requiredSources.filter((s) => !s.optional).map((s) => s.id);
+    expect(requiredIds).toContain('participant_dataset');
+    expect(requiredIds).toContain('malo_metering_readiness');
+    expect(requiredIds).toContain('market_role_readiness');
+    expect(requiredIds).toContain('settlement_a96_evidence');
+  });
+
   it('redispatch-settlement: requires grid_operator_identity and audit_period', () => {
     const plan = { routeKey: 'redispatch-settlement' };
     const result = planEvidence(plan, {});

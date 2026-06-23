@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 74 static rules', () => {
+    it('loads all 75 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(74);
+      expect(rules.length).toBe(75);
     });
 
-    it('compiles all 74 static rules without error', () => {
+    it('compiles all 75 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(74);
+      expect(rules.length).toBe(75);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1284,6 +1284,46 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Readiness Level: blocked');
       expect(formatted).toContain('Planning Run: liq-204');
       expect(formatted).toContain('Side-Effect Guard: cashflow.calculate');
+    });
+
+    it('dashboard-api.energySharingSimulationGateStatus is dossier-safe and formats simulation-gate facts', () => {
+      const rule = getRule('dashboard-api.energySharingSimulationGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Energy Sharing Gate community=es-230 vnb=vnb-230 datenbasis=forecast marktrolle=pending pruefen'
+        )
+      ).toEqual({
+        communityId: 'es-230',
+        gridOperatorId: 'vnb-230',
+        dataBasis: 'forecast',
+        marketRoleReadiness: 'pending',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'energy_sharing_simulation_gate',
+        gateStatus: 'learning_pilot',
+        simulationStage: 'learning_pilot',
+        communityId: 'es-230',
+        missingEvidence: [{ missingDataPoint: 'market_role_readiness' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add market-role and balancing-group readiness evidence' },
+        ],
+        sourceActions: {
+          notCalled: ['energy-sharing-allocation.allocate', 'settlement.exportA96'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: learning_pilot'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: energy_sharing_simulation_gate');
+      expect(formatted).toContain('Status: learning_pilot');
+      expect(formatted).toContain('Simulation Stage: learning_pilot');
+      expect(formatted).toContain('Community: es-230');
+      expect(formatted).toContain('Side-Effect Guard: energy-sharing-allocation.allocate');
     });
 
     it('dashboard-api.redispatchProjectControllingKpiCockpitStatus is dossier-safe and formats controlling facts', () => {

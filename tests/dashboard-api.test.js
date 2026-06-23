@@ -2385,6 +2385,75 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- energySharingSimulationGateStatus ----------------------------------
+
+  describe('energySharingSimulationGateStatus', () => {
+    it('keeps forecast candidates in learning-pilot mode without executing Energy-Sharing actions', async () => {
+      const result = await broker.call('dashboard-api.energySharingSimulationGateStatus', {
+        communityId: 'es-230',
+        gridOperatorId: 'vnb-230',
+        participantCount: '12',
+        participantEvidenceRef: 'participants-v1',
+        dataBasis: 'forecast',
+        owner: 'product-owner',
+        escalationContact: 'marktrolle-team',
+      });
+
+      expect(result.gateStatus).toBe('learning_pilot');
+      expect(result.simulationStage).toBe('learning_pilot');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'malo_metering_readiness',
+          'market_role_readiness',
+          'settlement_a96_evidence',
+          'contract_evidence',
+          'economics_assumption',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('energy_sharing_simulation_gate');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'energy-sharing-allocation.allocate',
+          'settlement.exportA96',
+          'mako.dispatch',
+          'billing.release',
+          'tariff.mutate',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns billing_near_ready only with inhouse metering, market-role, A96, contract and economics evidence', async () => {
+      const result = await broker.call('dashboard-api.energySharingSimulationGateStatus', {
+        communityId: 'es-230',
+        gridOperatorId: 'vnb-230',
+        participantCount: '42',
+        participantEvidenceRef: 'participants-v2',
+        maloStatus: 'ready',
+        meteringReadiness: 'ready',
+        marketRoleReadiness: 'ready',
+        dataBasis: 'inhouse-imsys-mscons',
+        a96EvidenceRef: 'a96-ready',
+        settlementEvidenceRef: 'settlement-ready',
+        contractEvidenceRef: 'contracts-ready',
+        economicsAssumptionRef: 'economics-v1',
+        owner: 'energy-sharing-owner',
+        escalationContact: 'billing-lead',
+        sourceArtifacts: ['vdmi:es-230', 'settlement:a96-230'],
+      });
+
+      expect(result.gateStatus).toBe('billing_near_ready');
+      expect(result.simulationStage).toBe('billing_near_ready');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.readinessBlocks.settlementReadiness.status).toBe('ready');
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided Energy-Sharing gate evidence: 9/9');
+      expect(result.sourceActions.notCalled).toContain('energy-sharing-allocation.allocate');
+    });
+  });
+
   // ── regulatoryChangeReadinessStatus ─────────────────────────────────────
 
   describe('regulatoryChangeReadinessStatus', () => {

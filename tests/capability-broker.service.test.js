@@ -966,6 +966,24 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Energy-Sharing simulation prompts to the read-only gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Energy Sharing Simulation als Lernpilot und abrechnungsnah mit iMSys-Reife, MaLo Status, Bilanzkreislogik, A96 readiness, Teilnehmerdaten und Marktrollenrisiko.',
+    });
+
+    expect(result.capability).toBe('energy_sharing_simulation_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'energy_sharing_simulation_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.energySharingSimulationGateStatus');
+    expect(actionNames).not.toContain('energy-sharing-allocation.allocate');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes investment two-track control prompts to the read-only evidence gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Investitionsprozess Zwei Spuren fuer Budgetabgabe, Investitionsabgabe, Abgabesicherheit, Investdaten Datenqualitaet, ISO 55001 Zielbild, Freigabelogik und Vorstandsformat.',

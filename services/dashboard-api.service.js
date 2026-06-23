@@ -53,6 +53,7 @@ module.exports = {
       drReadinessEvidenceStatus: 5 * 60 * 1000, // 5 min
       specialGridUsageImpactMapStatus: 5 * 60 * 1000, // 5 min
       liquidityPlanningGovernanceStatus: 5 * 60 * 1000, // 5 min
+      energySharingSimulationGateStatus: 5 * 60 * 1000, // 5 min
       regulatoryChangeReadinessStatus: 5 * 60 * 1000, // 5 min
       investmentTwoTrackControlStatus: 5 * 60 * 1000, // 5 min
       sapBudgetPspGateStatus: 5 * 60 * 1000, // 5 min
@@ -1982,6 +1983,98 @@ module.exports = {
           this.settings.cacheTtlMs.liquidityPlanningGovernanceStatus,
           async () => ({
             ...this.buildLiquidityPlanningGovernanceStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- energySharingSimulationGateStatus --------------------------------
+    /**
+     * GET /api/dashboard/energy-sharing-simulation-gate?communityId=...
+     *
+     * Read-only dossier-safe Energy-Sharing simulation gate. It classifies a
+     * candidate as learning/simulation/billing-near readiness from supplied
+     * evidence refs and never creates projects, allocations, settlement exports,
+     * MaKo messages, HITL tasks, billing artefacts or customer communication.
+     */
+    energySharingSimulationGateStatus: {
+      rest: 'GET /energy-sharing-simulation-gate',
+      params: {
+        communityId: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        participantCount: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        participantEvidenceRef: { type: 'string', optional: true, min: 1 },
+        maloStatus: { type: 'string', optional: true, min: 1 },
+        meteringReadiness: { type: 'string', optional: true, min: 1 },
+        marketRoleReadiness: { type: 'string', optional: true, min: 1 },
+        dataBasis: { type: 'string', optional: true, min: 1 },
+        a96EvidenceRef: { type: 'string', optional: true, min: 1 },
+        settlementEvidenceRef: { type: 'string', optional: true, min: 1 },
+        contractEvidenceRef: { type: 'string', optional: true, min: 1 },
+        economicsAssumptionRef: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        escalationContact: { type: 'string', optional: true, min: 1 },
+        sourceArtifacts: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Energy-Sharing simulation gate - read-only dossier-safe status',
+        description:
+          'Classifies Energy-Sharing candidates as learning pilot, simulation-ready, billing-near-ready or blocked by missing evidence. ' +
+          'The endpoint is read-only and does not run allocation, settlement/A96 export, MaKo dispatch, billing, tariff mutation, HITL, external connector, customer communication or Personal Agent execution.',
+        parameters: [
+          { name: 'communityId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'participantCount', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'participantEvidenceRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'maloStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'meteringReadiness', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'marketRoleReadiness', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataBasis', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'a96EvidenceRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'settlementEvidenceRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'contractEvidenceRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'economicsAssumptionRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'escalationContact', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceArtifacts', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Energy-Sharing simulation gate status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    gateStatus: { type: 'string' },
+                    simulationStage: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `energy-sharing-simulation-gate:${params.communityId || 'no-community'}:${params.gridOperatorId || 'no-grid'}:${params.participantCount || 'no-participants'}:${params.maloStatus || 'no-malo'}:${params.meteringReadiness || 'no-metering'}:${params.marketRoleReadiness || 'no-market-role'}:${params.dataBasis || 'no-data-basis'}:${params.a96EvidenceRef || 'no-a96'}:${params.settlementEvidenceRef || 'no-settlement'}:${params.contractEvidenceRef || 'no-contract'}:${params.economicsAssumptionRef || 'no-economics'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.energySharingSimulationGateStatus,
+          async () => ({
+            ...this.buildEnergySharingSimulationGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -8252,6 +8345,286 @@ module.exports = {
           missingEvidence,
           riskFlags,
           positiveFollowUps,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildEnergySharingSimulationGateStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const normalizeStatus = (value) => {
+        if (value === true) return 'ready';
+        if (value === false || value == null || value === '') return 'missing';
+        const text = String(value).trim().toLowerCase();
+        if (['ready', 'ok', 'complete', 'completed', 'provided', 'valid', 'validated', 'available', 'confirmed', 'approved'].includes(text)) return 'ready';
+        if (['blocked', 'invalid', 'failed', 'rejected'].includes(text)) return 'blocked';
+        if (['partial', 'in_progress', 'draft', 'pending'].includes(text)) return 'partial';
+        return 'ready';
+      };
+      const isReady = (value) => normalizeStatus(value) === 'ready';
+      const participantCount = Number(params.participantCount || 0);
+      const sourceArtifacts = toList(params.sourceArtifacts);
+      const dataBasis = String(params.dataBasis || '').toLowerCase();
+      const isBillingDataBasis = /inhouse|imsys|mscons|billing|abrechnung/.test(dataBasis);
+      const isForecastBasis = /forecast|synthetic|synthetisch|learning|lernpilot/.test(dataBasis) || !dataBasis;
+      const communityId = params.communityId || 'energy-sharing-candidate';
+
+      const evidenceSpecs = [
+        {
+          id: 'project_identity',
+          label: 'Energy-Sharing community and grid operator',
+          value: params.communityId && params.gridOperatorId,
+          displayValue: [params.communityId, params.gridOperatorId].filter(Boolean).join(' / '),
+          readinessBlock: 'project',
+          sourceClass: 'identity',
+          enablesDossierAddition: 'add community id and grid operator id to identify the simulation scope',
+          statusWhenMissing: 'blocked_by_evidence',
+        },
+        {
+          id: 'participant_dataset',
+          label: 'Participant list and participant evidence',
+          value: participantCount > 0 && params.participantEvidenceRef,
+          displayValue: participantCount > 0 ? `${participantCount} participants / ${params.participantEvidenceRef || 'no evidence ref'}` : null,
+          readinessBlock: 'participants',
+          sourceClass: 'participant_evidence',
+          enablesDossierAddition: 'add participant list and consent/evidence reference to assess participant readiness',
+          statusWhenMissing: 'blocked_by_evidence',
+        },
+        {
+          id: 'malo_metering_readiness',
+          label: 'MaLo and metering/iMSys readiness',
+          value: isReady(params.maloStatus) && isReady(params.meteringReadiness),
+          displayValue: [params.maloStatus, params.meteringReadiness].filter(Boolean).join(' / '),
+          readinessBlock: 'metering',
+          sourceClass: 'metering_evidence',
+          enablesDossierAddition: 'add MaLo status and iMSys/MSCONS metering evidence to lift the gate beyond learning-pilot readiness',
+          statusWhenMissing: 'blocked_by_metering',
+        },
+        {
+          id: 'market_role_readiness',
+          label: 'Market role / Bilanzkreis readiness',
+          value: isReady(params.marketRoleReadiness),
+          displayValue: params.marketRoleReadiness,
+          readinessBlock: 'marketRole',
+          sourceClass: 'market_role_evidence',
+          enablesDossierAddition: 'add market-role and balancing-group readiness evidence to avoid false operational approval',
+          statusWhenMissing: 'blocked_by_market_role',
+        },
+        {
+          id: 'data_basis',
+          label: 'Forecast or inhouse data basis',
+          value: params.dataBasis,
+          displayValue: params.dataBasis,
+          readinessBlock: 'metering',
+          sourceClass: 'data_basis',
+          enablesDossierAddition: 'add the simulation data basis; forecast enables learning-pilot assessment, inhouse/iMSys evidence enables billing-near assessment',
+          statusWhenMissing: 'learning_pilot',
+        },
+        {
+          id: 'settlement_a96_evidence',
+          label: 'Settlement and A96 evidence',
+          value: params.a96EvidenceRef && params.settlementEvidenceRef && isBillingDataBasis,
+          displayValue: [params.a96EvidenceRef, params.settlementEvidenceRef].filter(Boolean).join(' / '),
+          readinessBlock: 'settlement',
+          sourceClass: 'settlement_evidence',
+          enablesDossierAddition: 'add A96 and settlement evidence before classifying the candidate as billing-near-ready',
+          statusWhenMissing: isBillingDataBasis ? 'blocked_by_settlement' : 'simulation_ready',
+        },
+        {
+          id: 'contract_evidence',
+          label: 'Contract readiness evidence',
+          value: params.contractEvidenceRef,
+          displayValue: params.contractEvidenceRef,
+          readinessBlock: 'contract',
+          sourceClass: 'contract_evidence',
+          enablesDossierAddition: 'add contract readiness evidence to separate pilot learning from operational rollout',
+          statusWhenMissing: 'blocked_by_evidence',
+        },
+        {
+          id: 'economics_assumption',
+          label: 'Economics assumptions',
+          value: params.economicsAssumptionRef,
+          displayValue: params.economicsAssumptionRef,
+          readinessBlock: 'economics',
+          sourceClass: 'commercial_evidence',
+          enablesDossierAddition: 'add economics assumptions for commercial readiness without triggering billing or tariff mutation',
+          statusWhenMissing: 'blocked_by_evidence',
+        },
+        {
+          id: 'owner_escalation',
+          label: 'Owner and escalation contact',
+          value: params.owner && params.escalationContact,
+          displayValue: [params.owner, params.escalationContact].filter(Boolean).join(' / '),
+          readinessBlock: 'governance',
+          sourceClass: 'owner_evidence',
+          enablesDossierAddition: 'add owner and escalation contact so open evidence can be routed as follow-up',
+          statusWhenMissing: 'blocked_by_evidence',
+        },
+      ];
+
+      const readinessBlocks = {
+        participantReadiness: {
+          participantCount,
+          participantEvidenceRef: params.participantEvidenceRef || null,
+          status: participantCount > 0 && params.participantEvidenceRef ? 'ready' : 'missing_evidence',
+        },
+        meteringReadiness: {
+          maloStatus: params.maloStatus || null,
+          meteringReadiness: params.meteringReadiness || null,
+          dataBasis: params.dataBasis || null,
+          status: isReady(params.maloStatus) && isReady(params.meteringReadiness) ? 'ready' : 'missing_evidence',
+        },
+        marketRoleReadiness: {
+          marketRoleReadiness: params.marketRoleReadiness || null,
+          status: isReady(params.marketRoleReadiness) ? 'ready' : 'missing_evidence',
+        },
+        settlementReadiness: {
+          a96EvidenceRef: params.a96EvidenceRef || null,
+          settlementEvidenceRef: params.settlementEvidenceRef || null,
+          status: params.a96EvidenceRef && params.settlementEvidenceRef && isBillingDataBasis ? 'ready' : 'missing_or_not_billing_basis',
+        },
+        economicsReadiness: {
+          contractEvidenceRef: params.contractEvidenceRef || null,
+          economicsAssumptionRef: params.economicsAssumptionRef || null,
+          status: params.contractEvidenceRef && params.economicsAssumptionRef ? 'ready' : 'missing_evidence',
+        },
+      };
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => normalizeStatus(spec.value) === 'ready')
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue || spec.value,
+          readinessBlock: spec.readinessBlock,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => normalizeStatus(spec.value) !== 'ready')
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          status: normalizeStatus(spec.value),
+          value: spec.displayValue || spec.value || null,
+          readinessBlock: spec.readinessBlock,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+          statusWhenMissing: spec.statusWhenMissing,
+        }));
+      const missingIds = new Set(missingEvidence.map((item) => item.missingDataPoint));
+      const gateStatus = missingIds.size === 0
+        ? 'billing_near_ready'
+        : isForecastBasis
+          ? 'learning_pilot'
+          : missingIds.has('market_role_readiness')
+            ? 'blocked_by_market_role'
+            : missingIds.has('malo_metering_readiness')
+              ? 'blocked_by_metering'
+              : missingIds.has('settlement_a96_evidence') && isBillingDataBasis
+                ? 'blocked_by_settlement'
+                : missingIds.has('settlement_a96_evidence')
+                  ? 'simulation_ready'
+                  : 'blocked_by_evidence';
+      const simulationStage = gateStatus === 'billing_near_ready'
+        ? 'billing_near_ready'
+        : gateStatus === 'simulation_ready'
+          ? 'simulation_ready'
+          : gateStatus === 'learning_pilot'
+            ? 'learning_pilot'
+            : 'blocked_before_operational_rollout';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const classificationRationale = [
+        gateStatus === 'billing_near_ready'
+          ? 'All supplied readiness evidence supports a billing-near assessment.'
+          : gateStatus === 'learning_pilot'
+            ? 'Forecast or synthetic evidence can support a learning pilot, but it is not billing-ready.'
+            : gateStatus === 'simulation_ready'
+              ? 'Core project, participant, metering and market-role evidence can support simulation, while settlement/A96 evidence remains open.'
+              : `Open ${missingEvidence[0]?.label || 'evidence'} prevents operational rollout.`,
+        'No allocation, A96 export, settlement, MaKo, billing, tariff, HITL, customer communication or external connector action was called.',
+      ];
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        status: item.status,
+        value: item.value,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'energy_sharing_simulation_gate',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.energySharingSimulationGateStatus'],
+        referenced: [
+          'energy-sharing.validate',
+          'energy-sharing-allocation.allocate',
+          'datapoint.health',
+          'edm-validation.validate',
+          'settlement.prepareA96',
+          'settlement.reconcileA96',
+          'grid-connection.validate',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+        ],
+        notCalled: [
+          'energy-sharing.createProject',
+          'energy-sharing-allocation.allocate',
+          'settlement.prepareA96',
+          'settlement.reconcileA96',
+          'settlement.exportA96',
+          'mako.dispatch',
+          'billing.release',
+          'tariff.mutate',
+          'customer-service.send',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const dossierFacts = [
+        `Status: ${gateStatus}`,
+        `Simulation Stage: ${simulationStage}`,
+        `Provided Energy-Sharing gate evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.communityId) dossierFacts.push(`Community: ${params.communityId}`);
+      if (params.gridOperatorId) dossierFacts.push(`Grid Operator: ${params.gridOperatorId}`);
+
+      return {
+        energySharingSimulationGateId: `esgate:${Buffer.from(`${communityId}:${params.gridOperatorId || ''}:${params.dataBasis || ''}:${params.owner || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'energy_sharing_simulation_gate',
+        safety: 'read_only',
+        gateStatus,
+        simulationStage,
+        readinessScore,
+        communityId: params.communityId || null,
+        gridOperatorId: params.gridOperatorId || null,
+        readinessBlocks,
+        classificationRationale,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        sourceArtifacts,
+        sourceActions,
+        validationFindings: missingEvidence,
+        dossierEvidence: {
+          status: gateStatus,
+          gateStatus,
+          simulationStage,
+          readinessScore,
+          communityId: params.communityId || null,
+          gridOperatorId: params.gridOperatorId || null,
+          readinessBlocks,
+          classificationRationale,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          sourceArtifacts,
           sourceActions: {
             notCalled: sourceActions.notCalled,
           },

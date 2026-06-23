@@ -869,6 +869,40 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Energy Sharing Simulation Gate
+  // Specific simulation/readiness wording must win over generic prosumer advisory.
+  const energySharingSimulationSignals = [
+    'energy sharing simulation',
+    'energieteilen simulation',
+    'energy-sharing simulation',
+    'energy sharing gate',
+    'energy-sharing gate',
+    'lernpilot',
+    'learning pilot',
+    'abrechnungsnah',
+    'billing readiness',
+    'imsys-reife',
+    'malo status',
+    'bilanzkreislogik',
+    'a96 readiness',
+    'teilnehmerdaten',
+    'marktrollenrisiko',
+    'energy_sharing_simulation_gate',
+  ];
+  const hasEnergySharingSimulationCombo =
+    /(energy sharing|energy-sharing|energieteilen)/i.test(haystack) &&
+    /(simulation|gate|lernpilot|learning pilot|abrechnungsnah|billing readiness|a96|imsys|malo status|bilanzkreislogik)/i.test(haystack);
+
+  if (
+    hasEnergySharingSimulationCombo ||
+    energySharingSimulationSignals.filter((signal) => haystack.includes(signal)).length >= 2
+  ) {
+    const energySharingSimulationCap = findCapabilityByName('energy_sharing_simulation_gate');
+    if (energySharingSimulationCap) {
+      return { capability: energySharingSimulationCap, score: 123, usedFallback: false };
+    }
+  }
+
   // ── Energy Sharing / Prosumer Advisory
   // 'evidence' in the prompt matches vdmiAssetValidationSignals — intercept before VDMI.
   const energySharingSpecificSignals = [
