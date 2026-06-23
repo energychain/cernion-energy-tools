@@ -104,6 +104,7 @@ module.exports = {
       crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
       assetValuationTransformationGateStatus: 5 * 60 * 1000, // 5 min
       gasCapacityBookingReviewGateStatus: 5 * 60 * 1000, // 5 min
+      gasNetworkDecisionChainStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -5469,6 +5470,110 @@ module.exports = {
           this.settings.cacheTtlMs.gasCapacityBookingReviewGateStatus,
           async () => ({
             ...this.buildGasCapacityBookingReviewGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- gasNetworkDecisionChainStatus -------------------------------------
+    /**
+     * GET /api/dashboard/gas-network-decision-chain
+     *
+     * Read-only dossier-safe projection for gas network management decision
+     * chains. It does not compute gas-flow, KANU/EOG, book-value or Fotojahr
+     * calculations and never executes stilllegung, booking, asset or workflow
+     * mutations.
+     */
+    gasNetworkDecisionChainStatus: {
+      rest: 'GET /gas-network-decision-chain',
+      params: {
+        chainId: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        reconciliationId: { type: 'string', optional: true, min: 1 },
+        segmentId: { type: 'string', optional: true, min: 1 },
+        capacityAssumption: { type: 'string', optional: true, min: 1 },
+        capacityEvidenceRef: { type: 'string', optional: true, min: 1 },
+        decommissioningPath: { type: 'string', optional: true, min: 1 },
+        decommissioningEvidenceRef: { type: 'string', optional: true, min: 1 },
+        regulatoryImpactRef: { type: 'string', optional: true, min: 1 },
+        eogRef: { type: 'string', optional: true, min: 1 },
+        kanuRef: { type: 'string', optional: true, min: 1 },
+        assetRef: { type: 'string', optional: true, min: 1 },
+        bookValueRef: { type: 'string', optional: true, min: 1 },
+        photoYear: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string' }] },
+        decisionDeadline: { type: 'string', optional: true, min: 1 },
+        ownerRole: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        gateStatus: { type: 'string', optional: true, min: 1 },
+        blockedFollowUpDecision: { type: 'string', optional: true, min: 1 },
+        nextEvidenceStep: { type: 'string', optional: true, min: 1 },
+        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Gas network decision chain -- read-only evidence projection',
+        description:
+          'Returns a deterministic dossier-safe decision-chain view over gas capacity assumptions, decommissioning path, KANU/EOG references, asset/book-value references, Fotojahr window and blocked follow-up decisions. ' +
+          'The endpoint is read-only and never executes capacity booking, stilllegung, investment approval, Asset-MDM overrides, HITL, notifications, billing, settlement, tariff, MaKo, contract, device-control or external connector actions.',
+        parameters: [
+          { name: 'chainId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'reconciliationId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'segmentId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'capacityAssumption', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decommissioningPath', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryImpactRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'bookValueRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'photoYear', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionDeadline', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'blockedFollowUpDecision', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextEvidenceStep', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only gas network decision-chain evidence',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    chainScope: { type: 'object' },
+                    capacityAssumptionStatus: { type: 'object' },
+                    decommissioningPathStatus: { type: 'object' },
+                    regulatoryImpactStatus: { type: 'object' },
+                    assetBookValueStatus: { type: 'object' },
+                    photoYearWindow: { type: 'object' },
+                    owner: { type: 'object' },
+                    blockedFollowUpDecision: { type: 'string' },
+                    nextEvidenceStep: { type: 'string' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `gas-network-decision-chain:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.gasNetworkDecisionChainStatus,
+          async () => ({
+            ...this.buildGasNetworkDecisionChainStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -19678,6 +19783,187 @@ module.exports = {
           decisionFrameRef: params.decisionFrameRef || null,
           commercialSignoff: params.commercialSignoff || null,
           riskScenarios,
+          sourceRefs,
+          missingEvidence,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildGasNetworkDecisionChainStatus(params = {}) {
+      const isProvided = (value) => {
+        if (Array.isArray(value)) return value.length > 0;
+        return value !== undefined && value !== null && String(value).trim() !== '';
+      };
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const missingMap = {
+        capacity_assumption: 'add capacity assumption and evidence reference',
+        decommissioning_path: 'add stilllegung or reuse path and horizon evidence',
+        regulatory_impact_refs: 'add KANU/EOG/regulatory impact evidence references',
+        asset_book_value_refs: 'add asset and book-value provenance',
+        photo_year_window: 'add Fotojahr window and decision deadline',
+        owner: 'add responsible management role or persona',
+        blocked_follow_up_decision: 'add the blocked downstream decision',
+        next_evidence_step: 'add the next concrete evidence request',
+        source_refs: 'add source references for decision-chain provenance',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint) => {
+        missingEvidence.push({
+          missingDataPoint,
+          status: 'missing',
+          enablesDossierAddition: missingMap[missingDataPoint],
+        });
+      };
+
+      const sourceRefs = toList(params.sourceRefs);
+      if (!isProvided(params.capacityAssumption) && !isProvided(params.capacityEvidenceRef)) {
+        addGap('capacity_assumption');
+      }
+      if (!isProvided(params.decommissioningPath) && !isProvided(params.decommissioningEvidenceRef)) {
+        addGap('decommissioning_path');
+      }
+      if (!isProvided(params.regulatoryImpactRef) && !isProvided(params.eogRef) && !isProvided(params.kanuRef)) {
+        addGap('regulatory_impact_refs');
+      }
+      if (!isProvided(params.assetRef) || !isProvided(params.bookValueRef)) addGap('asset_book_value_refs');
+      if (!isProvided(params.photoYear) || !isProvided(params.decisionDeadline)) addGap('photo_year_window');
+      if (!isProvided(params.owner) && !isProvided(params.ownerRole)) addGap('owner');
+      if (!isProvided(params.blockedFollowUpDecision)) addGap('blocked_follow_up_decision');
+      if (!isProvided(params.nextEvidenceStep)) addGap('next_evidence_step');
+      if (sourceRefs.length === 0) addGap('source_refs');
+
+      let status = 'ready_for_decision_chain_review';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'capacity_assumption')) {
+        status = 'needs_capacity_assumption';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'decommissioning_path')) {
+        status = 'needs_decommissioning_path';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_impact_refs')) {
+        status = 'needs_regulatory_refs';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'asset_book_value_refs')) {
+        status = 'needs_asset_book_value_refs';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'photo_year_window')) {
+        status = 'needs_photo_year_window';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'owner')) {
+        status = 'needs_owner';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_decision_chain_provenance';
+      }
+
+      const requiredCount = Object.keys(missingMap).length;
+      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const sourceActions = {
+        inspected: ['dashboard-api.gasNetworkDecisionChainStatus'],
+        referenced: [
+          'gasnetz-waermeplanung.reconcile',
+          'decision-frame.get',
+          'assets.effective',
+          'eog-calculator.evaluate',
+          'vdmi.dossier',
+        ],
+        notCalled: [
+          'gas-network-flow.calculate',
+          'gas-capacity-booking.submit',
+          'gas-transformation.executeDecommissioning',
+          'investment.approve',
+          'assets.applyOverride',
+          'hitl.create',
+          'notification.dispatchInternal',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'mako.dispatch',
+          'contract.release',
+          'device-control.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const chainScope = {
+        chainId: params.chainId || null,
+        gridOperatorId: params.gridOperatorId || null,
+        reconciliationId: params.reconciliationId || null,
+        segmentId: params.segmentId || null,
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'gas_network_decision_chain',
+      }));
+      const dossierFacts = [
+        `Decision Chain Status: ${status}`,
+        `Grid Operator: ${chainScope.gridOperatorId || 'missing'}`,
+        `Segment: ${chainScope.segmentId || 'missing'}`,
+        `Capacity Assumption: ${params.capacityAssumption || (params.capacityEvidenceRef ? 'provided' : 'missing')}`,
+        `Decommissioning Path: ${params.decommissioningPath || (params.decommissioningEvidenceRef ? 'provided' : 'missing')}`,
+        `Regulatory References: ${params.regulatoryImpactRef || params.eogRef || params.kanuRef || 'missing'}`,
+        `Fotojahr: ${params.photoYear || 'missing'}`,
+        `Owner: ${params.owner || params.ownerRole || 'missing'}`,
+      ];
+
+      return {
+        capabilityKey: 'gas_network_decision_chain',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        chainScope,
+        capacityAssumptionStatus: {
+          assumption: params.capacityAssumption || null,
+          evidenceRef: params.capacityEvidenceRef || null,
+        },
+        decommissioningPathStatus: {
+          path: params.decommissioningPath || null,
+          evidenceRef: params.decommissioningEvidenceRef || null,
+        },
+        regulatoryImpactStatus: {
+          regulatoryImpactRef: params.regulatoryImpactRef || null,
+          eogRef: params.eogRef || null,
+          kanuRef: params.kanuRef || null,
+          approvalClaimed: false,
+        },
+        assetBookValueStatus: {
+          assetRef: params.assetRef || null,
+          bookValueRef: params.bookValueRef || null,
+        },
+        photoYearWindow: {
+          photoYear: params.photoYear || null,
+          decisionDeadline: params.decisionDeadline || null,
+        },
+        owner: {
+          role: params.ownerRole || null,
+          name: params.owner || null,
+        },
+        gateStatus: params.gateStatus || status,
+        blockedFollowUpDecision: params.blockedFollowUpDecision || null,
+        nextEvidenceStep: params.nextEvidenceStep || null,
+        sourceRefs,
+        missingEvidence,
+        positiveFollowUps,
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'gas_network_decision_chain',
+          status,
+          readinessScore,
+          chainScope,
+          capacityAssumptionStatus: params.capacityAssumption || (params.capacityEvidenceRef ? 'provided' : 'missing'),
+          decommissioningPath: params.decommissioningPath || null,
+          regulatoryImpactRef: params.regulatoryImpactRef || null,
+          eogRef: params.eogRef || null,
+          kanuRef: params.kanuRef || null,
+          assetRef: params.assetRef || null,
+          bookValueRef: params.bookValueRef || null,
+          photoYear: params.photoYear || null,
+          decisionDeadline: params.decisionDeadline || null,
+          owner: params.owner || params.ownerRole || null,
+          blockedFollowUpDecision: params.blockedFollowUpDecision || null,
+          nextEvidenceStep: params.nextEvidenceStep || null,
           sourceRefs,
           missingEvidence,
           positiveFollowUps,

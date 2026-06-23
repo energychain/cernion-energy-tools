@@ -623,6 +623,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasGasNetworkDecisionChainSpecificSignal =
+    /(gasnetz.?entscheidungskette|gas network decision chain|gas_network_decision_chain|fotojahr|kanu.?eog|eog.?kanu|blockierte folgeentscheidung|blocked follow.?up decision)/i.test(haystack) &&
+    /(kapazitaetsannahme|kapazitätsannahme|capacity assumption|stilllegungspfad|decommissioning path|buchwert|book.?value|asset|owner|evidenzschritt|next evidence|folgeentscheidung|entscheidungskette)/i.test(haystack) &&
+    !/(gas.?kapazitaetsbestellung|gas.?kapazitätsbestellung|capacity booking review|kaltjahr|rlm.?rebound|engpasshistorie|vdmi.?abnahme|submit booking|buchung senden|jahresbestellung|gas_capacity_order_revision_gate|gasfluss simulation|thermo simulation|execute decommissioning|stilllegung ausfuehren|stilllegung ausführen|hitl create|external connector|personal-agent execute)/i.test(haystack);
+
+  if (hasGasNetworkDecisionChainSpecificSignal) {
+    const gasNetworkDecisionChainCapability = findCapabilityByName('gas_network_decision_chain');
+    if (gasNetworkDecisionChainCapability) {
+      return { capability: gasNetworkDecisionChainCapability, score: 147, usedFallback: false };
+    }
+  }
+
   const hasAssetValuationTransformationGateSpecificSignal =
     /(asset valuation|asset.?bewertung|assetbewertung|restwert|buchwert|assetzustand|asset valuation transformation gate|transformation gate|transformationsgate)/i.test(haystack) &&
     /(book.?value|buchwert|restwert|assetzustand|condition|zustand|stilllegung|umwidmung|h2 option|h2.?option|waermebezug|wärmebezug|vertragsrisiko|regulatorische unsicherheit|datenqualitaet|datenqualität|decision owner|next decision|management gate)/i.test(haystack) &&

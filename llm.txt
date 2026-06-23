@@ -168,8 +168,8 @@ recipes:
   residual-load-co2-price-window "A Stadtwerk needs time-window guidance for flexible loads based on residual…"
 resolve: GET /api/_agent/operations?domain=market-data
 
-### regulatory (16 capabilities · 2 recipes · 38 operations)
-capabilities: cls_digital_twin_compliance_gate, eeg_clawback_ewk_monitoring, energy_tax_information_package, gas_capacity_booking_review_gate, gas_capacity_order_revision_gate, gas_decommissioning_roadmap_status, gas_infrastructure_risk_governance, gasnetz_waermeplanung, gasnetz_waermeplanung_assessment, heat_asset_tariff_steering, heat_transformation_line_asset_model, mastr_quality_oemetadata, re4de_variable_grid_fee_layer3, regulatorische_entgeltlogik, regulatory_change_simulator_readiness, special_grid_usage_impact_map
+### regulatory (17 capabilities · 2 recipes · 38 operations)
+capabilities: cls_digital_twin_compliance_gate, eeg_clawback_ewk_monitoring, energy_tax_information_package, gas_capacity_booking_review_gate, gas_capacity_order_revision_gate, gas_decommissioning_roadmap_status, gas_infrastructure_risk_governance, gas_network_decision_chain, gasnetz_waermeplanung, gasnetz_waermeplanung_assessment, heat_asset_tariff_steering, heat_transformation_line_asset_model, mastr_quality_oemetadata, re4de_variable_grid_fee_layer3, regulatorische_entgeltlogik, regulatory_change_simulator_readiness, special_grid_usage_impact_map
 recipes:
   section14a-compliance-autopilot "A grid operator needs a recurring process to detect controllability and…"
   utility-report-ewk "A grid operator needs a structured EWK (Einspeisungswerke-Kennzahlen)…"
@@ -181,7 +181,7 @@ recipes:
   (none)
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (10 capabilities · 8 recipes · 331 operations)
+### platform (10 capabilities · 8 recipes · 332 operations)
 capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, evidence_grounding_confidence_audit, file_ingest_monitor, hitl_role_based_evidence_request, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted troubleshooting…"
@@ -248,13 +248,13 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: b9fb3b57954d13e2385d5e9b278beb74288b93f996e98260816f5fda073f6698
-- src/capability-catalog.js: 00ae1c6b226bed10c1df11bfa708b699821bbef744dac20a78fb6538e44c8450
-- openapi-export.json: 8f1fdf8fe99d1b8e21ac67671eb2c0aac877f6395e7b0e57084481c14d3feae7
+- src/capability-catalog.js: a2363b4f407168a963c51740d0d00d3690d21b9dbb34e5cbee4a595be84b4b1a
+- openapi-export.json: f4810f3421c31503218c28661e727091fc6b3a86bbf39dbd7868c856f062eaf2
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 848
-- operation_count: 953
+- path_count: 850
+- operation_count: 955
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 995cf2fb8ea344cfafefef4c3c4c15f8538538e523992870a976ae37fdc9f813
+- llm_txt_sha256: c6567b0d6d1d44732c6dc39b8fa27aa0c5f7de5ae29f31c4c2e72805a8da6c9a

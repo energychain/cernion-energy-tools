@@ -1442,6 +1442,30 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('gas_network_decision_chain: requires Fotojahr, regulatory, asset and follow-up evidence', () => {
+    const plan = { routeKey: 'gas_network_decision_chain' };
+    const result = planEvidence(plan, {
+      capacityAssumption: 'rlm-flat-until-2030',
+      decommissioningPath: 'partial-decommission-after-2035',
+      sourceRefs: ['waermeplanung:42'],
+    });
+
+    expect(result.registryKey).toBe('gas_network_decision_chain');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['capacity_assumption', 'decommissioning_path', 'source_refs'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'regulatory_impact_refs',
+        'asset_book_value_refs',
+        'photo_year_window',
+        'owner',
+        'blocked_follow_up_decision',
+        'next_evidence_step',
+      ])
+    );
+  });
+
   it('forecast-flex: requires forecast_location', () => {
     const plan = { routeKey: 'forecast-flex' };
     const result = planEvidence(plan, {});

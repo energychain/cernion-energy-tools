@@ -2665,6 +2665,88 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- gasNetworkDecisionChainStatus --------------------------------------
+
+  describe('gasNetworkDecisionChainStatus', () => {
+    it('reports missing gas decision-chain evidence without executing mutations', async () => {
+      const result = await broker.call('dashboard-api.gasNetworkDecisionChainStatus', {
+        chainId: 'gas-chain-255',
+        gridOperatorId: 'vnb-gas',
+        segmentId: 'segment-north',
+        capacityAssumption: 'capacity-flat-until-2030',
+      });
+
+      expect(result.status).toBe('needs_decommissioning_path');
+      expect(result.safety).toBe('read_only');
+      expect(result.chainScope.segmentId).toBe('segment-north');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'decommissioning_path',
+          'regulatory_impact_refs',
+          'asset_book_value_refs',
+          'photo_year_window',
+          'owner',
+          'blocked_follow_up_decision',
+          'next_evidence_step',
+          'source_refs',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('gas_network_decision_chain');
+      expect(result.regulatoryImpactStatus.approvalClaimed).toBe(false);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'gas-network-flow.calculate',
+          'gas-capacity-booking.submit',
+          'gas-transformation.executeDecommissioning',
+          'investment.approve',
+          'assets.applyOverride',
+          'hitl.create',
+          'billing.release',
+          'settlement.prepareBilling',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_decision_chain_review for complete caller-supplied evidence', async () => {
+      const result = await broker.call('dashboard-api.gasNetworkDecisionChainStatus', {
+        chainId: 'gas-ready-255',
+        gridOperatorId: 'vnb-gas',
+        reconciliationId: 'recon-42',
+        segmentId: 'segment-south',
+        capacityAssumption: 'rlm-flat-with-reduction-from-2032',
+        capacityEvidenceRef: 'capacity:assumption-255',
+        decommissioningPath: 'partial-decommission-after-2035',
+        decommissioningEvidenceRef: 'waermeplanung:segment-42',
+        regulatoryImpactRef: 'regulatory:eog-kanu-255',
+        eogRef: 'eog:quality-element-255',
+        kanuRef: 'kanu:assessment-255',
+        assetRef: 'asset:gas-line-42',
+        bookValueRef: 'book:value-42',
+        photoYear: '2026',
+        decisionDeadline: '2026-09-30',
+        ownerRole: 'asset_management',
+        owner: 'gas-strategy-lead',
+        gateStatus: 'open',
+        blockedFollowUpDecision: 'investment-committee-2026-q4',
+        nextEvidenceStep: 'attach-eog-kanu-note',
+        sourceRefs: 'waermeplanung:42,decision-frame:255,asset:gas-line-42',
+      });
+
+      expect(result.status).toBe('ready_for_decision_chain_review');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.photoYearWindow.photoYear).toBe('2026');
+      expect(result.dossierEvidence.dossierFacts).toContain(
+        'Decision Chain Status: ready_for_decision_chain_review'
+      );
+      expect(result.dossierEvidence.sourceRefs).toEqual(
+        expect.arrayContaining(['waermeplanung:42', 'decision-frame:255', 'asset:gas-line-42'])
+      );
+    });
+  });
+
   // -- energySharingSimulationGateStatus ----------------------------------
 
   describe('energySharingSimulationGateStatus', () => {

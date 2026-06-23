@@ -3871,6 +3871,74 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  gas_network_decision_chain: {
+    sources: [
+      {
+        id: 'capacity_assumption',
+        label: 'Capacity assumption and evidence reference',
+        resolvedBy: ['dashboard-api.gasNetworkDecisionChainStatus', 'gasnetz-waermeplanung.reconcile'],
+        contextKeys: ['capacityAssumption', 'capacityEvidenceRef'],
+        optional: false,
+      },
+      {
+        id: 'decommissioning_path',
+        label: 'Stilllegung or reuse path evidence',
+        resolvedBy: ['dashboard-api.gasNetworkDecisionChainStatus', 'gasnetz-waermeplanung.reconcile'],
+        contextKeys: ['decommissioningPath', 'decommissioningEvidenceRef'],
+        optional: false,
+      },
+      {
+        id: 'regulatory_impact_refs',
+        label: 'KANU/EOG/regulatory impact references',
+        resolvedBy: ['dashboard-api.gasNetworkDecisionChainStatus', 'eog-calculator.evaluate'],
+        contextKeys: ['regulatoryImpactRef', 'eogRef', 'kanuRef'],
+        optional: false,
+      },
+      {
+        id: 'asset_book_value_refs',
+        label: 'Asset and book-value provenance',
+        resolvedBy: ['dashboard-api.gasNetworkDecisionChainStatus', 'assets.effective'],
+        contextKeys: ['assetRef', 'bookValueRef'],
+        optional: false,
+      },
+      {
+        id: 'photo_year_window',
+        label: 'Fotojahr window and deadline',
+        resolvedBy: ['dashboard-api.gasNetworkDecisionChainStatus', 'decision-frame.get'],
+        contextKeys: ['photoYear', 'decisionDeadline'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Responsible management owner',
+        resolvedBy: ['dashboard-api.gasNetworkDecisionChainStatus', 'vdmi.dossier'],
+        contextKeys: ['owner', 'ownerRole'],
+        optional: false,
+      },
+      {
+        id: 'blocked_follow_up_decision',
+        label: 'Blocked follow-up decision',
+        resolvedBy: ['dashboard-api.gasNetworkDecisionChainStatus', 'decision-frame.get'],
+        contextKeys: ['blockedFollowUpDecision'],
+        optional: false,
+      },
+      {
+        id: 'next_evidence_step',
+        label: 'Next evidence step',
+        resolvedBy: ['dashboard-api.gasNetworkDecisionChainStatus', 'vdmi.dossier'],
+        contextKeys: ['nextEvidenceStep'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Source references',
+        resolvedBy: ['dashboard-api.gasNetworkDecisionChainStatus'],
+        contextKeys: ['sourceRefs'],
+        optional: false,
+      },
+    ],
+  },
+
   'forecast-flex': {
     sources: [
       {

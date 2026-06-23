@@ -1006,6 +1006,37 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes gas network decision-chain prompts to the read-only evidence projection', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Gasnetz Entscheidungskette fuer Kapazitaet und Fotojahr mit Stilllegungspfad, KANU EOG Evidenz, Buchwert, Owner und blockierter Folgeentscheidung.',
+    });
+
+    expect(result.capability).toBe('gas_network_decision_chain');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'gas_network_decision_chain'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.gasNetworkDecisionChainStatus');
+    expect(actionNames).not.toContain('gas-capacity-booking.submit');
+    expect(actionNames).not.toContain('gas-transformation.executeDecommissioning');
+    expect(actionNames).not.toContain('assets.applyOverride');
+    expect(actionNames).not.toContain('investment.approve');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('keeps gas booking review wording on #260 route instead of gas network decision chain', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Gas-Kapazitaetsbestellung Review Gate mit Kaltjahr, RLM-Rebound, Engpasshistorie und VDMI-Abnahme.',
+    });
+
+    expect(result.capability).toBe('gas_capacity_booking_review_gate');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.gasCapacityBookingReviewGateStatus');
+    expect(actionNames).not.toContain('dashboard-api.gasNetworkDecisionChainStatus');
+  });
+
   it('routes special grid usage prompts to the read-only impact map', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe besondere Netznutzung Paragraf 19 StromNEV mit Frist, Formular, Mengenbasis, Rueckverguetung, EOG Wirkung und Abrechnungswirkung.',

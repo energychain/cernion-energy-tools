@@ -512,6 +512,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/gas-capacity-booking-review-gate']).toBe(
         'dashboard-api.gasCapacityBookingReviewGateStatus'
       );
+      expect(aliases['GET /dashboard/gas-network-decision-chain']).toBe(
+        'dashboard-api.gasNetworkDecisionChainStatus'
+      );
       expect(aliases['POST /stadtwerk-mauer-sandbox-runtime/events']).toBe(
         'stadtwerk-mauer-sandbox-runtime.ingestEvent'
       );

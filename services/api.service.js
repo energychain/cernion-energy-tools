@@ -1440,6 +1440,8 @@ module.exports = {
             'dashboard-api.assetValuationTransformationGateStatus',
           'GET /dashboard/gas-capacity-booking-review-gate':
             'dashboard-api.gasCapacityBookingReviewGateStatus',
+          'GET /dashboard/gas-network-decision-chain':
+            'dashboard-api.gasNetworkDecisionChainStatus',
           'POST /stadtwerk-mauer-sandbox-runtime/events':
             'stadtwerk-mauer-sandbox-runtime.ingestEvent',
           'POST /stadtwerk-mauer-sandbox-runtime/reset':

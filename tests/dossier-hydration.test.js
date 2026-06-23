@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 79 static rules', () => {
+    it('loads all 80 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(79);
+      expect(rules.length).toBe(80);
     });
 
-    it('compiles all 79 static rules without error', () => {
+    it('compiles all 80 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(79);
+      expect(rules.length).toBe(80);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1374,6 +1374,56 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Network Area: gas-nord');
       expect(formatted).toContain('Leading Gap: cold_year_evidence');
       expect(formatted).toContain('Side-Effect Guard: gas-capacity-booking.submit');
+    });
+
+    it('dashboard-api.gasNetworkDecisionChainStatus is dossier-safe and formats decision-chain facts', () => {
+      const rule = getRule('dashboard-api.gasNetworkDecisionChainStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Gasnetz Entscheidungskette chain=gas-255 netzbetreiber=vnb-gas segment=seg-1 kapazitaetsannahme=rlm-flat stilllegungspfad=partial-decommission eog=eog-255 kanu=kanu-255 asset=asset-42 buchwert=bw-42 fotojahr=2026 deadline=2026-09-30 owner=asset-lead folgeentscheidung=investment-q4 evidenzschritt=eog-note pruefen'
+        )
+      ).toEqual({
+        chainId: 'gas-255',
+        gridOperatorId: 'vnb-gas',
+        segmentId: 'seg-1',
+        capacityAssumption: 'rlm-flat',
+        decommissioningPath: 'partial-decommission',
+        eogRef: 'eog-255',
+        kanuRef: 'kanu-255',
+        assetRef: 'asset-42',
+        bookValueRef: 'bw-42',
+        photoYear: '2026',
+        decisionDeadline: '2026-09-30',
+        owner: 'asset-lead',
+        blockedFollowUpDecision: 'investment-q4',
+        nextEvidenceStep: 'eog-note',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'gas_network_decision_chain',
+        status: 'needs_regulatory_refs',
+        chainScope: { gridOperatorId: 'vnb-gas', segmentId: 'seg-1' },
+        capacityAssumptionStatus: { assumption: 'rlm-flat' },
+        decommissioningPathStatus: { path: 'partial-decommission' },
+        assetBookValueStatus: { assetRef: 'asset-42', bookValueRef: 'bw-42' },
+        photoYearWindow: { photoYear: '2026' },
+        owner: { name: 'asset-lead' },
+        blockedFollowUpDecision: 'investment-q4',
+        missingEvidence: [{ missingDataPoint: 'regulatory_impact_refs' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add KANU/EOG refs' }],
+        sourceActions: {
+          notCalled: ['gas-network-flow.calculate'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: gas_network_decision_chain');
+      expect(formatted).toContain('Decision Chain Status: needs_regulatory_refs');
+      expect(formatted).toContain('Grid Operator: vnb-gas');
+      expect(formatted).toContain('Leading Gap: regulatory_impact_refs');
+      expect(formatted).toContain('Side-Effect Guard: gas-network-flow.calculate');
     });
 
     it('dashboard-api.specialGridUsageImpactMapStatus is dossier-safe and formats impact-map facts', () => {
