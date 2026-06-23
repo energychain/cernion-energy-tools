@@ -1238,6 +1238,46 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  stadtwerk_mauer_sandbox_runtime: {
+    sources: [
+      {
+        id: 'seeded_demo_event',
+        label: 'Deterministisches Demo-Event',
+        resolvedBy: ['dashboard-api.stadtwerkMauerSandboxRuntimeStatus', 'stadtwerk-mauer-sandbox-runtime.ingestEvent'],
+        contextKeys: ['eventId', 'eventType', 'caseId'],
+        optional: false,
+      },
+      {
+        id: 'reset_delete_proof',
+        label: 'Reset-/Delete-Nachweis',
+        resolvedBy: ['dashboard-api.stadtwerkMauerSandboxRuntimeStatus', 'stadtwerk-mauer-sandbox-runtime.reset'],
+        contextKeys: ['lastResetResult', 'resetDeleteReadiness'],
+        optional: false,
+      },
+      {
+        id: 'tenant_isolation_proof',
+        label: 'Tenant-Isolationsnachweis',
+        resolvedBy: ['dashboard-api.stadtwerkMauerSandboxRuntimeStatus'],
+        contextKeys: ['tenantId', 'requiredTenantId', 'sandboxBoundaryAllowed'],
+        optional: false,
+      },
+      {
+        id: 'derived_state_inventory',
+        label: 'Abgeleiteter Sandbox-State',
+        resolvedBy: ['dashboard-api.stadtwerkMauerSandboxRuntimeStatus', 'object-store.query'],
+        contextKeys: ['derivedStateInventory', 'artifactCount', 'eventCount'],
+        optional: false,
+      },
+      {
+        id: 'source_action_guards',
+        label: 'No-Call-Guards fuer externe Aktionen',
+        resolvedBy: ['dashboard-api.stadtwerkMauerSandboxRuntimeStatus'],
+        contextKeys: ['sourceActions.notCalled'],
+        optional: false,
+      },
+    ],
+  },
+
   e2e_controllability_check_governance: {
     sources: [
       {

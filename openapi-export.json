@@ -15225,6 +15225,87 @@
         "description": "Returns deterministic synthetic Stadtwerk Mauer event templates and replay envelopes. The endpoint is read-only and does not schedule, persist, inject, publish, execute, or externally send events."
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-sandbox-runtime": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerSandboxRuntimeStatus",
+        "summary": "Stadtwerk Mauer sandbox runtime -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer sandbox runtime status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "eventCount": {
+                      "type": "number"
+                    },
+                    "artifactCount": {
+                      "type": "number"
+                    },
+                    "derivedStateInventory": {
+                      "type": "object"
+                    },
+                    "resetDeleteReadiness": {
+                      "type": "object"
+                    },
+                    "lastResetResult": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "missingLifecycleEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Reports deterministic Stadtwerk Mauer sandbox runtime state, reset/delete readiness, derived artifact counts and source-action guards. The endpoint is read-only; sandbox ingest/reset mutation actions are separate and not used for dossier hydration.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -42948,6 +43029,69 @@
         }
       }
     },
+    "/api/stadtwerk-mauer-sandbox-runtime/events": {
+      "post": {
+        "operationId": "stadtwerk-mauer-sandbox-runtime_ingestEvent",
+        "summary": "stadtwerk-mauer-sandbox-runtime.ingestEvent",
+        "tags": [
+          "stadtwerk-mauer-sandbox-runtime"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stadtwerk-mauer-sandbox-runtime/reset": {
+      "post": {
+        "operationId": "stadtwerk-mauer-sandbox-runtime_reset",
+        "summary": "stadtwerk-mauer-sandbox-runtime.reset",
+        "tags": [
+          "stadtwerk-mauer-sandbox-runtime"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stadtwerk-mauer-sandbox-runtime/status": {
+      "get": {
+        "operationId": "stadtwerk-mauer-sandbox-runtime_status",
+        "summary": "stadtwerk-mauer-sandbox-runtime.status",
+        "tags": [
+          "stadtwerk-mauer-sandbox-runtime"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/system/status": {
       "get": {
         "operationId": "system_status",
@@ -52935,6 +53079,87 @@
           },
           {
             "name": "approvalStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-sandbox-runtime": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerSandboxRuntimeStatus",
+        "summary": "Stadtwerk Mauer sandbox runtime -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer sandbox runtime status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "eventCount": {
+                      "type": "number"
+                    },
+                    "artifactCount": {
+                      "type": "number"
+                    },
+                    "derivedStateInventory": {
+                      "type": "object"
+                    },
+                    "resetDeleteReadiness": {
+                      "type": "object"
+                    },
+                    "lastResetResult": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "missingLifecycleEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Reports deterministic Stadtwerk Mauer sandbox runtime state, reset/delete readiness, derived artifact counts and source-action guards. The endpoint is read-only; sandbox ingest/reset mutation actions are separate and not used for dossier hydration.",
+        "parameters": [
+          {
+            "name": "tenantId",
             "in": "query",
             "required": false,
             "schema": {

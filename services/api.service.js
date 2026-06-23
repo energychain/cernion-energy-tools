@@ -1422,6 +1422,14 @@ module.exports = {
             'dashboard-api.specialGridUsageImpactMapStatus',
           'GET /dashboard/liquidity-planning-governance':
             'dashboard-api.liquidityPlanningGovernanceStatus',
+          'GET /dashboard/stadtwerk-mauer-sandbox-runtime':
+            'dashboard-api.stadtwerkMauerSandboxRuntimeStatus',
+          'POST /stadtwerk-mauer-sandbox-runtime/events':
+            'stadtwerk-mauer-sandbox-runtime.ingestEvent',
+          'POST /stadtwerk-mauer-sandbox-runtime/reset':
+            'stadtwerk-mauer-sandbox-runtime.reset',
+          'GET /stadtwerk-mauer-sandbox-runtime/status':
+            'stadtwerk-mauer-sandbox-runtime.status',
           'GET /dashboard/regulatory-change-readiness':
             'dashboard-api.regulatoryChangeReadinessStatus',
           'GET /dashboard/investment-two-track-control':

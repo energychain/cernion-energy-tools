@@ -130,6 +130,8 @@ const CAPABILITY_DOMAIN_MAP = {
   // agent's own answer-evidence/dossier-quality infrastructure
   answer_evidence: 'platform',
   compliance: 'regulatory',
+  // demo-sandbox lifecycle/runtime boundary, not production tenant lifecycle
+  sandbox_governance: 'platform',
 };
 
 // ── 2. OpenAPI operation tag → canonical ─────────────────────────────────────
@@ -252,6 +254,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'Re4DE Variable Grid Fee': 'regulatory',
   'Redispatch Readiness Gate': 'redispatch',
   'Community': 'energy-sharing',
+  'stadtwerk-mauer-sandbox-runtime': 'platform',
 };
 
 // ── 3. recipe → canonical ────────────────────────────────────────────────────

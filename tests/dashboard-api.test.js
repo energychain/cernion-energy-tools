@@ -540,6 +540,69 @@ describe('dashboard-api.service', () => {
       },
     });
 
+    broker.createService({
+      name: 'stadtwerk-mauer-sandbox-runtime',
+      actions: {
+        status: makeHandler('stadtwerkMauerSandboxRuntimeStatus', {
+          capabilityKey: 'stadtwerk_mauer_sandbox_runtime',
+          safety: 'read_only_status_for_non_consequential_sandbox_runtime',
+          tenantId: 'stadtwerk-mauer',
+          requiredTenantId: 'stadtwerk-mauer',
+          sandboxBoundaryAllowed: true,
+          status: 'empty_sandbox_ready_for_seed',
+          eventCount: 0,
+          artifactCount: 0,
+          derivedStateInventory: {
+            event_instance: 0,
+            dossier_addition: 0,
+            follow_up_proposal: 0,
+            stub_transcript_placeholder: 0,
+            outbox_queue_placeholder: 0,
+            audit_artifact: 0,
+          },
+          resetDeleteReadiness: {
+            canReset: true,
+            canDelete: true,
+            idempotent: true,
+            scopedToTenant: 'stadtwerk-mauer',
+            wouldDeleteArtifactCount: 0,
+          },
+          lastResetResult: null,
+          missingLifecycleEvidence: [
+            {
+              missingDataPoint: 'seeded_demo_event',
+              enablesDossierAddition: 'add deterministic Stadtwerk Mauer event trace',
+            },
+          ],
+          positiveFollowUps: [
+            {
+              missingDataPoint: 'seeded_demo_event',
+              enablesDossierAddition: 'add deterministic Stadtwerk Mauer event trace',
+              category: 'stadtwerk_mauer_sandbox_runtime',
+            },
+          ],
+          sourceActions: {
+            inspected: ['stadtwerk-mauer-sandbox-runtime.status'],
+            referenced: ['object-store.query'],
+            notCalled: ['mako.dispatch', 'billing.release', 'device-control.execute', 'personal-agent.execute'],
+          },
+          dossierEvidence: {
+            status: 'empty_sandbox_ready_for_seed',
+            tenantId: 'stadtwerk-mauer',
+            eventCount: 0,
+            artifactCount: 0,
+            missingLifecycleEvidence: [{ missingDataPoint: 'seeded_demo_event' }],
+            positiveFollowUps: [
+              {
+                enablesDossierAddition: 'add deterministic Stadtwerk Mauer event trace',
+              },
+            ],
+            dossierFacts: ['Status: empty_sandbox_ready_for_seed', 'Sandbox events: 0'],
+          },
+        }),
+      },
+    });
+
     broker.createService(DashboardApiService);
 
     await broker.start();
@@ -5428,6 +5491,79 @@ describe('dashboard-api.service', () => {
       expect(result.missingEvidence.length).toBeGreaterThanOrEqual(1);
       expect(result.decisionBoundaries.join(' ')).toContain('deterministic replay preview only');
       expect(result.sourceActions.notCalled).toContain('market-communication.send');
+    });
+  });
+
+  // -- stadtwerkMauerSandboxRuntimeStatus ---------------------------------
+  describe('stadtwerkMauerSandboxRuntimeStatus', () => {
+    it('reports sandbox lifecycle gaps without executing external actions', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerSandboxRuntimeStatus', {
+        tenantId: 'stadtwerk-mauer',
+      });
+
+      expect(result.status).toBe('empty_sandbox_ready_for_seed');
+      expect(result.tenantId).toBe('stadtwerk-mauer');
+      expect(result.sandboxBoundaryAllowed).toBe(true);
+      expect(result.eventCount).toBe(0);
+      expect(result.missingLifecycleEvidence.map((gap) => gap.missingDataPoint)).toContain(
+        'seeded_demo_event'
+      );
+      expect(result.positiveFollowUps[0].category).toBe('stadtwerk_mauer_sandbox_runtime');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['mako.dispatch', 'billing.release', 'personal-agent.execute'])
+      );
+      expect(result.safety).toBe('read_only_status_for_non_consequential_sandbox_runtime');
+    });
+
+    it('surfaces seeded sandbox inventory through the read-only dashboard action', async () => {
+      handlers.stadtwerkMauerSandboxRuntimeStatus = () => ({
+        capabilityKey: 'stadtwerk_mauer_sandbox_runtime',
+        safety: 'read_only_status_for_non_consequential_sandbox_runtime',
+        tenantId: 'stadtwerk-mauer',
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: true,
+        status: 'sandbox_state_mutated_with_reset_proof',
+        eventCount: 1,
+        artifactCount: 6,
+        derivedStateInventory: {
+          event_instance: 1,
+          dossier_addition: 1,
+          follow_up_proposal: 1,
+          stub_transcript_placeholder: 1,
+          outbox_queue_placeholder: 1,
+          audit_artifact: 1,
+        },
+        resetDeleteReadiness: { canReset: true, idempotent: true, wouldDeleteArtifactCount: 6 },
+        lastResetResult: { deletedArtifactCount: 6 },
+        missingLifecycleEvidence: [],
+        positiveFollowUps: [],
+        sourceActions: {
+          inspected: ['stadtwerk-mauer-sandbox-runtime.status'],
+          referenced: ['object-store.query'],
+          notCalled: ['external.connector.call', 'device-control.execute', 'personal-agent.execute'],
+        },
+        dossierEvidence: {
+          status: 'sandbox_state_mutated_with_reset_proof',
+          tenantId: 'stadtwerk-mauer',
+          eventCount: 1,
+          artifactCount: 6,
+          missingLifecycleEvidence: [],
+          positiveFollowUps: [],
+          dossierFacts: ['Sandbox events: 1', 'Sandbox artifacts: 6'],
+        },
+      });
+
+      const result = await broker.call('dashboard-api.stadtwerkMauerSandboxRuntimeStatus', {
+        tenantId: 'stadtwerk-mauer',
+      });
+
+      expect(result.status).toBe('sandbox_state_mutated_with_reset_proof');
+      expect(result.derivedStateInventory).toMatchObject({
+        event_instance: 1,
+        audit_artifact: 1,
+      });
+      expect(result.resetDeleteReadiness.wouldDeleteArtifactCount).toBe(6);
+      expect(result.sourceActions.notCalled).toContain('device-control.execute');
     });
   });
 

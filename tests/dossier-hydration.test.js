@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 70 static rules', () => {
+    it('loads all 71 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(70);
+      expect(rules.length).toBe(71);
     });
 
-    it('compiles all 70 static rules without error', () => {
+    it('compiles all 71 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(70);
+      expect(rules.length).toBe(71);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -943,6 +943,40 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Templates: 25');
       expect(formatted).toContain('First Event: pv_anmeldung_elektriker');
       expect(formatted).toContain('Side-Effect Guard: scheduler.create');
+    });
+
+    it('dashboard-api.stadtwerkMauerSandboxRuntimeStatus is dossier-safe and formats sandbox facts', () => {
+      const rule = getRule('dashboard-api.stadtwerkMauerSandboxRuntimeStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Stadtwerk Mauer Sandbox Runtime tenant=stadtwerk-mauer Reset Status laden'
+        )
+      ).toEqual({
+        tenantId: 'stadtwerk-mauer',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'sandbox_state_mutated_needs_reset_proof',
+        tenantId: 'stadtwerk-mauer',
+        eventCount: 1,
+        artifactCount: 6,
+        resetDeleteReadiness: { wouldDeleteArtifactCount: 6 },
+        missingLifecycleEvidence: [{ missingDataPoint: 'reset_delete_proof' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add cleanup readiness and residue-free reset evidence',
+          },
+        ],
+        timestamp: '2026-06-23T07:30:00.000Z',
+      });
+
+      expect(formatted).toContain('Sandbox Status: sandbox_state_mutated_needs_reset_proof');
+      expect(formatted).toContain('Tenant: stadtwerk-mauer');
+      expect(formatted).toContain('Events: 1');
+      expect(formatted).toContain('Leading Gap: reset_delete_proof');
     });
 
     it('dashboard-api.legalClarificationOperatingModelStatus is dossier-safe and formats operating-model facts', () => {

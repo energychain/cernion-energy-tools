@@ -485,6 +485,18 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/liquidity-planning-governance']).toBe(
         'dashboard-api.liquidityPlanningGovernanceStatus'
       );
+      expect(aliases['GET /dashboard/stadtwerk-mauer-sandbox-runtime']).toBe(
+        'dashboard-api.stadtwerkMauerSandboxRuntimeStatus'
+      );
+      expect(aliases['POST /stadtwerk-mauer-sandbox-runtime/events']).toBe(
+        'stadtwerk-mauer-sandbox-runtime.ingestEvent'
+      );
+      expect(aliases['POST /stadtwerk-mauer-sandbox-runtime/reset']).toBe(
+        'stadtwerk-mauer-sandbox-runtime.reset'
+      );
+      expect(aliases['GET /stadtwerk-mauer-sandbox-runtime/status']).toBe(
+        'stadtwerk-mauer-sandbox-runtime.status'
+      );
       expect(aliases['GET /dashboard/regulatory-change-readiness']).toBe(
         'dashboard-api.regulatoryChangeReadinessStatus'
       );

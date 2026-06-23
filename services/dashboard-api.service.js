@@ -95,6 +95,7 @@ module.exports = {
       stadtwerkMauerVdmiProfileStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerCapabilityProjectionStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerEventReplayPreviewStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerSandboxRuntimeStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -4688,6 +4689,78 @@ module.exports = {
             _errors: [],
           })
         );
+      },
+    },
+
+    // -- stadtwerkMauerSandboxRuntimeStatus -------------------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-sandbox-runtime
+     *
+     * Read-only dossier-safe status for the Stadtwerk Mauer sandbox runtime.
+     * Mutating ingest/reset actions live in the sandbox runtime service and are
+     * not allowlisted for dossier hydration.
+     */
+    stadtwerkMauerSandboxRuntimeStatus: {
+      rest: 'GET /stadtwerk-mauer-sandbox-runtime',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer sandbox runtime -- read-only dossier-safe status',
+        description:
+          'Reports deterministic Stadtwerk Mauer sandbox runtime state, reset/delete readiness, ' +
+          'derived artifact counts and source-action guards. The endpoint is read-only; sandbox ' +
+          'ingest/reset mutation actions are separate and not used for dossier hydration.',
+        parameters: [
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Stadtwerk Mauer sandbox runtime status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    tenantId: { type: 'string' },
+                    eventCount: { type: 'number' },
+                    artifactCount: { type: 'number' },
+                    derivedStateInventory: { type: 'object' },
+                    resetDeleteReadiness: { type: 'object' },
+                    lastResetResult: { type: 'object', nullable: true },
+                    missingLifecycleEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const errors = [];
+        const status = await this.safeCall(
+          ctx,
+          'stadtwerk-mauer-sandbox-runtime.status',
+          { tenantId },
+          this.buildMissingStadtwerkMauerSandboxRuntimeStatus(tenantId),
+          errors,
+          'stadtwerk-mauer-sandbox-runtime.status'
+        );
+        return {
+          ...status,
+          timestamp: new Date().toISOString(),
+          _errors: errors,
+        };
       },
     },
 
@@ -17439,6 +17512,80 @@ module.exports = {
             notCalled: sourceActions.notCalled,
           },
           dossierFacts,
+        },
+      };
+    },
+
+    buildMissingStadtwerkMauerSandboxRuntimeStatus(tenantId = 'stadtwerk-mauer') {
+      const missingLifecycleEvidence = [
+        {
+          missingDataPoint: 'sandbox_runtime_status',
+          enablesDossierAddition: 'add Stadtwerk Mauer sandbox runtime status evidence',
+        },
+      ];
+      return {
+        capabilityKey: 'stadtwerk_mauer_sandbox_runtime',
+        safety: 'read_only_status_for_non_consequential_sandbox_runtime',
+        tenantId,
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: tenantId === 'stadtwerk-mauer',
+        status: 'sandbox_runtime_status_unavailable',
+        eventCount: 0,
+        artifactCount: 0,
+        derivedStateInventory: {
+          event_instance: 0,
+          dossier_addition: 0,
+          follow_up_proposal: 0,
+          stub_transcript_placeholder: 0,
+          outbox_queue_placeholder: 0,
+          audit_artifact: 0,
+        },
+        resetDeleteReadiness: {
+          canReset: false,
+          canDelete: false,
+          idempotent: true,
+          scopedToTenant: 'stadtwerk-mauer',
+          wouldDeleteArtifactCount: 0,
+        },
+        lastResetResult: null,
+        missingLifecycleEvidence,
+        positiveFollowUps: missingLifecycleEvidence.map((item) => ({
+          ...item,
+          category: 'stadtwerk_mauer_sandbox_runtime',
+        })),
+        sourceActions: {
+          inspected: ['dashboard-api.stadtwerkMauerSandboxRuntimeStatus'],
+          referenced: ['stadtwerk-mauer-sandbox-runtime.status'],
+          notCalled: [
+            'mako.dispatch',
+            'customer-service.send',
+            'billing.release',
+            'settlement.prepareBilling',
+            'tariff.mutate',
+            'switching.execute',
+            'webhook.emit',
+            'device-control.execute',
+            'external.connector.call',
+            'hitl.create',
+            'personal-agent.execute',
+            'tenant.delete.production',
+          ],
+        },
+        dossierEvidence: {
+          status: 'sandbox_runtime_status_unavailable',
+          tenantId,
+          eventCount: 0,
+          artifactCount: 0,
+          missingLifecycleEvidence,
+          positiveFollowUps: missingLifecycleEvidence.map((item) => ({
+            ...item,
+            category: 'stadtwerk_mauer_sandbox_runtime',
+          })),
+          dossierFacts: [
+            'Status: sandbox_runtime_status_unavailable',
+            'Sandbox events: 0',
+            'Sandbox artifacts: 0',
+          ],
         },
       };
     },
