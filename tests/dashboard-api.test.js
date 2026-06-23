@@ -2823,6 +2823,90 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- arealNetworkIntegrationOfferGateStatus ------------------------------
+
+  describe('arealNetworkIntegrationOfferGateStatus', () => {
+    it('reports missing Areal offer-gate evidence without executing mutations', async () => {
+      const result = await broker.call('dashboard-api.arealNetworkIntegrationOfferGateStatus', {
+        caseId: 'areal-269',
+        siteReference: 'site-west',
+        requestedConnectionCapacity: '12MW',
+      });
+
+      expect(result.status).toBe('needs_grid_capacity_evidence');
+      expect(result.safety).toBe('read_only');
+      expect(result.decisionScope.siteReference).toBe('site-west');
+      expect(result.capacityEvidence.capacityReserved).toBe(false);
+      expect(result.commercialAssumptionEvidence.bindingOfferGenerated).toBe(false);
+      expect(result.regulatoryBoundaryEvidence.approvalClaimed).toBe(false);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'grid_capacity_evidence',
+          'target_grid_path',
+          'investment_capex_reference',
+          'regulatory_impact_boundary',
+          'commercial_offer_assumptions',
+          'owner',
+          'next_decision_date',
+          'offer_decision_status',
+          'source_refs',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe(
+        'areal_network_integration_offer_gate'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'offer.calculate',
+          'offer.generateBinding',
+          'contract.accept',
+          'grid-capacity.reserve',
+          'target-grid.optimize',
+          'investment.approve',
+          'assets.applyOverride',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'mako.dispatch',
+          'device-control.execute',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_offer_gate_review for complete caller-supplied evidence', async () => {
+      const result = await broker.call('dashboard-api.arealNetworkIntegrationOfferGateStatus', {
+        caseId: 'areal-ready-269',
+        projectId: 'offer-project-west',
+        siteReference: 'site-west',
+        requestedConnectionCapacity: '12MW',
+        gridCapacityEvidence: 'grid-capacity:ok-42',
+        targetGridPath: 'znp:path-42',
+        investmentReference: 'capex:42',
+        regulatoryImpactBoundary: 'reg-impact:boundary-42',
+        commercialOfferAssumptions: 'offer-assumption:v1',
+        owner: 'commercial-lead',
+        nextDecisionDate: '2026-09-30',
+        offerDecisionStatus: 'review-ready',
+        sourceRefs: 'grid:42,znp:42,capex:42',
+      });
+
+      expect(result.status).toBe('ready_for_offer_gate_review');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.targetGridEvidence.optimizerExecuted).toBe(false);
+      expect(result.investmentEvidence.investmentApproved).toBe(false);
+      expect(result.dossierEvidence.dossierFacts).toContain(
+        'Offer Gate Status: ready_for_offer_gate_review'
+      );
+      expect(result.dossierEvidence.sourceRefs).toEqual(
+        expect.arrayContaining(['grid:42', 'znp:42', 'capex:42'])
+      );
+    });
+  });
+
   // -- energySharingSimulationGateStatus ----------------------------------
 
   describe('energySharingSimulationGateStatus', () => {

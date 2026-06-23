@@ -635,6 +635,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasArealNetworkIntegrationOfferGateSpecificSignal =
+    /(areal.?netzeinbindung|areal network integration|standortentwicklung|angebotsgate|offer gate|areal_network_integration_offer_gate)/i.test(haystack) &&
+    /(anschlusskapazitaet|anschlusskapazität|connection capacity|netzkapazitaet|netzkapazität|grid capacity|zielnetzpfad|target.?grid|investitionsbedarf|capex|regulatorische wirkung|regulatory impact|angebotsannahmen|offer assumption|entscheidungstermin|decision date)/i.test(haystack) &&
+    !/(offer\.calculate|binding offer|verbindliches angebot|contract accept|vertrag annehmen|grid-capacity\.reserve|kapazitaet reservieren|kapazität reservieren|target-grid\.optimize|investment\.approve|assets\.applyOverride|hitl create|external connector|personal-agent execute|billing|settlement|abrechnung|tarif|mako|device-control)/i.test(haystack);
+
+  if (hasArealNetworkIntegrationOfferGateSpecificSignal) {
+    const arealOfferCapability = findCapabilityByName('areal_network_integration_offer_gate');
+    if (arealOfferCapability) {
+      return { capability: arealOfferCapability, score: 146, usedFallback: false };
+    }
+  }
+
   const hasAssetValuationTransformationGateSpecificSignal =
     /(asset valuation|asset.?bewertung|assetbewertung|restwert|buchwert|assetzustand|asset valuation transformation gate|transformation gate|transformationsgate)/i.test(haystack) &&
     /(book.?value|buchwert|restwert|assetzustand|condition|zustand|stilllegung|umwidmung|h2 option|h2.?option|waermebezug|wärmebezug|vertragsrisiko|regulatorische unsicherheit|datenqualitaet|datenqualität|decision owner|next decision|management gate)/i.test(haystack) &&

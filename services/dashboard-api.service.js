@@ -106,6 +106,7 @@ module.exports = {
       gasCapacityBookingReviewGateStatus: 5 * 60 * 1000, // 5 min
       gasNetworkDecisionChainStatus: 5 * 60 * 1000, // 5 min
       waterPricingNetInvestmentAlignmentStatus: 5 * 60 * 1000, // 5 min
+      arealNetworkIntegrationOfferGateStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -5674,6 +5675,109 @@ module.exports = {
           this.settings.cacheTtlMs.waterPricingNetInvestmentAlignmentStatus,
           async () => ({
             ...this.buildWaterPricingNetInvestmentAlignmentStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- arealNetworkIntegrationOfferGateStatus ----------------------------
+    /**
+     * GET /api/dashboard/areal-network-integration-offer-gate
+     *
+     * Read-only dossier-safe decision card for Areal / site offer readiness.
+     * It does not calculate offers, reserve grid capacity, approve target-grid
+     * investments, create contracts, or mutate commercial / grid systems.
+     */
+    arealNetworkIntegrationOfferGateStatus: {
+      rest: 'GET /areal-network-integration-offer-gate',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        projectId: { type: 'string', optional: true, min: 1 },
+        tenantId: { type: 'string', optional: true, min: 1 },
+        siteReference: { type: 'string', optional: true, min: 1 },
+        areaReference: { type: 'string', optional: true, min: 1 },
+        requestedConnectionCapacity: { type: 'string', optional: true, min: 1 },
+        requestedCapacityKw: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'number' }] },
+        gridCapacityEvidence: { type: 'string', optional: true, min: 1 },
+        capacityEvidenceReference: { type: 'string', optional: true, min: 1 },
+        targetGridPath: { type: 'string', optional: true, min: 1 },
+        zielnetzPath: { type: 'string', optional: true, min: 1 },
+        investmentReference: { type: 'string', optional: true, min: 1 },
+        capexReference: { type: 'string', optional: true, min: 1 },
+        regulatoryImpactBoundary: { type: 'string', optional: true, min: 1 },
+        regulatoryImpactReference: { type: 'string', optional: true, min: 1 },
+        commercialOfferAssumptions: { type: 'string', optional: true, min: 1 },
+        offerAssumptionReference: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        gateOwner: { type: 'string', optional: true, min: 1 },
+        nextDecisionDate: { type: 'string', optional: true, min: 1 },
+        offerDecisionStatus: { type: 'string', optional: true, min: 1 },
+        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Areal network-integration offer gate -- read-only evidence gate',
+        description:
+          'Returns a deterministic dossier-safe decision card over site/area, requested connection capacity, grid-capacity evidence, target-grid path, investment/CAPEX evidence, regulatory boundary, commercial offer assumptions, owner, decision date and offer decision state. ' +
+          'The endpoint is read-only and never calculates a binding offer, reserves grid capacity, approves investments, creates contracts, mutates Asset-MDM, billing, settlement, tariff, MaKo or device-control systems, creates HITL/notifications, or calls external connectors.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'projectId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'siteReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'areaReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'requestedConnectionCapacity', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'requestedCapacityKw', in: 'query', required: false, schema: { type: 'number' } },
+          { name: 'gridCapacityEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'targetGridPath', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'investmentReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryImpactBoundary', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'commercialOfferAssumptions', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextDecisionDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'offerDecisionStatus', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Areal network-integration offer evidence',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    decisionScope: { type: 'object' },
+                    capacityEvidence: { type: 'object' },
+                    targetGridEvidence: { type: 'object' },
+                    investmentEvidence: { type: 'object' },
+                    regulatoryBoundaryEvidence: { type: 'object' },
+                    commercialAssumptionEvidence: { type: 'object' },
+                    owner: { type: 'object' },
+                    decisionWindow: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `areal-network-integration-offer-gate:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.arealNetworkIntegrationOfferGateStatus,
+          async () => ({
+            ...this.buildArealNetworkIntegrationOfferGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -20251,6 +20355,220 @@ module.exports = {
           reviewWindow: params.reviewPeriod || params.targetCommitteeDate || null,
           alignmentDecision: params.alignmentDecision || null,
           regulatoryApprovalClaimed: false,
+          sourceRefs,
+          missingEvidence,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildArealNetworkIntegrationOfferGateStatus(params = {}) {
+      const isProvided = (value) => {
+        if (Array.isArray(value)) return value.length > 0;
+        if (typeof value === 'number') return Number.isFinite(value);
+        return value !== undefined && value !== null && String(value).trim() !== '';
+      };
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const toNumber = (value) => {
+        if (value === undefined || value === null || value === '') return null;
+        const normalized = typeof value === 'string'
+          ? value.replace(/\s/g, '').replace(',', '.')
+          : value;
+        const parsed = Number(normalized);
+        return Number.isFinite(parsed) ? parsed : null;
+      };
+
+      const requestedCapacityKw = toNumber(params.requestedCapacityKw);
+      const sourceRefs = toList(params.sourceRefs);
+      const missingMap = {
+        site_reference: 'add site or area reference to the offer gate',
+        requested_connection_capacity: 'add requested connection capacity to the dossier',
+        grid_capacity_evidence: 'add grid-capacity status evidence',
+        target_grid_path: 'add target-grid path evidence',
+        investment_capex_reference: 'add investment / CAPEX impact reference',
+        regulatory_impact_boundary: 'add regulatory-impact boundary evidence',
+        commercial_offer_assumptions: 'add commercial offer-assumption evidence',
+        owner: 'add decision owner to the Areal gate',
+        next_decision_date: 'add next decision date to the decision card',
+        offer_decision_status: 'add offer decision status',
+        source_refs: 'add source references for the decision card',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint) => {
+        missingEvidence.push({
+          missingDataPoint,
+          status: 'missing',
+          enablesDossierAddition: missingMap[missingDataPoint],
+        });
+      };
+
+      if (!isProvided(params.siteReference) && !isProvided(params.areaReference)) addGap('site_reference');
+      if (!isProvided(params.requestedConnectionCapacity) && requestedCapacityKw === null) {
+        addGap('requested_connection_capacity');
+      }
+      if (!isProvided(params.gridCapacityEvidence) && !isProvided(params.capacityEvidenceReference)) {
+        addGap('grid_capacity_evidence');
+      }
+      if (!isProvided(params.targetGridPath) && !isProvided(params.zielnetzPath)) addGap('target_grid_path');
+      if (!isProvided(params.investmentReference) && !isProvided(params.capexReference)) {
+        addGap('investment_capex_reference');
+      }
+      if (!isProvided(params.regulatoryImpactBoundary) && !isProvided(params.regulatoryImpactReference)) {
+        addGap('regulatory_impact_boundary');
+      }
+      if (!isProvided(params.commercialOfferAssumptions) && !isProvided(params.offerAssumptionReference)) {
+        addGap('commercial_offer_assumptions');
+      }
+      if (!isProvided(params.owner) && !isProvided(params.gateOwner)) addGap('owner');
+      if (!isProvided(params.nextDecisionDate)) addGap('next_decision_date');
+      if (!isProvided(params.offerDecisionStatus)) addGap('offer_decision_status');
+      if (sourceRefs.length === 0) addGap('source_refs');
+
+      let status = 'ready_for_offer_gate_review';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'site_reference')) {
+        status = 'needs_site_reference';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'requested_connection_capacity')) {
+        status = 'needs_requested_capacity';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'grid_capacity_evidence')) {
+        status = 'needs_grid_capacity_evidence';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'target_grid_path')) {
+        status = 'needs_target_grid_path';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'investment_capex_reference')) {
+        status = 'needs_investment_capex_reference';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_impact_boundary')) {
+        status = 'needs_regulatory_boundary';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'commercial_offer_assumptions')) {
+        status = 'needs_offer_assumptions';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_decision_card_provenance';
+      }
+
+      const requiredCount = Object.keys(missingMap).length;
+      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const sourceActions = {
+        inspected: ['dashboard-api.arealNetworkIntegrationOfferGateStatus'],
+        referenced: [
+          'grid-connection.validate',
+          'target-grid-planning.review',
+          'investment-planning.review',
+          'regulatorische-entgeltlogik.evaluate',
+          'offer-management.review',
+          'vdmi.dossier',
+        ],
+        notCalled: [
+          'offer.calculate',
+          'offer.generateBinding',
+          'contract.accept',
+          'grid-capacity.reserve',
+          'target-grid.optimize',
+          'investment.approve',
+          'assets.applyOverride',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'mako.dispatch',
+          'device-control.execute',
+          'hitl.create',
+          'notification.dispatchInternal',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const decisionScope = {
+        caseId: params.caseId || null,
+        projectId: params.projectId || null,
+        tenantId: params.tenantId || null,
+        siteReference: params.siteReference || null,
+        areaReference: params.areaReference || null,
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'areal_network_integration_offer_gate',
+      }));
+      const dossierFacts = [
+        `Offer Gate Status: ${status}`,
+        `Site: ${decisionScope.siteReference || decisionScope.areaReference || 'missing'}`,
+        `Requested Capacity: ${params.requestedConnectionCapacity || (requestedCapacityKw !== null ? `${requestedCapacityKw} kW` : 'missing')}`,
+        `Grid Capacity Evidence: ${params.gridCapacityEvidence || params.capacityEvidenceReference || 'missing'}`,
+        `Target Grid Path: ${params.targetGridPath || params.zielnetzPath || 'missing'}`,
+        `Investment / CAPEX: ${params.investmentReference || params.capexReference || 'missing'}`,
+        `Regulatory Boundary: ${params.regulatoryImpactBoundary || params.regulatoryImpactReference || 'missing'}`,
+        `Offer Assumptions: ${params.commercialOfferAssumptions || params.offerAssumptionReference || 'missing'}`,
+        `Owner: ${params.owner || params.gateOwner || 'missing'}`,
+        `Next Decision Date: ${params.nextDecisionDate || 'missing'}`,
+      ];
+
+      return {
+        capabilityKey: 'areal_network_integration_offer_gate',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        decisionScope,
+        capacityEvidence: {
+          requestedConnectionCapacity: params.requestedConnectionCapacity || null,
+          requestedCapacityKw,
+          gridCapacityEvidence: params.gridCapacityEvidence || null,
+          capacityEvidenceReference: params.capacityEvidenceReference || null,
+          capacityReserved: false,
+        },
+        targetGridEvidence: {
+          targetGridPath: params.targetGridPath || null,
+          zielnetzPath: params.zielnetzPath || null,
+          optimizerExecuted: false,
+        },
+        investmentEvidence: {
+          investmentReference: params.investmentReference || null,
+          capexReference: params.capexReference || null,
+          investmentApproved: false,
+        },
+        regulatoryBoundaryEvidence: {
+          regulatoryImpactBoundary: params.regulatoryImpactBoundary || null,
+          regulatoryImpactReference: params.regulatoryImpactReference || null,
+          approvalClaimed: false,
+        },
+        commercialAssumptionEvidence: {
+          commercialOfferAssumptions: params.commercialOfferAssumptions || null,
+          offerAssumptionReference: params.offerAssumptionReference || null,
+          bindingOfferGenerated: false,
+        },
+        owner: {
+          owner: params.owner || null,
+          gateOwner: params.gateOwner || null,
+        },
+        decisionWindow: {
+          nextDecisionDate: params.nextDecisionDate || null,
+          offerDecisionStatus: params.offerDecisionStatus || null,
+        },
+        sourceRefs,
+        missingEvidence,
+        positiveFollowUps,
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'areal_network_integration_offer_gate',
+          status,
+          readinessScore,
+          decisionScope,
+          siteReference: params.siteReference || params.areaReference || null,
+          requestedConnectionCapacity:
+            params.requestedConnectionCapacity || (requestedCapacityKw !== null ? `${requestedCapacityKw} kW` : null),
+          gridCapacityEvidence: params.gridCapacityEvidence || params.capacityEvidenceReference || null,
+          targetGridPath: params.targetGridPath || params.zielnetzPath || null,
+          investmentReference: params.investmentReference || params.capexReference || null,
+          regulatoryImpactBoundary: params.regulatoryImpactBoundary || params.regulatoryImpactReference || null,
+          commercialOfferAssumptions: params.commercialOfferAssumptions || params.offerAssumptionReference || null,
+          owner: params.owner || params.gateOwner || null,
+          nextDecisionDate: params.nextDecisionDate || null,
+          offerDecisionStatus: params.offerDecisionStatus || null,
+          bindingOfferGenerated: false,
+          gridCapacityReserved: false,
           sourceRefs,
           missingEvidence,
           positiveFollowUps,

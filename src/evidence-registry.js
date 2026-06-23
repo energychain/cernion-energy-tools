@@ -4007,6 +4007,88 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  areal_network_integration_offer_gate: {
+    sources: [
+      {
+        id: 'site_reference',
+        label: 'Areal or site reference',
+        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'grid-connection.validate'],
+        contextKeys: ['siteReference', 'areaReference'],
+        optional: false,
+      },
+      {
+        id: 'requested_connection_capacity',
+        label: 'Requested connection capacity',
+        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'grid-connection.validate'],
+        contextKeys: ['requestedConnectionCapacity', 'requestedCapacityKw'],
+        optional: false,
+      },
+      {
+        id: 'grid_capacity_evidence',
+        label: 'Grid-capacity evidence reference',
+        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'grid-connection.validate'],
+        contextKeys: ['gridCapacityEvidence', 'capacityEvidenceReference'],
+        optional: false,
+      },
+      {
+        id: 'target_grid_path',
+        label: 'Target-grid path reference',
+        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'target-grid-planning.review'],
+        contextKeys: ['targetGridPath', 'zielnetzPath'],
+        optional: false,
+      },
+      {
+        id: 'investment_capex_reference',
+        label: 'Investment or CAPEX impact reference',
+        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'investment-planning.review'],
+        contextKeys: ['investmentReference', 'capexReference'],
+        optional: false,
+      },
+      {
+        id: 'regulatory_impact_boundary',
+        label: 'Regulatory-impact boundary reference',
+        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'regulatorische-entgeltlogik.evaluate'],
+        contextKeys: ['regulatoryImpactBoundary', 'regulatoryImpactReference'],
+        optional: false,
+      },
+      {
+        id: 'commercial_offer_assumptions',
+        label: 'Commercial offer-assumption reference',
+        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'offer-management.review'],
+        contextKeys: ['commercialOfferAssumptions', 'offerAssumptionReference'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Gate owner',
+        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'vdmi.dossier'],
+        contextKeys: ['owner', 'gateOwner'],
+        optional: false,
+      },
+      {
+        id: 'next_decision_date',
+        label: 'Next decision date',
+        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'vdmi.dossier'],
+        contextKeys: ['nextDecisionDate'],
+        optional: false,
+      },
+      {
+        id: 'offer_decision_status',
+        label: 'Offer decision status',
+        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'offer-management.review'],
+        contextKeys: ['offerDecisionStatus'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Source references',
+        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus'],
+        contextKeys: ['sourceRefs'],
+        optional: false,
+      },
+    ],
+  },
+
   'forecast-flex': {
     sources: [
       {

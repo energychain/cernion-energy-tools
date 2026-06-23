@@ -1171,6 +1171,107 @@
     "sourceIssue": 259
   },
   {
+    "id": "dashboard-api.arealNetworkIntegrationOfferGateStatus",
+    "action": "dashboard-api.arealNetworkIntegrationOfferGateStatus",
+    "label": "Areal Network Integration Offer Gate",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:caseId|case|fall)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "projectId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:projectId|projekt)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "siteReference": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:siteReference|standort|arealRef)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "requestedConnectionCapacity": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:requestedConnectionCapacity|anschlusskapazitaet|anschlusskapazität|capacity)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "gridCapacityEvidence": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:gridCapacityEvidence|netzkapazitaet|netzkapazität|capacityEvidence)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "targetGridPath": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:targetGridPath|zielnetzpfad|zielnetz)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "investmentReference": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:investmentReference|capexReference|investition|capex)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "regulatoryImpactBoundary": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:regulatoryImpactBoundary|regulatoryImpactReference|regulierungswirkung|regulatorik)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "commercialOfferAssumptions": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:commercialOfferAssumptions|offerAssumptions|angebotsannahmen|angebot)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:owner|gateOwner)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "nextDecisionDate": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:nextDecisionDate|entscheidungstermin|termin)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "offerDecisionStatus": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:offerDecisionStatus|angebotsentscheidung|entscheidung)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 100 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Offer Gate Status", "maxLen": 100 },
+        { "paths": ["decisionScope.siteReference", "dossierEvidence.siteReference", "decisionScope.areaReference"], "label": "Site", "maxLen": 140 },
+        { "paths": ["capacityEvidence.requestedConnectionCapacity", "dossierEvidence.requestedConnectionCapacity", "capacityEvidence.requestedCapacityKw"], "label": "Requested Capacity", "maxLen": 140 },
+        { "paths": ["capacityEvidence.gridCapacityEvidence", "dossierEvidence.gridCapacityEvidence", "capacityEvidence.capacityEvidenceReference"], "label": "Grid Capacity Evidence", "maxLen": 140 },
+        { "paths": ["targetGridEvidence.targetGridPath", "dossierEvidence.targetGridPath", "targetGridEvidence.zielnetzPath"], "label": "Target Grid Path", "maxLen": 140 },
+        { "paths": ["investmentEvidence.investmentReference", "dossierEvidence.investmentReference", "investmentEvidence.capexReference"], "label": "Investment / CAPEX", "maxLen": 140 },
+        { "paths": ["regulatoryBoundaryEvidence.regulatoryImpactBoundary", "dossierEvidence.regulatoryImpactBoundary", "regulatoryBoundaryEvidence.regulatoryImpactReference"], "label": "Regulatory Boundary", "maxLen": 140 },
+        { "paths": ["commercialAssumptionEvidence.commercialOfferAssumptions", "dossierEvidence.commercialOfferAssumptions", "commercialAssumptionEvidence.offerAssumptionReference"], "label": "Offer Assumptions", "maxLen": 140 },
+        { "paths": ["owner.owner", "dossierEvidence.owner", "owner.gateOwner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["decisionWindow.nextDecisionDate", "dossierEvidence.nextDecisionDate"], "label": "Next Decision Date", "maxLen": 120 },
+        { "paths": ["decisionWindow.offerDecisionStatus", "dossierEvidence.offerDecisionStatus"], "label": "Offer Decision", "maxLen": 140 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 269
+  },
+  {
     "id": "dashboard-api.receiptGroundedPresentationContract",
     "action": "dashboard-api.receiptGroundedPresentationContract",
     "label": "Receipt Grounded Presentation Contract",

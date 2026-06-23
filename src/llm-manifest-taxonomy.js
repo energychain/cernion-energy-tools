@@ -130,6 +130,7 @@ const CAPABILITY_DOMAIN_MAP = {
   regulatory_readiness: 'regulatory',
   re4de_grid_fees: 'regulatory',
   water_pricing_governance: 'regulatory',
+  grid_connection_commercial_gate: 'grid-planning',
   // market communication/messaging evidence chain
   market_communication: 'market-data',
   // agent's own answer-evidence/dossier-quality infrastructure

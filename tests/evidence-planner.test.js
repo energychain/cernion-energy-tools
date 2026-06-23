@@ -1490,6 +1490,36 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('areal_network_integration_offer_gate: requires offer-gate decision evidence', () => {
+    const plan = { routeKey: 'areal_network_integration_offer_gate' };
+    const result = planEvidence(plan, {
+      siteReference: 'site-west',
+      requestedConnectionCapacity: '12MW',
+      gridCapacityEvidence: 'grid-capacity:ok-42',
+    });
+
+    expect(result.registryKey).toBe('areal_network_integration_offer_gate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining([
+        'site_reference',
+        'requested_connection_capacity',
+        'grid_capacity_evidence',
+      ])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'target_grid_path',
+        'investment_capex_reference',
+        'regulatory_impact_boundary',
+        'commercial_offer_assumptions',
+        'owner',
+        'next_decision_date',
+        'offer_decision_status',
+        'source_refs',
+      ])
+    );
+  });
+
   it('forecast-flex: requires forecast_location', () => {
     const plan = { routeKey: 'forecast-flex' };
     const result = planEvidence(plan, {});

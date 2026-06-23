@@ -1067,6 +1067,38 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('dashboard-api.waterPricingNetInvestmentAlignmentStatus');
   });
 
+  it('routes Areal network-integration offer prompts to the read-only gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Areal Netzeinbindung Angebotsgate mit Anschlusskapazitaet Zielnetzpfad Investitionsbedarf regulatorische Wirkung Angebotsannahmen Owner und Entscheidungstermin.',
+    });
+
+    expect(result.capability).toBe('areal_network_integration_offer_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'areal_network_integration_offer_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.arealNetworkIntegrationOfferGateStatus');
+    expect(actionNames).not.toContain('offer.calculate');
+    expect(actionNames).not.toContain('contract.accept');
+    expect(actionNames).not.toContain('grid-capacity.reserve');
+    expect(actionNames).not.toContain('investment.approve');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('tariff.mutate');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('keeps target-grid transformation wording away from the Areal offer gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Netzanschlusspunkt Transformations-Gate mit division transformationOption dataQualityStatus investmentPath decommissionPath owner und nextAction.',
+    });
+
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).not.toContain('dashboard-api.arealNetworkIntegrationOfferGateStatus');
+  });
+
   it('routes special grid usage prompts to the read-only impact map', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe besondere Netznutzung Paragraf 19 StromNEV mit Frist, Formular, Mengenbasis, Rueckverguetung, EOG Wirkung und Abrechnungswirkung.',

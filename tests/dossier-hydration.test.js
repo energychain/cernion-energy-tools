@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 81 static rules', () => {
+    it('loads all 82 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(81);
+      expect(rules.length).toBe(82);
     });
 
-    it('compiles all 81 static rules without error', () => {
+    it('compiles all 82 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(81);
+      expect(rules.length).toBe(82);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1470,6 +1470,57 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Water Price Ref: wp-2026');
       expect(formatted).toContain('Leading Gap: asset_accounting_reference');
       expect(formatted).toContain('Side-Effect Guard: water-pricing.calculate');
+    });
+
+    it('dashboard-api.arealNetworkIntegrationOfferGateStatus is dossier-safe and formats offer gate facts', () => {
+      const rule = getRule('dashboard-api.arealNetworkIntegrationOfferGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Areal Angebotsgate case=areal-269 standort=site-west anschlusskapazitaet=12MW netzkapazitaet=grid-ok zielnetzpfad=znp-42 investition=capex-42 regulierungswirkung=reg-42 angebotsannahmen=offer-v1 owner=commercial-lead entscheidungstermin=2026-09-30 angebotsentscheidung=review-ready pruefen'
+        )
+      ).toEqual({
+        caseId: 'areal-269',
+        siteReference: 'site-west',
+        requestedConnectionCapacity: '12MW',
+        gridCapacityEvidence: 'grid-ok',
+        targetGridPath: 'znp-42',
+        investmentReference: 'capex-42',
+        regulatoryImpactBoundary: 'reg-42',
+        commercialOfferAssumptions: 'offer-v1',
+        owner: 'commercial-lead',
+        nextDecisionDate: '2026-09-30',
+        offerDecisionStatus: 'review-ready',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'areal_network_integration_offer_gate',
+        status: 'needs_grid_capacity_evidence',
+        decisionScope: { siteReference: 'site-west' },
+        capacityEvidence: { requestedConnectionCapacity: '12MW' },
+        targetGridEvidence: { targetGridPath: 'znp-42' },
+        investmentEvidence: { investmentReference: 'capex-42' },
+        regulatoryBoundaryEvidence: { regulatoryImpactBoundary: 'reg-42' },
+        commercialAssumptionEvidence: { commercialOfferAssumptions: 'offer-v1' },
+        owner: { owner: 'commercial-lead' },
+        decisionWindow: {
+          nextDecisionDate: '2026-09-30',
+          offerDecisionStatus: 'review-ready',
+        },
+        missingEvidence: [{ missingDataPoint: 'grid_capacity_evidence' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add grid capacity evidence' }],
+        sourceActions: {
+          notCalled: ['offer.calculate'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: areal_network_integration_offer_gate');
+      expect(formatted).toContain('Offer Gate Status: needs_grid_capacity_evidence');
+      expect(formatted).toContain('Site: site-west');
+      expect(formatted).toContain('Leading Gap: grid_capacity_evidence');
+      expect(formatted).toContain('Side-Effect Guard: offer.calculate');
     });
 
     it('dashboard-api.specialGridUsageImpactMapStatus is dossier-safe and formats impact-map facts', () => {
