@@ -488,6 +488,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/stadtwerk-mauer-sandbox-runtime']).toBe(
         'dashboard-api.stadtwerkMauerSandboxRuntimeStatus'
       );
+      expect(aliases['GET /dashboard/stadtwerk-mauer-external-interface-stubs']).toBe(
+        'dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus'
+      );
       expect(aliases['POST /stadtwerk-mauer-sandbox-runtime/events']).toBe(
         'stadtwerk-mauer-sandbox-runtime.ingestEvent'
       );
@@ -496,6 +499,12 @@ describe('API Gateway Service', () => {
       );
       expect(aliases['GET /stadtwerk-mauer-sandbox-runtime/status']).toBe(
         'stadtwerk-mauer-sandbox-runtime.status'
+      );
+      expect(aliases['POST /stadtwerk-mauer/external-interface-stubs/call']).toBe(
+        'stadtwerk-mauer-external-interface-stubs.callStub'
+      );
+      expect(aliases['GET /stadtwerk-mauer/external-interface-stubs/status']).toBe(
+        'stadtwerk-mauer-external-interface-stubs.getStatus'
       );
       expect(aliases['GET /dashboard/regulatory-change-readiness']).toBe(
         'dashboard-api.regulatoryChangeReadinessStatus'

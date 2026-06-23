@@ -255,6 +255,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'Redispatch Readiness Gate': 'redispatch',
   'Community': 'energy-sharing',
   'stadtwerk-mauer-sandbox-runtime': 'platform',
+  'stadtwerk-mauer-external-interface-stubs': 'platform',
 };
 
 // ── 3. recipe → canonical ────────────────────────────────────────────────────

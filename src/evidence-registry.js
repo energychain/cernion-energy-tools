@@ -1278,6 +1278,52 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  stadtwerk_mauer_external_interface_stubs: {
+    sources: [
+      {
+        id: 'stub_transcript',
+        label: 'Deterministisches Stub-Transkript',
+        resolvedBy: [
+          'dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus',
+          'stadtwerk-mauer-external-interface-stubs.callStub',
+        ],
+        contextKeys: ['recentTranscripts', 'transcriptCount', 'familyCounts', 'variantCounts'],
+        optional: false,
+      },
+      {
+        id: 'sandbox_reset_boundary',
+        label: 'Reset-sichere Sandbox-Ablage',
+        resolvedBy: [
+          'dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus',
+          'stadtwerk-mauer-sandbox-runtime.reset',
+        ],
+        contextKeys: ['resetBoundary', 'artifactCount'],
+        optional: false,
+      },
+      {
+        id: 'tenant_isolation_proof',
+        label: 'Tenant-Isolationsnachweis',
+        resolvedBy: ['dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus'],
+        contextKeys: ['tenantId', 'requiredTenantId', 'sandboxBoundaryAllowed'],
+        optional: false,
+      },
+      {
+        id: 'source_action_guards',
+        label: 'No-Call-Guards fuer externe Aktionen',
+        resolvedBy: ['dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus'],
+        contextKeys: ['sourceActions.notCalled'],
+        optional: false,
+      },
+      {
+        id: 'positive_follow_ups',
+        label: 'Positive Follow-ups fuer fehlende Stub-Evidenz',
+        resolvedBy: ['dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus'],
+        contextKeys: ['missingEvidence', 'positiveFollowUps'],
+        optional: false,
+      },
+    ],
+  },
+
   e2e_controllability_check_governance: {
     sources: [
       {

@@ -603,6 +603,60 @@ describe('dashboard-api.service', () => {
       },
     });
 
+    broker.createService({
+      name: 'stadtwerk-mauer-external-interface-stubs',
+      actions: {
+        getStatus: makeHandler('stadtwerkMauerExternalInterfaceStubsStatus', {
+          capabilityKey: 'stadtwerk_mauer_external_interface_stubs',
+          safety: 'sandbox_only_non_consequential_stubs_with_read_only_status',
+          tenantId: 'stadtwerk-mauer',
+          requiredTenantId: 'stadtwerk-mauer',
+          sandboxBoundaryAllowed: true,
+          status: 'stub_layer_ready_for_transcripts',
+          transcriptCount: 0,
+          artifactCount: 0,
+          familyCounts: {},
+          variantCounts: {},
+          recentTranscripts: [],
+          missingEvidence: [
+            {
+              missingDataPoint: 'stub_transcript',
+              enablesDossierAddition: 'add first deterministic external-interface transcript',
+            },
+          ],
+          positiveFollowUps: [
+            {
+              missingDataPoint: 'stub_transcript',
+              enablesDossierAddition: 'add first deterministic external-interface transcript',
+              category: 'stadtwerk_mauer_external_interface_stubs',
+            },
+          ],
+          resetBoundary: {
+            service: 'stadtwerk-mauer-sandbox-runtime.reset',
+            scopedToTenant: 'stadtwerk-mauer',
+          },
+          sourceActions: {
+            inspected: ['stadtwerk-mauer-external-interface-stubs.getStatus'],
+            referenced: ['stadtwerk-mauer-sandbox-runtime.reset', 'object-store.query'],
+            notCalled: ['mako.dispatch', 'billing.release', 'device-control.execute', 'personal-agent.execute'],
+          },
+          dossierEvidence: {
+            status: 'stub_layer_ready_for_transcripts',
+            tenantId: 'stadtwerk-mauer',
+            transcriptCount: 0,
+            artifactCount: 0,
+            missingEvidence: [{ missingDataPoint: 'stub_transcript' }],
+            positiveFollowUps: [
+              {
+                enablesDossierAddition: 'add first deterministic external-interface transcript',
+              },
+            ],
+            dossierFacts: ['Stub Status: stub_layer_ready_for_transcripts', 'Transcripts: 0'],
+          },
+        }),
+      },
+    });
+
     broker.createService(DashboardApiService);
 
     await broker.start();
@@ -5564,6 +5618,75 @@ describe('dashboard-api.service', () => {
       });
       expect(result.resetDeleteReadiness.wouldDeleteArtifactCount).toBe(6);
       expect(result.sourceActions.notCalled).toContain('device-control.execute');
+    });
+  });
+
+  // -- stadtwerkMauerExternalInterfaceStubsStatus --------------------------
+  describe('stadtwerkMauerExternalInterfaceStubsStatus', () => {
+    it('reports stub-layer gaps without executing external actions', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus', {
+        tenantId: 'stadtwerk-mauer',
+      });
+
+      expect(result.status).toBe('stub_layer_ready_for_transcripts');
+      expect(result.tenantId).toBe('stadtwerk-mauer');
+      expect(result.transcriptCount).toBe(0);
+      expect(result.positiveFollowUps[0].category).toBe(
+        'stadtwerk_mauer_external_interface_stubs'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['mako.dispatch', 'billing.release', 'personal-agent.execute'])
+      );
+      expect(result.safety).toBe('sandbox_only_non_consequential_stubs_with_read_only_status');
+    });
+
+    it('surfaces recent stub transcripts through the read-only dashboard action', async () => {
+      handlers.stadtwerkMauerExternalInterfaceStubsStatus = () => ({
+        capabilityKey: 'stadtwerk_mauer_external_interface_stubs',
+        safety: 'sandbox_only_non_consequential_stubs_with_read_only_status',
+        tenantId: 'stadtwerk-mauer',
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: true,
+        status: 'stub_transcripts_need_evidence',
+        transcriptCount: 1,
+        artifactCount: 4,
+        familyCounts: { mako_lieferantenwechsel: 1 },
+        variantCounts: { missing_data: 1 },
+        recentTranscripts: [
+          {
+            transcriptId: 'smm-stub:test',
+            stubFamily: 'mako_lieferantenwechsel',
+            responseVariant: 'missing_data',
+            requestHash: 'abc123',
+          },
+        ],
+        missingEvidence: [{ missingDataPoint: 'meloId' }],
+        positiveFollowUps: [],
+        resetBoundary: { service: 'stadtwerk-mauer-sandbox-runtime.reset' },
+        sourceActions: {
+          inspected: ['stadtwerk-mauer-external-interface-stubs.getStatus'],
+          referenced: ['object-store.query'],
+          notCalled: ['mako.dispatch', 'external.connector.call', 'personal-agent.execute'],
+        },
+        dossierEvidence: {
+          status: 'stub_transcripts_need_evidence',
+          tenantId: 'stadtwerk-mauer',
+          transcriptCount: 1,
+          artifactCount: 4,
+          recentTranscripts: [{ stubFamily: 'mako_lieferantenwechsel', responseVariant: 'missing_data' }],
+          missingEvidence: [{ missingDataPoint: 'meloId' }],
+          positiveFollowUps: [],
+          dossierFacts: ['Stub Status: stub_transcripts_need_evidence', 'Transcripts: 1'],
+        },
+      });
+
+      const result = await broker.call('dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus', {
+        tenantId: 'stadtwerk-mauer',
+      });
+
+      expect(result.status).toBe('stub_transcripts_need_evidence');
+      expect(result.recentTranscripts[0].stubFamily).toBe('mako_lieferantenwechsel');
+      expect(result.sourceActions.notCalled).toContain('external.connector.call');
     });
   });
 

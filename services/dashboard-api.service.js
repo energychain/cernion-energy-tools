@@ -96,6 +96,7 @@ module.exports = {
       stadtwerkMauerCapabilityProjectionStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerEventReplayPreviewStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerSandboxRuntimeStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerExternalInterfaceStubsStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -4755,6 +4756,80 @@ module.exports = {
           this.buildMissingStadtwerkMauerSandboxRuntimeStatus(tenantId),
           errors,
           'stadtwerk-mauer-sandbox-runtime.status'
+        );
+        return {
+          ...status,
+          timestamp: new Date().toISOString(),
+          _errors: errors,
+        };
+      },
+    },
+
+    // -- stadtwerkMauerExternalInterfaceStubsStatus ------------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-external-interface-stubs
+     *
+     * Read-only dossier-safe status for Stadtwerk Mauer sandbox-internal
+     * external-interface stubs. Mutating stub calls are deliberately separate.
+     */
+    stadtwerkMauerExternalInterfaceStubsStatus: {
+      rest: 'GET /stadtwerk-mauer-external-interface-stubs',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        limit: { type: 'number', optional: true, convert: true, min: 1, max: 50 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer external-interface stubs -- read-only status',
+        description:
+          'Reports deterministic sandbox stub transcripts, response variants, missing evidence, ' +
+          'reset boundary and no-call guards. The endpoint is read-only; stub calls are separate ' +
+          'sandbox-only non-consequential mutations.',
+        parameters: [
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'limit', in: 'query', required: false, schema: { type: 'number' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Stadtwerk Mauer external-interface stub status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    tenantId: { type: 'string' },
+                    transcriptCount: { type: 'number' },
+                    artifactCount: { type: 'number' },
+                    familyCounts: { type: 'object' },
+                    variantCounts: { type: 'object' },
+                    recentTranscripts: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    resetBoundary: { type: 'object' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const errors = [];
+        const status = await this.safeCall(
+          ctx,
+          'stadtwerk-mauer-external-interface-stubs.getStatus',
+          { tenantId, limit: params.limit },
+          this.buildMissingStadtwerkMauerExternalInterfaceStubsStatus(tenantId),
+          errors,
+          'stadtwerk-mauer-external-interface-stubs.getStatus'
         );
         return {
           ...status,
@@ -17585,6 +17660,78 @@ module.exports = {
             'Status: sandbox_runtime_status_unavailable',
             'Sandbox events: 0',
             'Sandbox artifacts: 0',
+          ],
+        },
+      };
+    },
+
+    buildMissingStadtwerkMauerExternalInterfaceStubsStatus(tenantId = 'stadtwerk-mauer') {
+      const missingEvidence = [
+        {
+          missingDataPoint: 'stub_status',
+          enablesDossierAddition: 'add Stadtwerk Mauer external-interface stub status evidence',
+        },
+      ];
+      const sourceActions = {
+        inspected: ['dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus'],
+        referenced: ['stadtwerk-mauer-external-interface-stubs.getStatus'],
+        notCalled: [
+          'mako.dispatch',
+          'msb.connector.call',
+          'edm.connector.call',
+          'customer-service.send',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'contract.execute',
+          'webhook.emit',
+          'device-control.execute',
+          'smgw.connector.call',
+          'eebus.connector.call',
+          'nes2.connector.call',
+          'cls.control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'personal-agent.execute',
+        ],
+      };
+      return {
+        capabilityKey: 'stadtwerk_mauer_external_interface_stubs',
+        safety: 'sandbox_only_non_consequential_stubs_with_read_only_status',
+        tenantId,
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: tenantId === 'stadtwerk-mauer',
+        status: 'stub_status_unavailable',
+        transcriptCount: 0,
+        artifactCount: 0,
+        familyCounts: {},
+        variantCounts: {},
+        recentTranscripts: [],
+        missingEvidence,
+        positiveFollowUps: missingEvidence.map((item) => ({
+          ...item,
+          category: 'stadtwerk_mauer_external_interface_stubs',
+        })),
+        resetBoundary: {
+          service: 'stadtwerk-mauer-sandbox-runtime.reset',
+          scopedToTenant: 'stadtwerk-mauer',
+        },
+        sourceActions,
+        dossierEvidence: {
+          status: 'stub_status_unavailable',
+          tenantId,
+          transcriptCount: 0,
+          artifactCount: 0,
+          missingEvidence,
+          positiveFollowUps: missingEvidence.map((item) => ({
+            ...item,
+            category: 'stadtwerk_mauer_external_interface_stubs',
+          })),
+          sourceActions,
+          dossierFacts: [
+            'Stub Status: stub_status_unavailable',
+            `Tenant: ${tenantId}`,
+            'Transcripts: 0',
           ],
         },
       };

@@ -833,6 +833,23 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Stadtwerk Mauer external stub prompts to the read-only status view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Stadtwerk Mauer externe Schnittstellen Stubs fuer MaKo Lieferantenwechsel, EDM Plausibilitaet, Kundenkommunikation und Control Boundary Stub Transkripte.',
+    });
+
+    expect(result.capability).toBe('stadtwerk_mauer_external_interface_stubs');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'stadtwerk_mauer_external_interface_stubs'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus');
+    expect(actionNames).not.toContain('stadtwerk-mauer-external-interface-stubs.callStub');
+    expect(actionNames).not.toContain('mako.dispatch');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes legal clarification operating-model prompts to the read-only preparation view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Erstelle ein operatives Steuerungsmodell fuer Rechtsklaerung Kapazitaetsfrage mit no-regret Datenbedarf, roter Linie und Entscheidung nach Rechtsantwort.',

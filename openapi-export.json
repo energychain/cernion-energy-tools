@@ -15306,6 +15306,97 @@
         ]
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-external-interface-stubs": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerExternalInterfaceStubsStatus",
+        "summary": "Stadtwerk Mauer external-interface stubs -- read-only status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer external-interface stub status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "transcriptCount": {
+                      "type": "number"
+                    },
+                    "artifactCount": {
+                      "type": "number"
+                    },
+                    "familyCounts": {
+                      "type": "object"
+                    },
+                    "variantCounts": {
+                      "type": "object"
+                    },
+                    "recentTranscripts": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "resetBoundary": {
+                      "type": "object"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Reports deterministic sandbox stub transcripts, response variants, missing evidence, reset boundary and no-call guards. The endpoint is read-only; stub calls are separate sandbox-only non-consequential mutations.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/market-snapshot": {
       "get": {
         "operationId": "dashboard-api_marketSnapshot",
@@ -43029,6 +43120,48 @@
         }
       }
     },
+    "/api/stadtwerk-mauer-external-interface-stubs/call": {
+      "post": {
+        "operationId": "stadtwerk-mauer-external-interface-stubs_callStub",
+        "summary": "stadtwerk-mauer-external-interface-stubs.callStub",
+        "tags": [
+          "stadtwerk-mauer-external-interface-stubs"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stadtwerk-mauer-external-interface-stubs/status": {
+      "get": {
+        "operationId": "stadtwerk-mauer-external-interface-stubs_getStatus",
+        "summary": "stadtwerk-mauer-external-interface-stubs.getStatus",
+        "tags": [
+          "stadtwerk-mauer-external-interface-stubs"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stadtwerk-mauer-sandbox-runtime/events": {
       "post": {
         "operationId": "stadtwerk-mauer-sandbox-runtime_ingestEvent",
@@ -53167,6 +53300,139 @@
             }
           }
         ]
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-external-interface-stubs": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerExternalInterfaceStubsStatus",
+        "summary": "Stadtwerk Mauer external-interface stubs -- read-only status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer external-interface stub status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "transcriptCount": {
+                      "type": "number"
+                    },
+                    "artifactCount": {
+                      "type": "number"
+                    },
+                    "familyCounts": {
+                      "type": "object"
+                    },
+                    "variantCounts": {
+                      "type": "object"
+                    },
+                    "recentTranscripts": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "resetBoundary": {
+                      "type": "object"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Reports deterministic sandbox stub transcripts, response variants, missing evidence, reset boundary and no-call guards. The endpoint is read-only; stub calls are separate sandbox-only non-consequential mutations.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ]
+      }
+    },
+    "/api/stadtwerk-mauer/external-interface-stubs/call": {
+      "post": {
+        "operationId": "stadtwerk-mauer-external-interface-stubs_callStub",
+        "summary": "stadtwerk-mauer-external-interface-stubs.callStub",
+        "tags": [
+          "stadtwerk-mauer-external-interface-stubs"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stadtwerk-mauer/external-interface-stubs/status": {
+      "get": {
+        "operationId": "stadtwerk-mauer-external-interface-stubs_getStatus",
+        "summary": "stadtwerk-mauer-external-interface-stubs.getStatus",
+        "tags": [
+          "stadtwerk-mauer-external-interface-stubs"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/dashboard/regulatory-change-readiness": {

@@ -415,6 +415,49 @@
     "sourceIssue": 268
   },
   {
+    "id": "dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus",
+    "action": "dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus",
+    "label": "Stadtwerk Mauer External Interface Stubs",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "tenantId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:tenant|tenantId)[:= ]+([a-z0-9-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Stub Status", "maxLen": 100 },
+        { "paths": ["tenantId", "dossierEvidence.tenantId"], "label": "Tenant", "maxLen": 80 },
+        { "paths": ["transcriptCount", "dossierEvidence.transcriptCount"], "label": "Transcripts" },
+        { "paths": ["artifactCount", "dossierEvidence.artifactCount"], "label": "Artifacts" },
+        { "paths": ["recentTranscripts.0.stubFamily", "dossierEvidence.recentTranscripts.0.stubFamily"], "label": "Latest Stub", "maxLen": 100 },
+        { "paths": ["recentTranscripts.0.responseVariant", "dossierEvidence.recentTranscripts.0.responseVariant"], "label": "Latest Variant", "maxLen": 80 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 160 },
+        { "paths": ["timestamp"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 267
+  },
+  {
     "id": "dashboard-api.marketCommunicationEvidenceChainStatus",
     "action": "dashboard-api.marketCommunicationEvidenceChainStatus",
     "label": "Market Communication Evidence Chain",

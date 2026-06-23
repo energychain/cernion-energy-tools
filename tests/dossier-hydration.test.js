@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 71 static rules', () => {
+    it('loads all 72 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(71);
+      expect(rules.length).toBe(72);
     });
 
-    it('compiles all 71 static rules without error', () => {
+    it('compiles all 72 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(71);
+      expect(rules.length).toBe(72);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -977,6 +977,46 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Tenant: stadtwerk-mauer');
       expect(formatted).toContain('Events: 1');
       expect(formatted).toContain('Leading Gap: reset_delete_proof');
+    });
+
+    it('dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus is dossier-safe and formats stub facts', () => {
+      const rule = getRule('dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Stadtwerk Mauer externe Schnittstellen Stubs tenant=stadtwerk-mauer laden'
+        )
+      ).toEqual({
+        tenantId: 'stadtwerk-mauer',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'stub_transcripts_need_evidence',
+        tenantId: 'stadtwerk-mauer',
+        transcriptCount: 2,
+        artifactCount: 8,
+        recentTranscripts: [
+          {
+            stubFamily: 'mako_lieferantenwechsel',
+            responseVariant: 'missing_data',
+          },
+        ],
+        missingEvidence: [{ missingDataPoint: 'meloId' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add MaLo/MeLo and supplier reference for simulated MaKo exchange evidence',
+          },
+        ],
+        timestamp: '2026-06-23T08:40:00.000Z',
+      });
+
+      expect(formatted).toContain('Stub Status: stub_transcripts_need_evidence');
+      expect(formatted).toContain('Tenant: stadtwerk-mauer');
+      expect(formatted).toContain('Transcripts: 2');
+      expect(formatted).toContain('Latest Stub: mako_lieferantenwechsel');
+      expect(formatted).toContain('Leading Gap: meloId');
     });
 
     it('dashboard-api.legalClarificationOperatingModelStatus is dossier-safe and formats operating-model facts', () => {
