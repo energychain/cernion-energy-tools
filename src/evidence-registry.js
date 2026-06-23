@@ -1374,6 +1374,67 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  legal_clarification_operating_model: {
+    sources: [
+      {
+        id: 'clarification_point',
+        label: 'Rechtsklaerungspunkt',
+        resolvedBy: ['dashboard-api.legalClarificationOperatingModelStatus', 'vdmi.dossier'],
+        contextKeys: ['clarificationPoint'],
+        optional: false,
+      },
+      {
+        id: 'affected_decision',
+        label: 'Betroffene operative Entscheidung',
+        resolvedBy: ['dashboard-api.legalClarificationOperatingModelStatus', 'grid-operations.netzfahrplanGenerate', 'grid-connection.fnavValidate'],
+        contextKeys: ['affectedDecision'],
+        optional: false,
+      },
+      {
+        id: 'legal_status',
+        label: 'Legal Status / Rechtsantwort',
+        resolvedBy: ['dashboard-api.legalClarificationOperatingModelStatus', 'vdmi.dossier'],
+        contextKeys: ['legalStatus'],
+        optional: false,
+      },
+      {
+        id: 'no_regret_data_needs',
+        label: 'No-Regret-Datenbedarf',
+        resolvedBy: ['dashboard-api.legalClarificationOperatingModelStatus', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['noRegretDataNeeds'],
+        optional: false,
+      },
+      {
+        id: 'role_owner',
+        label: 'Rollenmodell / Owner',
+        resolvedBy: ['dashboard-api.legalClarificationOperatingModelStatus', 'vdmi.dossier'],
+        contextKeys: ['owner', 'ownerContact'],
+        optional: false,
+      },
+      {
+        id: 'scenario_options',
+        label: 'Szenario-Optionen',
+        resolvedBy: ['dashboard-api.legalClarificationOperatingModelStatus', 'znp.addAssumption'],
+        contextKeys: ['scenarioOptions'],
+        optional: false,
+      },
+      {
+        id: 'red_lines',
+        label: 'Rote Linien / Umsetzungsgrenzen',
+        resolvedBy: ['dashboard-api.legalClarificationOperatingModelStatus', 'vdmi.dossier'],
+        contextKeys: ['redLines'],
+        optional: false,
+      },
+      {
+        id: 'implementation_status',
+        label: 'Umsetzungsstatus nach Rechtsantwort',
+        resolvedBy: ['dashboard-api.legalClarificationOperatingModelStatus', 'vdmi.dossier'],
+        contextKeys: ['implementationStatus', 'decisionReadiness'],
+        optional: false,
+      },
+    ],
+  },
+
   cls_digital_twin_compliance_gate: {
     sources: [
       {

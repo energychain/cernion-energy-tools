@@ -817,6 +817,22 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes legal clarification operating-model prompts to the read-only preparation view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle ein operatives Steuerungsmodell fuer Rechtsklaerung Kapazitaetsfrage mit no-regret Datenbedarf, roter Linie und Entscheidung nach Rechtsantwort.',
+    });
+
+    expect(result.capability).toBe('legal_clarification_operating_model');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'legal_clarification_operating_model'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.legalClarificationOperatingModelStatus');
+    expect(actionNames).not.toContain('legal.approve');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes regulatory change readiness prompts to the read-only gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Regulatory Change Simulator Readiness fuer EEG Mechanik mit Viertelstundenprofil, Ersatzwertlogik, MaKo Sonderfall, Betreibererklaerung, Auditierbarkeit und Testfallpaket.',

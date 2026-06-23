@@ -12101,6 +12101,213 @@
         ]
       }
     },
+    "/api/dashboard-api/legal-clarification-operating-model": {
+      "get": {
+        "operationId": "dashboard-api_legalClarificationOperatingModelStatus",
+        "summary": "Legal clarification operating model - read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only legal clarification operating-model status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "legalStatus": {
+                      "type": "string"
+                    },
+                    "decisionReadiness": {
+                      "type": "string"
+                    },
+                    "preparationModel": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a deterministic operating-model evidence view for VNB cases where a legal clarification is pending. The endpoint is read-only and does not approve, release, dispatch, bill, settle, mutate tariffs, trigger MaKo, create HITL work or interpret law.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clarificationPoint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "affectedDecision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "legalStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contractStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerContact",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "noRegretDataNeeds",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "name": "availableEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "name": "scenarioOptions",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "name": "redLines",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "name": "implementationStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionReadiness",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/regulatory-change-readiness": {
       "get": {
         "operationId": "dashboard-api_regulatoryChangeReadinessStatus",
@@ -51565,6 +51772,213 @@
           },
           {
             "name": "nextReportingCycle",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/legal-clarification-operating-model": {
+      "get": {
+        "operationId": "dashboard-api_legalClarificationOperatingModelStatus",
+        "summary": "Legal clarification operating model - read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only legal clarification operating-model status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "legalStatus": {
+                      "type": "string"
+                    },
+                    "decisionReadiness": {
+                      "type": "string"
+                    },
+                    "preparationModel": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a deterministic operating-model evidence view for VNB cases where a legal clarification is pending. The endpoint is read-only and does not approve, release, dispatch, bill, settle, mutate tariffs, trigger MaKo, create HITL work or interpret law.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clarificationPoint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "affectedDecision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "legalStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contractStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerContact",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "noRegretDataNeeds",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "name": "availableEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "name": "scenarioOptions",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "name": "redLines",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "name": "implementationStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionReadiness",
             "in": "query",
             "required": false,
             "schema": {

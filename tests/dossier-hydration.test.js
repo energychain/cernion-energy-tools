@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 66 static rules', () => {
+    it('loads all 67 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(66);
+      expect(rules.length).toBe(67);
     });
 
-    it('compiles all 66 static rules without error', () => {
+    it('compiles all 67 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(66);
+      expect(rules.length).toBe(67);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -943,6 +943,52 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Templates: 25');
       expect(formatted).toContain('First Event: pv_anmeldung_elektriker');
       expect(formatted).toContain('Side-Effect Guard: scheduler.create');
+    });
+
+    it('dashboard-api.legalClarificationOperatingModelStatus is dossier-safe and formats operating-model facts', () => {
+      const rule = getRule('dashboard-api.legalClarificationOperatingModelStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Rechtsklaerung case=case-141 legalStatus=pending owner=netzanschluss laden'
+        )
+      ).toEqual({
+        caseId: 'case-141',
+        legalStatus: 'pending',
+        owner: 'netzanschluss',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'legal_clarification_operating_model',
+        status: 'pending_legal_clarification',
+        legalStatus: 'pending',
+        decisionReadiness: 'blocked_by_pending_legal_clarification',
+        preparationModel: {
+          caseId: 'case-141',
+          clarificationPoint: 'Kapazitaetsfrage',
+          affectedDecision: 'Anschlussfreigabe',
+          rolesAndOwners: { owner: 'Netzanschluss' },
+        },
+        missingEvidence: [{ missingDataPoint: 'legal_status' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'state whether execution is legally cleared instead of pending' },
+        ],
+        sourceActions: {
+          notCalled: ['legal.approve'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: pending_legal_clarification'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: legal_clarification_operating_model');
+      expect(formatted).toContain('Status: pending_legal_clarification');
+      expect(formatted).toContain('Legal Status: pending');
+      expect(formatted).toContain('Decision Readiness: blocked_by_pending_legal_clarification');
+      expect(formatted).toContain('Clarification: Kapazitaetsfrage');
+      expect(formatted).toContain('Side-Effect Guard: legal.approve');
     });
 
     it('dashboard-api.redispatchProjectControllingKpiCockpitStatus is dossier-safe and formats controlling facts', () => {

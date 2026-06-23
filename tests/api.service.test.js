@@ -283,6 +283,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/redispatch-metering-cockpit']).toBeDefined();
       expect(schema.paths['/api/dashboard/load-profile-stream-monitor']).toBeDefined();
       expect(schema.paths['/api/dashboard/controllability-asset-handover']).toBeDefined();
+      expect(schema.paths['/api/dashboard/legal-clarification-operating-model']).toBeDefined();
       expect(schema.paths['/api/dashboard/regulatory-change-readiness']).toBeDefined();
       expect(schema.paths['/api/dashboard/observability-mini']).toBeDefined();
       expect(schema.paths['/api/observability/logs']).toBeDefined();
@@ -295,6 +296,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/redispatch-metering-cockpit'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/load-profile-stream-monitor'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/controllability-asset-handover'].get).toBeDefined();
+      expect(schema.paths['/api/dashboard/legal-clarification-operating-model'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/regulatory-change-readiness'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/observability-mini'].get).toBeDefined();
       expect(schema.paths['/api/observability/logs'].get).toBeDefined();
@@ -311,6 +313,9 @@ describe('API Gateway Service', () => {
         'Dashboard API'
       );
       expect(schema.paths['/api/dashboard/controllability-asset-handover'].get.tags).toContain(
+        'Dashboard API'
+      );
+      expect(schema.paths['/api/dashboard/legal-clarification-operating-model'].get.tags).toContain(
         'Dashboard API'
       );
       expect(schema.paths['/api/dashboard/regulatory-change-readiness'].get.tags).toContain(
@@ -467,6 +472,9 @@ describe('API Gateway Service', () => {
       );
       expect(aliases['GET /dashboard/controllability-asset-handover']).toBe(
         'dashboard-api.controllabilityAssetHandoverStatus'
+      );
+      expect(aliases['GET /dashboard/legal-clarification-operating-model']).toBe(
+        'dashboard-api.legalClarificationOperatingModelStatus'
       );
       expect(aliases['GET /dashboard/regulatory-change-readiness']).toBe(
         'dashboard-api.regulatoryChangeReadinessStatus'

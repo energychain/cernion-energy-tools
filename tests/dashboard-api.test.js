@@ -1878,6 +1878,58 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- legalClarificationOperatingModelStatus -----------------------------
+
+  describe('legalClarificationOperatingModelStatus', () => {
+    it('keeps pending legal clarification as a read-only blocker with explicit gaps', async () => {
+      const result = await broker.call('dashboard-api.legalClarificationOperatingModelStatus', {
+        caseId: 'case-141',
+        clarificationPoint: 'Kapazitaetsfrage',
+        affectedDecision: 'Anschlussfreigabe',
+        legalStatus: 'pending',
+        owner: 'Netzanschluss',
+        noRegretDataNeeds: 'Netzmodell,Lastgang',
+        scenarioOptions: 'Warten,Teilvorbereitung',
+      });
+
+      expect(result.status).toBe('pending_legal_clarification');
+      expect(result.legalStatus).toBe('pending');
+      expect(result.decisionReadiness).toBe('blocked_by_pending_legal_clarification');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['legal_status', 'owner_contact', 'red_lines', 'implementation_status'])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('legal_clarification_operating_model');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['legal.approve', 'billing.release', 'grid-operations.executeControl'])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_after_legal_clearance only when legal and preparation evidence are complete', async () => {
+      const result = await broker.call('dashboard-api.legalClarificationOperatingModelStatus', {
+        caseId: 'case-141',
+        clarificationPoint: 'Kapazitaetsfrage',
+        affectedDecision: 'Anschlussfreigabe',
+        legalStatus: 'approved',
+        contractStatus: 'negotiated',
+        owner: 'Netzanschluss',
+        ownerContact: 'owner@example.test',
+        noRegretDataNeeds: ['Netzmodell', 'Lastgang'],
+        availableEvidence: ['netzmodell:v1', 'lastgang:2026-q2'],
+        scenarioOptions: ['Teilvorbereitung'],
+        redLines: ['no-dispatch-before-approval'],
+        implementationStatus: 'prepared',
+      });
+
+      expect(result.status).toBe('ready_after_legal_clearance');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.preparationModel.rolesAndOwners.owner).toBe('Netzanschluss');
+      expect(result.dossierEvidence.dossierFacts).toContain(
+        'Decision readiness: ready_after_legal_clearance'
+      );
+    });
+  });
+
   // ── regulatoryChangeReadinessStatus ─────────────────────────────────────
 
   describe('regulatoryChangeReadinessStatus', () => {

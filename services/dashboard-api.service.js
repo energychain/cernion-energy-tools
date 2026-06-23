@@ -49,6 +49,7 @@ module.exports = {
       marketCommunicationEvidenceChainStatus: 5 * 60 * 1000, // 5 min
       e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
+      legalClarificationOperatingModelStatus: 5 * 60 * 1000, // 5 min
       regulatoryChangeReadinessStatus: 5 * 60 * 1000, // 5 min
       investmentTwoTrackControlStatus: 5 * 60 * 1000, // 5 min
       sapBudgetPspGateStatus: 5 * 60 * 1000, // 5 min
@@ -1614,6 +1615,94 @@ module.exports = {
           this.settings.cacheTtlMs.controllabilityAssetHandoverStatus,
           async () => ({
             ...this.buildControllabilityAssetHandoverStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- legalClarificationOperatingModelStatus ---------------------------
+    /**
+     * GET /api/dashboard/legal-clarification-operating-model?legalStatus=...
+     *
+     * Read-only dossier-safe operating model for cases waiting on external
+     * legal clarification. It structures no-regret preparation without
+     * interpreting law or treating pending clarification as approval.
+     */
+    legalClarificationOperatingModelStatus: {
+      rest: 'GET /legal-clarification-operating-model',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        clarificationPoint: { type: 'string', optional: true, min: 1 },
+        affectedDecision: { type: 'string', optional: true, min: 1 },
+        legalStatus: { type: 'string', optional: true, min: 1 },
+        contractStatus: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        ownerContact: { type: 'string', optional: true, min: 1 },
+        noRegretDataNeeds: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        availableEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        scenarioOptions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        redLines: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        implementationStatus: { type: 'string', optional: true, min: 1 },
+        decisionReadiness: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Legal clarification operating model - read-only dossier-safe status',
+        description:
+          'Builds a deterministic operating-model evidence view for VNB cases where a legal clarification is pending. ' +
+          'The endpoint is read-only and does not approve, release, dispatch, bill, settle, mutate tariffs, trigger MaKo, create HITL work or interpret law.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'clarificationPoint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'affectedDecision', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'legalStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'contractStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerContact', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'noRegretDataNeeds', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          { name: 'availableEvidence', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          { name: 'scenarioOptions', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          { name: 'redLines', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          { name: 'implementationStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionReadiness', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only legal clarification operating-model status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    legalStatus: { type: 'string' },
+                    decisionReadiness: { type: 'string' },
+                    preparationModel: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `legal-clarification-operating-model:${params.caseId || 'no-case'}:${params.clarificationPoint || 'no-point'}:${params.affectedDecision || 'no-decision'}:${params.legalStatus || 'no-legal'}:${params.owner || 'no-owner'}:${params.decisionReadiness || 'no-readiness'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.legalClarificationOperatingModelStatus,
+          async () => ({
+            ...this.buildLegalClarificationOperatingModelStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -6587,6 +6676,223 @@ module.exports = {
           lineOwnerRole: params.lineOwnerRole || null,
           nextReportingCycle: params.nextReportingCycle || null,
           nonExecutionReason: params.nonExecutionReason || null,
+          blockingFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildLegalClarificationOperatingModelStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const noRegretDataNeeds = toList(params.noRegretDataNeeds);
+      const availableEvidence = toList(params.availableEvidence);
+      const scenarioOptions = toList(params.scenarioOptions);
+      const redLines = toList(params.redLines);
+      const normalizedLegalStatus = String(params.legalStatus || 'pending').toLowerCase();
+      const legalIsApproved = ['approved', 'cleared', 'geklaert', 'geklärt', 'freigegeben'].includes(normalizedLegalStatus);
+
+      const evidenceSpecs = [
+        {
+          id: 'clarification_point',
+          label: 'Clarification point',
+          value: params.clarificationPoint,
+          sourceClass: 'legal_clarification_scope',
+          enablesDossierAddition: 'name the legal question that gates the operating model',
+        },
+        {
+          id: 'affected_decision',
+          label: 'Affected decision',
+          value: params.affectedDecision,
+          sourceClass: 'operational_decision_boundary',
+          enablesDossierAddition: 'tie the legal answer to a concrete VNB decision',
+        },
+        {
+          id: 'legal_status',
+          label: 'Legal status',
+          value: legalIsApproved ? params.legalStatus : null,
+          sourceClass: 'legal_status',
+          enablesDossierAddition: 'state whether execution is legally cleared instead of pending',
+        },
+        {
+          id: 'owner',
+          label: 'Owner',
+          value: params.owner,
+          sourceClass: 'preparation_owner',
+          enablesDossierAddition: 'assign preparation responsibility',
+        },
+        {
+          id: 'owner_contact',
+          label: 'Owner contact',
+          value: params.ownerContact,
+          sourceClass: 'preparation_owner_contact',
+          enablesDossierAddition: 'add an accountable contact for follow-up',
+        },
+        {
+          id: 'no_regret_data_needs',
+          label: 'No-regret data needs',
+          value: noRegretDataNeeds.length > 0 ? noRegretDataNeeds.join(', ') : null,
+          sourceClass: 'no_regret_preparation',
+          enablesDossierAddition: 'replace generic preparation gaps with concrete no-regret data needs',
+        },
+        {
+          id: 'available_evidence',
+          label: 'Available evidence',
+          value: availableEvidence.length > 0 ? availableEvidence.join(', ') : null,
+          sourceClass: 'preparation_evidence_status',
+          enablesDossierAddition: 'show which no-regret evidence is already available',
+        },
+        {
+          id: 'scenario_options',
+          label: 'Scenario options',
+          value: scenarioOptions.length > 0 ? scenarioOptions.join(', ') : null,
+          sourceClass: 'allowed_preparation_scenario',
+          enablesDossierAddition: 'list allowed preparation scenarios before the legal answer',
+        },
+        {
+          id: 'red_lines',
+          label: 'Red lines',
+          value: redLines.length > 0 ? redLines.join(', ') : null,
+          sourceClass: 'execution_boundary',
+          enablesDossierAddition: 'distinguish allowed preparation from blocked execution',
+        },
+        {
+          id: 'implementation_status',
+          label: 'Implementation status',
+          value: params.implementationStatus,
+          sourceClass: 'implementation_preparation_status',
+          enablesDossierAddition: 'show what can be executed after the legal answer arrives',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value != null && spec.value !== '')
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => spec.value == null || spec.value === '')
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const decisionReadiness = params.decisionReadiness || (
+        legalIsApproved && missingEvidence.length === 0
+          ? 'ready_after_legal_clearance'
+          : legalIsApproved
+            ? 'needs_preparation_evidence'
+            : 'blocked_by_pending_legal_clarification'
+      );
+      const status =
+        !params.clarificationPoint
+          ? 'needs_clarification_point'
+          : !params.affectedDecision
+            ? 'needs_affected_decision'
+            : !legalIsApproved
+              ? 'pending_legal_clarification'
+              : missingEvidence.length === 0
+                ? 'ready_after_legal_clearance'
+                : 'needs_preparation_evidence';
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'legal_clarification_operating_model',
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `LCOM_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['clarification_point', 'affected_decision', 'legal_status'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      const preparationModel = {
+        caseId: params.caseId || null,
+        clarificationPoint: params.clarificationPoint || null,
+        affectedDecision: params.affectedDecision || null,
+        legalStatus: params.legalStatus || 'pending',
+        contractStatus: params.contractStatus || null,
+        noRegretDataNeeds,
+        availableEvidence,
+        rolesAndOwners: {
+          owner: params.owner || null,
+          ownerContact: params.ownerContact || null,
+        },
+        ownerGaps: [
+          ...(!params.owner ? ['owner'] : []),
+          ...(!params.ownerContact ? ['owner_contact'] : []),
+        ],
+        scenarioOptions,
+        redLines,
+        implementationStatus: params.implementationStatus || null,
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Legal status: ${params.legalStatus || 'pending'}`,
+        `Decision readiness: ${decisionReadiness}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.caseId) dossierFacts.push(`Case: ${params.caseId}`);
+      if (params.affectedDecision) dossierFacts.push(`Decision: ${params.affectedDecision}`);
+
+      return {
+        operatingModelId: `lcom:${Buffer.from(`${params.caseId || ''}:${params.clarificationPoint || ''}:${params.affectedDecision || ''}:${params.owner || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'legal_clarification_operating_model',
+        safety: 'read_only',
+        requestContext: {
+          caseId: params.caseId || null,
+          tenantScope: 'request',
+        },
+        status,
+        legalStatus: params.legalStatus || 'pending',
+        decisionReadiness,
+        preparationModel,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceActions: {
+          inspected: ['dashboard-api.legalClarificationOperatingModelStatus'],
+          referenced: [
+            'grid-operations.netzfahrplanGenerate',
+            'grid-connection.fnavValidate',
+            'vdmi.dossier',
+            'interface-placeholder.requestEvidence',
+            'znp.addAssumption',
+          ],
+          notCalled: [
+            'legal.interpret',
+            'legal.approve',
+            'contract.release',
+            'dispatch.execute',
+            'billing.release',
+            'settlement.prepareBilling',
+            'settlement.exportA96',
+            'tariff.mutate',
+            'mako.dispatch',
+            'hitl.create',
+            'grid-operations.executeControl',
+            'device-control.execute',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          legalStatus: params.legalStatus || 'pending',
+          decisionReadiness,
+          preparationModel,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
           blockingFindings,
           dossierFacts,
         },

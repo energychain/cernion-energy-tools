@@ -177,6 +177,32 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans legal clarification operating model as explicit legal and preparation evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'legal_clarification_operating_model' },
+      {
+        clarificationPoint: 'Kapazitaetsfrage',
+        affectedDecision: 'Anschlussfreigabe',
+        legalStatus: 'pending',
+        owner: 'Netzanschluss',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('legal_clarification_operating_model');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['clarification_point', 'affected_decision', 'legal_status', 'role_owner'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'no_regret_data_needs',
+        'scenario_options',
+        'red_lines',
+        'implementation_status',
+      ])
+    );
+  });
+
   it('plans controllability submission cockpit as explicit submission and handover evidence', () => {
     const result = planEvidence(
       { routeLabel: 'controllability_submission_cockpit' },
