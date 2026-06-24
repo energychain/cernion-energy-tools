@@ -111,6 +111,7 @@ module.exports = {
       gasGridTransformationAssetCockpitStatus: 5 * 60 * 1000, // 5 min
       leadershipDeltaCockpitStatus: 5 * 60 * 1000, // 5 min
       liveUpdateStreamContractStatus: 5 * 60 * 1000, // 5 min
+      smgwConnectorReadinessStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -6066,6 +6067,93 @@ module.exports = {
           this.settings.cacheTtlMs.liveUpdateStreamContractStatus,
           async () => ({
             ...this.buildLiveUpdateStreamContractStatus(params),
+            timestamp: new Date().toISOString(),
+          })
+        );
+      },
+    },
+
+    // -- smgwConnectorReadinessStatus -------------------------------------
+    /**
+     * GET /api/dashboard/smgw-connector-readiness
+     *
+     * Read-only integration-readiness projection for a planned §14a SMGW /
+     * NES2 / EEBUS connector path. It only reports evidence and blockers; it
+     * never pairs gateways, sends control messages, creates HITL items, calls
+     * external adapters, or manages secrets.
+     */
+    smgwConnectorReadinessStatus: {
+      rest: 'GET /smgw-connector-readiness',
+      params: {
+        integrationScope: { type: 'string', optional: true, min: 1 },
+        gatewayClass: { type: 'string', optional: true, min: 1 },
+        adapterClass: { type: 'string', optional: true, min: 1 },
+        controlDomainIntent: { type: 'string', optional: true, min: 1 },
+        nes2ModuleEvidence: { type: 'string', optional: true, min: 1 },
+        eebusEvidence: { type: 'string', optional: true, min: 1 },
+        tafEvidence: { type: 'string', optional: true, min: 1 },
+        auditPrerequisites: { type: 'string', optional: true, min: 1 },
+        authBoundary: { type: 'string', optional: true, min: 1 },
+        tenantBoundary: { type: 'string', optional: true, min: 1 },
+        ownerRole: { type: 'string', optional: true, min: 1 },
+        fallbackReason: { type: 'string', optional: true, min: 1 },
+        blocker: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        evidenceHints: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'SMGW connector readiness -- read-only evidence/status gate',
+        description:
+          'Returns a deterministic read-only readiness/evidence view for a planned §14a SMGW / NES2 / EEBUS connector path. The endpoint reports integration scope, tenant/auth boundary, adapter class, control-domain intent, NES2 and EEBUS/TAF evidence, compliance/audit prerequisites, blockers, missing evidence, positive follow-ups and explicit side-effect guards. It does not pair gateways, register devices, dispatch TAF-7, publish MQTT, bridge EEBUS, create HITL work, call external adapters, manage secrets, mutate tariffs/billing, or add Personal-Agent shortcuts.',
+        parameters: [
+          { name: 'integrationScope', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'gatewayClass', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'adapterClass', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'controlDomainIntent', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nes2ModuleEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'eebusEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'tafEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'auditPrerequisites', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'authBoundary', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'tenantBoundary', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'fallbackReason', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only SMGW connector readiness evidence view',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    safety: { type: 'string' },
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    connectorReadiness: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    blockers: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    _errors: { type: 'array' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `smgw-connector-readiness:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.smgwConnectorReadinessStatus,
+          async () => ({
+            ...this.buildSmgwConnectorReadinessStatus(params),
             timestamp: new Date().toISOString(),
           })
         );
@@ -21607,6 +21695,149 @@ module.exports = {
           })),
           missingEvidence,
           positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+        _errors: [],
+      };
+    },
+
+    buildSmgwConnectorReadinessStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const normalizeKey = (value, fallback) =>
+        String(value || fallback || '')
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, '');
+      const missingMap = {
+        integration_scope: 'adds the concrete SMGW integration scope before connector readiness can be claimed.',
+        tenant_auth_boundary: 'adds tenant/auth boundary evidence for a future SMGW adapter path.',
+        adapter_class: 'adds target gateway or adapter class evidence without calling that adapter.',
+        control_domain_intent: 'adds the intended §14a control-domain boundary and non-execution reason.',
+        nes2_module_evidence: 'adds NES2 tariff-module readiness classification evidence.',
+        eebus_taf_evidence: 'adds EEBUS/TAF evidence for the planned gateway path.',
+        audit_prerequisites: 'adds compliance/audit prerequisite evidence before production connector work.',
+        owner: 'adds the accountable owner for closing SMGW readiness gaps.',
+      };
+      const missingEvidence = [];
+      const addGap = (id) => {
+        if (!missingEvidence.some((gap) => gap.missingDataPoint === id)) {
+          missingEvidence.push({
+            missingDataPoint: id,
+            enablesDossierAddition: missingMap[id],
+          });
+        }
+      };
+
+      if (!isProvided(params.integrationScope)) addGap('integration_scope');
+      if (!isProvided(params.authBoundary) && !isProvided(params.tenantBoundary)) addGap('tenant_auth_boundary');
+      if (!isProvided(params.adapterClass) && !isProvided(params.gatewayClass)) addGap('adapter_class');
+      if (!isProvided(params.controlDomainIntent)) addGap('control_domain_intent');
+      if (!isProvided(params.nes2ModuleEvidence)) addGap('nes2_module_evidence');
+      if (!isProvided(params.eebusEvidence) && !isProvided(params.tafEvidence)) addGap('eebus_taf_evidence');
+      if (!isProvided(params.auditPrerequisites)) addGap('audit_prerequisites');
+      if (!isProvided(params.ownerRole)) addGap('owner');
+
+      const callerBlockers = toList(params.blocker);
+      const blockers = [
+        ...callerBlockers,
+        ...missingEvidence.map((gap) => gap.missingDataPoint),
+      ];
+      const readinessScore = Number(
+        Math.max(0, (8 - missingEvidence.length) / 8).toFixed(2)
+      );
+      const status = readinessScore === 1
+        ? 'ready_for_connector_design'
+        : missingEvidence.some((gap) => gap.missingDataPoint === 'tenant_auth_boundary')
+          ? 'blocked_by_auth_boundary'
+          : 'needs_connector_evidence';
+      const connectorReadiness = {
+        integrationScope: params.integrationScope || '§14a SMGW connector readiness',
+        scopeKey: normalizeKey(params.integrationScope, 'smgw_connector'),
+        gatewayClass: params.gatewayClass || params.adapterClass || 'undeclared_gateway_class',
+        adapterClass: params.adapterClass || params.gatewayClass || 'undeclared_adapter_class',
+        controlDomainIntent: params.controlDomainIntent || 'control intent not yet evidenced',
+        nes2ModuleEvidence: params.nes2ModuleEvidence || null,
+        eebusEvidence: params.eebusEvidence || null,
+        tafEvidence: params.tafEvidence || null,
+        auditPrerequisites: params.auditPrerequisites || null,
+        authBoundary: params.authBoundary || params.tenantBoundary || null,
+        tenantBoundary: params.tenantBoundary || params.authBoundary || null,
+        ownerRole: params.ownerRole || 'unassigned',
+        fallbackReason: params.fallbackReason || 'readiness evidence only; connector/control execution remains out of scope',
+        evidenceHints: toList(params.evidenceHints),
+      };
+      const sourceActions = {
+        inspected: ['dashboard-api.smgwConnectorReadinessStatus'],
+        referenced: [
+          connectorReadiness.integrationScope,
+          connectorReadiness.gatewayClass,
+          connectorReadiness.adapterClass,
+          connectorReadiness.controlDomainIntent,
+        ].filter(Boolean),
+        notCalled: [
+          'smgw.register',
+          'smgw.pairDevice',
+          'smgw.control',
+          'taf7.dispatch',
+          'mqtt.publish',
+          'eebus.bridge',
+          'openmuc.adapter.call',
+          'voltaris.adapter.call',
+          'nes2.tariffEngine.calculate',
+          'billing.import',
+          'hitl.create',
+          'external.connector.call',
+          'secret.read',
+          'personal-agent.execute',
+        ],
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'smgw_connector_readiness_status',
+      }));
+      const nextActions = positiveFollowUps.map((gap) => ({
+        action: 'requestEvidence',
+        missingDataPoint: gap.missingDataPoint,
+        description: gap.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `SMGW Connector Readiness: ${status}`,
+        `Readiness Score: ${readinessScore}`,
+        `Integration Scope: ${connectorReadiness.integrationScope}`,
+        `Adapter Class: ${connectorReadiness.adapterClass}`,
+        `Auth Boundary: ${connectorReadiness.authBoundary || 'missing'}`,
+        `Fallback Reason: ${connectorReadiness.fallbackReason}`,
+      ];
+
+      return {
+        capabilityKey: 'smgw_connector_readiness_status',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        connectorReadiness,
+        blockers,
+        missingEvidence,
+        positiveFollowUps,
+        nextActions,
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'smgw_connector_readiness_status',
+          status,
+          readinessScore,
+          connectorReadiness,
+          blockers,
+          missingEvidence,
+          positiveFollowUps,
+          nextActions,
           sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,
         },

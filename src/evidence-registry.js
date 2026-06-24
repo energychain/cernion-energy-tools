@@ -4136,6 +4136,67 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  smgw_connector_readiness_status: {
+    sources: [
+      {
+        id: 'integration_scope',
+        label: 'SMGW integration scope',
+        resolvedBy: ['dashboard-api.smgwConnectorReadinessStatus'],
+        contextKeys: ['integrationScope'],
+        optional: false,
+      },
+      {
+        id: 'tenant_auth_boundary',
+        label: 'Tenant and auth boundary',
+        resolvedBy: ['dashboard-api.smgwConnectorReadinessStatus', 'token-manager.verify'],
+        contextKeys: ['authBoundary', 'tenantBoundary'],
+        optional: false,
+      },
+      {
+        id: 'adapter_class',
+        label: 'Gateway or adapter class',
+        resolvedBy: ['dashboard-api.smgwConnectorReadinessStatus', 'service-catalog.lookup'],
+        contextKeys: ['gatewayClass', 'adapterClass'],
+        optional: false,
+      },
+      {
+        id: 'control_domain_intent',
+        label: 'Control-domain intent and non-execution boundary',
+        resolvedBy: ['dashboard-api.smgwConnectorReadinessStatus'],
+        contextKeys: ['controlDomainIntent', 'fallbackReason'],
+        optional: false,
+      },
+      {
+        id: 'nes2_module_evidence',
+        label: 'NES2 tariff-module readiness evidence',
+        resolvedBy: ['dashboard-api.smgwConnectorReadinessStatus'],
+        contextKeys: ['nes2ModuleEvidence'],
+        optional: false,
+      },
+      {
+        id: 'eebus_taf_evidence',
+        label: 'EEBUS and TAF evidence',
+        resolvedBy: ['dashboard-api.smgwConnectorReadinessStatus'],
+        contextKeys: ['eebusEvidence', 'tafEvidence'],
+        optional: false,
+      },
+      {
+        id: 'audit_prerequisites',
+        label: 'Compliance and audit prerequisites',
+        resolvedBy: ['dashboard-api.smgwConnectorReadinessStatus', 'vdmi.dossier'],
+        contextKeys: ['auditPrerequisites'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Readiness owner',
+        resolvedBy: ['dashboard-api.smgwConnectorReadinessStatus', 'vdmi.dossier'],
+        contextKeys: ['ownerRole'],
+        optional: false,
+      },
+    ],
+  },
+
   leadership_delta_cockpit: {
     sources: [
       {
