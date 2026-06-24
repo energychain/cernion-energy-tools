@@ -1272,6 +1272,85 @@
     "sourceIssue": 269
   },
   {
+    "id": "dashboard-api.leadershipDeltaCockpitStatus",
+    "action": "dashboard-api.leadershipDeltaCockpitStatus",
+    "label": "Leadership Delta Cockpit",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "topic": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:topic|thema|sonderthema)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "domain": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:domain|domaene|domäne)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "ownerRole": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:ownerRole|owner|verantwortung)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "dueAt": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:dueAt|frist|deadline)[:= ]+([0-9A-Za-z_.:-]+)", "group": 1 }
+      },
+      "evidenceStatus": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:evidenceStatus|evidenzstatus)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "blockedDecision": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:blockedDecision|blockierteEntscheidung|entscheidung)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "escalationState": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:escalationState|eskalation|escalation)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "nextLever": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:nextLever|naechsterHebel|nächsterHebel)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 120 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Leadership Delta Status", "maxLen": 120 },
+        { "paths": ["topics.0.title", "dossierEvidence.highestPriorityDeltas.0.title"], "label": "Topic", "maxLen": 140 },
+        { "paths": ["topics.0.domain", "dossierEvidence.highestPriorityDeltas.0.domain"], "label": "Domain", "maxLen": 120 },
+        { "paths": ["topics.0.owner.role", "dossierEvidence.highestPriorityDeltas.0.owner.role"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["topics.0.dueAt", "dossierEvidence.highestPriorityDeltas.0.dueAt"], "label": "Due At", "maxLen": 120 },
+        { "paths": ["topics.0.evidenceStatus", "dossierEvidence.highestPriorityDeltas.0.evidenceStatus"], "label": "Evidence", "maxLen": 120 },
+        { "paths": ["topics.0.blockedDecision", "dossierEvidence.blockedDecisions.0.blockedDecision"], "label": "Blocked Decision", "maxLen": 160 },
+        { "paths": ["topics.0.nextLever", "dossierEvidence.highestPriorityDeltas.0.nextLever"], "label": "Next Lever", "maxLen": 140 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Positive Follow-up", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 270
+  },
+  {
     "id": "dashboard-api.gasGridTransformationAssetCockpitStatus",
     "action": "dashboard-api.gasGridTransformationAssetCockpitStatus",
     "label": "Gas Grid Transformation Asset Cockpit",

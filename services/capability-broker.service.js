@@ -701,6 +701,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasLeadershipDeltaCockpitSpecificSignal =
+    /(leadership_delta_cockpit|fuehrungscockpit|führungscockpit|delta steuerung|delta-steuerung|sonderthemen|managementsteuerung)/i.test(haystack) &&
+    /(owner|frist|deadline|evidenzstatus|evidence status|blockierte entscheidung|blocked decision|entscheidungsreif|eskalation|escalation|next lever|naechster hebel|nächster hebel|delta|source signal|quellensignal)/i.test(haystack) &&
+    !/(gasnetztransformation|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|hitl\.escalate|nova\.apply|nova\.approveDecision|vdmi\.mutate|external\.connector\.call|personal-agent\.execute|ms365\.sync)/i.test(haystack);
+
+  if (hasLeadershipDeltaCockpitSpecificSignal) {
+    const leadershipDeltaCapability = findCapabilityByName('leadership_delta_cockpit');
+    if (leadershipDeltaCapability) {
+      return { capability: leadershipDeltaCapability, score: 147, usedFallback: false };
+    }
+  }
+
   const hasGasGridTransformationAssetCockpitSpecificSignal =
     /(gasnetztransformation|gas zielnetz|gaszielnetz|h2 weiterverwendung|wasserstoff weiterverwendung|gasnetz stilllegung|rueckbaukosten|rückbaukosten|gas asset cockpit|vdmi asset cockpit|gas_grid_transformation_asset_cockpit)/i.test(haystack) &&
     /(asset.?cockpit|arbeitspaket|work.?package|asset.?segment|target.?option|zieloption|technical.?reuse|technische wiederverwendung|cashflow|totex|regulatory recognition|regulatorisch|waermenetz|wärmenetz|stromnetz|kundenuebergang|kundenübergang|decision.?gate|gremiengate|owner|readiness|gaps|follow.?up)/i.test(haystack) &&

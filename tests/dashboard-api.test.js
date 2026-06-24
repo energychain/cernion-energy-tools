@@ -3081,6 +3081,106 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  describe('leadershipDeltaCockpitStatus', () => {
+    it('reports missing leadership delta evidence without executing mutations', async () => {
+      const result = await broker.call('dashboard-api.leadershipDeltaCockpitStatus', {
+        topic: 'zielnetzplanung',
+        domain: 'znp',
+        newSignals: 'mastr-delta,znp-cost',
+      });
+
+      expect(result.capabilityKey).toBe('leadership_delta_cockpit');
+      expect(result.safety).toBe('read_only');
+      expect(result.status).toBe('delta_detected');
+      expect(result.topics[0].deltaSummary.signalCount).toBe(2);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'missing_owner',
+          'missing_due_date',
+          'missing_evidence',
+          'missing_linked_entity',
+          'missing_source_signal',
+        ])
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'hitl.create',
+          'hitl.escalate',
+          'nova.apply',
+          'nova.approveDecision',
+          'vdmi.taskMutate',
+          'decision-frame.create',
+          'ms365.sync',
+          'external.connector.call',
+          'settlement.exportA96',
+          'billing.prepareInvoice',
+          'tariff.mutate',
+          'mako.dispatch',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('classifies blocked and escalated topics from caller-supplied evidence', async () => {
+      const blocked = await broker.call('dashboard-api.leadershipDeltaCockpitStatus', {
+        topic: 'kapazitaetsbestellung',
+        domain: 'grid',
+        ownerRole: 'netzsteuerung',
+        dueAt: '2026-Q3',
+        evidenceStatus: 'partial',
+        blockedDecision: 'kapazitaetsfreigabe',
+        nextLever: 'unblock_decision',
+        linkedEntities: 'znp:2030',
+        sourceSignals: 'decision-frame,hitl',
+      });
+      expect(blocked.status).toBe('blocked');
+      expect(blocked.topics[0].owner.role).toBe('netzsteuerung');
+      expect(blocked.topics[0].blockedDecision).toBe('kapazitaetsfreigabe');
+      expect(blocked.missingEvidence).toEqual([]);
+
+      const escalated = await broker.call('dashboard-api.leadershipDeltaCockpitStatus', {
+        topic: 'regulatorik',
+        ownerRole: 'regulatory',
+        dueAt: '2026-07-01',
+        evidenceStatus: 'complete',
+        escalationState: 'escalated',
+        linkedEntities: 'reg:42c',
+        sourceSignals: 'hitl',
+      });
+      expect(escalated.status).toBe('escalated');
+      expect(escalated.topics[0].escalation.escalated).toBe(true);
+      expect(escalated.statusDistribution.escalated).toBe(1);
+
+      await expect(
+        broker.call('dashboard-api.leadershipDeltaCockpitStatus', {
+          topic: 'preise',
+          evidenceStatus: 'missing',
+        })
+      ).resolves.toMatchObject({ status: 'evidence_gap' });
+      await expect(
+        broker.call('dashboard-api.leadershipDeltaCockpitStatus', {
+          topic: 'kapazitaet',
+          evidenceStatus: 'ready',
+        })
+      ).resolves.toMatchObject({ status: 'decision_ready' });
+      await expect(
+        broker.call('dashboard-api.leadershipDeltaCockpitStatus', {
+          topic: 'bestand',
+        })
+      ).resolves.toMatchObject({ status: 'known' });
+    });
+
+    it('surfaces degraded source errors while keeping the response usable', async () => {
+      const result = await broker.call('dashboard-api.leadershipDeltaCockpitStatus', {
+        topic: 'assetstrategie',
+        includeDegradedSample: true,
+      });
+
+      expect(result._errors).toContain('leadership-delta-cockpit.sampleSource');
+      expect(result.topics).toHaveLength(1);
+    });
+  });
+
   // -- energySharingSimulationGateStatus ----------------------------------
 
   describe('energySharingSimulationGateStatus', () => {

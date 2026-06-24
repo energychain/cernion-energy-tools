@@ -49,6 +49,7 @@
 | 30 | [30-observability-mini.md](30-observability-mini.md) | Observability mini panel + agent prompt | `GET /api/dashboard/observability-mini` |
 | 31 | [31-asset-overrides.md](31-asset-overrides.md) | Asset override management | `POST /api/assets/:assetId/override` |
 | 40 | [40-hitl.md](40-hitl.md) | HITL approval dashboard | `GET /api/hitl/items` |
+| 42 | [42-leadership-delta-cockpit.md](42-leadership-delta-cockpit.md) | Fuehrungscockpit Delta Steuerung | `GET /api/dashboard/leadership-delta-cockpit` |
 
 ---
 

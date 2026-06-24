@@ -107,6 +107,7 @@ const CAPABILITY_DOMAIN_MAP = {
   // pure decision/process governance, no single business vertical
   governance_decision_closure: 'governance',
   governance_management: 'governance',
+  management_steering: 'governance',
   automation_governance: 'governance',
   ki_governance: 'governance',
   // metering asset financial/accounting governance (off-balance treatment) —

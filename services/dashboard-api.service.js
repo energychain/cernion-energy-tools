@@ -109,6 +109,7 @@ module.exports = {
       arealNetworkIntegrationOfferGateStatus: 5 * 60 * 1000, // 5 min
       transformationFinancingScenarioViewStatus: 5 * 60 * 1000, // 5 min
       gasGridTransformationAssetCockpitStatus: 5 * 60 * 1000, // 5 min
+      leadershipDeltaCockpitStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -5983,6 +5984,98 @@ module.exports = {
             ...this.buildGasGridTransformationAssetCockpitStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- leadershipDeltaCockpitStatus --------------------------------------
+    /**
+     * GET /api/dashboard/leadership-delta-cockpit
+     *
+     * Read-only dossier-safe aggregation for recurring leadership topics. It
+     * projects caller-supplied or existing signal summaries into delta,
+     * owner/deadline, evidence, blocker, escalation and next-lever facts
+     * without creating tasks, approvals, escalations or external syncs.
+     */
+    leadershipDeltaCockpitStatus: {
+      rest: 'GET /leadership-delta-cockpit',
+      params: {
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        bdewCode: { type: 'string', optional: true, min: 1 },
+        topicId: { type: 'string', optional: true, min: 1 },
+        topic: { type: 'string', optional: true, min: 1 },
+        domain: { type: 'string', optional: true, min: 1 },
+        role: { type: 'string', optional: true, min: 1 },
+        status: { type: 'string', optional: true, min: 1 },
+        ownerRole: { type: 'string', optional: true, min: 1 },
+        dueAt: { type: 'string', optional: true, min: 1 },
+        dueBefore: { type: 'string', optional: true, min: 1 },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+        blockedDecision: { type: 'string', optional: true, min: 1 },
+        escalationState: { type: 'string', optional: true, min: 1 },
+        nextLever: { type: 'string', optional: true, min: 1 },
+        knownBaseline: { type: 'string', optional: true, min: 1 },
+        newSignals: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        linkedEntities: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        sourceSignals: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        includeDegradedSample: { type: 'boolean', optional: true, convert: true },
+        limit: { type: 'number', optional: true, convert: true, min: 1, max: 50 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Leadership delta cockpit -- read-only management evidence aggregation',
+        description:
+          'Returns a deterministic read-only status/evidence view for recurring leadership topics. The endpoint surfaces delta summary, owner/deadline, evidence status, blocked decisions, escalation state, next lever, linked entities, source signals, positive follow-ups and degraded-source errors. It does not create HITL/NOVA/VDMI tasks, approvals, escalations, MS365 syncs, external calls, billing/settlement/tariff/MaKo actions, or Personal-Agent shortcuts.',
+        parameters: [
+          { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'bdewCode', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'topic', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'domain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dueAt', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'blockedDecision', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'escalationState', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextLever', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'newSignals', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only leadership delta cockpit evidence view',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    safety: { type: 'string' },
+                    status: { type: 'string' },
+                    topicCount: { type: 'number' },
+                    statusDistribution: { type: 'object' },
+                    topics: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    _errors: { type: 'array' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `leadership-delta-cockpit:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.leadershipDeltaCockpitStatus,
+          async () => ({
+            ...this.buildLeadershipDeltaCockpitStatus(params),
+            timestamp: new Date().toISOString(),
           })
         );
       },
@@ -21243,6 +21336,187 @@ module.exports = {
           sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,
         },
+      };
+    },
+
+    buildLeadershipDeltaCockpitStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean).map((item) => String(item).trim()).filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const normalizeStatus = (value, evidenceStatus, blockedDecision, escalationState, newSignals) => {
+        const explicit = String(value || '').trim();
+        const allowed = new Set([
+          'known',
+          'delta_detected',
+          'evidence_gap',
+          'blocked',
+          'decision_ready',
+          'escalated',
+          'closed',
+        ]);
+        if (allowed.has(explicit)) return explicit;
+        if (/escalat|eskal/i.test(String(escalationState || ''))) return 'escalated';
+        if (isProvided(blockedDecision)) return 'blocked';
+        if (/missing|partial|gap|luecke|lücke/i.test(String(evidenceStatus || ''))) return 'evidence_gap';
+        if (/ready|approval|entscheidungsreif/i.test(String(evidenceStatus || ''))) return 'decision_ready';
+        if (newSignals.length > 0) return 'delta_detected';
+        return 'known';
+      };
+
+      const newSignals = toList(params.newSignals);
+      const linkedEntities = toList(params.linkedEntities);
+      const sourceSignals = toList(params.sourceSignals);
+      const explicitErrors = params.includeDegradedSample ? ['leadership-delta-cockpit.sampleSource'] : [];
+      const topic = {
+        topicId: params.topicId || `leadership-delta:${params.topic || params.domain || 'general'}`,
+        title: params.topic || 'Fuehrungscockpit Delta Steuerung',
+        domain: params.domain || 'management_steering',
+        role: params.role || null,
+        status: normalizeStatus(
+          params.status,
+          params.evidenceStatus,
+          params.blockedDecision,
+          params.escalationState,
+          newSignals
+        ),
+        deltaSummary: {
+          signalCount: newSignals.length,
+          newestSignal: newSignals[0] || null,
+          summary:
+            newSignals.length > 0
+              ? `${newSignals.length} new signal(s) require leadership attention`
+              : 'No new signal supplied; baseline stays known.',
+        },
+        knownBaseline: params.knownBaseline || null,
+        newSignals,
+        owner: params.ownerRole ? { role: params.ownerRole } : null,
+        dueAt: params.dueAt || params.dueBefore || null,
+        evidenceStatus: params.evidenceStatus || (sourceSignals.length > 0 ? 'partial' : 'missing'),
+        blockedDecision: params.blockedDecision || null,
+        escalation: {
+          state: params.escalationState || 'none',
+          escalated: /escalat|eskal/i.test(String(params.escalationState || '')),
+        },
+        nextLever:
+          params.nextLever ||
+          (params.blockedDecision
+            ? 'unblock_decision'
+            : sourceSignals.length === 0
+              ? 'resolve_evidence_gap'
+              : newSignals.length > 0
+                ? 'review_delta'
+                : 'monitor_baseline'),
+        linkedEntities,
+        sourceSignals,
+      };
+
+      const missingMap = {
+        missing_owner: 'adds responsible owner or role and escalation path.',
+        missing_due_date: 'adds deadline and overdue classification.',
+        missing_evidence: 'adds evidence status and required source.',
+        missing_blocked_decision: 'adds blocked follow-up decision and unblock lever.',
+        missing_linked_entity: 'adds linked project, asset or process reference.',
+        missing_source_signal: 'adds source signal provenance for the leadership delta.',
+      };
+      const missingEvidence = [];
+      const addGap = (id) => {
+        if (!missingEvidence.some((gap) => gap.missingDataPoint === id)) {
+          missingEvidence.push({
+            missingDataPoint: id,
+            enablesDossierAddition: missingMap[id],
+          });
+        }
+      };
+      if (!topic.owner) addGap('missing_owner');
+      if (!topic.dueAt) addGap('missing_due_date');
+      if (!isProvided(params.evidenceStatus)) addGap('missing_evidence');
+      if (!topic.blockedDecision && topic.status === 'blocked') addGap('missing_blocked_decision');
+      if (linkedEntities.length === 0) addGap('missing_linked_entity');
+      if (sourceSignals.length === 0) addGap('missing_source_signal');
+
+      const topics = [topic].slice(0, params.limit || 25);
+      const statusDistribution = topics.reduce((acc, item) => {
+        acc[item.status] = (acc[item.status] || 0) + 1;
+        return acc;
+      }, {});
+      const sourceActions = {
+        inspected: ['dashboard-api.leadershipDeltaCockpitStatus'],
+        referenced: [
+          'decision-frame.list',
+          'hitl.list',
+          'hitl.summary',
+          'nova.listDecisions',
+          'evidence-planner.plan',
+          'evidence-registry.lookup',
+          'dashboard-api.vnbOverview',
+          ...sourceSignals,
+        ],
+        notCalled: [
+          'hitl.create',
+          'hitl.escalate',
+          'nova.apply',
+          'nova.approveDecision',
+          'vdmi.taskMutate',
+          'decision-frame.create',
+          'ms365.sync',
+          'external.connector.call',
+          'settlement.exportA96',
+          'billing.prepareInvoice',
+          'tariff.mutate',
+          'mako.dispatch',
+          'personal-agent.execute',
+        ],
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'leadership_delta_cockpit',
+      }));
+      const dossierFacts = [
+        `Leadership Delta Status: ${topic.status}`,
+        `Topic: ${topic.title}`,
+        `Domain: ${topic.domain}`,
+        `Owner: ${topic.owner?.role || 'missing'}`,
+        `Due At: ${topic.dueAt || 'missing'}`,
+        `Evidence: ${topic.evidenceStatus}`,
+        `Blocked Decision: ${topic.blockedDecision || 'none'}`,
+        `Escalation: ${topic.escalation.state}`,
+        `Next Lever: ${topic.nextLever}`,
+      ];
+
+      return {
+        capabilityKey: 'leadership_delta_cockpit',
+        safety: 'read_only',
+        status: topic.status,
+        topicCount: topics.length,
+        statusDistribution,
+        topics,
+        missingEvidence,
+        positiveFollowUps,
+        nextActions: positiveFollowUps.map((gap) => ({
+          action: 'requestEvidence',
+          missingDataPoint: gap.missingDataPoint,
+          description: gap.enablesDossierAddition,
+        })),
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'leadership_delta_cockpit',
+          status: topic.status,
+          topicCount: topics.length,
+          statusDistribution,
+          highestPriorityDeltas: topics.filter((item) => item.status !== 'known'),
+          blockedDecisions: topics.filter((item) => item.blockedDecision),
+          escalations: topics.filter((item) => item.escalation?.escalated),
+          missingEvidence,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+        _errors: explicitErrors,
       };
     },
 

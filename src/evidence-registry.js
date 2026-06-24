@@ -4089,6 +4089,60 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  leadership_delta_cockpit: {
+    sources: [
+      {
+        id: 'topic_identity',
+        label: 'Leadership topic identity and domain',
+        resolvedBy: ['dashboard-api.leadershipDeltaCockpitStatus', 'decision-frame.list'],
+        contextKeys: ['topicId', 'topic', 'domain'],
+        optional: false,
+      },
+      {
+        id: 'delta_signals',
+        label: 'New delta signals against the known baseline',
+        resolvedBy: ['dashboard-api.leadershipDeltaCockpitStatus', 'vnb-monitor.snapshot'],
+        contextKeys: ['knownBaseline', 'newSignals'],
+        optional: false,
+      },
+      {
+        id: 'owner_deadline',
+        label: 'Owner and deadline',
+        resolvedBy: ['dashboard-api.leadershipDeltaCockpitStatus', 'hitl.summary'],
+        contextKeys: ['ownerRole', 'dueAt', 'dueBefore'],
+        optional: false,
+      },
+      {
+        id: 'evidence_status',
+        label: 'Evidence status and source signals',
+        resolvedBy: ['dashboard-api.leadershipDeltaCockpitStatus', 'evidence-planner.plan'],
+        contextKeys: ['evidenceStatus', 'sourceSignals'],
+        optional: false,
+      },
+      {
+        id: 'blocked_decision',
+        label: 'Blocked follow-up decision',
+        resolvedBy: ['dashboard-api.leadershipDeltaCockpitStatus', 'nova.listDecisions', 'hitl.list'],
+        contextKeys: ['blockedDecision', 'status'],
+        optional: false,
+      },
+      {
+        id: 'escalation_next_lever',
+        label: 'Escalation state and next lever',
+        resolvedBy: ['dashboard-api.leadershipDeltaCockpitStatus', 'hitl.slaHeatmap'],
+        contextKeys: ['escalationState', 'nextLever'],
+        optional: false,
+      },
+      {
+        id: 'linked_entity',
+        label: 'Linked project, asset or process entity',
+        resolvedBy: ['dashboard-api.leadershipDeltaCockpitStatus', 'vdmi.dossier'],
+        contextKeys: ['linkedEntities'],
+        optional: false,
+      },
+    ],
+  },
+
   gas_grid_transformation_asset_cockpit: {
     sources: [
       {

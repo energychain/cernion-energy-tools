@@ -1138,6 +1138,29 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes leadership delta cockpit prompts to the read-only dashboard view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'leadership_delta_cockpit Fuehrungscockpit Delta Steuerung fuer Sonderthemen mit Owner Frist Evidenzstatus blockierte Entscheidung Eskalation und Next Lever pruefen.',
+    });
+
+    expect(result.capability).toBe('leadership_delta_cockpit');
+    expect(result.recommendedCapabilities[0].capability).toBe('leadership_delta_cockpit');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.leadershipDeltaCockpitStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('hitl.escalate');
+    expect(actionNames).not.toContain('nova.apply');
+    expect(actionNames).not.toContain('nova.approveDecision');
+    expect(actionNames).not.toContain('vdmi.taskMutate');
+    expect(actionNames).not.toContain('ms365.sync');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('billing.prepareInvoice');
+    expect(actionNames).not.toContain('tariff.mutate');
+    expect(actionNames).not.toContain('mako.dispatch');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('keeps target-grid transformation wording away from the Areal offer gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Netzanschlusspunkt Transformations-Gate mit division transformationOption dataQualityStatus investmentPath decommissionPath owner und nextAction.',

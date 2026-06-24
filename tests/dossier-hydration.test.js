@@ -70,12 +70,12 @@ describe('dossier-hydration-registry (unit)', () => {
   describe('static baseline rules', () => {
     it('loads all 84 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(84);
+      expect(rules.length).toBe(85);
     });
 
     it('compiles all 84 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(84);
+      expect(rules.length).toBe(85);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1630,6 +1630,55 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Program: gas-2030');
       expect(formatted).toContain('Leading Gap: decommissioning_cost_basis');
       expect(formatted).toContain('Side-Effect Guard: gas-assets.applyDecommissioning');
+    });
+
+    it('dashboard-api.leadershipDeltaCockpitStatus is dossier-safe and formats cockpit facts', () => {
+      const rule = getRule('dashboard-api.leadershipDeltaCockpitStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Fuehrungscockpit Thema=zielnetzplanung domain=znp owner=netzstrategie frist=2026-Q3 evidenzstatus=partial entscheidung=zielnetzpfad eskalation=watch nextLever=resolve_gap pruefen'
+        )
+      ).toEqual({
+        topic: 'zielnetzplanung',
+        domain: 'znp',
+        ownerRole: 'netzstrategie',
+        dueAt: '2026-Q3',
+        evidenceStatus: 'partial',
+        blockedDecision: 'zielnetzpfad',
+        escalationState: 'watch',
+        nextLever: 'resolve_gap',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'leadership_delta_cockpit',
+        status: 'blocked',
+        topics: [
+          {
+            title: 'zielnetzplanung',
+            domain: 'znp',
+            owner: { role: 'netzstrategie' },
+            dueAt: '2026-Q3',
+            evidenceStatus: 'partial',
+            blockedDecision: 'zielnetzpfad',
+            nextLever: 'resolve_gap',
+          },
+        ],
+        missingEvidence: [{ missingDataPoint: 'missing_source_signal' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add source provenance' }],
+        sourceActions: {
+          notCalled: ['hitl.create'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: leadership_delta_cockpit');
+      expect(formatted).toContain('Leadership Delta Status: blocked');
+      expect(formatted).toContain('Topic: zielnetzplanung');
+      expect(formatted).toContain('Owner: netzstrategie');
+      expect(formatted).toContain('Blocked Decision: zielnetzpfad');
+      expect(formatted).toContain('Side-Effect Guard: hitl.create');
     });
 
     it('dashboard-api.specialGridUsageImpactMapStatus is dossier-safe and formats impact-map facts', () => {
