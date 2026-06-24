@@ -153,7 +153,7 @@ describe('compileReadOnlyExecutionPlan', () => {
     expect(mockDetectBlueprintIntent).toHaveBeenCalledWith(
       'Liste aller Erzeugungsanlagen in 69168',
       expect.objectContaining({ assetType: 'solar' }),
-      {},
+      expect.objectContaining({ location: '69168' }),
       { includeRestPlanOnly: true }
     );
   });
@@ -173,6 +173,43 @@ describe('compileReadOnlyExecutionPlan', () => {
 
     expect(result.ok).toBe(true);
     expect(result.execution.path).toBe('/api/assets/wind');
+  });
+
+  test('derives fixture inputs from the natural-language question when structured inputs are absent', () => {
+    mockDetectBlueprintIntent.mockReturnValue({
+      blueprintId: 'mastr-asset-service-selection-v1',
+      score: 4,
+    });
+    mockLoadBlueprint.mockReturnValue(ASSET_SELECTION_BLUEPRINT);
+
+    const result = compileReadOnlyExecutionPlan({
+      question: 'Liste alle Solaranlagen in 69168 zwischen 10 und 13 kW aus 2025',
+      context: { tenantId: 'public' },
+      broker: ASSETS_BROKER,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.canonicalInputs).toEqual({
+      assetType: 'solar',
+      location: '69168',
+      minCapacity: 10,
+      maxCapacity: 13,
+      commissioningYear: 2025,
+      limit: 100,
+    });
+    expect(result.execution.query).toEqual({
+      location: '69168',
+      minCapacityKW: 10,
+      maxCapacityKW: 13,
+      commissioningYear: 2025,
+      limit: 100,
+    });
+    expect(mockDetectBlueprintIntent).toHaveBeenCalledWith(
+      'Liste alle Solaranlagen in 69168 zwischen 10 und 13 kW aus 2025',
+      expect.objectContaining({ tenantId: 'public', location: '69168', assetType: 'solar' }),
+      expect.objectContaining({ location: '69168', assetType: 'solar' }),
+      { includeRestPlanOnly: true }
+    );
   });
 
   test('returns no_blueprint_match when no blueprint matches the question', () => {

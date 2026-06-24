@@ -23,9 +23,37 @@ const { resolvePathInScope } = require('./l2-blueprint-interpreter');
 
 const ACTION_TEMPLATE_RE = /^[a-zA-Z0-9_-]+\.\{\{\s*inputs\.([a-zA-Z0-9_]+)\s*\}\}$/;
 const PARAM_TEMPLATE_RE = /^\{\{\s*([^}]+)\s*\}\}$/;
+const POSTAL_CODE_RE = /\b\d{5}\b/;
+const YEAR_RE = /\b(20\d{2}|19\d{2})\b/;
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function deriveInputHintsFromQuestion(question) {
+  const text = String(question || '');
+  const haystack = text.toLowerCase();
+  const hints = {};
+
+  const postalCode = POSTAL_CODE_RE.exec(text)?.[0];
+  if (postalCode) hints.location = postalCode;
+
+  if (/\b(solar|pv|photovoltaik|solaranlage|solaranlagen)\b/i.test(text)) {
+    hints.assetType = 'solar';
+  } else if (/\b(wind|windanlage|windanlagen)\b/i.test(text)) {
+    hints.assetType = 'wind';
+  }
+
+  const betweenKw = haystack.match(/zwischen\s+(\d+(?:[.,]\d+)?)\s*(?:und|-)\s*(\d+(?:[.,]\d+)?)\s*kw\b/);
+  if (betweenKw) {
+    hints.minCapacity = Number(betweenKw[1].replace(',', '.'));
+    hints.maxCapacity = Number(betweenKw[2].replace(',', '.'));
+  }
+
+  const year = YEAR_RE.exec(text)?.[1];
+  if (year) hints.commissioningYear = Number(year);
+
+  return hints;
 }
 
 // Resolves canonical inputs from the caller-supplied context against the
@@ -131,7 +159,9 @@ function compileReadOnlyExecutionPlan({ question, context = {}, broker }) {
     return { ok: false, reason: 'broker_unavailable' };
   }
 
-  const match = detectBlueprintIntent(question, context, {}, { includeRestPlanOnly: true });
+  const inputHints = deriveInputHintsFromQuestion(question);
+  const planningContext = { ...inputHints, ...context };
+  const match = detectBlueprintIntent(question, planningContext, inputHints, { includeRestPlanOnly: true });
   if (!match) {
     return { ok: false, reason: 'no_blueprint_match' };
   }
@@ -141,7 +171,7 @@ function compileReadOnlyExecutionPlan({ question, context = {}, broker }) {
     return { ok: false, reason: 'no_blueprint_match' };
   }
 
-  const { canonicalInputs, missing } = resolveCanonicalInputs(blueprint, context);
+  const { canonicalInputs, missing } = resolveCanonicalInputs(blueprint, planningContext);
   if (missing.length > 0) {
     return {
       ok: false,
@@ -239,4 +269,5 @@ function describeNoPlanReason(result) {
 module.exports = {
   compileReadOnlyExecutionPlan,
   describeNoPlanReason,
+  deriveInputHintsFromQuestion,
 };
