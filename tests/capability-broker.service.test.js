@@ -1133,6 +1133,27 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes No-Regret measure definition prompts to the read-only definition gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe No-Regret Massnahmen Definitionsgate fuer Transformationsprogramm Szenariowirkung Budgetwirkung regulatorische Anschlussfaehigkeit Priorisierungsrecht Datenqualitaet Kommunikationsregel und Review Gate.',
+    });
+
+    expect(result.capability).toBe('no_regret_measure_definition_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'no_regret_measure_definition_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.noRegretMeasureDefinitionGateStatus');
+    expect(actionNames).not.toContain('measure.approve');
+    expect(actionNames).not.toContain('budget.release');
+    expect(actionNames).not.toContain('finance.createBooking');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('device-control.execute');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Gasnetz transformation asset cockpit prompts to the read-only asset view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Gasnetztransformation VDMI Asset Cockpit fuer Gaszielnetz H2 Weiterverwendung Gasnetz Stilllegung Rueckbaukosten Cashflow Gasnetz Waermenetz Abhaengigkeit Stromnetz Abhaengigkeit und Gremiengate.',

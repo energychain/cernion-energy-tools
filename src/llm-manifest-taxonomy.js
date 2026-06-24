@@ -100,6 +100,7 @@ const CAPABILITY_DOMAIN_MAP = {
   investment_governance: 'grid-planning',
   'investment-finance-governance': 'grid-planning',
   transformation_finance_governance: 'grid-planning',
+  transformation_governance: 'grid-planning',
   // gas/heat network transformation governance — WPG-driven, regulatory
   gas_transformation_governance: 'regulatory',
   gas_grid_transformation: 'regulatory',

@@ -3070,6 +3070,91 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- noRegretMeasureDefinitionGateStatus --------------------------------
+
+  describe('noRegretMeasureDefinitionGateStatus', () => {
+    it('reports missing No-Regret definition evidence without executing mutations', async () => {
+      const result = await broker.call('dashboard-api.noRegretMeasureDefinitionGateStatus', {
+        measureId: 'measure-279',
+        programmeId: 'transformation-2030',
+      });
+
+      expect(result.status).toBe('needs_scenario_effect_basis');
+      expect(result.safety).toBe('read_only');
+      expect(result.measure.measureId).toBe('measure-279');
+      expect(result.definitionEvidence.measureApproved).toBe(false);
+      expect(result.definitionEvidence.budgetApproved).toBe(false);
+      expect(result.definitionEvidence.hitlCreated).toBe(false);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'scenario_effect',
+          'budget_funding',
+          'regulatory_fit',
+          'prioritisation_rule',
+          'data_quality',
+          'communication_rule',
+          'review_gate',
+          'source_datapoints',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe(
+        'no_regret_measure_definition_gate'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'transformation-program.mutate',
+          'measure.approve',
+          'budget.release',
+          'finance.createBooking',
+          'accounting.postJournal',
+          'hitl.create',
+          'device-control.execute',
+          'settlement.exportA96',
+          'tariff.mutate',
+          'mako.dispatch',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_no_regret_gate_review for complete caller-supplied evidence', async () => {
+      const result = await broker.call('dashboard-api.noRegretMeasureDefinitionGateStatus', {
+        measureId: 'measure-ready-279',
+        programmeId: 'transformation-2030',
+        measureName: 'No-Regret Trafostationsreserve',
+        scenarioAssumption: 'stromlast-plus-2030',
+        transformationEffect: 'keeps-option-open',
+        budgetEffect: 'capex-buffer-42',
+        fundingOwner: 'investment-office',
+        regulatoryFit: 'enwg-compatible-assumption',
+        prioritisationRule: 'no-regret-before-path-dependent',
+        dataQualityStatus: 'source-reviewed',
+        sourceSnapshot: 'snapshot:279',
+        communicationRule: 'committee-briefing-required',
+        stakeholderGroup: 'netzstrategie',
+        nextReviewGate: 'portfolio-review-q3',
+        dueDate: '2026-09-30',
+        owner: 'transformation-board',
+        sourceDatapoints: 'scenario:2030,budget:42,regulatory:fit',
+      });
+
+      expect(result.status).toBe('ready_for_no_regret_gate_review');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.definitionEvidence.measureApproved).toBe(false);
+      expect(result.definitionEvidence.programmeMutated).toBe(false);
+      expect(result.definitionEvidence.settlementExported).toBe(false);
+      expect(result.definitionEvidence.externalConnectorCalled).toBe(false);
+      expect(result.dossierEvidence.dossierFacts).toContain(
+        'No-Regret Gate Status: ready_for_no_regret_gate_review'
+      );
+      expect(result.dossierEvidence.sourceDatapoints).toEqual(
+        expect.arrayContaining(['scenario:2030', 'budget:42', 'regulatory:fit'])
+      );
+    });
+  });
+
   // -- gasGridTransformationAssetCockpitStatus -----------------------------
 
   describe('gasGridTransformationAssetCockpitStatus', () => {

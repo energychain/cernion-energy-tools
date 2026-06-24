@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 88 static rules', () => {
+    it('loads all 89 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(88);
+      expect(rules.length).toBe(89);
     });
 
-    it('compiles all 88 static rules without error', () => {
+    it('compiles all 89 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(88);
+      expect(rules.length).toBe(89);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1620,6 +1620,58 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Measure: measure-278');
       expect(formatted).toContain('Leading Gap: required_evidence');
       expect(formatted).toContain('Side-Effect Guard: investment.approve');
+    });
+
+    it('dashboard-api.noRegretMeasureDefinitionGateStatus is dossier-safe and formats definition facts', () => {
+      const rule = getRule('dashboard-api.noRegretMeasureDefinitionGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte no-regret massnahme=measure-279 programm=trans-2030 szenario=load-plus wirkung=optionality budgetwirkung=capex-42 finanzierungsowner=invest regulatorik=fit priorisierung=no-regret-first datenqualitaet=reviewed kommunikationsregel=committee pruefgate=q3 frist=2026-09-30 owner=board pruefen'
+        )
+      ).toEqual({
+        measureId: 'measure-279',
+        programmeId: 'trans-2030',
+        scenarioAssumption: 'load-plus',
+        transformationEffect: 'optionality',
+        budgetEffect: 'capex-42',
+        fundingOwner: 'invest',
+        regulatoryFit: 'fit',
+        prioritisationRule: 'no-regret-first',
+        dataQualityStatus: 'reviewed',
+        communicationRule: 'committee',
+        nextReviewGate: 'q3',
+        dueDate: '2026-09-30',
+        owner: 'board',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'no_regret_measure_definition_gate',
+        status: 'needs_definition_evidence',
+        measure: { measureId: 'measure-279' },
+        definitionEvidence: {
+          transformationEffect: 'optionality',
+          budgetEffect: 'capex-42',
+          regulatoryFit: 'fit',
+          prioritisationRule: 'no-regret-first',
+          dataQualityStatus: 'reviewed',
+          communicationRule: 'committee',
+          nextReviewGate: 'q3',
+        },
+        missingEvidence: [{ missingDataPoint: 'review_gate' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add next review gate evidence' }],
+        sourceActions: {
+          notCalled: ['measure.approve'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: no_regret_measure_definition_gate');
+      expect(formatted).toContain('No-Regret Gate Status: needs_definition_evidence');
+      expect(formatted).toContain('Measure: measure-279');
+      expect(formatted).toContain('Leading Gap: review_gate');
+      expect(formatted).toContain('Side-Effect Guard: measure.approve');
     });
 
     it('dashboard-api.gasGridTransformationAssetCockpitStatus is dossier-safe and formats asset-cockpit facts', () => {

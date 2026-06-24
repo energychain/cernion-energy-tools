@@ -1450,6 +1450,8 @@ module.exports = {
             'dashboard-api.transformationFinancingScenarioViewStatus',
           'GET /dashboard/investment-owner-deadline-budget-gate':
             'dashboard-api.investmentOwnerDeadlineBudgetGateStatus',
+          'GET /dashboard/no-regret-measure-definition-gate':
+            'dashboard-api.noRegretMeasureDefinitionGateStatus',
           'GET /dashboard/gas-grid-transformation-asset-cockpit':
             'dashboard-api.gasGridTransformationAssetCockpitStatus',
           'GET /dashboard/leadership-delta-cockpit':

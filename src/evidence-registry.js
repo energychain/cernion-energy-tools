@@ -4387,6 +4387,74 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  no_regret_measure_definition_gate: {
+    sources: [
+      {
+        id: 'measure_identity',
+        label: 'No-Regret measure and programme identity',
+        resolvedBy: ['dashboard-api.noRegretMeasureDefinitionGateStatus'],
+        contextKeys: ['measureId', 'programmeId', 'measureName'],
+        optional: false,
+      },
+      {
+        id: 'scenario_effect',
+        label: 'Scenario assumption and expected transformation effect',
+        resolvedBy: ['dashboard-api.noRegretMeasureDefinitionGateStatus', 'vdmi.dossier'],
+        contextKeys: ['scenarioAssumption', 'transformationEffect'],
+        optional: false,
+      },
+      {
+        id: 'budget_funding',
+        label: 'Budget effect and funding owner basis',
+        resolvedBy: ['dashboard-api.noRegretMeasureDefinitionGateStatus', 'finance-agent.analyze', 'investment-planning.review'],
+        contextKeys: ['budgetEffect', 'fundingOwner'],
+        optional: false,
+      },
+      {
+        id: 'regulatory_fit',
+        label: 'Regulatory fit or constraint boundary',
+        resolvedBy: ['dashboard-api.noRegretMeasureDefinitionGateStatus', 'evidence-registry.lookup'],
+        contextKeys: ['regulatoryFit', 'constraintHint'],
+        optional: false,
+      },
+      {
+        id: 'prioritisation_rule',
+        label: 'Prioritisation or nomination rule',
+        resolvedBy: ['dashboard-api.noRegretMeasureDefinitionGateStatus', 'investment-planning.review'],
+        contextKeys: ['prioritisationRule', 'nominationRight'],
+        optional: false,
+      },
+      {
+        id: 'data_quality',
+        label: 'Data-quality status and source snapshot',
+        resolvedBy: ['dashboard-api.noRegretMeasureDefinitionGateStatus', 'datasource-registry.get'],
+        contextKeys: ['dataQualityStatus', 'sourceSnapshot'],
+        optional: false,
+      },
+      {
+        id: 'communication_rule',
+        label: 'Communication rule and stakeholder boundary',
+        resolvedBy: ['dashboard-api.noRegretMeasureDefinitionGateStatus', 'presentation.generate'],
+        contextKeys: ['communicationRule', 'stakeholderGroup'],
+        optional: false,
+      },
+      {
+        id: 'review_gate',
+        label: 'Next review gate, due date and accountable owner',
+        resolvedBy: ['dashboard-api.noRegretMeasureDefinitionGateStatus', 'vdmi.dossier'],
+        contextKeys: ['nextReviewGate', 'dueDate', 'owner'],
+        optional: false,
+      },
+      {
+        id: 'source_datapoints',
+        label: 'Source datapoints and provenance',
+        resolvedBy: ['dashboard-api.noRegretMeasureDefinitionGateStatus', 'datasource-registry.get'],
+        contextKeys: ['sourceDatapoints', 'sourceActions'],
+        optional: false,
+      },
+    ],
+  },
+
   transformation_financing_scenario_view: {
     sources: [
       {

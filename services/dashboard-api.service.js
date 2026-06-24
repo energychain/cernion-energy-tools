@@ -79,6 +79,7 @@ module.exports = {
       kiFloorwalkerGovernanceStatus: 5 * 60 * 1000, // 5 min
       investmentWaterfallGovernanceStatus: 5 * 60 * 1000, // 5 min
       investmentOwnerDeadlineBudgetGateStatus: 5 * 60 * 1000, // 5 min
+      noRegretMeasureDefinitionGateStatus: 5 * 60 * 1000, // 5 min
       capacityContractRiskAssetCockpitStatus: 5 * 60 * 1000, // 5 min
       imsysTaf2ComplianceStatus: 5 * 60 * 1000, // 5 min
       scheduleManagementGovernanceRoadmapStatus: 5 * 60 * 1000, // 5 min
@@ -5934,6 +5935,65 @@ module.exports = {
           this.settings.cacheTtlMs.investmentOwnerDeadlineBudgetGateStatus,
           async () => ({
             ...this.buildInvestmentOwnerDeadlineBudgetGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- noRegretMeasureDefinitionGateStatus -------------------------------
+    /**
+     * GET /api/dashboard/no-regret-measure-definition-gate
+     *
+     * Read-only dossier-safe definition gate for supplied No-Regret measure
+     * facts. It does not approve measures, reserve budgets, create HITL
+     * tasks, mutate programmes, or call external systems.
+     */
+    noRegretMeasureDefinitionGateStatus: {
+      rest: 'GET /no-regret-measure-definition-gate',
+      params: {
+        measureId: { type: 'string', optional: true, min: 1 },
+        programmeId: { type: 'string', optional: true, min: 1 },
+        measureName: { type: 'string', optional: true, min: 1 },
+        scenarioAssumption: { type: 'string', optional: true, min: 1 },
+        transformationEffect: { type: 'string', optional: true, min: 1 },
+        budgetEffect: { type: 'string', optional: true, min: 1 },
+        fundingOwner: { type: 'string', optional: true, min: 1 },
+        regulatoryFit: { type: 'string', optional: true, min: 1 },
+        constraintHint: { type: 'string', optional: true, min: 1 },
+        prioritisationRule: { type: 'string', optional: true, min: 1 },
+        nominationRight: { type: 'string', optional: true, min: 1 },
+        dataQualityStatus: { type: 'string', optional: true, min: 1 },
+        sourceSnapshot: { type: 'string', optional: true, min: 1 },
+        communicationRule: { type: 'string', optional: true, min: 1 },
+        stakeholderGroup: { type: 'string', optional: true, min: 1 },
+        nextReviewGate: { type: 'string', optional: true, min: 1 },
+        dueDate: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceActions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'No-Regret measure definition gate -- read-only evidence gate',
+        description:
+          'Returns a deterministic dossier-safe view over No-Regret measure definition evidence: scenario/effect, budget/funding owner, regulatory fit, prioritisation/nomination rule, data quality, communication rule, and next review gate. ' +
+          'The endpoint is read-only and never approves measures or budgets, mutates programmes, creates HITL tasks, runs MaKo/A96/billing/settlement/tariff/device-control effects, or calls external connectors.',
+        responses: {
+          200: {
+            description: 'Read-only No-Regret measure definition evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `no-regret-measure-definition-gate:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.noRegretMeasureDefinitionGateStatus,
+          async () => ({
+            ...this.buildNoRegretMeasureDefinitionGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -21459,6 +21519,169 @@ module.exports = {
           readinessScore,
           measure,
           gateEvidence,
+          missingEvidence,
+          positiveFollowUps,
+          nextActions,
+          sourceDatapoints,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildNoRegretMeasureDefinitionGateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+
+      const sourceDatapoints = toList(params.sourceDatapoints);
+      const callerSourceActions = toList(params.sourceActions);
+      const gapMap = {
+        measure_identity: 'add measure and programme identity for the No-Regret definition',
+        scenario_effect: 'add scenario assumption and expected transformation effect',
+        budget_funding: 'add budget effect and funding owner basis',
+        regulatory_fit: 'add regulatory-fit or constraint boundary',
+        prioritisation_rule: 'add prioritisation or nomination rule justification',
+        data_quality: 'add data-quality status and source snapshot',
+        communication_rule: 'add communication rule and stakeholder boundary',
+        review_gate: 'add next review gate, due date and accountable owner',
+        source_datapoints: 'add source datapoints or source actions for provenance',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint) => {
+        missingEvidence.push({
+          missingDataPoint,
+          status: 'missing',
+          enablesDossierAddition: gapMap[missingDataPoint],
+        });
+      };
+
+      if (!isProvided(params.measureId) && !isProvided(params.measureName) && !isProvided(params.programmeId)) addGap('measure_identity');
+      if (!isProvided(params.scenarioAssumption) || !isProvided(params.transformationEffect)) addGap('scenario_effect');
+      if (!isProvided(params.budgetEffect) || !isProvided(params.fundingOwner)) addGap('budget_funding');
+      if (!isProvided(params.regulatoryFit) && !isProvided(params.constraintHint)) addGap('regulatory_fit');
+      if (!isProvided(params.prioritisationRule) && !isProvided(params.nominationRight)) addGap('prioritisation_rule');
+      if (!isProvided(params.dataQualityStatus) || !isProvided(params.sourceSnapshot)) addGap('data_quality');
+      if (!isProvided(params.communicationRule) || !isProvided(params.stakeholderGroup)) addGap('communication_rule');
+      if (!isProvided(params.nextReviewGate) || !isProvided(params.dueDate) || !isProvided(params.owner)) addGap('review_gate');
+      if (sourceDatapoints.length === 0 && callerSourceActions.length === 0) addGap('source_datapoints');
+
+      let status = 'ready_for_no_regret_gate_review';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'measure_identity')) {
+        status = 'needs_measure_identity';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'scenario_effect')) {
+        status = 'needs_scenario_effect_basis';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'budget_funding')) {
+        status = 'needs_budget_funding_basis';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_fit' || gap.missingDataPoint === 'prioritisation_rule')) {
+        status = 'needs_definition_boundary';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_definition_evidence';
+      }
+
+      const requiredCount = Object.keys(gapMap).length;
+      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'no_regret_measure_definition_gate',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.noRegretMeasureDefinitionGateStatus'],
+        referenced: [
+          'vdmi.dossier',
+          'evidence-registry.lookup',
+          'investment-planning.review',
+          'finance-agent.analyze',
+          'datasource-registry.get',
+          'presentation.generate',
+          ...callerSourceActions,
+        ],
+        notCalled: [
+          'transformation-program.mutate',
+          'measure.approve',
+          'budget.release',
+          'finance.createBooking',
+          'accounting.postJournal',
+          'treasury.executeTransfer',
+          'hitl.create',
+          'vdmi.mutate',
+          'device-control.execute',
+          'billing.release',
+          'settlement.exportA96',
+          'tariff.mutate',
+          'mako.dispatch',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const measure = {
+        measureId: params.measureId || null,
+        programmeId: params.programmeId || null,
+        measureName: params.measureName || null,
+      };
+      const definitionEvidence = {
+        scenarioAssumption: params.scenarioAssumption || null,
+        transformationEffect: params.transformationEffect || null,
+        budgetEffect: params.budgetEffect || null,
+        fundingOwner: params.fundingOwner || null,
+        regulatoryFit: params.regulatoryFit || null,
+        constraintHint: params.constraintHint || null,
+        prioritisationRule: params.prioritisationRule || null,
+        nominationRight: params.nominationRight || null,
+        dataQualityStatus: params.dataQualityStatus || null,
+        sourceSnapshot: params.sourceSnapshot || null,
+        communicationRule: params.communicationRule || null,
+        stakeholderGroup: params.stakeholderGroup || null,
+        nextReviewGate: params.nextReviewGate || null,
+        dueDate: params.dueDate || null,
+        owner: params.owner || null,
+        measureApproved: false,
+        budgetApproved: false,
+        programmeMutated: false,
+        hitlCreated: false,
+        settlementExported: false,
+        externalConnectorCalled: false,
+      };
+      const nextActions = positiveFollowUps.map((gap) => ({
+        action: 'requestEvidence',
+        missingDataPoint: gap.missingDataPoint,
+        description: gap.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `No-Regret Gate Status: ${status}`,
+        `Measure: ${measure.measureId || measure.measureName || measure.programmeId || 'missing'}`,
+        `Scenario Effect: ${definitionEvidence.transformationEffect || 'missing'}`,
+        `Budget Effect: ${definitionEvidence.budgetEffect || 'missing'}`,
+        `Regulatory Fit: ${definitionEvidence.regulatoryFit || definitionEvidence.constraintHint || 'missing'}`,
+        `Prioritisation: ${definitionEvidence.prioritisationRule || definitionEvidence.nominationRight || 'missing'}`,
+        `Data Quality: ${definitionEvidence.dataQualityStatus || 'missing'}`,
+        `Communication Rule: ${definitionEvidence.communicationRule || 'missing'}`,
+        `Next Review Gate: ${definitionEvidence.nextReviewGate || 'missing'}`,
+      ];
+
+      return {
+        noRegretMeasureDefinitionGateStatusId: `nrg:${Buffer.from(`${params.measureId || params.measureName || params.programmeId || ''}:${params.owner || ''}:${params.nextReviewGate || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'no_regret_measure_definition_gate',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        measure,
+        definitionEvidence,
+        missingEvidence,
+        positiveFollowUps,
+        nextActions,
+        sourceDatapoints,
+        sourceActions,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          measure,
+          definitionEvidence,
           missingEvidence,
           positiveFollowUps,
           nextActions,

@@ -17450,6 +17450,21 @@
         "description": "Returns a deterministic dossier-safe view over investment measure owner, deadline, budget effect, required evidence, approval status, blocked follow-up decision and next escalation step. The endpoint is read-only and never approves budgets, creates finance/accounting records, mutates investment workflows, prepares billing/settlement/tariff/MaKo output, creates HITL tasks, or calls external connectors."
       }
     },
+    "/api/dashboard-api/no-regret-measure-definition-gate": {
+      "get": {
+        "operationId": "dashboard-api_noRegretMeasureDefinitionGateStatus",
+        "summary": "No-Regret measure definition gate -- read-only evidence gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only No-Regret measure definition evidence"
+          }
+        },
+        "description": "Returns a deterministic dossier-safe view over No-Regret measure definition evidence: scenario/effect, budget/funding owner, regulatory fit, prioritisation/nomination rule, data quality, communication rule, and next review gate. The endpoint is read-only and never approves measures or budgets, mutates programmes, creates HITL tasks, runs MaKo/A96/billing/settlement/tariff/device-control effects, or calls external connectors."
+      }
+    },
     "/api/dashboard-api/gas-grid-transformation-asset-cockpit": {
       "get": {
         "operationId": "dashboard-api_gasGridTransformationAssetCockpitStatus",
@@ -58220,6 +58235,21 @@
           }
         },
         "description": "Returns a deterministic dossier-safe view over investment measure owner, deadline, budget effect, required evidence, approval status, blocked follow-up decision and next escalation step. The endpoint is read-only and never approves budgets, creates finance/accounting records, mutates investment workflows, prepares billing/settlement/tariff/MaKo output, creates HITL tasks, or calls external connectors."
+      }
+    },
+    "/api/dashboard/no-regret-measure-definition-gate": {
+      "get": {
+        "operationId": "dashboard-api_noRegretMeasureDefinitionGateStatus",
+        "summary": "No-Regret measure definition gate -- read-only evidence gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only No-Regret measure definition evidence"
+          }
+        },
+        "description": "Returns a deterministic dossier-safe view over No-Regret measure definition evidence: scenario/effect, budget/funding owner, regulatory fit, prioritisation/nomination rule, data quality, communication rule, and next review gate. The endpoint is read-only and never approves measures or budgets, mutates programmes, creates HITL tasks, runs MaKo/A96/billing/settlement/tariff/device-control effects, or calls external connectors."
       }
     },
     "/api/dashboard/gas-grid-transformation-asset-cockpit": {

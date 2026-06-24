@@ -653,6 +653,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasNoRegretDefinitionGateSpecificSignal =
+    /(no-regret|no regret|no_regret_measure_definition_gate|definitionsgate)/i.test(haystack) &&
+    /(szenariowirkung|transformationseffekt|budgetwirkung|regulatorische anschlussfaehigkeit|regulatorische anschlussfähigkeit|priorisierungsrecht|nominierungsrecht|datenqualitaet|datenqualität|kommunikationsregel|review gate|pruefgate|prüfgate)/i.test(haystack) &&
+    !/(measure\.approve|budget\.release|finance\.createBooking|accounting\.postJournal|treasury\.executeTransfer|hitl\.create|vdmi\.mutate|settlement\.exportA96|billing\.release|tariff\.mutate|mako\.dispatch|device-control\.execute|external\.connector\.call|personal-agent\.execute|wallet|key material|schluessel|schlüssel|crypto)/i.test(haystack);
+
+  if (hasNoRegretDefinitionGateSpecificSignal) {
+    const noRegretDefinitionCapability = findCapabilityByName('no_regret_measure_definition_gate');
+    if (noRegretDefinitionCapability) {
+      return { capability: noRegretDefinitionCapability, score: 150, usedFallback: false };
+    }
+  }
+
   const hasInvestmentOwnerDeadlineBudgetGateSpecificSignal =
     /(investitionsprozess|investment process|investment_owner_deadline_budget_gate|owner.?frist.?budget|owner deadline budget|massnahmenfreigabe|maßnahmenfreigabe|budgetwirkung|strategy-to-execution)/i.test(haystack) &&
     /(owner|frist|deadline|budget|budgetwirkung|freigabestatus|approval status|blockierte folgeentscheidung|blocked follow.?up decision|eskalationsstufe|escalation step)/i.test(haystack) &&
@@ -1681,6 +1693,26 @@ function findBestCapability(taskText, options = {}) {
       return {
         capability: vnbLookupCapability,
         score: 90,
+        usedFallback: false,
+      };
+    }
+  }
+
+  const noRegretDefinitionSignals = [
+    'no-regret',
+    'no regret',
+    'definitionsgate',
+    'no_regret_measure_definition_gate',
+  ];
+  const hasNoRegretDefinitionIntent =
+    noRegretDefinitionSignals.some((signal) => haystack.includes(signal)) &&
+    /(szenariowirkung|budgetwirkung|priorisierungsrecht|nominierungsrecht|datenqualitaet|datenqualität|kommunikationsregel|review gate|pruefgate|prüfgate)/i.test(haystack);
+  if (hasNoRegretDefinitionIntent) {
+    const noRegretCapability = findCapabilityByName('no_regret_measure_definition_gate');
+    if (noRegretCapability) {
+      return {
+        capability: noRegretCapability,
+        score: 92,
         usedFallback: false,
       };
     }

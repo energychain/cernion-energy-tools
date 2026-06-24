@@ -1544,6 +1544,30 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('no_regret_measure_definition_gate: requires definition and review evidence', () => {
+    const plan = { routeKey: 'no_regret_measure_definition_gate' };
+    const result = planEvidence(plan, {
+      measureId: 'measure-279',
+    });
+
+    expect(result.registryKey).toBe('no_regret_measure_definition_gate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['measure_identity'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'scenario_effect',
+        'budget_funding',
+        'regulatory_fit',
+        'prioritisation_rule',
+        'data_quality',
+        'communication_rule',
+        'review_gate',
+        'source_datapoints',
+      ])
+    );
+  });
+
   it('transformation_financing_scenario_view: requires financing scenario decision evidence', () => {
     const plan = { routeKey: 'transformation_financing_scenario_view' };
     const result = planEvidence(plan, {

@@ -1808,6 +1808,110 @@
     "sourceIssue": 278
   },
   {
+    "id": "dashboard-api.noRegretMeasureDefinitionGateStatus",
+    "action": "dashboard-api.noRegretMeasureDefinitionGateStatus",
+    "label": "No-Regret Measure Definition Gate",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "measureId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:measureId|massnahme|maßnahme|measure)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "programmeId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:programmeId|program|programm)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "scenarioAssumption": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:scenarioAssumption|szenarioannahme|szenario)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "transformationEffect": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:transformationEffect|transformationswirkung|wirkung)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "budgetEffect": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:budgetEffect|budgetwirkung|budget)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "fundingOwner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:fundingOwner|budgetOwner|finanzierungsowner)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "regulatoryFit": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:regulatoryFit|regulatorik|anschlussfaehigkeit|anschlussfähigkeit)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "prioritisationRule": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:prioritisationRule|priorisierungsregel|priorisierung)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "dataQualityStatus": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:dataQualityStatus|datenqualitaet|datenqualität)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "communicationRule": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:communicationRule|kommunikationsregel)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "nextReviewGate": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:nextReviewGate|reviewGate|pruefgate|prüfgate)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "dueDate": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:dueDate|faelligkeit|fälligkeit|frist)[:= ]+([0-9]{4}-[0-9]{2}-[0-9]{2}|[a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:^|\\s)(?:owner|verantwortlich)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 100 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "No-Regret Gate Status", "maxLen": 100 },
+        { "paths": ["measure.measureId", "dossierEvidence.measure.measureId", "measure.measureName", "measure.programmeId"], "label": "Measure", "maxLen": 140 },
+        { "paths": ["definitionEvidence.transformationEffect", "dossierEvidence.definitionEvidence.transformationEffect"], "label": "Scenario Effect", "maxLen": 140 },
+        { "paths": ["definitionEvidence.budgetEffect", "dossierEvidence.definitionEvidence.budgetEffect"], "label": "Budget Effect", "maxLen": 140 },
+        { "paths": ["definitionEvidence.regulatoryFit", "definitionEvidence.constraintHint", "dossierEvidence.definitionEvidence.regulatoryFit"], "label": "Regulatory Fit", "maxLen": 140 },
+        { "paths": ["definitionEvidence.prioritisationRule", "definitionEvidence.nominationRight", "dossierEvidence.definitionEvidence.prioritisationRule"], "label": "Prioritisation", "maxLen": 140 },
+        { "paths": ["definitionEvidence.dataQualityStatus", "dossierEvidence.definitionEvidence.dataQualityStatus"], "label": "Data Quality", "maxLen": 140 },
+        { "paths": ["definitionEvidence.communicationRule", "dossierEvidence.definitionEvidence.communicationRule"], "label": "Communication Rule", "maxLen": 140 },
+        { "paths": ["definitionEvidence.nextReviewGate", "dossierEvidence.definitionEvidence.nextReviewGate"], "label": "Next Review Gate", "maxLen": 140 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 279
+  },
+  {
     "id": "dashboard-api.receiptGroundedPresentationContract",
     "action": "dashboard-api.receiptGroundedPresentationContract",
     "label": "Receipt Grounded Presentation Contract",
