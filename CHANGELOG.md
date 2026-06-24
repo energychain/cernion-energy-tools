@@ -5,6 +5,15 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.64.4] — 2026-06-24
+
+### Fixed
+- **`cernion.ask` Sidecar `inputs` not forwarded to the Blueprint compiler** (`services/agent-sidecar.service.js`, `services/personal-agent.service.js`, follow-up to #271): the documented `cernion.ask` request contract sends canonical structured values in `arguments.inputs`, separate from `arguments.context` (tenant/session metadata). The Sidecar bridge only forwarded `context` to `askCernionAgent` — `inputs` was silently dropped, so the Blueprint compiler never saw the Sidecar's structured fixture values and always fell back to the Evidence Planner instead of returning a read-only execution plan. `askCernionAgent` now accepts an `inputs` param and merges `{ ...context, ...inputs }` for plan compilation only (the evidence-planner fallback path is unaffected). Also added the documented `query` compatibility alias for `question`. Verified end-to-end with the exact request envelope reported: compiles to `GET /api/assets/solar` with the expected query.
+- **Sidecar tool manifest** (`src/agent-sidecar-tool-manifest.js`): `cernion.ask`'s `responseContract`/`description` updated to reflect the blueprint-aware execution-plan envelope instead of only the legacy `compact_evidence_answer` shape.
+
+### Tests
+- Added a bridge-forwarding regression test (`tests/agent-sidecar.service.test.js`) and a real-handler merge test (`tests/copilot-ask-cernion-agent-evidence.test.js`) covering the `inputs`/`query` forwarding fix.
+
 ## [0.64.3] — 2026-06-24
 
 ### Fixed

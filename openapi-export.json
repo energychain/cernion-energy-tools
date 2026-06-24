@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.64.3",
+    "version": "0.64.4",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "servers": [
@@ -52164,6 +52164,19 @@
                     "additionalProperties": true,
                     "description": "Optional tenant, user, object, process or document context."
                   },
+                  "inputs": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Optional canonical structured input values (e.g. assetType, location, minCapacity, maxCapacity, commissioningYear, limit) for Blueprint read-only REST-plan compilation. Separate from `context`.",
+                    "example": {
+                      "assetType": "solar",
+                      "location": "69168",
+                      "minCapacity": 10,
+                      "maxCapacity": 13,
+                      "commissioningYear": 2025,
+                      "limit": 100
+                    }
+                  },
                   "domain": {
                     "type": "string",
                     "enum": [
@@ -64449,5 +64462,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.64.3"
+  "x-version": "0.64.4"
 }
