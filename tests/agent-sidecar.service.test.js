@@ -73,6 +73,17 @@ describe('agent-sidecar service', () => {
         },
       },
     });
+    broker.createService({
+      name: 'assets',
+      actions: {
+        solar: {
+          rest: 'GET /solar',
+          handler() {
+            return {};
+          },
+        },
+      },
+    });
     await broker.start();
   });
 
@@ -168,7 +179,7 @@ describe('agent-sidecar service', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('forwards inputs and the query compatibility alias to askCernionAgent (issue #271 follow-up)', async () => {
+  it('uses inputs and the query compatibility alias for the ask execution-plan contract', async () => {
     const result = await broker.call(
       'agent-sidecar.callTool',
       {
@@ -191,20 +202,26 @@ describe('agent-sidecar service', () => {
     );
 
     expect(result.success).toBe(true);
-    const forwarded = calls.find((c) => c.action === 'personal-agent.askCernionAgent');
-    expect(forwarded).toBeDefined();
-    expect(forwarded.params.question).toBe(
-      'Liste alle Solaranlagen in 69168 zwischen 10 und 13 kW aus 2025'
-    );
-    expect(forwarded.params.context).toEqual({ tenantId: 'public' });
-    expect(forwarded.params.inputs).toEqual({
-      assetType: 'solar',
-      location: '69168',
-      minCapacity: 10,
-      maxCapacity: 13,
-      commissioningYear: 2025,
-      limit: 100,
+    expect(result.structuredContent).toMatchObject({
+      question: 'Liste alle Solaranlagen in 69168 zwischen 10 und 13 kW aus 2025',
+      resolved: {
+        kind: 'blueprint',
+        id: 'mastr-asset-service-selection-v1',
+      },
+      canonicalInputs: {
+        assetType: 'solar',
+        location: '69168',
+        minCapacity: 10,
+        maxCapacity: 13,
+        commissioningYear: 2025,
+        limit: 100,
+      },
+      execution: {
+        method: 'GET',
+        path: '/api/assets/solar',
+      },
     });
+    expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeUndefined();
   });
 
   it('forwards advisory calls without executing the recommended plan', async () => {
@@ -251,7 +268,7 @@ describe('agent-sidecar service', () => {
     });
   });
 
-  it('forwards MCP ask arguments.inputs as Blueprint compiler inputs', async () => {
+  it('returns an MCP ask execution plan from arguments.inputs before evidence fallback', async () => {
     const result = await broker.call(
       'agent-sidecar.mcpCallTool',
       {
@@ -274,21 +291,33 @@ describe('agent-sidecar service', () => {
     );
 
     expect(result.isError).toBe(false);
-    expect(calls[0]).toMatchObject({
-      action: 'personal-agent.askCernionAgent',
-      params: {
-        question: 'Liste alle Solaranlagen in 69168 zwischen 10 und 13 kW aus 2025',
-        context: { tenantId: 'public' },
-        inputs: {
-          assetType: 'solar',
+    expect(result.structuredContent.structuredContent).toMatchObject({
+      resolved: {
+        kind: 'blueprint',
+        id: 'mastr-asset-service-selection-v1',
+      },
+      canonicalInputs: {
+        assetType: 'solar',
+        location: '69168',
+        minCapacity: 10,
+        maxCapacity: 13,
+        commissioningYear: 2025,
+        limit: 100,
+      },
+      execution: {
+        mode: 'read_only_rest_plan',
+        method: 'GET',
+        path: '/api/assets/solar',
+        query: {
           location: '69168',
-          minCapacity: 10,
-          maxCapacity: 13,
+          minCapacityKW: 10,
+          maxCapacityKW: 13,
           commissioningYear: 2025,
           limit: 100,
         },
       },
     });
+    expect(calls).toHaveLength(0);
   });
 
   it('allows only Hydration Registry allowlisted evidence status actions', async () => {

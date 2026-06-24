@@ -21,6 +21,7 @@ const {
   callMcpLikeTool,
 } = require('../src/energy-sidecar-mcp-bridge');
 const { summarizeDescriptorForDossier } = require('../src/energy-sidecar-descriptor');
+const { compileReadOnlyExecutionPlan } = require('../src/blueprint-rest-plan-compiler');
 
 const OPENAPI_TAG = 'Agent Sidecar';
 
@@ -105,17 +106,47 @@ module.exports = {
         }
 
         if (name === 'cernion.ask') {
+          const question = input.question || input.query;
+          const context = input.context || {};
+          const inputs = input.inputs || {};
+          const restPlan = compileReadOnlyExecutionPlan({
+            question,
+            context: { ...context, ...inputs },
+            broker: ctx.broker,
+          });
+          if (restPlan.ok) {
+            return compactToolResult(tool, {
+              success: true,
+              sessionId: input.sessionId || null,
+              question,
+              shortAnswer: `Resolved read-only plan via blueprint ${restPlan.resolved.id}: ${restPlan.execution.method} ${restPlan.execution.path}.`,
+              groundingAnswer: `Blueprint ${restPlan.resolved.id} (v${restPlan.resolved.version}) compiled a read-only execution plan for this request: ${restPlan.execution.method} ${restPlan.execution.path}. Cernion did not execute anything server-side; the Sidecar may execute this plan itself via its generic REST proxy.`,
+              evidence: [],
+              processContext: {},
+              openQuestions: [],
+              recommendedNextSteps: [
+                'Execute the returned read-only plan via the Sidecar REST proxy (e.g. cernion_execute_rest_plan).',
+              ],
+              allowedActions: [],
+              forbiddenActions: [],
+              confidence: restPlan.confidence,
+              resolved: restPlan.resolved,
+              canonicalInputs: restPlan.canonicalInputs,
+              execution: restPlan.execution,
+              policy: restPlan.policy,
+            });
+          }
           const result = await ctx.call('personal-agent.askCernionAgent', {
             // `query` is the documented compatibility alias for `question`
             // (energychain/cernion-energy-tools#271 request contract).
-            question: input.question || input.query,
+            question,
             sessionId: input.sessionId,
-            context: input.context || {},
+            context,
             // Canonical structured input values for Blueprint REST-plan
             // compilation — kept separate from `context` (tenant/session
             // metadata) and forwarded as its own field, not merged here, so
             // askCernionAgent decides how each is used.
-            inputs: input.inputs || {},
+            inputs,
             domain: input.domain || 'auto',
             mode: input.mode || 'answer',
             maxEvidence: input.maxEvidence || 5,
