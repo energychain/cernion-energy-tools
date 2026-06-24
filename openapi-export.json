@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.64.5",
+    "version": "0.65.0",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "servers": [
@@ -8114,44 +8114,87 @@
         "x-openai-isConsequential": false
       }
     },
-    "/api/copilot-process/intents/:intentId": {
-      "get": {
-        "operationId": "getProcessIntent",
-        "summary": "Get a process execution intent by ID",
+    "/api/copilot-process/intents": {
+      "post": {
+        "operationId": "prepareProcessIntent",
+        "summary": "Generic Process Intake — creates a pending_confirmation intent, no write, no auto-execution",
         "tags": [
           "Copilot Process"
         ],
         "responses": {
           "200": {
-            "description": "Process execution intent",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
+            "description": "Process intake intent created (pending human confirmation)"
+          },
+          "409": {
+            "description": "Rejected: reserved operationFamily (use the dedicated prepare* action) or read-only proposedAction (use the Evidence Router instead)"
+          }
+        },
+        "description": "Separate contract from the read-only Evidence Router (POST /api/evidence-router/route). Accepts a generic, domain-agnostic process/write intent and creates a ProcessExecutionIntent in pending_confirmation status. Establishes the intake/classification/HITL boundary only — the created intent's operationFamily has no case in executeProcessIntent's dispatch table (_executeIntent), so it can never be auto-executed until a developer deliberately adds a reviewed, specific case. Rejects domain-reserved operationFamily values (use the dedicated prepare* action instead, e.g. prepareVdmiEvidence) and rejects proposedAction values that resolve to a registered read-only action (use the Evidence Router instead).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "operationFamily",
+                  "proposedAction"
+                ],
+                "properties": {
+                  "operationFamily": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "example": "customer_master_data_correction"
+                  },
+                  "proposedAction": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "example": "correct_metering_point_address"
+                  },
+                  "targetType": {
+                    "type": "string",
+                    "example": "meteringPoint"
+                  },
+                  "targetId": {
+                    "type": "string",
+                    "example": "MP-12345"
+                  },
+                  "inputSummary": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "Arbitrary structured or semi-structured process data supplied by the user."
+                  },
+                  "risk": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ],
+                    "default": "medium"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "correlationId": {
+                    "type": "string"
+                  },
+                  "decisionFrameId": {
+                    "type": "string"
+                  }
                 }
               }
             }
-          },
-          "404": {
-            "description": "Intent not found"
           }
         },
-        "description": "Returns intent status, payload summary, and audit trail. Read-only.",
-        "parameters": [
-          {
-            "name": "intentId",
-            "in": "path",
-            "required": true,
-            "description": "Intent UUID",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
         "x-openai-isConsequential": false
-      }
-    },
-    "/api/copilot-process/intents": {
+      },
       "get": {
         "operationId": "listProcessIntents",
         "summary": "List process execution intents",
@@ -8221,6 +8264,43 @@
               "default": 20,
               "minimum": 1,
               "maximum": 100
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/intents/:intentId": {
+      "get": {
+        "operationId": "getProcessIntent",
+        "summary": "Get a process execution intent by ID",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Process execution intent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Intent not found"
+          }
+        },
+        "description": "Returns intent status, payload summary, and audit trail. Read-only.",
+        "parameters": [
+          {
+            "name": "intentId",
+            "in": "path",
+            "required": true,
+            "description": "Intent UUID",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -25826,6 +25906,200 @@
             }
           }
         ]
+      }
+    },
+    "/api/evidence-router/route": {
+      "post": {
+        "operationId": "evidenceRouterRoute",
+        "summary": "Recommend read-only evidence endpoints for a request (never executes, never answers)",
+        "tags": [
+          "Evidence Router"
+        ],
+        "responses": {
+          "200": {
+            "description": "Evidence Router response — recommendation, never an executed result or final answer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "resolved",
+                    "requiredEvidenceTypes",
+                    "recommendedEndpoints",
+                    "coverage",
+                    "nextStep"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "resolved": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "example": "evidence_plan"
+                        },
+                        "source": {
+                          "type": "string",
+                          "example": "evidence_router"
+                        }
+                      }
+                    },
+                    "requiredEvidenceTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "recommendedEndpoints": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "purpose": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string"
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "query": {
+                            "type": "object",
+                            "additionalProperties": true
+                          },
+                          "resultKind": {
+                            "type": "string"
+                          },
+                          "semanticFacts": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "freshness": {
+                            "type": "string"
+                          },
+                          "granularity": {
+                            "type": "string"
+                          },
+                          "timeRangeSupport": {
+                            "type": "boolean"
+                          },
+                          "requiredInputs": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "optionalInputs": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "policy": {
+                            "type": "object",
+                            "properties": {
+                              "readOnly": {
+                                "type": "boolean"
+                              },
+                              "sideEffects": {
+                                "type": "string"
+                              },
+                              "tenantScoped": {
+                                "type": "boolean"
+                              },
+                              "externalSideEffects": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "properties": {
+                        "coveredEvidenceTypes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "missingEvidenceTypes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "noSubstitution": {
+                          "type": "boolean",
+                          "example": true
+                        }
+                      }
+                    },
+                    "nextStep": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Infers which evidence type(s) (resultKind, e.g. time_series, asset_table, market_signal) the request needs, then matches them against a curated read-only endpoint catalog. Recommends one or more approved read-only endpoints with fachliche result semantics, and reports coverage/missing evidence types. Never substitutes an unrelated endpoint when the required evidence type is unavailable (coverage.noSubstitution is always true). Never mutates state, never creates process side effects, never synthesizes the final user-facing answer — that remains the responsibility of the consuming agent/orchestrator. Distinct from the Process Intake / Write Boundary contract (POST /api/copilot-process/intents): this action only ever recommends GET/POST read-only lookups, never process/write intents.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "question"
+                ],
+                "properties": {
+                  "question": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 8000,
+                    "description": "Natural-language request describing the evidence needed.",
+                    "example": "Wie hoch ist die CO2-Intensität in den nächsten 24 Stunden in 69168?"
+                  },
+                  "context": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Optional canonical input values (location, dateFrom, dateTo, assetType, ...)."
+                  }
+                }
+              },
+              "examples": {
+                "timeSeries": {
+                  "summary": "Time-series / CO2 evidence request",
+                  "value": {
+                    "question": "Wie hoch ist die CO2-Intensität in den nächsten 24 Stunden in 69168?",
+                    "context": {
+                      "location": "69168"
+                    }
+                  }
+                },
+                "assetTable": {
+                  "summary": "Asset-table evidence request",
+                  "value": {
+                    "question": "Liste aller Solaranlagen in 69168",
+                    "context": {
+                      "assetType": "solar",
+                      "location": "69168"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/ewk-monitoring/anschlussdauer": {
@@ -65526,5 +65800,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.64.5"
+  "x-version": "0.65.0"
 }
