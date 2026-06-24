@@ -5,6 +5,14 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.65.1] — 2026-06-24
+
+### Fixed
+- **`/api/assets/*` silently returned `[]` for an unresolvable free-text `location` instead of surfacing the resolution failure** (`services/assets.service.js#_fetchAssets`, #274): `energy-market.installations` already reports a `locationResolutionWarning` when `location` is a city/region it cannot resolve to a postal code (fix for cernion-openclaw-sidecar/issues/1), but `_fetchAssets` discarded that field while flattening `result.data.installations` into the flat array returned by `/api/assets/solar`, `/api/assets/wind`, `/api/assets/storage`, `/api/assets/biomass`, `/api/assets/hydro`, `/api/assets/combustion`, and `/api/assets/all`. A consuming agent querying `location=Meckesheim` (PLZ 74909) therefore received a bare `[]` indistinguishable from "0 real assets", and could incorrectly conclude no installations exist. `_fetchAssets` now captures the warning and, only when present, returns `{ success: true, data: [...], locationResolutionWarning }` instead of the bare array — the normal array contract is unchanged for genuinely resolved queries (including real 0-result PLZ queries). `assets.effective` (single-asset lookup by ID) normalizes either shape so it can't throw. OpenAPI response schema for the affected actions now documents both shapes via `oneOf`, and the `location` parameter description states the PLZ-only constraint explicitly.
+
+### Tests
+- Added 4 cases to `tests/assets.service.test.js`: warning surfaced for an unresolvable city name, unchanged array contract for a resolved postal code, warning propagated through `/api/assets/all`, and `assets.effective` normalizing the warning shape without throwing. Updated the existing OpenAPI-schema assertion test for the new `oneOf` response shape.
+
 ## [0.65.0] — 2026-06-24
 
 ### Added
