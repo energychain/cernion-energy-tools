@@ -12786,6 +12786,186 @@
         ]
       }
     },
+    "/api/dashboard-api/energy-sharing-simulation-gate": {
+      "get": {
+        "operationId": "dashboard-api_energySharingSimulationGateStatus",
+        "summary": "Energy-Sharing simulation gate - read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Energy-Sharing simulation gate status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "gateStatus": {
+                      "type": "string"
+                    },
+                    "simulationStage": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Classifies Energy-Sharing candidates as learning pilot, simulation-ready, billing-near-ready or blocked by missing evidence. The endpoint is read-only and does not run allocation, settlement/A96 export, MaKo dispatch, billing, tariff mutation, HITL, external connector, customer communication or Personal Agent execution.",
+        "parameters": [
+          {
+            "name": "communityId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "participantCount",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "participantEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maloStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "meteringReadiness",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "marketRoleReadiness",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataBasis",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "a96EvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "settlementEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contractEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "economicsAssumptionRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "escalationContact",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceArtifacts",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/regulatory-change-readiness": {
       "get": {
         "operationId": "dashboard-api_regulatoryChangeReadinessStatus",
@@ -15498,6 +15678,1292 @@
             "required": false,
             "schema": {
               "type": "number"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/stadtwerk-mauer-mastr-data-overlay": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerMastrDataOverlayStatus",
+        "summary": "Stadtwerk Mauer blended MaStR data overlay -- read-only status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer blended MaStR data overlay status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "municipality": {
+                      "type": "string"
+                    },
+                    "postalCode": {
+                      "type": "string"
+                    },
+                    "assetCount": {
+                      "type": "number"
+                    },
+                    "totalCapacityKw": {
+                      "type": "number"
+                    },
+                    "originalGridOperators": {
+                      "type": "array"
+                    },
+                    "operatorOverlay": {
+                      "type": "object"
+                    },
+                    "sampleAssets": {
+                      "type": "array"
+                    },
+                    "evidenceQuality": {
+                      "type": "string"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "resetBoundary": {
+                      "type": "object"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Reports the real MaStR baseline for Mauer and the virtual Stadtwerk Mauer operator overlay. Original MaStR facts and real-world operator provenance remain visible; no MaStR records, MaKo, device-control or external connectors are mutated.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "postalCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "municipality",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/fnav-fast-track-contract-gate": {
+      "get": {
+        "operationId": "dashboard-api_fnavFastTrackContractGateStatus",
+        "summary": "fNAV fast-track contract gate -- read-only decision readiness",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only fNAV fast-track contract-gate status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "gateId": {
+                      "type": "string"
+                    },
+                    "decisionReadiness": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "requestSummary": {
+                      "type": "object"
+                    },
+                    "technicalGate": {
+                      "type": "object"
+                    },
+                    "commercialGate": {
+                      "type": "object"
+                    },
+                    "contractGate": {
+                      "type": "object"
+                    },
+                    "evidenceStatus": {
+                      "type": "object"
+                    },
+                    "governanceBlockers": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Projects fNAV fast-track request, network-signal, metering/control, commercial, contract, legal and owner evidence into a dossier-safe gate status. The endpoint is read-only and never creates contracts, HITL items, MaKo, billing, settlement, tariff, control, SMGW/CLS or external actions.",
+        "parameters": [
+          {
+            "name": "gateId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetOrLoadType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "netzsignalPriorityPolicy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "controlEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contractStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "legalStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerContact",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/cross-channel-vnb-signal-queue": {
+      "get": {
+        "operationId": "dashboard-api_crossChannelVnbSignalQueueStatus",
+        "summary": "Cross-channel VNB signal queue -- read-only evidence projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only cross-channel VNB signal queue evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "queueStatus": {
+                      "type": "string"
+                    },
+                    "signalCount": {
+                      "type": "number"
+                    },
+                    "normalizedSignals": {
+                      "type": "array"
+                    },
+                    "byProcess": {
+                      "type": "object"
+                    },
+                    "byRiskType": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Normalizes caller-supplied signal references and summaries into a dossier-safe VNB queue evidence view. The endpoint is read-only and never ingests mail/chat/portal content, stores raw private content, persists a queue, creates HITL/inbox/notification/VDMI items, or dispatches operational actions.",
+        "parameters": [
+          {
+            "name": "signalId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceSystem",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "affectedProcess",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "riskType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerRole",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dueAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextDatapoint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/asset-valuation-transformation-gate": {
+      "get": {
+        "operationId": "dashboard-api_assetValuationTransformationGateStatus",
+        "summary": "Asset valuation transformation gate -- read-only evidence projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only asset valuation transformation gate evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "decisionReadiness": {
+                      "type": "string"
+                    },
+                    "assetScope": {
+                      "type": "object"
+                    },
+                    "bookValueStatus": {
+                      "type": "object"
+                    },
+                    "assetConditionStatus": {
+                      "type": "object"
+                    },
+                    "transformationOption": {
+                      "type": "object"
+                    },
+                    "contractRisk": {
+                      "type": "object"
+                    },
+                    "regulatoryUncertainty": {
+                      "type": "object"
+                    },
+                    "dataQualityStatus": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a deterministic dossier-safe management gate view over book value, asset condition, transformation option, contract/regulatory risk and data quality. The endpoint is read-only and never mutates asset records, creates valuation/accounting records, approves investments, creates HITL items, or executes decommissioning/repurposing.",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetGroupId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bookValueStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetConditionStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transformationOption",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contractRisk",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryUncertainty",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataQualityStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionOwner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextDecision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/gas-capacity-booking-review-gate": {
+      "get": {
+        "operationId": "dashboard-api_gasCapacityBookingReviewGateStatus",
+        "summary": "Gas capacity booking review gate -- read-only evidence projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only gas capacity booking review gate evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "reviewScope": {
+                      "type": "object"
+                    },
+                    "capacityAssumptionSummary": {
+                      "type": "object"
+                    },
+                    "scenarioEvidenceStatus": {
+                      "type": "object"
+                    },
+                    "vdmiReview": {
+                      "type": "object"
+                    },
+                    "commercialSignoff": {
+                      "type": "object"
+                    },
+                    "riskScenarios": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a deterministic dossier-safe review gate over gas capacity assumptions, cold-year/RLM/congestion evidence, VDMI ownership and commercial sign-off. The endpoint is read-only and never submits bookings, mutates VDMI/HITL workflows, dispatches notifications, creates booking persistence, or calls external systems.",
+        "parameters": [
+          {
+            "name": "reviewId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bookingYear",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "networkArea",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "capacityAssumption",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "coldYearEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rlmReboundEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "congestionHistoryEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "vdmiOwner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionFrameRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commercialSignoff",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/gas-network-decision-chain": {
+      "get": {
+        "operationId": "dashboard-api_gasNetworkDecisionChainStatus",
+        "summary": "Gas network decision chain -- read-only evidence projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only gas network decision-chain evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "chainScope": {
+                      "type": "object"
+                    },
+                    "capacityAssumptionStatus": {
+                      "type": "object"
+                    },
+                    "decommissioningPathStatus": {
+                      "type": "object"
+                    },
+                    "regulatoryImpactStatus": {
+                      "type": "object"
+                    },
+                    "assetBookValueStatus": {
+                      "type": "object"
+                    },
+                    "photoYearWindow": {
+                      "type": "object"
+                    },
+                    "owner": {
+                      "type": "object"
+                    },
+                    "blockedFollowUpDecision": {
+                      "type": "string"
+                    },
+                    "nextEvidenceStep": {
+                      "type": "string"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a deterministic dossier-safe decision-chain view over gas capacity assumptions, decommissioning path, KANU/EOG references, asset/book-value references, Fotojahr window and blocked follow-up decisions. The endpoint is read-only and never executes capacity booking, stilllegung, investment approval, Asset-MDM overrides, HITL, notifications, billing, settlement, tariff, MaKo, contract, device-control or external connector actions.",
+        "parameters": [
+          {
+            "name": "chainId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reconciliationId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "segmentId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "capacityAssumption",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decommissioningPath",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryImpactRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bookValueRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "photoYear",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionDeadline",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "blockedFollowUpDecision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextEvidenceStep",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/water-pricing-net-investment-alignment": {
+      "get": {
+        "operationId": "dashboard-api_waterPricingNetInvestmentAlignmentStatus",
+        "summary": "Water pricing / net-investment alignment -- read-only evidence gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only water pricing / net-investment alignment evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "alignmentScope": {
+                      "type": "object"
+                    },
+                    "pricingEvidence": {
+                      "type": "object"
+                    },
+                    "investmentEvidence": {
+                      "type": "object"
+                    },
+                    "assetAccountingEvidence": {
+                      "type": "object"
+                    },
+                    "leaseConditionEvidence": {
+                      "type": "object"
+                    },
+                    "regulatoryBoundaryEvidence": {
+                      "type": "object"
+                    },
+                    "owner": {
+                      "type": "object"
+                    },
+                    "reviewWindow": {
+                      "type": "object"
+                    },
+                    "alignmentDecision": {
+                      "type": "string"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a deterministic dossier-safe alignment view over water-price assumptions, net-investment references, asset-accounting evidence, Pachtnetz/concession references, regulatory-impact evidence, owner, review period and committee decision state. The endpoint is read-only and never calculates an official water price, claims regulatory approval, mutates accounting, billing, settlement, tariff, MaKo, contract or payment data, creates HITL/notifications, or calls external connectors.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "waterPriceReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "calculationReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "netInvestmentReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetAccountingReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pachtnetzReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryImpactReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "governanceOwner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reviewPeriod",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetCommitteeDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "alignmentDecision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/areal-network-integration-offer-gate": {
+      "get": {
+        "operationId": "dashboard-api_arealNetworkIntegrationOfferGateStatus",
+        "summary": "Areal network-integration offer gate -- read-only evidence gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Areal network-integration offer evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "decisionScope": {
+                      "type": "object"
+                    },
+                    "capacityEvidence": {
+                      "type": "object"
+                    },
+                    "targetGridEvidence": {
+                      "type": "object"
+                    },
+                    "investmentEvidence": {
+                      "type": "object"
+                    },
+                    "regulatoryBoundaryEvidence": {
+                      "type": "object"
+                    },
+                    "commercialAssumptionEvidence": {
+                      "type": "object"
+                    },
+                    "owner": {
+                      "type": "object"
+                    },
+                    "decisionWindow": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a deterministic dossier-safe decision card over site/area, requested connection capacity, grid-capacity evidence, target-grid path, investment/CAPEX evidence, regulatory boundary, commercial offer assumptions, owner, decision date and offer decision state. The endpoint is read-only and never calculates a binding offer, reserves grid capacity, approves investments, creates contracts, mutates Asset-MDM, billing, settlement, tariff, MaKo or device-control systems, creates HITL/notifications, or calls external connectors.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "siteReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "areaReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestedConnectionCapacity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestedCapacityKw",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "gridCapacityEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetGridPath",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "investmentReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryImpactBoundary",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commercialOfferAssumptions",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextDecisionDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offerDecisionStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ]
@@ -43310,6 +44776,27 @@
         }
       }
     },
+    "/api/stadtwerk-mauer-mastr-data-overlay/status": {
+      "get": {
+        "operationId": "stadtwerk-mauer-mastr-data-overlay_getStatus",
+        "summary": "stadtwerk-mauer-mastr-data-overlay.getStatus",
+        "tags": [
+          "stadtwerk-mauer-mastr-data-overlay"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stadtwerk-mauer-sandbox-runtime/events": {
       "post": {
         "operationId": "stadtwerk-mauer-sandbox-runtime_ingestEvent",
@@ -53440,6 +54927,186 @@
         ]
       }
     },
+    "/api/dashboard/energy-sharing-simulation-gate": {
+      "get": {
+        "operationId": "dashboard-api_energySharingSimulationGateStatus",
+        "summary": "Energy-Sharing simulation gate - read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Energy-Sharing simulation gate status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "gateStatus": {
+                      "type": "string"
+                    },
+                    "simulationStage": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Classifies Energy-Sharing candidates as learning pilot, simulation-ready, billing-near-ready or blocked by missing evidence. The endpoint is read-only and does not run allocation, settlement/A96 export, MaKo dispatch, billing, tariff mutation, HITL, external connector, customer communication or Personal Agent execution.",
+        "parameters": [
+          {
+            "name": "communityId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "participantCount",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "participantEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maloStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "meteringReadiness",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "marketRoleReadiness",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataBasis",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "a96EvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "settlementEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contractEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "economicsAssumptionRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "escalationContact",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceArtifacts",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard/stadtwerk-mauer-sandbox-runtime": {
       "get": {
         "operationId": "dashboard-api_stadtwerkMauerSandboxRuntimeStatus",
@@ -53718,6 +55385,1292 @@
         ]
       }
     },
+    "/api/dashboard/stadtwerk-mauer-mastr-data-overlay": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerMastrDataOverlayStatus",
+        "summary": "Stadtwerk Mauer blended MaStR data overlay -- read-only status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer blended MaStR data overlay status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "municipality": {
+                      "type": "string"
+                    },
+                    "postalCode": {
+                      "type": "string"
+                    },
+                    "assetCount": {
+                      "type": "number"
+                    },
+                    "totalCapacityKw": {
+                      "type": "number"
+                    },
+                    "originalGridOperators": {
+                      "type": "array"
+                    },
+                    "operatorOverlay": {
+                      "type": "object"
+                    },
+                    "sampleAssets": {
+                      "type": "array"
+                    },
+                    "evidenceQuality": {
+                      "type": "string"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "resetBoundary": {
+                      "type": "object"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Reports the real MaStR baseline for Mauer and the virtual Stadtwerk Mauer operator overlay. Original MaStR facts and real-world operator provenance remain visible; no MaStR records, MaKo, device-control or external connectors are mutated.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "postalCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "municipality",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/fnav-fast-track-contract-gate": {
+      "get": {
+        "operationId": "dashboard-api_fnavFastTrackContractGateStatus",
+        "summary": "fNAV fast-track contract gate -- read-only decision readiness",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only fNAV fast-track contract-gate status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "gateId": {
+                      "type": "string"
+                    },
+                    "decisionReadiness": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "requestSummary": {
+                      "type": "object"
+                    },
+                    "technicalGate": {
+                      "type": "object"
+                    },
+                    "commercialGate": {
+                      "type": "object"
+                    },
+                    "contractGate": {
+                      "type": "object"
+                    },
+                    "evidenceStatus": {
+                      "type": "object"
+                    },
+                    "governanceBlockers": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Projects fNAV fast-track request, network-signal, metering/control, commercial, contract, legal and owner evidence into a dossier-safe gate status. The endpoint is read-only and never creates contracts, HITL items, MaKo, billing, settlement, tariff, control, SMGW/CLS or external actions.",
+        "parameters": [
+          {
+            "name": "gateId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetOrLoadType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "netzsignalPriorityPolicy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "controlEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contractStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "legalStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerContact",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/cross-channel-vnb-signal-queue": {
+      "get": {
+        "operationId": "dashboard-api_crossChannelVnbSignalQueueStatus",
+        "summary": "Cross-channel VNB signal queue -- read-only evidence projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only cross-channel VNB signal queue evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "queueStatus": {
+                      "type": "string"
+                    },
+                    "signalCount": {
+                      "type": "number"
+                    },
+                    "normalizedSignals": {
+                      "type": "array"
+                    },
+                    "byProcess": {
+                      "type": "object"
+                    },
+                    "byRiskType": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Normalizes caller-supplied signal references and summaries into a dossier-safe VNB queue evidence view. The endpoint is read-only and never ingests mail/chat/portal content, stores raw private content, persists a queue, creates HITL/inbox/notification/VDMI items, or dispatches operational actions.",
+        "parameters": [
+          {
+            "name": "signalId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceSystem",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "affectedProcess",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "riskType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerRole",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dueAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextDatapoint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/asset-valuation-transformation-gate": {
+      "get": {
+        "operationId": "dashboard-api_assetValuationTransformationGateStatus",
+        "summary": "Asset valuation transformation gate -- read-only evidence projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only asset valuation transformation gate evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "decisionReadiness": {
+                      "type": "string"
+                    },
+                    "assetScope": {
+                      "type": "object"
+                    },
+                    "bookValueStatus": {
+                      "type": "object"
+                    },
+                    "assetConditionStatus": {
+                      "type": "object"
+                    },
+                    "transformationOption": {
+                      "type": "object"
+                    },
+                    "contractRisk": {
+                      "type": "object"
+                    },
+                    "regulatoryUncertainty": {
+                      "type": "object"
+                    },
+                    "dataQualityStatus": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a deterministic dossier-safe management gate view over book value, asset condition, transformation option, contract/regulatory risk and data quality. The endpoint is read-only and never mutates asset records, creates valuation/accounting records, approves investments, creates HITL items, or executes decommissioning/repurposing.",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetGroupId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bookValueStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetConditionStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transformationOption",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contractRisk",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryUncertainty",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataQualityStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionOwner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextDecision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/gas-capacity-booking-review-gate": {
+      "get": {
+        "operationId": "dashboard-api_gasCapacityBookingReviewGateStatus",
+        "summary": "Gas capacity booking review gate -- read-only evidence projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only gas capacity booking review gate evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "reviewScope": {
+                      "type": "object"
+                    },
+                    "capacityAssumptionSummary": {
+                      "type": "object"
+                    },
+                    "scenarioEvidenceStatus": {
+                      "type": "object"
+                    },
+                    "vdmiReview": {
+                      "type": "object"
+                    },
+                    "commercialSignoff": {
+                      "type": "object"
+                    },
+                    "riskScenarios": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a deterministic dossier-safe review gate over gas capacity assumptions, cold-year/RLM/congestion evidence, VDMI ownership and commercial sign-off. The endpoint is read-only and never submits bookings, mutates VDMI/HITL workflows, dispatches notifications, creates booking persistence, or calls external systems.",
+        "parameters": [
+          {
+            "name": "reviewId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bookingYear",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "networkArea",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "capacityAssumption",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "coldYearEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rlmReboundEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "congestionHistoryEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "vdmiOwner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionFrameRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commercialSignoff",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/gas-network-decision-chain": {
+      "get": {
+        "operationId": "dashboard-api_gasNetworkDecisionChainStatus",
+        "summary": "Gas network decision chain -- read-only evidence projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only gas network decision-chain evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "chainScope": {
+                      "type": "object"
+                    },
+                    "capacityAssumptionStatus": {
+                      "type": "object"
+                    },
+                    "decommissioningPathStatus": {
+                      "type": "object"
+                    },
+                    "regulatoryImpactStatus": {
+                      "type": "object"
+                    },
+                    "assetBookValueStatus": {
+                      "type": "object"
+                    },
+                    "photoYearWindow": {
+                      "type": "object"
+                    },
+                    "owner": {
+                      "type": "object"
+                    },
+                    "blockedFollowUpDecision": {
+                      "type": "string"
+                    },
+                    "nextEvidenceStep": {
+                      "type": "string"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a deterministic dossier-safe decision-chain view over gas capacity assumptions, decommissioning path, KANU/EOG references, asset/book-value references, Fotojahr window and blocked follow-up decisions. The endpoint is read-only and never executes capacity booking, stilllegung, investment approval, Asset-MDM overrides, HITL, notifications, billing, settlement, tariff, MaKo, contract, device-control or external connector actions.",
+        "parameters": [
+          {
+            "name": "chainId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reconciliationId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "segmentId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "capacityAssumption",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decommissioningPath",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryImpactRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bookValueRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "photoYear",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionDeadline",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "blockedFollowUpDecision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextEvidenceStep",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/water-pricing-net-investment-alignment": {
+      "get": {
+        "operationId": "dashboard-api_waterPricingNetInvestmentAlignmentStatus",
+        "summary": "Water pricing / net-investment alignment -- read-only evidence gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only water pricing / net-investment alignment evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "alignmentScope": {
+                      "type": "object"
+                    },
+                    "pricingEvidence": {
+                      "type": "object"
+                    },
+                    "investmentEvidence": {
+                      "type": "object"
+                    },
+                    "assetAccountingEvidence": {
+                      "type": "object"
+                    },
+                    "leaseConditionEvidence": {
+                      "type": "object"
+                    },
+                    "regulatoryBoundaryEvidence": {
+                      "type": "object"
+                    },
+                    "owner": {
+                      "type": "object"
+                    },
+                    "reviewWindow": {
+                      "type": "object"
+                    },
+                    "alignmentDecision": {
+                      "type": "string"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a deterministic dossier-safe alignment view over water-price assumptions, net-investment references, asset-accounting evidence, Pachtnetz/concession references, regulatory-impact evidence, owner, review period and committee decision state. The endpoint is read-only and never calculates an official water price, claims regulatory approval, mutates accounting, billing, settlement, tariff, MaKo, contract or payment data, creates HITL/notifications, or calls external connectors.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "waterPriceReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "calculationReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "netInvestmentReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetAccountingReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pachtnetzReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryImpactReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "governanceOwner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reviewPeriod",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetCommitteeDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "alignmentDecision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/areal-network-integration-offer-gate": {
+      "get": {
+        "operationId": "dashboard-api_arealNetworkIntegrationOfferGateStatus",
+        "summary": "Areal network-integration offer gate -- read-only evidence gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Areal network-integration offer evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "decisionScope": {
+                      "type": "object"
+                    },
+                    "capacityEvidence": {
+                      "type": "object"
+                    },
+                    "targetGridEvidence": {
+                      "type": "object"
+                    },
+                    "investmentEvidence": {
+                      "type": "object"
+                    },
+                    "regulatoryBoundaryEvidence": {
+                      "type": "object"
+                    },
+                    "commercialAssumptionEvidence": {
+                      "type": "object"
+                    },
+                    "owner": {
+                      "type": "object"
+                    },
+                    "decisionWindow": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a deterministic dossier-safe decision card over site/area, requested connection capacity, grid-capacity evidence, target-grid path, investment/CAPEX evidence, regulatory boundary, commercial offer assumptions, owner, decision date and offer decision state. The endpoint is read-only and never calculates a binding offer, reserves grid capacity, approves investments, creates contracts, mutates Asset-MDM, billing, settlement, tariff, MaKo or device-control systems, creates HITL/notifications, or calls external connectors.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "siteReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "areaReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestedConnectionCapacity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestedCapacityKw",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "gridCapacityEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetGridPath",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "investmentReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryImpactBoundary",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commercialOfferAssumptions",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextDecisionDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offerDecisionStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/stadtwerk-mauer/external-interface-stubs/call": {
       "post": {
         "operationId": "stadtwerk-mauer-external-interface-stubs_callStub",
@@ -53787,6 +56740,27 @@
         "summary": "stadtwerk-mauer-e2e-process-demo.getStatus",
         "tags": [
           "stadtwerk-mauer-e2e-process-demo"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stadtwerk-mauer/mastr-data-overlay/status": {
+      "get": {
+        "operationId": "stadtwerk-mauer-mastr-data-overlay_getStatus",
+        "summary": "stadtwerk-mauer-mastr-data-overlay.getStatus",
+        "tags": [
+          "stadtwerk-mauer-mastr-data-overlay"
         ],
         "responses": {
           "200": {

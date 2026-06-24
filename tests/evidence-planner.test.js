@@ -1308,6 +1308,17 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     expect(znpSource.optional).toBe(true);
   });
 
+  it('energy_sharing_simulation_gate: requires metering, market role and settlement evidence', () => {
+    const plan = { routeKey: 'energy_sharing_simulation_gate' };
+    const result = planEvidence(plan, {});
+
+    const requiredIds = result.requiredSources.filter((s) => !s.optional).map((s) => s.id);
+    expect(requiredIds).toContain('participant_dataset');
+    expect(requiredIds).toContain('malo_metering_readiness');
+    expect(requiredIds).toContain('market_role_readiness');
+    expect(requiredIds).toContain('settlement_a96_evidence');
+  });
+
   it('redispatch-settlement: requires grid_operator_identity and audit_period', () => {
     const plan = { routeKey: 'redispatch-settlement' };
     const result = planEvidence(plan, {});
@@ -1347,6 +1358,166 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     const ownerSrc = result.requiredSources.find((s) => s.id === 'owner_contact');
     expect(voltageSrc?.optional).toBe(true);
     expect(ownerSrc?.optional).toBe(true);
+  });
+
+  it('fnav_fast_track_contract_gate: requires contract-gate evidence sources', () => {
+    const plan = { routeKey: 'fnav_fast_track_contract_gate' };
+    const result = planEvidence(plan, {});
+
+    const requiredIds = result.requiredSources.filter((s) => !s.optional).map((s) => s.id);
+    expect(requiredIds).toEqual(
+      expect.arrayContaining([
+        'fnav_profile',
+        'grid_operator_identity',
+        'netzsignal_priority_policy',
+        'control_evidence_ref',
+        'contract_status',
+        'legal_status',
+        'owner_contact',
+      ])
+    );
+  });
+
+  it('cross_channel_vnb_signal_queue: requires signal source, owner, due date and evidence status', () => {
+    const plan = { routeKey: 'cross_channel_vnb_signal_queue' };
+    const result = planEvidence(plan, {
+      sourceRef: 'mail:42',
+      affectedProcess: 'netzanschluss',
+      riskType: 'owner_deadline',
+    });
+
+    expect(result.registryKey).toBe('cross_channel_vnb_signal_queue');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['source_ref', 'affected_process', 'risk_type'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining(['owner_role', 'due_date', 'evidence_status', 'next_datapoint'])
+    );
+  });
+
+  it('asset_valuation_transformation_gate: requires valuation, condition, transformation and decision evidence', () => {
+    const plan = { routeKey: 'asset_valuation_transformation_gate' };
+    const result = planEvidence(plan, {
+      bookValueSource: 'erp:book-value-2026',
+      assetConditionSource: 'inspection:2026',
+      dataQualityStatus: 'high',
+    });
+
+    expect(result.registryKey).toBe('asset_valuation_transformation_gate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['book_value_source', 'asset_condition_source', 'data_quality_status'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'transformation_option_basis',
+        'contract_risk_basis',
+        'regulatory_uncertainty_basis',
+        'decision_owner',
+        'next_decision',
+      ])
+    );
+  });
+
+  it('gas_capacity_booking_review_gate: requires scenario, VDMI and commercial evidence', () => {
+    const plan = { routeKey: 'gas_capacity_booking_review_gate' };
+    const result = planEvidence(plan, {
+      capacityAssumption: 'rlm-plus-12',
+      coldYearEvidence: 'cold-year:2025',
+      sourceRefs: ['waermeplanung:42'],
+    });
+
+    expect(result.registryKey).toBe('gas_capacity_booking_review_gate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['capacity_assumption', 'cold_year_evidence', 'source_refs'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'rlm_rebound_evidence',
+        'congestion_history_evidence',
+        'vdmi_owner',
+        'decision_frame_ref',
+        'commercial_signoff',
+        'risk_scenarios',
+      ])
+    );
+  });
+
+  it('gas_network_decision_chain: requires Fotojahr, regulatory, asset and follow-up evidence', () => {
+    const plan = { routeKey: 'gas_network_decision_chain' };
+    const result = planEvidence(plan, {
+      capacityAssumption: 'rlm-flat-until-2030',
+      decommissioningPath: 'partial-decommission-after-2035',
+      sourceRefs: ['waermeplanung:42'],
+    });
+
+    expect(result.registryKey).toBe('gas_network_decision_chain');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['capacity_assumption', 'decommissioning_path', 'source_refs'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'regulatory_impact_refs',
+        'asset_book_value_refs',
+        'photo_year_window',
+        'owner',
+        'blocked_follow_up_decision',
+        'next_evidence_step',
+      ])
+    );
+  });
+
+  it('water_pricing_net_investment_alignment_gate: requires committee-ready alignment evidence', () => {
+    const plan = { routeKey: 'water_pricing_net_investment_alignment_gate' };
+    const result = planEvidence(plan, {
+      waterPriceReference: 'wasserpreis:calc-2026',
+      netInvestmentReference: 'investment:water-grid-42',
+      sourceRefs: ['water:calc-42'],
+    });
+
+    expect(result.registryKey).toBe('water_pricing_net_investment_alignment_gate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['water_price_reference', 'net_investment_reference', 'source_refs'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'asset_accounting_reference',
+        'lease_condition_reference',
+        'regulatory_impact_reference',
+        'governance_owner',
+        'review_window',
+        'alignment_decision',
+      ])
+    );
+  });
+
+  it('areal_network_integration_offer_gate: requires offer-gate decision evidence', () => {
+    const plan = { routeKey: 'areal_network_integration_offer_gate' };
+    const result = planEvidence(plan, {
+      siteReference: 'site-west',
+      requestedConnectionCapacity: '12MW',
+      gridCapacityEvidence: 'grid-capacity:ok-42',
+    });
+
+    expect(result.registryKey).toBe('areal_network_integration_offer_gate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining([
+        'site_reference',
+        'requested_connection_capacity',
+        'grid_capacity_evidence',
+      ])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'target_grid_path',
+        'investment_capex_reference',
+        'regulatory_impact_boundary',
+        'commercial_offer_assumptions',
+        'owner',
+        'next_decision_date',
+        'offer_decision_status',
+        'source_refs',
+      ])
+    );
   });
 
   it('forecast-flex: requires forecast_location', () => {

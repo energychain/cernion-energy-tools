@@ -44,6 +44,7 @@ const CAPABILITY_DOMAIN_MAP = {
   grid_connection_flexibility: 'grid-ops',
   'grid-operations': 'grid-ops',
   grid_operations: 'grid-ops', // underscore variant used by newer gate capabilities
+  vnb_operations: 'grid-ops',
   // AGSI/ENTSO-E cross-commodity supply security briefing
   'market-operations': 'market-data',
   // A96 redispatch settlement reconciliation
@@ -59,6 +60,7 @@ const CAPABILITY_DOMAIN_MAP = {
   'finance-agent': 'governance',
   // Domain 1: Netzanschluss & BESS — connection-request lifecycle, all operational
   netzanschluss: 'grid-ops',
+  grid_connection: 'grid-ops',
   // fNAV commercial hedging / flexibility cost grid — operational flex contracts
   flexibilitaet: 'grid-ops',
   // NKP/reporting maturity governance for grid operators
@@ -119,12 +121,16 @@ const CAPABILITY_DOMAIN_MAP = {
   // Steuerbarkeitscheck / §14a controllability — operational connection mechanism
   steuerbarkeitscheck_governance: 'grid-ops',
   asset_governance: 'grid-ops',
+  asset_strategy: 'grid-planning',
+  gas_strategy: 'regulatory',
   flex_governance: 'grid-ops',
   operations: 'platform',
   // tax/regulatory data handover
   tax_finance_data_handover: 'regulatory',
   regulatory_readiness: 'regulatory',
   re4de_grid_fees: 'regulatory',
+  water_pricing_governance: 'regulatory',
+  grid_connection_commercial_gate: 'grid-planning',
   // market communication/messaging evidence chain
   market_communication: 'market-data',
   // agent's own answer-evidence/dossier-quality infrastructure
@@ -254,9 +260,11 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'Re4DE Variable Grid Fee': 'regulatory',
   'Redispatch Readiness Gate': 'redispatch',
   'Community': 'energy-sharing',
+  operations: 'platform',
   'stadtwerk-mauer-sandbox-runtime': 'platform',
   'stadtwerk-mauer-external-interface-stubs': 'platform',
   'stadtwerk-mauer-e2e-process-demo': 'platform',
+  'stadtwerk-mauer-mastr-data-overlay': 'platform',
 };
 
 // ── 3. recipe → canonical ────────────────────────────────────────────────────

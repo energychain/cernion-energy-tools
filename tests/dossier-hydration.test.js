@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 73 static rules', () => {
+    it('loads all 82 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(73);
+      expect(rules.length).toBe(82);
     });
 
-    it('compiles all 73 static rules without error', () => {
+    it('compiles all 82 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(73);
+      expect(rules.length).toBe(82);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1059,6 +1059,48 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Leading Gap: napReference');
     });
 
+    it('dashboard-api.stadtwerkMauerMastrDataOverlayStatus is dossier-safe and formats overlay facts', () => {
+      const rule = getRule('dashboard-api.stadtwerkMauerMastrDataOverlayStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Stadtwerk Mauer Blended MaStR Overlay tenant=stadtwerk-mauer plz=69256 ort=Mauer laden'
+        )
+      ).toEqual({
+        tenantId: 'stadtwerk-mauer',
+        postalCode: '69256',
+        municipality: 'Mauer',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'blended_overlay_ready',
+        tenantId: 'stadtwerk-mauer',
+        municipality: 'Mauer',
+        postalCode: '69256',
+        assetCount: 2,
+        totalCapacityKw: 20,
+        operatorOverlay: {
+          virtualGridOperator: { name: 'Stadtwerk Mauer' },
+          realWorldOperatorHint: { name: 'Syna GmbH' },
+          mutatesMastrRecords: false,
+        },
+        originalGridOperators: [{ name: 'Syna GmbH' }],
+        sampleAssets: [{ mastrNummer: 'SEE-MAUER-001' }],
+        timestamp: '2026-06-23T14:00:00.000Z',
+      });
+
+      expect(formatted).toContain('Overlay Status: blended_overlay_ready');
+      expect(formatted).toContain('Tenant: stadtwerk-mauer');
+      expect(formatted).toContain('MaStR Assets: 2');
+      expect(formatted).toContain('Virtual Grid Operator: Stadtwerk Mauer');
+      expect(formatted).toContain('Real-world Operator: Syna GmbH');
+      expect(formatted).toContain('Original Operator Evidence: Syna GmbH');
+      expect(formatted).toContain('Sample Asset: SEE-MAUER-001');
+      expect(formatted).toContain('Mutates MaStR: false');
+    });
+
     it('dashboard-api.legalClarificationOperatingModelStatus is dossier-safe and formats operating-model facts', () => {
       const rule = getRule('dashboard-api.legalClarificationOperatingModelStatus');
       expect(rule).not.toBeNull();
@@ -1148,6 +1190,339 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Side-Effect Guard: backup.restore');
     });
 
+    it('dashboard-api.fnavFastTrackContractGateStatus is dossier-safe and formats gate facts', () => {
+      const rule = getRule('dashboard-api.fnavFastTrackContractGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte fNAV Fast Track gate=gate-221 netzbetreiber=SNB935578300972 anfrage=storage netzsignal=approved steuernachweis=ctrl-1 vertrag=signed recht=approved owner=netzplanung laden'
+        )
+      ).toEqual({
+        gateId: 'gate-221',
+        gridOperatorId: 'SNB935578300972',
+        requestType: 'storage',
+        netzsignalPriorityPolicy: 'approved',
+        controlEvidenceRef: 'ctrl-1',
+        contractStatus: 'signed',
+        legalStatus: 'approved',
+        ownerContact: 'netzplanung',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'fnav_fast_track_contract_gate',
+        gateId: 'gate-221',
+        decisionReadiness: 'needs_control_evidence',
+        requestSummary: { requestType: 'storage' },
+        technicalGate: {
+          netzsignalPriorityPolicy: 'approved',
+          controlEvidenceRef: null,
+        },
+        contractGate: {
+          contractStatus: 'draft',
+          legalStatus: 'approved',
+        },
+        missingEvidence: [{ missingDataPoint: 'control_evidence_ref' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add metering/control proof before fast-track release review' },
+        ],
+        sourceActions: {
+          notCalled: ['contract.approve'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: fnav_fast_track_contract_gate');
+      expect(formatted).toContain('Decision Readiness: needs_control_evidence');
+      expect(formatted).toContain('Gate: gate-221');
+      expect(formatted).toContain('Netzsignal Priority: approved');
+      expect(formatted).toContain('Side-Effect Guard: contract.approve');
+    });
+
+    it('dashboard-api.crossChannelVnbSignalQueueStatus is dossier-safe and formats queue facts', () => {
+      const rule = getRule('dashboard-api.crossChannelVnbSignalQueueStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Cross Channel VNB Signal Queue signal=sig-218 quelle=mail:42 prozess=netzanschluss risiko=owner_deadline owner=netzbetrieb frist=2026-12-31 evidenz=ready datenpunkt=malo pruefen'
+        )
+      ).toEqual({
+        signalId: 'sig-218',
+        sourceRef: 'mail:42',
+        affectedProcess: 'netzanschluss',
+        riskType: 'owner_deadline',
+        ownerRole: 'netzbetrieb',
+        dueAt: '2026-12-31',
+        evidenceStatus: 'ready',
+        nextDatapoint: 'malo',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'cross_channel_vnb_signal_queue',
+        queueStatus: 'needs_evidence',
+        signalCount: 1,
+        normalizedSignals: [{ affectedProcess: 'netzanschluss', riskType: 'owner_deadline' }],
+        missingEvidence: [{ missingDataPoint: 'evidence_status' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add evidence status or evidence reference' },
+        ],
+        sourceActions: {
+          notCalled: ['mail.connector.ingest'],
+        },
+        dossierEvidence: {
+          overdueCount: 0,
+          needsOwnerCount: 0,
+          needsEvidenceCount: 1,
+        },
+      });
+
+      expect(formatted).toContain('Capability: cross_channel_vnb_signal_queue');
+      expect(formatted).toContain('Queue Status: needs_evidence');
+      expect(formatted).toContain('Signals: 1');
+      expect(formatted).toContain('Leading Gap: evidence_status');
+      expect(formatted).toContain('Side-Effect Guard: mail.connector.ingest');
+    });
+
+    it('dashboard-api.assetValuationTransformationGateStatus is dossier-safe and formats gate facts', () => {
+      const rule = getRule('dashboard-api.assetValuationTransformationGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Asset Valuation Transformation Gate asset=asset-219 buchwert=provided zustand=provided option=h2-ready vertragsrisiko=reviewed regulatorik=bounded datenqualitaet=high owner=finance entscheidung=committee-q3 pruefen'
+        )
+      ).toEqual({
+        assetId: 'asset-219',
+        bookValueStatus: 'provided',
+        assetConditionStatus: 'provided',
+        transformationOption: 'h2-ready',
+        contractRisk: 'reviewed',
+        regulatoryUncertainty: 'bounded',
+        dataQualityStatus: 'high',
+        decisionOwner: 'finance',
+        nextDecision: 'committee-q3',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'asset_valuation_transformation_gate',
+        decisionReadiness: 'needs_book_value',
+        assetScope: { assetId: 'asset-219' },
+        bookValueStatus: { status: 'missing' },
+        assetConditionStatus: { status: 'provided' },
+        transformationOption: { option: 'h2-ready' },
+        contractRisk: { status: 'reviewed' },
+        regulatoryUncertainty: { status: 'bounded' },
+        dataQualityStatus: { status: 'high' },
+        missingEvidence: [{ missingDataPoint: 'book_value_source' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add book-value and residual-value basis to the management gate' },
+        ],
+        sourceActions: {
+          notCalled: ['valuation.recordCreate'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: asset_valuation_transformation_gate');
+      expect(formatted).toContain('Decision Readiness: needs_book_value');
+      expect(formatted).toContain('Asset Scope: asset-219');
+      expect(formatted).toContain('Leading Gap: book_value_source');
+      expect(formatted).toContain('Side-Effect Guard: valuation.recordCreate');
+    });
+
+    it('dashboard-api.gasCapacityBookingReviewGateStatus is dossier-safe and formats review-gate facts', () => {
+      const rule = getRule('dashboard-api.gasCapacityBookingReviewGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Gas-Kapazitaetsbestellung review=gas-260 jahr=2027 netzgebiet=gas-nord kapazitaetsannahme=rlm-plus-12 kaltjahr=stress-2025 rlm-rebound=rebound-8 engpasshistorie=hist-3 vdmi=gas-leitung decisionFrame=df-260 commercial=reviewed pruefen'
+        )
+      ).toEqual({
+        reviewId: 'gas-260',
+        bookingYear: '2027',
+        networkArea: 'gas-nord',
+        capacityAssumption: 'rlm-plus-12',
+        coldYearEvidence: 'stress-2025',
+        rlmReboundEvidence: 'rebound-8',
+        congestionHistoryEvidence: 'hist-3',
+        vdmiOwner: 'gas-leitung',
+        decisionFrameRef: 'df-260',
+        commercialSignoff: 'reviewed',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'gas_capacity_booking_review_gate',
+        status: 'needs_scenario_evidence',
+        reviewScope: { networkArea: 'gas-nord', bookingYear: '2027' },
+        capacityAssumptionSummary: { assumption: 'rlm-plus-12' },
+        scenarioEvidenceStatus: { coldYearEvidence: null, rlmReboundEvidence: 'rebound-8' },
+        vdmiReview: { owner: 'gas-leitung' },
+        commercialSignoff: { status: 'reviewed' },
+        missingEvidence: [{ missingDataPoint: 'cold_year_evidence' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add cold-year stress evidence' }],
+        sourceActions: {
+          notCalled: ['gas-capacity-booking.submit'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: gas_capacity_booking_review_gate');
+      expect(formatted).toContain('Gate Status: needs_scenario_evidence');
+      expect(formatted).toContain('Network Area: gas-nord');
+      expect(formatted).toContain('Leading Gap: cold_year_evidence');
+      expect(formatted).toContain('Side-Effect Guard: gas-capacity-booking.submit');
+    });
+
+    it('dashboard-api.gasNetworkDecisionChainStatus is dossier-safe and formats decision-chain facts', () => {
+      const rule = getRule('dashboard-api.gasNetworkDecisionChainStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Gasnetz Entscheidungskette chain=gas-255 netzbetreiber=vnb-gas segment=seg-1 kapazitaetsannahme=rlm-flat stilllegungspfad=partial-decommission eog=eog-255 kanu=kanu-255 asset=asset-42 buchwert=bw-42 fotojahr=2026 deadline=2026-09-30 owner=asset-lead folgeentscheidung=investment-q4 evidenzschritt=eog-note pruefen'
+        )
+      ).toEqual({
+        chainId: 'gas-255',
+        gridOperatorId: 'vnb-gas',
+        segmentId: 'seg-1',
+        capacityAssumption: 'rlm-flat',
+        decommissioningPath: 'partial-decommission',
+        eogRef: 'eog-255',
+        kanuRef: 'kanu-255',
+        assetRef: 'asset-42',
+        bookValueRef: 'bw-42',
+        photoYear: '2026',
+        decisionDeadline: '2026-09-30',
+        owner: 'asset-lead',
+        blockedFollowUpDecision: 'investment-q4',
+        nextEvidenceStep: 'eog-note',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'gas_network_decision_chain',
+        status: 'needs_regulatory_refs',
+        chainScope: { gridOperatorId: 'vnb-gas', segmentId: 'seg-1' },
+        capacityAssumptionStatus: { assumption: 'rlm-flat' },
+        decommissioningPathStatus: { path: 'partial-decommission' },
+        assetBookValueStatus: { assetRef: 'asset-42', bookValueRef: 'bw-42' },
+        photoYearWindow: { photoYear: '2026' },
+        owner: { name: 'asset-lead' },
+        blockedFollowUpDecision: 'investment-q4',
+        missingEvidence: [{ missingDataPoint: 'regulatory_impact_refs' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add KANU/EOG refs' }],
+        sourceActions: {
+          notCalled: ['gas-network-flow.calculate'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: gas_network_decision_chain');
+      expect(formatted).toContain('Decision Chain Status: needs_regulatory_refs');
+      expect(formatted).toContain('Grid Operator: vnb-gas');
+      expect(formatted).toContain('Leading Gap: regulatory_impact_refs');
+      expect(formatted).toContain('Side-Effect Guard: gas-network-flow.calculate');
+    });
+
+    it('dashboard-api.waterPricingNetInvestmentAlignmentStatus is dossier-safe and formats alignment facts', () => {
+      const rule = getRule('dashboard-api.waterPricingNetInvestmentAlignmentStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Alignment Gate case=water-259 waterPriceReference=wp-2026 netInvestmentReference=invest-42 anlagenbuchhaltung=asset-export pachtnetz=lease-42 regulierungswirkung=reg-42 owner=commercial-lead periode=2026-Q3 entscheidung=committee-ready pruefen'
+        )
+      ).toEqual({
+        caseId: 'water-259',
+        waterPriceReference: 'wp-2026',
+        netInvestmentReference: 'invest-42',
+        assetAccountingReference: 'asset-export',
+        pachtnetzReference: 'lease-42',
+        regulatoryImpactReference: 'reg-42',
+        governanceOwner: 'commercial-lead',
+        reviewPeriod: '2026-Q3',
+        alignmentDecision: 'committee-ready',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'water_pricing_net_investment_alignment_gate',
+        status: 'needs_asset_accounting_reference',
+        alignmentScope: { caseId: 'water-259' },
+        pricingEvidence: { waterPriceReference: 'wp-2026' },
+        investmentEvidence: { netInvestmentReference: 'invest-42' },
+        leaseConditionEvidence: { pachtnetzReference: 'lease-42' },
+        regulatoryBoundaryEvidence: { regulatoryImpactReference: 'reg-42' },
+        owner: { governanceOwner: 'commercial-lead' },
+        reviewWindow: { reviewPeriod: '2026-Q3' },
+        alignmentDecision: 'committee-ready',
+        missingEvidence: [{ missingDataPoint: 'asset_accounting_reference' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add Anlagenbuchhaltung evidence' }],
+        sourceActions: {
+          notCalled: ['water-pricing.calculate'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: water_pricing_net_investment_alignment_gate');
+      expect(formatted).toContain('Alignment Status: needs_asset_accounting_reference');
+      expect(formatted).toContain('Water Price Ref: wp-2026');
+      expect(formatted).toContain('Leading Gap: asset_accounting_reference');
+      expect(formatted).toContain('Side-Effect Guard: water-pricing.calculate');
+    });
+
+    it('dashboard-api.arealNetworkIntegrationOfferGateStatus is dossier-safe and formats offer gate facts', () => {
+      const rule = getRule('dashboard-api.arealNetworkIntegrationOfferGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Areal Angebotsgate case=areal-269 standort=site-west anschlusskapazitaet=12MW netzkapazitaet=grid-ok zielnetzpfad=znp-42 investition=capex-42 regulierungswirkung=reg-42 angebotsannahmen=offer-v1 owner=commercial-lead entscheidungstermin=2026-09-30 angebotsentscheidung=review-ready pruefen'
+        )
+      ).toEqual({
+        caseId: 'areal-269',
+        siteReference: 'site-west',
+        requestedConnectionCapacity: '12MW',
+        gridCapacityEvidence: 'grid-ok',
+        targetGridPath: 'znp-42',
+        investmentReference: 'capex-42',
+        regulatoryImpactBoundary: 'reg-42',
+        commercialOfferAssumptions: 'offer-v1',
+        owner: 'commercial-lead',
+        nextDecisionDate: '2026-09-30',
+        offerDecisionStatus: 'review-ready',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'areal_network_integration_offer_gate',
+        status: 'needs_grid_capacity_evidence',
+        decisionScope: { siteReference: 'site-west' },
+        capacityEvidence: { requestedConnectionCapacity: '12MW' },
+        targetGridEvidence: { targetGridPath: 'znp-42' },
+        investmentEvidence: { investmentReference: 'capex-42' },
+        regulatoryBoundaryEvidence: { regulatoryImpactBoundary: 'reg-42' },
+        commercialAssumptionEvidence: { commercialOfferAssumptions: 'offer-v1' },
+        owner: { owner: 'commercial-lead' },
+        decisionWindow: {
+          nextDecisionDate: '2026-09-30',
+          offerDecisionStatus: 'review-ready',
+        },
+        missingEvidence: [{ missingDataPoint: 'grid_capacity_evidence' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add grid capacity evidence' }],
+        sourceActions: {
+          notCalled: ['offer.calculate'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: areal_network_integration_offer_gate');
+      expect(formatted).toContain('Offer Gate Status: needs_grid_capacity_evidence');
+      expect(formatted).toContain('Site: site-west');
+      expect(formatted).toContain('Leading Gap: grid_capacity_evidence');
+      expect(formatted).toContain('Side-Effect Guard: offer.calculate');
+    });
+
     it('dashboard-api.specialGridUsageImpactMapStatus is dossier-safe and formats impact-map facts', () => {
       const rule = getRule('dashboard-api.specialGridUsageImpactMapStatus');
       expect(rule).not.toBeNull();
@@ -1235,6 +1610,46 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Readiness Level: blocked');
       expect(formatted).toContain('Planning Run: liq-204');
       expect(formatted).toContain('Side-Effect Guard: cashflow.calculate');
+    });
+
+    it('dashboard-api.energySharingSimulationGateStatus is dossier-safe and formats simulation-gate facts', () => {
+      const rule = getRule('dashboard-api.energySharingSimulationGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Energy Sharing Gate community=es-230 vnb=vnb-230 datenbasis=forecast marktrolle=pending pruefen'
+        )
+      ).toEqual({
+        communityId: 'es-230',
+        gridOperatorId: 'vnb-230',
+        dataBasis: 'forecast',
+        marketRoleReadiness: 'pending',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'energy_sharing_simulation_gate',
+        gateStatus: 'learning_pilot',
+        simulationStage: 'learning_pilot',
+        communityId: 'es-230',
+        missingEvidence: [{ missingDataPoint: 'market_role_readiness' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add market-role and balancing-group readiness evidence' },
+        ],
+        sourceActions: {
+          notCalled: ['energy-sharing-allocation.allocate', 'settlement.exportA96'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: learning_pilot'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: energy_sharing_simulation_gate');
+      expect(formatted).toContain('Status: learning_pilot');
+      expect(formatted).toContain('Simulation Stage: learning_pilot');
+      expect(formatted).toContain('Community: es-230');
+      expect(formatted).toContain('Side-Effect Guard: energy-sharing-allocation.allocate');
     });
 
     it('dashboard-api.redispatchProjectControllingKpiCockpitStatus is dossier-safe and formats controlling facts', () => {

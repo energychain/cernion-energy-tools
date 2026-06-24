@@ -718,6 +718,66 @@ describe('dashboard-api.service', () => {
       },
     });
 
+    broker.createService({
+      name: 'stadtwerk-mauer-mastr-data-overlay',
+      actions: {
+        getStatus: makeHandler('stadtwerkMauerMastrDataOverlayStatus', {
+          capabilityKey: 'stadtwerk_mauer_mastr_data_overlay',
+          safety: 'read_only_real_mastr_baseline_with_virtual_operator_overlay',
+          tenantId: 'stadtwerk-mauer',
+          requiredTenantId: 'stadtwerk-mauer',
+          sandboxBoundaryAllowed: true,
+          status: 'blended_overlay_ready',
+          municipality: 'Mauer',
+          postalCode: '69256',
+          assetCount: 2,
+          totalCapacityKw: 20,
+          typeCounts: { solar: 1, storage: 1 },
+          originalGridOperators: [{ name: 'Syna GmbH', mastrId: 'SNB-SYNA', assetCount: 2 }],
+          operatorOverlay: {
+            mode: 'tenant_role_process_overlay',
+            virtualGridOperator: { name: 'Stadtwerk Mauer' },
+            realWorldOperatorHint: { name: 'Syna GmbH' },
+            preservesOriginalMastrFacts: true,
+            mutatesMastrRecords: false,
+          },
+          sampleAssets: [
+            {
+              mastrNummer: 'SEE-MAUER-001',
+              originalGridOperatorName: 'Syna GmbH',
+              virtualGridOperatorName: 'Stadtwerk Mauer',
+            },
+          ],
+          evidenceQuality: 'real_mastr_baseline_with_virtual_operator_overlay',
+          missingEvidence: [],
+          positiveFollowUps: [],
+          resetBoundary: {
+            service: 'stadtwerk-mauer-sandbox-runtime.reset',
+            deletesImportedMastrBaseline: false,
+            deletesDerivedSandboxArtifacts: true,
+          },
+          sourceActions: {
+            inspected: ['stadtwerk-mauer-mastr-data-overlay.getStatus'],
+            referenced: ['energy-market.installations'],
+            notCalled: ['mako.dispatch', 'external.connector.call', 'mastr.write'],
+          },
+          dossierEvidence: {
+            status: 'blended_overlay_ready',
+            tenantId: 'stadtwerk-mauer',
+            municipality: 'Mauer',
+            postalCode: '69256',
+            assetCount: 2,
+            totalCapacityKw: 20,
+            virtualGridOperatorName: 'Stadtwerk Mauer',
+            realWorldOperatorHint: 'Syna GmbH',
+            originalGridOperators: [{ name: 'Syna GmbH', mastrId: 'SNB-SYNA', assetCount: 2 }],
+            sampleAssets: [{ mastrNummer: 'SEE-MAUER-001' }],
+            dossierFacts: ['Overlay Status: blended_overlay_ready', 'MaStR Assets: 2'],
+          },
+        }),
+      },
+    });
+
     broker.createService(DashboardApiService);
 
     await broker.start();
@@ -2165,6 +2225,287 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- fnavFastTrackContractGateStatus ------------------------------------
+
+  describe('fnavFastTrackContractGateStatus', () => {
+    it('reports control evidence blockers without executing contract or control actions', async () => {
+      const result = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+        gateId: 'fnav-ft-221',
+        gridOperatorId: 'SNB935578300972',
+        requestType: 'storage',
+        assetOrLoadType: 'battery',
+        requestedCapacityKW: 2500,
+        netzsignalPriorityPolicy: 'approved',
+        scheduleObligation: 'ready',
+        contractStatus: 'draft',
+        legalStatus: 'approved',
+        ownerContact: 'netzplanung',
+        commercialImpact: 'ready',
+      });
+
+      expect(result.status).toBe('needs_control_evidence');
+      expect(result.safety).toBe('read_only');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['metering_requirement', 'control_evidence_ref'])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('fnav_fast_track_contract_gate');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'contract.approve',
+          'hitl.create',
+          'device-control.execute',
+          'settlement.prepareBilling',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_fast_track when all required evidence is present', async () => {
+      const result = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+        gateId: 'fnav-ft-ready',
+        gridOperatorId: 'SNB935578300972',
+        requestType: 'data_center',
+        assetOrLoadType: 'large_load',
+        requestedCapacityKW: 10000,
+        netzsignalPriorityPolicy: 'approved',
+        scheduleObligation: 'confirmed',
+        meteringRequirements: 'confirmed',
+        controlEvidenceRef: 'ctrl-proof-1',
+        contractStatus: 'signed',
+        legalStatus: 'approved',
+        ownerContact: 'vertrieb',
+        commercialImpact: 'ready',
+        marketingBoundaries: 'ready',
+      });
+
+      expect(result.status).toBe('ready_for_fast_track');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.evidenceStatus.provided).toBe(result.evidenceStatus.required);
+      expect(result.dossierEvidence.dossierFacts).toContain('Status: ready_for_fast_track');
+    });
+  });
+
+  // -- crossChannelVnbSignalQueueStatus -----------------------------------
+
+  describe('crossChannelVnbSignalQueueStatus', () => {
+    it('reports missing owner/source/evidence without executing queue or connector actions', async () => {
+      const result = await broker.call('dashboard-api.crossChannelVnbSignalQueueStatus', {
+        signalId: 'sig-218',
+        channel: 'mail',
+        affectedProcess: 'netzanschluss',
+        riskType: 'owner_deadline',
+        dueAt: '2026-07-01',
+        nextDatapoint: 'owner-role',
+      });
+
+      expect(result.status).toBe('needs_owner');
+      expect(result.safety).toBe('read_only');
+      expect(result.signalCount).toBe(1);
+      expect(result.normalizedSignals[0].contentPolicy).toBe(
+        'references_and_summary_only_no_raw_private_content'
+      );
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['owner', 'source_ref', 'evidence_status', 'dedupe_key'])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('cross_channel_vnb_signal_queue');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'mail.connector.ingest',
+          'persona-inbox.enqueue',
+          'notification.dispatchInternal',
+          'hitl.create',
+          'vdmi.taskMutate',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_action for complete caller-supplied signal evidence', async () => {
+      const result = await broker.call('dashboard-api.crossChannelVnbSignalQueueStatus', {
+        signalId: 'sig-ready',
+        channel: 'portal',
+        sourceSystem: 'vnb-portal',
+        sourceRef: 'portal:ticket-42',
+        receivedAt: '2026-06-23T10:00:00Z',
+        affectedProcess: 'redispatch',
+        riskType: 'evidence_gap',
+        riskSeverity: 'high',
+        ownerRole: 'netzbetrieb',
+        dueAt: '2026-12-31',
+        evidenceStatus: 'ready',
+        evidenceRefs: 'vdmi:case-42',
+        nextDatapoint: 'redispatch-proof',
+        dedupeKey: 'sig-ready:portal:42',
+      });
+
+      expect(result.status).toBe('ready_for_action');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.readyForActionSignals).toHaveLength(1);
+      expect(result.byProcess.redispatch).toBe(1);
+      expect(result.byRiskType.evidence_gap).toBe(1);
+      expect(result.dossierEvidence.dossierFacts).toContain('Queue Status: ready_for_action');
+    });
+  });
+
+  // -- assetValuationTransformationGateStatus ------------------------------
+
+  describe('assetValuationTransformationGateStatus', () => {
+    it('reports missing valuation evidence without executing asset or finance mutations', async () => {
+      const result = await broker.call('dashboard-api.assetValuationTransformationGateStatus', {
+        assetId: 'asset-219',
+        transformationOption: 'h2-ready-repurpose',
+        dataQualityStatus: 'medium',
+        decisionOwner: 'asset-management',
+      });
+
+      expect(result.status).toBe('needs_book_value');
+      expect(result.safety).toBe('read_only');
+      expect(result.assetScope.assetId).toBe('asset-219');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'book_value_source',
+          'asset_condition_source',
+          'contract_risk_basis',
+          'regulatory_uncertainty_basis',
+          'next_decision',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('asset_valuation_transformation_gate');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'valuation.recordCreate',
+          'accounting.postingCreate',
+          'assets.applyOverride',
+          'investment.approve',
+          'asset-lifecycle.decommission',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_gate for complete caller-supplied gate evidence', async () => {
+      const result = await broker.call('dashboard-api.assetValuationTransformationGateStatus', {
+        gateId: 'gate-219',
+        assetGroupId: 'gas-line-north',
+        assetType: 'gas_grid_segment',
+        gridOperatorId: 'SNB219',
+        bookValueStatus: 'provided',
+        bookValueSource: 'erp:book-value-2026',
+        assetConditionStatus: 'provided',
+        assetConditionSource: 'inspection:2026',
+        transformationOption: 'heat-grid-repurpose',
+        transformationOptionBasis: 'waermeplanung:zone-7',
+        contractRisk: 'reviewed',
+        contractRiskBasis: 'contract:file-42',
+        regulatoryUncertainty: 'bounded',
+        regulatoryUncertaintyBasis: 'regulatory-note-9',
+        dataQualityStatus: 'high',
+        decisionOwner: 'netzentwicklung',
+        nextDecision: 'investment-committee-q3',
+        sourceDatapoints: 'erp:book-value-2026,inspection:2026',
+      });
+
+      expect(result.status).toBe('ready_for_gate');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.dossierEvidence.dossierFacts).toContain('Decision Readiness: ready_for_gate');
+      expect(result.dossierEvidence.sourceDatapoints).toEqual(
+        expect.arrayContaining(['erp:book-value-2026', 'inspection:2026'])
+      );
+    });
+
+    it('blocks management readiness on low data quality', async () => {
+      const result = await broker.call('dashboard-api.assetValuationTransformationGateStatus', {
+        assetId: 'asset-low-quality',
+        bookValueStatus: 'provided',
+        assetConditionStatus: 'provided',
+        transformationOption: 'decommission',
+        contractRisk: 'reviewed',
+        regulatoryUncertainty: 'bounded',
+        dataQualityStatus: 'low',
+        decisionOwner: 'finance',
+        nextDecision: 'hold',
+      });
+
+      expect(result.status).toBe('blocked_by_low_data_quality');
+      expect(result.dataQualityStatus.blocked).toBe(true);
+    });
+  });
+
+  // -- gasCapacityBookingReviewGateStatus ---------------------------------
+
+  describe('gasCapacityBookingReviewGateStatus', () => {
+    it('reports missing gas booking review evidence without executing bookings or workflow mutations', async () => {
+      const result = await broker.call('dashboard-api.gasCapacityBookingReviewGateStatus', {
+        reviewId: 'gas-260',
+        bookingYear: '2027',
+        networkArea: 'gas-north',
+        capacityAssumption: 'rlm-plus-12',
+        vdmiOwner: 'gas-planning',
+      });
+
+      expect(result.status).toBe('needs_scenario_evidence');
+      expect(result.safety).toBe('read_only');
+      expect(result.reviewScope.networkArea).toBe('gas-north');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'cold_year_evidence',
+          'rlm_rebound_evidence',
+          'congestion_history_evidence',
+          'decision_frame_ref',
+          'commercial_signoff',
+          'source_refs',
+          'risk_scenarios',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('gas_capacity_booking_review_gate');
+      expect(result.commercialSignoff.approvalClaimed).toBe(false);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'gas-capacity-booking.submit',
+          'upstream-network-operator.submitBooking',
+          'vdmi.taskMutate',
+          'hitl.create',
+          'notification.dispatchInternal',
+          'billing.release',
+          'settlement.prepareBilling',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_review for complete caller-supplied review evidence', async () => {
+      const result = await broker.call('dashboard-api.gasCapacityBookingReviewGateStatus', {
+        reviewId: 'gas-ready-260',
+        bookingYear: '2027',
+        networkArea: 'gas-south',
+        capacityAssumption: 'rlm-rebound-plus-12',
+        capacityAssumptionSource: 'waermeplanung:reconciliation-42',
+        coldYearEvidence: 'cold-year:2025-stress',
+        rlmReboundEvidence: 'rlm:rebound-8pct',
+        congestionHistoryEvidence: 'congestion:hist-2023-2026',
+        vdmiOwner: 'gas-fachbereichsleitung',
+        decisionFrameRef: 'decision-frame:gas-260',
+        commercialSignoff: 'commercial-review-present',
+        riskScenarios: 'underbooking,overbooking',
+        sourceRefs: 'waermeplanung:42,decision-frame:gas-260',
+      });
+
+      expect(result.status).toBe('ready_for_review');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.scenarioEvidenceStatus.complete).toBe(true);
+      expect(result.dossierEvidence.dossierFacts).toContain('Gate Status: ready_for_review');
+      expect(result.dossierEvidence.sourceRefs).toEqual(
+        expect.arrayContaining(['waermeplanung:42', 'decision-frame:gas-260'])
+      );
+    });
+  });
+
   // -- specialGridUsageImpactMapStatus ------------------------------------
 
   describe('specialGridUsageImpactMapStatus', () => {
@@ -2321,6 +2662,317 @@ describe('dashboard-api.service', () => {
       expect(result.sourceCoverage.sapAccountSources).toEqual(['sap-1000']);
       expect(result.governanceState.approvalStatus).toBe('reviewed');
       expect(result.dossierEvidence.dossierFacts).toContain('Provided liquidity governance evidence: 11/11');
+    });
+  });
+
+  // -- gasNetworkDecisionChainStatus --------------------------------------
+
+  describe('gasNetworkDecisionChainStatus', () => {
+    it('reports missing gas decision-chain evidence without executing mutations', async () => {
+      const result = await broker.call('dashboard-api.gasNetworkDecisionChainStatus', {
+        chainId: 'gas-chain-255',
+        gridOperatorId: 'vnb-gas',
+        segmentId: 'segment-north',
+        capacityAssumption: 'capacity-flat-until-2030',
+      });
+
+      expect(result.status).toBe('needs_decommissioning_path');
+      expect(result.safety).toBe('read_only');
+      expect(result.chainScope.segmentId).toBe('segment-north');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'decommissioning_path',
+          'regulatory_impact_refs',
+          'asset_book_value_refs',
+          'photo_year_window',
+          'owner',
+          'blocked_follow_up_decision',
+          'next_evidence_step',
+          'source_refs',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('gas_network_decision_chain');
+      expect(result.regulatoryImpactStatus.approvalClaimed).toBe(false);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'gas-network-flow.calculate',
+          'gas-capacity-booking.submit',
+          'gas-transformation.executeDecommissioning',
+          'investment.approve',
+          'assets.applyOverride',
+          'hitl.create',
+          'billing.release',
+          'settlement.prepareBilling',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_decision_chain_review for complete caller-supplied evidence', async () => {
+      const result = await broker.call('dashboard-api.gasNetworkDecisionChainStatus', {
+        chainId: 'gas-ready-255',
+        gridOperatorId: 'vnb-gas',
+        reconciliationId: 'recon-42',
+        segmentId: 'segment-south',
+        capacityAssumption: 'rlm-flat-with-reduction-from-2032',
+        capacityEvidenceRef: 'capacity:assumption-255',
+        decommissioningPath: 'partial-decommission-after-2035',
+        decommissioningEvidenceRef: 'waermeplanung:segment-42',
+        regulatoryImpactRef: 'regulatory:eog-kanu-255',
+        eogRef: 'eog:quality-element-255',
+        kanuRef: 'kanu:assessment-255',
+        assetRef: 'asset:gas-line-42',
+        bookValueRef: 'book:value-42',
+        photoYear: '2026',
+        decisionDeadline: '2026-09-30',
+        ownerRole: 'asset_management',
+        owner: 'gas-strategy-lead',
+        gateStatus: 'open',
+        blockedFollowUpDecision: 'investment-committee-2026-q4',
+        nextEvidenceStep: 'attach-eog-kanu-note',
+        sourceRefs: 'waermeplanung:42,decision-frame:255,asset:gas-line-42',
+      });
+
+      expect(result.status).toBe('ready_for_decision_chain_review');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.photoYearWindow.photoYear).toBe('2026');
+      expect(result.dossierEvidence.dossierFacts).toContain(
+        'Decision Chain Status: ready_for_decision_chain_review'
+      );
+      expect(result.dossierEvidence.sourceRefs).toEqual(
+        expect.arrayContaining(['waermeplanung:42', 'decision-frame:255', 'asset:gas-line-42'])
+      );
+    });
+  });
+
+  // -- waterPricingNetInvestmentAlignmentStatus ----------------------------
+
+  describe('waterPricingNetInvestmentAlignmentStatus', () => {
+    it('reports missing water-pricing alignment evidence without executing mutations', async () => {
+      const result = await broker.call('dashboard-api.waterPricingNetInvestmentAlignmentStatus', {
+        caseId: 'water-259',
+        waterPriceReference: 'wasserpreis:assumption-q3',
+      });
+
+      expect(result.status).toBe('needs_net_investment_reference');
+      expect(result.safety).toBe('read_only');
+      expect(result.alignmentScope.caseId).toBe('water-259');
+      expect(result.pricingEvidence.officialPriceCalculated).toBe(false);
+      expect(result.regulatoryBoundaryEvidence.approvalClaimed).toBe(false);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'net_investment_reference',
+          'asset_accounting_reference',
+          'lease_condition_reference',
+          'regulatory_impact_reference',
+          'governance_owner',
+          'review_window',
+          'alignment_decision',
+          'source_refs',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe(
+        'water_pricing_net_investment_alignment_gate'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'water-pricing.calculate',
+          'asset-accounting.import',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'mako.dispatch',
+          'contract.release',
+          'payment.execute',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns committee_review_ready for complete caller-supplied evidence', async () => {
+      const result = await broker.call('dashboard-api.waterPricingNetInvestmentAlignmentStatus', {
+        caseId: 'water-ready-259',
+        projectId: 'project-water-north',
+        waterPriceReference: 'wasserpreis:calc-assumption-2026',
+        netInvestmentReference: 'investment:water-grid-42',
+        assetAccountingReference: 'anlagenbuchhaltung:asset-export-42',
+        pachtnetzReference: 'pachtnetz:lease-42',
+        regulatoryImpactReference: 'regulatory:water-impact-2026',
+        governanceOwner: 'commercial-lead',
+        reviewPeriod: '2026-Q3',
+        targetCommitteeDate: '2026-09-30',
+        alignmentDecision: 'committee-review-ready',
+        sourceRefs: 'water:calc-42,asset:export-42,pachtnetz:lease-42',
+      });
+
+      expect(result.status).toBe('committee_review_ready');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.assetAccountingEvidence.accountingMutated).toBe(false);
+      expect(result.leaseConditionEvidence.contractParsed).toBe(false);
+      expect(result.dossierEvidence.dossierFacts).toContain(
+        'Alignment Status: committee_review_ready'
+      );
+      expect(result.dossierEvidence.sourceRefs).toEqual(
+        expect.arrayContaining(['water:calc-42', 'asset:export-42', 'pachtnetz:lease-42'])
+      );
+    });
+  });
+
+  // -- arealNetworkIntegrationOfferGateStatus ------------------------------
+
+  describe('arealNetworkIntegrationOfferGateStatus', () => {
+    it('reports missing Areal offer-gate evidence without executing mutations', async () => {
+      const result = await broker.call('dashboard-api.arealNetworkIntegrationOfferGateStatus', {
+        caseId: 'areal-269',
+        siteReference: 'site-west',
+        requestedConnectionCapacity: '12MW',
+      });
+
+      expect(result.status).toBe('needs_grid_capacity_evidence');
+      expect(result.safety).toBe('read_only');
+      expect(result.decisionScope.siteReference).toBe('site-west');
+      expect(result.capacityEvidence.capacityReserved).toBe(false);
+      expect(result.commercialAssumptionEvidence.bindingOfferGenerated).toBe(false);
+      expect(result.regulatoryBoundaryEvidence.approvalClaimed).toBe(false);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'grid_capacity_evidence',
+          'target_grid_path',
+          'investment_capex_reference',
+          'regulatory_impact_boundary',
+          'commercial_offer_assumptions',
+          'owner',
+          'next_decision_date',
+          'offer_decision_status',
+          'source_refs',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe(
+        'areal_network_integration_offer_gate'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'offer.calculate',
+          'offer.generateBinding',
+          'contract.accept',
+          'grid-capacity.reserve',
+          'target-grid.optimize',
+          'investment.approve',
+          'assets.applyOverride',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'mako.dispatch',
+          'device-control.execute',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_offer_gate_review for complete caller-supplied evidence', async () => {
+      const result = await broker.call('dashboard-api.arealNetworkIntegrationOfferGateStatus', {
+        caseId: 'areal-ready-269',
+        projectId: 'offer-project-west',
+        siteReference: 'site-west',
+        requestedConnectionCapacity: '12MW',
+        gridCapacityEvidence: 'grid-capacity:ok-42',
+        targetGridPath: 'znp:path-42',
+        investmentReference: 'capex:42',
+        regulatoryImpactBoundary: 'reg-impact:boundary-42',
+        commercialOfferAssumptions: 'offer-assumption:v1',
+        owner: 'commercial-lead',
+        nextDecisionDate: '2026-09-30',
+        offerDecisionStatus: 'review-ready',
+        sourceRefs: 'grid:42,znp:42,capex:42',
+      });
+
+      expect(result.status).toBe('ready_for_offer_gate_review');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.targetGridEvidence.optimizerExecuted).toBe(false);
+      expect(result.investmentEvidence.investmentApproved).toBe(false);
+      expect(result.dossierEvidence.dossierFacts).toContain(
+        'Offer Gate Status: ready_for_offer_gate_review'
+      );
+      expect(result.dossierEvidence.sourceRefs).toEqual(
+        expect.arrayContaining(['grid:42', 'znp:42', 'capex:42'])
+      );
+    });
+  });
+
+  // -- energySharingSimulationGateStatus ----------------------------------
+
+  describe('energySharingSimulationGateStatus', () => {
+    it('keeps forecast candidates in learning-pilot mode without executing Energy-Sharing actions', async () => {
+      const result = await broker.call('dashboard-api.energySharingSimulationGateStatus', {
+        communityId: 'es-230',
+        gridOperatorId: 'vnb-230',
+        participantCount: '12',
+        participantEvidenceRef: 'participants-v1',
+        dataBasis: 'forecast',
+        owner: 'product-owner',
+        escalationContact: 'marktrolle-team',
+      });
+
+      expect(result.gateStatus).toBe('learning_pilot');
+      expect(result.simulationStage).toBe('learning_pilot');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'malo_metering_readiness',
+          'market_role_readiness',
+          'settlement_a96_evidence',
+          'contract_evidence',
+          'economics_assumption',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('energy_sharing_simulation_gate');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'energy-sharing-allocation.allocate',
+          'settlement.exportA96',
+          'mako.dispatch',
+          'billing.release',
+          'tariff.mutate',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns billing_near_ready only with inhouse metering, market-role, A96, contract and economics evidence', async () => {
+      const result = await broker.call('dashboard-api.energySharingSimulationGateStatus', {
+        communityId: 'es-230',
+        gridOperatorId: 'vnb-230',
+        participantCount: '42',
+        participantEvidenceRef: 'participants-v2',
+        maloStatus: 'ready',
+        meteringReadiness: 'ready',
+        marketRoleReadiness: 'ready',
+        dataBasis: 'inhouse-imsys-mscons',
+        a96EvidenceRef: 'a96-ready',
+        settlementEvidenceRef: 'settlement-ready',
+        contractEvidenceRef: 'contracts-ready',
+        economicsAssumptionRef: 'economics-v1',
+        owner: 'energy-sharing-owner',
+        escalationContact: 'billing-lead',
+        sourceArtifacts: ['vdmi:es-230', 'settlement:a96-230'],
+      });
+
+      expect(result.gateStatus).toBe('billing_near_ready');
+      expect(result.simulationStage).toBe('billing_near_ready');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.readinessBlocks.settlementReadiness.status).toBe('ready');
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided Energy-Sharing gate evidence: 9/9');
+      expect(result.sourceActions.notCalled).toContain('energy-sharing-allocation.allocate');
     });
   });
 
@@ -5823,6 +6475,85 @@ describe('dashboard-api.service', () => {
       expect(result.recentTraces[0].transcriptId).toBe('smm-stub:test');
       expect(result.missingEvidence[0].missingDataPoint).toBe('napReference');
       expect(result.sourceActions.notCalled).toContain('external.connector.call');
+    });
+  });
+
+  describe('stadtwerkMauerMastrDataOverlayStatus', () => {
+    it('reports the blended MaStR overlay without mutating source records', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerMastrDataOverlayStatus', {
+        tenantId: 'stadtwerk-mauer',
+      });
+
+      expect(result.status).toBe('blended_overlay_ready');
+      expect(result.tenantId).toBe('stadtwerk-mauer');
+      expect(result.municipality).toBe('Mauer');
+      expect(result.postalCode).toBe('69256');
+      expect(result.assetCount).toBe(2);
+      expect(result.operatorOverlay.virtualGridOperator.name).toBe('Stadtwerk Mauer');
+      expect(result.operatorOverlay.realWorldOperatorHint.name).toBe('Syna GmbH');
+      expect(result.operatorOverlay.preservesOriginalMastrFacts).toBe(true);
+      expect(result.operatorOverlay.mutatesMastrRecords).toBe(false);
+      expect(result.resetBoundary.deletesImportedMastrBaseline).toBe(false);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['mako.dispatch', 'external.connector.call', 'mastr.write'])
+      );
+      expect(result.safety).toBe('read_only_real_mastr_baseline_with_virtual_operator_overlay');
+    });
+
+    it('surfaces overlay evidence through the read-only dashboard action', async () => {
+      handlers.stadtwerkMauerMastrDataOverlayStatus = () => ({
+        capabilityKey: 'stadtwerk_mauer_mastr_data_overlay',
+        safety: 'read_only_real_mastr_baseline_with_virtual_operator_overlay',
+        tenantId: 'stadtwerk-mauer',
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: true,
+        status: 'blended_overlay_ready',
+        municipality: 'Mauer',
+        postalCode: '69256',
+        assetCount: 1,
+        totalCapacityKw: 12.5,
+        originalGridOperators: [{ name: 'Syna GmbH', mastrId: 'SNB-SYNA', assetCount: 1 }],
+        operatorOverlay: {
+          virtualGridOperator: { name: 'Stadtwerk Mauer' },
+          realWorldOperatorHint: { name: 'Syna GmbH' },
+          preservesOriginalMastrFacts: true,
+          mutatesMastrRecords: false,
+        },
+        sampleAssets: [
+          {
+            mastrNummer: 'SEE-MAUER-001',
+            originalGridOperatorName: 'Syna GmbH',
+            virtualGridOperatorName: 'Stadtwerk Mauer',
+          },
+        ],
+        missingEvidence: [],
+        positiveFollowUps: [],
+        sourceActions: {
+          inspected: ['stadtwerk-mauer-mastr-data-overlay.getStatus'],
+          referenced: ['energy-market.installations'],
+          notCalled: ['mako.dispatch', 'external.connector.call', 'mastr.write'],
+        },
+        dossierEvidence: {
+          status: 'blended_overlay_ready',
+          tenantId: 'stadtwerk-mauer',
+          municipality: 'Mauer',
+          postalCode: '69256',
+          assetCount: 1,
+          totalCapacityKw: 12.5,
+          virtualGridOperatorName: 'Stadtwerk Mauer',
+          realWorldOperatorHint: 'Syna GmbH',
+        },
+      });
+
+      const result = await broker.call('dashboard-api.stadtwerkMauerMastrDataOverlayStatus', {
+        tenantId: 'stadtwerk-mauer',
+        limit: 10,
+      });
+
+      expect(result.status).toBe('blended_overlay_ready');
+      expect(result.originalGridOperators[0].name).toBe('Syna GmbH');
+      expect(result.sampleAssets[0].virtualGridOperatorName).toBe('Stadtwerk Mauer');
+      expect(result.sourceActions.notCalled).toContain('mastr.write');
     });
   });
 

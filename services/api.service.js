@@ -1422,12 +1422,30 @@ module.exports = {
             'dashboard-api.specialGridUsageImpactMapStatus',
           'GET /dashboard/liquidity-planning-governance':
             'dashboard-api.liquidityPlanningGovernanceStatus',
+          'GET /dashboard/energy-sharing-simulation-gate':
+            'dashboard-api.energySharingSimulationGateStatus',
           'GET /dashboard/stadtwerk-mauer-sandbox-runtime':
             'dashboard-api.stadtwerkMauerSandboxRuntimeStatus',
           'GET /dashboard/stadtwerk-mauer-external-interface-stubs':
             'dashboard-api.stadtwerkMauerExternalInterfaceStubsStatus',
           'GET /dashboard/stadtwerk-mauer-e2e-process-demo':
             'dashboard-api.stadtwerkMauerE2eProcessDemoStatus',
+          'GET /dashboard/stadtwerk-mauer-mastr-data-overlay':
+            'dashboard-api.stadtwerkMauerMastrDataOverlayStatus',
+          'GET /dashboard/fnav-fast-track-contract-gate':
+            'dashboard-api.fnavFastTrackContractGateStatus',
+          'GET /dashboard/cross-channel-vnb-signal-queue':
+            'dashboard-api.crossChannelVnbSignalQueueStatus',
+          'GET /dashboard/asset-valuation-transformation-gate':
+            'dashboard-api.assetValuationTransformationGateStatus',
+          'GET /dashboard/gas-capacity-booking-review-gate':
+            'dashboard-api.gasCapacityBookingReviewGateStatus',
+          'GET /dashboard/gas-network-decision-chain':
+            'dashboard-api.gasNetworkDecisionChainStatus',
+          'GET /dashboard/water-pricing-net-investment-alignment':
+            'dashboard-api.waterPricingNetInvestmentAlignmentStatus',
+          'GET /dashboard/areal-network-integration-offer-gate':
+            'dashboard-api.arealNetworkIntegrationOfferGateStatus',
           'POST /stadtwerk-mauer-sandbox-runtime/events':
             'stadtwerk-mauer-sandbox-runtime.ingestEvent',
           'POST /stadtwerk-mauer-sandbox-runtime/reset':
@@ -1442,6 +1460,8 @@ module.exports = {
             'stadtwerk-mauer-e2e-process-demo.runDemo',
           'GET /stadtwerk-mauer/e2e-process-demo/status':
             'stadtwerk-mauer-e2e-process-demo.getStatus',
+          'GET /stadtwerk-mauer/mastr-data-overlay/status':
+            'stadtwerk-mauer-mastr-data-overlay.getStatus',
           'GET /dashboard/regulatory-change-readiness':
             'dashboard-api.regulatoryChangeReadinessStatus',
           'GET /dashboard/investment-two-track-control':

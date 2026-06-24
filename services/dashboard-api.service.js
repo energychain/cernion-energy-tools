@@ -53,6 +53,7 @@ module.exports = {
       drReadinessEvidenceStatus: 5 * 60 * 1000, // 5 min
       specialGridUsageImpactMapStatus: 5 * 60 * 1000, // 5 min
       liquidityPlanningGovernanceStatus: 5 * 60 * 1000, // 5 min
+      energySharingSimulationGateStatus: 5 * 60 * 1000, // 5 min
       regulatoryChangeReadinessStatus: 5 * 60 * 1000, // 5 min
       investmentTwoTrackControlStatus: 5 * 60 * 1000, // 5 min
       sapBudgetPspGateStatus: 5 * 60 * 1000, // 5 min
@@ -98,6 +99,14 @@ module.exports = {
       stadtwerkMauerSandboxRuntimeStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerExternalInterfaceStubsStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerE2eProcessDemoStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerMastrDataOverlayStatus: 5 * 60 * 1000, // 5 min
+      fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
+      crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
+      assetValuationTransformationGateStatus: 5 * 60 * 1000, // 5 min
+      gasCapacityBookingReviewGateStatus: 5 * 60 * 1000, // 5 min
+      gasNetworkDecisionChainStatus: 5 * 60 * 1000, // 5 min
+      waterPricingNetInvestmentAlignmentStatus: 5 * 60 * 1000, // 5 min
+      arealNetworkIntegrationOfferGateStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -1981,6 +1990,98 @@ module.exports = {
           this.settings.cacheTtlMs.liquidityPlanningGovernanceStatus,
           async () => ({
             ...this.buildLiquidityPlanningGovernanceStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- energySharingSimulationGateStatus --------------------------------
+    /**
+     * GET /api/dashboard/energy-sharing-simulation-gate?communityId=...
+     *
+     * Read-only dossier-safe Energy-Sharing simulation gate. It classifies a
+     * candidate as learning/simulation/billing-near readiness from supplied
+     * evidence refs and never creates projects, allocations, settlement exports,
+     * MaKo messages, HITL tasks, billing artefacts or customer communication.
+     */
+    energySharingSimulationGateStatus: {
+      rest: 'GET /energy-sharing-simulation-gate',
+      params: {
+        communityId: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        participantCount: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        participantEvidenceRef: { type: 'string', optional: true, min: 1 },
+        maloStatus: { type: 'string', optional: true, min: 1 },
+        meteringReadiness: { type: 'string', optional: true, min: 1 },
+        marketRoleReadiness: { type: 'string', optional: true, min: 1 },
+        dataBasis: { type: 'string', optional: true, min: 1 },
+        a96EvidenceRef: { type: 'string', optional: true, min: 1 },
+        settlementEvidenceRef: { type: 'string', optional: true, min: 1 },
+        contractEvidenceRef: { type: 'string', optional: true, min: 1 },
+        economicsAssumptionRef: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        escalationContact: { type: 'string', optional: true, min: 1 },
+        sourceArtifacts: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Energy-Sharing simulation gate - read-only dossier-safe status',
+        description:
+          'Classifies Energy-Sharing candidates as learning pilot, simulation-ready, billing-near-ready or blocked by missing evidence. ' +
+          'The endpoint is read-only and does not run allocation, settlement/A96 export, MaKo dispatch, billing, tariff mutation, HITL, external connector, customer communication or Personal Agent execution.',
+        parameters: [
+          { name: 'communityId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'participantCount', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'participantEvidenceRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'maloStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'meteringReadiness', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'marketRoleReadiness', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataBasis', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'a96EvidenceRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'settlementEvidenceRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'contractEvidenceRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'economicsAssumptionRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'escalationContact', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceArtifacts', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Energy-Sharing simulation gate status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    gateStatus: { type: 'string' },
+                    simulationStage: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `energy-sharing-simulation-gate:${params.communityId || 'no-community'}:${params.gridOperatorId || 'no-grid'}:${params.participantCount || 'no-participants'}:${params.maloStatus || 'no-malo'}:${params.meteringReadiness || 'no-metering'}:${params.marketRoleReadiness || 'no-market-role'}:${params.dataBasis || 'no-data-basis'}:${params.a96EvidenceRef || 'no-a96'}:${params.settlementEvidenceRef || 'no-settlement'}:${params.contractEvidenceRef || 'no-contract'}:${params.economicsAssumptionRef || 'no-economics'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.energySharingSimulationGateStatus,
+          async () => ({
+            ...this.buildEnergySharingSimulationGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -4916,6 +5017,771 @@ module.exports = {
           timestamp: new Date().toISOString(),
           _errors: errors,
         };
+      },
+    },
+
+    // -- stadtwerkMauerMastrDataOverlayStatus -----------------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay
+     *
+     * Read-only dossier-safe status for the Stadtwerk Mauer blended MaStR data
+     * overlay. The endpoint reads public MaStR facts and presents Stadtwerk
+     * Mauer as tenant/process operator without mutating MaStR records.
+     */
+    stadtwerkMauerMastrDataOverlayStatus: {
+      rest: 'GET /stadtwerk-mauer-mastr-data-overlay',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        postalCode: { type: 'string', optional: true, min: 5, max: 5 },
+        municipality: { type: 'string', optional: true, min: 1 },
+        limit: { type: 'any', optional: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer blended MaStR data overlay -- read-only status',
+        description:
+          'Reports the real MaStR baseline for Mauer and the virtual Stadtwerk Mauer ' +
+          'operator overlay. Original MaStR facts and real-world operator provenance remain ' +
+          'visible; no MaStR records, MaKo, device-control or external connectors are mutated.',
+        parameters: [
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'postalCode', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'municipality', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'limit', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Stadtwerk Mauer blended MaStR data overlay status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    tenantId: { type: 'string' },
+                    municipality: { type: 'string' },
+                    postalCode: { type: 'string' },
+                    assetCount: { type: 'number' },
+                    totalCapacityKw: { type: 'number' },
+                    originalGridOperators: { type: 'array' },
+                    operatorOverlay: { type: 'object' },
+                    sampleAssets: { type: 'array' },
+                    evidenceQuality: { type: 'string' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    resetBoundary: { type: 'object' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const errors = [];
+        const status = await this.safeCall(
+          ctx,
+          'stadtwerk-mauer-mastr-data-overlay.getStatus',
+          {
+            tenantId,
+            postalCode: params.postalCode,
+            municipality: params.municipality,
+            limit: params.limit,
+          },
+          this.buildMissingStadtwerkMauerMastrDataOverlayStatus(tenantId, params),
+          errors,
+          'stadtwerk-mauer-mastr-data-overlay.getStatus'
+        );
+        return {
+          ...status,
+          timestamp: new Date().toISOString(),
+          _errors: errors,
+        };
+      },
+    },
+
+    // -- fnavFastTrackContractGateStatus -----------------------------------
+    /**
+     * GET /api/dashboard/fnav-fast-track-contract-gate
+     *
+     * Read-only dossier-safe decision-readiness projection for fNAV fast-track
+     * contract gates. It does not create contracts, approvals, HITL items, or
+     * operational control actions.
+     */
+    fnavFastTrackContractGateStatus: {
+      rest: 'GET /fnav-fast-track-contract-gate',
+      params: {
+        gateId: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        requestType: { type: 'string', optional: true, min: 1 },
+        assetOrLoadType: { type: 'string', optional: true, min: 1 },
+        requestedCapacityKW: { type: 'number', optional: true, convert: true },
+        firmCapacityKW: { type: 'number', optional: true, convert: true },
+        flexibleCapacityKW: { type: 'number', optional: true, convert: true },
+        curtailmentWindow: { type: 'string', optional: true, min: 1 },
+        voltageLevel: { type: 'string', optional: true, min: 1 },
+        netzsignalPriorityPolicy: { type: 'string', optional: true, min: 1 },
+        scheduleObligation: { type: 'string', optional: true, min: 1 },
+        meteringRequirements: { type: 'string', optional: true, min: 1 },
+        controlEvidenceRef: { type: 'string', optional: true, min: 1 },
+        marketingBoundaries: { type: 'string', optional: true, min: 1 },
+        commercialImpact: { type: 'string', optional: true, min: 1 },
+        contractStatus: { type: 'string', optional: true, min: 1 },
+        legalStatus: { type: 'string', optional: true, min: 1 },
+        breakCriteria: { type: 'string', optional: true, min: 1 },
+        escalationOwner: { type: 'string', optional: true, min: 1 },
+        ownerContact: { type: 'string', optional: true, min: 1 },
+        vdmiProcessId: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'fNAV fast-track contract gate -- read-only decision readiness',
+        description:
+          'Projects fNAV fast-track request, network-signal, metering/control, commercial, contract, legal and owner evidence into a dossier-safe gate status. ' +
+          'The endpoint is read-only and never creates contracts, HITL items, MaKo, billing, settlement, tariff, control, SMGW/CLS or external actions.',
+        parameters: [
+          { name: 'gateId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'requestType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetOrLoadType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'netzsignalPriorityPolicy', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'controlEvidenceRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'contractStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'legalStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerContact', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only fNAV fast-track contract-gate status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    gateId: { type: 'string' },
+                    decisionReadiness: { type: 'string' },
+                    status: { type: 'string' },
+                    requestSummary: { type: 'object' },
+                    technicalGate: { type: 'object' },
+                    commercialGate: { type: 'object' },
+                    contractGate: { type: 'object' },
+                    evidenceStatus: { type: 'object' },
+                    governanceBlockers: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `fnav-fast-track-contract-gate:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.fnavFastTrackContractGateStatus,
+          async () => ({
+            ...this.buildFnavFastTrackContractGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- crossChannelVnbSignalQueueStatus ----------------------------------
+    /**
+     * GET /api/dashboard/cross-channel-vnb-signal-queue
+     *
+     * Read-only dossier-safe projection for caller-supplied VNB signals. It
+     * normalizes references and summaries only; it does not ingest channels,
+     * persist a queue, create HITL/inbox/notification items, or mutate VDMI.
+     */
+    crossChannelVnbSignalQueueStatus: {
+      rest: 'GET /cross-channel-vnb-signal-queue',
+      params: {
+        signalId: { type: 'string', optional: true, min: 1 },
+        channel: { type: 'string', optional: true, min: 1 },
+        sourceSystem: { type: 'string', optional: true, min: 1 },
+        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        receivedAt: { type: 'string', optional: true, min: 1 },
+        affectedProcess: { type: 'string', optional: true, min: 1 },
+        processType: { type: 'string', optional: true, min: 1 },
+        riskType: { type: 'string', optional: true, min: 1 },
+        riskSeverity: { type: 'string', optional: true, min: 1 },
+        ownerRole: { type: 'string', optional: true, min: 1 },
+        ownerPersonaId: { type: 'string', optional: true, min: 1 },
+        dueAt: { type: 'string', optional: true, min: 1 },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+        evidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        nextDatapoint: { type: 'string', optional: true, min: 1 },
+        dedupeKey: { type: 'string', optional: true, min: 1 },
+        status: { type: 'string', optional: true, min: 1 },
+        signals: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Cross-channel VNB signal queue -- read-only evidence projection',
+        description:
+          'Normalizes caller-supplied signal references and summaries into a dossier-safe VNB queue evidence view. ' +
+          'The endpoint is read-only and never ingests mail/chat/portal content, stores raw private content, persists a queue, creates HITL/inbox/notification/VDMI items, or dispatches operational actions.',
+        parameters: [
+          { name: 'signalId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'channel', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceSystem', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'affectedProcess', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'riskType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dueAt', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextDatapoint', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only cross-channel VNB signal queue evidence',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    queueStatus: { type: 'string' },
+                    signalCount: { type: 'number' },
+                    normalizedSignals: { type: 'array' },
+                    byProcess: { type: 'object' },
+                    byRiskType: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `cross-channel-vnb-signal-queue:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.crossChannelVnbSignalQueueStatus,
+          async () => ({
+            ...this.buildCrossChannelVnbSignalQueueStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- assetValuationTransformationGateStatus ----------------------------
+    /**
+     * GET /api/dashboard/asset-valuation-transformation-gate
+     *
+     * Read-only dossier-safe projection for caller-supplied asset valuation
+     * and transformation evidence. It does not create valuation records,
+     * mutate assets, approve investments, or execute decommissioning.
+     */
+    assetValuationTransformationGateStatus: {
+      rest: 'GET /asset-valuation-transformation-gate',
+      params: {
+        gateId: { type: 'string', optional: true, min: 1 },
+        assetId: { type: 'string', optional: true, min: 1 },
+        assetGroupId: { type: 'string', optional: true, min: 1 },
+        assetType: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        bookValueStatus: { type: 'string', optional: true, min: 1 },
+        bookValueSource: { type: 'string', optional: true, min: 1 },
+        assetConditionStatus: { type: 'string', optional: true, min: 1 },
+        assetConditionSource: { type: 'string', optional: true, min: 1 },
+        transformationOption: { type: 'string', optional: true, min: 1 },
+        transformationOptionBasis: { type: 'string', optional: true, min: 1 },
+        contractRisk: { type: 'string', optional: true, min: 1 },
+        contractRiskBasis: { type: 'string', optional: true, min: 1 },
+        regulatoryUncertainty: { type: 'string', optional: true, min: 1 },
+        regulatoryUncertaintyBasis: { type: 'string', optional: true, min: 1 },
+        dataQualityStatus: { type: 'string', optional: true, min: 1 },
+        decisionOwner: { type: 'string', optional: true, min: 1 },
+        nextDecision: { type: 'string', optional: true, min: 1 },
+        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Asset valuation transformation gate -- read-only evidence projection',
+        description:
+          'Returns a deterministic dossier-safe management gate view over book value, asset condition, transformation option, contract/regulatory risk and data quality. ' +
+          'The endpoint is read-only and never mutates asset records, creates valuation/accounting records, approves investments, creates HITL items, or executes decommissioning/repurposing.',
+        parameters: [
+          { name: 'assetId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetGroupId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'bookValueStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetConditionStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'transformationOption', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'contractRisk', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryUncertainty', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataQualityStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionOwner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextDecision', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only asset valuation transformation gate evidence',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    decisionReadiness: { type: 'string' },
+                    assetScope: { type: 'object' },
+                    bookValueStatus: { type: 'object' },
+                    assetConditionStatus: { type: 'object' },
+                    transformationOption: { type: 'object' },
+                    contractRisk: { type: 'object' },
+                    regulatoryUncertainty: { type: 'object' },
+                    dataQualityStatus: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `asset-valuation-transformation-gate:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.assetValuationTransformationGateStatus,
+          async () => ({
+            ...this.buildAssetValuationTransformationGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- gasCapacityBookingReviewGateStatus --------------------------------
+    /**
+     * GET /api/dashboard/gas-capacity-booking-review-gate
+     *
+     * Read-only dossier-safe projection for caller-supplied annual gas
+     * capacity booking review evidence. It does not submit bookings, mutate
+     * VDMI/HITL workflows, create persistence, or call external systems.
+     */
+    gasCapacityBookingReviewGateStatus: {
+      rest: 'GET /gas-capacity-booking-review-gate',
+      params: {
+        reviewId: { type: 'string', optional: true, min: 1 },
+        bookingYear: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string' }] },
+        networkArea: { type: 'string', optional: true, min: 1 },
+        capacityAssumption: { type: 'string', optional: true, min: 1 },
+        capacityAssumptionSource: { type: 'string', optional: true, min: 1 },
+        coldYearEvidence: { type: 'string', optional: true, min: 1 },
+        rlmReboundEvidence: { type: 'string', optional: true, min: 1 },
+        congestionHistoryEvidence: { type: 'string', optional: true, min: 1 },
+        vdmiOwner: { type: 'string', optional: true, min: 1 },
+        decisionFrameRef: { type: 'string', optional: true, min: 1 },
+        commercialSignoff: { type: 'string', optional: true, min: 1 },
+        riskScenarios: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Gas capacity booking review gate -- read-only evidence projection',
+        description:
+          'Returns a deterministic dossier-safe review gate over gas capacity assumptions, cold-year/RLM/congestion evidence, VDMI ownership and commercial sign-off. ' +
+          'The endpoint is read-only and never submits bookings, mutates VDMI/HITL workflows, dispatches notifications, creates booking persistence, or calls external systems.',
+        parameters: [
+          { name: 'reviewId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'bookingYear', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'networkArea', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'capacityAssumption', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'coldYearEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'rlmReboundEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'congestionHistoryEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'vdmiOwner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionFrameRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'commercialSignoff', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only gas capacity booking review gate evidence',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    reviewScope: { type: 'object' },
+                    capacityAssumptionSummary: { type: 'object' },
+                    scenarioEvidenceStatus: { type: 'object' },
+                    vdmiReview: { type: 'object' },
+                    commercialSignoff: { type: 'object' },
+                    riskScenarios: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `gas-capacity-booking-review-gate:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.gasCapacityBookingReviewGateStatus,
+          async () => ({
+            ...this.buildGasCapacityBookingReviewGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- gasNetworkDecisionChainStatus -------------------------------------
+    /**
+     * GET /api/dashboard/gas-network-decision-chain
+     *
+     * Read-only dossier-safe projection for gas network management decision
+     * chains. It does not compute gas-flow, KANU/EOG, book-value or Fotojahr
+     * calculations and never executes stilllegung, booking, asset or workflow
+     * mutations.
+     */
+    gasNetworkDecisionChainStatus: {
+      rest: 'GET /gas-network-decision-chain',
+      params: {
+        chainId: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        reconciliationId: { type: 'string', optional: true, min: 1 },
+        segmentId: { type: 'string', optional: true, min: 1 },
+        capacityAssumption: { type: 'string', optional: true, min: 1 },
+        capacityEvidenceRef: { type: 'string', optional: true, min: 1 },
+        decommissioningPath: { type: 'string', optional: true, min: 1 },
+        decommissioningEvidenceRef: { type: 'string', optional: true, min: 1 },
+        regulatoryImpactRef: { type: 'string', optional: true, min: 1 },
+        eogRef: { type: 'string', optional: true, min: 1 },
+        kanuRef: { type: 'string', optional: true, min: 1 },
+        assetRef: { type: 'string', optional: true, min: 1 },
+        bookValueRef: { type: 'string', optional: true, min: 1 },
+        photoYear: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string' }] },
+        decisionDeadline: { type: 'string', optional: true, min: 1 },
+        ownerRole: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        gateStatus: { type: 'string', optional: true, min: 1 },
+        blockedFollowUpDecision: { type: 'string', optional: true, min: 1 },
+        nextEvidenceStep: { type: 'string', optional: true, min: 1 },
+        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Gas network decision chain -- read-only evidence projection',
+        description:
+          'Returns a deterministic dossier-safe decision-chain view over gas capacity assumptions, decommissioning path, KANU/EOG references, asset/book-value references, Fotojahr window and blocked follow-up decisions. ' +
+          'The endpoint is read-only and never executes capacity booking, stilllegung, investment approval, Asset-MDM overrides, HITL, notifications, billing, settlement, tariff, MaKo, contract, device-control or external connector actions.',
+        parameters: [
+          { name: 'chainId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'reconciliationId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'segmentId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'capacityAssumption', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decommissioningPath', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryImpactRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'bookValueRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'photoYear', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionDeadline', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'blockedFollowUpDecision', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextEvidenceStep', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only gas network decision-chain evidence',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    chainScope: { type: 'object' },
+                    capacityAssumptionStatus: { type: 'object' },
+                    decommissioningPathStatus: { type: 'object' },
+                    regulatoryImpactStatus: { type: 'object' },
+                    assetBookValueStatus: { type: 'object' },
+                    photoYearWindow: { type: 'object' },
+                    owner: { type: 'object' },
+                    blockedFollowUpDecision: { type: 'string' },
+                    nextEvidenceStep: { type: 'string' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `gas-network-decision-chain:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.gasNetworkDecisionChainStatus,
+          async () => ({
+            ...this.buildGasNetworkDecisionChainStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- waterPricingNetInvestmentAlignmentStatus --------------------------
+    /**
+     * GET /api/dashboard/water-pricing-net-investment-alignment
+     *
+     * Read-only dossier-safe projection for aligning water-price assumptions
+     * with net-investment and Pachtnetz / asset-accounting evidence. It does
+     * not calculate official prices, claim regulatory approval, or mutate
+     * accounting, billing, tariff, contract, committee or external systems.
+     */
+    waterPricingNetInvestmentAlignmentStatus: {
+      rest: 'GET /water-pricing-net-investment-alignment',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        projectId: { type: 'string', optional: true, min: 1 },
+        tenantId: { type: 'string', optional: true, min: 1 },
+        waterPriceReference: { type: 'string', optional: true, min: 1 },
+        calculationReference: { type: 'string', optional: true, min: 1 },
+        netInvestmentReference: { type: 'string', optional: true, min: 1 },
+        infrastructureMeasureReference: { type: 'string', optional: true, min: 1 },
+        assetAccountingReference: { type: 'string', optional: true, min: 1 },
+        leaseOrConcessionReference: { type: 'string', optional: true, min: 1 },
+        pachtnetzReference: { type: 'string', optional: true, min: 1 },
+        regulatoryImpactReference: { type: 'string', optional: true, min: 1 },
+        tariffLogicReference: { type: 'string', optional: true, min: 1 },
+        governanceOwner: { type: 'string', optional: true, min: 1 },
+        committeeOwner: { type: 'string', optional: true, min: 1 },
+        reviewPeriod: { type: 'string', optional: true, min: 1 },
+        targetCommitteeDate: { type: 'string', optional: true, min: 1 },
+        alignmentDecision: { type: 'string', optional: true, min: 1 },
+        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Water pricing / net-investment alignment -- read-only evidence gate',
+        description:
+          'Returns a deterministic dossier-safe alignment view over water-price assumptions, net-investment references, asset-accounting evidence, Pachtnetz/concession references, regulatory-impact evidence, owner, review period and committee decision state. ' +
+          'The endpoint is read-only and never calculates an official water price, claims regulatory approval, mutates accounting, billing, settlement, tariff, MaKo, contract or payment data, creates HITL/notifications, or calls external connectors.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'projectId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'waterPriceReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'calculationReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'netInvestmentReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetAccountingReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'pachtnetzReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryImpactReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'governanceOwner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'reviewPeriod', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'targetCommitteeDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'alignmentDecision', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only water pricing / net-investment alignment evidence',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    alignmentScope: { type: 'object' },
+                    pricingEvidence: { type: 'object' },
+                    investmentEvidence: { type: 'object' },
+                    assetAccountingEvidence: { type: 'object' },
+                    leaseConditionEvidence: { type: 'object' },
+                    regulatoryBoundaryEvidence: { type: 'object' },
+                    owner: { type: 'object' },
+                    reviewWindow: { type: 'object' },
+                    alignmentDecision: { type: 'string' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `water-pricing-net-investment-alignment:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.waterPricingNetInvestmentAlignmentStatus,
+          async () => ({
+            ...this.buildWaterPricingNetInvestmentAlignmentStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- arealNetworkIntegrationOfferGateStatus ----------------------------
+    /**
+     * GET /api/dashboard/areal-network-integration-offer-gate
+     *
+     * Read-only dossier-safe decision card for Areal / site offer readiness.
+     * It does not calculate offers, reserve grid capacity, approve target-grid
+     * investments, create contracts, or mutate commercial / grid systems.
+     */
+    arealNetworkIntegrationOfferGateStatus: {
+      rest: 'GET /areal-network-integration-offer-gate',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        projectId: { type: 'string', optional: true, min: 1 },
+        tenantId: { type: 'string', optional: true, min: 1 },
+        siteReference: { type: 'string', optional: true, min: 1 },
+        areaReference: { type: 'string', optional: true, min: 1 },
+        requestedConnectionCapacity: { type: 'string', optional: true, min: 1 },
+        requestedCapacityKw: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'number' }] },
+        gridCapacityEvidence: { type: 'string', optional: true, min: 1 },
+        capacityEvidenceReference: { type: 'string', optional: true, min: 1 },
+        targetGridPath: { type: 'string', optional: true, min: 1 },
+        zielnetzPath: { type: 'string', optional: true, min: 1 },
+        investmentReference: { type: 'string', optional: true, min: 1 },
+        capexReference: { type: 'string', optional: true, min: 1 },
+        regulatoryImpactBoundary: { type: 'string', optional: true, min: 1 },
+        regulatoryImpactReference: { type: 'string', optional: true, min: 1 },
+        commercialOfferAssumptions: { type: 'string', optional: true, min: 1 },
+        offerAssumptionReference: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        gateOwner: { type: 'string', optional: true, min: 1 },
+        nextDecisionDate: { type: 'string', optional: true, min: 1 },
+        offerDecisionStatus: { type: 'string', optional: true, min: 1 },
+        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Areal network-integration offer gate -- read-only evidence gate',
+        description:
+          'Returns a deterministic dossier-safe decision card over site/area, requested connection capacity, grid-capacity evidence, target-grid path, investment/CAPEX evidence, regulatory boundary, commercial offer assumptions, owner, decision date and offer decision state. ' +
+          'The endpoint is read-only and never calculates a binding offer, reserves grid capacity, approves investments, creates contracts, mutates Asset-MDM, billing, settlement, tariff, MaKo or device-control systems, creates HITL/notifications, or calls external connectors.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'projectId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'siteReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'areaReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'requestedConnectionCapacity', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'requestedCapacityKw', in: 'query', required: false, schema: { type: 'number' } },
+          { name: 'gridCapacityEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'targetGridPath', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'investmentReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryImpactBoundary', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'commercialOfferAssumptions', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextDecisionDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'offerDecisionStatus', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Areal network-integration offer evidence',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    decisionScope: { type: 'object' },
+                    capacityEvidence: { type: 'object' },
+                    targetGridEvidence: { type: 'object' },
+                    investmentEvidence: { type: 'object' },
+                    regulatoryBoundaryEvidence: { type: 'object' },
+                    commercialAssumptionEvidence: { type: 'object' },
+                    owner: { type: 'object' },
+                    decisionWindow: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `areal-network-integration-offer-gate:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.arealNetworkIntegrationOfferGateStatus,
+          async () => ({
+            ...this.buildArealNetworkIntegrationOfferGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
       },
     },
 
@@ -8154,6 +9020,286 @@ module.exports = {
           missingEvidence,
           riskFlags,
           positiveFollowUps,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildEnergySharingSimulationGateStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const normalizeStatus = (value) => {
+        if (value === true) return 'ready';
+        if (value === false || value == null || value === '') return 'missing';
+        const text = String(value).trim().toLowerCase();
+        if (['ready', 'ok', 'complete', 'completed', 'provided', 'valid', 'validated', 'available', 'confirmed', 'approved'].includes(text)) return 'ready';
+        if (['blocked', 'invalid', 'failed', 'rejected'].includes(text)) return 'blocked';
+        if (['partial', 'in_progress', 'draft', 'pending'].includes(text)) return 'partial';
+        return 'ready';
+      };
+      const isReady = (value) => normalizeStatus(value) === 'ready';
+      const participantCount = Number(params.participantCount || 0);
+      const sourceArtifacts = toList(params.sourceArtifacts);
+      const dataBasis = String(params.dataBasis || '').toLowerCase();
+      const isBillingDataBasis = /inhouse|imsys|mscons|billing|abrechnung/.test(dataBasis);
+      const isForecastBasis = /forecast|synthetic|synthetisch|learning|lernpilot/.test(dataBasis) || !dataBasis;
+      const communityId = params.communityId || 'energy-sharing-candidate';
+
+      const evidenceSpecs = [
+        {
+          id: 'project_identity',
+          label: 'Energy-Sharing community and grid operator',
+          value: params.communityId && params.gridOperatorId,
+          displayValue: [params.communityId, params.gridOperatorId].filter(Boolean).join(' / '),
+          readinessBlock: 'project',
+          sourceClass: 'identity',
+          enablesDossierAddition: 'add community id and grid operator id to identify the simulation scope',
+          statusWhenMissing: 'blocked_by_evidence',
+        },
+        {
+          id: 'participant_dataset',
+          label: 'Participant list and participant evidence',
+          value: participantCount > 0 && params.participantEvidenceRef,
+          displayValue: participantCount > 0 ? `${participantCount} participants / ${params.participantEvidenceRef || 'no evidence ref'}` : null,
+          readinessBlock: 'participants',
+          sourceClass: 'participant_evidence',
+          enablesDossierAddition: 'add participant list and consent/evidence reference to assess participant readiness',
+          statusWhenMissing: 'blocked_by_evidence',
+        },
+        {
+          id: 'malo_metering_readiness',
+          label: 'MaLo and metering/iMSys readiness',
+          value: isReady(params.maloStatus) && isReady(params.meteringReadiness),
+          displayValue: [params.maloStatus, params.meteringReadiness].filter(Boolean).join(' / '),
+          readinessBlock: 'metering',
+          sourceClass: 'metering_evidence',
+          enablesDossierAddition: 'add MaLo status and iMSys/MSCONS metering evidence to lift the gate beyond learning-pilot readiness',
+          statusWhenMissing: 'blocked_by_metering',
+        },
+        {
+          id: 'market_role_readiness',
+          label: 'Market role / Bilanzkreis readiness',
+          value: isReady(params.marketRoleReadiness),
+          displayValue: params.marketRoleReadiness,
+          readinessBlock: 'marketRole',
+          sourceClass: 'market_role_evidence',
+          enablesDossierAddition: 'add market-role and balancing-group readiness evidence to avoid false operational approval',
+          statusWhenMissing: 'blocked_by_market_role',
+        },
+        {
+          id: 'data_basis',
+          label: 'Forecast or inhouse data basis',
+          value: params.dataBasis,
+          displayValue: params.dataBasis,
+          readinessBlock: 'metering',
+          sourceClass: 'data_basis',
+          enablesDossierAddition: 'add the simulation data basis; forecast enables learning-pilot assessment, inhouse/iMSys evidence enables billing-near assessment',
+          statusWhenMissing: 'learning_pilot',
+        },
+        {
+          id: 'settlement_a96_evidence',
+          label: 'Settlement and A96 evidence',
+          value: params.a96EvidenceRef && params.settlementEvidenceRef && isBillingDataBasis,
+          displayValue: [params.a96EvidenceRef, params.settlementEvidenceRef].filter(Boolean).join(' / '),
+          readinessBlock: 'settlement',
+          sourceClass: 'settlement_evidence',
+          enablesDossierAddition: 'add A96 and settlement evidence before classifying the candidate as billing-near-ready',
+          statusWhenMissing: isBillingDataBasis ? 'blocked_by_settlement' : 'simulation_ready',
+        },
+        {
+          id: 'contract_evidence',
+          label: 'Contract readiness evidence',
+          value: params.contractEvidenceRef,
+          displayValue: params.contractEvidenceRef,
+          readinessBlock: 'contract',
+          sourceClass: 'contract_evidence',
+          enablesDossierAddition: 'add contract readiness evidence to separate pilot learning from operational rollout',
+          statusWhenMissing: 'blocked_by_evidence',
+        },
+        {
+          id: 'economics_assumption',
+          label: 'Economics assumptions',
+          value: params.economicsAssumptionRef,
+          displayValue: params.economicsAssumptionRef,
+          readinessBlock: 'economics',
+          sourceClass: 'commercial_evidence',
+          enablesDossierAddition: 'add economics assumptions for commercial readiness without triggering billing or tariff mutation',
+          statusWhenMissing: 'blocked_by_evidence',
+        },
+        {
+          id: 'owner_escalation',
+          label: 'Owner and escalation contact',
+          value: params.owner && params.escalationContact,
+          displayValue: [params.owner, params.escalationContact].filter(Boolean).join(' / '),
+          readinessBlock: 'governance',
+          sourceClass: 'owner_evidence',
+          enablesDossierAddition: 'add owner and escalation contact so open evidence can be routed as follow-up',
+          statusWhenMissing: 'blocked_by_evidence',
+        },
+      ];
+
+      const readinessBlocks = {
+        participantReadiness: {
+          participantCount,
+          participantEvidenceRef: params.participantEvidenceRef || null,
+          status: participantCount > 0 && params.participantEvidenceRef ? 'ready' : 'missing_evidence',
+        },
+        meteringReadiness: {
+          maloStatus: params.maloStatus || null,
+          meteringReadiness: params.meteringReadiness || null,
+          dataBasis: params.dataBasis || null,
+          status: isReady(params.maloStatus) && isReady(params.meteringReadiness) ? 'ready' : 'missing_evidence',
+        },
+        marketRoleReadiness: {
+          marketRoleReadiness: params.marketRoleReadiness || null,
+          status: isReady(params.marketRoleReadiness) ? 'ready' : 'missing_evidence',
+        },
+        settlementReadiness: {
+          a96EvidenceRef: params.a96EvidenceRef || null,
+          settlementEvidenceRef: params.settlementEvidenceRef || null,
+          status: params.a96EvidenceRef && params.settlementEvidenceRef && isBillingDataBasis ? 'ready' : 'missing_or_not_billing_basis',
+        },
+        economicsReadiness: {
+          contractEvidenceRef: params.contractEvidenceRef || null,
+          economicsAssumptionRef: params.economicsAssumptionRef || null,
+          status: params.contractEvidenceRef && params.economicsAssumptionRef ? 'ready' : 'missing_evidence',
+        },
+      };
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => normalizeStatus(spec.value) === 'ready')
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue || spec.value,
+          readinessBlock: spec.readinessBlock,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => normalizeStatus(spec.value) !== 'ready')
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          status: normalizeStatus(spec.value),
+          value: spec.displayValue || spec.value || null,
+          readinessBlock: spec.readinessBlock,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+          statusWhenMissing: spec.statusWhenMissing,
+        }));
+      const missingIds = new Set(missingEvidence.map((item) => item.missingDataPoint));
+      const gateStatus = missingIds.size === 0
+        ? 'billing_near_ready'
+        : isForecastBasis
+          ? 'learning_pilot'
+          : missingIds.has('market_role_readiness')
+            ? 'blocked_by_market_role'
+            : missingIds.has('malo_metering_readiness')
+              ? 'blocked_by_metering'
+              : missingIds.has('settlement_a96_evidence') && isBillingDataBasis
+                ? 'blocked_by_settlement'
+                : missingIds.has('settlement_a96_evidence')
+                  ? 'simulation_ready'
+                  : 'blocked_by_evidence';
+      const simulationStage = gateStatus === 'billing_near_ready'
+        ? 'billing_near_ready'
+        : gateStatus === 'simulation_ready'
+          ? 'simulation_ready'
+          : gateStatus === 'learning_pilot'
+            ? 'learning_pilot'
+            : 'blocked_before_operational_rollout';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const classificationRationale = [
+        gateStatus === 'billing_near_ready'
+          ? 'All supplied readiness evidence supports a billing-near assessment.'
+          : gateStatus === 'learning_pilot'
+            ? 'Forecast or synthetic evidence can support a learning pilot, but it is not billing-ready.'
+            : gateStatus === 'simulation_ready'
+              ? 'Core project, participant, metering and market-role evidence can support simulation, while settlement/A96 evidence remains open.'
+              : `Open ${missingEvidence[0]?.label || 'evidence'} prevents operational rollout.`,
+        'No allocation, A96 export, settlement, MaKo, billing, tariff, HITL, customer communication or external connector action was called.',
+      ];
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        status: item.status,
+        value: item.value,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'energy_sharing_simulation_gate',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.energySharingSimulationGateStatus'],
+        referenced: [
+          'energy-sharing.validate',
+          'energy-sharing-allocation.allocate',
+          'datapoint.health',
+          'edm-validation.validate',
+          'settlement.prepareA96',
+          'settlement.reconcileA96',
+          'grid-connection.validate',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+        ],
+        notCalled: [
+          'energy-sharing.createProject',
+          'energy-sharing-allocation.allocate',
+          'settlement.prepareA96',
+          'settlement.reconcileA96',
+          'settlement.exportA96',
+          'mako.dispatch',
+          'billing.release',
+          'tariff.mutate',
+          'customer-service.send',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const dossierFacts = [
+        `Status: ${gateStatus}`,
+        `Simulation Stage: ${simulationStage}`,
+        `Provided Energy-Sharing gate evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.communityId) dossierFacts.push(`Community: ${params.communityId}`);
+      if (params.gridOperatorId) dossierFacts.push(`Grid Operator: ${params.gridOperatorId}`);
+
+      return {
+        energySharingSimulationGateId: `esgate:${Buffer.from(`${communityId}:${params.gridOperatorId || ''}:${params.dataBasis || ''}:${params.owner || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'energy_sharing_simulation_gate',
+        safety: 'read_only',
+        gateStatus,
+        simulationStage,
+        readinessScore,
+        communityId: params.communityId || null,
+        gridOperatorId: params.gridOperatorId || null,
+        readinessBlocks,
+        classificationRationale,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        sourceArtifacts,
+        sourceActions,
+        validationFindings: missingEvidence,
+        dossierEvidence: {
+          status: gateStatus,
+          gateStatus,
+          simulationStage,
+          readinessScore,
+          communityId: params.communityId || null,
+          gridOperatorId: params.gridOperatorId || null,
+          readinessBlocks,
+          classificationRationale,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          sourceArtifacts,
           sourceActions: {
             notCalled: sourceActions.notCalled,
           },
@@ -17888,6 +19034,1546 @@ module.exports = {
             `Tenant: ${tenantId}`,
             'Traces: 0',
           ],
+        },
+      };
+    },
+
+    buildMissingStadtwerkMauerMastrDataOverlayStatus(
+      tenantId = 'stadtwerk-mauer',
+      params = {}
+    ) {
+      const missingEvidence = [
+        {
+          missingDataPoint: 'mastr_overlay_status',
+          enablesDossierAddition: 'add Stadtwerk Mauer blended MaStR overlay status evidence',
+        },
+      ];
+      const sourceActions = {
+        inspected: ['dashboard-api.stadtwerkMauerMastrDataOverlayStatus'],
+        referenced: ['stadtwerk-mauer-mastr-data-overlay.getStatus', 'energy-market.installations'],
+        notCalled: [
+          'mako.dispatch',
+          'msb.connector.call',
+          'edm.connector.call',
+          'customer-service.send',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'switching.execute',
+          'webhook.emit',
+          'device-control.execute',
+          'smgw.connector.call',
+          'cls.control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'personal-agent.execute',
+          'tenant.delete.production',
+          'mastr.write',
+        ],
+      };
+      const municipality = params.municipality || 'Mauer';
+      const postalCode = params.postalCode || '69256';
+      return {
+        capabilityKey: 'stadtwerk_mauer_mastr_data_overlay',
+        safety: 'read_only_real_mastr_baseline_with_virtual_operator_overlay',
+        tenantId,
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: tenantId === 'stadtwerk-mauer',
+        status: 'blended_overlay_status_unavailable',
+        municipality,
+        postalCode,
+        mastrQuery: {
+          action: 'energy-market.installations',
+          installationType: 'all',
+          postleitzahl: postalCode,
+          location: municipality,
+          queryFailed: true,
+        },
+        assetCount: 0,
+        totalCapacityKw: 0,
+        typeCounts: {},
+        originalGridOperators: [],
+        operatorOverlay: {
+          mode: 'tenant_role_process_overlay',
+          virtualGridOperator: {
+            name: 'Stadtwerk Mauer',
+            role: 'virtual_distribution_system_operator',
+            tenantId: 'stadtwerk-mauer',
+          },
+          realWorldOperatorHint: {
+            name: 'Syna GmbH',
+            role: 'real_world_grid_operator',
+          },
+          preservesOriginalMastrFacts: true,
+          mutatesMastrRecords: false,
+        },
+        sampleAssets: [],
+        evidenceQuality: 'unavailable',
+        missingEvidence,
+        positiveFollowUps: missingEvidence.map((item) => ({
+          ...item,
+          category: 'stadtwerk_mauer_mastr_data_overlay',
+        })),
+        resetBoundary: {
+          service: 'stadtwerk-mauer-sandbox-runtime.reset',
+          scopedToTenant: 'stadtwerk-mauer',
+          deletesImportedMastrBaseline: false,
+          deletesDerivedSandboxArtifacts: true,
+        },
+        sourceActions,
+        dossierEvidence: {
+          status: 'blended_overlay_status_unavailable',
+          tenantId,
+          municipality,
+          postalCode,
+          assetCount: 0,
+          totalCapacityKw: 0,
+          virtualGridOperatorName: 'Stadtwerk Mauer',
+          realWorldOperatorHint: 'Syna GmbH',
+          originalGridOperators: [],
+          sampleAssets: [],
+          missingEvidence,
+          positiveFollowUps: missingEvidence.map((item) => ({
+            ...item,
+            category: 'stadtwerk_mauer_mastr_data_overlay',
+          })),
+          sourceActions,
+          dossierFacts: [
+            'Overlay Status: blended_overlay_status_unavailable',
+            `Tenant: ${tenantId}`,
+            `Municipality: ${municipality}`,
+            `Postal Code: ${postalCode}`,
+          ],
+        },
+      };
+    },
+
+    buildFnavFastTrackContractGateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const normalizeStatus = (value) => {
+        const text = String(value || '').trim().toLowerCase();
+        if (!text) return 'missing';
+        if (/^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|signed|vorhanden|ja|yes)$/.test(text)) return 'ready';
+        if (/^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown|draft)$/.test(text)) return 'partial';
+        if (/^(missing|fehlt|absent|not_available|not-available|none)$/.test(text)) return 'missing';
+        if (/^(blocked|blockiert|red|rot|failed|rejected|not_ready|not-ready|stop|verboten)$/.test(text)) return 'blocked';
+        if (/legal|recht/.test(text) && /pending|open|unklar|not/.test(text)) return 'partial';
+        if (/stop|abort|abbruch|reject|ablehn|block/.test(text)) return 'blocked';
+        return 'ready';
+      };
+      const isReady = (status) => status === 'ready';
+      const isBlocked = (status) => status === 'blocked';
+      const sourceRefs = toList(params.sourceRef);
+      const gateId = params.gateId || `fnav-ft:${Buffer.from(`${params.gridOperatorId || ''}:${params.requestType || ''}:${params.assetOrLoadType || ''}:${params.requestedCapacityKW || ''}`).toString('base64url').slice(0, 28)}`;
+      const evidenceSpecs = [
+        {
+          code: 'fnav_profile',
+          label: 'fNAV Profile',
+          value: params.requestType || params.assetOrLoadType || params.requestedCapacityKW,
+          enablesDossierAddition: 'add fNAV request profile for storage, data-center or large-load fast-track review',
+          statusWhenMissing: 'needs_contract_evidence',
+        },
+        {
+          code: 'grid_operator_identity',
+          label: 'Grid Operator',
+          value: params.gridOperatorId,
+          enablesDossierAddition: 'bind the fast-track gate to the responsible grid operator',
+          statusWhenMissing: 'requires_governance_decision',
+        },
+        {
+          code: 'netzsignal_priority_policy',
+          label: 'Network-Signal Priority',
+          value: params.netzsignalPriorityPolicy,
+          enablesDossierAddition: 'add the network-signal priority boundary for the fast-track decision',
+          statusWhenMissing: 'requires_governance_decision',
+        },
+        {
+          code: 'schedule_obligation',
+          label: 'Fahrplanpflicht',
+          value: params.scheduleObligation,
+          enablesDossierAddition: 'add schedule obligation evidence for operational fNAV boundary',
+          statusWhenMissing: 'needs_contract_evidence',
+        },
+        {
+          code: 'metering_requirement',
+          label: 'Metering Requirement',
+          value: params.meteringRequirements,
+          enablesDossierAddition: 'add metering requirement evidence for the contract gate',
+          statusWhenMissing: 'needs_control_evidence',
+        },
+        {
+          code: 'control_evidence_ref',
+          label: 'Control Evidence',
+          value: params.controlEvidenceRef,
+          enablesDossierAddition: 'add metering/control proof before fast-track release review',
+          statusWhenMissing: 'needs_control_evidence',
+        },
+        {
+          code: 'contract_status',
+          label: 'Contract Status',
+          value: params.contractStatus,
+          enablesDossierAddition: 'add draft or signed contract evidence for the fast-track gate',
+          statusWhenMissing: 'needs_contract_evidence',
+        },
+        {
+          code: 'legal_status',
+          label: 'Legal Status',
+          value: params.legalStatus,
+          enablesDossierAddition: 'state whether legal release is approved or still pending',
+          statusWhenMissing: 'blocked_by_legal_status',
+        },
+        {
+          code: 'owner_contact',
+          label: 'Owner Contact',
+          value: params.ownerContact || params.escalationOwner,
+          enablesDossierAddition: 'add accountable owner and escalation path',
+          statusWhenMissing: 'requires_governance_decision',
+        },
+      ];
+      const signals = evidenceSpecs.map((spec) => {
+        const status = normalizeStatus(spec.value);
+        return {
+          code: spec.code,
+          label: spec.label,
+          status,
+          rawStatus: spec.value || null,
+          enablesDossierAddition: spec.enablesDossierAddition,
+          statusWhenMissing: spec.statusWhenMissing,
+        };
+      });
+      const evidenceGaps = signals
+        .filter((signal) => !isReady(signal.status))
+        .map((signal) => ({
+          missingDataPoint: signal.code,
+          status: signal.status,
+          value: signal.rawStatus,
+          enablesDossierAddition: signal.enablesDossierAddition,
+        }));
+      if (params.breakCriteria && isBlocked(normalizeStatus(params.breakCriteria))) {
+        evidenceGaps.push({
+          missingDataPoint: 'break_criteria',
+          status: 'blocked',
+          value: params.breakCriteria,
+          enablesDossierAddition: 'document fast-track stop or abort criteria before continuing',
+        });
+      }
+      const commercialStatus = normalizeStatus(params.commercialImpact || params.marketingBoundaries);
+      if (!isReady(commercialStatus)) {
+        evidenceGaps.push({
+          missingDataPoint: 'commercial_impact',
+          status: commercialStatus,
+          value: params.commercialImpact || params.marketingBoundaries || null,
+          enablesDossierAddition: 'add commercial impact and marketing-boundary evidence',
+        });
+      }
+      let decisionReadiness = 'ready_for_fast_track';
+      if (evidenceGaps.some((gap) => gap.missingDataPoint === 'break_criteria' || gap.status === 'blocked')) {
+        decisionReadiness = 'stop_fast_track';
+      } else if (evidenceGaps.some((gap) => gap.missingDataPoint === 'legal_status')) {
+        decisionReadiness = 'blocked_by_legal_status';
+      } else if (evidenceGaps.some((gap) => gap.missingDataPoint === 'control_evidence_ref' || gap.missingDataPoint === 'metering_requirement')) {
+        decisionReadiness = 'needs_control_evidence';
+      } else if (evidenceGaps.some((gap) => gap.missingDataPoint === 'contract_status' || gap.missingDataPoint === 'fnav_profile' || gap.missingDataPoint === 'schedule_obligation')) {
+        decisionReadiness = 'needs_contract_evidence';
+      } else if (evidenceGaps.some((gap) => gap.missingDataPoint === 'commercial_impact')) {
+        decisionReadiness = 'needs_commercial_review';
+      } else if (evidenceGaps.length > 0) {
+        decisionReadiness = 'requires_governance_decision';
+      }
+      const sourceActions = {
+        inspected: ['dashboard-api.fnavFastTrackContractGateStatus'],
+        referenced: [
+          'grid-connection.fnavValidate',
+          'grid-operations.netzfahrplanGenerate',
+          'finance-agent.fnavEconomics',
+          'fnav-commercial-hedging.createScenario',
+          'vdmi.dossier',
+          'vdmi-portfolio-gatekeeping.gate',
+          'presentation.render',
+        ],
+        notCalled: [
+          'contract.approve',
+          'contract.release',
+          'grid-connection.mutate',
+          'hitl.create',
+          'device-control.execute',
+          'smgw.connector.call',
+          'cls.control.execute',
+          'tariff.mutate',
+          'billing.release',
+          'settlement.prepareBilling',
+          'mako.dispatch',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const positiveFollowUps = evidenceGaps.map((gap) => ({
+        missingDataPoint: gap.missingDataPoint,
+        status: gap.status,
+        value: gap.value,
+        enablesDossierAddition: gap.enablesDossierAddition,
+        category: 'fnav_fast_track_contract_gate',
+      }));
+      const governanceBlockers = evidenceGaps
+        .filter((gap) => ['grid_operator_identity', 'netzsignal_priority_policy', 'owner_contact', 'legal_status', 'break_criteria'].includes(gap.missingDataPoint) || isBlocked(gap.status))
+        .map((gap) => ({
+          code: gap.missingDataPoint,
+          owner: params.ownerContact || params.escalationOwner || null,
+          message: gap.enablesDossierAddition,
+        }));
+      const requestSummary = {
+        gateId,
+        gridOperatorId: params.gridOperatorId || null,
+        requestType: params.requestType || null,
+        assetOrLoadType: params.assetOrLoadType || null,
+        requestedCapacityKW: params.requestedCapacityKW ?? null,
+        firmCapacityKW: params.firmCapacityKW ?? null,
+        flexibleCapacityKW: params.flexibleCapacityKW ?? null,
+        voltageLevel: params.voltageLevel || null,
+        sourceRefs,
+      };
+      const dossierFacts = [
+        `Status: ${decisionReadiness}`,
+        `Gate: ${gateId}`,
+        `Request Type: ${params.requestType || 'unknown'}`,
+        `Open gaps: ${evidenceGaps.length}`,
+      ];
+      return {
+        capabilityKey: 'fnav_fast_track_contract_gate',
+        safety: 'read_only',
+        gateId,
+        decisionReadiness,
+        status: decisionReadiness,
+        requestSummary,
+        technicalGate: {
+          netzsignalPriorityPolicy: params.netzsignalPriorityPolicy || null,
+          scheduleObligation: params.scheduleObligation || null,
+          meteringRequirements: params.meteringRequirements || null,
+          controlEvidenceRef: params.controlEvidenceRef || null,
+          curtailmentWindow: params.curtailmentWindow || null,
+        },
+        commercialGate: {
+          marketingBoundaries: params.marketingBoundaries || null,
+          commercialImpact: params.commercialImpact || null,
+        },
+        contractGate: {
+          contractStatus: params.contractStatus || null,
+          legalStatus: params.legalStatus || null,
+          breakCriteria: params.breakCriteria || null,
+        },
+        evidenceStatus: {
+          provided: signals.filter((signal) => isReady(signal.status)).length,
+          required: signals.length,
+          commercialStatus,
+        },
+        governanceBlockers,
+        escalationPath: {
+          escalationOwner: params.escalationOwner || null,
+          ownerContact: params.ownerContact || null,
+          vdmiProcessId: params.vdmiProcessId || null,
+        },
+        missingEvidence: evidenceGaps,
+        positiveFollowUps,
+        sourceActions,
+        sourceDatapoints: signals,
+        dossierEvidence: {
+          capabilityKey: 'fnav_fast_track_contract_gate',
+          gateId,
+          decisionReadiness,
+          status: decisionReadiness,
+          requestSummary,
+          technicalGate: {
+            netzsignalPriorityPolicy: params.netzsignalPriorityPolicy || null,
+            controlEvidenceRef: params.controlEvidenceRef || null,
+          },
+          contractGate: {
+            contractStatus: params.contractStatus || null,
+            legalStatus: params.legalStatus || null,
+          },
+          missingEvidence: evidenceGaps,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildCrossChannelVnbSignalQueueStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter((item) => item !== undefined && item !== null && item !== '');
+        if (value && typeof value === 'string') {
+          const trimmed = value.trim();
+          if (!trimmed) return [];
+          if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+            try {
+              const parsed = JSON.parse(trimmed);
+              return Array.isArray(parsed) ? parsed : [parsed];
+            } catch (_err) {
+              return [trimmed];
+            }
+          }
+          return trimmed.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return value && typeof value === 'object' ? [value] : [];
+      };
+
+      const normalizeStatus = (value) => String(value || '').trim().toLowerCase();
+      const isReady = (value) => {
+        const status = normalizeStatus(value);
+        return ['ready', 'complete', 'completed', 'confirmed', 'resolved', 'valid', 'provided', 'ok'].includes(status);
+      };
+      const isBlocked = (value) => {
+        const status = normalizeStatus(value);
+        return ['blocked', 'rejected', 'failed', 'missing', 'invalid'].includes(status);
+      };
+      const isOverdue = (dueAt) => {
+        if (!dueAt) return false;
+        const ts = Date.parse(dueAt);
+        return Number.isFinite(ts) && ts < Date.now();
+      };
+      const inc = (target, key) => {
+        const normalized = key || 'unknown';
+        target[normalized] = (target[normalized] || 0) + 1;
+      };
+
+      const rawSignals = toList(params.signals);
+      const signals = rawSignals.length > 0 && rawSignals.every((item) => item && typeof item === 'object' && !Array.isArray(item))
+        ? rawSignals
+        : [{
+            signalId: params.signalId,
+            channel: params.channel,
+            sourceSystem: params.sourceSystem,
+            sourceRef: params.sourceRef,
+            receivedAt: params.receivedAt,
+            affectedProcess: params.affectedProcess,
+            processType: params.processType,
+            riskType: params.riskType,
+            riskSeverity: params.riskSeverity,
+            ownerRole: params.ownerRole,
+            ownerPersonaId: params.ownerPersonaId,
+            dueAt: params.dueAt,
+            evidenceStatus: params.evidenceStatus,
+            evidenceRefs: params.evidenceRefs,
+            nextDatapoint: params.nextDatapoint,
+            dedupeKey: params.dedupeKey,
+            status: params.status,
+          }];
+
+      const normalizedSignals = signals.map((signal, index) => {
+        const sourceRefs = toList(signal.sourceRef || signal.sourceRefs);
+        const evidenceRefs = toList(signal.evidenceRefs || signal.evidenceRef);
+        const missing = [];
+        const owner = signal.ownerRole || signal.ownerPersonaId || null;
+        if (!owner) missing.push('owner');
+        if (!signal.dueAt) missing.push('due_date');
+        if (sourceRefs.length === 0) missing.push('source_ref');
+        if (!signal.evidenceStatus && evidenceRefs.length === 0) missing.push('evidence_status');
+        if (!signal.nextDatapoint) missing.push('next_datapoint');
+        if (!signal.dedupeKey) missing.push('dedupe_key');
+
+        let queueStatus = signal.status || 'ready_for_action';
+        if (isBlocked(signal.evidenceStatus) || isBlocked(signal.status)) {
+          queueStatus = 'blocked';
+        } else if (missing.includes('owner')) {
+          queueStatus = 'needs_owner';
+        } else if (missing.includes('source_ref')) {
+          queueStatus = 'needs_source_reference';
+        } else if (missing.includes('evidence_status')) {
+          queueStatus = 'needs_evidence';
+        } else if (missing.includes('due_date')) {
+          queueStatus = 'needs_due_date';
+        } else if (isOverdue(signal.dueAt)) {
+          queueStatus = 'overdue';
+        } else if (!isReady(signal.evidenceStatus) && signal.evidenceStatus) {
+          queueStatus = 'needs_evidence';
+        }
+
+        return {
+          signalId: signal.signalId || `vnb-signal:${index + 1}`,
+          channel: signal.channel || 'caller_supplied',
+          sourceSystem: signal.sourceSystem || null,
+          sourceRefs,
+          receivedAt: signal.receivedAt || null,
+          affectedProcess: signal.affectedProcess || signal.processType || 'unclassified_process',
+          processType: signal.processType || signal.affectedProcess || null,
+          riskType: signal.riskType || 'operational_signal',
+          riskSeverity: signal.riskSeverity || 'medium',
+          ownerRole: signal.ownerRole || null,
+          ownerPersonaId: signal.ownerPersonaId || null,
+          dueAt: signal.dueAt || null,
+          evidenceStatus: signal.evidenceStatus || (evidenceRefs.length > 0 ? 'provided' : null),
+          evidenceRefs,
+          nextDatapoint: signal.nextDatapoint || null,
+          dedupeKey: signal.dedupeKey || null,
+          status: queueStatus,
+          missing,
+          overdue: isOverdue(signal.dueAt),
+          contentPolicy: 'references_and_summary_only_no_raw_private_content',
+        };
+      });
+
+      const byProcess = {};
+      const byRiskType = {};
+      normalizedSignals.forEach((signal) => {
+        inc(byProcess, signal.affectedProcess);
+        inc(byRiskType, signal.riskType);
+      });
+
+      const missingMap = {
+        owner: 'add accountable owner role or persona for signal routing',
+        due_date: 'add SLA due date for escalation timing',
+        source_ref: 'add auditable source reference without raw private content',
+        evidence_status: 'add evidence status or evidence reference',
+        next_datapoint: 'add next operational datapoint request',
+        dedupe_key: 'add duplicate suppression and provenance key',
+      };
+      const missingEvidence = [];
+      normalizedSignals.forEach((signal) => {
+        signal.missing.forEach((missingDataPoint) => {
+          missingEvidence.push({
+            signalId: signal.signalId,
+            missingDataPoint,
+            affectedProcess: signal.affectedProcess,
+            status: signal.status,
+            enablesDossierAddition: missingMap[missingDataPoint],
+          });
+        });
+      });
+
+      const sourceActions = {
+        inspected: ['dashboard-api.crossChannelVnbSignalQueueStatus'],
+        referenced: [
+          'persona-inbox.enqueue',
+          'notification.dispatchInternal',
+          'hitl.create',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+          'datapoint.health',
+          'presentation.render',
+        ],
+        notCalled: [
+          'mail.connector.ingest',
+          'chat.connector.ingest',
+          'portal.connector.ingest',
+          'persona-inbox.enqueue',
+          'notification.dispatchInternal',
+          'hitl.create',
+          'vdmi.taskMutate',
+          'interface-placeholder.requestEvidence',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'device-control.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const statusCounts = normalizedSignals.reduce((acc, signal) => {
+        inc(acc, signal.status);
+        return acc;
+      }, {});
+      let queueStatus = 'ready_for_action';
+      if (normalizedSignals.length === 0) {
+        queueStatus = 'empty';
+      } else if (statusCounts.blocked) {
+        queueStatus = 'blocked';
+      } else if (statusCounts.needs_owner) {
+        queueStatus = 'needs_owner';
+      } else if (statusCounts.needs_source_reference) {
+        queueStatus = 'needs_source_reference';
+      } else if (statusCounts.needs_evidence) {
+        queueStatus = 'needs_evidence';
+      } else if (statusCounts.overdue) {
+        queueStatus = 'overdue';
+      } else if (missingEvidence.length > 0) {
+        queueStatus = 'needs_queue_metadata';
+      }
+
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'cross_channel_vnb_signal_queue',
+      }));
+      const readyForActionSignals = normalizedSignals.filter((signal) => signal.status === 'ready_for_action');
+      const overdueSignals = normalizedSignals.filter((signal) => signal.overdue || signal.status === 'overdue');
+      const nextDatapoints = [...new Set(normalizedSignals.map((signal) => signal.nextDatapoint).filter(Boolean))];
+      const dossierFacts = [
+        `Queue Status: ${queueStatus}`,
+        `Signals: ${normalizedSignals.length}`,
+        `Overdue: ${overdueSignals.length}`,
+        `Needs Owner: ${statusCounts.needs_owner || 0}`,
+        `Needs Evidence: ${statusCounts.needs_evidence || 0}`,
+      ];
+
+      return {
+        capabilityKey: 'cross_channel_vnb_signal_queue',
+        safety: 'read_only',
+        queueStatus,
+        status: queueStatus,
+        signalCount: normalizedSignals.length,
+        normalizedSignals,
+        byProcess,
+        byRiskType,
+        overdueSignals,
+        needsOwnerSignals: normalizedSignals.filter((signal) => signal.status === 'needs_owner'),
+        needsEvidenceSignals: normalizedSignals.filter((signal) => signal.status === 'needs_evidence'),
+        readyForActionSignals,
+        missingEvidence,
+        positiveFollowUps,
+        nextDatapoints,
+        sourceActions,
+        privacy: {
+          contentMinimization: 'store references and caller summaries only',
+          rawPrivateContentStored: false,
+          externalIngestion: false,
+        },
+        dossierEvidence: {
+          capabilityKey: 'cross_channel_vnb_signal_queue',
+          queueStatus,
+          signalCount: normalizedSignals.length,
+          overdueCount: overdueSignals.length,
+          needsOwnerCount: statusCounts.needs_owner || 0,
+          needsEvidenceCount: statusCounts.needs_evidence || 0,
+          readyForActionCount: readyForActionSignals.length,
+          topRiskTypes: Object.keys(byRiskType),
+          affectedProcesses: Object.keys(byProcess),
+          nextDatapoints,
+          missingEvidence,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildAssetValuationTransformationGateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean).map(String);
+        if (value == null || value === '') return [];
+        return String(value)
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+      };
+      const normalize = (value) => String(value || '').trim().toLowerCase();
+      const isProvided = (value) =>
+        Boolean(value) && !['missing', 'unknown', 'open', 'pending', 'none', 'null'].includes(normalize(value));
+      const isLowQuality = (value) =>
+        ['low', 'poor', 'blocked', 'invalid', 'insufficient', 'red'].includes(normalize(value));
+
+      const missingMap = {
+        asset_scope: 'add asset or asset-group scope for the management gate',
+        book_value_source: 'add book-value and residual-value basis to the management gate',
+        asset_condition_source: 'add technical condition and replacement/maintenance risk',
+        transformation_option_basis: 'add Stilllegung/Umwidmung/H2/heat option evidence',
+        contract_risk_basis: 'add contract and revenue-path risk statement',
+        regulatory_uncertainty_basis: 'add regulatory impact caveat and decision boundary',
+        data_quality_status: 'add confidence/readiness scoring',
+        decision_owner: 'add accountable decision owner',
+        next_decision: 'add next management-decision wording',
+      };
+
+      const missingEvidence = [];
+      const addGap = (missingDataPoint, status = 'missing') => {
+        missingEvidence.push({
+          missingDataPoint,
+          status,
+          enablesDossierAddition: missingMap[missingDataPoint],
+        });
+      };
+
+      const assetScope = {
+        gateId: params.gateId || null,
+        assetId: params.assetId || null,
+        assetGroupId: params.assetGroupId || null,
+        assetType: params.assetType || 'unspecified_asset',
+        gridOperatorId: params.gridOperatorId || null,
+      };
+      if (!assetScope.assetId && !assetScope.assetGroupId) addGap('asset_scope');
+      if (!isProvided(params.bookValueStatus) && !isProvided(params.bookValueSource)) addGap('book_value_source');
+      if (!isProvided(params.assetConditionStatus) && !isProvided(params.assetConditionSource)) {
+        addGap('asset_condition_source');
+      }
+      if (!isProvided(params.transformationOption) && !isProvided(params.transformationOptionBasis)) {
+        addGap('transformation_option_basis');
+      }
+      if (!isProvided(params.contractRisk) && !isProvided(params.contractRiskBasis)) addGap('contract_risk_basis');
+      if (!isProvided(params.regulatoryUncertainty) && !isProvided(params.regulatoryUncertaintyBasis)) {
+        addGap('regulatory_uncertainty_basis');
+      }
+      if (!isProvided(params.dataQualityStatus)) addGap('data_quality_status');
+      if (!isProvided(params.decisionOwner)) addGap('decision_owner');
+      if (!isProvided(params.nextDecision)) addGap('next_decision');
+
+      let decisionReadiness = 'ready_for_gate';
+      if (isLowQuality(params.dataQualityStatus)) {
+        decisionReadiness = 'blocked_by_low_data_quality';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'book_value_source')) {
+        decisionReadiness = 'needs_book_value';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'asset_condition_source')) {
+        decisionReadiness = 'needs_asset_condition';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'contract_risk_basis')) {
+        decisionReadiness = 'needs_contract_evidence';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'transformation_option_basis')) {
+        decisionReadiness = 'needs_transformation_option';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_uncertainty_basis')) {
+        decisionReadiness = 'needs_regulatory_assessment';
+      } else if (missingEvidence.length > 0) {
+        decisionReadiness = 'needs_gate_metadata';
+      }
+
+      const sourceDatapoints = toList(params.sourceDatapoints);
+      const sourceRefs = toList(params.sourceRefs);
+      const sourceActions = {
+        inspected: ['dashboard-api.assetValuationTransformationGateStatus'],
+        referenced: [
+          'assets.effective',
+          'gasnetz-waermeplanung.reconcile',
+          'finance-agent.analyze',
+          'investment-planning.createPlan',
+          'vdmi.dossier',
+          'datapoint.health',
+          'presentation.render',
+        ],
+        notCalled: [
+          'valuation.recordCreate',
+          'accounting.postingCreate',
+          'assets.applyOverride',
+          'investment.approve',
+          'asset-lifecycle.decommission',
+          'asset-lifecycle.repurpose',
+          'contract.release',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'mako.dispatch',
+          'hitl.create',
+          'device-control.execute',
+          'external.connector.call',
+          'notification.dispatchInternal',
+          'personal-agent.execute',
+        ],
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'asset_valuation_transformation_gate',
+      }));
+      const dossierFacts = [
+        `Decision Readiness: ${decisionReadiness}`,
+        `Asset Scope: ${assetScope.assetId || assetScope.assetGroupId || 'missing'}`,
+        `Book Value: ${params.bookValueStatus || (params.bookValueSource ? 'provided' : 'missing')}`,
+        `Asset Condition: ${params.assetConditionStatus || (params.assetConditionSource ? 'provided' : 'missing')}`,
+        `Transformation Option: ${params.transformationOption || 'missing'}`,
+        `Data Quality: ${params.dataQualityStatus || 'missing'}`,
+      ];
+
+      return {
+        capabilityKey: 'asset_valuation_transformation_gate',
+        safety: 'read_only',
+        decisionReadiness,
+        status: decisionReadiness,
+        assetScope,
+        bookValueStatus: {
+          status: params.bookValueStatus || (params.bookValueSource ? 'provided' : 'missing'),
+          source: params.bookValueSource || null,
+        },
+        assetConditionStatus: {
+          status: params.assetConditionStatus || (params.assetConditionSource ? 'provided' : 'missing'),
+          source: params.assetConditionSource || null,
+        },
+        transformationOption: {
+          option: params.transformationOption || null,
+          basis: params.transformationOptionBasis || null,
+        },
+        contractRisk: {
+          status: params.contractRisk || null,
+          basis: params.contractRiskBasis || null,
+        },
+        regulatoryUncertainty: {
+          status: params.regulatoryUncertainty || null,
+          basis: params.regulatoryUncertaintyBasis || null,
+        },
+        dataQualityStatus: {
+          status: params.dataQualityStatus || null,
+          blocked: isLowQuality(params.dataQualityStatus),
+        },
+        decisionOwner: params.decisionOwner || null,
+        nextDecision: params.nextDecision || null,
+        sourceDatapoints,
+        sourceRefs,
+        missingEvidence,
+        positiveFollowUps,
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'asset_valuation_transformation_gate',
+          decisionReadiness,
+          assetScope,
+          bookValueStatus: params.bookValueStatus || (params.bookValueSource ? 'provided' : 'missing'),
+          assetConditionStatus: params.assetConditionStatus || (params.assetConditionSource ? 'provided' : 'missing'),
+          transformationOption: params.transformationOption || null,
+          contractRisk: params.contractRisk || null,
+          regulatoryUncertainty: params.regulatoryUncertainty || null,
+          dataQualityStatus: params.dataQualityStatus || null,
+          decisionOwner: params.decisionOwner || null,
+          nextDecision: params.nextDecision || null,
+          sourceDatapoints,
+          sourceRefs,
+          missingEvidence,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildGasCapacityBookingReviewGateStatus(params = {}) {
+      const isProvided = (value) => {
+        if (Array.isArray(value)) return value.length > 0;
+        return value !== undefined && value !== null && String(value).trim() !== '';
+      };
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const missingMap = {
+        capacity_assumption: 'add auditable capacity-ordering basis',
+        cold_year_evidence: 'add cold-year stress evidence',
+        rlm_rebound_evidence: 'add RLM rebound risk assessment',
+        congestion_history_evidence: 'add congestion-history grounding',
+        vdmi_owner: 'add accountable VDMI review owner',
+        decision_frame_ref: 'add decision-frame traceability',
+        commercial_signoff: 'add commercial review status without treating it as automatic approval',
+        source_refs: 'add source references for review provenance',
+        risk_scenarios: 'add risk-scenario comparison for over- and under-booking',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint, status = 'missing') => {
+        missingEvidence.push({
+          missingDataPoint,
+          status,
+          enablesDossierAddition: missingMap[missingDataPoint],
+        });
+      };
+
+      const riskScenarios = toList(params.riskScenarios);
+      const sourceRefs = toList(params.sourceRefs);
+      if (!isProvided(params.capacityAssumption) && !isProvided(params.capacityAssumptionSource)) {
+        addGap('capacity_assumption');
+      }
+      if (!isProvided(params.coldYearEvidence)) addGap('cold_year_evidence');
+      if (!isProvided(params.rlmReboundEvidence)) addGap('rlm_rebound_evidence');
+      if (!isProvided(params.congestionHistoryEvidence)) addGap('congestion_history_evidence');
+      if (!isProvided(params.vdmiOwner)) addGap('vdmi_owner');
+      if (!isProvided(params.decisionFrameRef)) addGap('decision_frame_ref');
+      if (!isProvided(params.commercialSignoff)) addGap('commercial_signoff');
+      if (sourceRefs.length === 0) addGap('source_refs');
+      if (riskScenarios.length === 0) addGap('risk_scenarios');
+
+      let status = 'ready_for_review';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'capacity_assumption')) {
+        status = 'needs_capacity_assumption';
+      } else if (
+        missingEvidence.some((gap) =>
+          ['cold_year_evidence', 'rlm_rebound_evidence', 'congestion_history_evidence'].includes(gap.missingDataPoint)
+        )
+      ) {
+        status = 'needs_scenario_evidence';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'vdmi_owner')) {
+        status = 'needs_vdmi_owner';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'commercial_signoff')) {
+        status = 'needs_commercial_review';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_review_provenance';
+      }
+
+      const requiredCount = Object.keys(missingMap).length;
+      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const sourceActions = {
+        inspected: ['dashboard-api.gasCapacityBookingReviewGateStatus'],
+        referenced: [
+          'gasnetz-waermeplanung.reconcile',
+          'decision-frame.get',
+          'vdmi.dossier',
+          'vdmi-portfolio-gatekeeping.gate',
+          'datapoint.health',
+          'presentation.render',
+        ],
+        notCalled: [
+          'gas-capacity-booking.submit',
+          'upstream-network-operator.submitBooking',
+          'vdmi.taskMutate',
+          'hitl.create',
+          'notification.dispatchInternal',
+          'booking-persistence.create',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'mako.dispatch',
+          'contract.release',
+          'device-control.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const reviewScope = {
+        reviewId: params.reviewId || null,
+        bookingYear: params.bookingYear || null,
+        networkArea: params.networkArea || null,
+      };
+      const scenarioEvidenceStatus = {
+        coldYearEvidence: params.coldYearEvidence || null,
+        rlmReboundEvidence: params.rlmReboundEvidence || null,
+        congestionHistoryEvidence: params.congestionHistoryEvidence || null,
+        complete:
+          isProvided(params.coldYearEvidence) &&
+          isProvided(params.rlmReboundEvidence) &&
+          isProvided(params.congestionHistoryEvidence),
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'gas_capacity_booking_review_gate',
+      }));
+      const dossierFacts = [
+        `Gate Status: ${status}`,
+        `Network Area: ${reviewScope.networkArea || 'missing'}`,
+        `Booking Year: ${reviewScope.bookingYear || 'missing'}`,
+        `Capacity Assumption: ${params.capacityAssumption || (params.capacityAssumptionSource ? 'provided' : 'missing')}`,
+        `Scenario Evidence Complete: ${scenarioEvidenceStatus.complete ? 'yes' : 'no'}`,
+        `VDMI Owner: ${params.vdmiOwner || 'missing'}`,
+        `Commercial Signoff: ${params.commercialSignoff || 'missing'}`,
+      ];
+
+      return {
+        capabilityKey: 'gas_capacity_booking_review_gate',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        reviewScope,
+        capacityAssumptionSummary: {
+          assumption: params.capacityAssumption || null,
+          source: params.capacityAssumptionSource || null,
+        },
+        scenarioEvidenceStatus,
+        vdmiReview: {
+          owner: params.vdmiOwner || null,
+          decisionFrameRef: params.decisionFrameRef || null,
+        },
+        commercialSignoff: {
+          status: params.commercialSignoff || null,
+          approvalClaimed: false,
+        },
+        riskScenarios,
+        sourceRefs,
+        missingEvidence,
+        positiveFollowUps,
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'gas_capacity_booking_review_gate',
+          status,
+          readinessScore,
+          reviewScope,
+          capacityAssumptionStatus: params.capacityAssumption || (params.capacityAssumptionSource ? 'provided' : 'missing'),
+          scenarioEvidenceStatus,
+          vdmiOwner: params.vdmiOwner || null,
+          decisionFrameRef: params.decisionFrameRef || null,
+          commercialSignoff: params.commercialSignoff || null,
+          riskScenarios,
+          sourceRefs,
+          missingEvidence,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildGasNetworkDecisionChainStatus(params = {}) {
+      const isProvided = (value) => {
+        if (Array.isArray(value)) return value.length > 0;
+        return value !== undefined && value !== null && String(value).trim() !== '';
+      };
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const missingMap = {
+        capacity_assumption: 'add capacity assumption and evidence reference',
+        decommissioning_path: 'add stilllegung or reuse path and horizon evidence',
+        regulatory_impact_refs: 'add KANU/EOG/regulatory impact evidence references',
+        asset_book_value_refs: 'add asset and book-value provenance',
+        photo_year_window: 'add Fotojahr window and decision deadline',
+        owner: 'add responsible management role or persona',
+        blocked_follow_up_decision: 'add the blocked downstream decision',
+        next_evidence_step: 'add the next concrete evidence request',
+        source_refs: 'add source references for decision-chain provenance',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint) => {
+        missingEvidence.push({
+          missingDataPoint,
+          status: 'missing',
+          enablesDossierAddition: missingMap[missingDataPoint],
+        });
+      };
+
+      const sourceRefs = toList(params.sourceRefs);
+      if (!isProvided(params.capacityAssumption) && !isProvided(params.capacityEvidenceRef)) {
+        addGap('capacity_assumption');
+      }
+      if (!isProvided(params.decommissioningPath) && !isProvided(params.decommissioningEvidenceRef)) {
+        addGap('decommissioning_path');
+      }
+      if (!isProvided(params.regulatoryImpactRef) && !isProvided(params.eogRef) && !isProvided(params.kanuRef)) {
+        addGap('regulatory_impact_refs');
+      }
+      if (!isProvided(params.assetRef) || !isProvided(params.bookValueRef)) addGap('asset_book_value_refs');
+      if (!isProvided(params.photoYear) || !isProvided(params.decisionDeadline)) addGap('photo_year_window');
+      if (!isProvided(params.owner) && !isProvided(params.ownerRole)) addGap('owner');
+      if (!isProvided(params.blockedFollowUpDecision)) addGap('blocked_follow_up_decision');
+      if (!isProvided(params.nextEvidenceStep)) addGap('next_evidence_step');
+      if (sourceRefs.length === 0) addGap('source_refs');
+
+      let status = 'ready_for_decision_chain_review';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'capacity_assumption')) {
+        status = 'needs_capacity_assumption';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'decommissioning_path')) {
+        status = 'needs_decommissioning_path';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_impact_refs')) {
+        status = 'needs_regulatory_refs';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'asset_book_value_refs')) {
+        status = 'needs_asset_book_value_refs';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'photo_year_window')) {
+        status = 'needs_photo_year_window';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'owner')) {
+        status = 'needs_owner';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_decision_chain_provenance';
+      }
+
+      const requiredCount = Object.keys(missingMap).length;
+      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const sourceActions = {
+        inspected: ['dashboard-api.gasNetworkDecisionChainStatus'],
+        referenced: [
+          'gasnetz-waermeplanung.reconcile',
+          'decision-frame.get',
+          'assets.effective',
+          'eog-calculator.evaluate',
+          'vdmi.dossier',
+        ],
+        notCalled: [
+          'gas-network-flow.calculate',
+          'gas-capacity-booking.submit',
+          'gas-transformation.executeDecommissioning',
+          'investment.approve',
+          'assets.applyOverride',
+          'hitl.create',
+          'notification.dispatchInternal',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'mako.dispatch',
+          'contract.release',
+          'device-control.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const chainScope = {
+        chainId: params.chainId || null,
+        gridOperatorId: params.gridOperatorId || null,
+        reconciliationId: params.reconciliationId || null,
+        segmentId: params.segmentId || null,
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'gas_network_decision_chain',
+      }));
+      const dossierFacts = [
+        `Decision Chain Status: ${status}`,
+        `Grid Operator: ${chainScope.gridOperatorId || 'missing'}`,
+        `Segment: ${chainScope.segmentId || 'missing'}`,
+        `Capacity Assumption: ${params.capacityAssumption || (params.capacityEvidenceRef ? 'provided' : 'missing')}`,
+        `Decommissioning Path: ${params.decommissioningPath || (params.decommissioningEvidenceRef ? 'provided' : 'missing')}`,
+        `Regulatory References: ${params.regulatoryImpactRef || params.eogRef || params.kanuRef || 'missing'}`,
+        `Fotojahr: ${params.photoYear || 'missing'}`,
+        `Owner: ${params.owner || params.ownerRole || 'missing'}`,
+      ];
+
+      return {
+        capabilityKey: 'gas_network_decision_chain',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        chainScope,
+        capacityAssumptionStatus: {
+          assumption: params.capacityAssumption || null,
+          evidenceRef: params.capacityEvidenceRef || null,
+        },
+        decommissioningPathStatus: {
+          path: params.decommissioningPath || null,
+          evidenceRef: params.decommissioningEvidenceRef || null,
+        },
+        regulatoryImpactStatus: {
+          regulatoryImpactRef: params.regulatoryImpactRef || null,
+          eogRef: params.eogRef || null,
+          kanuRef: params.kanuRef || null,
+          approvalClaimed: false,
+        },
+        assetBookValueStatus: {
+          assetRef: params.assetRef || null,
+          bookValueRef: params.bookValueRef || null,
+        },
+        photoYearWindow: {
+          photoYear: params.photoYear || null,
+          decisionDeadline: params.decisionDeadline || null,
+        },
+        owner: {
+          role: params.ownerRole || null,
+          name: params.owner || null,
+        },
+        gateStatus: params.gateStatus || status,
+        blockedFollowUpDecision: params.blockedFollowUpDecision || null,
+        nextEvidenceStep: params.nextEvidenceStep || null,
+        sourceRefs,
+        missingEvidence,
+        positiveFollowUps,
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'gas_network_decision_chain',
+          status,
+          readinessScore,
+          chainScope,
+          capacityAssumptionStatus: params.capacityAssumption || (params.capacityEvidenceRef ? 'provided' : 'missing'),
+          decommissioningPath: params.decommissioningPath || null,
+          regulatoryImpactRef: params.regulatoryImpactRef || null,
+          eogRef: params.eogRef || null,
+          kanuRef: params.kanuRef || null,
+          assetRef: params.assetRef || null,
+          bookValueRef: params.bookValueRef || null,
+          photoYear: params.photoYear || null,
+          decisionDeadline: params.decisionDeadline || null,
+          owner: params.owner || params.ownerRole || null,
+          blockedFollowUpDecision: params.blockedFollowUpDecision || null,
+          nextEvidenceStep: params.nextEvidenceStep || null,
+          sourceRefs,
+          missingEvidence,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildWaterPricingNetInvestmentAlignmentStatus(params = {}) {
+      const isProvided = (value) => {
+        if (Array.isArray(value)) return value.length > 0;
+        return value !== undefined && value !== null && String(value).trim() !== '';
+      };
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+
+      const missingMap = {
+        water_price_reference: 'add sourced water-price assumption or calculation reference',
+        net_investment_reference: 'add net-investment or infrastructure-measure reference',
+        asset_accounting_reference: 'add sourced Anlagenbuchhaltung evidence',
+        lease_condition_reference: 'add Pachtnetz, concession or lease-condition traceability',
+        regulatory_impact_reference: 'add regulatory-impact or tariff-logic boundary evidence without claiming approval',
+        governance_owner: 'add accountable governance or committee owner',
+        review_window: 'add review period or target committee date',
+        alignment_decision: 'add clear blocked or committee-review decision status',
+        source_refs: 'add source references for dossier provenance',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint) => {
+        missingEvidence.push({
+          missingDataPoint,
+          status: 'missing',
+          enablesDossierAddition: missingMap[missingDataPoint],
+        });
+      };
+
+      const sourceRefs = toList(params.sourceRefs);
+      if (!isProvided(params.waterPriceReference) && !isProvided(params.calculationReference)) {
+        addGap('water_price_reference');
+      }
+      if (!isProvided(params.netInvestmentReference) && !isProvided(params.infrastructureMeasureReference)) {
+        addGap('net_investment_reference');
+      }
+      if (!isProvided(params.assetAccountingReference)) addGap('asset_accounting_reference');
+      if (!isProvided(params.leaseOrConcessionReference) && !isProvided(params.pachtnetzReference)) {
+        addGap('lease_condition_reference');
+      }
+      if (!isProvided(params.regulatoryImpactReference) && !isProvided(params.tariffLogicReference)) {
+        addGap('regulatory_impact_reference');
+      }
+      if (!isProvided(params.governanceOwner) && !isProvided(params.committeeOwner)) addGap('governance_owner');
+      if (!isProvided(params.reviewPeriod) && !isProvided(params.targetCommitteeDate)) addGap('review_window');
+      if (!isProvided(params.alignmentDecision)) addGap('alignment_decision');
+      if (sourceRefs.length === 0) addGap('source_refs');
+
+      let status = 'committee_review_ready';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'water_price_reference')) {
+        status = 'needs_water_price_reference';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'net_investment_reference')) {
+        status = 'needs_net_investment_reference';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'asset_accounting_reference')) {
+        status = 'needs_asset_accounting_reference';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'lease_condition_reference')) {
+        status = 'needs_lease_condition_reference';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_impact_reference')) {
+        status = 'needs_regulatory_impact_reference';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'governance_owner')) {
+        status = 'needs_governance_owner';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_alignment_provenance';
+      }
+
+      const requiredCount = Object.keys(missingMap).length;
+      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const sourceActions = {
+        inspected: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus'],
+        referenced: [
+          'investment-planning.review',
+          'reporting-governance.evaluate',
+          'regulatorische-entgeltlogik.evaluate',
+          'vdmi-portfolio-gatekeeping.evaluate',
+          'vdmi.dossier',
+        ],
+        notCalled: [
+          'water-pricing.calculate',
+          'regulatorische-entgeltlogik.executeWaterPricing',
+          'asset-accounting.import',
+          'sap.import',
+          'excel.import',
+          'pachtnetz.parseContract',
+          'legal.approve',
+          'accounting.mutate',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'mako.dispatch',
+          'contract.release',
+          'payment.execute',
+          'hitl.create',
+          'notification.dispatchInternal',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const alignmentScope = {
+        caseId: params.caseId || null,
+        projectId: params.projectId || null,
+        tenantId: params.tenantId || null,
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'water_pricing_net_investment_alignment_gate',
+      }));
+      const dossierFacts = [
+        `Alignment Status: ${status}`,
+        `Case: ${alignmentScope.caseId || alignmentScope.projectId || 'missing'}`,
+        `Water Price Reference: ${params.waterPriceReference || params.calculationReference || 'missing'}`,
+        `Net Investment Reference: ${params.netInvestmentReference || params.infrastructureMeasureReference || 'missing'}`,
+        `Asset Accounting: ${params.assetAccountingReference || 'missing'}`,
+        `Lease Condition: ${params.leaseOrConcessionReference || params.pachtnetzReference || 'missing'}`,
+        `Regulatory Boundary: ${params.regulatoryImpactReference || params.tariffLogicReference || 'missing'}`,
+        `Owner: ${params.governanceOwner || params.committeeOwner || 'missing'}`,
+        `Review Window: ${params.reviewPeriod || params.targetCommitteeDate || 'missing'}`,
+      ];
+
+      return {
+        capabilityKey: 'water_pricing_net_investment_alignment_gate',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        alignmentScope,
+        pricingEvidence: {
+          waterPriceReference: params.waterPriceReference || null,
+          calculationReference: params.calculationReference || null,
+          officialPriceCalculated: false,
+        },
+        investmentEvidence: {
+          netInvestmentReference: params.netInvestmentReference || null,
+          infrastructureMeasureReference: params.infrastructureMeasureReference || null,
+        },
+        assetAccountingEvidence: {
+          assetAccountingReference: params.assetAccountingReference || null,
+          accountingMutated: false,
+        },
+        leaseConditionEvidence: {
+          leaseOrConcessionReference: params.leaseOrConcessionReference || null,
+          pachtnetzReference: params.pachtnetzReference || null,
+          contractParsed: false,
+        },
+        regulatoryBoundaryEvidence: {
+          regulatoryImpactReference: params.regulatoryImpactReference || null,
+          tariffLogicReference: params.tariffLogicReference || null,
+          approvalClaimed: false,
+        },
+        owner: {
+          governanceOwner: params.governanceOwner || null,
+          committeeOwner: params.committeeOwner || null,
+        },
+        reviewWindow: {
+          reviewPeriod: params.reviewPeriod || null,
+          targetCommitteeDate: params.targetCommitteeDate || null,
+        },
+        alignmentDecision: params.alignmentDecision || null,
+        sourceRefs,
+        missingEvidence,
+        positiveFollowUps,
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'water_pricing_net_investment_alignment_gate',
+          status,
+          readinessScore,
+          alignmentScope,
+          waterPriceReference: params.waterPriceReference || params.calculationReference || null,
+          netInvestmentReference: params.netInvestmentReference || params.infrastructureMeasureReference || null,
+          assetAccountingReference: params.assetAccountingReference || null,
+          leaseConditionReference: params.leaseOrConcessionReference || params.pachtnetzReference || null,
+          regulatoryImpactReference: params.regulatoryImpactReference || params.tariffLogicReference || null,
+          owner: params.governanceOwner || params.committeeOwner || null,
+          reviewWindow: params.reviewPeriod || params.targetCommitteeDate || null,
+          alignmentDecision: params.alignmentDecision || null,
+          regulatoryApprovalClaimed: false,
+          sourceRefs,
+          missingEvidence,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildArealNetworkIntegrationOfferGateStatus(params = {}) {
+      const isProvided = (value) => {
+        if (Array.isArray(value)) return value.length > 0;
+        if (typeof value === 'number') return Number.isFinite(value);
+        return value !== undefined && value !== null && String(value).trim() !== '';
+      };
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const toNumber = (value) => {
+        if (value === undefined || value === null || value === '') return null;
+        const normalized = typeof value === 'string'
+          ? value.replace(/\s/g, '').replace(',', '.')
+          : value;
+        const parsed = Number(normalized);
+        return Number.isFinite(parsed) ? parsed : null;
+      };
+
+      const requestedCapacityKw = toNumber(params.requestedCapacityKw);
+      const sourceRefs = toList(params.sourceRefs);
+      const missingMap = {
+        site_reference: 'add site or area reference to the offer gate',
+        requested_connection_capacity: 'add requested connection capacity to the dossier',
+        grid_capacity_evidence: 'add grid-capacity status evidence',
+        target_grid_path: 'add target-grid path evidence',
+        investment_capex_reference: 'add investment / CAPEX impact reference',
+        regulatory_impact_boundary: 'add regulatory-impact boundary evidence',
+        commercial_offer_assumptions: 'add commercial offer-assumption evidence',
+        owner: 'add decision owner to the Areal gate',
+        next_decision_date: 'add next decision date to the decision card',
+        offer_decision_status: 'add offer decision status',
+        source_refs: 'add source references for the decision card',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint) => {
+        missingEvidence.push({
+          missingDataPoint,
+          status: 'missing',
+          enablesDossierAddition: missingMap[missingDataPoint],
+        });
+      };
+
+      if (!isProvided(params.siteReference) && !isProvided(params.areaReference)) addGap('site_reference');
+      if (!isProvided(params.requestedConnectionCapacity) && requestedCapacityKw === null) {
+        addGap('requested_connection_capacity');
+      }
+      if (!isProvided(params.gridCapacityEvidence) && !isProvided(params.capacityEvidenceReference)) {
+        addGap('grid_capacity_evidence');
+      }
+      if (!isProvided(params.targetGridPath) && !isProvided(params.zielnetzPath)) addGap('target_grid_path');
+      if (!isProvided(params.investmentReference) && !isProvided(params.capexReference)) {
+        addGap('investment_capex_reference');
+      }
+      if (!isProvided(params.regulatoryImpactBoundary) && !isProvided(params.regulatoryImpactReference)) {
+        addGap('regulatory_impact_boundary');
+      }
+      if (!isProvided(params.commercialOfferAssumptions) && !isProvided(params.offerAssumptionReference)) {
+        addGap('commercial_offer_assumptions');
+      }
+      if (!isProvided(params.owner) && !isProvided(params.gateOwner)) addGap('owner');
+      if (!isProvided(params.nextDecisionDate)) addGap('next_decision_date');
+      if (!isProvided(params.offerDecisionStatus)) addGap('offer_decision_status');
+      if (sourceRefs.length === 0) addGap('source_refs');
+
+      let status = 'ready_for_offer_gate_review';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'site_reference')) {
+        status = 'needs_site_reference';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'requested_connection_capacity')) {
+        status = 'needs_requested_capacity';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'grid_capacity_evidence')) {
+        status = 'needs_grid_capacity_evidence';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'target_grid_path')) {
+        status = 'needs_target_grid_path';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'investment_capex_reference')) {
+        status = 'needs_investment_capex_reference';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_impact_boundary')) {
+        status = 'needs_regulatory_boundary';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'commercial_offer_assumptions')) {
+        status = 'needs_offer_assumptions';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_decision_card_provenance';
+      }
+
+      const requiredCount = Object.keys(missingMap).length;
+      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const sourceActions = {
+        inspected: ['dashboard-api.arealNetworkIntegrationOfferGateStatus'],
+        referenced: [
+          'grid-connection.validate',
+          'target-grid-planning.review',
+          'investment-planning.review',
+          'regulatorische-entgeltlogik.evaluate',
+          'offer-management.review',
+          'vdmi.dossier',
+        ],
+        notCalled: [
+          'offer.calculate',
+          'offer.generateBinding',
+          'contract.accept',
+          'grid-capacity.reserve',
+          'target-grid.optimize',
+          'investment.approve',
+          'assets.applyOverride',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'mako.dispatch',
+          'device-control.execute',
+          'hitl.create',
+          'notification.dispatchInternal',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const decisionScope = {
+        caseId: params.caseId || null,
+        projectId: params.projectId || null,
+        tenantId: params.tenantId || null,
+        siteReference: params.siteReference || null,
+        areaReference: params.areaReference || null,
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'areal_network_integration_offer_gate',
+      }));
+      const dossierFacts = [
+        `Offer Gate Status: ${status}`,
+        `Site: ${decisionScope.siteReference || decisionScope.areaReference || 'missing'}`,
+        `Requested Capacity: ${params.requestedConnectionCapacity || (requestedCapacityKw !== null ? `${requestedCapacityKw} kW` : 'missing')}`,
+        `Grid Capacity Evidence: ${params.gridCapacityEvidence || params.capacityEvidenceReference || 'missing'}`,
+        `Target Grid Path: ${params.targetGridPath || params.zielnetzPath || 'missing'}`,
+        `Investment / CAPEX: ${params.investmentReference || params.capexReference || 'missing'}`,
+        `Regulatory Boundary: ${params.regulatoryImpactBoundary || params.regulatoryImpactReference || 'missing'}`,
+        `Offer Assumptions: ${params.commercialOfferAssumptions || params.offerAssumptionReference || 'missing'}`,
+        `Owner: ${params.owner || params.gateOwner || 'missing'}`,
+        `Next Decision Date: ${params.nextDecisionDate || 'missing'}`,
+      ];
+
+      return {
+        capabilityKey: 'areal_network_integration_offer_gate',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        decisionScope,
+        capacityEvidence: {
+          requestedConnectionCapacity: params.requestedConnectionCapacity || null,
+          requestedCapacityKw,
+          gridCapacityEvidence: params.gridCapacityEvidence || null,
+          capacityEvidenceReference: params.capacityEvidenceReference || null,
+          capacityReserved: false,
+        },
+        targetGridEvidence: {
+          targetGridPath: params.targetGridPath || null,
+          zielnetzPath: params.zielnetzPath || null,
+          optimizerExecuted: false,
+        },
+        investmentEvidence: {
+          investmentReference: params.investmentReference || null,
+          capexReference: params.capexReference || null,
+          investmentApproved: false,
+        },
+        regulatoryBoundaryEvidence: {
+          regulatoryImpactBoundary: params.regulatoryImpactBoundary || null,
+          regulatoryImpactReference: params.regulatoryImpactReference || null,
+          approvalClaimed: false,
+        },
+        commercialAssumptionEvidence: {
+          commercialOfferAssumptions: params.commercialOfferAssumptions || null,
+          offerAssumptionReference: params.offerAssumptionReference || null,
+          bindingOfferGenerated: false,
+        },
+        owner: {
+          owner: params.owner || null,
+          gateOwner: params.gateOwner || null,
+        },
+        decisionWindow: {
+          nextDecisionDate: params.nextDecisionDate || null,
+          offerDecisionStatus: params.offerDecisionStatus || null,
+        },
+        sourceRefs,
+        missingEvidence,
+        positiveFollowUps,
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'areal_network_integration_offer_gate',
+          status,
+          readinessScore,
+          decisionScope,
+          siteReference: params.siteReference || params.areaReference || null,
+          requestedConnectionCapacity:
+            params.requestedConnectionCapacity || (requestedCapacityKw !== null ? `${requestedCapacityKw} kW` : null),
+          gridCapacityEvidence: params.gridCapacityEvidence || params.capacityEvidenceReference || null,
+          targetGridPath: params.targetGridPath || params.zielnetzPath || null,
+          investmentReference: params.investmentReference || params.capexReference || null,
+          regulatoryImpactBoundary: params.regulatoryImpactBoundary || params.regulatoryImpactReference || null,
+          commercialOfferAssumptions: params.commercialOfferAssumptions || params.offerAssumptionReference || null,
+          owner: params.owner || params.gateOwner || null,
+          nextDecisionDate: params.nextDecisionDate || null,
+          offerDecisionStatus: params.offerDecisionStatus || null,
+          bindingOfferGenerated: false,
+          gridCapacityReserved: false,
+          sourceRefs,
+          missingEvidence,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
         },
       };
     },

@@ -868,6 +868,25 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Stadtwerk Mauer blended MaStR overlay prompts to the read-only status view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Stadtwerk Mauer Blended MaStR Data Overlay: reale MaStR Daten Mauer 1:1, Syna als Realwelt-Provenienz, virtuelles Stadtwerk Mauer als Netzbetreiber Overlay.',
+    });
+
+    expect(result.capability).toBe('stadtwerk_mauer_mastr_data_overlay');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'stadtwerk_mauer_mastr_data_overlay'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.stadtwerkMauerMastrDataOverlayStatus');
+    expect(actionNames).not.toContain('stadtwerk-mauer-e2e-process-demo.runDemo');
+    expect(actionNames).not.toContain('stadtwerk-mauer-external-interface-stubs.callStub');
+    expect(actionNames).not.toContain('mako.dispatch');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('mastr.write');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes legal clarification operating-model prompts to the read-only preparation view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Erstelle ein operatives Steuerungsmodell fuer Rechtsklaerung Kapazitaetsfrage mit no-regret Datenbedarf, roter Linie und Entscheidung nach Rechtsantwort.',
@@ -916,6 +935,170 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes fNAV fast-track contract-gate prompts to the read-only gate projection', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe fnav_fast_track_contract_gate fuer ein fNAV Fast Track Vertragsgate beim Rechenzentrum mit Netzsignal Vorrang, Fahrplanpflicht, Messdaten, Steuerdaten, Vermarktungsgrenze, Vertragsstatus, Rechtsstatus und Eskalationslogik.',
+    });
+
+    expect(result.capability).toBe('fnav_fast_track_contract_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'fnav_fast_track_contract_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.fnavFastTrackContractGateStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('device-control.execute');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('routes cross-channel VNB signal queue prompts to the read-only evidence projection', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Cross Channel VNB Signal Queue fuer Mail Hinweis, Chat Hinweis und Portal Hinweis mit Owner Frist, Evidenzstatus, Netzanschluss Blocker, Redispatch Hinweis, Zielnetzplanung Signal, IT Freigabe, Berechtigung und Schulung.',
+    });
+
+    expect(result.capability).toBe('cross_channel_vnb_signal_queue');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'cross_channel_vnb_signal_queue'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.crossChannelVnbSignalQueueStatus');
+    expect(actionNames).not.toContain('mail.connector.ingest');
+    expect(actionNames).not.toContain('persona-inbox.enqueue');
+    expect(actionNames).not.toContain('notification.dispatchInternal');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('routes asset valuation transformation gate prompts to the read-only evidence projection', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Asset Valuation Transformation Gate fuer Buchwert, Restwert, Assetzustand, Stilllegung, Umwidmung, H2 Option, Waermebezug, Vertragsrisiko, regulatorische Unsicherheit und Datenqualitaet.',
+    });
+
+    expect(result.capability).toBe('asset_valuation_transformation_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'asset_valuation_transformation_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.assetValuationTransformationGateStatus');
+    expect(actionNames).not.toContain('assets.applyOverride');
+    expect(actionNames).not.toContain('investment.approve');
+    expect(actionNames).not.toContain('asset-lifecycle.decommission');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('routes gas capacity booking review prompts to the read-only gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Gas-Kapazitaetsbestellung als Capacity Booking Review Gate mit Kaltjahr, RLM-Rebound, Engpasshistorie, VDMI-Abnahme, Decision Frame und kaufmaennischem Review.',
+    });
+
+    expect(result.capability).toBe('gas_capacity_booking_review_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'gas_capacity_booking_review_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.gasCapacityBookingReviewGateStatus');
+    expect(actionNames).not.toContain('gas-capacity-booking.submit');
+    expect(actionNames).not.toContain('upstream-network-operator.submitBooking');
+    expect(actionNames).not.toContain('vdmi.taskMutate');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('routes gas network decision-chain prompts to the read-only evidence projection', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Gasnetz Entscheidungskette fuer Kapazitaet und Fotojahr mit Stilllegungspfad, KANU EOG Evidenz, Buchwert, Owner und blockierter Folgeentscheidung.',
+    });
+
+    expect(result.capability).toBe('gas_network_decision_chain');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'gas_network_decision_chain'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.gasNetworkDecisionChainStatus');
+    expect(actionNames).not.toContain('gas-capacity-booking.submit');
+    expect(actionNames).not.toContain('gas-transformation.executeDecommissioning');
+    expect(actionNames).not.toContain('assets.applyOverride');
+    expect(actionNames).not.toContain('investment.approve');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('keeps gas booking review wording on #260 route instead of gas network decision chain', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Gas-Kapazitaetsbestellung Review Gate mit Kaltjahr, RLM-Rebound, Engpasshistorie und VDMI-Abnahme.',
+    });
+
+    expect(result.capability).toBe('gas_capacity_booking_review_gate');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.gasCapacityBookingReviewGateStatus');
+    expect(actionNames).not.toContain('dashboard-api.gasNetworkDecisionChainStatus');
+  });
+
+  it('routes water-pricing net-investment alignment prompts to the read-only gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe kalkulatorischer Wasserpreis Netzinvestition mit Pachtnetz Anlagenbuchhaltung Regulierungswirkung Gremienvorlage und Alignment Entscheidung.',
+    });
+
+    expect(result.capability).toBe('water_pricing_net_investment_alignment_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'water_pricing_net_investment_alignment_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.waterPricingNetInvestmentAlignmentStatus');
+    expect(actionNames).not.toContain('water-pricing.calculate');
+    expect(actionNames).not.toContain('asset-accounting.import');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('tariff.mutate');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('keeps generic waterfall wording away from water-pricing alignment', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe investment waterfall governance fuer Budgetfreigabe, Ueberhang, Forecast und Gremienreife.',
+    });
+
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).not.toContain('dashboard-api.waterPricingNetInvestmentAlignmentStatus');
+  });
+
+  it('routes Areal network-integration offer prompts to the read-only gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Areal Netzeinbindung Angebotsgate mit Anschlusskapazitaet Zielnetzpfad Investitionsbedarf regulatorische Wirkung Angebotsannahmen Owner und Entscheidungstermin.',
+    });
+
+    expect(result.capability).toBe('areal_network_integration_offer_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'areal_network_integration_offer_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.arealNetworkIntegrationOfferGateStatus');
+    expect(actionNames).not.toContain('offer.calculate');
+    expect(actionNames).not.toContain('contract.accept');
+    expect(actionNames).not.toContain('grid-capacity.reserve');
+    expect(actionNames).not.toContain('investment.approve');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('tariff.mutate');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('keeps target-grid transformation wording away from the Areal offer gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Netzanschlusspunkt Transformations-Gate mit division transformationOption dataQualityStatus investmentPath decommissionPath owner und nextAction.',
+    });
+
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).not.toContain('dashboard-api.arealNetworkIntegrationOfferGateStatus');
+  });
+
   it('routes special grid usage prompts to the read-only impact map', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe besondere Netznutzung Paragraf 19 StromNEV mit Frist, Formular, Mengenbasis, Rueckverguetung, EOG Wirkung und Abrechnungswirkung.',
@@ -946,6 +1129,24 @@ describe('Capability Broker Service', () => {
     expect(actionNames).toContain('dashboard-api.liquidityPlanningGovernanceStatus');
     expect(actionNames).not.toContain('settlement.prepareBilling');
     expect(actionNames).not.toContain('payment.execute');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('routes Energy-Sharing simulation prompts to the read-only gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Energy Sharing Simulation als Lernpilot und abrechnungsnah mit iMSys-Reife, MaLo Status, Bilanzkreislogik, A96 readiness, Teilnehmerdaten und Marktrollenrisiko.',
+    });
+
+    expect(result.capability).toBe('energy_sharing_simulation_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'energy_sharing_simulation_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.energySharingSimulationGateStatus');
+    expect(actionNames).not.toContain('energy-sharing-allocation.allocate');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('billing.release');
     expect(actionNames).not.toContain('hitl.create');
     expect(actionNames).not.toContain('personal-agent.execute');
   });

@@ -485,6 +485,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/liquidity-planning-governance']).toBe(
         'dashboard-api.liquidityPlanningGovernanceStatus'
       );
+      expect(aliases['GET /dashboard/energy-sharing-simulation-gate']).toBe(
+        'dashboard-api.energySharingSimulationGateStatus'
+      );
       expect(aliases['GET /dashboard/stadtwerk-mauer-sandbox-runtime']).toBe(
         'dashboard-api.stadtwerkMauerSandboxRuntimeStatus'
       );
@@ -493,6 +496,30 @@ describe('API Gateway Service', () => {
       );
       expect(aliases['GET /dashboard/stadtwerk-mauer-e2e-process-demo']).toBe(
         'dashboard-api.stadtwerkMauerE2eProcessDemoStatus'
+      );
+      expect(aliases['GET /dashboard/stadtwerk-mauer-mastr-data-overlay']).toBe(
+        'dashboard-api.stadtwerkMauerMastrDataOverlayStatus'
+      );
+      expect(aliases['GET /dashboard/fnav-fast-track-contract-gate']).toBe(
+        'dashboard-api.fnavFastTrackContractGateStatus'
+      );
+      expect(aliases['GET /dashboard/cross-channel-vnb-signal-queue']).toBe(
+        'dashboard-api.crossChannelVnbSignalQueueStatus'
+      );
+      expect(aliases['GET /dashboard/asset-valuation-transformation-gate']).toBe(
+        'dashboard-api.assetValuationTransformationGateStatus'
+      );
+      expect(aliases['GET /dashboard/gas-capacity-booking-review-gate']).toBe(
+        'dashboard-api.gasCapacityBookingReviewGateStatus'
+      );
+      expect(aliases['GET /dashboard/gas-network-decision-chain']).toBe(
+        'dashboard-api.gasNetworkDecisionChainStatus'
+      );
+      expect(aliases['GET /dashboard/water-pricing-net-investment-alignment']).toBe(
+        'dashboard-api.waterPricingNetInvestmentAlignmentStatus'
+      );
+      expect(aliases['GET /dashboard/areal-network-integration-offer-gate']).toBe(
+        'dashboard-api.arealNetworkIntegrationOfferGateStatus'
       );
       expect(aliases['POST /stadtwerk-mauer-sandbox-runtime/events']).toBe(
         'stadtwerk-mauer-sandbox-runtime.ingestEvent'
@@ -514,6 +541,9 @@ describe('API Gateway Service', () => {
       );
       expect(aliases['GET /stadtwerk-mauer/e2e-process-demo/status']).toBe(
         'stadtwerk-mauer-e2e-process-demo.getStatus'
+      );
+      expect(aliases['GET /stadtwerk-mauer/mastr-data-overlay/status']).toBe(
+        'stadtwerk-mauer-mastr-data-overlay.getStatus'
       );
       expect(aliases['GET /dashboard/regulatory-change-readiness']).toBe(
         'dashboard-api.regulatoryChangeReadinessStatus'

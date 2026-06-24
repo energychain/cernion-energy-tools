@@ -310,6 +310,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasFnavFastTrackContractGateSpecificSignal =
+    /(fnav_fast_track_contract_gate|fnav fast track|fast.?track vertragsgate|fnav vertragsgate|fnav contract gate)/i.test(haystack) &&
+    /(netzsignal|fahrplanpflicht|messdaten|steuerdaten|steuernachweis|vermarktungsgrenze|abbruchkriterium|eskalationslogik|vertragsstatus|rechtsstatus|rechenzentrum|grosslast|großlast|speicheranschluss)/i.test(haystack) &&
+    !/(device.?control|steuerbefehl|execute|ausfuehren|ausführen|billing|settlement|abrechnung|tarif.?mutation|smgw|cls|mako.?dispatch|external connector|hitl create)/i.test(haystack);
+
+  if (hasFnavFastTrackContractGateSpecificSignal) {
+    const fnavFastTrackCapability = findCapabilityByName('fnav_fast_track_contract_gate');
+    if (fnavFastTrackCapability) {
+      return { capability: fnavFastTrackCapability, score: 140, usedFallback: false };
+    }
+  }
+
   const hasTechCommercialOfferCockpitSpecificSignal =
     /(angebots cockpit|technisch kaufmaennisch|technisch kaufmännisch|indikatives angebot|anschlussangebot|pooling option|vertragsstatus|zielnetzbezug|commercial offer|offer cockpit)/i.test(haystack) &&
     /(connectionRequestId|gridOperatorId|znpAlignment|gridNode|technicalRestriction|requestedCapacityKW|technicalStatus|capacityUtilization|fnavContractLogic|commercialAssumptions|legalAgreementStatus|legalBoundaries|gaps|follow.?up|readiness|request id|netzbetreiber id|zielnetzbezug|grid node|technische restriktion|anfrageleistung|technischer status|auslastung|vertragslage|annahmen|rechtsstatus|boundaries)/i.test(haystack) &&
@@ -343,6 +355,18 @@ function findBestCapability(taskText, options = {}) {
     const rolePermissionCapability = findCapabilityByName('role_permission_access_readiness_gate');
     if (rolePermissionCapability) {
       return { capability: rolePermissionCapability, score: 141, usedFallback: false };
+    }
+  }
+
+  const hasCrossChannelVnbSignalQueueSpecificSignal =
+    /(cross.?channel|cross_channel_vnb_signal_queue|signal queue|signal.?queue|mail hinweis|chat hinweis|portal hinweis|fachsystem signal)/i.test(haystack) &&
+    /(owner.?frist|owner|frist|deadline|evidenzstatus|evidence status|netzanschluss blocker|redispatch hinweis|zielnetzplanung signal|it freigabe|berechtigung|schulung|vertragsklaerung|vertragsklärung|naechster datenpunkt|nächster datenpunkt)/i.test(haystack) &&
+    !/(mail.?ingest|mail.?scrap|teams ingest|external connector|connector ausfuehren|connector ausführen|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|notification dispatch|benachrichtigung senden|hitl create|task create|aufgabe erstellen|queue persist|persistiere queue|vdmi mutate|vdmi task mutate|personal-agent execute)/i.test(haystack);
+
+  if (hasCrossChannelVnbSignalQueueSpecificSignal) {
+    const crossChannelQueueCapability = findCapabilityByName('cross_channel_vnb_signal_queue');
+    if (crossChannelQueueCapability) {
+      return { capability: crossChannelQueueCapability, score: 143, usedFallback: false };
     }
   }
 
@@ -429,6 +453,27 @@ function findBestCapability(taskText, options = {}) {
 
   if (hasStadtwerkMauerEventReplayRuntimeIntent) {
     return { capability: INTERFACE_PLACEHOLDER_CAPABILITY, score: 10, usedFallback: true };
+  }
+
+  const hasStadtwerkMauerMastrOverlayMutationIntent =
+    /(mastr write|mastr schreiben|mastr import|mastr update|mastr aktualisieren|netzbetreiber im mastr aendern|netzbetreiber im mastr ändern|syna ersetzen|source records mutate|asset override|external connector|mako senden|steuerbefehl|device.?control|workflow execute|workflow ausfuehren|workflow ausführen|tenant delete production)/i.test(haystack) &&
+    /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|blended|mastr overlay|syna)/i.test(haystack);
+
+  if (hasStadtwerkMauerMastrOverlayMutationIntent) {
+    return { capability: INTERFACE_PLACEHOLDER_CAPABILITY, score: 10, usedFallback: true };
+  }
+
+  const hasStadtwerkMauerMastrOverlaySpecificSignal =
+    !hasRealAssetLookupIntent &&
+    /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|stadtwerk_mauer_mastr_data_overlay)/i.test(haystack) &&
+    /(blended|real.?data|reale mastr|mastr daten|mastr baseline|mastr overlay|operator overlay|netzbetreiber overlay|syna|1.?1|eins zu eins|virtual operator|virtueller netzbetreiber)/i.test(haystack) &&
+    !/(mastr write|mastr schreiben|mastr import|mastr update|mastr aktualisieren|netzbetreiber im mastr aendern|netzbetreiber im mastr ändern|syna ersetzen|source records mutate|asset override|external connector|mako senden|steuerbefehl|device.?control|workflow execute|workflow ausfuehren|workflow ausführen|tenant delete production|hitl create|personal-agent execute)/i.test(haystack);
+
+  if (hasStadtwerkMauerMastrOverlaySpecificSignal) {
+    const stadtwerkMauerMastrOverlayCapability = findCapabilityByName('stadtwerk_mauer_mastr_data_overlay');
+    if (stadtwerkMauerMastrOverlayCapability) {
+      return { capability: stadtwerkMauerMastrOverlayCapability, score: 146, usedFallback: false };
+    }
   }
 
   const hasStadtwerkMauerEventReplayPreviewSpecificSignal =
@@ -593,6 +638,54 @@ function findBestCapability(taskText, options = {}) {
     const gridConnectionGateCapability = findCapabilityByName('grid_connection_transformation_gate');
     if (gridConnectionGateCapability) {
       return { capability: gridConnectionGateCapability, score: 138, usedFallback: false };
+    }
+  }
+
+  const hasGasNetworkDecisionChainSpecificSignal =
+    /(gasnetz.?entscheidungskette|gas network decision chain|gas_network_decision_chain|fotojahr|kanu.?eog|eog.?kanu|blockierte folgeentscheidung|blocked follow.?up decision)/i.test(haystack) &&
+    /(kapazitaetsannahme|kapazitätsannahme|capacity assumption|stilllegungspfad|decommissioning path|buchwert|book.?value|asset|owner|evidenzschritt|next evidence|folgeentscheidung|entscheidungskette)/i.test(haystack) &&
+    !/(gas.?kapazitaetsbestellung|gas.?kapazitätsbestellung|capacity booking review|kaltjahr|rlm.?rebound|engpasshistorie|vdmi.?abnahme|submit booking|buchung senden|jahresbestellung|gas_capacity_order_revision_gate|gasfluss simulation|thermo simulation|execute decommissioning|stilllegung ausfuehren|stilllegung ausführen|hitl create|external connector|personal-agent execute)/i.test(haystack);
+
+  if (hasGasNetworkDecisionChainSpecificSignal) {
+    const gasNetworkDecisionChainCapability = findCapabilityByName('gas_network_decision_chain');
+    if (gasNetworkDecisionChainCapability) {
+      return { capability: gasNetworkDecisionChainCapability, score: 147, usedFallback: false };
+    }
+  }
+
+  const hasArealNetworkIntegrationOfferGateSpecificSignal =
+    /(areal.?netzeinbindung|areal network integration|standortentwicklung|angebotsgate|offer gate|areal_network_integration_offer_gate)/i.test(haystack) &&
+    /(anschlusskapazitaet|anschlusskapazität|connection capacity|netzkapazitaet|netzkapazität|grid capacity|zielnetzpfad|target.?grid|investitionsbedarf|capex|regulatorische wirkung|regulatory impact|angebotsannahmen|offer assumption|entscheidungstermin|decision date)/i.test(haystack) &&
+    !/(offer\.calculate|binding offer|verbindliches angebot|contract accept|vertrag annehmen|grid-capacity\.reserve|kapazitaet reservieren|kapazität reservieren|target-grid\.optimize|investment\.approve|assets\.applyOverride|hitl create|external connector|personal-agent execute|billing|settlement|abrechnung|tarif|mako|device-control)/i.test(haystack);
+
+  if (hasArealNetworkIntegrationOfferGateSpecificSignal) {
+    const arealOfferCapability = findCapabilityByName('areal_network_integration_offer_gate');
+    if (arealOfferCapability) {
+      return { capability: arealOfferCapability, score: 146, usedFallback: false };
+    }
+  }
+
+  const hasAssetValuationTransformationGateSpecificSignal =
+    /(asset valuation|asset.?bewertung|assetbewertung|restwert|buchwert|assetzustand|asset valuation transformation gate|transformation gate|transformationsgate)/i.test(haystack) &&
+    /(book.?value|buchwert|restwert|assetzustand|condition|zustand|stilllegung|umwidmung|h2 option|h2.?option|waermebezug|wärmebezug|vertragsrisiko|regulatorische unsicherheit|datenqualitaet|datenqualität|decision owner|next decision|management gate)/i.test(haystack) &&
+    !/(valuation record create|accounting posting|asset.?mutation|assets\.applyOverride|investment approve|investment\.approve|stilllegung ausfuehren|stilllegung ausführen|umwidmung ausfuehren|umwidmung ausführen|hitl create|billing|settlement|abrechnung|tarif|mako|device-control|external connector|personal-agent execute)/i.test(haystack);
+
+  if (hasAssetValuationTransformationGateSpecificSignal) {
+    const assetValuationCapability = findCapabilityByName('asset_valuation_transformation_gate');
+    if (assetValuationCapability) {
+      return { capability: assetValuationCapability, score: 145, usedFallback: false };
+    }
+  }
+
+  const hasGasCapacityBookingReviewGateSpecificSignal =
+    /(gas capacity booking|annual gas capacity booking|gas.?kapazitaetsbestellung|gas.?kapazitätsbestellung|kapazitaetsreview|kapazitätsreview|capacity booking review|gas_capacity_booking_review_gate)/i.test(haystack) &&
+    /(kaltjahr|rlm.?rebound|engpasshistorie|vdmi.?abnahme|vdmi owner|commercial signoff|kaufmaennisch|kaufmännisch|decision frame|capacity assumption|kapazitaetsannahme|kapazitätsannahme|review gate)/i.test(haystack) &&
+    !/(jahresbestellung|bestellbeschluss|netzkopplungspunkt|nkp|sicherheitsaufschlag|druckflexibilitaet|druckflexibilität|wartungsfenster|industrie.?rebound|reversible rlm|order revision|gas_capacity_order_revision_gate|booking submit|submit booking|buchung senden|buchung einreichen|upstream connector|external connector|vdmi mutate|vdmi task mutate|hitl create|notification dispatch|persistence create|billing|settlement|abrechnung|tarif|mako|contract release|device-control|personal-agent execute|gasfluss simulation|thermo simulation)/i.test(haystack);
+
+  if (hasGasCapacityBookingReviewGateSpecificSignal) {
+    const gasCapacityBookingCapability = findCapabilityByName('gas_capacity_booking_review_gate');
+    if (gasCapacityBookingCapability) {
+      return { capability: gasCapacityBookingCapability, score: 146, usedFallback: false };
     }
   }
 
@@ -871,6 +964,40 @@ function findBestCapability(taskText, options = {}) {
     const edmCap = findCapabilityByName('edm_customer_moveout_billing_evidence');
     if (edmCap) {
       return { capability: edmCap, score: 122, usedFallback: false };
+    }
+  }
+
+  // ── Energy Sharing Simulation Gate
+  // Specific simulation/readiness wording must win over generic prosumer advisory.
+  const energySharingSimulationSignals = [
+    'energy sharing simulation',
+    'energieteilen simulation',
+    'energy-sharing simulation',
+    'energy sharing gate',
+    'energy-sharing gate',
+    'lernpilot',
+    'learning pilot',
+    'abrechnungsnah',
+    'billing readiness',
+    'imsys-reife',
+    'malo status',
+    'bilanzkreislogik',
+    'a96 readiness',
+    'teilnehmerdaten',
+    'marktrollenrisiko',
+    'energy_sharing_simulation_gate',
+  ];
+  const hasEnergySharingSimulationCombo =
+    /(energy sharing|energy-sharing|energieteilen)/i.test(haystack) &&
+    /(simulation|gate|lernpilot|learning pilot|abrechnungsnah|billing readiness|a96|imsys|malo status|bilanzkreislogik)/i.test(haystack);
+
+  if (
+    hasEnergySharingSimulationCombo ||
+    energySharingSimulationSignals.filter((signal) => haystack.includes(signal)).length >= 2
+  ) {
+    const energySharingSimulationCap = findCapabilityByName('energy_sharing_simulation_gate');
+    if (energySharingSimulationCap) {
+      return { capability: energySharingSimulationCap, score: 123, usedFallback: false };
     }
   }
 
