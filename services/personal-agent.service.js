@@ -2159,6 +2159,7 @@ module.exports = {
         question: { type: 'string', min: 1, trim: true, max: 8000 },
         sessionId: { type: 'string', optional: true, trim: true, max: 120 },
         context: { type: 'object', optional: true, default: {} },
+        inputs: { type: 'object', optional: true, default: {} },
         domain: {
           type: 'enum',
           optional: true,
@@ -2211,6 +2212,12 @@ module.exports = {
                     type: 'object',
                     additionalProperties: true,
                     description: 'Optional tenant, user, object, process or document context.',
+                  },
+                  inputs: {
+                    type: 'object',
+                    additionalProperties: true,
+                    description:
+                      'Optional structured canonical inputs for Blueprint/NoCode read-only execution-plan compilation.',
                   },
                   domain: {
                     type: 'string',
@@ -2390,6 +2397,7 @@ module.exports = {
         const domain = ctx.params.domain || 'auto';
         const mode = ctx.params.mode || 'answer';
         const context = ctx.params.context || {};
+        const planInputs = { ...context, ...(ctx.params.inputs || {}) };
         const maxEvidence = ctx.params.maxEvidence || 5;
 
         // Blueprint-aware read-only REST plan (energychain/cernion-energy-tools#271):
@@ -2399,7 +2407,7 @@ module.exports = {
         // and without the Sidecar needing any domain-specific endpoint knowledge.
         const restPlan = compileReadOnlyExecutionPlan({
           question: ctx.params.question,
-          context,
+          context: planInputs,
           broker: ctx.broker,
         });
 

@@ -15,7 +15,7 @@ const MVP_TOOLS = [
     tenantPolicy: 'context_tenant_must_match_auth_tenant',
     rolePolicy: ['ROLE_UTILITY_HQ', 'ROLE_GRID_OPERATOR'],
     hitlPolicy: 'may_surface_required_human_approval_but_must_not_resolve',
-    responseContract: 'compact_evidence_answer',
+    responseContract: 'compact_evidence_answer_or_read_only_rest_plan',
     sideEffects: SIDE_EFFECT_NONE,
     description:
       'Returns compact Cernion evidence, process context and guardrails without modifying process data.',

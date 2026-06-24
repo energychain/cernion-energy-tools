@@ -212,6 +212,46 @@ describe('agent-sidecar service', () => {
     });
   });
 
+  it('forwards MCP ask arguments.inputs as Blueprint compiler inputs', async () => {
+    const result = await broker.call(
+      'agent-sidecar.mcpCallTool',
+      {
+        name: 'cernion.ask',
+        arguments: {
+          question: 'Liste alle Solaranlagen in 69168 zwischen 10 und 13 kW aus 2025',
+          query: 'Liste alle Solaranlagen in 69168 zwischen 10 und 13 kW aus 2025',
+          context: { tenantId: 'public' },
+          inputs: {
+            assetType: 'solar',
+            location: '69168',
+            minCapacity: 10,
+            maxCapacity: 13,
+            commissioningYear: 2025,
+            limit: 100,
+          },
+        },
+      },
+      readOnlyMeta('public')
+    );
+
+    expect(result.isError).toBe(false);
+    expect(calls[0]).toMatchObject({
+      action: 'personal-agent.askCernionAgent',
+      params: {
+        question: 'Liste alle Solaranlagen in 69168 zwischen 10 und 13 kW aus 2025',
+        context: { tenantId: 'public' },
+        inputs: {
+          assetType: 'solar',
+          location: '69168',
+          minCapacity: 10,
+          maxCapacity: 13,
+          commissioningYear: 2025,
+          limit: 100,
+        },
+      },
+    });
+  });
+
   it('allows only Hydration Registry allowlisted evidence status actions', async () => {
     const allowed = await broker.call(
       'agent-sidecar.callTool',

@@ -109,6 +109,7 @@ module.exports = {
             question: input.question,
             sessionId: input.sessionId,
             context: input.context || {},
+            inputs: input.inputs || {},
             domain: input.domain || 'auto',
             mode: input.mode || 'answer',
             maxEvidence: input.maxEvidence || 5,

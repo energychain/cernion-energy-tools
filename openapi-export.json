@@ -52164,6 +52164,11 @@
                     "additionalProperties": true,
                     "description": "Optional tenant, user, object, process or document context."
                   },
+                  "inputs": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Optional structured canonical inputs for Blueprint/NoCode read-only execution-plan compilation."
+                  },
                   "domain": {
                     "type": "string",
                     "enum": [
