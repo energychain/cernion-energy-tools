@@ -141,6 +141,32 @@ describe('detectBlueprintIntent', () => {
     expect(result).not.toBeNull();
     expect(result.blueprintId).toBe('municipal-energy-site-precheck-v1');
   });
+
+  // ── restPlanOnly exclusion (issue #271) ──────────────────────────────────
+  // mastr-asset-service-selection-v1 is a compile-only fixture for
+  // src/blueprint-rest-plan-compiler.js: its execution.steps use action-name
+  // templating ("assets.{{inputs.assetType}}") that buildBlueprintPlan/
+  // executeBlueprint do not resolve, so it must stay out of internal
+  // chat-routing matches unless explicitly requested.
+  test('excludes restPlanOnly blueprints from internal chat-routing matches by default', () => {
+    const result = detectBlueprintIntent(
+      'Liste aller Erzeugungsanlagen in 69168',
+      { postalCode: '69168' },
+      {}
+    );
+    expect(result?.blueprintId).not.toBe('mastr-asset-service-selection-v1');
+  });
+
+  test('includes restPlanOnly blueprints when includeRestPlanOnly is set', () => {
+    const result = detectBlueprintIntent(
+      'Liste aller Erzeugungsanlagen in 69168',
+      { postalCode: '69168' },
+      {},
+      { includeRestPlanOnly: true }
+    );
+    expect(result).not.toBeNull();
+    expect(result.blueprintId).toBe('mastr-asset-service-selection-v1');
+  });
 });
 
 // ─── buildBlueprintPlan ───────────────────────────────────────────────────────

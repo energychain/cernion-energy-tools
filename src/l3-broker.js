@@ -182,16 +182,28 @@ function _buildParamsTemplate(blueprint, knownContext, promptHints) {
 /**
  * Detect if any registered blueprint matches the user's intent.
  * Returns null if no match; otherwise returns { blueprintId, score }.
+ *
+ * `options.includeRestPlanOnly` (default false): blueprints flagged
+ * `routing.restPlanOnly: true` are compile-only fixtures for the Sidecar
+ * read-only REST-plan path (see src/blueprint-rest-plan-compiler.js) — their
+ * execution.steps may use action-name templating that the internal
+ * executeBlueprint()/buildBlueprintPlan() pipeline does not resolve. They are
+ * excluded from internal chat-routing matches unless explicitly requested.
  */
-function detectBlueprintIntent(message, knownContext = {}, promptHints = {}) {
+function detectBlueprintIntent(message, knownContext = {}, promptHints = {}, options = {}) {
   const haystack = _buildHaystack(message, knownContext);
   const negativeHaystack = String(message || '').toLowerCase();
   const blueprints = listBlueprints();
+  const includeRestPlanOnly = options.includeRestPlanOnly === true;
 
   let best = null;
   for (const summary of blueprints) {
     const blueprint = loadBlueprint(summary.id);
     if (!blueprint) continue;
+
+    if (blueprint.routing?.restPlanOnly === true && !includeRestPlanOnly) {
+      continue;
+    }
 
     // Skip if blueprint requires a location but none is available
     if (_requiresLocation(blueprint) && !_hasKnownLocation(knownContext, promptHints)) {

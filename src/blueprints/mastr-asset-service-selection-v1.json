@@ -1,0 +1,100 @@
+{
+  "$schema": "https://cernion.ai/schemas/blueprint.v1.json",
+  "id": "mastr-asset-service-selection-v1",
+  "version": "1.0.0",
+  "meta": {
+    "title": "MaStR Asset Service Selection",
+    "description": "Compiles a generic asset-type lookup (location, capacity range, commissioning year, limit) into the canonical read-only assets.<type> REST call. Generic service-selection fixture for Sidecar-issued read-only execution plans (src/blueprint-rest-plan-compiler.js) — not MaStR/PV-specific.",
+    "targetAudience": "internal"
+  },
+  "routing": {
+    "restPlanOnly": true,
+    "intentSignals": [
+      "erzeugungsanlage",
+      "erzeugungsanlagen",
+      "mastr anlage",
+      "mastr anlagen",
+      "asset lookup",
+      "asset suche",
+      "anlagenliste",
+      "anlagen liste",
+      "solaranlage",
+      "solaranlagen",
+      "windanlage",
+      "windanlagen",
+      "installations lookup",
+      "asset inventory",
+      "liste aller anlagen"
+    ],
+    "negativeSignals": [
+      "netzanschluss",
+      "netzanschlussprüfung",
+      "validierung",
+      "validieren"
+    ],
+    "priorityBoost": 5
+  },
+  "inputs": {
+    "assetType": {
+      "type": "string",
+      "required": true,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": "solar"
+      }
+    },
+    "location": {
+      "type": "string",
+      "required": true,
+      "semanticType": "OEO:PostalCode",
+      "resolveStrategy": {
+        "method": "llm_extraction",
+        "prompt": "Welche Postleitzahl oder welcher Ort?"
+      }
+    },
+    "minCapacity": {
+      "type": "number",
+      "required": false
+    },
+    "maxCapacity": {
+      "type": "number",
+      "required": false
+    },
+    "commissioningYear": {
+      "type": "number",
+      "required": false
+    },
+    "limit": {
+      "type": "number",
+      "required": false,
+      "resolveStrategy": {
+        "method": "static_default",
+        "defaultValue": 100
+      }
+    }
+  },
+  "execution": {
+    "steps": [
+      {
+        "id": "select_asset_service",
+        "action": "assets.{{inputs.assetType}}",
+        "params": {
+          "location": "{{inputs.location}}",
+          "minCapacityKW": "{{inputs.minCapacity}}",
+          "maxCapacityKW": "{{inputs.maxCapacity}}",
+          "commissioningYear": "{{inputs.commissioningYear}}",
+          "limit": "{{inputs.limit}}"
+        }
+      }
+    ]
+  },
+  "synthesis": {
+    "evidenceRequired": [
+      "steps.select_asset_service.output"
+    ],
+    "templates": {
+      "success": "Read-only asset lookup compiled for {{inputs.assetType}} in {{inputs.location}}.",
+      "error": "Could not compile a read-only asset lookup plan for {{inputs.assetType}} in {{inputs.location}}."
+    }
+  }
+}
