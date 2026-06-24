@@ -149,6 +149,7 @@ const CAPABILITY_DOMAIN_MAP = {
 const OPENAPI_TAG_DOMAIN_MAP = {
   'Actor Personas': 'platform',
   'Agent Manifest': 'platform',
+  'Evidence Router': 'platform',
   'Agent Receipts': 'platform',
   'AI Agent': 'platform',
   'agnes-bottleneck': 'grid-ops',

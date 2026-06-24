@@ -408,4 +408,9 @@ module.exports = {
   describeNoPlanReason,
   deriveInputHintsFromQuestion,
   buildAskBlueprintAnswer,
+  // Exported for reuse by src/evidence-router.js (issue #272) — pure resolution
+  // utilities, no behavior change to this module's own callers.
+  resolveActionName,
+  findActionRestRegistration,
+  resolveParamValue,
 };

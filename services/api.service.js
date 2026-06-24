@@ -1630,6 +1630,9 @@ module.exports = {
           'GET /_agent/capabilities/:name': 'agent-manifest.getCapability',
           'GET /_agent/operations': 'agent-manifest.listOperations',
 
+          // Evidence Router — read-only endpoint recommendation contract (v0.65.0, #272)
+          'POST /evidence-router/route': 'evidence-router.route',
+
           // Agent Receipts — runtime-managed routing receipts (v0.54.0)
           // NOTE: static /validate and /propose must precede dynamic /:id routes.
           'GET /agent-receipts': 'agent-receipts.list',

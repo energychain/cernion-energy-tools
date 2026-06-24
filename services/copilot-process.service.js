@@ -13,8 +13,21 @@
 
 const { MoleculerClientError } = require('moleculer').Errors;
 const { randomUUID } = require('crypto');
+const { getRule } = require('../src/dossier-hydration-registry');
 
 const SERVICE_TAG = 'Copilot Process';
+
+// operationFamily values with their own dedicated, validated prepare* action
+// above (prepareVdmiEvidence, prepareZnpAssumption, prepareGridConnectionValidation,
+// prepareConnectionRejectionEvidence) and a real case in _executeIntent's
+// dispatch table. The generic prepareProcessIntent (issue #272) refuses these —
+// accepting them here would let a caller bypass that action's own validation.
+const RESERVED_PROCESS_OPERATION_FAMILIES = new Set([
+  'vdmi',
+  'gridConnection',
+  'znp',
+  'connectionRejectionEvidence',
+]);
 
 function buildAudit(ctx, correlationId) {
   return {
@@ -1401,6 +1414,161 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
             note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute',
           },
           auditTrail: { ...audit, idempotencyKey: ctx.params.idempotencyKey ?? null, reason },
+        };
+      },
+    },
+
+    /**
+     * Generic Process Intake / Write Boundary (issue energychain/cernion-energy-tools#272).
+     *
+     * Completely separate contract from the read-only Evidence Router
+     * (services/evidence-router.service.js, POST /api/evidence-router/route).
+     * Accepts a domain-agnostic process/write intent and creates a
+     * ProcessExecutionIntent in pending_confirmation status via the SAME
+     * store/lifecycle (getProcessIntent, listProcessIntents,
+     * executeProcessIntent, rejectProcessIntent) already used by the
+     * domain-specific prepare* actions above. This establishes the generic
+     * intake/classification/HITL boundary only — the created intent's
+     * operationFamily has no case in _executeIntent's dispatch table, so it
+     * can never be auto-executed until a developer deliberately adds a
+     * reviewed, specific case there. This issue does not implement any
+     * downstream process.
+     *
+     * Server-side guardrails (never trusts the caller's contract choice blindly):
+     * - Rejects RESERVED_PROCESS_OPERATION_FAMILIES — those have their own
+     *   dedicated, validated prepare* action; accepting them here would let a
+     *   caller bypass that action's domain-specific validation.
+     * - Rejects when proposedAction resolves to a registered, safety-approved
+     *   read-only hydration action (getRule() returns non-null) — that is a
+     *   misuse of the write boundary; the caller should use the Evidence
+     *   Router instead.
+     *
+     * operationId: prepareProcessIntent
+     */
+    prepareProcessIntent: {
+      rest: 'POST /intents',
+      params: {
+        operationFamily: { type: 'string', min: 1, max: 64 },
+        proposedAction: { type: 'string', min: 1, max: 200 },
+        targetType: { type: 'string', optional: true },
+        targetId: { type: 'string', optional: true },
+        inputSummary: { type: 'string', optional: true, max: 500 },
+        payload: { type: 'object', optional: true, default: {} },
+        risk: { type: 'enum', values: ['low', 'medium', 'high'], optional: true, default: 'medium' },
+        reason: { type: 'string', optional: true, max: 500 },
+        correlationId: { type: 'string', optional: true },
+        decisionFrameId: { type: 'string', optional: true },
+      },
+      openapi: {
+        operationId: 'prepareProcessIntent',
+        'x-openai-isConsequential': false,
+        summary: 'Generic Process Intake — creates a pending_confirmation intent, no write, no auto-execution',
+        description: `Separate contract from the read-only Evidence Router (POST /api/evidence-router/route). Accepts a generic, domain-agnostic process/write intent and creates a ProcessExecutionIntent in pending_confirmation status. Establishes the intake/classification/HITL boundary only — the created intent's operationFamily has no case in executeProcessIntent's dispatch table (_executeIntent), so it can never be auto-executed until a developer deliberately adds a reviewed, specific case. Rejects domain-reserved operationFamily values (use the dedicated prepare* action instead, e.g. prepareVdmiEvidence) and rejects proposedAction values that resolve to a registered read-only action (use the Evidence Router instead).`,
+        tags: [SERVICE_TAG],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['operationFamily', 'proposedAction'],
+                properties: {
+                  operationFamily: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: 64,
+                    example: 'customer_master_data_correction',
+                  },
+                  proposedAction: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: 200,
+                    example: 'correct_metering_point_address',
+                  },
+                  targetType: { type: 'string', example: 'meteringPoint' },
+                  targetId: { type: 'string', example: 'MP-12345' },
+                  inputSummary: { type: 'string', maxLength: 500 },
+                  payload: {
+                    type: 'object',
+                    description: 'Arbitrary structured or semi-structured process data supplied by the user.',
+                  },
+                  risk: { type: 'string', enum: ['low', 'medium', 'high'], default: 'medium' },
+                  reason: { type: 'string', maxLength: 500 },
+                  correlationId: { type: 'string' },
+                  decisionFrameId: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Process intake intent created (pending human confirmation)' },
+          409: {
+            description:
+              'Rejected: reserved operationFamily (use the dedicated prepare* action) or read-only proposedAction (use the Evidence Router instead)',
+          },
+        },
+      },
+      async handler(ctx) {
+        const { operationFamily, proposedAction } = ctx.params;
+        const audit = buildAudit(ctx, ctx.params.correlationId);
+
+        if (RESERVED_PROCESS_OPERATION_FAMILIES.has(operationFamily)) {
+          throw new MoleculerClientError(
+            `operationFamily "${operationFamily}" is reserved for a dedicated, validated prepare* action. Use that action instead of the generic Process Intake.`,
+            409,
+            'PROCESS_INTAKE_RESERVED_OPERATION_FAMILY',
+            { operationFamily }
+          );
+        }
+
+        const readOnlyRule = getRule(proposedAction);
+        if (readOnlyRule) {
+          throw new MoleculerClientError(
+            `proposedAction "${proposedAction}" is a registered read-only action — use the Evidence Router contract (POST /api/evidence-router/route) instead of Process Intake.`,
+            409,
+            'PROCESS_INTAKE_TARGET_IS_READ_ONLY',
+            { proposedAction }
+          );
+        }
+
+        const intent = this.intentStore.create({
+          operationFamily,
+          proposedAction,
+          targetType: ctx.params.targetType || null,
+          targetId: ctx.params.targetId || null,
+          inputSummary: ctx.params.inputSummary || `${operationFamily}: ${proposedAction}`,
+          payload: ctx.params.payload || {},
+          risk: ctx.params.risk || 'medium',
+          createdBy: audit.requestedBy,
+          correlationId: audit.correlationId,
+          reason: ctx.params.reason,
+          decisionFrameId: ctx.params.decisionFrameId || null,
+        });
+
+        return {
+          success: true,
+          resolved: { kind: 'process_intake', source: 'process_intent_store' },
+          receipt: {
+            intentId: intent.intentId,
+            operationFamily: intent.operationFamily,
+            proposedAction: intent.proposedAction,
+            status: intent.status,
+            requiresHumanConfirmation: intent.requiresHumanConfirmation,
+            expiresAt: intent.expiresAt,
+          },
+          policy: {
+            readOnly: false,
+            sideEffects: 'pending_human_confirmation',
+            tenantScoped: true,
+            externalSideEffects: false,
+            hitlRequired: true,
+          },
+          executeVia: {
+            operationId: 'executeProcessIntent',
+            note: 'Not available via Copilot/Sidecar. A human must execute or reject this intent via the direct API.',
+          },
+          auditTrail: audit,
         };
       },
     },
