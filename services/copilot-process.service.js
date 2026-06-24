@@ -1454,7 +1454,12 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
         targetId: { type: 'string', optional: true },
         inputSummary: { type: 'string', optional: true, max: 500 },
         payload: { type: 'object', optional: true, default: {} },
-        risk: { type: 'enum', values: ['low', 'medium', 'high'], optional: true, default: 'medium' },
+        risk: {
+          type: 'enum',
+          values: ['low', 'medium', 'high'],
+          optional: true,
+          default: 'medium',
+        },
         reason: { type: 'string', optional: true, max: 500 },
         correlationId: { type: 'string', optional: true },
         decisionFrameId: { type: 'string', optional: true },
@@ -1462,7 +1467,8 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
       openapi: {
         operationId: 'prepareProcessIntent',
         'x-openai-isConsequential': false,
-        summary: 'Generic Process Intake — creates a pending_confirmation intent, no write, no auto-execution',
+        summary:
+          'Generic Process Intake — creates a pending_confirmation intent, no write, no auto-execution',
         description: `Separate contract from the read-only Evidence Router (POST /api/evidence-router/route). Accepts a generic, domain-agnostic process/write intent and creates a ProcessExecutionIntent in pending_confirmation status. Establishes the intake/classification/HITL boundary only — the created intent's operationFamily has no case in executeProcessIntent's dispatch table (_executeIntent), so it can never be auto-executed until a developer deliberately adds a reviewed, specific case. Rejects domain-reserved operationFamily values (use the dedicated prepare* action instead, e.g. prepareVdmiEvidence) and rejects proposedAction values that resolve to a registered read-only action (use the Evidence Router instead).`,
         tags: [SERVICE_TAG],
         requestBody: {
@@ -1490,7 +1496,8 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
                   inputSummary: { type: 'string', maxLength: 500 },
                   payload: {
                     type: 'object',
-                    description: 'Arbitrary structured or semi-structured process data supplied by the user.',
+                    description:
+                      'Arbitrary structured or semi-structured process data supplied by the user.',
                   },
                   risk: { type: 'string', enum: ['low', 'medium', 'high'], default: 'medium' },
                   reason: { type: 'string', maxLength: 500 },

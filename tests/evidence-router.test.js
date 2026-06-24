@@ -143,9 +143,7 @@ describe('routeEvidence', () => {
 
     expect(result.requiredEvidenceTypes).toEqual(['market_signal']);
     expect(result.coverage.coveredEvidenceTypes).toEqual(['market_signal']);
-    expect(
-      result.recommendedEndpoints.every((e) => e.resultKind === 'market_signal')
-    ).toBe(true);
+    expect(result.recommendedEndpoints.every((e) => e.resultKind === 'market_signal')).toBe(true);
   });
 
   test('fails soft (no throw) when called without a broker', () => {

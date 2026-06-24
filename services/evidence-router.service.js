@@ -31,7 +31,8 @@ module.exports = {
       openapi: {
         operationId: 'evidenceRouterRoute',
         tags: [OPENAPI_TAG],
-        summary: 'Recommend read-only evidence endpoints for a request (never executes, never answers)',
+        summary:
+          'Recommend read-only evidence endpoints for a request (never executes, never answers)',
         description:
           'Infers which evidence type(s) (resultKind, e.g. time_series, asset_table, market_signal) the request needs, ' +
           'then matches them against a curated read-only endpoint catalog. Recommends one or more approved read-only ' +
@@ -59,7 +60,8 @@ module.exports = {
                   context: {
                     type: 'object',
                     additionalProperties: true,
-                    description: 'Optional canonical input values (location, dateFrom, dateTo, assetType, ...).',
+                    description:
+                      'Optional canonical input values (location, dateFrom, dateTo, assetType, ...).',
                   },
                 },
               },
@@ -67,7 +69,8 @@ module.exports = {
                 timeSeries: {
                   summary: 'Time-series / CO2 evidence request',
                   value: {
-                    question: 'Wie hoch ist die CO2-Intensität in den nächsten 24 Stunden in 69168?',
+                    question:
+                      'Wie hoch ist die CO2-Intensität in den nächsten 24 Stunden in 69168?',
                     context: { location: '69168' },
                   },
                 },
@@ -84,12 +87,20 @@ module.exports = {
         },
         responses: {
           200: {
-            description: 'Evidence Router response — recommendation, never an executed result or final answer.',
+            description:
+              'Evidence Router response — recommendation, never an executed result or final answer.',
             content: {
               'application/json': {
                 schema: {
                   type: 'object',
-                  required: ['success', 'resolved', 'requiredEvidenceTypes', 'recommendedEndpoints', 'coverage', 'nextStep'],
+                  required: [
+                    'success',
+                    'resolved',
+                    'requiredEvidenceTypes',
+                    'recommendedEndpoints',
+                    'coverage',
+                    'nextStep',
+                  ],
                   properties: {
                     success: { type: 'boolean' },
                     resolved: {

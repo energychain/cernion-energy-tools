@@ -55,7 +55,9 @@ function deriveInputHintsFromQuestion(question) {
     hints.assetType = 'wind';
   }
 
-  const betweenKw = haystack.match(/zwischen\s+(\d+(?:[.,]\d+)?)\s*(?:und|-)\s*(\d+(?:[.,]\d+)?)\s*kw\b/);
+  const betweenKw = haystack.match(
+    /zwischen\s+(\d+(?:[.,]\d+)?)\s*(?:und|-)\s*(\d+(?:[.,]\d+)?)\s*kw\b/
+  );
   if (betweenKw) {
     hints.minCapacity = Number(betweenKw[1].replace(',', '.'));
     hints.maxCapacity = Number(betweenKw[2].replace(',', '.'));
@@ -195,10 +197,7 @@ function resolveStepToEndpoint(step, canonicalInputs, broker) {
 
 function countProvidedInputRefs(step, planningContext) {
   const refs = new Set();
-  const values = [
-    step?.action,
-    ...Object.values(isPlainObject(step?.params) ? step.params : {}),
-  ];
+  const values = [step?.action, ...Object.values(isPlainObject(step?.params) ? step.params : {})];
 
   for (const value of values) {
     if (typeof value !== 'string') continue;
@@ -269,7 +268,9 @@ function compileReadOnlyExecutionPlan({ question, context = {}, broker }) {
 
   const inputHints = deriveInputHintsFromQuestion(question);
   const planningContext = { ...inputHints, ...context };
-  const match = detectBlueprintIntent(question, planningContext, inputHints, { includeRestPlanOnly: true });
+  const match = detectBlueprintIntent(question, planningContext, inputHints, {
+    includeRestPlanOnly: true,
+  });
   const blueprint = match
     ? loadBlueprint(match.blueprintId)
     : findSingleStructuredInputBlueprint(planningContext, broker);
