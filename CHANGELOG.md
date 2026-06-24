@@ -5,6 +5,19 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.64.3] — 2026-06-24
+
+### Fixed
+- **MaStR asset location lookups** (`services/energy-market.service.js`, SmartEnergySolutions/cernion-openclaw-sidecar#1): `installations` no longer forwards a non-numeric `location` (city name, or a combined "PLZ Ort" string such as "69256 Mauer") into the `postleitzahl` slot of the underlying `cernion_installations_local` tool, which only accepts an exact 5-digit code. An embedded PLZ is now extracted from combined strings; when none can be resolved, the response carries a structured `locationResolutionWarning` instead of a silently empty result array.
+- **Stadtwerk Mauer / real-town naming collision** (`services/capability-broker.service.js`): the "Stadtwerk Mauer" sandbox tenant is named after the real Baden-Württemberg town of Mauer (PLZ 69256). All five Stadtwerk-Mauer capability triggers matched on "69256 mauer" as a bare substring, risking real MaStR/asset-lookup questions about the real town being routed into the fictional sandbox governance capabilities instead of a real asset lookup. Added a shared real-asset-lookup exclusion checked before all five triggers.
+
+### Added
+- **Blueprint-aware read-only REST execution plans for `cernion.ask`** (`src/blueprint-rest-plan-compiler.js`, `src/blueprints/mastr-asset-service-selection-v1.json`, `services/personal-agent.service.js`, #271): the Sidecar-facing `cernion.ask` tool (`POST /api/agent-sidecar/mcp/tools/cernion.ask/call` → `personal-agent.askCernionAgent`) now attempts to compile the request into a single read-only `{ method, path, query }` REST plan via an active Blueprint before falling through to the generic Copilot evidence planner. The plan is only emitted when the resolved Blueprint step's action is registered as a `GET` (read-only) endpoint. New fixture blueprint `mastr-asset-service-selection-v1` demonstrates generic service selection (`assetType` → `assets.<type>`) and parameter normalization (`minCapacity` → `minCapacityKW`, etc.) — verified end-to-end to compile `{ method: GET, path: /api/assets/solar, query: { location, minCapacityKW, maxCapacityKW, commissioningYear, limit } }` for the issue's smoke scenario. `detectBlueprintIntent` (`src/l3-broker.js`) gained an opt-in `includeRestPlanOnly` option so these compile-only fixtures stay out of the internal chat-routing pipeline by default (their action-name templating is not understood by `executeBlueprint`/`buildBlueprintPlan`). The response keeps all existing `askCernionAgent` fields; on success it adds `resolved`/`canonicalInputs`/`execution`/`policy`/`confidence`, and on no-plan it adds `resolved: { kind: 'none' }` plus a human-readable `noPlanReason`.
+
+### Tests
+- Added `tests/blueprint-rest-plan-compiler.test.js` (8 tests): successful compile, per-assetType action selection, no-match fallback, the read-only policy guardrail (non-GET action refused), missing required inputs, unregistered action, optional-param omission, and soft-fail without a broker.
+- Added 2 tests to `tests/l3-broker.test.js` for the new `includeRestPlanOnly` default-exclusion behavior.
+
 ## [0.64.2] — 2026-06-23
 
 ### Added

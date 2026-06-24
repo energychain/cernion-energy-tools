@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.64.2",
+    "version": "0.64.3",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "servers": [
@@ -50572,6 +50572,77 @@
                     "routing": {
                       "type": "object",
                       "additionalProperties": true
+                    },
+                    "resolved": {
+                      "type": "object",
+                      "description": "Blueprint/Capability resolution outcome (energychain/cernion-energy-tools#271). kind is \"blueprint\" when a read-only execution plan was compiled, \"none\" otherwise.",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "blueprint",
+                            "none"
+                          ]
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "string"
+                        },
+                        "source": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "canonicalInputs": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "Normalized inputs used to compile the execution plan, if any."
+                    },
+                    "execution": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Read-only REST execution plan for the Sidecar to run itself, or null when none is available.",
+                      "properties": {
+                        "mode": {
+                          "type": "string",
+                          "example": "read_only_rest_plan"
+                        },
+                        "method": {
+                          "type": "string",
+                          "example": "GET"
+                        },
+                        "path": {
+                          "type": "string",
+                          "example": "/api/assets/solar"
+                        },
+                        "query": {
+                          "type": "object",
+                          "additionalProperties": true
+                        }
+                      }
+                    },
+                    "policy": {
+                      "type": "object",
+                      "properties": {
+                        "readOnly": {
+                          "type": "boolean"
+                        },
+                        "sideEffects": {
+                          "type": "string"
+                        },
+                        "tenantScoped": {
+                          "type": "boolean"
+                        },
+                        "externalSideEffects": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "noPlanReason": {
+                      "type": "string",
+                      "description": "Present when resolved.kind is \"none\" — explains why no executable read-only plan was available."
                     }
                   }
                 }
@@ -61404,5 +61475,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.64.2"
+  "x-version": "0.64.3"
 }
