@@ -82,6 +82,8 @@ const CAPABILITY_DOMAIN_MAP = {
   redispatch_governance: 'redispatch',
   // datasource registry/cache/classifier governance — cross-cutting data infra
   'datasource-governance': 'platform',
+  // read-only UI/API contract discovery such as live-update readiness
+  platform_ui_contracts: 'platform',
   // human-in-the-loop request plumbing — agent/process infrastructure
   hitl: 'platform',
   // MSCONS/MK40 messkonzept, Bilanzkreis/SLP — internal metering data

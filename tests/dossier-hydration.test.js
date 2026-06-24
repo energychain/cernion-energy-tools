@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 84 static rules', () => {
+    it('loads all 86 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(85);
+      expect(rules.length).toBe(86);
     });
 
-    it('compiles all 84 static rules without error', () => {
+    it('compiles all 86 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(85);
+      expect(rules.length).toBe(86);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1679,6 +1679,51 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Owner: netzstrategie');
       expect(formatted).toContain('Blocked Decision: zielnetzpfad');
       expect(formatted).toContain('Side-Effect Guard: hitl.create');
+    });
+
+    it('dashboard-api.liveUpdateStreamContractStatus is dossier-safe and formats stream contract facts', () => {
+      const rule = getRule('dashboard-api.liveUpdateStreamContractStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte live update contract channels=hitl_queue sourceService=hitl sourceAction=list authBoundary=bearer fallback=/api/hitl/items owner=platform pruefen'
+        )
+      ).toEqual({
+        channels: 'hitl_queue',
+        sourceService: 'hitl',
+        sourceAction: 'list',
+        authBoundary: 'bearer',
+        fallbackPollingPath: '/api/hitl/items',
+        ownerRole: 'platform',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'live_update_stream_contract_status',
+        status: 'contract_ready',
+        channels: [
+          {
+            key: 'hitl_queue',
+            availability: 'planned',
+            proposedTransport: 'sse_eventsource',
+            fallbackPollingPath: '/api/hitl/items',
+            authBoundary: 'bearer_token_and_x_tenant_id',
+            ownerRole: 'platform-api',
+          },
+        ],
+        missingEvidence: [],
+        positiveFollowUps: [],
+        sourceActions: {
+          notCalled: ['sse.openConnection'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: live_update_stream_contract_status');
+      expect(formatted).toContain('Live Update Contract Status: contract_ready');
+      expect(formatted).toContain('Channel: hitl_queue');
+      expect(formatted).toContain('Proposed Transport: sse_eventsource');
+      expect(formatted).toContain('Side-Effect Guard: sse.openConnection');
     });
 
     it('dashboard-api.specialGridUsageImpactMapStatus is dossier-safe and formats impact-map facts', () => {

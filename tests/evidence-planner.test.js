@@ -1578,6 +1578,28 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('live_update_stream_contract_status: requires live-update contract evidence', () => {
+    const plan = { routeKey: 'live_update_stream_contract_status' };
+    const result = planEvidence(plan, {
+      channels: 'hitl_queue',
+      sourceService: 'hitl',
+      sourceAction: 'list',
+    });
+
+    expect(result.registryKey).toBe('live_update_stream_contract_status');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['channel_identity', 'source_binding'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'tenant_auth_boundary',
+        'fallback_polling_path',
+        'heartbeat_resume_policy',
+        'owner',
+      ])
+    );
+  });
+
   it('forecast-flex: requires forecast_location', () => {
     const plan = { routeKey: 'forecast-flex' };
     const result = planEvidence(plan, {});

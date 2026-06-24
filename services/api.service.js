@@ -1452,6 +1452,8 @@ module.exports = {
             'dashboard-api.gasGridTransformationAssetCockpitStatus',
           'GET /dashboard/leadership-delta-cockpit':
             'dashboard-api.leadershipDeltaCockpitStatus',
+          'GET /dashboard/live-update-stream-contract':
+            'dashboard-api.liveUpdateStreamContractStatus',
           'POST /stadtwerk-mauer-sandbox-runtime/events':
             'stadtwerk-mauer-sandbox-runtime.ingestEvent',
           'POST /stadtwerk-mauer-sandbox-runtime/reset':

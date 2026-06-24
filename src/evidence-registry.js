@@ -4089,6 +4089,53 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  live_update_stream_contract_status: {
+    sources: [
+      {
+        id: 'channel_identity',
+        label: 'Live-update channel or domain identity',
+        resolvedBy: ['dashboard-api.liveUpdateStreamContractStatus'],
+        contextKeys: ['channels', 'domains', 'uiSurface'],
+        optional: false,
+      },
+      {
+        id: 'source_binding',
+        label: 'Source service/action binding',
+        resolvedBy: ['dashboard-api.liveUpdateStreamContractStatus', 'service-catalog.lookup'],
+        contextKeys: ['sourceService', 'sourceAction'],
+        optional: false,
+      },
+      {
+        id: 'tenant_auth_boundary',
+        label: 'Tenant and auth boundary',
+        resolvedBy: ['dashboard-api.liveUpdateStreamContractStatus', 'token-manager.verify'],
+        contextKeys: ['authBoundary'],
+        optional: false,
+      },
+      {
+        id: 'fallback_polling_path',
+        label: 'Safe fallback polling path',
+        resolvedBy: ['dashboard-api.liveUpdateStreamContractStatus'],
+        contextKeys: ['fallbackPollingPath'],
+        optional: false,
+      },
+      {
+        id: 'heartbeat_resume_policy',
+        label: 'Heartbeat and resume policy expectation',
+        resolvedBy: ['dashboard-api.liveUpdateStreamContractStatus'],
+        contextKeys: ['requiresResume', 'heartbeatSeconds'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Contract owner',
+        resolvedBy: ['dashboard-api.liveUpdateStreamContractStatus', 'vdmi.dossier'],
+        contextKeys: ['ownerRole'],
+        optional: false,
+      },
+    ],
+  },
+
   leadership_delta_cockpit: {
     sources: [
       {

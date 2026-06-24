@@ -3181,6 +3181,59 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  describe('liveUpdateStreamContractStatus', () => {
+    it('reports contract-ready live update channel evidence without opening streams', async () => {
+      const result = await broker.call('dashboard-api.liveUpdateStreamContractStatus', {
+        channels: 'hitl_queue',
+        authBoundary: 'bearer_token_and_x_tenant_id',
+      });
+
+      expect(result.capabilityKey).toBe('live_update_stream_contract_status');
+      expect(result.safety).toBe('read_only');
+      expect(result.status).toBe('contract_ready');
+      expect(result.channels[0]).toMatchObject({
+        key: 'hitl_queue',
+        proposedTransport: 'sse_eventsource',
+        availability: 'planned',
+        sourceService: 'hitl',
+        sourceAction: 'list',
+        fallbackPollingPath: '/api/hitl/items',
+        authBoundary: 'bearer_token_and_x_tenant_id',
+        contractComplete: true,
+      });
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'sse.openConnection',
+          'websocket.upgrade',
+          'stream.subscribe',
+          'event-emitter.emit',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('surfaces missing and unsupported channel gaps as positive follow-ups', async () => {
+      const result = await broker.call('dashboard-api.liveUpdateStreamContractStatus', {
+        channels: 'unknown-domain',
+      });
+
+      expect(result.status).toBe('unsupported_channel');
+      expect(result.channels[0].availability).toBe('not_supported');
+      expect(result.channels[0].contractComplete).toBe(false);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'missing_source_service',
+          'missing_source_action',
+          'missing_fallback_polling_path',
+          'unsupported_channel',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('live_update_stream_contract_status');
+    });
+  });
+
   // -- energySharingSimulationGateStatus ----------------------------------
 
   describe('energySharingSimulationGateStatus', () => {

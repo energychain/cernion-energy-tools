@@ -110,6 +110,7 @@ module.exports = {
       transformationFinancingScenarioViewStatus: 5 * 60 * 1000, // 5 min
       gasGridTransformationAssetCockpitStatus: 5 * 60 * 1000, // 5 min
       leadershipDeltaCockpitStatus: 5 * 60 * 1000, // 5 min
+      liveUpdateStreamContractStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -5984,6 +5985,88 @@ module.exports = {
             ...this.buildGasGridTransformationAssetCockpitStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- liveUpdateStreamContractStatus ------------------------------------
+    /**
+     * GET /api/dashboard/live-update-stream-contract
+     *
+     * Read-only contract/readiness projection for proposed UI live-update
+     * channels. It describes availability, fallback polling, auth/tenant
+     * boundary and resume expectations without opening streams or emitting
+     * events.
+     */
+    liveUpdateStreamContractStatus: {
+      rest: 'GET /live-update-stream-contract',
+      params: {
+        domains: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        channels: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        sourceService: { type: 'string', optional: true, min: 1 },
+        sourceAction: { type: 'string', optional: true, min: 1 },
+        uiSurface: { type: 'string', optional: true, min: 1 },
+        authBoundary: { type: 'string', optional: true, min: 1 },
+        requiresResume: { type: 'boolean', optional: true, convert: true },
+        fallbackPollingPath: { type: 'string', optional: true, min: 1 },
+        heartbeatSeconds: { type: 'number', optional: true, convert: true, min: 1, max: 3600 },
+        ownerRole: { type: 'string', optional: true, min: 1 },
+        availability: { type: 'string', optional: true, min: 1 },
+        includeUnsupportedSample: { type: 'boolean', optional: true, convert: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Live update stream contract -- read-only readiness evidence',
+        description:
+          'Returns a deterministic read-only contract/readiness view for proposed UI live-update channels. The endpoint describes stream kind, tenant/auth boundary, source service/action, current availability, fallback polling path, heartbeat/resume expectation, owner, blockers, gaps and side-effect guards. It does not open SSE/WebSocket connections, subscribe to channels, emit events, create auth modes, call external connectors, mutate domain state or add Personal-Agent shortcuts.',
+        parameters: [
+          { name: 'domains', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'channels', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceService', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceAction', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'uiSurface', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'authBoundary', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'requiresResume', in: 'query', required: false, schema: { type: 'boolean' } },
+          { name: 'fallbackPollingPath', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'heartbeatSeconds', in: 'query', required: false, schema: { type: 'number' } },
+          { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only live-update contract readiness view',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    safety: { type: 'string' },
+                    status: { type: 'string' },
+                    channelCount: { type: 'number' },
+                    channels: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    _errors: { type: 'array' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `live-update-stream-contract:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.liveUpdateStreamContractStatus,
+          async () => ({
+            ...this.buildLiveUpdateStreamContractStatus(params),
+            timestamp: new Date().toISOString(),
           })
         );
       },
@@ -21336,6 +21419,198 @@ module.exports = {
           sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,
         },
+      };
+    },
+
+    buildLiveUpdateStreamContractStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const normalizeKey = (value) =>
+        String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+      const titleize = (value) => String(value || '').trim().replace(/[_-]+/g, ' ');
+      const inferTransport = (key) => {
+        if (/websocket|ws\b/.test(key)) return 'websocket';
+        if (/polling|fallback/.test(key)) return 'polling_fallback';
+        return 'sse_eventsource';
+      };
+      const inferFallback = (key) => {
+        if (/hitl/.test(key)) return '/api/hitl/items';
+        if (/rag|knowledge/.test(key)) return '/api/knowledge-rag/jobs/:id';
+        if (/mastr/.test(key)) return '/api/mastr-monitor/watches/:id';
+        if (/job/.test(key)) return '/api/jobs/:id';
+        if (/nova/.test(key)) return '/api/nova/status';
+        if (/cya|session/.test(key)) return '/api/cya/sessions/:id';
+        if (/observability|log/.test(key)) return '/api/observability/mini';
+        return null;
+      };
+      const defaultSource = (key) => {
+        if (/hitl/.test(key)) return { sourceService: 'hitl', sourceAction: 'list' };
+        if (/rag|knowledge/.test(key)) return { sourceService: 'knowledge-rag', sourceAction: 'getJob' };
+        if (/mastr/.test(key)) return { sourceService: 'mastr-monitor', sourceAction: 'getWatch' };
+        if (/job/.test(key)) return { sourceService: 'jobs', sourceAction: 'get' };
+        if (/nova/.test(key)) return { sourceService: 'nova', sourceAction: 'status' };
+        if (/cya|session/.test(key)) return { sourceService: 'cya', sourceAction: 'getSession' };
+        if (/observability|log/.test(key)) return { sourceService: 'observability', sourceAction: 'mini' };
+        return { sourceService: null, sourceAction: null };
+      };
+
+      const requested = [...toList(params.channels), ...toList(params.domains)];
+      if (requested.length === 0) requested.push(params.uiSurface || 'dashboard.live-updates');
+      if (params.includeUnsupportedSample) requested.push('unsupported-domain');
+
+      const missingMap = {
+        missing_channel: 'adds the concrete UI channel or domain that needs live-update evidence.',
+        missing_source_service: 'adds source-service binding evidence for the proposed channel.',
+        missing_source_action: 'adds domain action contract evidence for the proposed channel.',
+        missing_auth_boundary: 'adds tenant/auth readiness evidence.',
+        missing_fallback_polling_path: 'adds the safe polling fallback path for UI clients.',
+        missing_resume_policy: 'adds heartbeat/resume contract evidence.',
+        unsupported_channel: 'adds product/architecture decision evidence before any stream is claimed.',
+      };
+      const missingEvidence = [];
+      const addGap = (id, channelKey) => {
+        if (!missingEvidence.some((gap) => gap.missingDataPoint === id && gap.channelKey === channelKey)) {
+          missingEvidence.push({
+            missingDataPoint: id,
+            channelKey,
+            enablesDossierAddition: missingMap[id],
+          });
+        }
+      };
+
+      const channels = requested.map((raw, index) => {
+        const channelKey = normalizeKey(raw) || `channel_${index + 1}`;
+        const source = defaultSource(channelKey);
+        const sourceService = params.sourceService || source.sourceService;
+        const sourceAction = params.sourceAction || source.sourceAction;
+        const fallbackPollingPath = params.fallbackPollingPath || inferFallback(channelKey);
+        const explicitUnsupported = /unsupported|not_supported|unknown/.test(channelKey);
+        const availability = explicitUnsupported
+          ? 'not_supported'
+          : params.availability || 'planned';
+        const requiresResume = params.requiresResume !== undefined ? Boolean(params.requiresResume) : true;
+        const resumePolicy = requiresResume
+          ? {
+              required: true,
+              heartbeatSeconds: params.heartbeatSeconds || 15,
+              lastEventId: 'expected_for_future_transport',
+            }
+          : { required: false, heartbeatSeconds: params.heartbeatSeconds || 15 };
+        const item = {
+          key: channelKey,
+          label: titleize(raw) || 'dashboard live updates',
+          proposedTransport: inferTransport(channelKey),
+          availability,
+          safety: 'read_only_contract_only',
+          tenantBoundary: params.authBoundary || 'bearer_token_and_x_tenant_id',
+          authBoundary: params.authBoundary || 'bearer_token_and_x_tenant_id',
+          uiSurface: params.uiSurface || 'dashboard',
+          sourceService,
+          sourceAction,
+          fallbackPollingPath,
+          resumePolicy,
+          ownerRole: params.ownerRole || 'platform-api',
+          blockers: [],
+        };
+        if (!isProvided(raw)) addGap('missing_channel', channelKey);
+        if (!sourceService) addGap('missing_source_service', channelKey);
+        if (!sourceAction) addGap('missing_source_action', channelKey);
+        if (!isProvided(item.authBoundary)) addGap('missing_auth_boundary', channelKey);
+        if (!fallbackPollingPath) addGap('missing_fallback_polling_path', channelKey);
+        if (requiresResume && !resumePolicy.heartbeatSeconds) addGap('missing_resume_policy', channelKey);
+        if (explicitUnsupported) {
+          item.blockers.push('No supported source service/action or fallback path is declared for this channel.');
+          addGap('unsupported_channel', channelKey);
+        }
+        item.contractComplete =
+          item.availability !== 'not_supported' &&
+          Boolean(item.sourceService && item.sourceAction && item.fallbackPollingPath && item.authBoundary);
+        return item;
+      });
+
+      const status = channels.some((channel) => channel.availability === 'not_supported')
+        ? 'unsupported_channel'
+        : channels.every((channel) => channel.contractComplete)
+          ? 'contract_ready'
+          : 'needs_contract_evidence';
+      const sourceActions = {
+        inspected: ['dashboard-api.liveUpdateStreamContractStatus'],
+        referenced: channels
+          .flatMap((channel) => [
+            channel.sourceService && channel.sourceAction
+              ? `${channel.sourceService}.${channel.sourceAction}`
+              : null,
+            channel.fallbackPollingPath,
+          ])
+          .filter(Boolean),
+        notCalled: [
+          'sse.openConnection',
+          'websocket.upgrade',
+          'stream.subscribe',
+          'stream.multiplex',
+          'stream.replay',
+          'event-emitter.emit',
+          'observability.tailLogs',
+          'auth.createTokenMode',
+          'hitl.create',
+          'nova.apply',
+          'cya.sessionMutate',
+          'knowledge-rag.ingest',
+          'mastr-monitor.createWatch',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'live_update_stream_contract_status',
+      }));
+      const dossierFacts = [
+        `Live Update Contract Status: ${status}`,
+        `Channel Count: ${channels.length}`,
+        ...channels.map((channel) => (
+          `${channel.key}: ${channel.availability} via ${channel.proposedTransport}; fallback ${channel.fallbackPollingPath || 'missing'}`
+        )),
+      ];
+
+      return {
+        capabilityKey: 'live_update_stream_contract_status',
+        safety: 'read_only',
+        status,
+        channelCount: channels.length,
+        channels,
+        missingEvidence,
+        positiveFollowUps,
+        nextActions: positiveFollowUps.map((gap) => ({
+          action: 'requestEvidence',
+          missingDataPoint: gap.missingDataPoint,
+          description: gap.enablesDossierAddition,
+        })),
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'live_update_stream_contract_status',
+          status,
+          channelCount: channels.length,
+          channels: channels.map((channel) => ({
+            key: channel.key,
+            availability: channel.availability,
+            proposedTransport: channel.proposedTransport,
+            fallbackPollingPath: channel.fallbackPollingPath,
+            authBoundary: channel.authBoundary,
+            ownerRole: channel.ownerRole,
+          })),
+          missingEvidence,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+        _errors: [],
       };
     },
 

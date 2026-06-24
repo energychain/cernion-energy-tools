@@ -530,6 +530,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/leadership-delta-cockpit']).toBe(
         'dashboard-api.leadershipDeltaCockpitStatus'
       );
+      expect(aliases['GET /dashboard/live-update-stream-contract']).toBe(
+        'dashboard-api.liveUpdateStreamContractStatus'
+      );
       expect(aliases['POST /stadtwerk-mauer-sandbox-runtime/events']).toBe(
         'stadtwerk-mauer-sandbox-runtime.ingestEvent'
       );
