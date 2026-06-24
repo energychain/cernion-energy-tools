@@ -175,6 +175,67 @@ describe('compileReadOnlyExecutionPlan', () => {
     expect(result.execution.path).toBe('/api/assets/wind');
   });
 
+  test('compiles a safe active runtime blueprint even when restPlanOnly is absent', () => {
+    mockDetectBlueprintIntent.mockReturnValue({
+      blueprintId: 'mastr-asset-service-selection-v1',
+      score: 6,
+    });
+    mockLoadBlueprint.mockReturnValue({
+      ...ASSET_SELECTION_BLUEPRINT,
+      version: '1.0.0-runtime-mauer-solar-parameter-canonicalization',
+      routing: {
+        intentSignals: ['solar anlagen', 'leistung zwischen'],
+      },
+      execution: {
+        steps: [
+          {
+            id: 'solar_asset_lookup',
+            action: 'assets.solar',
+            params: {
+              location: '{{inputs.location}}',
+              minCapacityKW: '{{inputs.minCapacity}}',
+              maxCapacityKW: '{{inputs.maxCapacity}}',
+              commissioningYear: '{{inputs.commissioningYear}}',
+              limit: '{{inputs.limit}}',
+            },
+          },
+        ],
+      },
+    });
+
+    const result = compileReadOnlyExecutionPlan({
+      question: 'Liste alle Solaranlagen in 69168 zwischen 10 und 13 kW aus 2025',
+      context: {
+        assetType: 'solar',
+        location: '69168',
+        minCapacity: 10,
+        maxCapacity: 13,
+        commissioningYear: 2025,
+        limit: 100,
+      },
+      broker: ASSETS_BROKER,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.resolved).toMatchObject({
+      kind: 'blueprint',
+      id: 'mastr-asset-service-selection-v1',
+      version: '1.0.0-runtime-mauer-solar-parameter-canonicalization',
+    });
+    expect(result.execution).toEqual({
+      mode: 'read_only_rest_plan',
+      method: 'GET',
+      path: '/api/assets/solar',
+      query: {
+        location: '69168',
+        minCapacityKW: 10,
+        maxCapacityKW: 13,
+        commissioningYear: 2025,
+        limit: 100,
+      },
+    });
+  });
+
   test('derives fixture inputs from the natural-language question when structured inputs are absent', () => {
     mockDetectBlueprintIntent.mockReturnValue({
       blueprintId: 'mastr-asset-service-selection-v1',

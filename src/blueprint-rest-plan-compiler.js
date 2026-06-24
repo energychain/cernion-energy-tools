@@ -11,10 +11,10 @@
  * its own generic GET-only REST proxy. Keeping it separate means the internal
  * execution path is untouched by this feature.
  *
- * Only blueprints flagged `routing.restPlanOnly: true` are considered (see
- * detectBlueprintIntent's includeRestPlanOnly option) — this keeps action-name
- * templating (e.g. "assets.{{inputs.assetType}}", not understood by executeBlueprint)
- * out of the internal chat-routing match set.
+ * `routing.restPlanOnly: true` blueprints are included in matching via
+ * detectBlueprintIntent's includeRestPlanOnly option. The flag is a routing
+ * isolation signal, not a safety gate: runtime-managed blueprints may omit it,
+ * so plan emission is guarded by the resolved live REST action being GET-only.
  */
 
 const { detectBlueprintIntent } = require('./l3-broker');
@@ -167,7 +167,7 @@ function compileReadOnlyExecutionPlan({ question, context = {}, broker }) {
   }
 
   const blueprint = loadBlueprint(match.blueprintId);
-  if (!blueprint || blueprint.routing?.restPlanOnly !== true) {
+  if (!blueprint) {
     return { ok: false, reason: 'no_blueprint_match' };
   }
 
