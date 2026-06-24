@@ -23,6 +23,7 @@ const { resolvePathInScope } = require('./l2-blueprint-interpreter');
 
 const ACTION_TEMPLATE_RE = /^[a-zA-Z0-9_-]+\.\{\{\s*inputs\.([a-zA-Z0-9_]+)\s*\}\}$/;
 const PARAM_TEMPLATE_RE = /^\{\{\s*([^}]+)\s*\}\}$/;
+const INPUT_REF_RE = /\{\{\s*inputs\.([a-zA-Z0-9_]+)\s*\}\}/g;
 const POSTAL_CODE_RE = /\b\d{5}\b/;
 const YEAR_RE = /\b(20\d{2}|19\d{2})\b/;
 
@@ -140,6 +141,26 @@ function resolveParamValue(template, canonicalInputs) {
   return resolvePathInScope(match[1].trim(), { inputs: canonicalInputs });
 }
 
+function countProvidedInputRefs(step, planningContext) {
+  const refs = new Set();
+  const values = [
+    step?.action,
+    ...Object.values(isPlainObject(step?.params) ? step.params : {}),
+  ];
+
+  for (const value of values) {
+    if (typeof value !== 'string') continue;
+    for (const match of value.matchAll(INPUT_REF_RE)) {
+      const key = match[1];
+      if (planningContext?.[key] != null && planningContext[key] !== '') {
+        refs.add(key);
+      }
+    }
+  }
+
+  return refs.size;
+}
+
 function findSingleStructuredInputBlueprint(planningContext, broker) {
   const candidates = [];
 
@@ -159,10 +180,18 @@ function findSingleStructuredInputBlueprint(planningContext, broker) {
     const restRegistration = findActionRestRegistration(broker, resolvedAction);
     if (!restRegistration || restRegistration.method !== 'GET') continue;
 
-    candidates.push({ blueprint });
+    const inputRefCount = countProvidedInputRefs(step, planningContext);
+    if (inputRefCount === 0) continue;
+
+    candidates.push({ blueprint, inputRefCount });
   }
 
-  return candidates.length === 1 ? candidates[0].blueprint : null;
+  candidates.sort((a, b) => b.inputRefCount - a.inputRefCount);
+  if (candidates.length === 0) return null;
+  if (candidates.length > 1 && candidates[0].inputRefCount === candidates[1].inputRefCount) {
+    return null;
+  }
+  return candidates[0].blueprint;
 }
 
 /**
