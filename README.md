@@ -289,7 +289,7 @@ Start with [.env.example](.env.example). Common variables:
 | `LLM_PROVIDER` | LLM provider (`gemini`, `openai-compat`, `ollama`) |
 | `LLM_MODEL` | Model name for the selected provider |
 | `LLM_API_KEY` / `GEMINI_API_KEY` | Provider credentials when needed |
-| `MCP_SERVER_URL` | Cernion MCP/server URL where applicable |
+| `API_URL` | Base URL used in generated OpenAPI servers and CLI share links |
 | `PORT` | API gateway port, default `3000` |
 | `TRACING_ENABLED` | Enable OpenTelemetry tracing |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP HTTP trace destination |
