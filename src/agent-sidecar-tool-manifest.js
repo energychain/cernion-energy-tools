@@ -15,10 +15,10 @@ const MVP_TOOLS = [
     tenantPolicy: 'context_tenant_must_match_auth_tenant',
     rolePolicy: ['ROLE_UTILITY_HQ', 'ROLE_GRID_OPERATOR'],
     hitlPolicy: 'may_surface_required_human_approval_but_must_not_resolve',
-    responseContract: 'compact_evidence_answer',
+    responseContract: 'compact_evidence_answer_or_blueprint_execution_plan',
     sideEffects: SIDE_EFFECT_NONE,
     description:
-      'Returns compact Cernion evidence, process context and guardrails without modifying process data.',
+      'Returns either a read-only Blueprint-compiled execution plan ({ resolved, canonicalInputs, execution: { mode, method, path, query }, policy }) for the Sidecar to execute itself, or — when no active Blueprint compiles the request — compact Cernion evidence, process context and guardrails (resolved.kind === "none", with noPlanReason). Never modifies process data. See energychain/cernion-energy-tools#271.',
   },
   {
     name: 'cernion.answer_dossier',

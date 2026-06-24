@@ -2159,6 +2159,10 @@ module.exports = {
         question: { type: 'string', min: 1, trim: true, max: 8000 },
         sessionId: { type: 'string', optional: true, trim: true, max: 120 },
         context: { type: 'object', optional: true, default: {} },
+        // Canonical structured input values for Blueprint REST-plan compilation
+        // (e.g. assetType, location, minCapacity). Kept separate from `context`
+        // (tenant/session metadata) — see energychain/cernion-energy-tools#271.
+        inputs: { type: 'object', optional: true, default: {} },
         domain: {
           type: 'enum',
           optional: true,
@@ -2211,6 +2215,13 @@ module.exports = {
                     type: 'object',
                     additionalProperties: true,
                     description: 'Optional tenant, user, object, process or document context.',
+                  },
+                  inputs: {
+                    type: 'object',
+                    additionalProperties: true,
+                    description:
+                      'Optional canonical structured input values (e.g. assetType, location, minCapacity, maxCapacity, commissioningYear, limit) for Blueprint read-only REST-plan compilation. Separate from `context`.',
+                    example: { assetType: 'solar', location: '69168', minCapacity: 10, maxCapacity: 13, commissioningYear: 2025, limit: 100 },
                   },
                   domain: {
                     type: 'string',
@@ -2390,6 +2401,7 @@ module.exports = {
         const domain = ctx.params.domain || 'auto';
         const mode = ctx.params.mode || 'answer';
         const context = ctx.params.context || {};
+        const inputs = ctx.params.inputs || {};
         const maxEvidence = ctx.params.maxEvidence || 5;
 
         // Blueprint-aware read-only REST plan (energychain/cernion-energy-tools#271):
@@ -2397,9 +2409,12 @@ module.exports = {
         // GET service call, return that plan directly so the Sidecar can execute it
         // via its own generic REST proxy, without Cernion executing anything itself
         // and without the Sidecar needing any domain-specific endpoint knowledge.
+        // `inputs` (canonical structured values) and `context` (tenant/session
+        // metadata) are merged only for plan compilation — `context` alone is
+        // still used unchanged below for the evidence-planner fallback path.
         const restPlan = compileReadOnlyExecutionPlan({
           question: ctx.params.question,
-          context,
+          context: { ...context, ...inputs },
           broker: ctx.broker,
         });
 

@@ -168,6 +168,45 @@ describe('agent-sidecar service', () => {
     expect(calls).toHaveLength(0);
   });
 
+  it('forwards inputs and the query compatibility alias to askCernionAgent (issue #271 follow-up)', async () => {
+    const result = await broker.call(
+      'agent-sidecar.callTool',
+      {
+        name: 'cernion.ask',
+        input: {
+          // No `question` field — only the documented `query` compatibility alias.
+          query: 'Liste alle Solaranlagen in 69168 zwischen 10 und 13 kW aus 2025',
+          context: { tenantId: 'public' },
+          inputs: {
+            assetType: 'solar',
+            location: '69168',
+            minCapacity: 10,
+            maxCapacity: 13,
+            commissioningYear: 2025,
+            limit: 100,
+          },
+        },
+      },
+      readOnlyMeta('public')
+    );
+
+    expect(result.success).toBe(true);
+    const forwarded = calls.find((c) => c.action === 'personal-agent.askCernionAgent');
+    expect(forwarded).toBeDefined();
+    expect(forwarded.params.question).toBe(
+      'Liste alle Solaranlagen in 69168 zwischen 10 und 13 kW aus 2025'
+    );
+    expect(forwarded.params.context).toEqual({ tenantId: 'public' });
+    expect(forwarded.params.inputs).toEqual({
+      assetType: 'solar',
+      location: '69168',
+      minCapacity: 10,
+      maxCapacity: 13,
+      commissioningYear: 2025,
+      limit: 100,
+    });
+  });
+
   it('forwards advisory calls without executing the recommended plan', async () => {
     const result = await broker.call(
       'agent-sidecar.callTool',

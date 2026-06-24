@@ -106,9 +106,16 @@ module.exports = {
 
         if (name === 'cernion.ask') {
           const result = await ctx.call('personal-agent.askCernionAgent', {
-            question: input.question,
+            // `query` is the documented compatibility alias for `question`
+            // (energychain/cernion-energy-tools#271 request contract).
+            question: input.question || input.query,
             sessionId: input.sessionId,
             context: input.context || {},
+            // Canonical structured input values for Blueprint REST-plan
+            // compilation — kept separate from `context` (tenant/session
+            // metadata) and forwarded as its own field, not merged here, so
+            // askCernionAgent decides how each is used.
+            inputs: input.inputs || {},
             domain: input.domain || 'auto',
             mode: input.mode || 'answer',
             maxEvidence: input.maxEvidence || 5,

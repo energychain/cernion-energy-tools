@@ -626,4 +626,60 @@ describe('askCernionAgent evidence bundle', () => {
       'cya-session-regulatory'
     );
   });
+
+  // issue #271 follow-up: the OpenClaw Sidecar sends canonical structured
+  // values in `inputs`, separate from `context` (tenant/session metadata).
+  // askCernionAgent must merge both for Blueprint REST-plan compilation.
+  test('compiles a read-only Blueprint plan from inputs merged with context', async () => {
+    const service = buildServiceHarness();
+    const handler = PersonalAgentService.actions.askCernionAgent.handler;
+    const fakeBroker = {
+      registry: {
+        getServiceList: () => [
+          { name: 'assets', actions: { 'assets.solar': { rest: 'GET /solar' } } },
+        ],
+      },
+    };
+    const ctx = {
+      meta: { tenantId: 'public' },
+      broker: fakeBroker,
+      params: {
+        question: 'Liste alle Solaranlagen in 69168 zwischen 10 und 13 kW aus 2025',
+        context: { tenantId: 'public' },
+        inputs: {
+          assetType: 'solar',
+          location: '69168',
+          minCapacity: 10,
+          maxCapacity: 13,
+          commissioningYear: 2025,
+          limit: 100,
+        },
+      },
+      call: jest.fn(async (action) => {
+        throw new Error(`unexpected action ${action} — evidence planner must not run when a Blueprint plan compiles`);
+      }),
+    };
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.resolved).toEqual({
+      kind: 'blueprint',
+      id: 'mastr-asset-service-selection-v1',
+      version: '1.0.0',
+      source: 'blueprint_runtime',
+    });
+    expect(result.execution).toEqual({
+      mode: 'read_only_rest_plan',
+      method: 'GET',
+      path: '/api/assets/solar',
+      query: {
+        location: '69168',
+        minCapacityKW: 10,
+        maxCapacityKW: 13,
+        commissioningYear: 2025,
+        limit: 100,
+      },
+    });
+    expect(ctx.call).not.toHaveBeenCalled();
+  });
 });
