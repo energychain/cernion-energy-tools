@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.64.4",
+    "version": "0.64.5",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "servers": [
@@ -52602,10 +52602,44 @@
                       "additionalProperties": true,
                       "description": "Normalized inputs used to compile the execution plan, if any."
                     },
+                    "recommendedEndpoints": {
+                      "type": "array",
+                      "description": "Read-only endpoint recommendations (energychain/cernion-energy-tools#271 architecture follow-up). Cernion recommends which approved read-only endpoint(s) are the evidence surface for this request and what each result set means fachlich — it does not execute them or synthesize a final answer; that is the responsibility of the consuming agent/orchestrator. May contain more than one complementary endpoint.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "method": {
+                            "type": "string",
+                            "example": "GET"
+                          },
+                          "path": {
+                            "type": "string",
+                            "example": "/api/assets/solar"
+                          },
+                          "query": {
+                            "type": "object",
+                            "additionalProperties": true
+                          },
+                          "resultSemantics": {
+                            "type": "object",
+                            "description": "Fachliche Bedeutung des Result-Sets dieses Endpoints.",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "example": "asset_list"
+                              },
+                              "description": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     "execution": {
                       "type": "object",
                       "nullable": true,
-                      "description": "Read-only REST execution plan for the Sidecar to run itself, or null when none is available.",
+                      "description": "Alias of recommendedEndpoints[0] for backward compatibility with #271 consumers that only read a single plan, or null when none is available.",
                       "properties": {
                         "mode": {
                           "type": "string",
@@ -65492,5 +65526,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.64.4"
+  "x-version": "0.64.5"
 }

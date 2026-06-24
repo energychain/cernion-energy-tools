@@ -5,6 +5,14 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.64.5] — 2026-06-24
+
+### Changed
+- **`cernion.ask` multi-endpoint recommendation contract** (`src/blueprint-rest-plan-compiler.js`, `services/agent-sidecar.service.js`, `services/personal-agent.service.js`, architecture follow-up to #271): reframes the read-only plan compiler as an endpoint-recommendation / evidence-discovery contract rather than an answer-transformation one. Cernion recommends which approved read-only endpoint(s) are suitable for a request and what each result set means fachlich (`resultSemantics: { kind, description }`) — it does not execute them or synthesize a final answer; that remains the responsibility of the consuming agent/orchestrator. A blueprint may now resolve to multiple complementary read-only endpoints (one per `execution.steps[]` entry, each resolved independently — an unresolvable step is skipped, not fatal, as long as at least one resolves). New `recommendedEndpoints[]` array on the `askCernionAgent` response; `execution` mirrors `recommendedEndpoints[0]` for backward compatibility. New shared `buildAskBlueprintAnswer()` helper keeps the Sidecar bridge and `askCernionAgent` response shaping in sync. The fixture blueprint `mastr-asset-service-selection-v1` now declares `resultSemantics` on its step.
+
+### Tests
+- Added 3 cases to `tests/blueprint-rest-plan-compiler.test.js` (multi-endpoint recommendation, partial-skip-still-succeeds, `buildAskBlueprintAnswer` wording) and updated `tests/copilot-ask-cernion-agent-evidence.test.js` assertions for the new `resultSemantics` field.
+
 ## [0.64.4] — 2026-06-24
 
 ### Fixed
