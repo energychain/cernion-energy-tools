@@ -9,6 +9,70 @@ function buildServiceHarness() {
 }
 
 describe('askCernionAgent evidence bundle', () => {
+  test('compiles Sidecar Blueprint plan from structured inputs while preserving context metadata', async () => {
+    const service = buildServiceHarness();
+    const handler = PersonalAgentService.actions.askCernionAgent.handler;
+    const ctx = {
+      params: {
+        question: 'Liste alle Solaranlagen in 69168 zwischen 10 und 13 kW aus 2025',
+        context: { tenantId: 'public' },
+        inputs: {
+          assetType: 'solar',
+          location: '69168',
+          minCapacity: 10,
+          maxCapacity: 13,
+          commissioningYear: 2025,
+          limit: 100,
+        },
+      },
+      broker: {
+        registry: {
+          getServiceList: () => [
+            {
+              name: 'assets',
+              actions: {
+                'assets.solar': { rest: 'GET /solar' },
+              },
+            },
+          ],
+        },
+      },
+      call: jest.fn(async () => {
+        throw new Error('Blueprint plan path should not call the evidence fallback');
+      }),
+    };
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.resolved).toEqual({
+      kind: 'blueprint',
+      id: 'mastr-asset-service-selection-v1',
+      version: '1.0.0',
+      source: 'blueprint_runtime',
+    });
+    expect(result.canonicalInputs).toEqual({
+      assetType: 'solar',
+      location: '69168',
+      minCapacity: 10,
+      maxCapacity: 13,
+      commissioningYear: 2025,
+      limit: 100,
+    });
+    expect(result.execution).toEqual({
+      mode: 'read_only_rest_plan',
+      method: 'GET',
+      path: '/api/assets/solar',
+      query: {
+        location: '69168',
+        minCapacityKW: 10,
+        maxCapacityKW: 13,
+        commissioningYear: 2025,
+        limit: 100,
+      },
+    });
+    expect(ctx.call).not.toHaveBeenCalled();
+  });
+
   test('collects entity, knowledge, datapoint and object-store evidence for Copilot', async () => {
     const service = buildServiceHarness();
     const handler = PersonalAgentService.actions.askCernionAgent.handler;
