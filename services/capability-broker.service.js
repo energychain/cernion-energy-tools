@@ -409,7 +409,20 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // Bug fix (cernion-openclaw-sidecar/issues/1): the "Stadtwerk Mauer" sandbox/demo tenant
+  // is named after the real Baden-Württemberg town of Mauer (PLZ 69256). All "69256 mauer" /
+  // "stadtwerk mauer" triggers below previously matched on that substring alone, so a genuine
+  // MaStR/asset-inventory question about the real town ("Liste aller Erzeugungsanlagen in
+  // 69256 Mauer") risked being routed into the fictional sandbox governance capabilities
+  // instead of a real asset lookup. This guard keeps real-asset-lookup intent out of all five
+  // Stadtwerk-Mauer gates below, regardless of the location substring match.
+  const hasRealAssetLookupIntent =
+    /(erzeugungsanlage|erzeugungsanlagen|pv.?anlage|pv.?anlagen|solaranlage|solaranlagen|windanlage|windanlagen|mastr.?(abfrage|lookup|suche|register|anfrage)|anlagenliste|anlagen.?liste|liste aller (anlagen|erzeugungsanlagen|installationen)|installations?.?lookup|installation list|generation (unit|asset)s?|power plant list|assets\.solar|assets\.wind|assets\.all|assets\.storage)/i.test(
+      haystack
+    );
+
   const hasStadtwerkMauerEventReplayRuntimeIntent =
+    !hasRealAssetLookupIntent &&
     /(scheduler|cron starten|event injizieren|event injection|event persist|persistieren|queue|stream|eve runtime|agent execute|agent ausfuehren|agent ausführen|mako senden|marktkommunikation senden|kunde kontaktieren|customer communication|steuerbefehl|billing ausfuehren|billing ausführen|settlement ausfuehren|settlement ausführen|workflow anlegen|workflow execute|task create|notification|external connector)/i.test(haystack) &&
     /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|event simulation|event.?simulation|event replay|ereigniskatalog|synthetic event|synthetische events)/i.test(haystack) &&
     !/(preview|vorschau|read.?only|read only|nur lesen|katalog anzeigen|catalog|replay preview)/i.test(haystack);
@@ -419,6 +432,7 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasStadtwerkMauerEventReplayPreviewSpecificSignal =
+    !hasRealAssetLookupIntent &&
     /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|stadtwerk_mauer_event_replay_preview)/i.test(haystack) &&
     /(event replay preview|event.?simulation preview|ereigniskatalog|synthetic events|synthetische events|pv elektriker event|lieferantenwechsel simulation|zaehlerablesung demo|zählerablesung demo|kundenservice fall|bilanzkreis ereignis|event template|event envelope|ereignis envelope)/i.test(haystack) &&
     /(preview|vorschau|read.?only|read only|nur lesen|katalog|catalog|replay|seed|deterministic|deterministisch|template|event template|event envelope|ereignis envelope|taxonomy|taxonomie)/i.test(haystack) &&
@@ -432,6 +446,7 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasStadtwerkMauerCapabilityProjectionMutationIntent =
+    !hasRealAssetLookupIntent &&
     /(tenant create|erstelle tenant|user create|erstelle user|token create|support token|provision|provisioniere|eve runtime|scheduler|channel|approval|agent directory write|agentenverzeichnis schreiben|agent file|agenten.?datei|artifact placement|artefakt|workflow execute|workflow ausfuehren|workflow ausführen|task create|aufgabe erstellen|notification|benachrichtigung|hitl create|nova mutate|vdmi mutate|event simulation|event.?simulation|event injection|external connector|security hardening|key policy|schluessel|schlüssel|wallet)/i.test(haystack) &&
     /(stadtwerk mauer|69256 mauer|eve stadtwerk|agentic stadtwerk|virtuelles stadtwerk|capability projection|capability.?projektion|rollenfaehigkeit|rollenfähigkeit)/i.test(haystack);
 
@@ -440,6 +455,7 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasStadtwerkMauerCapabilityProjectionSpecificSignal =
+    !hasRealAssetLookupIntent &&
     /(stadtwerk mauer|69256 mauer|eve stadtwerk|agentic stadtwerk|virtuelles stadtwerk|stadtwerk_mauer_capability_projection)/i.test(haystack) &&
     /(capability projection|capability.?projektion|faehigkeiten|fähigkeiten|rollenfaehigkeit|rollenfähigkeit|role capability|rollen capability|management|grid.?planning|netzplanung|asset.?management|regulatory|regulierung|read.?only|advisory|consequential|folge.?up|handoff)/i.test(haystack) &&
     !/(tenant create|erstelle tenant|user create|erstelle user|token create|support token|provision|provisioniere|eve runtime|scheduler|channel|approval|agent directory write|agentenverzeichnis schreiben|agent file|agenten.?datei|artifact placement|artefakt|workflow execute|workflow ausfuehren|workflow ausführen|task create|aufgabe erstellen|notification|benachrichtigung|hitl create|nova mutate|vdmi mutate|event simulation|event.?simulation|event injection|external connector|connector|security hardening|key policy|wallet|key material|schluessel|schlüssel|smgw|cls|device.?control|steuerbefehl)/i.test(haystack);
@@ -452,6 +468,7 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasStadtwerkMauerVdmiProfileSpecificSignal =
+    !hasRealAssetLookupIntent &&
     /(stadtwerk mauer|69256 mauer|eve stadtwerk|agentic stadtwerk|virtuelles stadtwerk|stadtwerk_mauer_vdmi_profile)/i.test(haystack) &&
     /(vdmi|profile|profil|sparten|strom|gas|wasser|waerme|wärme|rolle|rollen|market role|marktrolle|evidenz|evidence|demo.?frage|transformation|netzrisiko)/i.test(haystack) &&
     !/(tenant create|erstelle tenant|user create|erstelle user|token create|support token|provision|provisioniere|eve runtime|scheduler|channel|approval|agent directory write|agentenverzeichnis schreiben|workflow execute|workflow ausfuehren|workflow ausführen|task create|aufgabe erstellen|notification|benachrichtigung|hitl create|nova mutate|vdmi mutate|external connector|connector|legal opinion|rechtsgutachten|wallet|key material|schluessel|schlüssel|backup|disaster recovery|streaming|websocket|smgw|cls|device.?control|steuerbefehl|rpa|bot run|automation ausfuehren|automation ausführen|gas capacity booking|wasser pricing|water pricing|capacity booking)/i.test(haystack);

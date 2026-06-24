@@ -990,6 +990,48 @@ module.exports = {
           }
         }
 
+        // Bug fix (#1, cernion-openclaw-sidecar/issues/1): cernion_installations_local has
+        // no free-text city/region filter — only an exact 5-digit `postleitzahl`. Blindly
+        // forwarding a non-numeric `location` ("Mauer", "69256 Mauer") into the `postleitzahl`
+        // slot silently returns 0 rows regardless of real data. Extract an embedded PLZ from
+        // combined "PLZ Ort" strings; if none is present, refuse the unfiltered query (it would
+        // otherwise return the full unfiltered MaStR dataset — see RangeError guard elsewhere in
+        // this file) and report the limitation instead of a misleading empty array.
+        let effectivePostleitzahl = params.postleitzahl;
+        let locationResolutionWarning = null;
+        if (!effectivePostleitzahl && params.location) {
+          const embeddedPlz = String(params.location).match(/\b\d{5}\b/);
+          if (embeddedPlz) {
+            effectivePostleitzahl = embeddedPlz[0];
+          } else {
+            locationResolutionWarning =
+              `Location "${params.location}" could not be resolved to a postal code. ` +
+              'The live MaStR backend only supports exact 5-digit postleitzahl filtering, ' +
+              'not free-text city/region search. Pass "postleitzahl" directly, or resolve the ' +
+              'postal code first (e.g. via grid-operations.marketPartners or OSM Geo).';
+          }
+        }
+
+        if (locationResolutionWarning) {
+          return applyFormat(
+            ctx,
+            {
+              success: true,
+              data: {
+                installations: [],
+                stats: computeInstallationStats([]),
+                requestedTypes,
+                pagination: { offset: startOffset, limit: isUnlimited ? 'all' : requestedLimit, count: 0, hasMore: false },
+                locationResolutionWarning,
+              },
+            },
+            format,
+            'installations',
+            'Installations',
+            []
+          );
+        }
+
         let allInstallations = [];
         let firstResult = null;
         let dataExhausted = true;
@@ -998,7 +1040,7 @@ module.exports = {
         for (const installationType of requestedTypes) {
           const baseToolParams = {
             type: installationType,
-            postleitzahl: params.postleitzahl || params.location,
+            postleitzahl: effectivePostleitzahl,
             minCapacity: params.minCapacityKW,
             maxCapacity: params.maxCapacityKW,
             commissioningYear: params.commissioningYear,
