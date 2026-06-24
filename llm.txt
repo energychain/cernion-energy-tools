@@ -246,7 +246,7 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 
 ## Source File Hashes
 - CHANGELOG.md: 903dbb1116badbed9145669366b1d222929689b9ee4b84d56c8b7dadfc211ead
-- README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
+- README.md: 149317e9eea460588ca9ff477c91a9009d275c51fd4bd4f88e9ff1785746836b
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 5190fa2814db597464408cb11f08dfa7bd7798df74e650adbebb6fab71b7f5d4
 - src/capability-catalog.js: 48861dfa0c43a24ccdd24cf935cca39f3b6f3928604628d7b3e6a813751a8e77
@@ -258,4 +258,4 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: d541c920eacbb68bb4f41ecc407fcb16b58393562a193270255e00e16ab51506
+- llm_txt_sha256: af8980f4503eb66127f867ce04d44b9dd6962d44f399e80363146a58312acb98
