@@ -4089,6 +4089,74 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  gas_grid_transformation_asset_cockpit: {
+    sources: [
+      {
+        id: 'program_identity',
+        label: 'Gas transformation program and work-package identity',
+        resolvedBy: ['dashboard-api.gasGridTransformationAssetCockpitStatus'],
+        contextKeys: ['gridOperatorId', 'transformationProgramId', 'workPackageId'],
+        optional: false,
+      },
+      {
+        id: 'asset_segment_scope',
+        label: 'Gas asset segment scope',
+        resolvedBy: ['dashboard-api.gasGridTransformationAssetCockpitStatus', 'assets.all'],
+        contextKeys: ['assetSegmentRef'],
+        optional: false,
+      },
+      {
+        id: 'target_option',
+        label: 'Target option for the gas asset segment',
+        resolvedBy: ['dashboard-api.gasGridTransformationAssetCockpitStatus', 'investment-planning.createPlan'],
+        contextKeys: ['targetOption'],
+        optional: false,
+      },
+      {
+        id: 'technical_reuse_status',
+        label: 'Technical reuse or H2 assessment status',
+        resolvedBy: ['dashboard-api.gasGridTransformationAssetCockpitStatus', 'znp.assessPortfolio'],
+        contextKeys: ['technicalReuseStatus'],
+        optional: false,
+      },
+      {
+        id: 'decommissioning_cost_basis',
+        label: 'Decommissioning, rollback or removal cost basis',
+        resolvedBy: ['dashboard-api.gasGridTransformationAssetCockpitStatus', 'investment-planning.createPlan'],
+        contextKeys: ['decommissioningCostEur', 'rollbackOrRemovalRisk'],
+        optional: false,
+      },
+      {
+        id: 'financial_impact_basis',
+        label: 'Cashflow, TOTEX and regulatory recognition basis',
+        resolvedBy: ['dashboard-api.gasGridTransformationAssetCockpitStatus', 'finance-agent.analyze'],
+        contextKeys: ['cashflowImpact', 'totexImpact', 'regulatoryRecognitionStatus'],
+        optional: false,
+      },
+      {
+        id: 'dependency_review',
+        label: 'Heat, power-grid and customer-transition dependency review',
+        resolvedBy: ['dashboard-api.gasGridTransformationAssetCockpitStatus', 'znp.assessPortfolio'],
+        contextKeys: ['heatNetworkDependency', 'powerGridDependency', 'customerTransitionDependency'],
+        optional: false,
+      },
+      {
+        id: 'decision_gate_owner',
+        label: 'Decision gate and owner role',
+        resolvedBy: ['dashboard-api.gasGridTransformationAssetCockpitStatus', 'vdmi.dossier'],
+        contextKeys: ['decisionGate', 'ownerRole'],
+        optional: false,
+      },
+      {
+        id: 'source_datapoints',
+        label: 'Source datapoints or source actions',
+        resolvedBy: ['dashboard-api.gasGridTransformationAssetCockpitStatus', 'datasource-registry.get'],
+        contextKeys: ['sourceDatapoints', 'sourceActions'],
+        optional: false,
+      },
+    ],
+  },
+
   transformation_financing_scenario_view: {
     sources: [
       {

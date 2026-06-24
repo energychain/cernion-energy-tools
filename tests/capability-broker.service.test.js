@@ -1113,6 +1113,31 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Gasnetz transformation asset cockpit prompts to the read-only asset view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Gasnetztransformation VDMI Asset Cockpit fuer Gaszielnetz H2 Weiterverwendung Gasnetz Stilllegung Rueckbaukosten Cashflow Gasnetz Waermenetz Abhaengigkeit Stromnetz Abhaengigkeit und Gremiengate.',
+    });
+
+    expect(result.capability).toBe('gas_grid_transformation_asset_cockpit');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'gas_grid_transformation_asset_cockpit'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.gasGridTransformationAssetCockpitStatus');
+    expect(actionNames).not.toContain('gas-assets.applyDecommissioning');
+    expect(actionNames).not.toContain('gas-grid.optimizeTargetNetwork');
+    expect(actionNames).not.toContain('h2-feasibility.execute');
+    expect(actionNames).not.toContain('investment.approve');
+    expect(actionNames).not.toContain('finance.createBooking');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('billing.prepareInvoice');
+    expect(actionNames).not.toContain('tariff.mutate');
+    expect(actionNames).not.toContain('mako.dispatch');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('keeps target-grid transformation wording away from the Areal offer gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Netzanschlusspunkt Transformations-Gate mit division transformationOption dataQualityStatus investmentPath decommissionPath owner und nextAction.',

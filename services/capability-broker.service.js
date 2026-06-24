@@ -701,6 +701,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasGasGridTransformationAssetCockpitSpecificSignal =
+    /(gasnetztransformation|gas zielnetz|gaszielnetz|h2 weiterverwendung|wasserstoff weiterverwendung|gasnetz stilllegung|rueckbaukosten|rückbaukosten|gas asset cockpit|vdmi asset cockpit|gas_grid_transformation_asset_cockpit)/i.test(haystack) &&
+    /(asset.?cockpit|arbeitspaket|work.?package|asset.?segment|target.?option|zieloption|technical.?reuse|technische wiederverwendung|cashflow|totex|regulatory recognition|regulatorisch|waermenetz|wärmenetz|stromnetz|kundenuebergang|kundenübergang|decision.?gate|gremiengate|owner|readiness|gaps|follow.?up)/i.test(haystack) &&
+    !/(abhaengigkeitslandkarte|abhängigkeitslandkarte|dependency.?map|transformationsknoten|dependencies|datenqualitaets.?luecken|datenqualitäts.?lücken|investitionspfade|kundengruppen|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|vdmi\.mutate|finance-agent\.mutate|budget\.release|settlement\.prepareBilling|external\.connector\.call|personal-agent\.execute|gas-assets\.applyDecommissioning|gas-grid\.optimizeTargetNetwork|h2-feasibility\.execute|assets\.mutate|datapoint\.mutate)/i.test(haystack);
+
+  if (hasGasGridTransformationAssetCockpitSpecificSignal) {
+    const gasAssetCockpitCapability = findCapabilityByName('gas_grid_transformation_asset_cockpit');
+    if (gasAssetCockpitCapability) {
+      return { capability: gasAssetCockpitCapability, score: 146, usedFallback: false };
+    }
+  }
+
   const hasGasTransformationDependencyMapSpecificSignal =
     /(gasnetztransformation|gasnetz 2045|h2 readiness|wasserstoff|stilllegungspfad|umwidmung|waermenetzausbau|geothermie|abhaengigkeitslandkarte|transformationsoption)/i.test(haystack) &&
     /(projectId|division|nodes|dependencies|dataQualityGaps|investmentPaths|decommissionRepurposePaths|customerGroups|owner|nextAction|gaps|follow.?up|readiness|projekt-id|sparte|abhaengigkeit|datenqualitaet|investitionspfad|stilllegung|umwidmungspfad|kundengruppe|melo-155)/i.test(haystack) &&

@@ -1448,6 +1448,8 @@ module.exports = {
             'dashboard-api.arealNetworkIntegrationOfferGateStatus',
           'GET /dashboard/transformation-financing-scenario-view':
             'dashboard-api.transformationFinancingScenarioViewStatus',
+          'GET /dashboard/gas-grid-transformation-asset-cockpit':
+            'dashboard-api.gasGridTransformationAssetCockpitStatus',
           'POST /stadtwerk-mauer-sandbox-runtime/events':
             'stadtwerk-mauer-sandbox-runtime.ingestEvent',
           'POST /stadtwerk-mauer-sandbox-runtime/reset':

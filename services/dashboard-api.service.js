@@ -108,6 +108,7 @@ module.exports = {
       waterPricingNetInvestmentAlignmentStatus: 5 * 60 * 1000, // 5 min
       arealNetworkIntegrationOfferGateStatus: 5 * 60 * 1000, // 5 min
       transformationFinancingScenarioViewStatus: 5 * 60 * 1000, // 5 min
+      gasGridTransformationAssetCockpitStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -5879,6 +5880,107 @@ module.exports = {
           this.settings.cacheTtlMs.transformationFinancingScenarioViewStatus,
           async () => ({
             ...this.buildTransformationFinancingScenarioViewStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- gasGridTransformationAssetCockpitStatus ---------------------------
+    /**
+     * GET /api/dashboard/gas-grid-transformation-asset-cockpit
+     *
+     * Read-only dossier-safe evidence view for Gasnetz transformation work
+     * packages. It does not mutate gas assets, approve investment/finance
+     * decisions, create HITL/VDMI tasks, run MaKo/billing/settlement/tariff
+     * flows, or call external connectors.
+     */
+    gasGridTransformationAssetCockpitStatus: {
+      rest: 'GET /gas-grid-transformation-asset-cockpit',
+      params: {
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        transformationProgramId: { type: 'string', optional: true, min: 1 },
+        workPackageId: { type: 'string', optional: true, min: 1 },
+        assetSegmentRef: { type: 'string', optional: true, min: 1 },
+        targetOption: { type: 'string', optional: true, min: 1 },
+        technicalReuseStatus: { type: 'string', optional: true, min: 1 },
+        decommissioningCostEur: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'number' }] },
+        rollbackOrRemovalRisk: { type: 'string', optional: true, min: 1 },
+        cashflowImpact: { type: 'string', optional: true, min: 1 },
+        totexImpact: { type: 'string', optional: true, min: 1 },
+        regulatoryRecognitionStatus: { type: 'string', optional: true, min: 1 },
+        heatNetworkDependency: { type: 'string', optional: true, min: 1 },
+        powerGridDependency: { type: 'string', optional: true, min: 1 },
+        customerTransitionDependency: { type: 'string', optional: true, min: 1 },
+        decisionGate: { type: 'string', optional: true, min: 1 },
+        ownerRole: { type: 'string', optional: true, min: 1 },
+        vdmiProcessId: { type: 'string', optional: true, min: 1 },
+        investmentPlanId: { type: 'string', optional: true, min: 1 },
+        financeAnalysisId: { type: 'string', optional: true, min: 1 },
+        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        sourceActions: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Gas grid transformation asset cockpit -- read-only evidence gate',
+        description:
+          'Returns a deterministic dossier-safe view over gas transformation program/work-package identity, asset segment, H2/decommissioning/repurpose option, technical reuse, rollback/removal cost, financial and dependency evidence, decision gate, owner role, missing evidence and explicit non-actions. The endpoint is read-only and never mutates gas assets, approves finance/investment decisions, creates HITL/VDMI tasks, runs MaKo/billing/settlement/tariff flows, or calls external connectors.',
+        parameters: [
+          { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'transformationProgramId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'workPackageId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetSegmentRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'targetOption', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'technicalReuseStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decommissioningCostEur', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'rollbackOrRemovalRisk', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'cashflowImpact', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'totexImpact', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryRecognitionStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'heatNetworkDependency', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'powerGridDependency', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'customerTransitionDependency', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionGate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceDatapoints', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only gas grid transformation asset evidence view',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    programSummary: { type: 'object' },
+                    evidenceGroups: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    nextActions: { type: 'array' },
+                    sourceDatapoints: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `gas-grid-transformation-asset-cockpit:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.gasGridTransformationAssetCockpitStatus,
+          async () => ({
+            ...this.buildGasGridTransformationAssetCockpitStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -20895,6 +20997,243 @@ module.exports = {
           status,
           readinessScore,
           scenarioSummary,
+          decisionReadiness: status,
+          evidenceGroups,
+          sourceDatapoints,
+          missingEvidence,
+          positiveFollowUps,
+          nextActions,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildGasGridTransformationAssetCockpitStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const toNumber = (value) => {
+        if (value === undefined || value === null || value === '') return null;
+        const normalized = typeof value === 'string'
+          ? value.replace(/\s/g, '').replace(',', '.')
+          : value;
+        const n = Number(normalized);
+        return Number.isFinite(n) ? n : null;
+      };
+      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+
+      const sourceDatapoints = toList(params.sourceDatapoints);
+      const callerSourceActions = toList(params.sourceActions);
+      const decommissioningCostEur = toNumber(params.decommissioningCostEur);
+      const missingEvidence = [];
+      const missingMap = {
+        program_identity:
+          'adds gas transformation program and work-package identity to the dossier.',
+        asset_segment_scope:
+          'adds segment-level asset scope and affected infrastructure boundaries.',
+        target_option:
+          'adds the selected continue-gas, H2-reuse, decommissioning, repurpose or defer-decision option.',
+        technical_reuse_status:
+          'adds technical reuse feasibility evidence for the gas asset segment.',
+        decommissioning_cost_basis:
+          'adds rollback/removal cost evidence and committee cost exposure.',
+        financial_impact_basis:
+          'adds cashflow, TOTEX and regulatory recognition facts.',
+        dependency_review:
+          'adds heat-network, power-grid and customer-transition dependency evidence.',
+        decision_gate_owner:
+          'adds the next committee gate and accountable owner role.',
+        source_datapoints:
+          'adds source datapoint or action provenance for every cockpit statement.',
+      };
+      const addGap = (id) => {
+        if (!missingEvidence.some((gap) => gap.missingDataPoint === id)) {
+          missingEvidence.push({
+            missingDataPoint: id,
+            enablesDossierAddition: missingMap[id],
+          });
+        }
+      };
+
+      if (
+        !isProvided(params.gridOperatorId) ||
+        !isProvided(params.transformationProgramId) ||
+        !isProvided(params.workPackageId)
+      ) {
+        addGap('program_identity');
+      }
+      if (!isProvided(params.assetSegmentRef)) addGap('asset_segment_scope');
+      if (!isProvided(params.targetOption)) addGap('target_option');
+      if (!isProvided(params.technicalReuseStatus)) addGap('technical_reuse_status');
+      if (decommissioningCostEur == null && !isProvided(params.rollbackOrRemovalRisk)) {
+        addGap('decommissioning_cost_basis');
+      }
+      if (
+        !isProvided(params.cashflowImpact) ||
+        !isProvided(params.totexImpact) ||
+        !isProvided(params.regulatoryRecognitionStatus)
+      ) {
+        addGap('financial_impact_basis');
+      }
+      if (
+        !isProvided(params.heatNetworkDependency) ||
+        !isProvided(params.powerGridDependency) ||
+        !isProvided(params.customerTransitionDependency)
+      ) {
+        addGap('dependency_review');
+      }
+      if (!isProvided(params.decisionGate) || !isProvided(params.ownerRole)) {
+        addGap('decision_gate_owner');
+      }
+      if (sourceDatapoints.length === 0 && callerSourceActions.length === 0) addGap('source_datapoints');
+
+      let status = 'ready_for_committee';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'program_identity')) {
+        status = 'needs_program_identity';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'asset_segment_scope')) {
+        status = 'needs_asset_scope';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'target_option')) {
+        status = 'needs_target_option';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'technical_reuse_status')) {
+        status = 'needs_h2_assessment';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'decommissioning_cost_basis')) {
+        status = 'needs_decommissioning_cost';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'financial_impact_basis')) {
+        status = 'needs_finance_review';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'dependency_review')) {
+        status = 'needs_dependency_review';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'decision_gate_owner')) {
+        status = 'needs_decision_gate';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_source_evidence';
+      }
+
+      const requiredCount = Object.keys(missingMap).length;
+      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const sourceActions = {
+        inspected: ['dashboard-api.gasGridTransformationAssetCockpitStatus'],
+        referenced: [
+          'datasource-registry.get',
+          'datapoint.health',
+          'investment-planning.createPlan',
+          'finance-agent.analyze',
+          'znp.assessPortfolio',
+          'assets.all',
+          'gas-storage.countryStorage',
+          'vdmi.dossier',
+          'presentation.generate',
+          ...callerSourceActions,
+        ],
+        notCalled: [
+          'gas-assets.create',
+          'gas-assets.update',
+          'gas-assets.applyDecommissioning',
+          'gas-grid.optimizeTargetNetwork',
+          'h2-feasibility.execute',
+          'investment.approve',
+          'finance.createBooking',
+          'treasury.executeTransfer',
+          'accounting.postJournal',
+          'hitl.create',
+          'vdmi.taskMutate',
+          'settlement.exportA96',
+          'billing.prepareInvoice',
+          'tariff.mutate',
+          'mako.dispatch',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const programSummary = {
+        gridOperatorId: params.gridOperatorId || null,
+        transformationProgramId: params.transformationProgramId || null,
+        workPackageId: params.workPackageId || null,
+        vdmiProcessId: params.vdmiProcessId || null,
+        investmentPlanId: params.investmentPlanId || null,
+        financeAnalysisId: params.financeAnalysisId || null,
+      };
+      const evidenceGroups = {
+        assetScope: {
+          assetSegmentRef: params.assetSegmentRef || null,
+          targetOption: params.targetOption || null,
+          gasAssetMutated: false,
+        },
+        technicalReuse: {
+          technicalReuseStatus: params.technicalReuseStatus || null,
+          h2FeasibilityExecuted: false,
+        },
+        decommissioning: {
+          decommissioningCostEur,
+          rollbackOrRemovalRisk: params.rollbackOrRemovalRisk || null,
+          decommissioningApplied: false,
+        },
+        financialImpact: {
+          cashflowImpact: params.cashflowImpact || null,
+          totexImpact: params.totexImpact || null,
+          regulatoryRecognitionStatus: params.regulatoryRecognitionStatus || null,
+          investmentApproved: false,
+          financeBookingCreated: false,
+        },
+        dependencies: {
+          heatNetworkDependency: params.heatNetworkDependency || null,
+          powerGridDependency: params.powerGridDependency || null,
+          customerTransitionDependency: params.customerTransitionDependency || null,
+        },
+        committeeGate: {
+          decisionGate: params.decisionGate || null,
+          ownerRole: params.ownerRole || null,
+          hitlCreated: false,
+        },
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'gas_grid_transformation_asset_cockpit',
+      }));
+      const nextActions = positiveFollowUps.map((gap) => ({
+        action: 'requestEvidence',
+        missingDataPoint: gap.missingDataPoint,
+        description: gap.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `Gas Grid Transformation Status: ${status}`,
+        `Program: ${programSummary.transformationProgramId || 'missing'}`,
+        `Work Package: ${programSummary.workPackageId || 'missing'}`,
+        `Asset Segment: ${evidenceGroups.assetScope.assetSegmentRef || 'missing'}`,
+        `Target Option: ${evidenceGroups.assetScope.targetOption || 'missing'}`,
+        `Technical Reuse: ${evidenceGroups.technicalReuse.technicalReuseStatus || 'missing'}`,
+        `Decommissioning Cost: ${decommissioningCostEur == null ? 'missing' : decommissioningCostEur}`,
+        `Financial Impact: ${evidenceGroups.financialImpact.cashflowImpact || 'missing'} / ${evidenceGroups.financialImpact.totexImpact || 'missing'}`,
+        `Dependencies: ${evidenceGroups.dependencies.heatNetworkDependency || 'missing'} / ${evidenceGroups.dependencies.powerGridDependency || 'missing'} / ${evidenceGroups.dependencies.customerTransitionDependency || 'missing'}`,
+        `Decision Gate: ${evidenceGroups.committeeGate.decisionGate || 'missing'}`,
+      ];
+
+      return {
+        capabilityKey: 'gas_grid_transformation_asset_cockpit',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        programSummary,
+        decisionReadiness: {
+          status,
+          readinessScore,
+          missingCount: missingEvidence.length,
+        },
+        evidenceGroups,
+        sourceDatapoints,
+        missingEvidence,
+        positiveFollowUps,
+        nextActions,
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'gas_grid_transformation_asset_cockpit',
+          status,
+          readinessScore,
+          programSummary,
           decisionReadiness: status,
           evidenceGroups,
           sourceDatapoints,

@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 83 static rules', () => {
+    it('loads all 84 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(83);
+      expect(rules.length).toBe(84);
     });
 
-    it('compiles all 83 static rules without error', () => {
+    it('compiles all 84 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(83);
+      expect(rules.length).toBe(84);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1575,6 +1575,61 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Scenario: tf-206');
       expect(formatted).toContain('Leading Gap: cashflow_source');
       expect(formatted).toContain('Side-Effect Guard: finance.createBooking');
+    });
+
+    it('dashboard-api.gasGridTransformationAssetCockpitStatus is dossier-safe and formats asset-cockpit facts', () => {
+      const rule = getRule('dashboard-api.gasGridTransformationAssetCockpitStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Gasnetztransformation programm=gas-2030 arbeitspaket=wp-zone-a segment=gas-seg-a option=h2_reuse h2status=ready rueckbaukosten=1250000 cashflow=cf-a totex=totex-a regulatorisch=areg-v1 waermenetz=heat-a stromnetz=power-a kundenuebergang=customers-a gremiengate=board owner=asset-strategy pruefen'
+        )
+      ).toEqual({
+        transformationProgramId: 'gas-2030',
+        workPackageId: 'wp-zone-a',
+        assetSegmentRef: 'gas-seg-a',
+        targetOption: 'h2_reuse',
+        technicalReuseStatus: 'ready',
+        decommissioningCostEur: '1250000',
+        cashflowImpact: 'cf-a',
+        totexImpact: 'totex-a',
+        regulatoryRecognitionStatus: 'areg-v1',
+        heatNetworkDependency: 'heat-a',
+        powerGridDependency: 'power-a',
+        customerTransitionDependency: 'customers-a',
+        decisionGate: 'board',
+        ownerRole: 'asset-strategy',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'gas_grid_transformation_asset_cockpit',
+        status: 'needs_decommissioning_cost',
+        programSummary: {
+          transformationProgramId: 'gas-2030',
+          workPackageId: 'wp-zone-a',
+        },
+        evidenceGroups: {
+          assetScope: { assetSegmentRef: 'gas-seg-a', targetOption: 'h2_reuse' },
+          technicalReuse: { technicalReuseStatus: 'ready' },
+          decommissioning: { decommissioningCostEur: 1250000 },
+          financialImpact: { cashflowImpact: 'cf-a', totexImpact: 'totex-a' },
+          dependencies: { heatNetworkDependency: 'heat-a', powerGridDependency: 'power-a' },
+          committeeGate: { decisionGate: 'board' },
+        },
+        missingEvidence: [{ missingDataPoint: 'decommissioning_cost_basis' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add rollback evidence' }],
+        sourceActions: {
+          notCalled: ['gas-assets.applyDecommissioning'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: gas_grid_transformation_asset_cockpit');
+      expect(formatted).toContain('Gas Grid Transformation Status: needs_decommissioning_cost');
+      expect(formatted).toContain('Program: gas-2030');
+      expect(formatted).toContain('Leading Gap: decommissioning_cost_basis');
+      expect(formatted).toContain('Side-Effect Guard: gas-assets.applyDecommissioning');
     });
 
     it('dashboard-api.specialGridUsageImpactMapStatus is dossier-safe and formats impact-map facts', () => {

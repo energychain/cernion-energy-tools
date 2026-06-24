@@ -1272,6 +1272,128 @@
     "sourceIssue": 269
   },
   {
+    "id": "dashboard-api.gasGridTransformationAssetCockpitStatus",
+    "action": "dashboard-api.gasGridTransformationAssetCockpitStatus",
+    "label": "Gas Grid Transformation Asset Cockpit",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "gridOperatorId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:gridOperatorId|netzbetreiber)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "transformationProgramId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:transformationProgramId|programm|transformationsprogramm)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "workPackageId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:workPackageId|arbeitspaket|workpackage)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "assetSegmentRef": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:assetSegmentRef|assetsegment|segment)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "targetOption": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:targetOption|zieloption|option)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "technicalReuseStatus": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:technicalReuseStatus|technischeWiederverwendung|h2status)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "decommissioningCostEur": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:decommissioningCostEur|rueckbaukosten|rückbaukosten)[:= ]+([0-9.,]+)", "group": 1 }
+      },
+      "rollbackOrRemovalRisk": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:rollbackOrRemovalRisk|rueckbaurisiko|rückbaurisiko)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "cashflowImpact": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:cashflowImpact|cashflow)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "totexImpact": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:totexImpact|totex)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "regulatoryRecognitionStatus": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:regulatoryRecognitionStatus|regulatorisch|anerkennung)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "heatNetworkDependency": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:heatNetworkDependency|waermenetz|wärmenetz)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "powerGridDependency": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:powerGridDependency|stromnetz)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "customerTransitionDependency": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:customerTransitionDependency|kundenuebergang|kundenübergang)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "decisionGate": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:decisionGate|gremiengate|entscheidungsgate)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "ownerRole": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:ownerRole|owner|verantwortung)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 100 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Gas Grid Transformation Status", "maxLen": 100 },
+        { "paths": ["programSummary.transformationProgramId", "dossierEvidence.programSummary.transformationProgramId"], "label": "Program", "maxLen": 120 },
+        { "paths": ["programSummary.workPackageId", "dossierEvidence.programSummary.workPackageId"], "label": "Work Package", "maxLen": 120 },
+        { "paths": ["evidenceGroups.assetScope.assetSegmentRef", "dossierEvidence.evidenceGroups.assetScope.assetSegmentRef"], "label": "Asset Segment", "maxLen": 140 },
+        { "paths": ["evidenceGroups.assetScope.targetOption", "dossierEvidence.evidenceGroups.assetScope.targetOption"], "label": "Target Option", "maxLen": 120 },
+        { "paths": ["evidenceGroups.technicalReuse.technicalReuseStatus", "dossierEvidence.evidenceGroups.technicalReuse.technicalReuseStatus"], "label": "Technical Reuse", "maxLen": 140 },
+        { "paths": ["evidenceGroups.decommissioning.decommissioningCostEur", "dossierEvidence.evidenceGroups.decommissioning.decommissioningCostEur"], "label": "Decommissioning Cost", "maxLen": 100 },
+        { "paths": ["evidenceGroups.financialImpact.cashflowImpact", "dossierEvidence.evidenceGroups.financialImpact.cashflowImpact"], "label": "Cashflow", "maxLen": 140 },
+        { "paths": ["evidenceGroups.financialImpact.totexImpact", "dossierEvidence.evidenceGroups.financialImpact.totexImpact"], "label": "TOTEX", "maxLen": 140 },
+        { "paths": ["evidenceGroups.dependencies.heatNetworkDependency", "dossierEvidence.evidenceGroups.dependencies.heatNetworkDependency"], "label": "Heat Dependency", "maxLen": 140 },
+        { "paths": ["evidenceGroups.dependencies.powerGridDependency", "dossierEvidence.evidenceGroups.dependencies.powerGridDependency"], "label": "Power Dependency", "maxLen": 140 },
+        { "paths": ["evidenceGroups.committeeGate.decisionGate", "dossierEvidence.evidenceGroups.committeeGate.decisionGate"], "label": "Decision Gate", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 200
+  },
+  {
     "id": "dashboard-api.transformationFinancingScenarioViewStatus",
     "action": "dashboard-api.transformationFinancingScenarioViewStatus",
     "label": "Transformation Financing Scenario View",

@@ -580,6 +580,58 @@ const COOKBOOK_RECIPES = [
     prerequisites: ['Read-only API token (optional)'],
   },
   {
+    id: 'gas-grid-transformation-vdmi-asset-cockpit',
+    title: 'Build a read-only Gasnetz transformation asset evidence cockpit',
+    domain: 'gas-grid-transformation',
+    tags: [
+      'gasnetztransformation',
+      'gaszielnetz',
+      'h2',
+      'stilllegung',
+      'rueckbau',
+      'asset',
+      'vdmi',
+      'evidence',
+      'dashboard',
+    ],
+    problem:
+      'Management needs one dossier-safe view over gas transformation work packages, asset segments, H2/decommissioning options, rollback cost, financial impact, dependencies and committee gates without creating a new Gasnetz engine or mutating operational systems.',
+    process: [
+      {
+        step: 1,
+        service: 'dashboard-api',
+        action: 'dashboard-api.gasGridTransformationAssetCockpitStatus',
+        restPath: 'GET /api/dashboard/gas-grid-transformation-asset-cockpit',
+        params: {
+          gridOperatorId: null,
+          transformationProgramId: null,
+          workPackageId: null,
+          assetSegmentRef: null,
+          targetOption: null,
+          technicalReuseStatus: null,
+          decommissioningCostEur: null,
+          rollbackOrRemovalRisk: null,
+          cashflowImpact: null,
+          totexImpact: null,
+          regulatoryRecognitionStatus: null,
+          heatNetworkDependency: null,
+          powerGridDependency: null,
+          customerTransitionDependency: null,
+          decisionGate: null,
+          ownerRole: null,
+          sourceDatapoints: null,
+        },
+        description:
+          'Normalize caller-supplied Gasnetz transformation evidence into readiness, missing evidence and positive follow-ups.',
+        expectedOutput:
+          '{ status, readinessScore, programSummary, evidenceGroups, missingEvidence, positiveFollowUps, sourceActions, dossierEvidence }',
+      },
+    ],
+    expectedResult:
+      'Read-only management asset cockpit card that separates hard evidence from assumptions and lists the missing data needed before committee use.',
+    prerequisites: ['Gas transformation work-package inputs or explicit evidence gaps', 'Read-only API token (optional)'],
+  },
+  {
     id: 'transformation-financing-scenario-view',
     title: 'Build a read-only transformation financing scenario evidence view',
     domain: 'transformation-finance-governance',

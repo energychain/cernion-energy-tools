@@ -2996,6 +2996,91 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- gasGridTransformationAssetCockpitStatus -----------------------------
+
+  describe('gasGridTransformationAssetCockpitStatus', () => {
+    it('reports missing gas transformation evidence without executing mutations', async () => {
+      const result = await broker.call('dashboard-api.gasGridTransformationAssetCockpitStatus', {
+        gridOperatorId: 'vnb-mauer',
+        transformationProgramId: 'gas-2030',
+        workPackageId: 'wp-zone-a',
+      });
+
+      expect(result.status).toBe('needs_asset_scope');
+      expect(result.safety).toBe('read_only');
+      expect(result.programSummary.transformationProgramId).toBe('gas-2030');
+      expect(result.evidenceGroups.assetScope.gasAssetMutated).toBe(false);
+      expect(result.evidenceGroups.decommissioning.decommissioningApplied).toBe(false);
+      expect(result.evidenceGroups.financialImpact.investmentApproved).toBe(false);
+      expect(result.evidenceGroups.committeeGate.hitlCreated).toBe(false);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'asset_segment_scope',
+          'target_option',
+          'technical_reuse_status',
+          'decommissioning_cost_basis',
+          'financial_impact_basis',
+          'dependency_review',
+          'decision_gate_owner',
+          'source_datapoints',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe(
+        'gas_grid_transformation_asset_cockpit'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'gas-assets.applyDecommissioning',
+          'gas-grid.optimizeTargetNetwork',
+          'h2-feasibility.execute',
+          'investment.approve',
+          'finance.createBooking',
+          'settlement.exportA96',
+          'billing.prepareInvoice',
+          'tariff.mutate',
+          'mako.dispatch',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_committee for complete caller-supplied gas transformation evidence', async () => {
+      const result = await broker.call('dashboard-api.gasGridTransformationAssetCockpitStatus', {
+        gridOperatorId: 'vnb-mauer',
+        transformationProgramId: 'gas-2030',
+        workPackageId: 'wp-zone-a',
+        assetSegmentRef: 'gas-segment-a',
+        targetOption: 'h2_reuse',
+        technicalReuseStatus: 'h2-ready-after-valve-upgrade',
+        decommissioningCostEur: '1250000',
+        rollbackOrRemovalRisk: 'medium-reviewed',
+        cashflowImpact: 'cashflow:zone-a',
+        totexImpact: 'totex:zone-a',
+        regulatoryRecognitionStatus: 'regulatory:assumption-v1',
+        heatNetworkDependency: 'heat:zone-a',
+        powerGridDependency: 'power:zone-a',
+        customerTransitionDependency: 'customers:zone-a',
+        decisionGate: 'committee:q3-2026',
+        ownerRole: 'asset-strategy',
+        sourceDatapoints: 'asset:zone-a,cost:zone-a,finance:zone-a',
+      });
+
+      expect(result.status).toBe('ready_for_committee');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.evidenceGroups.technicalReuse.h2FeasibilityExecuted).toBe(false);
+      expect(result.evidenceGroups.financialImpact.financeBookingCreated).toBe(false);
+      expect(result.dossierEvidence.dossierFacts).toContain(
+        'Gas Grid Transformation Status: ready_for_committee'
+      );
+      expect(result.dossierEvidence.sourceDatapoints).toEqual(
+        expect.arrayContaining(['asset:zone-a', 'cost:zone-a', 'finance:zone-a'])
+      );
+    });
+  });
+
   // -- energySharingSimulationGateStatus ----------------------------------
 
   describe('energySharingSimulationGateStatus', () => {

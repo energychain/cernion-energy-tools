@@ -100,6 +100,7 @@ const CAPABILITY_DOMAIN_MAP = {
   transformation_finance_governance: 'grid-planning',
   // gas/heat network transformation governance — WPG-driven, regulatory
   gas_transformation_governance: 'regulatory',
+  gas_grid_transformation: 'regulatory',
   'gas-capacity-governance': 'regulatory',
   heat_transformation: 'regulatory',
   heat_steering: 'regulatory', // Fernwaerme tariff steering, post-2030 recognition risk

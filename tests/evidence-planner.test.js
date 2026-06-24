@@ -1552,6 +1552,32 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('gas_grid_transformation_asset_cockpit: requires gas transformation asset evidence', () => {
+    const plan = { routeKey: 'gas_grid_transformation_asset_cockpit' };
+    const result = planEvidence(plan, {
+      gridOperatorId: 'vnb-mauer',
+      transformationProgramId: 'gas-2030',
+      workPackageId: 'wp-zone-a',
+    });
+
+    expect(result.registryKey).toBe('gas_grid_transformation_asset_cockpit');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['program_identity'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'asset_segment_scope',
+        'target_option',
+        'technical_reuse_status',
+        'decommissioning_cost_basis',
+        'financial_impact_basis',
+        'dependency_review',
+        'decision_gate_owner',
+        'source_datapoints',
+      ])
+    );
+  });
+
   it('forecast-flex: requires forecast_location', () => {
     const plan = { routeKey: 'forecast-flex' };
     const result = planEvidence(plan, {});
