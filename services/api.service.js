@@ -1448,6 +1448,8 @@ module.exports = {
             'dashboard-api.arealNetworkIntegrationOfferGateStatus',
           'GET /dashboard/transformation-financing-scenario-view':
             'dashboard-api.transformationFinancingScenarioViewStatus',
+          'GET /dashboard/investment-owner-deadline-budget-gate':
+            'dashboard-api.investmentOwnerDeadlineBudgetGateStatus',
           'GET /dashboard/gas-grid-transformation-asset-cockpit':
             'dashboard-api.gasGridTransformationAssetCockpitStatus',
           'GET /dashboard/leadership-delta-cockpit':

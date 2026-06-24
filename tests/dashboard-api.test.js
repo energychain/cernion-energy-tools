@@ -2996,6 +2996,80 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- investmentOwnerDeadlineBudgetGateStatus -----------------------------
+
+  describe('investmentOwnerDeadlineBudgetGateStatus', () => {
+    it('reports missing investment gate evidence without executing mutations', async () => {
+      const result = await broker.call('dashboard-api.investmentOwnerDeadlineBudgetGateStatus', {
+        measureId: 'measure-278',
+        owner: 'netzbetrieb',
+      });
+
+      expect(result.status).toBe('needs_owner_deadline_budget_evidence');
+      expect(result.safety).toBe('read_only');
+      expect(result.measure.measureId).toBe('measure-278');
+      expect(result.gateEvidence.budgetApproved).toBe(false);
+      expect(result.gateEvidence.bookingCreated).toBe(false);
+      expect(result.gateEvidence.hitlCreated).toBe(false);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'deadline',
+          'budget_effect',
+          'required_evidence',
+          'approval_status',
+          'blocked_follow_up_decision',
+          'next_escalation_step',
+          'source_datapoints',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe(
+        'investment_owner_deadline_budget_gate'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'investment.approve',
+          'budget.release',
+          'finance.createBooking',
+          'accounting.postJournal',
+          'hitl.create',
+          'settlement.exportA96',
+          'tariff.mutate',
+          'mako.dispatch',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_investment_gate_review for complete caller-supplied evidence', async () => {
+      const result = await broker.call('dashboard-api.investmentOwnerDeadlineBudgetGateStatus', {
+        measureId: 'measure-ready-278',
+        measureTitle: 'Trafostation Rueckbaupfad',
+        owner: 'investment-board',
+        deadline: '2026-09-30',
+        budgetEffect: 'capex-envelope-42',
+        requiredEvidence: 'psp:4711,board-template:v1',
+        approvalStatus: 'review-ready',
+        blockedFollowUpDecision: 'portfolio-prioritization',
+        nextEscalationStep: 'investment-committee-q3',
+        sourceDatapoints: 'psp:4711,capex:42',
+      });
+
+      expect(result.status).toBe('ready_for_investment_gate_review');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.gateEvidence.budgetApproved).toBe(false);
+      expect(result.gateEvidence.settlementExported).toBe(false);
+      expect(result.gateEvidence.externalConnectorCalled).toBe(false);
+      expect(result.dossierEvidence.dossierFacts).toContain(
+        'Investment Gate Status: ready_for_investment_gate_review'
+      );
+      expect(result.dossierEvidence.sourceDatapoints).toEqual(
+        expect.arrayContaining(['psp:4711', 'capex:42'])
+      );
+    });
+  });
+
   // -- gasGridTransformationAssetCockpitStatus -----------------------------
 
   describe('gasGridTransformationAssetCockpitStatus', () => {

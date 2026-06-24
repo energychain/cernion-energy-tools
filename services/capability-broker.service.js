@@ -653,6 +653,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasInvestmentOwnerDeadlineBudgetGateSpecificSignal =
+    /(investitionsprozess|investment process|investment_owner_deadline_budget_gate|owner.?frist.?budget|owner deadline budget|massnahmenfreigabe|maßnahmenfreigabe|budgetwirkung|strategy-to-execution)/i.test(haystack) &&
+    /(owner|frist|deadline|budget|budgetwirkung|freigabestatus|approval status|blockierte folgeentscheidung|blocked follow.?up decision|eskalationsstufe|escalation step)/i.test(haystack) &&
+    !/(zwei spuren|two.?track|budgetabgabe|investitionsabgabe|abgabesicherheit|iso 55001|vorstandsformat|investment\.approve|budget\.release|finance\.createBooking|accounting\.postJournal|treasury\.executeTransfer|hitl\.create|vdmi\.mutate|settlement\.exportA96|billing\.release|tariff\.mutate|mako\.dispatch|external\.connector\.call|personal-agent\.execute|wallet|key material|schluessel|schlüssel|crypto)/i.test(haystack);
+
+  if (hasInvestmentOwnerDeadlineBudgetGateSpecificSignal) {
+    const investmentOwnerBudgetCapability = findCapabilityByName('investment_owner_deadline_budget_gate');
+    if (investmentOwnerBudgetCapability) {
+      return { capability: investmentOwnerBudgetCapability, score: 149, usedFallback: false };
+    }
+  }
+
   const hasTransformationFinancingScenarioViewSpecificSignal =
     /(transformationsfinanzierung|transformation financing|transformation_financing_scenario_view|finanzierbarkeit transformation|kapitalumschichtung|kommunale entnahmen|gesellschafterlasten|oepnv lasten|öpnv lasten)/i.test(haystack) &&
     /(szenario.?sicht|scenario view|szenariosteuerung|gasnetzabwertung|rueckbaukosten|rückbaukosten|waermenetzausbau|wärmenetzausbau|h2.?option|liquiditaet|liquidität|stressszenario|stressschwelle|entscheidungsschwelle|gremienreife)/i.test(haystack) &&

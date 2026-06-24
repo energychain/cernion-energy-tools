@@ -78,6 +78,7 @@ module.exports = {
       heatTransformationLineAssetModelStatus: 5 * 60 * 1000, // 5 min
       kiFloorwalkerGovernanceStatus: 5 * 60 * 1000, // 5 min
       investmentWaterfallGovernanceStatus: 5 * 60 * 1000, // 5 min
+      investmentOwnerDeadlineBudgetGateStatus: 5 * 60 * 1000, // 5 min
       capacityContractRiskAssetCockpitStatus: 5 * 60 * 1000, // 5 min
       imsysTaf2ComplianceStatus: 5 * 60 * 1000, // 5 min
       scheduleManagementGovernanceRoadmapStatus: 5 * 60 * 1000, // 5 min
@@ -5883,6 +5884,56 @@ module.exports = {
           this.settings.cacheTtlMs.transformationFinancingScenarioViewStatus,
           async () => ({
             ...this.buildTransformationFinancingScenarioViewStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- investmentOwnerDeadlineBudgetGateStatus ---------------------------
+    /**
+     * GET /api/dashboard/investment-owner-deadline-budget-gate
+     *
+     * Read-only dossier-safe evidence gate for supplied investment measure
+     * owner/deadline/budget facts. It does not approve budgets, book finance
+     * entries, create HITL tasks, or call external systems.
+     */
+    investmentOwnerDeadlineBudgetGateStatus: {
+      rest: 'GET /investment-owner-deadline-budget-gate',
+      params: {
+        measureId: { type: 'string', optional: true, min: 1 },
+        measureTitle: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        deadline: { type: 'string', optional: true, min: 1 },
+        budgetEffect: { type: 'string', optional: true, min: 1 },
+        requiredEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        approvalStatus: { type: 'string', optional: true, min: 1 },
+        blockedFollowUpDecision: { type: 'string', optional: true, min: 1 },
+        nextEscalationStep: { type: 'string', optional: true, min: 1 },
+        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceActions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Investment Owner-Frist-Budget Gate -- read-only evidence gate',
+        description:
+          'Returns a deterministic dossier-safe view over investment measure owner, deadline, budget effect, required evidence, approval status, blocked follow-up decision and next escalation step. ' +
+          'The endpoint is read-only and never approves budgets, creates finance/accounting records, mutates investment workflows, prepares billing/settlement/tariff/MaKo output, creates HITL tasks, or calls external connectors.',
+        responses: {
+          200: {
+            description: 'Read-only investment owner/deadline/budget gate evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `investment-owner-deadline-budget-gate:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.investmentOwnerDeadlineBudgetGateStatus,
+          async () => ({
+            ...this.buildInvestmentOwnerDeadlineBudgetGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -21267,6 +21318,151 @@ module.exports = {
           missingEvidence,
           positiveFollowUps,
           nextActions,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildInvestmentOwnerDeadlineBudgetGateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value && typeof value === 'string') return value.split(',').map((item) => item.trim()).filter(Boolean);
+        return [];
+      };
+      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const sourceDatapoints = toList(params.sourceDatapoints);
+      const callerSourceActions = toList(params.sourceActions);
+      const requiredEvidence = toList(params.requiredEvidence);
+      const gapMap = {
+        measure_identity: 'add investment measure id or title',
+        owner: 'assign or confirm the accountable investment measure owner',
+        deadline: 'add deadline or target committee date evidence',
+        budget_effect: 'clarify budget effect, envelope, overhang or funding impact',
+        required_evidence: 'attach required approval or measure evidence',
+        approval_status: 'add current approval status without approving the budget',
+        blocked_follow_up_decision: 'name the follow-up decision blocked by this gate',
+        next_escalation_step: 'define the next escalation step for the measure',
+        source_datapoints: 'add source datapoints for auditability',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint) => {
+        missingEvidence.push({
+          missingDataPoint,
+          status: 'missing',
+          enablesDossierAddition: gapMap[missingDataPoint],
+        });
+      };
+
+      if (!isProvided(params.measureId) && !isProvided(params.measureTitle)) addGap('measure_identity');
+      if (!isProvided(params.owner)) addGap('owner');
+      if (!isProvided(params.deadline)) addGap('deadline');
+      if (!isProvided(params.budgetEffect)) addGap('budget_effect');
+      if (requiredEvidence.length === 0) addGap('required_evidence');
+      if (!isProvided(params.approvalStatus)) addGap('approval_status');
+      if (!isProvided(params.blockedFollowUpDecision)) addGap('blocked_follow_up_decision');
+      if (!isProvided(params.nextEscalationStep)) addGap('next_escalation_step');
+      if (sourceDatapoints.length === 0 && callerSourceActions.length === 0) addGap('source_datapoints');
+
+      let status = 'ready_for_investment_gate_review';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'measure_identity')) {
+        status = 'needs_measure_identity';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'owner' || gap.missingDataPoint === 'deadline' || gap.missingDataPoint === 'budget_effect')) {
+        status = 'needs_owner_deadline_budget_evidence';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'approval_status' || gap.missingDataPoint === 'next_escalation_step')) {
+        status = 'needs_approval_or_escalation';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_gate_evidence';
+      }
+
+      const requiredCount = Object.keys(gapMap).length;
+      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'investment_owner_deadline_budget_gate',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.investmentOwnerDeadlineBudgetGateStatus'],
+        referenced: [
+          'investment-planning.review',
+          'finance-agent.analyze',
+          'vdmi.dossier',
+          'evidence-registry.lookup',
+          'presentation.generate',
+          ...callerSourceActions,
+        ],
+        notCalled: [
+          'investment.approve',
+          'budget.release',
+          'finance.createBooking',
+          'accounting.postJournal',
+          'treasury.executeTransfer',
+          'hitl.create',
+          'vdmi.mutate',
+          'billing.release',
+          'settlement.exportA96',
+          'tariff.mutate',
+          'mako.dispatch',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const measure = {
+        measureId: params.measureId || null,
+        measureTitle: params.measureTitle || null,
+      };
+      const gateEvidence = {
+        owner: params.owner || null,
+        deadline: params.deadline || null,
+        budgetEffect: params.budgetEffect || null,
+        requiredEvidence,
+        approvalStatus: params.approvalStatus || null,
+        blockedFollowUpDecision: params.blockedFollowUpDecision || null,
+        nextEscalationStep: params.nextEscalationStep || null,
+        budgetApproved: false,
+        bookingCreated: false,
+        hitlCreated: false,
+        settlementExported: false,
+        externalConnectorCalled: false,
+      };
+      const nextActions = positiveFollowUps.map((gap) => ({
+        action: 'requestEvidence',
+        missingDataPoint: gap.missingDataPoint,
+        description: gap.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `Investment Gate Status: ${status}`,
+        `Measure: ${measure.measureId || measure.measureTitle || 'missing'}`,
+        `Owner: ${gateEvidence.owner || 'missing'}`,
+        `Deadline: ${gateEvidence.deadline || 'missing'}`,
+        `Budget Effect: ${gateEvidence.budgetEffect || 'missing'}`,
+        `Approval Status: ${gateEvidence.approvalStatus || 'missing'}`,
+        `Blocked Decision: ${gateEvidence.blockedFollowUpDecision || 'missing'}`,
+        `Next Escalation: ${gateEvidence.nextEscalationStep || 'missing'}`,
+      ];
+
+      return {
+        investmentOwnerDeadlineBudgetGateStatusId: `iodbg:${Buffer.from(`${params.measureId || params.measureTitle || ''}:${params.owner || ''}:${params.deadline || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'investment_owner_deadline_budget_gate',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        measure,
+        gateEvidence,
+        missingEvidence,
+        positiveFollowUps,
+        nextActions,
+        sourceDatapoints,
+        sourceActions,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          measure,
+          gateEvidence,
+          missingEvidence,
+          positiveFollowUps,
+          nextActions,
+          sourceDatapoints,
           sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,
         },

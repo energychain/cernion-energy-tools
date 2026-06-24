@@ -4319,6 +4319,74 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  investment_owner_deadline_budget_gate: {
+    sources: [
+      {
+        id: 'measure_identity',
+        label: 'Investment measure identity',
+        resolvedBy: ['dashboard-api.investmentOwnerDeadlineBudgetGateStatus'],
+        contextKeys: ['measureId', 'measureTitle'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Accountable measure owner',
+        resolvedBy: ['dashboard-api.investmentOwnerDeadlineBudgetGateStatus', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'deadline',
+        label: 'Deadline or target committee date',
+        resolvedBy: ['dashboard-api.investmentOwnerDeadlineBudgetGateStatus', 'vdmi.dossier'],
+        contextKeys: ['deadline'],
+        optional: false,
+      },
+      {
+        id: 'budget_effect',
+        label: 'Budget effect evidence',
+        resolvedBy: ['dashboard-api.investmentOwnerDeadlineBudgetGateStatus', 'finance-agent.analyze', 'investment-planning.review'],
+        contextKeys: ['budgetEffect'],
+        optional: false,
+      },
+      {
+        id: 'required_evidence',
+        label: 'Required approval or measure evidence',
+        resolvedBy: ['dashboard-api.investmentOwnerDeadlineBudgetGateStatus', 'evidence-registry.lookup'],
+        contextKeys: ['requiredEvidence'],
+        optional: false,
+      },
+      {
+        id: 'approval_status',
+        label: 'Approval status',
+        resolvedBy: ['dashboard-api.investmentOwnerDeadlineBudgetGateStatus', 'investment-planning.review'],
+        contextKeys: ['approvalStatus'],
+        optional: false,
+      },
+      {
+        id: 'blocked_follow_up_decision',
+        label: 'Blocked follow-up decision',
+        resolvedBy: ['dashboard-api.investmentOwnerDeadlineBudgetGateStatus', 'vdmi.dossier'],
+        contextKeys: ['blockedFollowUpDecision'],
+        optional: false,
+      },
+      {
+        id: 'next_escalation_step',
+        label: 'Next escalation step',
+        resolvedBy: ['dashboard-api.investmentOwnerDeadlineBudgetGateStatus', 'presentation.generate'],
+        contextKeys: ['nextEscalationStep'],
+        optional: false,
+      },
+      {
+        id: 'source_datapoints',
+        label: 'Source datapoints and provenance',
+        resolvedBy: ['dashboard-api.investmentOwnerDeadlineBudgetGateStatus', 'datasource-registry.get'],
+        contextKeys: ['sourceDatapoints', 'sourceActions'],
+        optional: false,
+      },
+    ],
+  },
+
   transformation_financing_scenario_view: {
     sources: [
       {

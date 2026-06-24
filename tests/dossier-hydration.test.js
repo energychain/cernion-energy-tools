@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 87 static rules', () => {
+    it('loads all 88 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(87);
+      expect(rules.length).toBe(88);
     });
 
-    it('compiles all 87 static rules without error', () => {
+    it('compiles all 88 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(87);
+      expect(rules.length).toBe(88);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1575,6 +1575,51 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Scenario: tf-206');
       expect(formatted).toContain('Leading Gap: cashflow_source');
       expect(formatted).toContain('Side-Effect Guard: finance.createBooking');
+    });
+
+    it('dashboard-api.investmentOwnerDeadlineBudgetGateStatus is dossier-safe and formats gate facts', () => {
+      const rule = getRule('dashboard-api.investmentOwnerDeadlineBudgetGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Investitionsprozess massnahme=measure-278 owner=netzbetrieb frist=2026-09-30 budgetwirkung=capex-42 freigabe=review-ready folgeentscheidung=portfolio-prio eskalation=investment-board pruefen'
+        )
+      ).toEqual({
+        measureId: 'measure-278',
+        owner: 'netzbetrieb',
+        deadline: '2026-09-30',
+        budgetEffect: 'capex-42',
+        approvalStatus: 'review-ready',
+        blockedFollowUpDecision: 'portfolio-prio',
+        nextEscalationStep: 'investment-board',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'investment_owner_deadline_budget_gate',
+        status: 'needs_owner_deadline_budget_evidence',
+        measure: { measureId: 'measure-278' },
+        gateEvidence: {
+          owner: 'netzbetrieb',
+          deadline: '2026-09-30',
+          budgetEffect: 'capex-42',
+          approvalStatus: 'review-ready',
+          blockedFollowUpDecision: 'portfolio-prio',
+          nextEscalationStep: 'investment-board',
+        },
+        missingEvidence: [{ missingDataPoint: 'required_evidence' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'attach required approval evidence' }],
+        sourceActions: {
+          notCalled: ['investment.approve'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: investment_owner_deadline_budget_gate');
+      expect(formatted).toContain('Investment Gate Status: needs_owner_deadline_budget_evidence');
+      expect(formatted).toContain('Measure: measure-278');
+      expect(formatted).toContain('Leading Gap: required_evidence');
+      expect(formatted).toContain('Side-Effect Guard: investment.approve');
     });
 
     it('dashboard-api.gasGridTransformationAssetCockpitStatus is dossier-safe and formats asset-cockpit facts', () => {

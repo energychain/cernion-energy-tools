@@ -524,6 +524,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/transformation-financing-scenario-view']).toBe(
         'dashboard-api.transformationFinancingScenarioViewStatus'
       );
+      expect(aliases['GET /dashboard/investment-owner-deadline-budget-gate']).toBe(
+        'dashboard-api.investmentOwnerDeadlineBudgetGateStatus'
+      );
       expect(aliases['GET /dashboard/gas-grid-transformation-asset-cockpit']).toBe(
         'dashboard-api.gasGridTransformationAssetCockpitStatus'
       );

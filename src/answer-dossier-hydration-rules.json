@@ -1735,6 +1735,79 @@
     "sourceIssue": 206
   },
   {
+    "id": "dashboard-api.investmentOwnerDeadlineBudgetGateStatus",
+    "action": "dashboard-api.investmentOwnerDeadlineBudgetGateStatus",
+    "label": "Investment Owner Deadline Budget Gate",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "measureId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:measureId|massnahme|maßnahme|measure)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:owner|verantwortlich)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "deadline": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:deadline|frist)[:= ]+([0-9]{4}-[0-9]{2}-[0-9]{2}|[a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "budgetEffect": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:budgetEffect|budgetwirkung|budget)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "approvalStatus": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:approvalStatus|freigabestatus|freigabe)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "blockedFollowUpDecision": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:blockedFollowUpDecision|blockierteFolgeentscheidung|folgeentscheidung)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "nextEscalationStep": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:nextEscalationStep|eskalationsstufe|eskalation)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 100 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Investment Gate Status", "maxLen": 100 },
+        { "paths": ["measure.measureId", "dossierEvidence.measure.measureId", "measure.measureTitle"], "label": "Measure", "maxLen": 140 },
+        { "paths": ["gateEvidence.owner", "dossierEvidence.gateEvidence.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["gateEvidence.deadline", "dossierEvidence.gateEvidence.deadline"], "label": "Deadline", "maxLen": 100 },
+        { "paths": ["gateEvidence.budgetEffect", "dossierEvidence.gateEvidence.budgetEffect"], "label": "Budget Effect", "maxLen": 140 },
+        { "paths": ["gateEvidence.approvalStatus", "dossierEvidence.gateEvidence.approvalStatus"], "label": "Approval Status", "maxLen": 120 },
+        { "paths": ["gateEvidence.blockedFollowUpDecision", "dossierEvidence.gateEvidence.blockedFollowUpDecision"], "label": "Blocked Decision", "maxLen": 140 },
+        { "paths": ["gateEvidence.nextEscalationStep", "dossierEvidence.gateEvidence.nextEscalationStep"], "label": "Next Escalation", "maxLen": 140 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 278
+  },
+  {
     "id": "dashboard-api.receiptGroundedPresentationContract",
     "action": "dashboard-api.receiptGroundedPresentationContract",
     "label": "Receipt Grounded Presentation Contract",

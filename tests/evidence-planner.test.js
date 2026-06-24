@@ -1520,6 +1520,30 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('investment_owner_deadline_budget_gate: requires owner/deadline/budget evidence', () => {
+    const plan = { routeKey: 'investment_owner_deadline_budget_gate' };
+    const result = planEvidence(plan, {
+      measureId: 'measure-278',
+      owner: 'netzbetrieb',
+    });
+
+    expect(result.registryKey).toBe('investment_owner_deadline_budget_gate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['measure_identity', 'owner'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'deadline',
+        'budget_effect',
+        'required_evidence',
+        'approval_status',
+        'blocked_follow_up_decision',
+        'next_escalation_step',
+        'source_datapoints',
+      ])
+    );
+  });
+
   it('transformation_financing_scenario_view: requires financing scenario decision evidence', () => {
     const plan = { routeKey: 'transformation_financing_scenario_view' };
     const result = planEvidence(plan, {

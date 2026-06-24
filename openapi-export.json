@@ -17435,6 +17435,21 @@
         ]
       }
     },
+    "/api/dashboard-api/investment-owner-deadline-budget-gate": {
+      "get": {
+        "operationId": "dashboard-api_investmentOwnerDeadlineBudgetGateStatus",
+        "summary": "Investment Owner-Frist-Budget Gate -- read-only evidence gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only investment owner/deadline/budget gate evidence"
+          }
+        },
+        "description": "Returns a deterministic dossier-safe view over investment measure owner, deadline, budget effect, required evidence, approval status, blocked follow-up decision and next escalation step. The endpoint is read-only and never approves budgets, creates finance/accounting records, mutates investment workflows, prepares billing/settlement/tariff/MaKo output, creates HITL tasks, or calls external connectors."
+      }
+    },
     "/api/dashboard-api/gas-grid-transformation-asset-cockpit": {
       "get": {
         "operationId": "dashboard-api_gasGridTransformationAssetCockpitStatus",
@@ -58190,6 +58205,21 @@
             }
           }
         ]
+      }
+    },
+    "/api/dashboard/investment-owner-deadline-budget-gate": {
+      "get": {
+        "operationId": "dashboard-api_investmentOwnerDeadlineBudgetGateStatus",
+        "summary": "Investment Owner-Frist-Budget Gate -- read-only evidence gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only investment owner/deadline/budget gate evidence"
+          }
+        },
+        "description": "Returns a deterministic dossier-safe view over investment measure owner, deadline, budget effect, required evidence, approval status, blocked follow-up decision and next escalation step. The endpoint is read-only and never approves budgets, creates finance/accounting records, mutates investment workflows, prepares billing/settlement/tariff/MaKo output, creates HITL tasks, or calls external connectors."
       }
     },
     "/api/dashboard/gas-grid-transformation-asset-cockpit": {
