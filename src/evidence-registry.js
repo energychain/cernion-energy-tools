@@ -4089,6 +4089,109 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  transformation_financing_scenario_view: {
+    sources: [
+      {
+        id: 'scenario_identity',
+        label: 'Scenario identity and planning horizon',
+        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus'],
+        contextKeys: ['scenarioId', 'gridOperatorId', 'planningHorizon', 'scenarioType'],
+        optional: false,
+      },
+      {
+        id: 'cashflow_source',
+        label: 'Cashflow source evidence',
+        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'datapoint.health'],
+        contextKeys: ['cashflowSource', 'cashflowSourceRef'],
+        optional: false,
+      },
+      {
+        id: 'margin_compensation_assumption',
+        label: 'Margin compensation assumption',
+        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'finance-agent.analyze'],
+        contextKeys: ['marginCompensationAssumption'],
+        optional: false,
+      },
+      {
+        id: 'capital_reallocation_option',
+        label: 'Capital reallocation option',
+        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'investment-planning.createPlan'],
+        contextKeys: ['capitalReallocationOption'],
+        optional: false,
+      },
+      {
+        id: 'gas_decommissioning_path',
+        label: 'Gas decommissioning or continued-use path',
+        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'gasnetz-waermeplanung.reconcile'],
+        contextKeys: ['gasDecommissioningPath'],
+        optional: false,
+      },
+      {
+        id: 'rollback_cost_basis',
+        label: 'Rollback or removal cost basis',
+        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'investment-planning.review'],
+        contextKeys: ['rollbackCostBasis'],
+        optional: false,
+      },
+      {
+        id: 'heat_h2_option_basis',
+        label: 'Heat/H2 investment option basis',
+        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'investment-planning.createPlan'],
+        contextKeys: ['heatInvestmentMeasure', 'h2OptionMeasure'],
+        optional: false,
+      },
+      {
+        id: 'municipal_burden_basis',
+        label: 'Municipal, public-transport or shareholder burden basis',
+        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'finance-agent.analyze'],
+        contextKeys: ['municipalBurdenAssumption', 'publicTransportShareholderBurden'],
+        optional: false,
+      },
+      {
+        id: 'operational_investment_need',
+        label: 'Operational investment need',
+        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'investment-planning.createPlan'],
+        contextKeys: ['operationalInvestmentNeed'],
+        optional: false,
+      },
+      {
+        id: 'eog_regulatory_impact',
+        label: 'EOG or regulatory impact assumption',
+        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'eog-calculator.scenario'],
+        contextKeys: ['eogImpact', 'regulatoryImpactAssumption'],
+        optional: false,
+      },
+      {
+        id: 'liquidity_impact_assumption',
+        label: 'Liquidity impact assumption',
+        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'finance-agent.analyze'],
+        contextKeys: ['liquidityImpact'],
+        optional: false,
+      },
+      {
+        id: 'stress_threshold',
+        label: 'Stress threshold',
+        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'vdmi.dossier'],
+        contextKeys: ['stressThreshold'],
+        optional: false,
+      },
+      {
+        id: 'committee_decision_gate',
+        label: 'Committee decision gate and owner',
+        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'vdmi.dossier'],
+        contextKeys: ['committeeDecisionGate', 'owner'],
+        optional: false,
+      },
+      {
+        id: 'source_datapoints',
+        label: 'Source datapoints or source actions',
+        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'datasource-registry.get'],
+        contextKeys: ['sourceDatapoints', 'sourceActions'],
+        optional: false,
+      },
+    ],
+  },
+
   'forecast-flex': {
     sources: [
       {

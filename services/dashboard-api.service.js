@@ -107,6 +107,7 @@ module.exports = {
       gasNetworkDecisionChainStatus: 5 * 60 * 1000, // 5 min
       waterPricingNetInvestmentAlignmentStatus: 5 * 60 * 1000, // 5 min
       arealNetworkIntegrationOfferGateStatus: 5 * 60 * 1000, // 5 min
+      transformationFinancingScenarioViewStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -5778,6 +5779,106 @@ module.exports = {
           this.settings.cacheTtlMs.arealNetworkIntegrationOfferGateStatus,
           async () => ({
             ...this.buildArealNetworkIntegrationOfferGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- transformationFinancingScenarioViewStatus -------------------------
+    /**
+     * GET /api/dashboard/transformation-financing-scenario-view
+     *
+     * Read-only dossier-safe evidence view for management steering of
+     * transformation financing scenarios. It does not book finance entries,
+     * execute treasury transfers, mutate gas assets, prepare billing or
+     * settlement, create HITL tasks, or call external connectors.
+     */
+    transformationFinancingScenarioViewStatus: {
+      rest: 'GET /transformation-financing-scenario-view',
+      params: {
+        scenarioId: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        planningHorizon: { type: 'string', optional: true, min: 1 },
+        scenarioType: { type: 'string', optional: true, min: 1 },
+        cashflowSource: { type: 'string', optional: true, min: 1 },
+        cashflowSourceRef: { type: 'string', optional: true, min: 1 },
+        marginCompensationAssumption: { type: 'string', optional: true, min: 1 },
+        capitalReallocationOption: { type: 'string', optional: true, min: 1 },
+        gasDecommissioningPath: { type: 'string', optional: true, min: 1 },
+        rollbackCostBasis: { type: 'string', optional: true, min: 1 },
+        heatInvestmentMeasure: { type: 'string', optional: true, min: 1 },
+        h2OptionMeasure: { type: 'string', optional: true, min: 1 },
+        municipalBurdenAssumption: { type: 'string', optional: true, min: 1 },
+        publicTransportShareholderBurden: { type: 'string', optional: true, min: 1 },
+        operationalInvestmentNeed: { type: 'string', optional: true, min: 1 },
+        eogImpact: { type: 'string', optional: true, min: 1 },
+        regulatoryImpactAssumption: { type: 'string', optional: true, min: 1 },
+        liquidityImpact: { type: 'string', optional: true, min: 1 },
+        stressThreshold: { type: 'string', optional: true, min: 1 },
+        committeeDecisionGate: { type: 'string', optional: true, min: 1 },
+        vdmiProcessId: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        sourceActions: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Transformation financing scenario view -- read-only evidence gate',
+        description:
+          'Returns a deterministic dossier-safe view over transformation financing scenario identity, cashflow, margin, capital reallocation, gas decommissioning, rollback/removal cost, heat/H2 investment, municipal burden, operational investment, EOG/regulatory, liquidity/stress and committee-gate evidence. ' +
+          'The endpoint is read-only and never creates finance/accounting records, executes treasury transfers, mutates gas assets, prepares billing/settlement/tariff/MaKo output, creates HITL/VDMI tasks, or calls external connectors.',
+        parameters: [
+          { name: 'scenarioId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'planningHorizon', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'scenarioType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'cashflowSource', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'rollbackCostBasis', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'municipalBurdenAssumption', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'eogImpact', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'liquidityImpact', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'stressThreshold', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'committeeDecisionGate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceDatapoints', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only transformation financing scenario evidence view',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    scenarioSummary: { type: 'object' },
+                    evidenceGroups: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    nextActions: { type: 'array' },
+                    sourceDatapoints: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `transformation-financing-scenario-view:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.transformationFinancingScenarioViewStatus,
+          async () => ({
+            ...this.buildTransformationFinancingScenarioViewStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -20572,6 +20673,234 @@ module.exports = {
           sourceRefs,
           missingEvidence,
           positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildTransformationFinancingScenarioViewStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+
+      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const firstProvided = (...values) => values.find((value) => isProvided(value)) || null;
+      const sourceDatapoints = toList(params.sourceDatapoints);
+      const callerSourceActions = toList(params.sourceActions);
+      const missingMap = {
+        scenario_identity: 'add scenario ID, grid operator, planning horizon and scenario type',
+        cashflow_source: 'add cashflow source evidence for the transformation scenario',
+        margin_compensation_assumption: 'add margin compensation assumption and provenance',
+        capital_reallocation_option: 'add capital reallocation option for the scenario',
+        gas_decommissioning_path: 'add gas decommissioning or continued-use path evidence',
+        rollback_cost_basis: 'add rollback/removal cost basis',
+        heat_h2_option_basis: 'add heat and H2 investment option basis',
+        municipal_burden_basis: 'add municipal, public-transport or shareholder burden basis',
+        operational_investment_need: 'add operational investment need reference',
+        eog_regulatory_impact: 'add EOG/regulatory impact assumption',
+        liquidity_impact_assumption: 'add liquidity impact assumption',
+        stress_threshold: 'add stress threshold for committee steering',
+        committee_decision_gate: 'add committee decision gate and owner',
+        source_datapoints: 'add source datapoints for answer-ready statements',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint) => {
+        missingEvidence.push({
+          missingDataPoint,
+          status: 'missing',
+          enablesDossierAddition: missingMap[missingDataPoint],
+        });
+      };
+
+      if (
+        !isProvided(params.scenarioId) ||
+        !isProvided(params.gridOperatorId) ||
+        !isProvided(params.planningHorizon) ||
+        !isProvided(params.scenarioType)
+      ) {
+        addGap('scenario_identity');
+      }
+      if (!isProvided(params.cashflowSource) && !isProvided(params.cashflowSourceRef)) addGap('cashflow_source');
+      if (!isProvided(params.marginCompensationAssumption)) addGap('margin_compensation_assumption');
+      if (!isProvided(params.capitalReallocationOption)) addGap('capital_reallocation_option');
+      if (!isProvided(params.gasDecommissioningPath)) addGap('gas_decommissioning_path');
+      if (!isProvided(params.rollbackCostBasis)) addGap('rollback_cost_basis');
+      if (!isProvided(params.heatInvestmentMeasure) && !isProvided(params.h2OptionMeasure)) {
+        addGap('heat_h2_option_basis');
+      }
+      if (
+        !isProvided(params.municipalBurdenAssumption) &&
+        !isProvided(params.publicTransportShareholderBurden)
+      ) {
+        addGap('municipal_burden_basis');
+      }
+      if (!isProvided(params.operationalInvestmentNeed)) addGap('operational_investment_need');
+      if (!isProvided(params.eogImpact) && !isProvided(params.regulatoryImpactAssumption)) {
+        addGap('eog_regulatory_impact');
+      }
+      if (!isProvided(params.liquidityImpact)) addGap('liquidity_impact_assumption');
+      if (!isProvided(params.stressThreshold)) addGap('stress_threshold');
+      if (!isProvided(params.committeeDecisionGate) || !isProvided(params.owner)) {
+        addGap('committee_decision_gate');
+      }
+      if (sourceDatapoints.length === 0 && callerSourceActions.length === 0) addGap('source_datapoints');
+
+      let status = 'ready_for_decision';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'scenario_identity')) {
+        status = 'needs_scenario_identity';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'cashflow_source')) {
+        status = 'needs_cashflow_source';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'rollback_cost_basis')) {
+        status = 'needs_rollback_cost_basis';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'municipal_burden_basis')) {
+        status = 'needs_municipal_burden_basis';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'eog_regulatory_impact')) {
+        status = 'needs_regulatory_assessment';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'liquidity_impact_assumption')) {
+        status = 'needs_liquidity_assumption';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'stress_threshold')) {
+        status = 'blocked_by_missing_threshold';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'committee_decision_gate')) {
+        status = 'needs_committee_gate';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_scenario_evidence';
+      }
+
+      const requiredCount = Object.keys(missingMap).length;
+      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const sourceActions = {
+        inspected: ['dashboard-api.transformationFinancingScenarioViewStatus'],
+        referenced: [
+          'datasource-registry.get',
+          'datapoint.health',
+          'investment-planning.createPlan',
+          'eog-calculator.scenario',
+          'finance-agent.analyze',
+          'vdmi.dossier',
+          'presentation.generate',
+          ...callerSourceActions,
+        ],
+        notCalled: [
+          'finance.createBooking',
+          'treasury.executeTransfer',
+          'accounting.postJournal',
+          'gas-assets.applyDecommissioning',
+          'investment.approve',
+          'settlement.exportA96',
+          'billing.prepareInvoice',
+          'tariff.mutate',
+          'mako.dispatch',
+          'hitl.create',
+          'vdmi.taskMutate',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const scenarioSummary = {
+        scenarioId: params.scenarioId || null,
+        gridOperatorId: params.gridOperatorId || null,
+        planningHorizon: params.planningHorizon || null,
+        scenarioType: params.scenarioType || null,
+        vdmiProcessId: params.vdmiProcessId || null,
+        owner: params.owner || null,
+      };
+      const evidenceGroups = {
+        cashflow: {
+          cashflowSource: firstProvided(params.cashflowSource, params.cashflowSourceRef),
+          marginCompensationAssumption: params.marginCompensationAssumption || null,
+          assumptionOnly: isProvided(params.marginCompensationAssumption),
+        },
+        capital: {
+          capitalReallocationOption: params.capitalReallocationOption || null,
+        },
+        assetTransition: {
+          gasDecommissioningPath: params.gasDecommissioningPath || null,
+          rollbackCostBasis: params.rollbackCostBasis || null,
+          heatInvestmentMeasure: params.heatInvestmentMeasure || null,
+          h2OptionMeasure: params.h2OptionMeasure || null,
+          gasAssetMutated: false,
+        },
+        municipalBurden: {
+          municipalBurdenAssumption: params.municipalBurdenAssumption || null,
+          publicTransportShareholderBurden: params.publicTransportShareholderBurden || null,
+          assumptionOnly:
+            isProvided(params.municipalBurdenAssumption) ||
+            isProvided(params.publicTransportShareholderBurden),
+        },
+        operationalInvestment: {
+          operationalInvestmentNeed: params.operationalInvestmentNeed || null,
+          investmentApproved: false,
+        },
+        regulatoryFinance: {
+          eogImpact: params.eogImpact || null,
+          regulatoryImpactAssumption: params.regulatoryImpactAssumption || null,
+          authoritativeLegalInterpretation: false,
+        },
+        liquidityStress: {
+          liquidityImpact: params.liquidityImpact || null,
+          stressThreshold: params.stressThreshold || null,
+        },
+        committeeGate: {
+          committeeDecisionGate: params.committeeDecisionGate || null,
+          owner: params.owner || null,
+          hitlCreated: false,
+        },
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'transformation_financing_scenario_view',
+      }));
+      const nextActions = positiveFollowUps.map((gap) => ({
+        action: 'requestEvidence',
+        missingDataPoint: gap.missingDataPoint,
+        description: gap.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `Transformation Financing Status: ${status}`,
+        `Scenario: ${scenarioSummary.scenarioId || 'missing'}`,
+        `Grid Operator: ${scenarioSummary.gridOperatorId || 'missing'}`,
+        `Planning Horizon: ${scenarioSummary.planningHorizon || 'missing'}`,
+        `Cashflow Source: ${evidenceGroups.cashflow.cashflowSource || 'missing'}`,
+        `Rollback Cost Basis: ${evidenceGroups.assetTransition.rollbackCostBasis || 'missing'}`,
+        `Municipal Burden: ${evidenceGroups.municipalBurden.municipalBurdenAssumption || evidenceGroups.municipalBurden.publicTransportShareholderBurden || 'missing'}`,
+        `EOG / Regulatory Impact: ${evidenceGroups.regulatoryFinance.eogImpact || evidenceGroups.regulatoryFinance.regulatoryImpactAssumption || 'missing'}`,
+        `Liquidity / Stress: ${evidenceGroups.liquidityStress.liquidityImpact || 'missing'} / ${evidenceGroups.liquidityStress.stressThreshold || 'missing'}`,
+        `Committee Gate: ${evidenceGroups.committeeGate.committeeDecisionGate || 'missing'}`,
+      ];
+
+      return {
+        capabilityKey: 'transformation_financing_scenario_view',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        scenarioSummary,
+        decisionReadiness: {
+          status,
+          readinessScore,
+          missingCount: missingEvidence.length,
+        },
+        evidenceGroups,
+        sourceDatapoints,
+        missingEvidence,
+        positiveFollowUps,
+        nextActions,
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'transformation_financing_scenario_view',
+          status,
+          readinessScore,
+          scenarioSummary,
+          decisionReadiness: status,
+          evidenceGroups,
+          sourceDatapoints,
+          missingEvidence,
+          positiveFollowUps,
+          nextActions,
           sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,
         },

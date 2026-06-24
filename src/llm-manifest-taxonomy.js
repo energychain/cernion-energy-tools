@@ -97,6 +97,7 @@ const CAPABILITY_DOMAIN_MAP = {
   // data review, risk translation, two-track control, SAP PSP, off-balance gate)
   investment_governance: 'grid-planning',
   'investment-finance-governance': 'grid-planning',
+  transformation_finance_governance: 'grid-planning',
   // gas/heat network transformation governance — WPG-driven, regulatory
   gas_transformation_governance: 'regulatory',
   'gas-capacity-governance': 'regulatory',

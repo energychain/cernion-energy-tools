@@ -641,6 +641,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasTransformationFinancingScenarioViewSpecificSignal =
+    /(transformationsfinanzierung|transformation financing|transformation_financing_scenario_view|finanzierbarkeit transformation|kapitalumschichtung|kommunale entnahmen|gesellschafterlasten|oepnv lasten|öpnv lasten)/i.test(haystack) &&
+    /(szenario.?sicht|scenario view|szenariosteuerung|gasnetzabwertung|rueckbaukosten|rückbaukosten|waermenetzausbau|wärmenetzausbau|h2.?option|liquiditaet|liquidität|stressszenario|stressschwelle|entscheidungsschwelle|gremienreife)/i.test(haystack) &&
+    !/(finance\.createBooking|treasury\.executeTransfer|accounting\.postJournal|gas-assets\.applyDecommissioning|investment\.approve|settlement\.exportA96|billing\.prepareInvoice|tariff\.mutate|mako\.dispatch|hitl\.create|vdmi\.taskMutate|external\.connector\.call|personal-agent\.execute|wallet|key material|schluessel|schlüssel|crypto)/i.test(haystack);
+
+  if (hasTransformationFinancingScenarioViewSpecificSignal) {
+    const transformationFinancingCapability = findCapabilityByName('transformation_financing_scenario_view');
+    if (transformationFinancingCapability) {
+      return { capability: transformationFinancingCapability, score: 148, usedFallback: false };
+    }
+  }
+
   const hasGasNetworkDecisionChainSpecificSignal =
     /(gasnetz.?entscheidungskette|gas network decision chain|gas_network_decision_chain|fotojahr|kanu.?eog|eog.?kanu|blockierte folgeentscheidung|blocked follow.?up decision)/i.test(haystack) &&
     /(kapazitaetsannahme|kapazitätsannahme|capacity assumption|stilllegungspfad|decommissioning path|buchwert|book.?value|asset|owner|evidenzschritt|next evidence|folgeentscheidung|entscheidungskette)/i.test(haystack) &&

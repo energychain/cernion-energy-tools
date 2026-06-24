@@ -2907,6 +2907,95 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- transformationFinancingScenarioViewStatus ---------------------------
+
+  describe('transformationFinancingScenarioViewStatus', () => {
+    it('reports missing transformation financing evidence without executing mutations', async () => {
+      const result = await broker.call('dashboard-api.transformationFinancingScenarioViewStatus', {
+        scenarioId: 'tf-206',
+        gridOperatorId: 'vnb-mauer',
+        planningHorizon: '2026-2030',
+        scenarioType: 'gas-heat-transition',
+        cashflowSource: 'cashflow:base-42',
+      });
+
+      expect(result.status).toBe('needs_rollback_cost_basis');
+      expect(result.safety).toBe('read_only');
+      expect(result.scenarioSummary.scenarioId).toBe('tf-206');
+      expect(result.evidenceGroups.assetTransition.gasAssetMutated).toBe(false);
+      expect(result.evidenceGroups.operationalInvestment.investmentApproved).toBe(false);
+      expect(result.evidenceGroups.committeeGate.hitlCreated).toBe(false);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'margin_compensation_assumption',
+          'capital_reallocation_option',
+          'gas_decommissioning_path',
+          'rollback_cost_basis',
+          'heat_h2_option_basis',
+          'municipal_burden_basis',
+          'operational_investment_need',
+          'eog_regulatory_impact',
+          'liquidity_impact_assumption',
+          'stress_threshold',
+          'committee_decision_gate',
+          'source_datapoints',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe(
+        'transformation_financing_scenario_view'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'finance.createBooking',
+          'treasury.executeTransfer',
+          'accounting.postJournal',
+          'gas-assets.applyDecommissioning',
+          'settlement.exportA96',
+          'billing.prepareInvoice',
+          'tariff.mutate',
+          'mako.dispatch',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_decision for complete caller-supplied scenario evidence', async () => {
+      const result = await broker.call('dashboard-api.transformationFinancingScenarioViewStatus', {
+        scenarioId: 'tf-ready-206',
+        gridOperatorId: 'vnb-mauer',
+        planningHorizon: '2026-2030',
+        scenarioType: 'gas-heat-transition',
+        cashflowSource: 'cashflow:base-42',
+        marginCompensationAssumption: 'margin:bridge-v1',
+        capitalReallocationOption: 'cap-realloc:heat-h2-v1',
+        gasDecommissioningPath: 'gas-path:zone-a',
+        rollbackCostBasis: 'rollback:cost-model-42',
+        heatInvestmentMeasure: 'heat:measure-42',
+        municipalBurdenAssumption: 'municipal:burden-42',
+        operationalInvestmentNeed: 'opex:need-42',
+        eogImpact: 'eog:scenario-42',
+        liquidityImpact: 'liquidity:stress-42',
+        stressThreshold: 'threshold:dscr-1.2',
+        committeeDecisionGate: 'committee:finance-board',
+        owner: 'cfo-office',
+        sourceDatapoints: 'cashflow:base-42,rollback:cost-model-42,eog:scenario-42',
+      });
+
+      expect(result.status).toBe('ready_for_decision');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.evidenceGroups.regulatoryFinance.authoritativeLegalInterpretation).toBe(false);
+      expect(result.dossierEvidence.dossierFacts).toContain(
+        'Transformation Financing Status: ready_for_decision'
+      );
+      expect(result.dossierEvidence.sourceDatapoints).toEqual(
+        expect.arrayContaining(['cashflow:base-42', 'rollback:cost-model-42', 'eog:scenario-42'])
+      );
+    });
+  });
+
   // -- energySharingSimulationGateStatus ----------------------------------
 
   describe('energySharingSimulationGateStatus', () => {

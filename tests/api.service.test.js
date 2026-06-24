@@ -521,6 +521,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/areal-network-integration-offer-gate']).toBe(
         'dashboard-api.arealNetworkIntegrationOfferGateStatus'
       );
+      expect(aliases['GET /dashboard/transformation-financing-scenario-view']).toBe(
+        'dashboard-api.transformationFinancingScenarioViewStatus'
+      );
       expect(aliases['POST /stadtwerk-mauer-sandbox-runtime/events']).toBe(
         'stadtwerk-mauer-sandbox-runtime.ingestEvent'
       );

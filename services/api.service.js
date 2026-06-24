@@ -1446,6 +1446,8 @@ module.exports = {
             'dashboard-api.waterPricingNetInvestmentAlignmentStatus',
           'GET /dashboard/areal-network-integration-offer-gate':
             'dashboard-api.arealNetworkIntegrationOfferGateStatus',
+          'GET /dashboard/transformation-financing-scenario-view':
+            'dashboard-api.transformationFinancingScenarioViewStatus',
           'POST /stadtwerk-mauer-sandbox-runtime/events':
             'stadtwerk-mauer-sandbox-runtime.ingestEvent',
           'POST /stadtwerk-mauer-sandbox-runtime/reset':

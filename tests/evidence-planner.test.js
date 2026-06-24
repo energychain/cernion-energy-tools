@@ -1520,6 +1520,38 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('transformation_financing_scenario_view: requires financing scenario decision evidence', () => {
+    const plan = { routeKey: 'transformation_financing_scenario_view' };
+    const result = planEvidence(plan, {
+      scenarioId: 'tf-206',
+      gridOperatorId: 'vnb-mauer',
+      planningHorizon: '2026-2030',
+      scenarioType: 'gas-heat-transition',
+      cashflowSource: 'cashflow:base-42',
+    });
+
+    expect(result.registryKey).toBe('transformation_financing_scenario_view');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['scenario_identity', 'cashflow_source'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'margin_compensation_assumption',
+        'capital_reallocation_option',
+        'gas_decommissioning_path',
+        'rollback_cost_basis',
+        'heat_h2_option_basis',
+        'municipal_burden_basis',
+        'operational_investment_need',
+        'eog_regulatory_impact',
+        'liquidity_impact_assumption',
+        'stress_threshold',
+        'committee_decision_gate',
+        'source_datapoints',
+      ])
+    );
+  });
+
   it('forecast-flex: requires forecast_location', () => {
     const plan = { routeKey: 'forecast-flex' };
     const result = planEvidence(plan, {});

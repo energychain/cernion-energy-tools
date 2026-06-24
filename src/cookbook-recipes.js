@@ -580,6 +580,51 @@ const COOKBOOK_RECIPES = [
     prerequisites: ['Read-only API token (optional)'],
   },
   {
+    id: 'transformation-financing-scenario-view',
+    title: 'Build a read-only transformation financing scenario evidence view',
+    domain: 'transformation-finance-governance',
+    tags: [
+      'transformationsfinanzierung',
+      'gasnetz',
+      'waerme',
+      'h2',
+      'finance',
+      'evidence',
+      'dashboard',
+    ],
+    problem:
+      'Management needs one dossier-safe view over cashflow, gas decommissioning, rollback cost, heat/H2 investment, municipal burden, EOG, liquidity and stress-threshold assumptions without creating finance, billing or gas-asset side effects.',
+    process: [
+      {
+        step: 1,
+        service: 'dashboard-api',
+        action: 'dashboard-api.transformationFinancingScenarioViewStatus',
+        restPath: 'GET /api/dashboard/transformation-financing-scenario-view',
+        params: {
+          scenarioId: null,
+          gridOperatorId: null,
+          planningHorizon: null,
+          scenarioType: null,
+          cashflowSource: null,
+          rollbackCostBasis: null,
+          municipalBurdenAssumption: null,
+          eogImpact: null,
+          liquidityImpact: null,
+          stressThreshold: null,
+          committeeDecisionGate: null,
+          sourceDatapoints: null,
+        },
+        description:
+          'Normalize caller-supplied scenario evidence into readiness, missing evidence and positive follow-ups.',
+        expectedOutput:
+          '{ status, readinessScore, scenarioSummary, evidenceGroups, missingEvidence, positiveFollowUps, sourceActions, dossierEvidence }',
+      },
+    ],
+    expectedResult:
+      'Read-only management scenario card that separates hard evidence from assumptions and lists the missing data needed before committee use.',
+    prerequisites: ['Scenario inputs or explicit evidence gaps', 'Read-only API token (optional)'],
+  },
+  {
     id: 'agentic-production-feedback-prompt',
     title: 'Generate agent debugging prompt from production feedback',
     domain: 'monitoring',

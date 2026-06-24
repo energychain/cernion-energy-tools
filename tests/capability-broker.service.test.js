@@ -1090,6 +1090,29 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes transformation financing scenario prompts to the read-only scenario view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Transformationsfinanzierung Szenario Sicht mit Gasnetzabwertung Rueckbaukosten Waermenetzausbau H2 Option Kapitalumschichtung kommunale Entnahmen Liquiditaet Stressszenario und Gremienreife.',
+    });
+
+    expect(result.capability).toBe('transformation_financing_scenario_view');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'transformation_financing_scenario_view'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.transformationFinancingScenarioViewStatus');
+    expect(actionNames).not.toContain('finance.createBooking');
+    expect(actionNames).not.toContain('treasury.executeTransfer');
+    expect(actionNames).not.toContain('gas-assets.applyDecommissioning');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('billing.prepareInvoice');
+    expect(actionNames).not.toContain('tariff.mutate');
+    expect(actionNames).not.toContain('mako.dispatch');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('keeps target-grid transformation wording away from the Areal offer gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Netzanschlusspunkt Transformations-Gate mit division transformationOption dataQualityStatus investmentPath decommissionPath owner und nextAction.',

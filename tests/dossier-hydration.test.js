@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 82 static rules', () => {
+    it('loads all 83 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(82);
+      expect(rules.length).toBe(83);
     });
 
-    it('compiles all 82 static rules without error', () => {
+    it('compiles all 83 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(82);
+      expect(rules.length).toBe(83);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1521,6 +1521,60 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Site: site-west');
       expect(formatted).toContain('Leading Gap: grid_capacity_evidence');
       expect(formatted).toContain('Side-Effect Guard: offer.calculate');
+    });
+
+    it('dashboard-api.transformationFinancingScenarioViewStatus is dossier-safe and formats scenario facts', () => {
+      const rule = getRule('dashboard-api.transformationFinancingScenarioViewStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Transformationsfinanzierung szenario=tf-206 netzbetreiber=vnb-mauer planungshorizont=2026-2030 typ=gas-heat cashflow=cf-42 rueckbaukosten=rb-42 kommunaleLast=komm-42 eog=eog-42 liquiditaet=liq-42 stressschwelle=dscr-1.2 gremiengate=board owner=cfo pruefen'
+        )
+      ).toEqual({
+        scenarioId: 'tf-206',
+        gridOperatorId: 'vnb-mauer',
+        planningHorizon: '2026-2030',
+        scenarioType: 'gas-heat',
+        cashflowSource: 'cf-42',
+        rollbackCostBasis: 'rb-42',
+        municipalBurdenAssumption: 'komm-42',
+        eogImpact: 'eog-42',
+        liquidityImpact: 'liq-42',
+        stressThreshold: 'dscr-1.2',
+        committeeDecisionGate: 'board',
+        owner: 'cfo',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'transformation_financing_scenario_view',
+        status: 'needs_cashflow_source',
+        scenarioSummary: {
+          scenarioId: 'tf-206',
+          gridOperatorId: 'vnb-mauer',
+          planningHorizon: '2026-2030',
+        },
+        evidenceGroups: {
+          cashflow: { cashflowSource: 'cf-42' },
+          assetTransition: { rollbackCostBasis: 'rb-42' },
+          municipalBurden: { municipalBurdenAssumption: 'komm-42' },
+          regulatoryFinance: { eogImpact: 'eog-42' },
+          liquidityStress: { liquidityImpact: 'liq-42', stressThreshold: 'dscr-1.2' },
+          committeeGate: { committeeDecisionGate: 'board' },
+        },
+        missingEvidence: [{ missingDataPoint: 'cashflow_source' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add cashflow evidence' }],
+        sourceActions: {
+          notCalled: ['finance.createBooking'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: transformation_financing_scenario_view');
+      expect(formatted).toContain('Transformation Financing Status: needs_cashflow_source');
+      expect(formatted).toContain('Scenario: tf-206');
+      expect(formatted).toContain('Leading Gap: cashflow_source');
+      expect(formatted).toContain('Side-Effect Guard: finance.createBooking');
     });
 
     it('dashboard-api.specialGridUsageImpactMapStatus is dossier-safe and formats impact-map facts', () => {
