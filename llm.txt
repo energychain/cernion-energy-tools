@@ -135,8 +135,8 @@ recipes:
   prosumer-nap-wallet-onboarding "A prosumer wants to onboard to a NAP Wallet and share their…"
 resolve: GET /api/_agent/operations?domain=energy-sharing
 
-### grid-ops (25 capabilities · 10 recipes · 115 operations)
-capabilities: agnes_bottleneck, bess_screening, capacity_contract_risk_asset_cockpit, capex_prioritization, connection_rejection_evidence, connection_rejection_fnav_14a_evidence, controllability_asset_handover, controllability_submission_cockpit, cross_channel_vnb_signal_queue, e2e_connection_check, flex_forecast_bess_grid_operations_advisory, flex_strategic_demand_intake, flexibilitaetskosten_raster, fnav_commercial_hedging, fnav_fast_track_contract_gate, gas_transformation_dependency_map, ghost_asset_alert, grid_connection_transformation_gate, grid_operator_identity_resolution, legacy_control_technology_transition, mastr_asset_inventory, netzfahrplan_fnav_assessment, residual_load_forecast_for_dso, schedule_management_governance_roadmap, tech_commercial_offer_cockpit
+### grid-ops (26 capabilities · 10 recipes · 115 operations)
+capabilities: agnes_bottleneck, bess_screening, capacity_contract_risk_asset_cockpit, capex_prioritization, connection_rejection_evidence, connection_rejection_fnav_14a_evidence, controllability_asset_handover, controllability_submission_cockpit, cross_channel_vnb_signal_queue, e2e_connection_check, flex_forecast_bess_grid_operations_advisory, flex_strategic_demand_intake, flexibilitaetskosten_raster, fnav_commercial_hedging, fnav_fast_track_contract_gate, gas_transformation_dependency_map, ghost_asset_alert, grid_connection_transformation_gate, grid_operator_identity_resolution, legacy_control_technology_transition, mastr_asset_inventory, netzfahrplan_fnav_assessment, residual_load_forecast_for_dso, schedule_management_governance_roadmap, smgw_connector_readiness_status, tech_commercial_offer_cockpit
 recipes:
   direktvermarkter-portfolio "A user asks for installations managed by a direct marketer…"
   fnav-contract-gate-netzsignal-priority "A flexible connection request should be validated only if…"
@@ -181,8 +181,8 @@ recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (10 capabilities · 9 recipes · 339 operations)
-capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, evidence_grounding_confidence_audit, file_ingest_monitor, hitl_role_based_evidence_request, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
+### platform (11 capabilities · 9 recipes · 341 operations)
+capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, evidence_grounding_confidence_audit, file_ingest_monitor, hitl_role_based_evidence_request, live_update_stream_contract_status, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted…"
   dashboard-load-profile-stream-monitor "Operations teams need a single read-only view that separates…"
@@ -249,13 +249,13 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 5190fa2814db597464408cb11f08dfa7bd7798df74e650adbebb6fab71b7f5d4
-- src/capability-catalog.js: 1d22c39b1f296530ec9a218398e26fc5a7e3f93357eee3fc18d7797a97255208
-- openapi-export.json: 883deb720b4ffc76613ff7071ab1a31e1bdddc1826794b4291c2da762f249eca
+- src/capability-catalog.js: 48861dfa0c43a24ccdd24cf935cca39f3b6f3928604628d7b3e6a813751a8e77
+- openapi-export.json: 253f9784a3b6588d40dc1a9c4a6603772d2e248567c2f42e32eab3c02d926ec8
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 861
-- operation_count: 967
+- path_count: 865
+- operation_count: 971
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 9935f071a2c9dc59e7174b877b73f8e6bac6e1f238dbca9306efeb80be2d1168
+- llm_txt_sha256: 934be5b94cdf5e91d8c32588be98dca195a2bb77cb1cdb358818252d188607db

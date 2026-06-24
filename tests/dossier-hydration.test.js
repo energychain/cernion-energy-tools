@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 84 static rules', () => {
+    it('loads all 87 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(85);
+      expect(rules.length).toBe(87);
     });
 
-    it('compiles all 84 static rules without error', () => {
+    it('compiles all 87 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(85);
+      expect(rules.length).toBe(87);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1679,6 +1679,97 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Owner: netzstrategie');
       expect(formatted).toContain('Blocked Decision: zielnetzpfad');
       expect(formatted).toContain('Side-Effect Guard: hitl.create');
+    });
+
+    it('dashboard-api.liveUpdateStreamContractStatus is dossier-safe and formats stream contract facts', () => {
+      const rule = getRule('dashboard-api.liveUpdateStreamContractStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte live update contract channels=hitl_queue sourceService=hitl sourceAction=list authBoundary=bearer fallback=/api/hitl/items owner=platform pruefen'
+        )
+      ).toEqual({
+        channels: 'hitl_queue',
+        sourceService: 'hitl',
+        sourceAction: 'list',
+        authBoundary: 'bearer',
+        fallbackPollingPath: '/api/hitl/items',
+        ownerRole: 'platform',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'live_update_stream_contract_status',
+        status: 'contract_ready',
+        channels: [
+          {
+            key: 'hitl_queue',
+            availability: 'planned',
+            proposedTransport: 'sse_eventsource',
+            fallbackPollingPath: '/api/hitl/items',
+            authBoundary: 'bearer_token_and_x_tenant_id',
+            ownerRole: 'platform-api',
+          },
+        ],
+        missingEvidence: [],
+        positiveFollowUps: [],
+        sourceActions: {
+          notCalled: ['sse.openConnection'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: live_update_stream_contract_status');
+      expect(formatted).toContain('Live Update Contract Status: contract_ready');
+      expect(formatted).toContain('Channel: hitl_queue');
+      expect(formatted).toContain('Proposed Transport: sse_eventsource');
+      expect(formatted).toContain('Side-Effect Guard: sse.openConnection');
+    });
+
+    it('dashboard-api.smgwConnectorReadinessStatus is dossier-safe and formats connector readiness facts', () => {
+      const rule = getRule('dashboard-api.smgwConnectorReadinessStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte SMGW readiness scope=section14a gateway=bsi-tr-03109 adapter=openmuc intent=dimming nes2=module-2 eebus=ucp taf=taf7 audit=trail auth=bearer owner=flex pruefen'
+        )
+      ).toEqual({
+        integrationScope: 'section14a',
+        gatewayClass: 'bsi-tr-03109',
+        adapterClass: 'openmuc',
+        controlDomainIntent: 'dimming',
+        nes2ModuleEvidence: 'module-2',
+        eebusEvidence: 'ucp',
+        tafEvidence: 'taf7',
+        auditPrerequisites: 'trail',
+        authBoundary: 'bearer',
+        ownerRole: 'flex',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'smgw_connector_readiness_status',
+        status: 'ready_for_connector_design',
+        readinessScore: 1,
+        connectorReadiness: {
+          integrationScope: 'section14a_smgw_control',
+          adapterClass: 'openmuc-reference',
+          controlDomainIntent: 'dimming-readiness',
+          authBoundary: 'bearer_token_and_x_tenant_id',
+          fallbackReason: 'readiness evidence only',
+        },
+        missingEvidence: [],
+        positiveFollowUps: [],
+        sourceActions: {
+          notCalled: ['smgw.register'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: smgw_connector_readiness_status');
+      expect(formatted).toContain('SMGW Connector Readiness: ready_for_connector_design');
+      expect(formatted).toContain('Adapter Class: openmuc-reference');
+      expect(formatted).toContain('Side-Effect Guard: smgw.register');
     });
 
     it('dashboard-api.specialGridUsageImpactMapStatus is dossier-safe and formats impact-map facts', () => {

@@ -3181,6 +3181,124 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  describe('liveUpdateStreamContractStatus', () => {
+    it('reports contract-ready live update channel evidence without opening streams', async () => {
+      const result = await broker.call('dashboard-api.liveUpdateStreamContractStatus', {
+        channels: 'hitl_queue',
+        authBoundary: 'bearer_token_and_x_tenant_id',
+      });
+
+      expect(result.capabilityKey).toBe('live_update_stream_contract_status');
+      expect(result.safety).toBe('read_only');
+      expect(result.status).toBe('contract_ready');
+      expect(result.channels[0]).toMatchObject({
+        key: 'hitl_queue',
+        proposedTransport: 'sse_eventsource',
+        availability: 'planned',
+        sourceService: 'hitl',
+        sourceAction: 'list',
+        fallbackPollingPath: '/api/hitl/items',
+        authBoundary: 'bearer_token_and_x_tenant_id',
+        contractComplete: true,
+      });
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'sse.openConnection',
+          'websocket.upgrade',
+          'stream.subscribe',
+          'event-emitter.emit',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('surfaces missing and unsupported channel gaps as positive follow-ups', async () => {
+      const result = await broker.call('dashboard-api.liveUpdateStreamContractStatus', {
+        channels: 'unknown-domain',
+      });
+
+      expect(result.status).toBe('unsupported_channel');
+      expect(result.channels[0].availability).toBe('not_supported');
+      expect(result.channels[0].contractComplete).toBe(false);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'missing_source_service',
+          'missing_source_action',
+          'missing_fallback_polling_path',
+          'unsupported_channel',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('live_update_stream_contract_status');
+    });
+  });
+
+  describe('smgwConnectorReadinessStatus', () => {
+    it('reports ready SMGW connector evidence without connector side effects', async () => {
+      const result = await broker.call('dashboard-api.smgwConnectorReadinessStatus', {
+        integrationScope: 'section14a_smgw_control',
+        gatewayClass: 'bsi-tr-03109',
+        adapterClass: 'openmuc-reference',
+        controlDomainIntent: 'dimming-readiness',
+        nes2ModuleEvidence: 'module-2-window-proof',
+        eebusEvidence: 'wallbox-use-case-profile',
+        tafEvidence: 'taf7-message-contract',
+        auditPrerequisites: 'audit-trail-and-consent-boundary',
+        authBoundary: 'bearer_token_and_x_tenant_id',
+        ownerRole: 'flex-operations',
+      });
+
+      expect(result.capabilityKey).toBe('smgw_connector_readiness_status');
+      expect(result.safety).toBe('read_only');
+      expect(result.status).toBe('ready_for_connector_design');
+      expect(result.readinessScore).toBe(1);
+      expect(result.connectorReadiness).toMatchObject({
+        integrationScope: 'section14a_smgw_control',
+        gatewayClass: 'bsi-tr-03109',
+        adapterClass: 'openmuc-reference',
+        controlDomainIntent: 'dimming-readiness',
+        authBoundary: 'bearer_token_and_x_tenant_id',
+        ownerRole: 'flex-operations',
+      });
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'smgw.register',
+          'smgw.control',
+          'taf7.dispatch',
+          'mqtt.publish',
+          'eebus.bridge',
+          'external.connector.call',
+          'secret.read',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('surfaces SMGW readiness evidence gaps as positive follow-ups', async () => {
+      const result = await broker.call('dashboard-api.smgwConnectorReadinessStatus', {
+        integrationScope: 'section14a_smgw_control',
+        adapterClass: 'voltaris-test',
+      });
+
+      expect(result.status).toBe('blocked_by_auth_boundary');
+      expect(result.readinessScore).toBeLessThan(1);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'tenant_auth_boundary',
+          'control_domain_intent',
+          'nes2_module_evidence',
+          'eebus_taf_evidence',
+          'audit_prerequisites',
+          'owner',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('smgw_connector_readiness_status');
+      expect(result.connectorReadiness.fallbackReason).toContain('readiness evidence only');
+    });
+  });
+
   // -- energySharingSimulationGateStatus ----------------------------------
 
   describe('energySharingSimulationGateStatus', () => {

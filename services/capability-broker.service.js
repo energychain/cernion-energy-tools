@@ -262,6 +262,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasSmgwConnectorReadinessSpecificSignal =
+    /(smgw|smart.?meter.?gateway|bsi tr-03109|tr-03109|gateway.?adapter|connector readiness|connector.?readiness|eebus|openmuc|voltaris)/i.test(haystack) &&
+    /(readiness|reife|evidenz|evidence|status|go.?no.?go|integration.?scope|integrationsreife|adapter.?class|gateway.?class|auth.?boundary|audit.?prerequisite|compliance.?prerequisite|non.?execution|nicht.?ausfuehrung|nicht.?ausführung)/i.test(haystack) &&
+    !/(re4de|variable netzentgelte|tariff sheet|tarifberechnung|module 3|modul 3|steuerbefehl senden|steuerung senden|steuerung ausfuehren|steuerung ausführen|control command|dispatch taf|taf-?7 dispatch|pair gateway|gateway pair|geraet registrieren|gerät registrieren|smgw register|smgw control|smgw switch|mqtt publish|eebus bridge ausfuehren|eebus bridge ausführen|billing import|abrechnung import|hitl create|secret read|external connector call)/i.test(haystack);
+
+  if (hasSmgwConnectorReadinessSpecificSignal) {
+    const smgwReadinessCapability = findCapabilityByName('smgw_connector_readiness_status');
+    if (smgwReadinessCapability) {
+      return { capability: smgwReadinessCapability, score: 149, usedFallback: false };
+    }
+  }
+
   const hasFlexStrategicDemandIntakeSpecificSignal =
     /(flexibilisierung|fahrplanmanagement|flex strategic|flex.?bedarf|bedarfsmeldung flex|strategische bedarfsanmeldung)/i.test(haystack) &&
     /(bedarf|intake|bedarfsmeldung|risk|risiko|nicht.?handeln|kaufmaennische|kaufmännische|commercial|ressource|resource|stop.?doing|owner|next decision gate|entscheidungsgate|blockierte folgeentscheidung)/i.test(haystack) &&

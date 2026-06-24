@@ -1161,6 +1161,49 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes live update contract prompts to the read-only stream contract view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Live Update Stream Contract fuer UI Live State mit SSE EventSource WebSocket Polling Fallback Heartbeat Resume und Last-Event-ID readiness.',
+    });
+
+    expect(result.capability).toBe('live_update_stream_contract_status');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'live_update_stream_contract_status'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.liveUpdateStreamContractStatus');
+    expect(actionNames).not.toContain('sse.openConnection');
+    expect(actionNames).not.toContain('websocket.upgrade');
+    expect(actionNames).not.toContain('stream.subscribe');
+    expect(actionNames).not.toContain('event-emitter.emit');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('nova.apply');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('routes SMGW connector readiness prompts to the read-only readiness view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe SMGW Connector Readiness fuer §14a BSI TR-03109 NES2 EEBUS TAF-7 Integration Scope Adapter Class Auth Boundary Audit Prerequisite und Go-No-Go Evidenz.',
+    });
+
+    expect(result.capability).toBe('smgw_connector_readiness_status');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'smgw_connector_readiness_status'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.smgwConnectorReadinessStatus');
+    expect(actionNames).not.toContain('smgw.register');
+    expect(actionNames).not.toContain('smgw.control');
+    expect(actionNames).not.toContain('smgw.switch');
+    expect(actionNames).not.toContain('taf7.dispatch');
+    expect(actionNames).not.toContain('mqtt.publish');
+    expect(actionNames).not.toContain('eebus.bridge');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('keeps target-grid transformation wording away from the Areal offer gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Netzanschlusspunkt Transformations-Gate mit division transformationOption dataQualityStatus investmentPath decommissionPath owner und nextAction.',

@@ -1272,6 +1272,167 @@
     "sourceIssue": 269
   },
   {
+    "id": "dashboard-api.liveUpdateStreamContractStatus",
+    "action": "dashboard-api.liveUpdateStreamContractStatus",
+    "label": "Live Update Stream Contract Status",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "channels": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:channels|kanaele|kanäle|channel)[:= ]+([a-zA-Z0-9_.,:-]+)", "group": 1 }
+      },
+      "domains": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:domains|domaenen|domänen|domain)[:= ]+([a-zA-Z0-9_.,:-]+)", "group": 1 }
+      },
+      "sourceService": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:sourceService|service|quelldienst)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "sourceAction": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:sourceAction|action|aktion)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "authBoundary": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:authBoundary|auth|tenantBoundary)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "fallbackPollingPath": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:fallbackPollingPath|fallback|polling)[:= ]+([/a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "ownerRole": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:ownerRole|owner|verantwortung)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 120 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Live Update Contract Status", "maxLen": 120 },
+        { "paths": ["channels.0.key", "dossierEvidence.channels.0.key"], "label": "Channel", "maxLen": 140 },
+        { "paths": ["channels.0.availability", "dossierEvidence.channels.0.availability"], "label": "Availability", "maxLen": 120 },
+        { "paths": ["channels.0.proposedTransport", "dossierEvidence.channels.0.proposedTransport"], "label": "Proposed Transport", "maxLen": 120 },
+        { "paths": ["channels.0.fallbackPollingPath", "dossierEvidence.channels.0.fallbackPollingPath"], "label": "Fallback Polling", "maxLen": 160 },
+        { "paths": ["channels.0.authBoundary", "dossierEvidence.channels.0.authBoundary"], "label": "Auth Boundary", "maxLen": 140 },
+        { "paths": ["channels.0.ownerRole", "dossierEvidence.channels.0.ownerRole"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Positive Follow-up", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 75
+  },
+  {
+    "id": "dashboard-api.smgwConnectorReadinessStatus",
+    "action": "dashboard-api.smgwConnectorReadinessStatus",
+    "label": "SMGW Connector Readiness Status",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "integrationScope": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:integrationScope|scope|integrationsumfang)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "gatewayClass": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:gatewayClass|gateway|smgwKlasse)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "adapterClass": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:adapterClass|adapter)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "controlDomainIntent": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:controlDomainIntent|intent|steuerdomäne|steuerdomaene)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "nes2ModuleEvidence": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:nes2ModuleEvidence|nes2|tarifmodul)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "eebusEvidence": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:eebusEvidence|eebus)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "tafEvidence": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:tafEvidence|taf|taf7)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "auditPrerequisites": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:auditPrerequisites|audit|compliance)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "authBoundary": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:authBoundary|auth|tenantBoundary)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "ownerRole": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:ownerRole|owner|verantwortung)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 120 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "SMGW Connector Readiness", "maxLen": 120 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness Score", "maxLen": 40 },
+        { "paths": ["connectorReadiness.integrationScope", "dossierEvidence.connectorReadiness.integrationScope"], "label": "Integration Scope", "maxLen": 160 },
+        { "paths": ["connectorReadiness.adapterClass", "dossierEvidence.connectorReadiness.adapterClass"], "label": "Adapter Class", "maxLen": 120 },
+        { "paths": ["connectorReadiness.controlDomainIntent", "dossierEvidence.connectorReadiness.controlDomainIntent"], "label": "Control Intent", "maxLen": 160 },
+        { "paths": ["connectorReadiness.authBoundary", "dossierEvidence.connectorReadiness.authBoundary"], "label": "Auth Boundary", "maxLen": 140 },
+        { "paths": ["connectorReadiness.fallbackReason", "dossierEvidence.connectorReadiness.fallbackReason"], "label": "Non-Execution Reason", "maxLen": 180 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Positive Follow-up", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 72
+  },
+  {
     "id": "dashboard-api.leadershipDeltaCockpitStatus",
     "action": "dashboard-api.leadershipDeltaCockpitStatus",
     "label": "Leadership Delta Cockpit",

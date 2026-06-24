@@ -1578,6 +1578,51 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('live_update_stream_contract_status: requires live-update contract evidence', () => {
+    const plan = { routeKey: 'live_update_stream_contract_status' };
+    const result = planEvidence(plan, {
+      channels: 'hitl_queue',
+      sourceService: 'hitl',
+      sourceAction: 'list',
+    });
+
+    expect(result.registryKey).toBe('live_update_stream_contract_status');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['channel_identity', 'source_binding'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'tenant_auth_boundary',
+        'fallback_polling_path',
+        'heartbeat_resume_policy',
+        'owner',
+      ])
+    );
+  });
+
+  it('smgw_connector_readiness_status: requires SMGW readiness evidence', () => {
+    const plan = { routeKey: 'smgw_connector_readiness_status' };
+    const result = planEvidence(plan, {
+      integrationScope: 'section14a_smgw_control',
+      adapterClass: 'openmuc-reference',
+      authBoundary: 'bearer_token_and_x_tenant_id',
+    });
+
+    expect(result.registryKey).toBe('smgw_connector_readiness_status');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['integration_scope', 'tenant_auth_boundary', 'adapter_class'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'control_domain_intent',
+        'nes2_module_evidence',
+        'eebus_taf_evidence',
+        'audit_prerequisites',
+        'owner',
+      ])
+    );
+  });
+
   it('forecast-flex: requires forecast_location', () => {
     const plan = { routeKey: 'forecast-flex' };
     const result = planEvidence(plan, {});

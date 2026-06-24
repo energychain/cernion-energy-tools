@@ -4089,6 +4089,114 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  live_update_stream_contract_status: {
+    sources: [
+      {
+        id: 'channel_identity',
+        label: 'Live-update channel or domain identity',
+        resolvedBy: ['dashboard-api.liveUpdateStreamContractStatus'],
+        contextKeys: ['channels', 'domains', 'uiSurface'],
+        optional: false,
+      },
+      {
+        id: 'source_binding',
+        label: 'Source service/action binding',
+        resolvedBy: ['dashboard-api.liveUpdateStreamContractStatus', 'service-catalog.lookup'],
+        contextKeys: ['sourceService', 'sourceAction'],
+        optional: false,
+      },
+      {
+        id: 'tenant_auth_boundary',
+        label: 'Tenant and auth boundary',
+        resolvedBy: ['dashboard-api.liveUpdateStreamContractStatus', 'token-manager.verify'],
+        contextKeys: ['authBoundary'],
+        optional: false,
+      },
+      {
+        id: 'fallback_polling_path',
+        label: 'Safe fallback polling path',
+        resolvedBy: ['dashboard-api.liveUpdateStreamContractStatus'],
+        contextKeys: ['fallbackPollingPath'],
+        optional: false,
+      },
+      {
+        id: 'heartbeat_resume_policy',
+        label: 'Heartbeat and resume policy expectation',
+        resolvedBy: ['dashboard-api.liveUpdateStreamContractStatus'],
+        contextKeys: ['requiresResume', 'heartbeatSeconds'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Contract owner',
+        resolvedBy: ['dashboard-api.liveUpdateStreamContractStatus', 'vdmi.dossier'],
+        contextKeys: ['ownerRole'],
+        optional: false,
+      },
+    ],
+  },
+
+  smgw_connector_readiness_status: {
+    sources: [
+      {
+        id: 'integration_scope',
+        label: 'SMGW integration scope',
+        resolvedBy: ['dashboard-api.smgwConnectorReadinessStatus'],
+        contextKeys: ['integrationScope'],
+        optional: false,
+      },
+      {
+        id: 'tenant_auth_boundary',
+        label: 'Tenant and auth boundary',
+        resolvedBy: ['dashboard-api.smgwConnectorReadinessStatus', 'token-manager.verify'],
+        contextKeys: ['authBoundary', 'tenantBoundary'],
+        optional: false,
+      },
+      {
+        id: 'adapter_class',
+        label: 'Gateway or adapter class',
+        resolvedBy: ['dashboard-api.smgwConnectorReadinessStatus', 'service-catalog.lookup'],
+        contextKeys: ['gatewayClass', 'adapterClass'],
+        optional: false,
+      },
+      {
+        id: 'control_domain_intent',
+        label: 'Control-domain intent and non-execution boundary',
+        resolvedBy: ['dashboard-api.smgwConnectorReadinessStatus'],
+        contextKeys: ['controlDomainIntent', 'fallbackReason'],
+        optional: false,
+      },
+      {
+        id: 'nes2_module_evidence',
+        label: 'NES2 tariff-module readiness evidence',
+        resolvedBy: ['dashboard-api.smgwConnectorReadinessStatus'],
+        contextKeys: ['nes2ModuleEvidence'],
+        optional: false,
+      },
+      {
+        id: 'eebus_taf_evidence',
+        label: 'EEBUS and TAF evidence',
+        resolvedBy: ['dashboard-api.smgwConnectorReadinessStatus'],
+        contextKeys: ['eebusEvidence', 'tafEvidence'],
+        optional: false,
+      },
+      {
+        id: 'audit_prerequisites',
+        label: 'Compliance and audit prerequisites',
+        resolvedBy: ['dashboard-api.smgwConnectorReadinessStatus', 'vdmi.dossier'],
+        contextKeys: ['auditPrerequisites'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Readiness owner',
+        resolvedBy: ['dashboard-api.smgwConnectorReadinessStatus', 'vdmi.dossier'],
+        contextKeys: ['ownerRole'],
+        optional: false,
+      },
+    ],
+  },
+
   leadership_delta_cockpit: {
     sources: [
       {
