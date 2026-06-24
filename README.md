@@ -1,186 +1,390 @@
 # Cernion Energy Tools
 
-> Moleculer-basierte Microservice-Plattform für deutsche Verteilnetzbetreiber und Stadtwerke — kombiniert MaStR, ENTSO-E und BNetzA-Daten mit internen Betriebsdaten zu regulatorisch prüffähigen Analysen und KI-gestützten Entscheidungshilfen.
+> API-first Agentic Energy Operations Layer for Stadtwerke, DSOs and energy-service teams.
+> Cernion combines deterministic energy-domain microservices, governed agent orchestration,
+> evidence dossiers and curated integration surfaces for Microsoft Copilot, OpenClaw and
+> conventional REST clients.
 
 [![Maintenance CI](https://github.com/energychain/cernion-energy-tools/actions/workflows/maintenance-ci.yml/badge.svg?branch=main)](https://github.com/energychain/cernion-energy-tools/actions/workflows/maintenance-ci.yml)
 [![CodeQL](https://github.com/energychain/cernion-energy-tools/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/energychain/cernion-energy-tools/actions/workflows/codeql.yml)
 [![Release](https://github.com/energychain/cernion-energy-tools/actions/workflows/release.yml/badge.svg)](https://github.com/energychain/cernion-energy-tools/actions/workflows/release.yml)
 [![codecov](https://codecov.io/gh/energychain/cernion-energy-tools/branch/main/graph/badge.svg)](https://codecov.io/gh/energychain/cernion-energy-tools)
 
-## Überblick
+## What This Repository Is
 
-Cernion Energy Tools ist eine **Node.js/Moleculer-Plattform** mit 65 Core-Services
-in `services/`, einer optionalen lokalen Erweiterung in `custom-services/`,
-250+ OpenAPI-Pfaden / 260+ REST-Operationen und 1 782+ Tests. Sie richtet sich an VNBs und Stadtwerke,
-die Netzanschlüsse prüfen, Redispatch-Pflichten verwalten, §42c-Energieteilung
-umsetzen oder MaStR-Portfolios auditieren wollen. Die Plattform verbindet öffentliche
-Energiedatenquellen (MaStR, ENTSO-E, BNetzA EWK) mit internen Betriebsdaten und
-liefert reproduzierbare, auditierbare Ergebnisse — kein Blackbox-LLM für regulatorische
-Entscheidungen. Aktueller Stand: **v0.52.14**, 65 Core-Services + 1 lokaler Custom-Service,
-250+ OpenAPI-Pfade / 260+ REST-Operationen.
+Cernion Energy Tools is the backend runtime behind [cernion.de](https://cernion.de/):
+a Node.js/Moleculer service platform for energy-domain automation, decision support and
+agentic process orchestration.
 
----
+It is not just a chat frontend for energy APIs. The current platform contains:
 
-## Schnellstart
+- **108 Moleculer services** in `services/`
+- **619 OpenAPI paths** in `openapi-export.json`
+- **243 JavaScript test files** under `tests/`
+- **curated Copilot and Sidecar interfaces** that expose only governed subsets of the backend
+- **agentic runtime components** for routing, receipts, dossiers, HITL, evidence, revalidation and observability
 
-Voraussetzung: **Node.js 22+**
+Current package version: **`0.60.8`**
+
+The public website explains Cernion as an energy-intelligence and decision platform for
+Stadtwerke: MaStR analysis, grid planning, §14a, Redispatch, Energy Sharing, customer-service
+automation and Microsoft Copilot complementarity. This repository is the deeper technical
+system underneath that product narrative.
+
+## Why Cernion Is Agentic
+
+Cernion is API-first, but the API is only the integration layer. The agentic part is the
+runtime behavior:
+
+1. **Understand an energy-domain objective**
+   Examples: validate a grid-connection scenario, build a VDMI responsibility matrix,
+   assess BESS finance risk, identify Energy Sharing data conflicts.
+2. **Select a governed capability path**
+   The `capability-broker` maps intent to curated service chains instead of exposing the
+   full tool catalogue to an LLM.
+3. **Execute deterministic microservices**
+   Energy-domain calculations and regulatory checks remain code-backed and reproducible.
+4. **Maintain process state**
+   Personal-agent sessions, receipts, dossiers, HITL items and object-store evidence allow
+   work to continue beyond a single chat turn.
+5. **Produce auditable artifacts**
+   Outputs are not only natural-language answers; they include dossiers, evidence packages,
+   decision frames, validation reports, receipts and traces.
+6. **Govern revalidation**
+   New facts can become control signals for agents: if a MaStR asset, datapoint or object-store
+   evidence item changes, dependent decisions can be identified and rechecked.
+
+This is the practical difference between a question-and-answer bot and an agentic
+energy-operations platform.
+
+## Core Architecture
+
+```text
+External systems / humans / agents
+        |
+        v
+REST API, Copilot API, OpenClaw Sidecar, MCP-like tool surfaces
+        |
+        v
+Personal Agent / Capability Broker / Agent Receipts / Blueprints
+        |
+        v
+Governed Moleculer services
+        |
+        v
+Datapoints, Object Store, Knowledge RAG, Dossiers, Jobs, Observability
+```
+
+### Runtime Layers
+
+| Layer | Components | Purpose |
+| --- | --- | --- |
+| Service bus | Moleculer, REST gateway, async jobs | Deterministic service execution and API exposure |
+| Data layer | Object Store, Datapoints, DataSources, Knowledge RAG | Internal data, external evidence, tenant memory and source material |
+| Agentic routing | Personal Agent, Capability Broker, Blueprints, Agent Receipts | Intent resolution, tool-chain selection, durable execution |
+| Governance | VDMI, HITL, Clarification Policy, Interface Placeholder, Evidence Revalidation | Responsibilities, missing evidence, human decisions, gap handling |
+| Integration | Full OpenAPI, Copilot subset, OpenClaw Sidecar, Webhooks, MCP-style tools | Safe use by humans, copilots, agents and automation systems |
+| Observability | Metrics, traces, audit records, job status | Operation, auditability and support |
+
+## Main Domains
+
+The platform covers several energy-industry work areas. The following list is representative;
+the OpenAPI export is the source of truth.
+
+| Domain | Examples |
+| --- | --- |
+| Grid connection and fNAV | Grid-connection validation, flexible network access, connection-rejection evidence |
+| VDMI governance | Verantwortlich, Durchführend, Mitwirkend, Information per process step; findings, dossiers and evidence |
+| Zielnetzplanung (ZNP) | Projects, assumptions, Layer 0/1/2 assets, portfolio analysis, NOVA decisions |
+| Asset and data quality | MaStR quality, asset overrides, ghost-asset alerts, datasource classification |
+| Energy Sharing and settlement | §42c-style allocation, settlement checks, Redispatch ex-post reconciliation |
+| EDM and market communication | MSCONS import, EDM validation, virtual meters, messkonzept checks |
+| Forecasting and flexibility | Forecast engine, residual load, §14a flex events, SLP profiles |
+| Finance and investment | Finance agent, fNAV economics, BESS screening, capex prioritization |
+| Reporting and BI | Reporting governance, dashboard API, VNB monitoring, EWK monitoring |
+| Knowledge and evidence | Knowledge RAG, evidence routing, dossiers, object-store context |
+
+## Agentic Components
+
+### Personal Agent
+
+`services/personal-agent.service.js` is the user-facing orchestration layer. It keeps
+conversation state, routes intents, calls deterministic services and synthesizes results
+without turning the whole backend into one prompt.
+
+Key concepts:
+
+- layered context management ("Zwiebelmodus")
+- durable execution state and resumable sessions
+- file and datapoint intake
+- evidence-gap handling
+- work-out-loud events
+- presentation-aware final artifacts
+
+### Capability Broker
+
+`services/capability-broker.service.js` and `src/capability-catalog.js` provide curated
+capability routing. This is the control point that prevents agents from seeing or choosing
+the entire backend surface directly.
+
+Examples of curated capabilities include:
+
+- `vdmi_role_boundary_governance`
+- `vdmi_asset_validation_governance`
+- `vdmi_grid_connection_decision_governance`
+- `netzfahrplan_fnav_assessment`
+- `znp_portfolio_assessment`
+- `settlement_a96_reconciliation`
+- `financier_due_diligence_assessment`
+- `reporting_governance`
+
+### Agent Receipts
+
+`services/agent-receipts.service.js` turns repeatable agent workflows into versioned,
+testable recipes. Receipts describe matching conditions, required inputs, tool plans and
+knowledge plans. They are the bridge from "the agent answered" to "the platform selected a
+governed, inspectable workflow".
+
+### Dossiers and Decision Frames
+
+Cernion uses dossiers and decision frames for auditable outputs. A result can include:
+
+- facts used
+- hypotheses
+- evidence gaps
+- risks
+- forbidden assumptions
+- VDMI responsibilities
+- next actions
+- human-review requirements
+
+### Agentic Governance and Revalidation
+
+Two active architecture tracks are captured in GitHub issues:
+
+- [#275 Agent Governance Runtime: Bestandsanalyse vor Umsetzungsplan](https://github.com/energychain/cernion-energy-tools/issues/275)
+- [#276 Agentic Governance Layer: Faktenänderungen als Steuerungssignal für Agenten](https://github.com/energychain/cernion-energy-tools/issues/276)
+
+The target direction is that a changed fact can become a control signal for agents:
+
+```text
+MaStR / datapoint / object-store change
+        |
+        v
+Dependency and impact analysis
+        |
+        v
+Revalidation queue
+        |
+        v
+Agent receipt / capability flow rerun
+        |
+        v
+Audit note, updated dossier, HITL item or exception case
+```
+
+This is how Cernion moves from one-time API analysis toward RPA+ for commodity energy
+processes: standard cases are automated, exceptions are made explicit.
+
+## Integration Surfaces
+
+### Full REST API
+
+The complete REST API is generated from Moleculer service metadata.
+
+- Swagger UI: `GET /api/docs`
+- OpenAPI JSON: `GET /api/openapi.json`
+- Static export: `openapi-export.json`
+
+Regenerate and audit:
+
+```bash
+npm run export:openapi
+npm run audit:openapi
+```
+
+### Microsoft Copilot Bridge
+
+Cernion does not expose all 600+ API paths to Microsoft Copilot. The Copilot bridge uses a
+curated allowlist maintained in `config/copilot-operations.json`.
+
+Relevant files:
+
+- [docs/copilot-process-bridge.md](docs/copilot-process-bridge.md)
+- [docs/copilot-agent.json](docs/copilot-agent.json)
+- [docs/copilot-plugin.json](docs/copilot-plugin.json)
+- `openapi-copilot.json`
+
+Generate the Copilot subset:
+
+```bash
+npm run export:openapi:copilot
+```
+
+The Copilot-facing surface distinguishes:
+
+- `read` operations with no side effects
+- `draft` operations that prepare suggestions
+- `prepare` operations requiring confirmation
+- consequential operations that remain blocked until explicitly governed
+
+### OpenClaw Sidecar
+
+The companion repository
+[SmartEnergySolutions/cernion-openclaw-sidecar](https://github.com/SmartEnergySolutions/cernion-openclaw-sidecar)
+provides an OpenClaw plugin for generic Energy Sidecar providers, with Cernion as the first
+provider.
+
+The sidecar consumes the Cernion Sidecar contract:
+
+- `GET /api/agent-sidecar/descriptor`
+- `GET /api/agent-sidecar/mcp/tools`
+- `POST /api/agent-sidecar/mcp/tools/:name/call`
+- `POST /api/knowledge-rag/query`
+- `POST /api/evidence-router/route`
+- `POST /api/copilot-process/intents`
+- `GET /api/_agent/capabilities[?domain=]`
+- `GET /api/_agent/operations[?domain=]`
+
+The boundary is deliberately strict:
+
+- read-only Cernion evidence lookup uses a read-only token
+- process intake uses a separate process token and creates only `pending_confirmation` receipts
+- admin, token, HITL-resolve and production mutation paths are blocked
+- domain routing remains inside Cernion, not inside the sidecar
+
+### MCP-Style Tooling
+
+Cernion also publishes AI-agent-friendly tool descriptions through `llm.txt`, capability
+resolution endpoints and MCP/OpenClaw-style tool lists. The public documentation page
+describes this as a set of ready-to-use energy tools for Stadtwerke.
+
+## Quickstart
+
+Prerequisite: **Node.js 22+**
 
 ```bash
 git clone https://github.com/energychain/cernion-energy-tools.git
 cd cernion-energy-tools
 npm install
-cp .env.example .env          # CERNION_TOKEN + LLM_PROVIDER/LLM_MODEL konfigurieren
+cp .env.example .env
 npm start
-# API:        http://localhost:3000/api
-# Swagger:    http://localhost:3000/api/docs
-# Web App:    http://localhost:3000/app
 ```
 
-Vollständige Einrichtung: [QUICKSTART.md](QUICKSTART.md)
+Default local endpoints:
 
----
+- API: `http://localhost:3000/api`
+- Swagger UI: `http://localhost:3000/api/docs`
+- Web app: `http://localhost:3000/app`
 
-## Architektur-Überblick
+Full setup guide: [QUICKSTART.md](QUICKSTART.md)
 
-| Schicht | Komponenten | Zweck |
-|---|---|---|
-| Plattform | Moleculer, PouchDB/Object Store, Job-Store, Tenant Context | Service-Bus, Persistenz, Isolation, Async Runtime |
-| Externe Daten | MaStR (lokal), ENTSO-E, BNetzA EWK, OEP | Anlagendaten, Netzkapazität, Marktpreise |
-| Interne Daten | Datasource Layer (CSV/REST/GeoJSON/XLSX), Datapoints | Eigene VNB-Datensätze, Scheduling, Provenance |
-| KI / Agenten | Agent, CYA, Finance Agent, 4 deterministische Audit-/Validation-Agents | Analyse, Narrative, Compliance-Prüfung |
-| Governance | HITL, Webhooks, Observability, Pagination, Asset Overrides | Operative Freigaben, Eventing, Telemetrie, API-Härtung |
-| API | REST (250+ Pfade / 260+ Operationen), MCP, OpenAPI, SSE | Integration in UI, Power Automate, BI-Tools |
+## Configuration
 
-Vollständige Architektur: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+Start with [.env.example](.env.example). Common variables:
 
----
+| Variable | Purpose |
+| --- | --- |
+| `CERNION_TOKEN` | API token for authenticated access |
+| `LLM_PROVIDER` | LLM provider (`gemini`, `openai-compat`, `ollama`) |
+| `LLM_MODEL` | Model name for the selected provider |
+| `LLM_API_KEY` / `GEMINI_API_KEY` | Provider credentials when needed |
+| `API_URL` | Base URL used in generated OpenAPI servers and CLI share links |
+| `PORT` | API gateway port, default `3000` |
+| `TRACING_ENABLED` | Enable OpenTelemetry tracing |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP HTTP trace destination |
+| `METRICS_PUBLIC` | Expose `/metrics` without a full-access token |
 
-## Methodischer Ansatz
+LLM health:
 
-- **Deterministische Regulatorik** — Regulatorische Regeln sind Code, kein LLM-Schluss.
-  Identische Eingaben liefern identische Befunde. Prüfbar, reproduzierbar, EU AI Act
-  Art. 12/13 konform.
-- **TRL-gesteuerter Entwicklungsprozess** — Jede Komponente hat einen expliziten
-  TRL-Status (1–8). Neue Features starten bei TRL 3/4, Produktions-Features erfordern TRL 7+.
-- **Zwiebelmodus (Onion Model)** — Kontextualisierung von außen nach innen: vom
-  VNB-Portfolio zur einzelnen Anlage. Der `CyaContextManager` hält den Zoom-Zustand
-  persistent über Sessions.
-- **Agent-to-Agent-Protokoll (A²MDM)** — Mehrere Personas verhandeln Konflikte
-  strukturiert. Kein Blackbox-LLM-Output für regulatorische Entscheidungen.
-- **Open Science Ready** — OEP-Connector, ~150 OEO-Mappings,
-  [CONTRIBUTING_SCIENCE.md](CONTRIBUTING_SCIENCE.md) für akademische Anschlüsse.
-
----
-
-## API-Zugang
-
-**Start hier:**
-- Swagger UI: `GET /api/docs`
-- OpenAPI JSON: `GET /api/openapi.json`
-
-### API-Schnellnavigation (repräsentative Endpunkte je Domäne)
-
-| Domäne | Beispiele (Auszug) |
-|---|---|
-| VDMI Governance | `PATCH /api/vdmi/tenants/:tenantId/matrices/:matrixId`, `GET /api/vdmi/tenants/:tenantId/findings`, `POST /api/vdmi/tenants/:tenantId/tasks/:taskId/evidence` |
-| CYA Agent | `POST /api/cya/profile`, `POST /api/cya/compare-perspectives`, `GET /api/cya/sessions/:session_id/export/pdf` |
-| ZNP + NOVA Decisions | `GET /api/znp/projects`, `POST /api/znp/projects/:projectId/layer0`, `GET /api/znp/projects/:projectId/nova/decisions` |
-| EDM & Messkonzepte | `POST /api/edm/validate`, `POST /api/edm/messkonzepte`, `POST /api/edm/validate/:validationId/fill-gaps` |
-| Forecast / Settlement / Flex | `POST /api/forecast/load`, `POST /api/settlement/redispatch/calculate`, `POST /api/flex/events/plan` |
-| Assets / Grid Validation | `POST /api/assets/:assetId/override`, `GET /api/assets/:assetId/effective`, `POST /api/grid-connection/validate` |
-| Datapoints & Snapshots | `POST /api/datapoints/promote`, `POST /api/datapoints/snapshot`, `POST /api/datapoints/snapshot/:id/validate` |
-| MaStR Monitor & Qualität | `POST /api/mastr-monitor/watches`, `GET /api/mastr-monitor/confirm/:token`, `POST /api/mastr-quality/audit` |
-| OEP / OSM Geo / Knowledge | `GET /api/oep/schemas`, `POST /api/osm-geo/substation-finder`, `POST /api/knowledge-rag/query` |
-| Finance Agent | `POST /api/finance-agent/analyze`, `GET /api/finance-agent/analyses`, `GET /api/finance-agent/prompts` |
-
-> Hinweis: Die Tabelle ist ein **Onboarding-Auszug**. Die vollständige API mit allen Pfaden, Parametern und Schemas steht in Swagger unter `/api/docs`.
-
-```bash
-# Token erstellen
-POST /api/tokens/create
-{ "name": "mein-token", "scope": "read-only" }
-
-# Netzanschlussprüfung starten
-POST /api/grid-connection/validate
-{ "gridOperator": "SNB900...", "location": "Musterstadt", "installationType": "solar", "capacityKW": 250 }
-
-# MaStR-Portfolioqualität prüfen
-POST /api/mastr-quality/audit
-{ "gridOperatorId": "SNB900..." }
-
-# Vollständige API-Dokumentation
-GET /api/openapi.json
-GET /api/docs   ← Swagger UI
+```text
+GET /api/system/llm/health
 ```
-
-Auth-Leitfaden: [BEARER_TOKEN_AUTHENTICATION.md](BEARER_TOKEN_AUTHENTICATION.md)
-
----
-
-## Konfiguration
-
-| Variable | Beschreibung | Pflicht |
-|---|---|---|
-| `CERNION_TOKEN` | API-Token für MCP-Verbindung | Ja |
-| `LLM_PROVIDER` | LLM-Provider (`gemini`, `openai-compat`, `ollama`) | Ja |
-| `LLM_MODEL` | Modellname für den gewählten Provider | Ja |
-| `LLM_API_KEY` | Generischer API-Key (falls Provider ihn benötigt) | Nein |
-| `GEMINI_API_KEY` | Gemini-Key (Backwards Compatibility, wenn `LLM_PROVIDER=gemini`) | Nein |
-| `MCP_SERVER_URL` | Cernion MCP Server URL | Ja |
-| `PORT` | API Gateway Port (Standard: 3000) | Nein |
-| `METRICS_PUBLIC` | Macht `GET /metrics` öffentlich, sonst full-access `ck_`-Token nötig | Nein |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP HTTP Ziel für Traces | Nein |
-| `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | E-Mail-Benachrichtigungen (MaStR Monitor) | Nein |
-
-LLM-Health-Probe: `GET /api/system/llm/health` (Text + Embeddings Check, `ok|degraded|unhealthy`).
 
 Observability:
-- `GET /metrics` liefert Prometheus-kompatible Metriken.
-- HTTP-, Action-, LLM-, MCP- und Utility-Report-Spans können via `TRACING_ENABLED=true` + `OTEL_EXPORTER_OTLP_ENDPOINT` exportiert werden.
-- Grafana-Beispiele liegen unter [docs/observability/grafana/README.md](docs/observability/grafana/README.md).
 
-Alle Variablen: [.env.example](.env.example)
+- `GET /metrics` returns Prometheus-compatible metrics
+- Grafana examples: [docs/observability/grafana/README.md](docs/observability/grafana/README.md)
 
----
+Auth guide: [BEARER_TOKEN_AUTHENTICATION.md](BEARER_TOKEN_AUTHENTICATION.md)
 
-## Entwicklung
+## Development
 
 ```bash
-npm test                          # Alle Tests (~1 782+, 128+ Suites)
-npm run audit:openapi             # OpenAPI-Vollständigkeit prüfen
-npm run lint                      # ESLint
-npm run release:check             # Release-Gate (Tests + OpenAPI + Security)
-npm run dev                       # Hot-Reload-Modus
+npm test
+npm run test:unit:ci
+npm run test:tdd-matrix
+npm run test:rest-usecases
+npm run lint
+npm run audit:openapi
+npm run check:llm
+npm run release:check
 ```
 
-Neue Services anlegen: `npm run create` (interaktiv aus `templates/`)
+Useful generation commands:
 
----
+```bash
+npm run export:openapi
+npm run export:openapi:copilot
+npm run generate:llm
+npm run blueprint:export
+```
 
-## Dokumentation
+Create a new Moleculer service:
 
-| Dokument | Inhalt |
-|---|---|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Vollständige Architektur-Dokumentation |
-| [docs/BACKEND_CONTEXT.md](docs/BACKEND_CONTEXT.md) | Architektur-Kontext für Frontend-Entwickler |
-| [docs/ui-contracts/](docs/ui-contracts/) | 33 API-Contracts (UI-Team) |
-| [docs/CYA_ARCHITECTURE.md](docs/CYA_ARCHITECTURE.md) | CYA-Agent-Pipeline (4-Phasen-Kontrakt) |
-| [docs/RELEASE_SUMMARY_v0.46.md](docs/RELEASE_SUMMARY_v0.46.md) | Komponenten-Diff v0.40 → v0.46.2 |
-| [docs/ENERGY_SHARING_ABNAHME.md](docs/ENERGY_SHARING_ABNAHME.md) | §42c Produktionsabnahme |
-| [CHANGELOG.md](CHANGELOG.md) | Release-Verlauf |
-| [MCP_TOOLS.md](MCP_TOOLS.md) | MCP-Tool-Referenz |
-| [BEARER_TOKEN_AUTHENTICATION.md](BEARER_TOKEN_AUTHENTICATION.md) | Auth-Leitfaden |
-| [CONTRIBUTING_SCIENCE.md](CONTRIBUTING_SCIENCE.md) | Open Science / OEP-Integration |
-| [llm.txt](llm.txt) | Maschinenlesbare Service-Übersicht (LLM-Kontext) |
-| [SECURITY.md](SECURITY.md) | Sicherheitsrichtlinie und Disclosure |
+```bash
+npm run create
+```
 
----
+## Demonstrating Cernion
 
-## Lizenz & Kontext
+Good demos should show an **agentic run**, not only a chat answer.
 
-GPL-3.0 — siehe [LICENSE](LICENSE).
+Strong demo patterns:
 
-Betrieben von [STROMDAO GmbH](https://stromdao.de/) im Kontext des
-[Cernion](https://cernion.de/) Energiedaten-Backends.
-Support: [GitHub Issues](https://github.com/energychain/cernion-energy-tools/issues)
-· dev@stromdao.com
+- VDMI: generate a responsibility matrix per process step and detect role-boundary violations
+- BESS: assess a site across grid connection, risks, revenue assumptions and financier evidence
+- Energy Sharing: identify MaLo/MeLo, EDM and settlement conflicts that block the process
+- MaStR/Revalidation: show how an external asset update can trigger rechecking of dependent decisions
+- Copilot/Sidecar: show Cernion as the governed energy-domain backend behind a general-purpose agent
+
+A useful agentic trace should make these visible:
+
+```text
+User objective
+  -> intent and capability
+  -> selected receipt / blueprint
+  -> service chain
+  -> evidence used
+  -> gaps and risks
+  -> HITL / policy decision
+  -> dossier or decision artifact
+  -> audit trace
+```
+
+## Documentation Map
+
+| Document | Topic |
+| --- | --- |
+| [docs/copilot-process-bridge.md](docs/copilot-process-bridge.md) | Curated Microsoft Copilot API subset |
+| [docs/v0.52-implementation-plans/personal-agent-v052-architecture-tdd.md](docs/v0.52-implementation-plans/personal-agent-v052-architecture-tdd.md) | Personal Agent architecture and TDD contract |
+| [docs/v0.52-implementation-plans/v0.52.1-capability-broker.md](docs/v0.52-implementation-plans/v0.52.1-capability-broker.md) | Capability Broker implementation plan |
+| [docs/observability/grafana/README.md](docs/observability/grafana/README.md) | Grafana dashboards |
+| [docs/DSFA_TEMPLATE.md](docs/DSFA_TEMPLATE.md) | Data protection impact-assessment template |
+| [docs/BACKEND_CONTEXT.md](docs/BACKEND_CONTEXT.md) | Backend context for UI/frontend work |
+| [CHANGELOG.md](CHANGELOG.md) | Release history |
+| [MCP_TOOLS.md](MCP_TOOLS.md) | MCP/tool reference |
+| [llm.txt](llm.txt) | Machine-readable service and capability context |
+| [SECURITY.md](SECURITY.md) | Security policy |
+
+## License and Operator Context
+
+License: GPL-3.0. See [LICENSE](LICENSE).
+
+Cernion is developed by [STROMDAO GmbH](https://stromdao.de/) in the context of the
+[Cernion](https://cernion.de/) energy-intelligence platform.
+
+Support and product feedback:
+
+- [GitHub Issues](https://github.com/energychain/cernion-energy-tools/issues)
+- `dev@stromdao.com`
