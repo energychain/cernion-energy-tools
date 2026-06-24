@@ -18,7 +18,7 @@
  */
 
 const { detectBlueprintIntent } = require('./l3-broker');
-const { loadBlueprint } = require('./blueprint-registry');
+const { listBlueprints, loadBlueprint } = require('./blueprint-registry');
 const { resolvePathInScope } = require('./l2-blueprint-interpreter');
 
 const ACTION_TEMPLATE_RE = /^[a-zA-Z0-9_-]+\.\{\{\s*inputs\.([a-zA-Z0-9_]+)\s*\}\}$/;
@@ -140,6 +140,31 @@ function resolveParamValue(template, canonicalInputs) {
   return resolvePathInScope(match[1].trim(), { inputs: canonicalInputs });
 }
 
+function findSingleStructuredInputBlueprint(planningContext, broker) {
+  const candidates = [];
+
+  for (const summary of listBlueprints()) {
+    const blueprint = loadBlueprint(summary.id);
+    if (!blueprint) continue;
+
+    const { canonicalInputs, missing } = resolveCanonicalInputs(blueprint, planningContext);
+    if (missing.length > 0) continue;
+
+    const step = (blueprint.execution?.steps || [])[0];
+    if (!step) continue;
+
+    const resolvedAction = resolveActionName(step.action, canonicalInputs);
+    if (!resolvedAction) continue;
+
+    const restRegistration = findActionRestRegistration(broker, resolvedAction);
+    if (!restRegistration || restRegistration.method !== 'GET') continue;
+
+    candidates.push({ blueprint });
+  }
+
+  return candidates.length === 1 ? candidates[0].blueprint : null;
+}
+
 /**
  * Attempts to compile a natural-language ask request into a read-only REST plan.
  *
@@ -162,11 +187,9 @@ function compileReadOnlyExecutionPlan({ question, context = {}, broker }) {
   const inputHints = deriveInputHintsFromQuestion(question);
   const planningContext = { ...inputHints, ...context };
   const match = detectBlueprintIntent(question, planningContext, inputHints, { includeRestPlanOnly: true });
-  if (!match) {
-    return { ok: false, reason: 'no_blueprint_match' };
-  }
-
-  const blueprint = loadBlueprint(match.blueprintId);
+  const blueprint = match
+    ? loadBlueprint(match.blueprintId)
+    : findSingleStructuredInputBlueprint(planningContext, broker);
   if (!blueprint) {
     return { ok: false, reason: 'no_blueprint_match' };
   }
@@ -240,7 +263,7 @@ function compileReadOnlyExecutionPlan({ question, context = {}, broker }) {
       tenantScoped: true,
       externalSideEffects: false,
     },
-    confidence: match.score >= 4 ? 'high' : 'medium',
+    confidence: (match?.score || 0) >= 4 ? 'high' : 'medium',
   };
 }
 

@@ -2,11 +2,13 @@
 
 const mockDetectBlueprintIntent = jest.fn();
 const mockLoadBlueprint = jest.fn();
+const mockListBlueprints = jest.fn();
 
 jest.mock('../src/l3-broker', () => ({
   detectBlueprintIntent: (...args) => mockDetectBlueprintIntent(...args),
 }));
 jest.mock('../src/blueprint-registry', () => ({
+  listBlueprints: (...args) => mockListBlueprints(...args),
   loadBlueprint: (...args) => mockLoadBlueprint(...args),
 }));
 
@@ -94,6 +96,8 @@ const GRID_CONNECTION_BROKER = fakeBroker({
 beforeEach(() => {
   mockDetectBlueprintIntent.mockReset();
   mockLoadBlueprint.mockReset();
+  mockListBlueprints.mockReset();
+  mockListBlueprints.mockReturnValue([]);
 });
 
 describe('compileReadOnlyExecutionPlan', () => {
@@ -234,6 +238,83 @@ describe('compileReadOnlyExecutionPlan', () => {
         limit: 100,
       },
     });
+  });
+
+  test('falls back to a single safe structured-input blueprint when intent signals do not match', () => {
+    mockDetectBlueprintIntent.mockReturnValue(null);
+    mockListBlueprints.mockReturnValue([
+      {
+        id: 'mastr-asset-service-selection-v1',
+        version: '1.0.0-runtime-mauer-solar-parameter-canonicalization',
+      },
+    ]);
+    mockLoadBlueprint.mockReturnValue({
+      ...ASSET_SELECTION_BLUEPRINT,
+      routing: {
+        intentSignals: ['solar anlagen', 'leistung zwischen'],
+      },
+      execution: {
+        steps: [
+          {
+            id: 'solar_asset_lookup',
+            action: 'assets.solar',
+            params: {
+              location: '{{inputs.location}}',
+              minCapacityKW: '{{inputs.minCapacity}}',
+              maxCapacityKW: '{{inputs.maxCapacity}}',
+              commissioningYear: '{{inputs.commissioningYear}}',
+              limit: '{{inputs.limit}}',
+            },
+          },
+        ],
+      },
+    });
+
+    const result = compileReadOnlyExecutionPlan({
+      question: 'Liste alle Solaranlagen in 69168 zwischen 10 und 13 kW aus 2025',
+      context: {
+        tenantId: 'public',
+        assetType: 'solar',
+        location: '69168',
+        minCapacity: 10,
+        maxCapacity: 13,
+        commissioningYear: 2025,
+        limit: 100,
+      },
+      broker: ASSETS_BROKER,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.resolved.id).toBe('mastr-asset-service-selection-v1');
+    expect(result.execution).toEqual({
+      mode: 'read_only_rest_plan',
+      method: 'GET',
+      path: '/api/assets/solar',
+      query: {
+        location: '69168',
+        minCapacityKW: 10,
+        maxCapacityKW: 13,
+        commissioningYear: 2025,
+        limit: 100,
+      },
+    });
+  });
+
+  test('does not pick a structured-input fallback when multiple GET blueprints fit', () => {
+    mockDetectBlueprintIntent.mockReturnValue(null);
+    mockListBlueprints.mockReturnValue([
+      { id: 'mastr-asset-service-selection-v1', version: '1.0.0' },
+      { id: 'mastr-asset-service-selection-v2', version: '1.0.0' },
+    ]);
+    mockLoadBlueprint.mockImplementation(() => ASSET_SELECTION_BLUEPRINT);
+
+    const result = compileReadOnlyExecutionPlan({
+      question: 'Liste alle Solaranlagen in 69168 zwischen 10 und 13 kW aus 2025',
+      context: { assetType: 'solar', location: '69168' },
+      broker: ASSETS_BROKER,
+    });
+
+    expect(result).toEqual({ ok: false, reason: 'no_blueprint_match' });
   });
 
   test('derives fixture inputs from the natural-language question when structured inputs are absent', () => {
