@@ -1696,8 +1696,15 @@ function findBestCapability(taskText, options = {}) {
     score += satisfiedInputs.length * 20;
 
     // Extra boost for capabilities that CONSUME resolved intermediate results
-    // e.g. grid-connection.validate consumes bdewCode / gridOperatorName
+    // e.g. grid-connection.validate consumes bdewCode / gridOperatorName.
+    // Requires score > 0 (some genuine keyword relevance already established) —
+    // otherwise this name-prefix check alone can promote a capability with ZERO
+    // keyword overlap into "best match" purely because resolvedParams.gridOperatorName
+    // is present (which is common/generic context), bypassing the interface-placeholder
+    // fallback for genuinely unmatched requests. See energychain/cernion-energy-tools
+    // personal-agent.service.test.js "remains partial for a genuine capability gap".
     if (
+      score > 0 &&
       capability.capability.startsWith('grid_connection') &&
       (resolvedParams.bdew || resolvedParams.gridOperatorName || resolvedParams.gridOperatorId)
     ) {
