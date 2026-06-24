@@ -117,6 +117,7 @@ const { loadBlueprint } = require('../src/blueprint-registry');
 const {
   compileReadOnlyExecutionPlan,
   describeNoPlanReason,
+  buildAskBlueprintAnswer,
 } = require('../src/blueprint-rest-plan-compiler');
 const { findClarificationPolicyMatch } = require('../src/clarification-policy-registry');
 const {
@@ -2366,10 +2367,31 @@ module.exports = {
                       additionalProperties: true,
                       description: 'Normalized inputs used to compile the execution plan, if any.',
                     },
+                    recommendedEndpoints: {
+                      type: 'array',
+                      description:
+                        'Read-only endpoint recommendations (energychain/cernion-energy-tools#271 architecture follow-up). Cernion recommends which approved read-only endpoint(s) are the evidence surface for this request and what each result set means fachlich — it does not execute them or synthesize a final answer; that is the responsibility of the consuming agent/orchestrator. May contain more than one complementary endpoint.',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          method: { type: 'string', example: 'GET' },
+                          path: { type: 'string', example: '/api/assets/solar' },
+                          query: { type: 'object', additionalProperties: true },
+                          resultSemantics: {
+                            type: 'object',
+                            description: 'Fachliche Bedeutung des Result-Sets dieses Endpoints.',
+                            properties: {
+                              kind: { type: 'string', example: 'asset_list' },
+                              description: { type: 'string' },
+                            },
+                          },
+                        },
+                      },
+                    },
                     execution: {
                       type: 'object',
                       nullable: true,
-                      description: 'Read-only REST execution plan for the Sidecar to run itself, or null when none is available.',
+                      description: 'Alias of recommendedEndpoints[0] for backward compatibility with #271 consumers that only read a single plan, or null when none is available.',
                       properties: {
                         mode: { type: 'string', example: 'read_only_rest_plan' },
                         method: { type: 'string', example: 'GET' },
@@ -2419,26 +2441,10 @@ module.exports = {
         });
 
         if (restPlan.ok) {
-          return {
-            success: true,
-            sessionId: ctx.params.sessionId || null,
+          return buildAskBlueprintAnswer(restPlan, {
             question: ctx.params.question,
-            shortAnswer: `Resolved read-only plan via blueprint ${restPlan.resolved.id}: ${restPlan.execution.method} ${restPlan.execution.path}.`,
-            groundingAnswer: `Blueprint ${restPlan.resolved.id} (v${restPlan.resolved.version}) compiled a read-only execution plan for this request: ${restPlan.execution.method} ${restPlan.execution.path}. Cernion did not execute anything server-side; the Sidecar may execute this plan itself via its generic REST proxy.`,
-            evidence: [],
-            processContext: {},
-            openQuestions: [],
-            recommendedNextSteps: [
-              'Execute the returned read-only plan via the Sidecar REST proxy (e.g. cernion_execute_rest_plan).',
-            ],
-            allowedActions: [],
-            forbiddenActions: [],
-            confidence: restPlan.confidence,
-            resolved: restPlan.resolved,
-            canonicalInputs: restPlan.canonicalInputs,
-            execution: restPlan.execution,
-            policy: restPlan.policy,
-          };
+            sessionId: ctx.params.sessionId,
+          });
         }
 
         const searchTerm = deriveCopilotSearchTerm(ctx.params.question);

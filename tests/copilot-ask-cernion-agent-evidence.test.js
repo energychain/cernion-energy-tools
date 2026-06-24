@@ -69,7 +69,9 @@ describe('askCernionAgent evidence bundle', () => {
         commissioningYear: 2025,
         limit: 100,
       },
+      resultSemantics: expect.objectContaining({ kind: 'asset_list' }),
     });
+    expect(result.recommendedEndpoints).toHaveLength(1);
     expect(ctx.call).not.toHaveBeenCalled();
   });
 
@@ -743,7 +745,9 @@ describe('askCernionAgent evidence bundle', () => {
         commissioningYear: 2025,
         limit: 100,
       },
+      resultSemantics: expect.objectContaining({ kind: 'asset_list' }),
     });
+    expect(result.recommendedEndpoints).toHaveLength(1);
     expect(ctx.call).not.toHaveBeenCalled();
   });
 });

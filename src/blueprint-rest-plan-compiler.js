@@ -1,20 +1,30 @@
 'use strict';
 
 /**
- * Blueprint → read-only REST plan compiler (issue energychain/cernion-energy-tools#271).
+ * Blueprint → read-only endpoint recommendation compiler
+ * (issue energychain/cernion-energy-tools#271, architecture follow-up:
+ * https://github.com/energychain/cernion-energy-tools/issues/271#issuecomment-4786658464).
  *
  * Deliberately separate from src/l2-blueprint-interpreter.js (executeBlueprint) and
  * src/l3-broker.js (buildBlueprintPlan): those two power the existing internal
  * personal-agent.chat routing pipeline, which executes blueprint steps server-side.
- * This module never executes anything — it only resolves a single read-only step
- * into a `{ method, path, query }` plan for an external Sidecar to run itself via
- * its own generic GET-only REST proxy. Keeping it separate means the internal
- * execution path is untouched by this feature.
+ * This module never executes anything — it only resolves a Blueprint's read-only
+ * steps into `{ method, path, query, resultSemantics }` endpoint *recommendations*
+ * for an external Sidecar/orchestrator to execute and interpret itself. Keeping it
+ * separate means the internal execution path is untouched by this feature.
+ *
+ * Per the architecture follow-up: this is an endpoint-recommendation / evidence-
+ * discovery contract, not an answer-transformation one. A blueprint may resolve to
+ * MULTIPLE complementary read-only endpoints (one per execution.steps[] entry —
+ * each is resolved and reported independently; an unresolvable step is skipped, not
+ * fatal, as long as at least one step resolves). Endpoints may legitimately return
+ * complete tables/result sets; this module never filters or synthesizes over the
+ * data those endpoints would return — only the consuming agent/orchestrator does.
  *
  * `routing.restPlanOnly: true` blueprints are included in matching via
  * detectBlueprintIntent's includeRestPlanOnly option. The flag is a routing
  * isolation signal, not a safety gate: runtime-managed blueprints may omit it,
- * so plan emission is guarded by the resolved live REST action being GET-only.
+ * so plan emission is guarded by each resolved live REST action being GET-only.
  */
 
 const { detectBlueprintIntent } = require('./l3-broker');
@@ -141,6 +151,48 @@ function resolveParamValue(template, canonicalInputs) {
   return resolvePathInScope(match[1].trim(), { inputs: canonicalInputs });
 }
 
+// Resolves one execution.steps[] entry into a read-only endpoint recommendation,
+// or a `{ ok: false, reason, ... }` skip reason. Never throws — an unresolvable
+// step is reported so the caller can skip it without failing the whole blueprint.
+function resolveStepToEndpoint(step, canonicalInputs, broker) {
+  const resolvedAction = resolveActionName(step.action, canonicalInputs);
+  if (!resolvedAction) {
+    return { ok: false, reason: 'action_not_resolvable' };
+  }
+
+  const restRegistration = findActionRestRegistration(broker, resolvedAction);
+  if (!restRegistration) {
+    return { ok: false, reason: 'action_not_found', action: resolvedAction };
+  }
+
+  if (restRegistration.method !== 'GET') {
+    return {
+      ok: false,
+      reason: 'not_read_only',
+      action: resolvedAction,
+      method: restRegistration.method,
+    };
+  }
+
+  const query = {};
+  if (isPlainObject(step.params)) {
+    for (const [key, template] of Object.entries(step.params)) {
+      const value = resolveParamValue(template, canonicalInputs);
+      if (value != null && value !== '') query[key] = value;
+    }
+  }
+
+  const endpoint = { method: 'GET', path: restRegistration.path, query };
+  // Fachliche Bedeutung des Result-Sets (architecture follow-up): what evidence
+  // kind this endpoint returns (asset_list, timeseries, market_signal, ...) and a
+  // human-readable description — declared per-step in the blueprint definition,
+  // never inferred here.
+  if (isPlainObject(step.resultSemantics)) {
+    endpoint.resultSemantics = step.resultSemantics;
+  }
+  return { ok: true, endpoint };
+}
+
 function countProvidedInputRefs(step, planningContext) {
   const refs = new Set();
   const values = [
@@ -201,8 +253,10 @@ function findSingleStructuredInputBlueprint(planningContext, broker) {
  * @param {string} opts.question - free-text question (matched against blueprint routing signals)
  * @param {object} [opts.context] - canonical input values (e.g. { assetType, location, minCapacity, ... })
  * @param {object} opts.broker - Moleculer broker instance (for live action/REST lookup)
- * @returns {object} `{ ok: true, resolved, canonicalInputs, execution, policy, confidence }`
- *                    or `{ ok: false, reason, ...details }`
+ * @returns {object} `{ ok: true, resolved, canonicalInputs, recommendedEndpoints, execution, policy, confidence }`
+ *                    or `{ ok: false, reason, ...details }`. `execution` mirrors
+ *                    `recommendedEndpoints[0]` for backward compatibility with #271
+ *                    consumers that only read a single plan.
  */
 function compileReadOnlyExecutionPlan({ question, context = {}, broker }) {
   // Fail soft, not hard: some callers (unit tests stubbing ctx, degraded broker
@@ -233,42 +287,35 @@ function compileReadOnlyExecutionPlan({ question, context = {}, broker }) {
     };
   }
 
-  const step = (blueprint.execution?.steps || [])[0];
-  if (!step) {
+  const steps = blueprint.execution?.steps || [];
+  if (steps.length === 0) {
     return { ok: false, reason: 'no_executable_step', blueprintId: blueprint.id };
   }
 
-  const resolvedAction = resolveActionName(step.action, canonicalInputs);
-  if (!resolvedAction) {
-    return { ok: false, reason: 'action_not_resolvable', blueprintId: blueprint.id };
-  }
-
-  const restRegistration = findActionRestRegistration(broker, resolvedAction);
-  if (!restRegistration) {
-    return {
-      ok: false,
-      reason: 'action_not_found',
-      blueprintId: blueprint.id,
-      action: resolvedAction,
-    };
-  }
-
-  if (restRegistration.method !== 'GET') {
-    return {
-      ok: false,
-      reason: 'not_read_only',
-      blueprintId: blueprint.id,
-      action: resolvedAction,
-      method: restRegistration.method,
-    };
-  }
-
-  const query = {};
-  if (isPlainObject(step.params)) {
-    for (const [key, template] of Object.entries(step.params)) {
-      const value = resolveParamValue(template, canonicalInputs);
-      if (value != null && value !== '') query[key] = value;
+  // Endpoint-recommendation contract (architecture follow-up): each step is a
+  // candidate complementary read-only endpoint, resolved independently. A step
+  // that can't be resolved (action not GET-registered, etc.) is skipped, not
+  // fatal — the whole blueprint only fails if NONE of its steps resolve.
+  const recommendedEndpoints = [];
+  const skipped = [];
+  for (const step of steps) {
+    const resolution = resolveStepToEndpoint(step, canonicalInputs, broker);
+    if (resolution.ok) {
+      recommendedEndpoints.push(resolution.endpoint);
+    } else {
+      skipped.push(resolution);
     }
+  }
+
+  if (recommendedEndpoints.length === 0) {
+    const firstSkip = skipped[0] || { reason: 'action_not_resolvable' };
+    return {
+      ok: false,
+      reason: firstSkip.reason,
+      blueprintId: blueprint.id,
+      action: firstSkip.action,
+      method: firstSkip.method,
+    };
   }
 
   return {
@@ -280,12 +327,8 @@ function compileReadOnlyExecutionPlan({ question, context = {}, broker }) {
       source: 'blueprint_runtime',
     },
     canonicalInputs,
-    execution: {
-      mode: 'read_only_rest_plan',
-      method: 'GET',
-      path: restRegistration.path,
-      query,
-    },
+    recommendedEndpoints,
+    execution: { mode: 'read_only_rest_plan', ...recommendedEndpoints[0] },
     policy: {
       readOnly: true,
       sideEffects: 'none',
@@ -293,6 +336,48 @@ function compileReadOnlyExecutionPlan({ question, context = {}, broker }) {
       externalSideEffects: false,
     },
     confidence: (match?.score || 0) >= 4 ? 'high' : 'medium',
+  };
+}
+
+// Builds the Sidecar-facing askCernionAgent-shaped response for a successful
+// compile. Shared by services/agent-sidecar.service.js (fast-path, before
+// delegating to askCernionAgent) and services/personal-agent.service.js
+// (askCernionAgent itself, for direct/Copilot callers) so both surfaces stay
+// in sync — the architecture follow-up to #271 makes the wording explicit:
+// this is an endpoint *recommendation*, the consuming agent/orchestrator is
+// responsible for executing it and synthesizing the final answer.
+function buildAskBlueprintAnswer(restPlan, { question, sessionId } = {}) {
+  const endpointShort = restPlan.recommendedEndpoints.map((ep) => `${ep.method} ${ep.path}`);
+  const endpointLines = restPlan.recommendedEndpoints.map((ep) => {
+    const sem = ep.resultSemantics;
+    const semText = sem ? ` — ${sem.kind}: ${sem.description}` : '';
+    return `${ep.method} ${ep.path}${semText}`;
+  });
+
+  return {
+    success: true,
+    sessionId: sessionId || null,
+    question,
+    shortAnswer: `Recommended ${restPlan.recommendedEndpoints.length} read-only endpoint(s) via blueprint ${restPlan.resolved.id}: ${endpointShort.join(', ')}.`,
+    groundingAnswer: [
+      `Blueprint ${restPlan.resolved.id} (v${restPlan.resolved.version}) recommends the following read-only endpoint(s) as the evidence surface for this request:`,
+      ...endpointLines.map((line) => `- ${line}`),
+      'Cernion did not execute anything server-side and does not synthesize a final answer from these results — that is the responsibility of the consuming agent/orchestrator.',
+    ].join('\n'),
+    evidence: [],
+    processContext: {},
+    openQuestions: [],
+    recommendedNextSteps: [
+      'Execute the recommended read-only endpoint(s) via the Sidecar REST proxy (e.g. cernion_execute_rest_plan) and synthesize the final answer from the returned evidence.',
+    ],
+    allowedActions: [],
+    forbiddenActions: [],
+    confidence: restPlan.confidence,
+    resolved: restPlan.resolved,
+    canonicalInputs: restPlan.canonicalInputs,
+    recommendedEndpoints: restPlan.recommendedEndpoints,
+    execution: restPlan.execution,
+    policy: restPlan.policy,
   };
 }
 
@@ -322,4 +407,5 @@ module.exports = {
   compileReadOnlyExecutionPlan,
   describeNoPlanReason,
   deriveInputHintsFromQuestion,
+  buildAskBlueprintAnswer,
 };

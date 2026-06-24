@@ -84,6 +84,10 @@
           "maxCapacityKW": "{{inputs.maxCapacity}}",
           "commissioningYear": "{{inputs.commissioningYear}}",
           "limit": "{{inputs.limit}}"
+        },
+        "resultSemantics": {
+          "kind": "asset_list",
+          "description": "A list of MaStR installation records matching the filter (capacity, commissioning date, location, grid operator, operational status). Not pre-aggregated — may return the complete matching row set; counting, ranking or windowing over the list is the caller's responsibility."
         }
       }
     ]

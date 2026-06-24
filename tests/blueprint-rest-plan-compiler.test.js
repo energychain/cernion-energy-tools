@@ -12,7 +12,10 @@ jest.mock('../src/blueprint-registry', () => ({
   loadBlueprint: (...args) => mockLoadBlueprint(...args),
 }));
 
-const { compileReadOnlyExecutionPlan } = require('../src/blueprint-rest-plan-compiler');
+const {
+  compileReadOnlyExecutionPlan,
+  buildAskBlueprintAnswer,
+} = require('../src/blueprint-rest-plan-compiler');
 
 // Mirrors src/blueprints/mastr-asset-service-selection-v1.json
 const ASSET_SELECTION_BLUEPRINT = {
@@ -93,6 +96,58 @@ const GRID_CONNECTION_BROKER = fakeBroker({
   },
 });
 
+// Architecture follow-up (https://github.com/energychain/cernion-energy-tools/issues/271#issuecomment-4786658464):
+// a single blueprint may recommend MULTIPLE complementary read-only endpoints,
+// each annotated with its own resultSemantics. Cernion never joins/synthesizes
+// across them — that stays the consuming agent/orchestrator's job.
+const MULTI_ENDPOINT_BLUEPRINT = {
+  id: 'mastr-asset-with-market-context-v1',
+  version: '1.0.0',
+  routing: { restPlanOnly: true },
+  inputs: {
+    assetType: {
+      type: 'string',
+      required: true,
+      resolveStrategy: { method: 'static_default', defaultValue: 'solar' },
+    },
+    location: { type: 'string', required: true, semanticType: 'OEO:PostalCode' },
+  },
+  execution: {
+    steps: [
+      {
+        id: 'select_asset_service',
+        action: 'assets.{{inputs.assetType}}',
+        params: { location: '{{inputs.location}}' },
+        resultSemantics: {
+          kind: 'asset_list',
+          description: 'Matching MaStR installations for the requested region.',
+        },
+      },
+      {
+        id: 'spot_price_context',
+        action: 'market-data.spotPrices',
+        params: { location: '{{inputs.location}}' },
+        resultSemantics: {
+          kind: 'market_signal',
+          description: 'Day-ahead spot price time series for the same region.',
+        },
+      },
+    ],
+  },
+};
+
+const MULTI_ENDPOINT_BROKER = fakeBroker({
+  assets: { 'assets.solar': { rest: 'GET /solar' } },
+  'market-data': { 'market-data.spotPrices': { rest: 'GET /spot-prices' } },
+});
+
+// Same blueprint, but the second step's action is a write endpoint — must be
+// skipped, not fatal, since the first step still resolves.
+const MULTI_ENDPOINT_BROKER_PARTIAL = fakeBroker({
+  assets: { 'assets.solar': { rest: 'GET /solar' } },
+  'market-data': { 'market-data.spotPrices': { rest: 'POST /spot-prices' } },
+});
+
 beforeEach(() => {
   mockDetectBlueprintIntent.mockReset();
   mockLoadBlueprint.mockReset();
@@ -160,6 +215,90 @@ describe('compileReadOnlyExecutionPlan', () => {
       expect.objectContaining({ location: '69168' }),
       { includeRestPlanOnly: true }
     );
+  });
+
+  test('recommends multiple complementary read-only endpoints from one blueprint', () => {
+    mockDetectBlueprintIntent.mockReturnValue({
+      blueprintId: 'mastr-asset-with-market-context-v1',
+      score: 6,
+    });
+    mockLoadBlueprint.mockReturnValue(MULTI_ENDPOINT_BLUEPRINT);
+
+    const result = compileReadOnlyExecutionPlan({
+      question: 'Solaranlagen und Spotpreise in 69168',
+      context: { assetType: 'solar', location: '69168' },
+      broker: MULTI_ENDPOINT_BROKER,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.recommendedEndpoints).toHaveLength(2);
+    expect(result.recommendedEndpoints[0]).toEqual({
+      method: 'GET',
+      path: '/api/assets/solar',
+      query: { location: '69168' },
+      resultSemantics: {
+        kind: 'asset_list',
+        description: 'Matching MaStR installations for the requested region.',
+      },
+    });
+    expect(result.recommendedEndpoints[1]).toEqual({
+      method: 'GET',
+      path: '/api/market-data/spot-prices',
+      query: { location: '69168' },
+      resultSemantics: {
+        kind: 'market_signal',
+        description: 'Day-ahead spot price time series for the same region.',
+      },
+    });
+    // execution mirrors recommendedEndpoints[0] for #271 backward compatibility.
+    expect(result.execution).toEqual({
+      mode: 'read_only_rest_plan',
+      ...result.recommendedEndpoints[0],
+    });
+  });
+
+  test('skips an unresolvable step but still succeeds when at least one endpoint resolves', () => {
+    mockDetectBlueprintIntent.mockReturnValue({
+      blueprintId: 'mastr-asset-with-market-context-v1',
+      score: 6,
+    });
+    mockLoadBlueprint.mockReturnValue(MULTI_ENDPOINT_BLUEPRINT);
+
+    const result = compileReadOnlyExecutionPlan({
+      question: 'Solaranlagen und Spotpreise in 69168',
+      context: { assetType: 'solar', location: '69168' },
+      broker: MULTI_ENDPOINT_BROKER_PARTIAL, // spotPrices is POST here
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.recommendedEndpoints).toHaveLength(1);
+    expect(result.recommendedEndpoints[0].path).toBe('/api/assets/solar');
+  });
+
+  test('buildAskBlueprintAnswer lists every recommended endpoint with its result semantics', () => {
+    mockDetectBlueprintIntent.mockReturnValue({
+      blueprintId: 'mastr-asset-with-market-context-v1',
+      score: 6,
+    });
+    mockLoadBlueprint.mockReturnValue(MULTI_ENDPOINT_BLUEPRINT);
+
+    const restPlan = compileReadOnlyExecutionPlan({
+      question: 'Solaranlagen und Spotpreise in 69168',
+      context: { assetType: 'solar', location: '69168' },
+      broker: MULTI_ENDPOINT_BROKER,
+    });
+
+    const answer = buildAskBlueprintAnswer(restPlan, {
+      question: 'Solaranlagen und Spotpreise in 69168',
+      sessionId: 'sess-1',
+    });
+
+    expect(answer.success).toBe(true);
+    expect(answer.recommendedEndpoints).toHaveLength(2);
+    expect(answer.groundingAnswer).toContain('GET /api/assets/solar — asset_list');
+    expect(answer.groundingAnswer).toContain('GET /api/market-data/spot-prices — market_signal');
+    expect(answer.groundingAnswer).toContain('responsibility of the consuming agent/orchestrator');
+    expect(answer.forbiddenActions).toEqual([]);
   });
 
   test('selects a different underlying action when assetType differs', () => {

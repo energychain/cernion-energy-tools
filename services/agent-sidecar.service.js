@@ -21,7 +21,10 @@ const {
   callMcpLikeTool,
 } = require('../src/energy-sidecar-mcp-bridge');
 const { summarizeDescriptorForDossier } = require('../src/energy-sidecar-descriptor');
-const { compileReadOnlyExecutionPlan } = require('../src/blueprint-rest-plan-compiler');
+const {
+  compileReadOnlyExecutionPlan,
+  buildAskBlueprintAnswer,
+} = require('../src/blueprint-rest-plan-compiler');
 
 const OPENAPI_TAG = 'Agent Sidecar';
 
@@ -115,26 +118,10 @@ module.exports = {
             broker: ctx.broker,
           });
           if (restPlan.ok) {
-            return compactToolResult(tool, {
-              success: true,
-              sessionId: input.sessionId || null,
-              question,
-              shortAnswer: `Resolved read-only plan via blueprint ${restPlan.resolved.id}: ${restPlan.execution.method} ${restPlan.execution.path}.`,
-              groundingAnswer: `Blueprint ${restPlan.resolved.id} (v${restPlan.resolved.version}) compiled a read-only execution plan for this request: ${restPlan.execution.method} ${restPlan.execution.path}. Cernion did not execute anything server-side; the Sidecar may execute this plan itself via its generic REST proxy.`,
-              evidence: [],
-              processContext: {},
-              openQuestions: [],
-              recommendedNextSteps: [
-                'Execute the returned read-only plan via the Sidecar REST proxy (e.g. cernion_execute_rest_plan).',
-              ],
-              allowedActions: [],
-              forbiddenActions: [],
-              confidence: restPlan.confidence,
-              resolved: restPlan.resolved,
-              canonicalInputs: restPlan.canonicalInputs,
-              execution: restPlan.execution,
-              policy: restPlan.policy,
-            });
+            return compactToolResult(
+              tool,
+              buildAskBlueprintAnswer(restPlan, { question, sessionId: input.sessionId })
+            );
           }
           const result = await ctx.call('personal-agent.askCernionAgent', {
             // `query` is the documented compatibility alias for `question`
