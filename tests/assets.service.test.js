@@ -96,7 +96,13 @@ describe('Assets Service', () => {
 
     expect(openapi.responses).toBeDefined();
     expect(openapi.responses['200']).toBeDefined();
-    expect(openapi.responses['200'].content['application/json'].schema.type).toBe('array');
+    // #274: 200 schema documents BOTH the plain-array success shape and the
+    // locationResolutionWarning object shape via oneOf, since runtime can
+    // return either depending on whether `location` resolved to a postal code.
+    const schema = openapi.responses['200'].content['application/json'].schema;
+    expect(schema.oneOf).toHaveLength(2);
+    expect(schema.oneOf[0].type).toBe('array');
+    expect(schema.oneOf[1].properties.locationResolutionWarning).toBeDefined();
   });
 
   it('should document location-based wind and storage queries in OpenAPI', () => {
@@ -647,5 +653,134 @@ describe('Assets Service — redispatchCount', () => {
     // capacity check for one type
     expect(res.byType.solar.count).toBe(1);
     expect(res.byType.solar.capacityKW).toBe(8200);
+  });
+});
+
+// ── Location-resolution warning propagation (issue #274) ────────────────────
+//
+// energy-market.installations already reports `locationResolutionWarning` when
+// `location` is a free-text city/region it cannot resolve to a postal code
+// (e.g. "Meckesheim", PLZ 74909). _fetchAssets previously discarded that field
+// while flattening `result.data.installations` into a bare array, so
+// GET /api/assets/solar?location=Meckesheim returned `[]` — indistinguishable
+// from "Cernion genuinely has 0 assets there".
+describe('Assets Service — location resolution warning (#274)', () => {
+  let broker;
+
+  function createEnergyMarketMock(installationsHandler) {
+    return {
+      name: 'energy-market',
+      actions: {
+        installations: {
+          async handler(ctx) {
+            return installationsHandler(ctx);
+          },
+        },
+      },
+    };
+  }
+
+  // Mirrors energy-market.service.js's real response when `location` cannot be
+  // resolved to a postal code (see services/energy-market.service.js
+  // locationResolutionWarning, fix for cernion-openclaw-sidecar/issues/1).
+  function unresolvedLocationResponse(location) {
+    return {
+      success: true,
+      data: {
+        installations: [],
+        stats: { count: 0 },
+        locationResolutionWarning:
+          `Location "${location}" could not be resolved to a postal code. ` +
+          'The live MaStR backend only supports exact 5-digit postleitzahl filtering, ' +
+          'not free-text city/region search. Pass "postleitzahl" directly, or resolve the ' +
+          'postal code first (e.g. via grid-operations.marketPartners or OSM Geo).',
+      },
+    };
+  }
+
+  function resolvedPlzResponse(installations) {
+    return { success: true, data: { installations, stats: { count: installations.length } } };
+  }
+
+  afterEach(async () => {
+    if (broker) await broker.stop();
+    broker = undefined;
+  });
+
+  it('surfaces locationResolutionWarning instead of a bare empty array for an unresolvable city name', async () => {
+    broker = new ServiceBroker({ logger: false, transporter: null });
+    broker.createService(
+      createEnergyMarketMock((ctx) => {
+        expect(ctx.params.location).toBe('Meckesheim');
+        return unresolvedLocationResponse(ctx.params.location);
+      })
+    );
+    broker.createService(createObjectStoreMockService());
+    broker.createService(createHitlMockService());
+    broker.createService(Service);
+    await broker.start();
+
+    const result = await broker.call('assets.solar', { location: 'Meckesheim' });
+
+    expect(Array.isArray(result)).toBe(false);
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual([]);
+    expect(result.locationResolutionWarning).toMatch(/Meckesheim/);
+    expect(result.locationResolutionWarning).toMatch(/postleitzahl/i);
+  });
+
+  it('returns a plain array (unchanged contract) when location resolves to a real postal code', async () => {
+    broker = new ServiceBroker({ logger: false, transporter: null });
+    const fixture = [{ mastrNummer: 'SEE900000000001', bruttoleistung: 5000, type: '2495' }];
+    broker.createService(
+      createEnergyMarketMock((ctx) => {
+        expect(ctx.params.postleitzahl).toBe('74909');
+        return resolvedPlzResponse(fixture);
+      })
+    );
+    broker.createService(createObjectStoreMockService());
+    broker.createService(createHitlMockService());
+    broker.createService(Service);
+    await broker.start();
+
+    const result = await broker.call('assets.solar', { location: '74909' });
+
+    expect(Array.isArray(result)).toBe(true);
+    expect(result).toHaveLength(1);
+  });
+
+  it('propagates the same warning through GET /api/assets/all', async () => {
+    broker = new ServiceBroker({ logger: false, transporter: null });
+    broker.createService(
+      createEnergyMarketMock((ctx) => unresolvedLocationResponse(ctx.params.location))
+    );
+    broker.createService(createObjectStoreMockService());
+    broker.createService(createHitlMockService());
+    broker.createService(Service);
+    await broker.start();
+
+    const result = await broker.call('assets.all', {
+      location: 'Meckesheim',
+      types: 'solar,storage,wind,biomass,hydro,combustion',
+    });
+
+    expect(Array.isArray(result)).toBe(false);
+    expect(result.locationResolutionWarning).toMatch(/Meckesheim/);
+    expect(result.data).toEqual([]);
+  });
+
+  it('normalizes the warning-object shape for GET /:assetId/effective without throwing', async () => {
+    broker = new ServiceBroker({ logger: false, transporter: null });
+    broker.createService(
+      createEnergyMarketMock((ctx) => unresolvedLocationResponse(ctx.params.location))
+    );
+    broker.createService(createObjectStoreMockService());
+    broker.createService(createHitlMockService());
+    broker.createService(Service);
+    await broker.start();
+
+    await expect(
+      broker.call('assets.effective', { assetId: 'SEE900000000001', location: 'Meckesheim' })
+    ).rejects.toMatchObject({ code: 404, type: 'ASSET_NOT_FOUND' });
   });
 });

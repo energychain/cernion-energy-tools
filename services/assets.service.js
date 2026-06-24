@@ -16,7 +16,10 @@ const PARAM_DESC_PRUEFUNG_STATUS =
 const EXAMPLE_DATE = '2026-03-24';
 const PARAM_DESC_GR_ID = 'MaStR grid operator ID';
 const PARAM_DESC_LOCATION =
-  'City/region/postal code for location-based search (e.g. "Mainz", "69115", "Baden-Württemberg")';
+  'City/region/postal code for location-based search (e.g. "Mainz", "69115", "Baden-Württemberg"). ' +
+  'Live MaStR filtering only supports an exact 5-digit postal code; a free-text city/region name that ' +
+  'cannot be resolved to one does NOT return a bare empty array — the response includes a ' +
+  '`locationResolutionWarning` instead (see response schema). Pass the postal code directly when known.';
 const PARAM_DESC_YEAR = 'Commissioning year';
 const PARAM_DESC_MIN_CAP = 'Min. capacity in kW';
 const PARAM_DESC_MAX_CAP = 'Max. capacity in kW';
@@ -33,28 +36,52 @@ const PARAM_DESC_OP_STATUS_SHORT =
   'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All';
 const ASSET_QUERY_COUNT_SEMANTICS =
   'Count semantics: this endpoint returns an array. For questions like "How many ...", use the number of returned items (`array.length`).';
+const ASSET_INSTALLATION_ITEM_SCHEMA = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    'Asset-ID': { type: 'string' },
+    'SEE Nummer': { type: 'string' },
+    Anlagentyp: { type: 'string' },
+    'Leistung kW': { type: 'number' },
+    Ort: { type: 'string', nullable: true },
+    Postleitzahl: { type: 'string', nullable: true },
+    Bundesland: { type: 'string', nullable: true },
+  },
+};
 const ASSET_QUERY_ARRAY_RESPONSE = {
   200: {
     description:
-      'Array of matching installations. ' +
-      'Count/aggregation can be derived via response length (`array.length`).',
+      'Array of matching installations, OR — when `location` was a free-text city/region that could ' +
+      'not be resolved to a postal code (#274) — an object reporting that resolution failure instead of ' +
+      'a bare empty array. A bare `[]` always means a genuinely empty, location-resolved result set; ' +
+      'count/aggregation for the array case can be derived via response length (`array.length`).',
     content: {
       'application/json': {
         schema: {
-          type: 'array',
-          items: {
-            type: 'object',
-            additionalProperties: true,
-            properties: {
-              'Asset-ID': { type: 'string' },
-              'SEE Nummer': { type: 'string' },
-              Anlagentyp: { type: 'string' },
-              'Leistung kW': { type: 'number' },
-              Ort: { type: 'string', nullable: true },
-              Postleitzahl: { type: 'string', nullable: true },
-              Bundesland: { type: 'string', nullable: true },
+          oneOf: [
+            {
+              type: 'array',
+              items: ASSET_INSTALLATION_ITEM_SCHEMA,
             },
-          },
+            {
+              type: 'object',
+              description:
+                'Returned instead of a bare array when `location` could not be resolved to an exact ' +
+                'postal code. Never confuse this with "0 assets found" — re-issue the request with a ' +
+                '5-digit postal code.',
+              required: ['success', 'data', 'locationResolutionWarning'],
+              properties: {
+                success: { type: 'boolean', example: true },
+                data: { type: 'array', items: ASSET_INSTALLATION_ITEM_SCHEMA },
+                locationResolutionWarning: {
+                  type: 'string',
+                  example:
+                    'Location "Meckesheim" could not be resolved to a postal code. The live MaStR backend only supports exact 5-digit postleitzahl filtering, not free-text city/region search. Pass "postleitzahl" directly, or resolve the postal code first (e.g. via grid-operations.marketPartners or OSM Geo).',
+                },
+              },
+            },
+          ],
         },
       },
     },
@@ -681,6 +708,13 @@ module.exports = {
 
       // Fetch assets for each type
       const allResults = [];
+      // Bug fix (#274): energy-market.installations already reports
+      // locationResolutionWarning when `location` is a free-text city/region
+      // it cannot resolve to a postal code (see fix for cernion-openclaw-sidecar
+      // issues/1). This loop previously discarded that field while flattening
+      // `result.data.installations` into `allResults`, so a non-PLZ location
+      // silently produced a bare `[]` indistinguishable from "0 real assets".
+      let locationResolutionWarning = null;
 
       for (const assetType of assetTypes) {
         const callParams = {
@@ -730,6 +764,10 @@ module.exports = {
           if (result?.success === false) {
             const message = result?.error?.message || 'Upstream MCP tool error.';
             throw new Error(message);
+          }
+
+          if (result?.data?.locationResolutionWarning && !locationResolutionWarning) {
+            locationResolutionWarning = result.data.locationResolutionWarning;
           }
 
           let items = [];
@@ -798,6 +836,15 @@ module.exports = {
         };
 
         return xlsxBuffer;
+      }
+
+      // Bug fix (#274): surface the location-resolution failure instead of a bare
+      // empty array that a consuming agent could mistake for "0 real assets".
+      // Only changes shape when resolution genuinely failed — a successful query
+      // (including a real 0-result query against a resolvable PLZ) still returns
+      // the plain array unchanged.
+      if (locationResolutionWarning) {
+        return { success: true, data: allResults, locationResolutionWarning };
       }
 
       return allResults;
@@ -1081,7 +1128,10 @@ module.exports = {
             ? ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion']
             : [assetType];
 
-        const records = await this._fetchAssets(ctx, assetTypes);
+        // _fetchAssets returns a bare array normally, or { data, locationResolutionWarning }
+        // when `location` couldn't be resolved to a postal code (#274) — normalize either way.
+        const fetchResult = await this._fetchAssets(ctx, assetTypes);
+        const records = Array.isArray(fetchResult) ? fetchResult : fetchResult.data || [];
         const asset = records.find(
           (item) => item['Asset-ID'] === assetId || item['SEE Nummer'] === assetId
         );
