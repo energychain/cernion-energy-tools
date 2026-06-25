@@ -220,6 +220,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   NOVA: 'grid-planning',
   'Object Store': 'platform',
   Observability: 'platform',
+  'Operations Runbook': 'platform',
   'OEP (Open Energy Platform)': 'market-data',
   'OSM Geo (OpenStreetMap)': 'grid-ops',
   'Personal Agent': 'platform',

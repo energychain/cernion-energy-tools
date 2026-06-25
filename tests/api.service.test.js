@@ -16,6 +16,7 @@ const PersonalAgentService = require('../services/personal-agent.service');
 const CommunityService = require('../services/community.service');
 const AgentPersonaService = require('../services/agent-persona.service');
 const ObservabilityService = require('../services/observability.service');
+const OperationsRunbookService = require('../services/operations-runbook.service');
 const TenantQuotaService = require('../services/tenant-quota.service');
 const rateQuotaStore = require('../src/rate-quota-store');
 const { version: packageVersion } = require('../package.json');
@@ -92,6 +93,7 @@ describe('API Gateway Service', () => {
         dbPath: path.join(os.tmpdir(), `api-observability-${Date.now()}`),
       },
     });
+    broker.createService(OperationsRunbookService);
     broker.createService(TenantQuotaService);
     broker.createService(CommunityService);
     await broker.start();
@@ -146,6 +148,16 @@ describe('API Gateway Service', () => {
       expect(apiRoute.cors.origin('https://make.powerautomate.com')).toBe(true);
       expect(apiRoute.cors.origin('https://emea.flow.microsoft.com')).toBe(true);
       expect(apiRoute.cors.origin('https://make.powerapps.com')).toBe(true);
+    });
+
+    it('should expose curated operations-runbook aliases', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      expect(apiRoute.aliases['GET /operations-runbook/manifest']).toBe(
+        'operations-runbook.manifest'
+      );
+      expect(apiRoute.aliases['POST /operations-runbook/revalidation/:taskId/execute']).toBe(
+        'operations-runbook.executeRevalidationDev'
+      );
     });
   });
 

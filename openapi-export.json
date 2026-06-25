@@ -41418,6 +41418,153 @@
         ]
       }
     },
+    "/api/operations-runbook/manifest": {
+      "get": {
+        "operationId": "operations-runbook_manifest",
+        "summary": "List curated Cernion operations runbooks",
+        "tags": [
+          "Operations Runbook"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operations-runbook/day-start-brief": {
+      "post": {
+        "operationId": "operations-runbook_dayStartBrief",
+        "summary": "Build a concise day-start operations brief",
+        "tags": [
+          "Operations Runbook"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operations-runbook/blocked-work": {
+      "get": {
+        "operationId": "operations-runbook_listBlockedWork",
+        "summary": "List grouped operational blockers for human operators",
+        "tags": [
+          "Operations Runbook"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operations-runbook/options/:name": {
+      "get": {
+        "operationId": "operations-runbook_optionValues",
+        "summary": "Return simple option values for Rundeck job prompts",
+        "tags": [
+          "Operations Runbook"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operations-runbook/alarms/:alarmId/ack": {
+      "post": {
+        "operationId": "operations-runbook_acknowledgeAlarm",
+        "summary": "Acknowledge an async watchdog alarm through the runbook facade",
+        "tags": [
+          "Operations Runbook"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operations-runbook/revalidation/:taskId/dry-run": {
+      "post": {
+        "operationId": "operations-runbook_revalidationDryRun",
+        "summary": "Preview a curated DevServer revalidation action",
+        "tags": [
+          "Operations Runbook"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operations-runbook/revalidation/:taskId/execute": {
+      "post": {
+        "operationId": "operations-runbook_executeRevalidationDev",
+        "summary": "Execute a guarded DevServer revalidation action",
+        "tags": [
+          "Operations Runbook"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/osm-geo/validate": {
       "post": {
         "operationId": "osm-geo_validate",

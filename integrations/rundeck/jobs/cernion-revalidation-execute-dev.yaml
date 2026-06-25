@@ -1,0 +1,19 @@
+- defaultTab: output
+  description: DevServer-only Cernion controlled revalidation
+  executionEnabled: true
+  id: cernion-revalidation-execute-dev
+  loglevel: INFO
+  name: Cernion Revalidation Execute Dev
+  nodeFilterEditable: false
+  options:
+    - name: taskId
+      required: true
+    - name: idempotencyKey
+      required: true
+  scheduleEnabled: false
+  sequence:
+    keepgoing: false
+    strategy: node-first
+    commands:
+      - script: |
+          integrations/rundeck/scripts/cernion-runbook-call.sh POST "/api/operations-runbook/revalidation/${option.taskId}/execute" '{"dryRun":false,"executionMode":"dev-controlled","idempotencyKey":"${option.idempotencyKey}","correlationId":"rundeck:${job.execid}","requestedBy":"rundeck:${job.username}"}'

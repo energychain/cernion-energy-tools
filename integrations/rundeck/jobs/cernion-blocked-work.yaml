@@ -1,0 +1,14 @@
+- defaultTab: output
+  description: Cernion blocked operational work
+  executionEnabled: true
+  id: cernion-blocked-work
+  loglevel: INFO
+  name: Cernion Blocked Work
+  nodeFilterEditable: false
+  scheduleEnabled: true
+  sequence:
+    keepgoing: false
+    strategy: node-first
+    commands:
+      - script: |
+          integrations/rundeck/scripts/cernion-runbook-call.sh GET /api/operations-runbook/blocked-work '{}'

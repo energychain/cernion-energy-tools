@@ -106,6 +106,32 @@ describe('token-manager.service', () => {
     expect(deniedOtherPost.reason).toBe('SCOPE_VIOLATION');
   });
 
+  it('lets read-only Rundeck tokens reach the curated operations-runbook facade for service-level scope checks', async () => {
+    const created = await broker.call('token-manager.create', {
+      name: 'Rundeck',
+      scope: 'read-only',
+      tenantId: 'stadtwerk-a',
+      userId: 'svc:rundeck',
+    });
+
+    const allowedRunbookPost = await broker.call('token-manager.verify', {
+      token: created.data.token,
+      method: 'POST',
+      path: '/api/operations-runbook/day-start-brief',
+      trackUsage: false,
+    });
+    expect(allowedRunbookPost.valid).toBe(true);
+
+    const deniedRawHitlPost = await broker.call('token-manager.verify', {
+      token: created.data.token,
+      method: 'POST',
+      path: '/api/hitl/items/123/approve',
+      trackUsage: false,
+    });
+    expect(deniedRawHitlPost.valid).toBe(false);
+    expect(deniedRawHitlPost.reason).toBe('SCOPE_VIOLATION');
+  });
+
   it('revokes token and invalidates verification', async () => {
     const created = await broker.call('token-manager.create', {
       name: 'Admin',

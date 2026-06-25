@@ -258,6 +258,13 @@ function isReadOnlySidecarInvocation(method, requestPath) {
   );
 }
 
+function isOperationsRunbookInvocation(method, requestPath) {
+  const m = String(method || '').toUpperCase();
+  const pathOnly = String(requestPath || '').split('?')[0];
+  if (!pathOnly.startsWith('/api/operations-runbook/')) return false;
+  return ['GET', 'POST'].includes(m);
+}
+
 function normalizeRequestPath(req) {
   const raw = String(req?.originalUrl || req?.url || req?.path || '');
   return raw.split('?')[0] || '';
@@ -385,6 +392,9 @@ function requiresFullAccess(method, requestPath) {
   }
   if (pathOnly.startsWith('/api/hitl/items') && m !== 'GET') {
     return true;
+  }
+  if (pathOnly.startsWith('/api/operations-runbook/')) {
+    return false;
   }
   if (pathOnly.startsWith('/api/eog-calculator') && m === 'POST') {
     return true;
@@ -571,7 +581,8 @@ function enforceRbacForPath(roles, method, requestPath) {
     m !== 'HEAD' &&
     m !== 'OPTIONS' &&
     !isSessionSelfServiceEndpoint &&
-    !isReadOnlySidecarInvocation(m, requestPath)
+    !isReadOnlySidecarInvocation(m, requestPath) &&
+    !isOperationsRunbookInvocation(m, requestPath)
   ) {
     if (!hasRole(roles, 'full-access')) {
       throw new Errors.MoleculerClientError('Role required: full-access.', 403, 'ROLE_REQUIRED');
@@ -1258,6 +1269,16 @@ module.exports = {
           'GET /jobs/alarms': 'job-status.listAlarms',
           'POST /jobs/alarms/:alarmId/ack': 'job-status.acknowledgeAlarm',
           'POST /jobs/alarms/:alarmId/resolve': 'job-status.resolveAlarm',
+          // Curated human-operations runbook facade for Rundeck and similar tools.
+          'GET /operations-runbook/manifest': 'operations-runbook.manifest',
+          'POST /operations-runbook/day-start-brief': 'operations-runbook.dayStartBrief',
+          'GET /operations-runbook/blocked-work': 'operations-runbook.listBlockedWork',
+          'GET /operations-runbook/options/:name': 'operations-runbook.optionValues',
+          'POST /operations-runbook/alarms/:alarmId/ack': 'operations-runbook.acknowledgeAlarm',
+          'POST /operations-runbook/revalidation/:taskId/dry-run':
+            'operations-runbook.revalidationDryRun',
+          'POST /operations-runbook/revalidation/:taskId/execute':
+            'operations-runbook.executeRevalidationDev',
           // OEP (Open Energy Platform) read-only connector (v0.12)
           'GET /oep/schemas': 'oep.listSchemas',
           'GET /oep/schemas/:schema/tables': 'oep.listTables',
@@ -2156,7 +2177,8 @@ module.exports = {
               if (
                 verification.scope === 'read-only' &&
                 !isReadMethod(req?.method) &&
-                !isReadOnlySidecarInvocation(req?.method, requestPath)
+                !isReadOnlySidecarInvocation(req?.method, requestPath) &&
+                !isOperationsRunbookInvocation(req?.method, requestPath)
               ) {
                 throw new Errors.MoleculerClientError(
                   'Scope violation: read-only token cannot call write endpoints.',

@@ -1,0 +1,10 @@
+description: Cernion operator can run curated Cernion jobs
+context:
+  project: Cernion
+for:
+  job:
+    - match:
+        group: cernion.*
+      allow: [read, run]
+by:
+  group: cernion-operator

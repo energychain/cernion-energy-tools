@@ -1,0 +1,253 @@
+'use strict';
+
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { ServiceBroker } = require('moleculer');
+
+const tempJobDir = fs.mkdtempSync(path.join(os.tmpdir(), 'operations-runbook-jobs-'));
+process.env.JOB_STORE_DIR = tempJobDir;
+
+const OperationsRunbookService = require('../services/operations-runbook.service');
+const jobStore = require('../src/job-store');
+
+describe('operations-runbook.service', () => {
+  let broker;
+
+  beforeEach(async () => {
+    jobStore.resetDispatchStateForTests();
+    for (const file of fs.readdirSync(tempJobDir)) {
+      fs.rmSync(path.join(tempJobDir, file), { recursive: true, force: true });
+    }
+    broker = new ServiceBroker({ logger: false });
+    broker.createService(OperationsRunbookService);
+    broker.createService({
+      name: 'system',
+      actions: {
+        status: {
+          handler: () => ({ status: 'ok', signal: 'green' }),
+        },
+      },
+    });
+    broker.createService({
+      name: 'observability',
+      actions: {
+        summary: {
+          handler: () => ({
+            logs: { byLevel: { error: 1 }, recentErrors: [{ service: 'svc', level: 'error' }] },
+            metrics: { overview: {} },
+          }),
+        },
+      },
+    });
+    broker.createService({
+      name: 'hitl',
+      actions: {
+        summary: {
+          handler: () => ({
+            currentQueue: { pending: 2, overdue: 1 },
+            byKind: { review: 2 },
+          }),
+        },
+        list: {
+          handler: () => ({
+            success: true,
+            count: 1,
+            items: [{ id: 'hi-1', kind: 'review', severity: 'warning', status: 'pending' }],
+          }),
+        },
+      },
+    });
+    broker.createService({
+      name: 'job-status',
+      actions: {
+        listAlarms: {
+          handler: () => ({
+            success: true,
+            count: 1,
+            alarms: [
+              {
+                jobId: 'job-1',
+                alarm: {
+                  alarmId: 'alarm-1',
+                  code: 'TEST_ALARM',
+                  severity: 'warning',
+                  status: 'open',
+                },
+              },
+            ],
+          }),
+        },
+        acknowledgeAlarm: {
+          handler: (ctx) => ({ success: true, alarm: { alarmId: ctx.params.alarmId } }),
+        },
+      },
+    });
+    await broker.start();
+  });
+
+  afterEach(async () => {
+    await broker.stop();
+    delete process.env.CERNION_RUNDECK_EXECUTION_ENV;
+  });
+
+  afterAll(() => {
+    fs.rmSync(tempJobDir, { recursive: true, force: true });
+    delete process.env.JOB_STORE_DIR;
+  });
+
+  function meta(roles = ['rundeck-read']) {
+    return {
+      meta: {
+        tenantId: 'stadtwerk-a',
+        apiToken: {
+          tenantId: 'stadtwerk-a',
+          userId: 'svc:rundeck',
+          scopes: roles,
+        },
+        authUser: {
+          userId: 'svc:rundeck',
+          tenantId: 'stadtwerk-a',
+          roles,
+        },
+      },
+    };
+  }
+
+  it('returns manifest metadata with runbook scopes and no dossier exposure', async () => {
+    const result = await broker.call('operations-runbook.manifest', {}, meta(['rundeck-read']));
+    expect(result.runbookId).toBe('manifest');
+    expect(result.riskClass).toBe('read_only');
+    expect(result.summary.markdown).toContain('day-start-brief');
+    expect(result.data.brokerDossierHydration.exposed).toBe(false);
+  });
+
+  it('returns a standard day-start brief envelope', async () => {
+    const result = await broker.call(
+      'operations-runbook.dayStartBrief',
+      { correlationId: 'rundeck:test' },
+      meta(['rundeck-read'])
+    );
+    expect(result.runbookId).toBe('day-start-brief');
+    expect(result.correlationId).toBe('rundeck:test');
+    expect(result.summary.markdown).toContain('Cernion day-start brief');
+    expect(result.summary.counts.asyncAlarms).toBe(1);
+    expect(result.status).toBe('blocked');
+  });
+
+  it('groups blocked work from HITL, alarms, and observability', async () => {
+    const result = await broker.call('operations-runbook.listBlockedWork', {}, meta(['rundeck-read']));
+    expect(result.runbookId).toBe('blocked-work');
+    expect(result.data.groups.map((group) => group.group)).toEqual([
+      'human_review',
+      'async_alarm',
+      'observability',
+    ]);
+  });
+
+  it('rejects ack without the dedicated rundeck-ack scope', async () => {
+    await expect(
+      broker.call(
+        'operations-runbook.acknowledgeAlarm',
+        { alarmId: 'alarm-1' },
+        meta(['rundeck-read'])
+      )
+    ).rejects.toMatchObject({ code: 403, type: 'RUNBOOK_SCOPE_REQUIRED' });
+  });
+
+  it('acknowledges alarms with the dedicated rundeck-ack scope', async () => {
+    const result = await broker.call(
+      'operations-runbook.acknowledgeAlarm',
+      { alarmId: 'alarm-1', reason: 'seen' },
+      meta(['rundeck-ack'])
+    );
+    expect(result.status).toBe('executed');
+    expect(result.riskClass).toBe('acknowledge');
+  });
+
+  it('rejects execute-dev without idempotency key, mode, tenant, or scope', async () => {
+    const jobId = jobStore.createJob({
+      service: 'svc',
+      action: 'act',
+      idempotencyKey: 'seed',
+      wakeContext: { service: 'svc', action: 'act', params: {} },
+      tenantId: 'stadtwerk-a',
+    });
+    await expect(
+      broker.call(
+        'operations-runbook.executeRevalidationDev',
+        { taskId: jobId, dryRun: false, executionMode: 'dev-controlled' },
+        meta(['rundeck-execute-dev'])
+      )
+    ).rejects.toMatchObject({ code: 400, type: 'RUNBOOK_IDEMPOTENCY_KEY_REQUIRED' });
+
+    await expect(
+      broker.call(
+        'operations-runbook.executeRevalidationDev',
+        {
+          taskId: jobId,
+          dryRun: false,
+          executionMode: 'dev-controlled',
+          idempotencyKey: 'rundeck:1',
+        },
+        meta(['rundeck-read'])
+      )
+    ).rejects.toMatchObject({ code: 403, type: 'RUNBOOK_SCOPE_REQUIRED' });
+  });
+
+  it('reuses the same descriptor for repeated execute-dev calls with one idempotency key', async () => {
+    const jobId = jobStore.createJob({
+      service: 'svc',
+      action: 'act',
+      idempotencyKey: 'seed',
+      wakeContext: { service: 'svc', action: 'act', params: {} },
+      tenantId: 'stadtwerk-a',
+    });
+    jobStore.updateJob(jobId, { status: 'recovery_pending' });
+
+    const params = {
+      taskId: jobId,
+      dryRun: false,
+      executionMode: 'dev-controlled',
+      idempotencyKey: 'rundeck:job:1',
+    };
+    const first = await broker.call(
+      'operations-runbook.executeRevalidationDev',
+      params,
+      meta(['rundeck-execute-dev'])
+    );
+    const second = await broker.call(
+      'operations-runbook.executeRevalidationDev',
+      params,
+      meta(['rundeck-execute-dev'])
+    );
+
+    expect(first.status).toBe('executed');
+    expect(second.status).toBe('completed');
+    expect(second.data.result.reused).toBe(true);
+    expect(second.job.jobId).toBe(first.job.jobId);
+  });
+
+  it('blocks execute-dev in production-like environments', async () => {
+    process.env.CERNION_RUNDECK_EXECUTION_ENV = 'production';
+    const jobId = jobStore.createJob({
+      service: 'svc',
+      action: 'act',
+      idempotencyKey: 'seed',
+      wakeContext: { service: 'svc', action: 'act', params: {} },
+      tenantId: 'stadtwerk-a',
+    });
+    await expect(
+      broker.call(
+        'operations-runbook.executeRevalidationDev',
+        {
+          taskId: jobId,
+          dryRun: false,
+          executionMode: 'dev-controlled',
+          idempotencyKey: 'rundeck:blocked',
+        },
+        meta(['rundeck-execute-dev'])
+      )
+    ).rejects.toMatchObject({ code: 403, type: 'RUNBOOK_PRODUCTION_GUARD' });
+  });
+});
