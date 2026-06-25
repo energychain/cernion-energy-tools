@@ -875,6 +875,15 @@ describe('energy-sharing-allocation service', () => {
       },
     });
 
+    // Real energy-sharing-community service for the communityId-resolution
+    // tests (#285) — unique DB path to avoid clashing with
+    // tests/energy-sharing-community.test.js's own PouchDB instance.
+    process.env.ENERGY_SHARING_COMMUNITY_DB_PATH = path.join(
+      os.tmpdir(),
+      `cernion-community-alloc-test-${Date.now()}`
+    );
+    broker.createService(require('../services/energy-sharing-community.service'));
+
     await broker.start();
   });
 
@@ -883,6 +892,7 @@ describe('energy-sharing-allocation service', () => {
     const PouchDB = require('pouchdb');
     PouchDB.plugin(require('pouchdb-find'));
     await new PouchDB(TEST_DB_PATH).destroy().catch(() => {});
+    await new PouchDB(process.env.ENERGY_SHARING_COMMUNITY_DB_PATH).destroy().catch(() => {});
   });
 
   beforeEach(() => {
@@ -1490,6 +1500,120 @@ describe('energy-sharing-allocation service', () => {
           tariffEurPerKWh: 0.25,
         })
       ).rejects.toThrow(/not found/);
+    });
+  });
+
+  // ── allocate via communityId (#285) ────────────────────────────────────────────
+  describe('allocate — derives generators/consumers from a persisted community (#285)', () => {
+    test('resolves generators/consumers from communityId when no inline arrays are given', async () => {
+      const community = await broker.call('energy-sharing-community.createCommunity', {
+        name: 'Resolve-Test',
+        communityId: 'ES-RESOLVE-TEST',
+      });
+      await broker.call('energy-sharing-community.addMember', {
+        id: community.id,
+        mastrNummer: GENERATOR_1.mastrNummer,
+        roles: ['generator'],
+        generatorSharePercent: 100,
+        validFrom: '2026-01-01',
+      });
+      await broker.call('energy-sharing-community.addMember', {
+        id: community.id,
+        maloId: CONSUMER_A.maloId,
+        name: CONSUMER_A.name,
+        roles: ['consumer'],
+        consumerSharePercent: 30,
+        validFrom: '2026-01-01',
+      });
+      await broker.call('energy-sharing-community.addMember', {
+        id: community.id,
+        maloId: CONSUMER_B.maloId,
+        name: CONSUMER_B.name,
+        roles: ['consumer'],
+        consumerSharePercent: 70,
+        validFrom: '2026-01-01',
+      });
+
+      const result = await broker.call('energy-sharing-allocation.allocate', {
+        communityId: 'ES-RESOLVE-TEST',
+        dateFrom: '2026-06-01',
+        dateTo: '2026-06-07',
+        dataSource: 'forecast',
+        includeRedispatchDeduction: false,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.consumers).toHaveLength(2);
+      expect(
+        result.warnings.find((w) => w.code === 'ALLOC_GENERATORS_CONSUMERS_RESOLVED_FROM_COMMUNITY')
+      ).toBeDefined();
+    });
+
+    test('a member who left before the period is excluded from the resolved allocation', async () => {
+      const community = await broker.call('energy-sharing-community.createCommunity', {
+        name: 'Resolve-Exclude-Test',
+        communityId: 'ES-RESOLVE-EXCLUDE',
+      });
+      await broker.call('energy-sharing-community.addMember', {
+        id: community.id,
+        mastrNummer: GENERATOR_1.mastrNummer,
+        roles: ['generator'],
+        generatorSharePercent: 100,
+        validFrom: '2026-01-01',
+      });
+      await broker.call('energy-sharing-community.addMember', {
+        id: community.id,
+        maloId: CONSUMER_A.maloId,
+        roles: ['consumer'],
+        consumerSharePercent: 100,
+        validFrom: '2026-01-01',
+        validTo: '2026-03-31', // left well before the requested period
+      });
+
+      await expect(
+        broker.call('energy-sharing-allocation.allocate', {
+          communityId: 'ES-RESOLVE-EXCLUDE',
+          dateFrom: '2026-06-01',
+          dateTo: '2026-06-07',
+          dataSource: 'forecast',
+          includeRedispatchDeduction: false,
+        })
+      ).rejects.toThrow(/At least one consumer is required/);
+    });
+
+    test('inline generators/consumers still take precedence over communityId (additive, no breaking change)', async () => {
+      const community = await broker.call('energy-sharing-community.createCommunity', {
+        name: 'Inline-Precedence-Test',
+        communityId: 'ES-INLINE-PRECEDENCE',
+      });
+      await broker.call('energy-sharing-community.addMember', {
+        id: community.id,
+        mastrNummer: 'SEE_SHOULD_NOT_BE_USED',
+        roles: ['generator'],
+        generatorSharePercent: 100,
+        validFrom: '2026-01-01',
+      });
+
+      const result = await broker.call(
+        'energy-sharing-allocation.allocate',
+        makeAllocateParams({ communityId: 'ES-INLINE-PRECEDENCE' })
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.generators[0].mastrNummer).toBe(GENERATOR_1.mastrNummer); // inline, not the community's
+      expect(
+        result.warnings.find((w) => w.code === 'ALLOC_GENERATORS_CONSUMERS_RESOLVED_FROM_COMMUNITY')
+      ).toBeUndefined();
+    });
+
+    test('throws a clear error when communityId cannot be resolved and no inline arrays were given', async () => {
+      await expect(
+        broker.call('energy-sharing-allocation.allocate', {
+          communityId: 'does-not-exist',
+          dateFrom: '2026-06-01',
+          dateTo: '2026-06-07',
+        })
+      ).rejects.toThrow(/could not be resolved/);
     });
   });
 });

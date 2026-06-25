@@ -140,8 +140,11 @@ module.exports = {
       params: {
         communityId: { type: 'string', optional: true, default: '' },
         validationReportId: { type: 'string', optional: true, default: '' },
-        generators: { type: 'array', items: 'object', min: 1 },
-        consumers: { type: 'array', items: 'object', min: 1 },
+        // generators/consumers are optional when communityId resolves to a
+        // persisted community (#285) — stepValidateInput requires at least
+        // one of {inline arrays, resolvable communityId}.
+        generators: { type: 'array', items: 'object', optional: true, default: [] },
+        consumers: { type: 'array', items: 'object', optional: true, default: [] },
         dateFrom: { type: 'string' },
         dateTo: { type: 'string' },
         dataSource: { type: 'enum', values: ['forecast', 'inhouse'], default: 'forecast' },
@@ -179,11 +182,14 @@ module.exports = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['generators', 'consumers', 'dateFrom', 'dateTo'],
+                required: ['dateFrom', 'dateTo'],
                 properties: {
                   communityId: {
                     type: 'string',
-                    description: 'External community ID from VNB',
+                    description:
+                      'External community ID from VNB. Also used (#285) to resolve generators/' +
+                      'consumers automatically from a persisted energy-sharing-community when ' +
+                      'neither array is provided inline — see generators/consumers below.',
                     example: 'ES-2026-001',
                   },
                   validationReportId: {
@@ -196,14 +202,18 @@ module.exports = {
                     type: 'array',
                     items: { type: 'object' },
                     description:
-                      'Generator list with mastrNummer and sharePercent (must sum to 100)',
+                      'Generator list with mastrNummer and sharePercent (must sum to 100). ' +
+                      'Optional (#285) when communityId resolves to a persisted community with ' +
+                      'active generator members for the requested period — required otherwise.',
                     example: [{ mastrNummer: 'SEE904837264953', sharePercent: 100 }],
                   },
                   consumers: {
                     type: 'array',
                     items: { type: 'object' },
                     description:
-                      'Consumer list with maloId, sharePercent (must sum to 100), optional name',
+                      'Consumer list with maloId, sharePercent (must sum to 100), optional name. ' +
+                      'Optional (#285) when communityId resolves to a persisted community with ' +
+                      'active consumer members for the requested period — required otherwise.',
                     example: [
                       {
                         maloId: 'DE0001234567890123456789012345678',
@@ -1103,6 +1113,44 @@ module.exports = {
             `Date range spans ${daysDelta} days — recommended maximum is ${RECOMMENDED_MAX_DAYS}. ` +
             'Calculation may take longer. Consider splitting into monthly batches.',
         });
+      }
+
+      // ── Derive generators/consumers from a persisted community (#285) ───
+      // Additive only: inline generators/consumers (validated below) always
+      // take precedence and remain fully supported unchanged. This path only
+      // activates when BOTH arrays are empty and communityId is set.
+      if ((!generators || generators.length === 0) && (!consumers || consumers.length === 0)) {
+        if (params.communityId) {
+          let resolved = null;
+          try {
+            resolved = await ctx.call(
+              'energy-sharing-community.resolveActiveMembers',
+              { id: params.communityId, dateFrom: params.dateFrom, dateTo: params.dateTo },
+              callOpts
+            );
+          } catch (err) {
+            this.logger.debug(
+              `stepValidateInput: community resolution failed for "${params.communityId}": ${err.message}`
+            );
+          }
+          if (resolved?.success) {
+            generators = resolved.generators;
+            consumers = resolved.consumers;
+            warnings.push({
+              code: 'ALLOC_GENERATORS_CONSUMERS_RESOLVED_FROM_COMMUNITY',
+              message:
+                `Resolved ${resolved.activeMemberCount} active member(s) from community ` +
+                `"${params.communityId}" for ${params.dateFrom}..${params.dateTo} ` +
+                '(no inline generators/consumers were provided).',
+            });
+          } else {
+            throw new Error(
+              `No inline generators/consumers were provided and communityId "${params.communityId}" ` +
+                'could not be resolved to a persisted Energy Sharing community. Provide generators/' +
+                'consumers inline, or create the community first via energy-sharing-community.createCommunity.'
+            );
+          }
+        }
       }
 
       // ── Generator share sum ─────────────────────────────────────────────

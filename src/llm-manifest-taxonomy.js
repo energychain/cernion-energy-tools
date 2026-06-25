@@ -187,6 +187,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'EIC Code Management': 'grid-ops',
   'Energy Market Data': 'market-data',
   'Energy Sharing Allocation': 'energy-sharing',
+  'Energy Sharing Community': 'energy-sharing',
   'Energy Sharing Validation': 'energy-sharing',
   'ENTSO-E': 'market-data',
   'EOG Calculator': 'regulatory',
