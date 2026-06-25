@@ -74,7 +74,7 @@
     "@turf/boolean-point-in-polygon": "^7.3.5",
     "@turf/helpers": "^7.3.4",
     "ajv": "^8.20.0",
-    "axios": "^1.16.1",
+    "axios": "^1.18.0",
     "better-sqlite3": "^12.10.0",
     "dotenv": "^17.4.2",
     "graphology": "^0.26.0",
