@@ -5,6 +5,16 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.66.2] — 2026-06-25
+
+### Added
+- **Energy Sharing: consumption-capped allocation function** (`src/timeseries-allocation.js#allocateTimeseriesCappedByConsumption`, #282, sub-issue of #280): new pure function, additive alongside the existing quota-only `allocateTimeseries`. Per 15-min interval and consumer: `quotaKWh` (same fixed-percentage split as before, remainder-to-last-consumer rounding) is capped at the consumer's actual measured consumption for that interval (`cappedAllocations = min(quotaKWh, consumptionKWh)`). Unused quota is reported as `surplus`; consumption beyond the solar share is reported as `deficit` (grid draw) — the defining behavior of a real internal-PV-sharing model that the plain quota split never had (see #280's gap analysis). Invariant: `Σ(cappedAllocations) + Σ(surplus) = Σ(netGenerationKWh)` per interval (within `round4`'s 4-decimal tolerance); `deficit` is independent grid consumption and is not part of that invariant. Missing consumption data for a consumer/interval falls back to their full quota (`surplus = 0`) and is marked via `consumptionDataMissing`, with `deficit` reported as `null` (unknown) rather than `0` — never silently assumed.
+- Cross-participant redistribution of one consumer's surplus to another consumer's deficit is deliberately **not** implemented here — left as an explicitly open, separate design question (fixed priority vs. proportional vs. configurable order) per the issue's own scoping. `surplus`/`deficit` are reported per consumer only.
+- The existing `allocateTimeseries` function and its `allocations` field are completely unaffected — this is a new, independent function, not a modification of the existing one. Not yet wired into `services/energy-sharing-allocation.service.js`'s `allocate` action — that wiring lands with the aggregation layer in #283, which consumes this function's per-interval output.
+
+### Tests
+- 6 new cases in `tests/energy-sharing-allocation.test.js`: consumption below quota (surplus), above quota (deficit), exactly at quota (neither), missing consumption data (fallback + `consumptionDataMissing` + `null` deficit), the summation invariant, and non-mutation of the pre-existing `allocations` field.
+
 ## [0.66.1] — 2026-06-25
 
 ### Added
