@@ -16,4 +16,14 @@
     strategy: node-first
     commands:
       - script: |
-          integrations/rundeck/scripts/cernion-runbook-call.sh POST "/api/operations-runbook/revalidation/${option.taskId}/execute" '{"dryRun":false,"executionMode":"dev-controlled","idempotencyKey":"${option.idempotencyKey}","correlationId":"rundeck:${job.execid}","requestedBy":"rundeck:${job.username}"}'
+          set -euo pipefail
+          set -a
+          . /run/cernion/cernion.env
+          set +a
+          cd /workspace/cernion-energy-tools
+          task_id="${RD_OPTION_TASKID:?taskId option is required}"
+          idempotency_key="${RD_OPTION_IDEMPOTENCYKEY:?idempotencyKey option is required}"
+          correlation_id="rundeck:${RD_JOB_EXECID:-manual}"
+          requested_by="rundeck:${RD_JOB_USERNAME:-rundeck}"
+          payload="$(printf '{"dryRun":false,"executionMode":"dev-controlled","idempotencyKey":"%s","correlationId":"%s","requestedBy":"%s"}' "$idempotency_key" "$correlation_id" "$requested_by")"
+          integrations/rundeck/scripts/cernion-runbook-call.sh POST "/api/operations-runbook/revalidation/${task_id}/execute" "$payload"
