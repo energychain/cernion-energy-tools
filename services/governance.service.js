@@ -3,6 +3,7 @@
 const PouchDB = require('pouchdb');
 const { evaluateGovernancePolicy } = require('../src/governance-policy-evaluator');
 const { DecisionEvidenceAuditTrail } = require('../src/decision-evidence-audit-trail');
+const { deriveHitlResolverRoles } = require('../src/vdmi-hitl-role-derivation');
 
 module.exports = {
   name: 'governance',
@@ -36,6 +37,22 @@ module.exports = {
           safety: 'read_only_policy_evaluation',
           sideEffects: 'none',
         };
+      },
+    },
+
+    deriveHitlResolverRoles: {
+      params: {
+        row: { type: 'object', optional: true, default: {} },
+        decisionPolicy: { type: 'object', optional: true, default: {} },
+        fallbackRoles: { type: 'array', optional: true, default: [], items: 'string' },
+        context: { type: 'object', optional: true, default: {} },
+      },
+      openapi: {
+        summary: 'Derive HITL resolver roles from VDMI row role metadata',
+        tags: ['Governance'],
+      },
+      handler(ctx) {
+        return deriveHitlResolverRoles(ctx.params);
       },
     },
 
