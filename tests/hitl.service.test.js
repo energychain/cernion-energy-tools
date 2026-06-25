@@ -226,6 +226,144 @@ describe('hitl service', () => {
     );
   });
 
+  // ── Resolver-role enforcement (#288, gap identified in #275's Bestandsanalyse) ─
+  describe('resolver-role enforcement', () => {
+    test('approve is rejected when caller has none of the requiredResolverRoles', async () => {
+      const created = await broker.call(
+        'hitl.create',
+        {
+          kind: 'cya-consensus-failed',
+          payload: { sessionId: 'role-1' },
+          requiredResolverRoles: ['ROLE_NETZPLANUNG'],
+        },
+        { meta: { tenantId: 'tenant-a' } }
+      );
+
+      await expect(
+        broker.call(
+          'hitl.approve',
+          { id: created.item.id },
+          { meta: { tenantId: 'tenant-a', authUser: { roles: ['ROLE_UNRELATED'] } } }
+        )
+      ).rejects.toMatchObject({ code: 403, type: 'HITL_RESOLVER_ROLE_REQUIRED' });
+
+      const unchanged = await broker.call(
+        'hitl.get',
+        { id: created.item.id },
+        { meta: { tenantId: 'tenant-a' } }
+      );
+      expect(unchanged.item.status).toBe('pending');
+    });
+
+    test('approve succeeds when caller has a matching role', async () => {
+      const created = await broker.call(
+        'hitl.create',
+        {
+          kind: 'cya-consensus-failed',
+          payload: { sessionId: 'role-2' },
+          requiredResolverRoles: ['ROLE_NETZPLANUNG'],
+        },
+        { meta: { tenantId: 'tenant-a' } }
+      );
+
+      const approved = await broker.call(
+        'hitl.approve',
+        { id: created.item.id },
+        { meta: { tenantId: 'tenant-a', authUser: { roles: ['ROLE_NETZPLANUNG'] } } }
+      );
+      expect(approved.item.status).toBe('approved');
+    });
+
+    test('full-access scope bypasses the role requirement', async () => {
+      const created = await broker.call(
+        'hitl.create',
+        {
+          kind: 'cya-consensus-failed',
+          payload: { sessionId: 'role-3' },
+          requiredResolverRoles: ['ROLE_NETZPLANUNG'],
+        },
+        { meta: { tenantId: 'tenant-a' } }
+      );
+
+      const approved = await broker.call(
+        'hitl.approve',
+        { id: created.item.id },
+        { meta: { tenantId: 'tenant-a', apiToken: { scope: 'full-access' } } }
+      );
+      expect(approved.item.status).toBe('approved');
+    });
+
+    test('responsibleRole alone (no requiredResolverRoles array) is also enforced', async () => {
+      const created = await broker.call(
+        'hitl.create',
+        {
+          kind: 'cya-consensus-failed',
+          payload: { sessionId: 'role-4' },
+          responsibleRole: 'ROLE_KAUFMAENNISCHE_LEITUNG',
+        },
+        { meta: { tenantId: 'tenant-a' } }
+      );
+
+      await expect(
+        broker.call(
+          'hitl.reject',
+          { id: created.item.id },
+          { meta: { tenantId: 'tenant-a', authUser: { roles: ['ROLE_NETZPLANUNG'] } } }
+        )
+      ).rejects.toMatchObject({ code: 403, type: 'HITL_RESOLVER_ROLE_REQUIRED' });
+
+      const matching = await broker.call(
+        'hitl.reject',
+        { id: created.item.id },
+        { meta: { tenantId: 'tenant-a', authUser: { roles: ['ROLE_KAUFMAENNISCHE_LEITUNG'] } } }
+      );
+      expect(matching.item.status).toBe('rejected');
+    });
+
+    test('an item without any role requirement is unaffected (no breaking change)', async () => {
+      const created = await broker.call(
+        'hitl.create',
+        { kind: 'cya-consensus-failed', payload: { sessionId: 'role-5' } },
+        { meta: { tenantId: 'tenant-a' } }
+      );
+
+      const approved = await broker.call(
+        'hitl.approve',
+        { id: created.item.id },
+        { meta: { tenantId: 'tenant-a' } } // no authUser/apiToken at all
+      );
+      expect(approved.item.status).toBe('approved');
+    });
+
+    test('bulkApprove rejects only the items the caller lacks the role for, others still resolve', async () => {
+      const allowed = await broker.call(
+        'hitl.create',
+        { kind: 'cya-consensus-failed', payload: { sessionId: 'role-bulk-1' } },
+        { meta: { tenantId: 'tenant-a' } }
+      );
+      const blocked = await broker.call(
+        'hitl.create',
+        {
+          kind: 'cya-consensus-failed',
+          payload: { sessionId: 'role-bulk-2' },
+          requiredResolverRoles: ['ROLE_NETZPLANUNG'],
+        },
+        { meta: { tenantId: 'tenant-a' } }
+      );
+
+      const result = await broker.call(
+        'hitl.bulkApprove',
+        { ids: [allowed.item.id, blocked.item.id] },
+        { meta: { tenantId: 'tenant-a', authUser: { roles: ['ROLE_UNRELATED'] } } }
+      );
+
+      expect(result.items.map((i) => i.id)).toEqual([allowed.item.id]);
+      expect(result.failed.find((f) => f.id === blocked.item.id)?.code).toBe(
+        'HITL_RESOLVER_ROLE_REQUIRED'
+      );
+    });
+  });
+
   test('resolves persona routing metadata on create for same-tenant persona lookups', async () => {
     const created = await broker.call(
       'hitl.create',

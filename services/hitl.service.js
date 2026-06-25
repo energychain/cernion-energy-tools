@@ -5,6 +5,7 @@ const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
+const { hasFullAccessPrincipal, callerHasAnyRole } = require('../src/auth-role-helpers');
 
 const OPENAPI_TAG = 'HITL';
 const DOC_PREFIX = 'hi:';
@@ -1115,6 +1116,30 @@ module.exports = {
           `Cannot resolve item with status '${item.status}'`,
           400,
           'HITL_INVALID_STATUS'
+        );
+      }
+
+      // Resolver-role enforcement (#288, gap identified in #275's Bestandsanalyse):
+      // requiredResolverRoles/responsibleRole were previously recorded but never
+      // checked against the caller. Only enforced when the item actually declares
+      // a requirement (empty/absent → unchanged permissive behavior, no breaking
+      // change for existing items without role metadata). full-access/cross-tenant-
+      // admin always bypasses, consistent with personal-agent.service.js's
+      // hasFullAccessPrincipal bypass convention.
+      const requiredRoles = [
+        ...(Array.isArray(item.requiredResolverRoles) ? item.requiredResolverRoles : []),
+        ...(item.responsibleRole ? [item.responsibleRole] : []),
+      ];
+      if (
+        requiredRoles.length > 0 &&
+        !hasFullAccessPrincipal(ctx) &&
+        !callerHasAnyRole(ctx, requiredRoles)
+      ) {
+        throw new MoleculerClientError(
+          `Caller is not authorized to resolve this item — requires one of: ${requiredRoles.join(', ')}`,
+          403,
+          'HITL_RESOLVER_ROLE_REQUIRED',
+          { requiredRoles }
         );
       }
 
