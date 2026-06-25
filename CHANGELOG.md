@@ -5,6 +5,17 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.67.1] — 2026-06-25
+
+### Added
+- **VDMI Role Workbench Projection Endpoint** (`src/role-workbench-projector.js`, `services/governance.service.js#roleWorkbenchProjection`, `GET /api/governance/role-workbench`, #301): Read-only Projektion einer Rolle/Persona über alle VDMI-Matrizen. Gibt für jede VDMI-Zeile, in der die Rolle als `verantwortlich`/`durchfuehrend`/`mitwirkend`/`information` auftritt, eine strukturierte Workbench-Karte zurück — angereichert mit Policy-Ergebnis (`governance.evaluatePolicy`), abgeleiteten HITL-Resolver-Rollen (`governance.deriveHitlResolverRoles`), Evidenz-Gaps und kuratierten Next-Action-Hinweisen (Runbook-Hinweise ohne Ausführung). Geeignet als Budibase REST-Datasource (`GET /api/governance/role-workbench?role=ROLE_NETZPLANUNG`). Keine neuen Governance-Primitive nötig — reines Kompositions-Read-Model über vorhandene #291–#294-Bausteine.
+- Die vier RACI-Beziehungen (`verantwortlich`/`durchfuehrend`/`mitwirkend`/`information`) werden explizit in der Antwort (`roleRelation` + `roleRelationLabel`) unterschieden.
+- Graceful Degradation: wenn der VDMI-Service nicht erreichbar ist, gibt der Endpoint eine leere, valide Workbench zurück statt eines 500-Fehlers.
+- `Governance` OpenAPI-Tag zu `src/llm-manifest-taxonomy.js` ergänzt (war bisher unmapped; behebt latenten Build-Fehler der durch den neuen Endpoint sichtbar wurde).
+
+### Tests
+- 15 neue Fälle in `tests/role-workbench-projector.test.js` (Suite 1: Pure Unit Tests für den Projektor; Suite 2: Broker-Integration mit Mock-VDMI-Service): `verantwortlich`/`durchfuehrend`/`mitwirkend`/`information`-Erkennung, mehrere Matrizen, fehlende Evidenz erzeugt sichtbare Clarification-Projektion, completed Matrizen werden gefiltert, leere Rolle liefert saubere leere Workbench, VDMI-Service nicht erreichbar degradiert graceful.
+
 ## [0.67.0] — 2026-06-25
 
 ### Added

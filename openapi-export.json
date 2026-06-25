@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.67.0",
+    "version": "0.67.1",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "servers": [
@@ -32376,6 +32376,48 @@
             }
           }
         }
+      }
+    },
+    "/api/governance/role-workbench": {
+      "get": {
+        "operationId": "governance_roleWorkbenchProjection",
+        "summary": "Role Workbench Projection — role-specific VDMI task overview",
+        "tags": [
+          "Governance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a read-only workbench projection for a role: all VDMI matrix tasks where the role appears as verantwortlich/durchfuehrend/mitwirkend/information, enriched with governance policy evaluation, HITL role derivation, evidence gaps, and curated next-action hints. No writes; suitable as a Budibase datasource.",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "ROLE_NETZPLANUNG"
+            }
+          },
+          {
+            "name": "includeResolved",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Include tasks from completed/resolved matrices"
+          }
+        ]
       }
     },
     "/api/grid-connection/validate": {
@@ -68431,5 +68473,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.67.0"
+  "x-version": "0.67.1"
 }

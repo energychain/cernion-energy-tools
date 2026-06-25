@@ -2,8 +2,8 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.67.0
-- changelog_latest_release: 0.67.0
+- version: 0.67.1
+- changelog_latest_release: 0.67.1
 
 ## Purpose
 This file is a navigation manifest for LLM/agent consumers. It lists cluster
@@ -175,7 +175,7 @@ recipes:
   utility-report-ewk "A grid operator needs a structured EWK…"
 resolve: GET /api/_agent/operations?domain=regulatory
 
-### governance (36 capabilities · 1 recipes · 85 operations)
+### governance (36 capabilities · 1 recipes · 86 operations)
 capabilities: automation_requirements_decision_value, automation_risk_gate, crisis_decision_routine, cya_assessment_briefing, e2e_controllability_check_governance, financier_due_diligence_assessment, flexibility_conductor_role_model, grossspeicher_anschluss_readiness_gate, interface_placeholder, jour_fixe_decision_closure_tracker, ki_floorwalker_governance, knowledge_continuity_governance_gate, leadership_delta_cockpit, legal_clarification_operating_model, liquidity_planning_governance_module, netzkoppelvertrag_workflow, netzprozess_readiness_gate, nkp_reporting, nova_decision_lifecycle_readiness, off_balancing_metering_pruefmatrix, owner_deadline_evidence_gate, process_sensitization_readiness_map, reporting_governance, role_permission_access_readiness_gate, scqa_decision_framing, smart_meter_off_balancing_purpose_lock, stadtwerk_mauer_capability_projection, stadtwerk_mauer_event_replay_preview, stadtwerk_mauer_vdmi_profile, vdmi_asset_validation_governance, vdmi_governance_templates, vdmi_grid_connection_decision_governance, vdmi_portfolio_gatekeeping, vdmi_role_boundary_governance, vnb_kpi_benchmark_comparison, zaehlpark_finanzierung_szenario_cockpit
 recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
@@ -245,17 +245,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: f83c38262c84522c751c6d380fc85a9e43327e99120e7c819406532789392ad2
+- CHANGELOG.md: a8507243355c4f69990bcceec0a883dcd86f1c4ab12cf2c96c0f755752ca2a83
 - README.md: 149317e9eea460588ca9ff477c91a9009d275c51fd4bd4f88e9ff1785746836b
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 5190fa2814db597464408cb11f08dfa7bd7798df74e650adbebb6fab71b7f5d4
 - src/capability-catalog.js: 86f44672efc90aacdfc80ac45255208ecbff46239bf42d69a1e0f07a6cb6433a
-- openapi-export.json: a58f63bae5a2318a0b3fd7ebd55c8cf7be567bf2a5c26fab8aefdaec089a309a
+- openapi-export.json: a0786831ebc32d72c81924152bdb6ef57dc5f4166fdc43b5b82626a0689bef4f
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 890
-- operation_count: 999
+- path_count: 891
+- operation_count: 1000
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: f70bde41d6f1b02c612bd3dc4049662c104b63710a0e8dc18e431d7665c765b2
+- llm_txt_sha256: aaaab7e31307fe6ba79153da8c8d88ec002b0df17b220e3288a2da8d6681cf5d
