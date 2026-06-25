@@ -35,6 +35,7 @@ module.exports = {
   mergeGeneratorForecasts,
   applyRedispatchDeductions,
   allocateTimeseries,
+  allocateTimeseriesCappedByConsumption,
   buildConsumerSummary,
   buildTotalSummary,
   formatAsCsv,
@@ -216,6 +217,122 @@ function allocateTimeseries(grid, consumers) {
     }
 
     interval.allocations = allocations;
+  }
+
+  return grid;
+}
+
+// ---------------------------------------------------------------------------
+// allocateTimeseriesCappedByConsumption
+// ---------------------------------------------------------------------------
+
+/**
+ * Consumption-capped allocation (issue #282, gap identified in #280's gap
+ * analysis): like `allocateTimeseries`, but a consumer's actual measured
+ * consumption per interval caps how much of their quota share they actually
+ * receive — the defining behavior of a real internal-PV-sharing model that
+ * the plain quota split in `allocateTimeseries` does not have.
+ *
+ * Per interval, per consumer:
+ *   quotaKWh     = same percentage split as `allocateTimeseries`
+ *                  (remainder-to-last-consumer rounding — Σquota = net exactly)
+ *   allocatedKWh = round4(min(quotaKWh, consumptionKWh))
+ *   surplusKWh   = round4(quotaKWh - allocatedKWh)   — quota the consumer did
+ *                  not use this interval (their "unclaimed" solar share)
+ *   deficitKWh   = round4(consumptionKWh - allocatedKWh) — consumption not
+ *                  covered by their solar share (grid draw)
+ *
+ * Invariant: Σ(allocatedKWh) + Σ(surplusKWh) = Σ(quotaKWh) = netGenerationKWh
+ * (within round4's 4-decimal-place tolerance). `deficitKWh` is NOT part of
+ * this invariant — it is independent grid consumption, not generation.
+ *
+ * Missing consumption data for a consumer/interval (no EDM row for that
+ * timestamp — see #281's stepFetchConsumptionEdm) is NOT treated as zero
+ * consumption. It falls back to the consumer's full quota for that interval
+ * (allocatedKWh = quotaKWh, surplusKWh = 0) and marks `consumptionDataMissing
+ * = true` for that interval/consumer — deficit is `null` (unknown), never 0,
+ * since we have no basis to claim there was no grid draw.
+ *
+ * Cross-participant redistribution of one consumer's surplus to another
+ * consumer's deficit is deliberately NOT implemented here — the #282 issue
+ * scoped that as a separate, open design question (priority vs. proportional
+ * vs. configurable redistribution order). `surplusKWh`/`deficitKWh` are
+ * reported per consumer; redistributing them is left to a future iteration.
+ *
+ * @param {Array} grid — interval grid with netGenerationKWh filled (same shape
+ *   `allocateTimeseries` expects)
+ * @param {Array<{maloId: string, sharePercent: number, name?: string}>} consumers
+ * @param {Map<string, Array<{ts: string, value: number}>>} consumptionByMalo
+ *   — per-consumer consumption series, e.g. from #281's stepFetchConsumptionEdm
+ * @returns {Array} — same grid, each interval now additionally has
+ *   `quotaAllocations`, `cappedAllocations`, `surplus`, `deficit`, and
+ *   `consumptionDataMissing` objects (all keyed by maloId). The pre-existing
+ *   `allocations` field (if `allocateTimeseries` was also run on this grid)
+ *   is left untouched.
+ */
+function allocateTimeseriesCappedByConsumption(grid, consumers, consumptionByMalo) {
+  if (!consumers || consumers.length === 0) return grid;
+
+  // Per-consumer timestamp → value lookup, built once.
+  const consumptionIndex = new Map();
+  for (const consumer of consumers) {
+    const series = consumptionByMalo?.get(consumer.maloId) || [];
+    const byTimestamp = new Map();
+    for (const row of series) {
+      byTimestamp.set(row.ts, Number(row.value) || 0);
+    }
+    consumptionIndex.set(consumer.maloId, byTimestamp);
+  }
+
+  for (const interval of grid) {
+    const net = interval.netGenerationKWh;
+
+    // Step A: quota shares — identical rule to allocateTimeseries (remainder
+    // to the last consumer, guarantees Σquota = net exactly).
+    const quotaAllocations = {};
+    let quotaAllocated = 0;
+    for (let i = 0; i < consumers.length; i++) {
+      const consumer = consumers[i];
+      if (i === consumers.length - 1) {
+        quotaAllocations[consumer.maloId] = round4(net - quotaAllocated);
+      } else {
+        const share = round4((net * consumer.sharePercent) / 100);
+        quotaAllocations[consumer.maloId] = share;
+        quotaAllocated += share;
+      }
+    }
+
+    // Step B: cap each consumer's quota at their actual consumption.
+    const cappedAllocations = {};
+    const surplus = {};
+    const deficit = {};
+    const consumptionDataMissing = {};
+
+    for (const consumer of consumers) {
+      const quotaKWh = quotaAllocations[consumer.maloId];
+      const byTimestamp = consumptionIndex.get(consumer.maloId);
+      const consumptionKWh = byTimestamp ? byTimestamp.get(interval.timestamp) : undefined;
+
+      if (consumptionKWh === undefined) {
+        cappedAllocations[consumer.maloId] = quotaKWh;
+        surplus[consumer.maloId] = 0;
+        deficit[consumer.maloId] = null;
+        consumptionDataMissing[consumer.maloId] = true;
+        continue;
+      }
+
+      const allocated = round4(Math.min(quotaKWh, consumptionKWh));
+      cappedAllocations[consumer.maloId] = allocated;
+      surplus[consumer.maloId] = round4(quotaKWh - allocated);
+      deficit[consumer.maloId] = round4(consumptionKWh - allocated);
+      consumptionDataMissing[consumer.maloId] = false;
+    }
+
+    interval.quotaAllocations = quotaAllocations;
+    interval.cappedAllocations = cappedAllocations;
+    interval.surplus = surplus;
+    interval.deficit = deficit;
+    interval.consumptionDataMissing = consumptionDataMissing;
   }
 
   return grid;

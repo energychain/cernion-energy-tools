@@ -28,6 +28,7 @@ const {
   mergeGeneratorForecasts,
   applyRedispatchDeductions,
   allocateTimeseries,
+  allocateTimeseriesCappedByConsumption,
   buildConsumerSummary,
   formatAsCsv,
   INTERVAL_MS,
@@ -312,6 +313,117 @@ describe('timeseries-allocation — pure unit tests', () => {
         const total = Object.values(interval.allocations).reduce((a, b) => a + b, 0);
         expect(Math.abs(total - interval.netGenerationKWh)).toBeLessThanOrEqual(0.0001);
       }
+    });
+  });
+
+  // ── allocateTimeseriesCappedByConsumption (#282) ──────────────────────────────
+  describe('allocateTimeseriesCappedByConsumption', () => {
+    function makeFilledGrid(date, netKWh = 10.0) {
+      const grid = buildIntervalGrid(date, date);
+      for (const i of grid) {
+        i.generationKWh = netKWh;
+        i.netGenerationKWh = netKWh;
+      }
+      return grid;
+    }
+
+    function consumptionMapFor(maloId, valuePerInterval, grid) {
+      return new Map([[maloId, grid.map((i) => ({ ts: i.timestamp, value: valuePerInterval }))]]);
+    }
+
+    test('consumption below quota → surplus reported, full consumption allocated', () => {
+      // 2 consumers, net=10kWh/interval → quota 3kWh / 7kWh (30/70 split)
+      const grid = makeFilledGrid('2026-06-01', 10.0);
+      const consumptionByMalo = new Map([
+        ...consumptionMapFor(CONSUMER_A.maloId, 1.0, grid), // below 3kWh quota
+        ...consumptionMapFor(CONSUMER_B.maloId, 7.0, grid), // exactly at quota
+      ]);
+
+      allocateTimeseriesCappedByConsumption(grid, CONSUMERS_2, consumptionByMalo);
+
+      const interval = grid[0];
+      expect(interval.cappedAllocations[CONSUMER_A.maloId]).toBe(1.0);
+      expect(interval.surplus[CONSUMER_A.maloId]).toBe(2.0);
+      expect(interval.deficit[CONSUMER_A.maloId]).toBe(0);
+      expect(interval.cappedAllocations[CONSUMER_B.maloId]).toBe(7.0);
+      expect(interval.surplus[CONSUMER_B.maloId]).toBe(0);
+      expect(interval.deficit[CONSUMER_B.maloId]).toBe(0);
+    });
+
+    test('consumption above quota → deficit reported, allocation capped at quota', () => {
+      const grid = makeFilledGrid('2026-06-01', 10.0);
+      const consumptionByMalo = new Map([
+        ...consumptionMapFor(CONSUMER_A.maloId, 5.0, grid), // above 3kWh quota
+        ...consumptionMapFor(CONSUMER_B.maloId, 7.0, grid),
+      ]);
+
+      allocateTimeseriesCappedByConsumption(grid, CONSUMERS_2, consumptionByMalo);
+
+      const interval = grid[0];
+      expect(interval.cappedAllocations[CONSUMER_A.maloId]).toBe(3.0); // capped at quota
+      expect(interval.surplus[CONSUMER_A.maloId]).toBe(0);
+      expect(interval.deficit[CONSUMER_A.maloId]).toBe(2.0); // 5 - 3 grid draw
+    });
+
+    test('consumption exactly equals quota → no surplus, no deficit', () => {
+      const grid = makeFilledGrid('2026-06-01', 10.0);
+      const consumptionByMalo = new Map([
+        ...consumptionMapFor(CONSUMER_A.maloId, 3.0, grid),
+        ...consumptionMapFor(CONSUMER_B.maloId, 7.0, grid),
+      ]);
+
+      allocateTimeseriesCappedByConsumption(grid, CONSUMERS_2, consumptionByMalo);
+
+      const interval = grid[0];
+      expect(interval.surplus[CONSUMER_A.maloId]).toBe(0);
+      expect(interval.deficit[CONSUMER_A.maloId]).toBe(0);
+      expect(interval.surplus[CONSUMER_B.maloId]).toBe(0);
+      expect(interval.deficit[CONSUMER_B.maloId]).toBe(0);
+    });
+
+    test('missing consumption data falls back to full quota, marks consumptionDataMissing, deficit is null (not 0)', () => {
+      const grid = makeFilledGrid('2026-06-01', 10.0);
+      // Only CONSUMER_A has consumption data — CONSUMER_B has none at all.
+      const consumptionByMalo = consumptionMapFor(CONSUMER_A.maloId, 1.0, grid);
+
+      allocateTimeseriesCappedByConsumption(grid, CONSUMERS_2, consumptionByMalo);
+
+      const interval = grid[0];
+      expect(interval.consumptionDataMissing[CONSUMER_B.maloId]).toBe(true);
+      expect(interval.cappedAllocations[CONSUMER_B.maloId]).toBe(7.0); // full quota fallback
+      expect(interval.surplus[CONSUMER_B.maloId]).toBe(0);
+      expect(interval.deficit[CONSUMER_B.maloId]).toBeNull();
+      expect(interval.consumptionDataMissing[CONSUMER_A.maloId]).toBe(false);
+    });
+
+    test('summation invariant: Σ(cappedAllocations) + Σ(surplus) = netGenerationKWh per interval', () => {
+      const grid = makeFilledGrid('2026-06-01', 10.0);
+      const consumptionByMalo = new Map([
+        ...consumptionMapFor(CONSUMER_A.maloId, 1.0, grid), // surplus case
+        ...consumptionMapFor(CONSUMER_B.maloId, 9.0, grid), // deficit case
+      ]);
+
+      allocateTimeseriesCappedByConsumption(grid, CONSUMERS_2, consumptionByMalo);
+
+      for (const interval of grid) {
+        const totalAllocated = Object.values(interval.cappedAllocations).reduce((a, b) => a + b, 0);
+        const totalSurplus = Object.values(interval.surplus).reduce((a, b) => a + b, 0);
+        expect(
+          Math.abs(totalAllocated + totalSurplus - interval.netGenerationKWh)
+        ).toBeLessThanOrEqual(0.0001);
+      }
+    });
+
+    test('does not mutate the pre-existing `allocations` field from allocateTimeseries', () => {
+      const grid = makeFilledGrid('2026-06-01', 10.0);
+      allocateTimeseries(grid, CONSUMERS_2);
+      const originalAllocations = { ...grid[0].allocations };
+
+      const consumptionByMalo = consumptionMapFor(CONSUMER_A.maloId, 1.0, grid);
+      allocateTimeseriesCappedByConsumption(grid, CONSUMERS_2, consumptionByMalo);
+
+      expect(grid[0].allocations).toEqual(originalAllocations);
+      expect(grid[0].cappedAllocations).toBeDefined();
     });
   });
 
