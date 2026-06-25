@@ -14,6 +14,8 @@ const RUNBOOK_SCOPES = {
   ack: 'rundeck-ack',
   executeDev: 'rundeck-execute-dev',
 };
+const STADTWERK_MAUER_TENANT_ID = 'stadtwerk-mauer';
+const STADTWERK_MAUER_DEMO_PATH = 'pv_registration_electrician_missing_nap';
 
 function nowIso() {
   return new Date().toISOString();
@@ -354,6 +356,158 @@ module.exports = {
         });
       },
     },
+
+    stadtwerkMauerE2eSmoke: {
+      rest: 'POST /stadtwerk-mauer/e2e-smoke',
+      params: {
+        tenantId: { type: 'string', optional: true, trim: true },
+        caseId: { type: 'string', optional: true, trim: true, max: 160 },
+        dryRun: { type: 'boolean', optional: true, convert: true },
+        executionMode: { type: 'string', optional: true, trim: true },
+        idempotencyKey: { type: 'string', optional: true, trim: true, max: 256 },
+        correlationId: { type: 'string', optional: true, trim: true, max: 160 },
+        requestedBy: { type: 'string', optional: true, trim: true, max: 160 },
+        resetBeforeRun: { type: 'boolean', optional: true, convert: true },
+        finalReset: { type: 'boolean', optional: true, convert: true },
+      },
+      openapi: {
+        summary: 'Run the Stadtwerk Mauer sandbox E2E demo smoke sequence',
+        tags: [OPENAPI_TAG],
+      },
+      async handler(ctx) {
+        this.requireScope(ctx, RUNBOOK_SCOPES.executeDev);
+        this.assertTenantBound(ctx);
+        if (ctx.params.dryRun !== false) {
+          throw new Errors.MoleculerClientError(
+            'Stadtwerk Mauer E2E smoke requires dryRun:false.',
+            400,
+            'RUNBOOK_DRY_RUN_REQUIRED_FALSE'
+          );
+        }
+        if (ctx.params.executionMode !== 'dev-controlled') {
+          throw new Errors.MoleculerClientError(
+            'Stadtwerk Mauer E2E smoke requires executionMode:"dev-controlled".',
+            400,
+            'RUNBOOK_EXECUTION_MODE_REQUIRED'
+          );
+        }
+        if (!ctx.params.idempotencyKey) {
+          throw new Errors.MoleculerClientError(
+            'Stadtwerk Mauer E2E smoke requires idempotencyKey.',
+            400,
+            'RUNBOOK_IDEMPOTENCY_KEY_REQUIRED'
+          );
+        }
+        if (isProductionLike()) {
+          throw new Errors.MoleculerClientError(
+            'Stadtwerk Mauer E2E smoke is disabled in production-like environments.',
+            403,
+            'RUNBOOK_PRODUCTION_GUARD'
+          );
+        }
+
+        const tenantId = ctx.params.tenantId || STADTWERK_MAUER_TENANT_ID;
+        if (tenantId !== STADTWERK_MAUER_TENANT_ID) {
+          throw new Errors.MoleculerClientError(
+            'Stadtwerk Mauer E2E smoke can run only for tenant stadtwerk-mauer.',
+            403,
+            'RUNBOOK_STADTWERK_MAUER_TENANT_REQUIRED',
+            { tenantId, requiredTenantId: STADTWERK_MAUER_TENANT_ID }
+          );
+        }
+
+        const finalReset = ctx.params.finalReset !== false;
+        const resetBeforeRun = ctx.params.resetBeforeRun !== false;
+        const caseId =
+          ctx.params.caseId ||
+          `smm-rundeck:${crypto
+            .createHash('sha256')
+            .update(ctx.params.idempotencyKey)
+            .digest('hex')
+            .slice(0, 12)}`;
+
+        const initialStatus = await ctx.call('stadtwerk-mauer-e2e-process-demo.getStatus', {
+          tenantId,
+          caseId,
+          limit: 5,
+        });
+
+        const preReset = resetBeforeRun
+          ? await ctx.call('stadtwerk-mauer-sandbox-runtime.reset', {
+              tenantId,
+              reason: 'rundeck-stadtwerk-mauer-e2e-smoke-pre-reset',
+            })
+          : null;
+
+        const demo = await ctx.call('stadtwerk-mauer-e2e-process-demo.runDemo', {
+          tenantId,
+          caseId,
+          demoPath: STADTWERK_MAUER_DEMO_PATH,
+          resetBeforeRun: false,
+          electricianRegistrationRef: 'rundeck-demo-electrician-registration',
+          contactRef: 'rundeck-demo-contact-placeholder',
+          messageTemplate: 'pv_registration_missing_nap_request',
+          pvPlantKw: 42,
+        });
+
+        const afterRunStatus = await ctx.call('stadtwerk-mauer-e2e-process-demo.getStatus', {
+          tenantId,
+          caseId,
+          limit: 5,
+        });
+
+        const postReset = finalReset
+          ? await ctx.call('stadtwerk-mauer-sandbox-runtime.reset', {
+              tenantId,
+              reason: 'rundeck-stadtwerk-mauer-e2e-smoke-final-reset',
+            })
+          : null;
+
+        const finalStatus = await ctx.call('stadtwerk-mauer-e2e-process-demo.getStatus', {
+          tenantId,
+          caseId,
+          limit: 5,
+        });
+
+        return this.buildEnvelope(ctx, {
+          runbookId: 'stadtwerk-mauer-e2e-smoke',
+          status: finalReset && Number(finalStatus.traceCount || 0) !== 0 ? 'blocked' : 'executed',
+          riskClass: 'controlled_write',
+          title: 'Stadtwerk Mauer E2E smoke',
+          markdown: this.buildStadtwerkMauerSmokeMarkdown({
+            caseId,
+            initialStatus,
+            preReset,
+            demo,
+            afterRunStatus,
+            postReset,
+            finalStatus,
+          }),
+          counts: {
+            initialTraceCount: Number(initialStatus.traceCount || 0),
+            traceCountAfterRun: Number(afterRunStatus.traceCount || 0),
+            artifactCountAfterRun: Number(afterRunStatus.artifactCount || 0),
+            finalTraceCount: Number(finalStatus.traceCount || 0),
+            finalResetDeleted: Number(postReset?.deletedArtifactCount || 0),
+          },
+          data: {
+            tenantId,
+            caseId,
+            demoPath: STADTWERK_MAUER_DEMO_PATH,
+            idempotencyKey: ctx.params.idempotencyKey,
+            resetBeforeRun,
+            finalReset,
+            initialStatus,
+            preReset,
+            demo,
+            afterRunStatus,
+            postReset,
+            finalStatus,
+          },
+          warnings: finalReset && Number(finalStatus.traceCount || 0) !== 0 ? ['final_reset_left_traces'] : [],
+        });
+      },
+    },
   },
 
   methods: {
@@ -399,6 +553,13 @@ module.exports = {
             id: 'revalidation-execute-dev',
             method: 'POST',
             path: '/api/operations-runbook/revalidation/:taskId/execute',
+            riskClass: 'controlled_write',
+            requiredScope: RUNBOOK_SCOPES.executeDev,
+          },
+          {
+            id: 'stadtwerk-mauer-e2e-smoke',
+            method: 'POST',
+            path: '/api/operations-runbook/stadtwerk-mauer/e2e-smoke',
             riskClass: 'controlled_write',
             requiredScope: RUNBOOK_SCOPES.executeDev,
           },
@@ -531,6 +692,39 @@ module.exports = {
       return ['## Blocked work']
         .concat(groups.map((group) => `- ${group.group}: ${group.count}`))
         .join('\n');
+    },
+
+    buildStadtwerkMauerSmokeMarkdown({
+      caseId,
+      initialStatus,
+      preReset,
+      demo,
+      afterRunStatus,
+      postReset,
+      finalStatus,
+    }) {
+      const missingEvidence = Array.isArray(afterRunStatus?.missingEvidence)
+        ? afterRunStatus.missingEvidence.map((item) => item.missingDataPoint).filter(Boolean)
+        : [];
+      const notCalled = Array.isArray(afterRunStatus?.sourceActions?.notCalled)
+        ? afterRunStatus.sourceActions.notCalled
+        : [];
+      const recentTrace = Array.isArray(afterRunStatus?.recentTraces)
+        ? afterRunStatus.recentTraces[0]
+        : null;
+      return [
+        '## Stadtwerk Mauer E2E smoke',
+        `- Case: ${caseId}`,
+        `- Initial status: ${initialStatus?.status || 'unknown'} (${initialStatus?.traceCount || 0} traces)`,
+        `- Pre-reset deleted: ${preReset ? preReset.deletedArtifactCount : 0}`,
+        `- Demo run: ${demo?.success ? 'success' : 'unknown'}`,
+        `- Trace after run: ${recentTrace?.traceId || demo?.trace?.traceId || 'missing'}`,
+        `- Status after run: ${afterRunStatus?.status || 'unknown'} (${afterRunStatus?.traceCount || 0} traces, ${afterRunStatus?.artifactCount || 0} artifacts)`,
+        `- Missing evidence: ${missingEvidence.length ? missingEvidence.join(', ') : 'none'}`,
+        `- No-call guards: ${notCalled.length}`,
+        `- Final reset deleted: ${postReset ? postReset.deletedArtifactCount : 0}`,
+        `- Final status: ${finalStatus?.status || 'unknown'} (${finalStatus?.traceCount || 0} traces)`,
+      ].join('\n');
     },
 
     async resolveOptions(ctx, name) {

@@ -13,12 +13,14 @@ const jobStore = require('../src/job-store');
 
 describe('operations-runbook.service', () => {
   let broker;
+  let stadtwerkMauerState;
 
   beforeEach(async () => {
     jobStore.resetDispatchStateForTests();
     for (const file of fs.readdirSync(tempJobDir)) {
       fs.rmSync(path.join(tempJobDir, file), { recursive: true, force: true });
     }
+    stadtwerkMauerState = { traces: [] };
     broker = new ServiceBroker({ logger: false });
     broker.createService(OperationsRunbookService);
     broker.createService({
@@ -83,6 +85,72 @@ describe('operations-runbook.service', () => {
         },
       },
     });
+    broker.createService({
+      name: 'stadtwerk-mauer-sandbox-runtime',
+      actions: {
+        reset: {
+          handler: (ctx) => {
+            const deletedArtifactCount = stadtwerkMauerState.traces.length * 5;
+            stadtwerkMauerState.traces = [];
+            return {
+              resetId: 'smm-reset-test',
+              tenantId: ctx.params.tenantId,
+              deletedArtifactCount,
+              deletedKeys: [],
+              reason: ctx.params.reason,
+            };
+          },
+        },
+      },
+    });
+    broker.createService({
+      name: 'stadtwerk-mauer-e2e-process-demo',
+      actions: {
+        runDemo: {
+          handler: (ctx) => {
+            const trace = {
+              traceId: 'smm-trace-test',
+              caseId: ctx.params.caseId,
+              demoPath: ctx.params.demoPath,
+              eventId: 'smm-event-test',
+              transcriptId: 'smm-transcript-test',
+              missingEvidence: [{ missingDataPoint: 'napReference' }],
+            };
+            stadtwerkMauerState.traces.push(trace);
+            return {
+              success: true,
+              tenantId: ctx.params.tenantId,
+              caseId: ctx.params.caseId,
+              demoPath: ctx.params.demoPath,
+              trace,
+            };
+          },
+        },
+        getStatus: {
+          handler: (ctx) => {
+            const recentTraces = stadtwerkMauerState.traces.filter(
+              (trace) => !ctx.params.caseId || trace.caseId === ctx.params.caseId
+            );
+            return {
+              capabilityKey: 'stadtwerk_mauer_e2e_process_demo',
+              tenantId: ctx.params.tenantId,
+              status:
+                recentTraces.length > 0
+                  ? 'e2e_demo_trace_needs_evidence'
+                  : 'e2e_demo_ready_for_run',
+              traceCount: recentTraces.length,
+              artifactCount: recentTraces.length * 5,
+              recentTraces,
+              missingEvidence:
+                recentTraces.length > 0
+                  ? [{ missingDataPoint: 'napReference' }]
+                  : [{ missingDataPoint: 'e2e_demo_trace' }],
+              sourceActions: { notCalled: ['device-control.execute', 'mako.dispatch'] },
+            };
+          },
+        },
+      },
+    });
     await broker.start();
   });
 
@@ -119,6 +187,7 @@ describe('operations-runbook.service', () => {
     expect(result.runbookId).toBe('manifest');
     expect(result.riskClass).toBe('read_only');
     expect(result.summary.markdown).toContain('day-start-brief');
+    expect(result.summary.markdown).toContain('stadtwerk-mauer-e2e-smoke');
     expect(result.data.brokerDossierHydration.exposed).toBe(false);
   });
 
@@ -249,5 +318,53 @@ describe('operations-runbook.service', () => {
         meta(['rundeck-execute-dev'])
       )
     ).rejects.toMatchObject({ code: 403, type: 'RUNBOOK_PRODUCTION_GUARD' });
+  });
+
+  it('runs the Stadtwerk Mauer E2E smoke sequence through the runbook facade', async () => {
+    const result = await broker.call(
+      'operations-runbook.stadtwerkMauerE2eSmoke',
+      {
+        dryRun: false,
+        executionMode: 'dev-controlled',
+        idempotencyKey: 'rundeck:smm:1',
+        caseId: 'smm-case-1',
+      },
+      meta(['rundeck-execute-dev'])
+    );
+
+    expect(result.runbookId).toBe('stadtwerk-mauer-e2e-smoke');
+    expect(result.riskClass).toBe('controlled_write');
+    expect(result.status).toBe('executed');
+    expect(result.summary.markdown).toContain('Stadtwerk Mauer E2E smoke');
+    expect(result.summary.counts.traceCountAfterRun).toBe(1);
+    expect(result.summary.counts.finalTraceCount).toBe(0);
+    expect(result.data.demo.success).toBe(true);
+    expect(result.data.finalStatus.traceCount).toBe(0);
+  });
+
+  it('rejects Stadtwerk Mauer E2E smoke without execute-dev scope or dev mode', async () => {
+    await expect(
+      broker.call(
+        'operations-runbook.stadtwerkMauerE2eSmoke',
+        {
+          dryRun: false,
+          executionMode: 'dev-controlled',
+          idempotencyKey: 'rundeck:smm:2',
+        },
+        meta(['rundeck-read'])
+      )
+    ).rejects.toMatchObject({ code: 403, type: 'RUNBOOK_SCOPE_REQUIRED' });
+
+    await expect(
+      broker.call(
+        'operations-runbook.stadtwerkMauerE2eSmoke',
+        {
+          dryRun: true,
+          executionMode: 'dev-controlled',
+          idempotencyKey: 'rundeck:smm:3',
+        },
+        meta(['rundeck-execute-dev'])
+      )
+    ).rejects.toMatchObject({ code: 400, type: 'RUNBOOK_DRY_RUN_REQUIRED_FALSE' });
   });
 });

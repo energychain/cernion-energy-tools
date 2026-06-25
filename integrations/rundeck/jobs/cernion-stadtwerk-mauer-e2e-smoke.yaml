@@ -1,0 +1,38 @@
+- defaultTab: output
+  description: Stadtwerk Mauer sandbox E2E demo smoke through Cernion operations-runbook
+  executionEnabled: true
+  id: cernion-stadtwerk-mauer-e2e-smoke
+  loglevel: INFO
+  name: Cernion Stadtwerk Mauer E2E Smoke
+  nodeFilterEditable: false
+  options:
+    - name: caseId
+      required: false
+      value: smm-rundeck-demo
+    - name: idempotencyKey
+      required: true
+      value: rundeck-smm-demo
+    - name: finalReset
+      required: true
+      values:
+        - "true"
+        - "false"
+      value: "true"
+  scheduleEnabled: false
+  sequence:
+    keepgoing: false
+    strategy: node-first
+    commands:
+      - script: |
+          set -euo pipefail
+          set -a
+          . /run/cernion/cernion.env
+          set +a
+          cd /workspace/cernion-energy-tools
+          case_id="${RD_OPTION_CASEID:-smm-rundeck-demo}"
+          idempotency_key="${RD_OPTION_IDEMPOTENCYKEY:?idempotencyKey option is required}"
+          final_reset="${RD_OPTION_FINALRESET:-true}"
+          correlation_id="rundeck:${RD_JOB_EXECID:-manual}"
+          requested_by="rundeck:${RD_JOB_USERNAME:-rundeck}"
+          payload="$(printf '{"dryRun":false,"executionMode":"dev-controlled","tenantId":"stadtwerk-mauer","caseId":"%s","idempotencyKey":"%s","finalReset":%s,"correlationId":"%s","requestedBy":"%s"}' "$case_id" "$idempotency_key" "$final_reset" "$correlation_id" "$requested_by")"
+          integrations/rundeck/scripts/cernion-runbook-call.sh POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke "$payload"

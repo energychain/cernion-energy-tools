@@ -1279,6 +1279,8 @@ module.exports = {
             'operations-runbook.revalidationDryRun',
           'POST /operations-runbook/revalidation/:taskId/execute':
             'operations-runbook.executeRevalidationDev',
+          'POST /operations-runbook/stadtwerk-mauer/e2e-smoke':
+            'operations-runbook.stadtwerkMauerE2eSmoke',
           // OEP (Open Energy Platform) read-only connector (v0.12)
           'GET /oep/schemas': 'oep.listSchemas',
           'GET /oep/schemas/:schema/tables': 'oep.listTables',

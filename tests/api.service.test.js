@@ -158,6 +158,9 @@ describe('API Gateway Service', () => {
       expect(apiRoute.aliases['POST /operations-runbook/revalidation/:taskId/execute']).toBe(
         'operations-runbook.executeRevalidationDev'
       );
+      expect(apiRoute.aliases['POST /operations-runbook/stadtwerk-mauer/e2e-smoke']).toBe(
+        'operations-runbook.stadtwerkMauerE2eSmoke'
+      );
     });
   });
 

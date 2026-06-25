@@ -14,6 +14,7 @@ Initial jobs:
 - `cernion-day-start-brief.yaml`
 - `cernion-blocked-work.yaml`
 - `cernion-revalidation-execute-dev.yaml`
+- `cernion-stadtwerk-mauer-e2e-smoke.yaml`
 
 The examples call only `/api/operations-runbook/**`. Do not encode Cernion domain rules in Rundeck jobs.
 

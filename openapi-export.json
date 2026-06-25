@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.66.7",
+    "version": "0.66.8",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "servers": [
@@ -827,6 +827,7 @@
             }
           }
         },
+        "description": "Transitions a receipt between lifecycle statuses. Transitioning to active requires full-access scope or ROLE_RECEIPT_PROMOTER (#289), same as promote.",
         "parameters": [
           {
             "name": "id",
@@ -987,7 +988,7 @@
             }
           }
         },
-        "description": "Transitions a draft receipt to active. Requires promotedBy identity. Validates the receipt fully before promotion. Optionally auto-deprecates a superseded active receipt. Requires _rev for CAS conflict protection.",
+        "description": "Transitions a draft receipt to active. Requires promotedBy identity. Validates the receipt fully before promotion. Optionally auto-deprecates a superseded active receipt. Requires _rev for CAS conflict protection. Caller must have full-access scope or ROLE_RECEIPT_PROMOTER (#289).",
         "parameters": [
           {
             "name": "id",
@@ -41565,6 +41566,27 @@
         }
       }
     },
+    "/api/operations-runbook/stadtwerk-mauer/e2e-smoke": {
+      "post": {
+        "operationId": "operations-runbook_stadtwerkMauerE2eSmoke",
+        "summary": "Run the Stadtwerk Mauer sandbox E2E demo smoke sequence",
+        "tags": [
+          "Operations Runbook"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/osm-geo/validate": {
       "post": {
         "operationId": "osm-geo_validate",
@@ -68069,5 +68091,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.66.7"
+  "x-version": "0.66.8"
 }
