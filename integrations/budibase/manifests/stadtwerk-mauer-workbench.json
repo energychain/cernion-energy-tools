@@ -1,0 +1,104 @@
+{
+  "name": "Cernion Stadtwerk Mauer Workbench",
+  "url": "/cernion-stadtwerk-mauer-workbench",
+  "workspaceApp": {
+    "name": "Stadtwerk Mauer",
+    "url": "/stadtwerk-mauer"
+  },
+  "screen": {
+    "name": "Stadtwerk Mauer Workbench",
+    "route": "/stadtwerk-mauer",
+    "roleId": "BASIC"
+  },
+  "datasource": {
+    "name": "Cernion DevServer REST",
+    "source": "REST",
+    "urlEnv": "CERNION_BASE_URL",
+    "defaultUrl": "http://172.17.0.1:3900"
+  },
+  "queries": [
+    {
+      "name": "getStadtwerkMauerMastrDataOverlay",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-mastr-data-overlay",
+      "queryString": "tenantId={{tenantId}}&limit={{limit}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "limit",
+          "default": "10"
+        }
+      ],
+      "schema": {
+        "status": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "municipality": { "type": "string" },
+        "postalCode": { "type": "string" },
+        "assetCount": { "type": "number" },
+        "totalCapacityKw": { "type": "number" },
+        "evidenceQuality": { "type": "string" },
+        "timestamp": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerE2EProcessDemo",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-e2e-process-demo",
+      "queryString": "",
+      "parameters": [],
+      "schema": {
+        "status": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "demoPath": { "type": "string" },
+        "caseId": { "type": "string" },
+        "traceCount": { "type": "number" },
+        "artifactCount": { "type": "number" },
+        "evidenceQuality": { "type": "string" },
+        "timestamp": { "type": "string" }
+      }
+    },
+    {
+      "name": "runStadtwerkMauerE2ESmoke",
+      "method": "POST",
+      "path": "/api/operations-runbook/stadtwerk-mauer/e2e-smoke",
+      "queryString": "",
+      "parameters": [],
+      "body": {
+        "dryRun": false,
+        "executionMode": "dev-controlled",
+        "tenantId": "stadtwerk-mauer",
+        "caseId": "smm-budibase-workbench",
+        "idempotencyKey": "budibase-smm-workbench",
+        "finalReset": false,
+        "correlationId": "budibase:stadtwerk-mauer-workbench",
+        "requestedBy": "budibase:operator"
+      },
+      "schema": {
+        "success": { "type": "boolean" },
+        "message": { "type": "string" },
+        "riskClass": { "type": "string" }
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "mastr",
+      "title": "MaStR Overlay",
+      "queryName": "getStadtwerkMauerMastrDataOverlay",
+      "tableTitle": "MaStR Overlay Daten"
+    },
+    {
+      "id": "e2e",
+      "title": "E2E Demo Status",
+      "queryName": "getStadtwerkMauerE2EProcessDemo",
+      "tableTitle": "E2E Demo Status"
+    }
+  ],
+  "notes": [
+    "Controlled Action runStadtwerkMauerE2ESmoke remains scope-protected by Cernion.",
+    "Budibase renders the workbench; Cernion remains the system of record and command gate."
+  ]
+}

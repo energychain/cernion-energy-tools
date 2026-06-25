@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `decisionPolicy.onConflictingSources: 'evidence_gap'` — technische Messdatenkonflikte werden als Gap markiert, nicht per Pflicht-HITL gesperrt (#296 verwendet `'mandatory_human_decision'`).
   - RACI: `ROLE_NETZPLANUNG`/`ROLE_GRID_OPERATOR`/`ROLE_REDISPATCH_COORDINATOR` (netzoperativ) statt kaufmännischer Rollen.
   - Evidenzanforderungen: Fernsteuerungsnachweis (§14a EnWG), Verfügbarkeitsprüfung, Kongestions-Signal — keine kommerziellen Dokumente.
+- **Budibase Stadtwerk Mauer Workbench Spike** (`integrations/budibase/`): erste reproduzierbare Grundlage für eine API-/Manifest-getriebene Fallarbeitsplatz-UI statt reiner Datenvisualisierung. Enthält ein lokales Budibase-Integrations-README, ein manifestbasiertes Workbench-Modell für `stadtwerk-mauer` und den idempotenten Apply-Adapter `scripts/apply-stadtwerk-mauer-workbench.js`. Der Adapter legt bzw. aktualisiert Budibase-App, Workspace-App, Cernion-REST-Datasource, Queries mit explizitem Schema und den Screen `Stadtwerk Mauer Workbench` (`/stadtwerk-mauer`). Bewusstes Architekturprinzip: Budibase rendert Fallzustand und kuratierte Aktionen, Cernion bleibt System of Record, Scope-/Command-Gate und Audit-Grenze.
 
 ### Tests
 - 7 neue Fälle in `tests/reference-process-redispatch.test.js`: vollständige Evidenz erlaubt, fehlende Evidenz löst Clarification aus (nicht nur Evidence-Gap), `highFinancialImpact`-Flag hat keinen Effekt, Fallback-Rollenableitung ohne RACI-Metadaten, vollständige Kette mit Hash-Chain-Verifikation.
