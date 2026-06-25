@@ -9,12 +9,15 @@ const {
   SOURCE_ACTIONS_NOT_CALLED,
   summarizeRedispatchReferenceProcess,
 } = require('../src/redispatch-reference-process');
+const { projectRoleWorkbench } = require('../src/role-workbench-projector');
+const { getTenantId } = require('../src/tenant-context');
 
 module.exports = {
   name: 'governance',
 
   settings: {
-    decisionAuditDbPath: process.env.GOVERNANCE_DECISION_AUDIT_DB_PATH || './data/governance-decision-audit',
+    decisionAuditDbPath:
+      process.env.GOVERNANCE_DECISION_AUDIT_DB_PATH || './data/governance-decision-audit',
   },
 
   created() {
@@ -198,6 +201,75 @@ module.exports = {
           success: true,
           safety: 'read_only_integrity_check',
           ...verification,
+        };
+      },
+    },
+
+    // ── Role Workbench Projection (#301) ─────────────────────────────────────────
+    // Read-only projection: given a role, returns a structured view of all VDMI
+    // tasks/rows where that role appears, enriched with policy evaluation, HITL role
+    // derivation, evidence gaps, and curated next-action hints. No writes, no
+    // Rundeck execution — curated hints only. Suitable as a Budibase REST datasource.
+    roleWorkbenchProjection: {
+      rest: 'GET /role-workbench',
+      params: {
+        role: { type: 'string', min: 1 },
+        includeResolved: { type: 'boolean', optional: true, default: false, convert: true },
+      },
+      openapi: {
+        summary: 'Role Workbench Projection — role-specific VDMI task overview',
+        tags: ['Governance'],
+        description:
+          'Returns a read-only workbench projection for a role: all VDMI matrix tasks ' +
+          'where the role appears as verantwortlich/durchfuehrend/mitwirkend/information, ' +
+          'enriched with governance policy evaluation, HITL role derivation, evidence ' +
+          'gaps, and curated next-action hints. No writes; suitable as a Budibase datasource.',
+        parameters: [
+          {
+            name: 'role',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', example: 'ROLE_NETZPLANUNG' },
+          },
+          {
+            name: 'includeResolved',
+            in: 'query',
+            schema: { type: 'boolean', default: false },
+            description: 'Include tasks from completed/resolved matrices',
+          },
+        ],
+      },
+      async handler(ctx) {
+        const tenantId = getTenantId(ctx);
+        const { role, includeResolved } = ctx.params;
+
+        // Fetch all VDMI matrices for this tenant (fail gracefully if vdmi service
+        // is unavailable — return an empty workbench rather than a 500).
+        let matrices = [];
+        try {
+          const vdmiResult = await ctx.call('vdmi.list', { limit: 200 }, { meta: ctx.meta });
+          matrices = Array.isArray(vdmiResult?.items) ? vdmiResult.items : [];
+        } catch {
+          matrices = [];
+        }
+
+        const projection = projectRoleWorkbench({
+          role,
+          matrices,
+          evaluatePolicy: (task, context) =>
+            evaluateGovernancePolicy({ controlCase: task, context }),
+          deriveRoles: (input) => deriveHitlResolverRoles(input),
+          includeResolved,
+        });
+
+        return {
+          success: true,
+          safety: 'read_only_projection',
+          sideEffects: 'none',
+          role,
+          tenantId,
+          summary: projection.summary,
+          items: projection.items,
         };
       },
     },

@@ -203,6 +203,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'gasnetz-waermeplanung': 'regulatory',
   'German Grid Data': 'grid-ops',
   'ghost-asset-alert': 'grid-ops',
+  Governance: 'governance',
   'Grid Connection Validation': 'grid-ops',
   'Grid Operations': 'grid-ops',
   HITL: 'platform',
