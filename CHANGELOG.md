@@ -5,6 +5,15 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.66.1] — 2026-06-25
+
+### Added
+- **Energy Sharing: opt-in EDM consumption-data availability check** (`services/energy-sharing-allocation.service.js`, `allocate` action, #281, sub-issue of #280): new `includeConsumptionData` request parameter. When `true`, the allocation pipeline looks up each consumer's EDM consumption timeseries (`edm.getTimeseries`, OBIS `1-0:1.8.0`) for the same date range and returns a `consumptionStatus[]` array (`{maloId, found, intervalCount, totalKWh}`) alongside the existing quota-based allocation result. A consumer whose MaLo has no EDM timeseries for the requested period (unregistered MeLo or registered but no rows in range) is reported via a structured `ALLOC_CONSUMPTION_DATA_NOT_FOUND` warning — never silently treated as zero or skipped, mirroring the `locationResolutionWarning` convention established in #274. This is a pure data-fetch/availability-reporting addition: it does **not** change the existing quota-based allocation arithmetic (confirmed by a regression test asserting identical totals with the flag on vs. off) — consumption-capped allocation arithmetic is the separate follow-up #282.
+- `consumptionStatus` is persisted on the allocation record and included in the action's response; `null` when `includeConsumptionData` was not requested (default `false`, fully backward-compatible).
+
+### Tests
+- 5 new cases in `tests/energy-sharing-allocation.test.js`: default-off backward compatibility, consumer with EDM data found, consumer without EDM data (structured warning), mixed community (one found / one not, allocation totals unchanged), and an unregistered MeLo (EDM 404) handled the same as an empty result.
+
 ## [0.65.1] — 2026-06-24
 
 ### Fixed

@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.65.1",
+    "version": "0.66.1",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "servers": [
@@ -23701,7 +23701,21 @@
                     "totalNetGenerationKWh": 125.4,
                     "intervalCount": 672,
                     "durationMs": 6500
-                  }
+                  },
+                  "consumptionStatus": [
+                    {
+                      "maloId": "DE0001234567890123456789012345678",
+                      "found": true,
+                      "intervalCount": 672,
+                      "totalKWh": 41.2
+                    },
+                    {
+                      "maloId": "DE0009876543210987654321098765432",
+                      "found": false,
+                      "intervalCount": 0,
+                      "totalKWh": null
+                    }
+                  ]
                 }
               }
             }
@@ -23721,7 +23735,7 @@
             }
           }
         },
-        "description": "Executes a 6-step deterministic allocation pipeline: input validation → generation time-series fetch (Stufe A: forecast / Stufe B: inhouse metering) → redispatch deduction → allocation arithmetic → summary assembly → PouchDB persist. Returns metadata and per-consumer summaries. Full 15-min time-series is available for download via GET /energy-sharing/allocations/:id/download. Regulatory basis: § 42c EnWG, § 12 StromNZV (Viertelstundenwerte), § 20b EnWG Interimsprozess (operative deadline 01.06.2026). KRITIS constraint: raw generation data is never persisted — only metadata.",
+        "description": "Executes a deterministic allocation pipeline: input validation → generation time-series fetch (Stufe A: forecast / Stufe B: inhouse metering) → optional EDM consumption-data availability check (#281, includeConsumptionData) → redispatch deduction → allocation arithmetic → summary assembly → PouchDB persist. Returns metadata and per-consumer summaries. Full 15-min time-series is available for download via GET /energy-sharing/allocations/:id/download. Regulatory basis: § 42c EnWG, § 12 StromNZV (Viertelstundenwerte), § 20b EnWG Interimsprozess (operative deadline 01.06.2026). KRITIS constraint: raw generation data is never persisted — only metadata.",
         "requestBody": {
           "required": true,
           "content": {
@@ -23800,6 +23814,11 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Apply Redispatch 2.0 deductions (affected intervals → generation = 0)"
+                  },
+                  "includeConsumptionData": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Opt-in (#281): look up each consumer's EDM consumption timeseries (services/edm.service.js, OBIS 1-0:1.8.0) for the same date range. Does not change the allocation arithmetic — only reports per-consumer data availability via consumptionStatus[] and warnings[]. A consumer without a matching EDM timeseries is reported via ALLOC_CONSUMPTION_DATA_NOT_FOUND, never silently treated as zero."
                   },
                   "gridOperatorId": {
                     "type": "string",
@@ -66622,5 +66641,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.65.1"
+  "x-version": "0.66.1"
 }
