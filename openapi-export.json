@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.66.1",
+    "version": "0.66.4",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "servers": [
@@ -24468,6 +24468,139 @@
             "description": "Output format (currently only \"csv\" supported)"
           }
         ]
+      }
+    },
+    "/api/energy-sharing-allocation/allocations/:id/billing-report": {
+      "post": {
+        "operationId": "energy-sharing-allocation_billingReport",
+        "summary": "Monthly billing report for an existing allocation (kWh → EUR, #284)",
+        "tags": [
+          "Energy Sharing Allocation"
+        ],
+        "responses": {
+          "200": {
+            "description": "Billing report (JSON) or semicolon-delimited CSV export"
+          },
+          "404": {
+            "description": "Allocation not found"
+          }
+        },
+        "description": "Replays the allocation, fetches each consumer's EDM consumption timeseries, caps the quota-based allocation at actual consumption (#282), aggregates Restmenge/Überschuss per consumer (#283), and applies `tariffEurPerKWh` to produce a billing report. Only allocatedKWh (internal solar share actually used) is billed — remainderKWh (grid draw) is reported for transparency but never billed here. A consumer with no EDM consumption data for the period gets billingAmountEur: null, never a misleading €0.00.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "b2c3d4e5-f6a7-b8c9-d0e1-f2a3b4c5d6e7"
+            },
+            "description": "Allocation UUID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tariffEurPerKWh"
+                ],
+                "properties": {
+                  "tariffEurPerKWh": {
+                    "type": "number",
+                    "description": "Internal price per kWh of allocated solar — required input, never a hardcoded default.",
+                    "example": 0.25
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "json",
+                      "csv"
+                    ],
+                    "default": "json"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "tariffEurPerKWh": 0.25
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/energy-sharing-allocation/annual-billing-report": {
+      "post": {
+        "operationId": "energy-sharing-allocation_annualBillingReport",
+        "summary": "Annual billing report — sums N monthly allocations per consumer (#284)",
+        "tags": [
+          "Energy Sharing Allocation"
+        ],
+        "responses": {
+          "200": {
+            "description": "Annual billing report (JSON) or semicolon-delimited CSV export"
+          },
+          "404": {
+            "description": "One of the referenced allocations was not found"
+          }
+        },
+        "description": "Replays and bills each allocation in `allocationIds` (same logic as billingReport, one call per ID) using the same tariffEurPerKWh, then sums the results per consumer. A consumer missing data in some months is summed only over the months that have data — monthsWithData/monthsWithoutData/complete report the coverage transparently, never masking an incomplete year as a complete one.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "allocationIds",
+                  "tariffEurPerKWh"
+                ],
+                "properties": {
+                  "allocationIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Allocation UUIDs to sum, typically 12 monthly runs.",
+                    "example": [
+                      "alloc-jan",
+                      "alloc-feb"
+                    ]
+                  },
+                  "tariffEurPerKWh": {
+                    "type": "number",
+                    "example": 0.25
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "json",
+                      "csv"
+                    ],
+                    "default": "json"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "allocationIds": [
+                      "alloc-jan",
+                      "alloc-feb"
+                    ],
+                    "tariffEurPerKWh": 0.25
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/energy-sharing/validate": {
@@ -67419,5 +67552,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.66.1"
+  "x-version": "0.66.4"
 }

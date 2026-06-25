@@ -5,6 +5,19 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.66.4] — 2026-06-25
+
+### Added
+- **Energy Sharing: Monatsreport inkl. Preis-/Tarifschicht (kWh→EUR)** (#284, sub-issue of #280): closes the chain started in #281–#283 with the first pricing layer Energy Sharing has ever had.
+  - `src/timeseries-allocation.js#buildBillingReport`: applies a **required** `tariffEurPerKWh` (never a hardcoded business value) to a #283 consumer summary. Only `allocatedKWh` (solar actually used) is billed; `remainderKWh` (grid draw) is reported for transparency but never billed here — that stays the regular supplier's/grid operator's responsibility. A consumer with no consumption data gets `billingAmountEur: null`, never a misleading €0.00.
+  - `src/timeseries-allocation.js#buildAnnualBillingReport`: sums N (typically 12) monthly billing reports per consumer. Months without data for a consumer are excluded from that consumer's sum (not treated as €0) and tracked via `monthsWithData`/`monthsWithoutData`/`complete` — an incomplete year is never silently presented as complete.
+  - `src/timeseries-allocation.js#formatBillingReportAsCsv`: CSV export for both monthly and annual reports.
+  - **New service actions** in `services/energy-sharing-allocation.service.js`: `POST /allocations/:id/billing-report` (replays an existing allocation, fetches each consumer's EDM consumption via #281, caps allocation via #282, aggregates via #283, applies the tariff) and `POST /annual-billing-report` (replays and bills up to 12 allocation IDs, then sums them). Both support `format: json|csv`. The Berechnungslaufreferenz (`allocationId`) is preserved for reproducibility. Neither persists the report itself — re-derived on demand from the existing allocation record, same KRITIS data-minimization stance as `download`.
+  - `download`'s generation-replay logic was extracted into a shared `stepReplayGenerationGrid` method (behavior-preserving refactor, reused by the two new actions).
+
+### Tests
+- 8 new pure-function cases in `tests/energy-sharing-allocation.test.js` (`buildBillingReport`, `buildAnnualBillingReport`, `formatBillingReportAsCsv`) plus 6 new service-integration cases (`billingReport`, `annualBillingReport`), covering: missing tariff (throws), unknown allocation (404), billed vs. null-billed consumers, CSV export format, multi-month summation, and an unknown allocation ID within a batch (throws).
+
 ## [0.66.3] — 2026-06-25
 
 ### Added
