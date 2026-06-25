@@ -30,6 +30,7 @@ const {
   allocateTimeseries,
   allocateTimeseriesCappedByConsumption,
   buildConsumerSummary,
+  buildConsumptionAwareConsumerSummary,
   formatAsCsv,
   INTERVAL_MS,
   INTERVALS_PER_DAY,
@@ -461,6 +462,116 @@ describe('timeseries-allocation — pure unit tests', () => {
       allocateTimeseries(grid, CONSUMERS_2);
       const summaries = buildConsumerSummary(grid, CONSUMERS_2);
       expect(summaries[0].intervalCount).toBe(7 * INTERVALS_PER_DAY);
+    });
+  });
+
+  // ── buildConsumptionAwareConsumerSummary (#283) ───────────────────────────────
+  describe('buildConsumptionAwareConsumerSummary', () => {
+    function makeFilledGrid(date, netKWh = 10.0) {
+      const grid = buildIntervalGrid(date, date);
+      for (const i of grid) {
+        i.generationKWh = netKWh;
+        i.netGenerationKWh = netKWh;
+      }
+      return grid;
+    }
+
+    function constantConsumption(maloId, value, grid) {
+      return [maloId, grid.map((i) => ({ ts: i.timestamp, value }))];
+    }
+
+    test('consumer fully covered by solar: remainderKWh = 0, solarSharePercent = 100', () => {
+      // net=10, 30/70 split → A's quota=3kWh; consumption=2kWh (fully covered, surplus=1)
+      const grid = makeFilledGrid('2026-06-01', 10.0);
+      const consumptionByMalo = new Map([
+        constantConsumption(CONSUMER_A.maloId, 2.0, grid),
+        constantConsumption(CONSUMER_B.maloId, 7.0, grid),
+      ]);
+      allocateTimeseriesCappedByConsumption(grid, CONSUMERS_2, consumptionByMalo);
+
+      const summaries = buildConsumptionAwareConsumerSummary(grid, CONSUMERS_2);
+      const a = summaries.find((s) => s.maloId === CONSUMER_A.maloId);
+
+      expect(a.remainderKWh).toBe(0);
+      expect(a.solarSharePercent).toBe(100);
+      expect(a.allocatedKWh).toBeCloseTo(2.0 * INTERVALS_PER_DAY, 4);
+      expect(a.surplusKWh).toBeCloseTo(1.0 * INTERVALS_PER_DAY, 4);
+      expect(a.dataCompleteness.complete).toBe(true);
+    });
+
+    test('consumer with significant remainder (deficit): remainderKWh > 0, solarSharePercent < 100', () => {
+      // A's quota=3kWh; consumption=8kWh → allocated capped at 3, remainder=5
+      const grid = makeFilledGrid('2026-06-01', 10.0);
+      const consumptionByMalo = new Map([
+        constantConsumption(CONSUMER_A.maloId, 8.0, grid),
+        constantConsumption(CONSUMER_B.maloId, 7.0, grid),
+      ]);
+      allocateTimeseriesCappedByConsumption(grid, CONSUMERS_2, consumptionByMalo);
+
+      const summaries = buildConsumptionAwareConsumerSummary(grid, CONSUMERS_2);
+      const a = summaries.find((s) => s.maloId === CONSUMER_A.maloId);
+
+      expect(a.allocatedKWh).toBeCloseTo(3.0 * INTERVALS_PER_DAY, 4);
+      expect(a.remainderKWh).toBeCloseTo(5.0 * INTERVALS_PER_DAY, 4);
+      expect(a.surplusKWh).toBe(0);
+      // 3/8 = 37.5%
+      expect(a.solarSharePercent).toBeCloseTo(37.5, 4);
+    });
+
+    test('consistency invariant: allocatedKWh + remainderKWh = consumptionKWh', () => {
+      const grid = makeFilledGrid('2026-06-01', 10.0);
+      const consumptionByMalo = new Map([
+        constantConsumption(CONSUMER_A.maloId, 5.0, grid),
+        constantConsumption(CONSUMER_B.maloId, 1.0, grid),
+      ]);
+      allocateTimeseriesCappedByConsumption(grid, CONSUMERS_2, consumptionByMalo);
+
+      const summaries = buildConsumptionAwareConsumerSummary(grid, CONSUMERS_2);
+      for (const s of summaries) {
+        expect(round4(s.allocatedKWh + s.remainderKWh)).toBeCloseTo(s.consumptionKWh, 4);
+      }
+    });
+
+    test('consumer with no consumption data at all: metrics are null, not 0', () => {
+      const grid = makeFilledGrid('2026-06-01', 10.0);
+      // Only CONSUMER_A has any data — CONSUMER_B has none.
+      const consumptionByMalo = new Map([constantConsumption(CONSUMER_A.maloId, 2.0, grid)]);
+      allocateTimeseriesCappedByConsumption(grid, CONSUMERS_2, consumptionByMalo);
+
+      const summaries = buildConsumptionAwareConsumerSummary(grid, CONSUMERS_2);
+      const b = summaries.find((s) => s.maloId === CONSUMER_B.maloId);
+
+      expect(b.allocatedKWh).toBeNull();
+      expect(b.surplusKWh).toBeNull();
+      expect(b.remainderKWh).toBeNull();
+      expect(b.consumptionKWh).toBeNull();
+      expect(b.solarSharePercent).toBeNull();
+      expect(b.dataCompleteness).toEqual({
+        totalIntervals: INTERVALS_PER_DAY,
+        knownIntervals: 0,
+        missingIntervals: INTERVALS_PER_DAY,
+        complete: false,
+      });
+    });
+
+    test('partial data coverage is reported via dataCompleteness without being masked as complete', () => {
+      const grid = makeFilledGrid('2026-06-01', 10.0);
+      // CONSUMER_A has data for only half the intervals.
+      const half = grid.slice(0, INTERVALS_PER_DAY / 2);
+      const consumptionByMalo = new Map([
+        [CONSUMER_A.maloId, half.map((i) => ({ ts: i.timestamp, value: 2.0 }))],
+        constantConsumption(CONSUMER_B.maloId, 7.0, grid),
+      ]);
+      allocateTimeseriesCappedByConsumption(grid, CONSUMERS_2, consumptionByMalo);
+
+      const summaries = buildConsumptionAwareConsumerSummary(grid, CONSUMERS_2);
+      const a = summaries.find((s) => s.maloId === CONSUMER_A.maloId);
+
+      expect(a.dataCompleteness.complete).toBe(false);
+      expect(a.dataCompleteness.knownIntervals).toBe(INTERVALS_PER_DAY / 2);
+      expect(a.dataCompleteness.missingIntervals).toBe(INTERVALS_PER_DAY / 2);
+      // Still computable from the half that IS known — not null.
+      expect(a.allocatedKWh).not.toBeNull();
     });
   });
 

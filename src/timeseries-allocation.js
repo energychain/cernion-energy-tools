@@ -37,6 +37,7 @@ module.exports = {
   allocateTimeseries,
   allocateTimeseriesCappedByConsumption,
   buildConsumerSummary,
+  buildConsumptionAwareConsumerSummary,
   buildTotalSummary,
   formatAsCsv,
 };
@@ -373,6 +374,81 @@ function buildConsumerSummary(grid, consumers) {
       zeroIntervals,
       intervalCount: count,
       avgKWhPerInterval: count > 0 ? round4(totalKWh / count) : 0,
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// buildConsumptionAwareConsumerSummary
+// ---------------------------------------------------------------------------
+
+/**
+ * Aggregate per-consumer Restmenge/Überschuss statistics over a fully
+ * allocated grid (issue #283, gap identified in #280's gap analysis —
+ * builds on #282's allocateTimeseriesCappedByConsumption per-interval
+ * output: `cappedAllocations`, `surplus`, `deficit`, `consumptionDataMissing`).
+ *
+ * Aggregates are computed over KNOWN intervals only (where consumption data
+ * existed for that consumer) — intervals with `consumptionDataMissing` are
+ * excluded from the sums, not treated as zero consumption. This keeps the
+ * consistency invariant exact: allocatedKWh + remainderKWh = consumptionKWh.
+ *
+ * If a consumer has ZERO known intervals across the whole period (no
+ * consumption data at all), every consumption-derived field is `null` — never
+ * silently 0 — per the issue's explicit requirement that "not computable"
+ * must not be masked as zero. `dataCompleteness` always reports the interval
+ * counts so a caller can see partial coverage even when some metrics are
+ * still computable from the intervals that do have data.
+ *
+ * @param {Array} grid — grid that has been run through
+ *   allocateTimeseriesCappedByConsumption (#282)
+ * @param {Array<{maloId: string, sharePercent: number, name?: string}>} consumers
+ * @returns {Array<{maloId, name, allocatedKWh, surplusKWh, remainderKWh,
+ *   consumptionKWh, solarSharePercent, dataCompleteness}>}
+ */
+function buildConsumptionAwareConsumerSummary(grid, consumers) {
+  return consumers.map((consumer) => {
+    let allocatedKWh = 0;
+    let surplusKWh = 0;
+    let remainderKWh = 0;
+    let knownIntervals = 0;
+    let missingIntervals = 0;
+
+    for (const interval of grid) {
+      const missing = interval.consumptionDataMissing?.[consumer.maloId];
+      if (missing) {
+        missingIntervals++;
+        continue;
+      }
+      knownIntervals++;
+      allocatedKWh += interval.cappedAllocations?.[consumer.maloId] ?? 0;
+      surplusKWh += interval.surplus?.[consumer.maloId] ?? 0;
+      remainderKWh += interval.deficit?.[consumer.maloId] ?? 0;
+    }
+
+    const hasAnyData = knownIntervals > 0;
+    const consumptionKWh = hasAnyData ? round4(allocatedKWh + remainderKWh) : null;
+    // consumptionKWh === 0 (genuinely zero measured usage, e.g. vacant period) makes the
+    // ratio 0/0 — mathematically undefined, reported as null rather than a misleading 0%.
+    const solarSharePercent =
+      hasAnyData && consumptionKWh > 0
+        ? round4((round4(allocatedKWh) / consumptionKWh) * 100)
+        : null;
+
+    return {
+      maloId: consumer.maloId,
+      name: consumer.name || null,
+      allocatedKWh: hasAnyData ? round4(allocatedKWh) : null,
+      surplusKWh: hasAnyData ? round4(surplusKWh) : null,
+      remainderKWh: hasAnyData ? round4(remainderKWh) : null,
+      consumptionKWh,
+      solarSharePercent,
+      dataCompleteness: {
+        totalIntervals: grid.length,
+        knownIntervals,
+        missingIntervals,
+        complete: missingIntervals === 0,
+      },
     };
   });
 }
