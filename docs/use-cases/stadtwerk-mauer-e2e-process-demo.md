@@ -23,3 +23,23 @@
 4. Reset with `POST /api/stadtwerk-mauer-sandbox-runtime/reset`.
 5. Read final status and verify the trace count is zero.
 6. Verify a non-`stadtwerk-mauer` tenant receives `SANDBOX_TENANT_REQUIRED` for mutation.
+
+## Rundeck E2E Integration Example
+
+This demo is the first domain E2E example for the Rundeck integration. Rundeck should not call the raw Stadtwerk Mauer endpoints directly. The Rundeck job should call a curated `/api/operations-runbook/**` wrapper that owns the full smoke sequence:
+
+1. read initial status,
+2. reset the sandbox tenant,
+3. run the PV registration demo,
+4. read and summarize the trace, dossier growth, stub transcript, missing evidence and no-call guards,
+5. reset again,
+6. read final status and prove residue-free cleanup.
+
+The intended Rundeck job name is `Cernion Stadtwerk Mauer E2E Smoke`.
+
+The example documents the transfer pattern for a later real Stadtwerk rollout:
+
+- Rundeck remains the human runbook surface.
+- Cernion remains responsible for tenant boundaries, source-action guards, idempotency, audit traces and domain rules.
+- Sandbox stubs must be replaced by explicit connector readiness checks and human approval gates before any real MaKo, MSB/EDM, customer communication, billing, settlement, webhook or device-control path is enabled.
+- A real Stadtwerk rollout must define production-safe token scopes and a reset/delete policy that cannot remove production tenant state.
