@@ -5,6 +5,17 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.66.6] — 2026-06-25
+
+### Added
+- **Energy Sharing: Verteilregel-Versionierung & Korrekturlauf-Mechanismus** (`services/energy-sharing-allocation.service.js`, #286, sub-issue of #280 — completes the full #280 sub-issue chain): `allocate` accepts an optional `supersedesAllocationId` (+ mandatory `correctionReason`) to mark a run as a correction of a prior run for the same period, e.g. after measured data was corrected. The prior run is marked `superseded`/`supersededBy`/`supersededAt` — **never deleted**, full audit trail preserved. `list` excludes superseded runs by default; `includeSuperseded=true` shows them. `get` on a superseded run still returns its full historical metadata plus the pointer to its replacement. A run without `supersedesAllocationId` behaves exactly as before (additive only, no breaking change). Attempting to supersede an already-superseded run is rejected — corrections must target the latest run in the chain.
+- **KRITIS assessment** (required by the issue's own scoping, documented in the service's header comment): the existing metadata-only retention (inputs, per-consumer summaries, the new supersede links) is sufficient for the Korrekturlauf audit trail — the audit question is "which run replaced which run, and why," answered entirely by `supersedesAllocationId`/`supersededBy`/`correctionReason`, never by re-examining raw 15-min values from an old run. No additional raw-series retention was added, preserving the existing KRITIS data-minimization stance.
+
+### Tests
+- 6 new cases in `tests/energy-sharing-allocation.test.js`: no-breaking-change confirmation, missing `correctionReason` (throws), unknown `supersedesAllocationId` (throws), the full supersede link + `get` on the old run, `list`'s default-exclude/`includeSuperseded` behavior, and refusing to supersede an already-superseded run.
+
+All 6 sub-issues of #280 (#281–#286) are now complete.
+
 ## [0.66.5] — 2026-06-25
 
 ### Added
