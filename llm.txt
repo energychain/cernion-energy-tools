@@ -126,8 +126,8 @@ recipes:
   znp-strategic-assumptions "A planner wants to add forward-looking assumptions (e.g., data…"
 resolve: GET /api/_agent/operations?domain=grid-planning
 
-### energy-sharing (2 capabilities · 4 recipes · 9 operations)
-capabilities: energy_sharing_prosumer_advisory, energy_sharing_simulation_gate
+### energy-sharing (3 capabilities · 4 recipes · 9 operations)
+capabilities: energy_sharing_42c_cutover_readiness, energy_sharing_prosumer_advisory, energy_sharing_simulation_gate
 recipes:
   energy-sharing-42c-radar "A VNB needs to identify potential Energy Sharing clusters early…"
   energy-sharing-full-pipeline "A §42c EnWG energy sharing community needs full validation…"
@@ -181,7 +181,7 @@ recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (11 capabilities · 9 recipes · 343 operations)
+### platform (11 capabilities · 9 recipes · 344 operations)
 capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, evidence_grounding_confidence_audit, file_ingest_monitor, hitl_role_based_evidence_request, live_update_stream_contract_status, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted…"
@@ -249,13 +249,13 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - README.md: 149317e9eea460588ca9ff477c91a9009d275c51fd4bd4f88e9ff1785746836b
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 5190fa2814db597464408cb11f08dfa7bd7798df74e650adbebb6fab71b7f5d4
-- src/capability-catalog.js: db060cb6c2ca7090d54a9ddf479a45c4e160968c393bd18a9915832ec5c7a738
-- openapi-export.json: 90a05174bada6f4f36c61ea06906cbf9c43a6d2d6cfe95ba18ad6c92767cb334
+- src/capability-catalog.js: 48df08c93d1e49e576610faae681e69b10fbdfa969247a9d6c318af88f809d5d
+- openapi-export.json: 475e77aa03a02bfa893451c642485159cb8d147f68c3b4c3ac3416d6d01db5eb
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 869
-- operation_count: 975
+- path_count: 871
+- operation_count: 977
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: a914b70d35af851c00e3c12fedd6b2fc6986366dc903b1d13130a7447442ac31
+- llm_txt_sha256: c54dc8ccd47e5eaffd29007ad325193c400877c8c34fa3ec924e761631c66194

@@ -1714,6 +1714,60 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  energy_sharing_42c_cutover_readiness: {
+    sources: [
+      {
+        id: 'a96_defaults_spec_freeze',
+        label: 'A96-Defaults und Spec-Freeze-Evidenz',
+        resolvedBy: ['dashboard-api.energySharing42cCutoverReadinessStatus', 'vdmi.dossier'],
+        contextKeys: ['a96DefaultsStatus', 'specFreezeStatus'],
+        optional: false,
+      },
+      {
+        id: 'pilot_tenant_balance_group',
+        label: 'Pilot-Tenant und Bilanzkreis-Bereitschaft',
+        resolvedBy: ['dashboard-api.energySharing42cCutoverReadinessStatus', 'vdmi.dossier'],
+        contextKeys: ['pilotTenantId', 'balanceGroupId', 'pilotTenantStatus'],
+        optional: false,
+      },
+      {
+        id: 'settlement_readiness_hardening',
+        label: 'Settlement-Readiness-Härtung',
+        resolvedBy: ['dashboard-api.energySharing42cCutoverReadinessStatus', 'settlement.prepareA96'],
+        contextKeys: ['settlementHardeningStatus'],
+        optional: false,
+      },
+      {
+        id: 'allocation_load_test',
+        label: 'Allokations-Lasttest-Evidenz',
+        resolvedBy: ['dashboard-api.energySharing42cCutoverReadinessStatus', 'energy-sharing-allocation.allocate'],
+        contextKeys: ['allocationLoadTestStatus'],
+        optional: false,
+      },
+      {
+        id: 'incident_runbook',
+        label: 'Runbook- und Incident-Evidenz',
+        resolvedBy: ['dashboard-api.energySharing42cCutoverReadinessStatus', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['runbookStatus'],
+        optional: false,
+      },
+      {
+        id: 'compliance_signoff_evidence',
+        label: 'Compliance-/Sign-off-Evidenz',
+        resolvedBy: ['dashboard-api.energySharing42cCutoverReadinessStatus', 'vdmi.dossier'],
+        contextKeys: ['complianceSignoffStatus'],
+        optional: false,
+      },
+      {
+        id: 'rollback_dr_readiness',
+        label: 'Rollback-/DR-Readiness-Evidenz',
+        resolvedBy: ['dashboard-api.energySharing42cCutoverReadinessStatus', 'backup.restore'],
+        contextKeys: ['rollbackPlanStatus'],
+        optional: false,
+      },
+    ],
+  },
+
   legal_clarification_operating_model: {
     sources: [
       {

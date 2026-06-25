@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 89 static rules', () => {
+    it('loads all 90 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(89);
+      expect(rules.length).toBe(90);
     });
 
-    it('compiles all 89 static rules without error', () => {
+    it('compiles all 90 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(89);
+      expect(rules.length).toBe(90);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1996,6 +1996,45 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Simulation Stage: learning_pilot');
       expect(formatted).toContain('Community: es-230');
       expect(formatted).toContain('Side-Effect Guard: energy-sharing-allocation.allocate');
+    });
+
+    it('dashboard-api.energySharing42cCutoverReadinessStatus is dossier-safe and formats cutover facts', () => {
+      const rule = getRule('dashboard-api.energySharing42cCutoverReadinessStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte 42c cutover cutover=es42c-2026 tenant=tenant-hoeheinoed bilanzkreis=bk_hoeheinoed_es_001 pruefen'
+        )
+      ).toEqual({
+        cutoverId: 'es42c-2026',
+        pilotTenantId: 'tenant-hoeheinoed',
+        balanceGroupId: 'bk_hoeheinoed_es_001',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'energy_sharing_42c_cutover_readiness',
+        status: 'blocked',
+        riskLevel: 'high',
+        pilotTenantId: 'tenant-hoeheinoed',
+        missingEvidence: [{ missingDataPoint: 'compliance_signoff_evidence' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add compliance and sign-off evidence without automating legal/regulatory interpretation' },
+        ],
+        sourceActions: {
+          notCalled: ['tenant.migrate', 'settlement.exportA96'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: blocked'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: energy_sharing_42c_cutover_readiness');
+      expect(formatted).toContain('Status: blocked');
+      expect(formatted).toContain('Risk Level: high');
+      expect(formatted).toContain('Pilot Tenant: tenant-hoeheinoed');
+      expect(formatted).toContain('Side-Effect Guard: tenant.migrate');
     });
 
     it('dashboard-api.redispatchProjectControllingKpiCockpitStatus is dossier-safe and formats controlling facts', () => {

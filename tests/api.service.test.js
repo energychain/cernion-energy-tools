@@ -488,6 +488,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/energy-sharing-simulation-gate']).toBe(
         'dashboard-api.energySharingSimulationGateStatus'
       );
+      expect(aliases['GET /dashboard/energy-sharing-42c-cutover-readiness']).toBe(
+        'dashboard-api.energySharing42cCutoverReadinessStatus'
+      );
       expect(aliases['GET /dashboard/stadtwerk-mauer-sandbox-runtime']).toBe(
         'dashboard-api.stadtwerkMauerSandboxRuntimeStatus'
       );

@@ -1306,6 +1306,27 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes §42c cutover readiness prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe §42c Cutover Readiness fuer Energieteilen mit A96 Defaults, Spec Freeze, Pilot Tenant Hoeheinoed, Settlement Readiness Haertetest, Allokations Lasttest, Runbook, Compliance Sign-Off und Rollback DR Readiness.',
+    });
+
+    expect(result.capability).toBe('energy_sharing_42c_cutover_readiness');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'energy_sharing_42c_cutover_readiness'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.energySharing42cCutoverReadinessStatus');
+    expect(actionNames).not.toContain('tenant.migrate');
+    expect(actionNames).not.toContain('energy-sharing-allocation.allocate');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('rollback.execute');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes investment two-track control prompts to the read-only evidence gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Investitionsprozess Zwei Spuren fuer Budgetabgabe, Investitionsabgabe, Abgabesicherheit, Investdaten Datenqualitaet, ISO 55001 Zielbild, Freigabelogik und Vorstandsformat.',

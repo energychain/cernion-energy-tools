@@ -218,6 +218,17 @@ function findBestCapability(taskText, options = {}) {
     /\ba96\b/i.test(haystack) &&
     /(settlement|reconciliation|reconcile|abgleich|bilanzierungsabweichung)/i.test(haystack);
 
+  const hasEnergySharing42cCutoverSignal =
+    /(§42c|42c|cutover|energieteilen cutover|energy sharing 42c|energy-sharing 42c)/i.test(haystack) &&
+    /(cutover|readiness|a96 defaults|spec freeze|pilot tenant|settlement readiness|allokations|allocation load|runbook|compliance sign-off|rollback)/i.test(haystack);
+
+  if (hasEnergySharing42cCutoverSignal) {
+    const energySharing42cCutoverCapability = findCapabilityByName('energy_sharing_42c_cutover_readiness');
+    if (energySharing42cCutoverCapability) {
+      return { capability: energySharing42cCutoverCapability, score: 134, usedFallback: false };
+    }
+  }
+
   if (hasSettlementA96SpecificSignal) {
     const settlementA96Capability = findCapabilityByName('settlement_a96_reconciliation');
     if (settlementA96Capability) {

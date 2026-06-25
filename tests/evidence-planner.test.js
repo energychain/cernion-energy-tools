@@ -1319,6 +1319,24 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     expect(requiredIds).toContain('settlement_a96_evidence');
   });
 
+  it('energy_sharing_42c_cutover_readiness: requires sub-track evidence A-G', () => {
+    const plan = { routeKey: 'energy_sharing_42c_cutover_readiness' };
+    const result = planEvidence(plan, {});
+
+    const requiredIds = result.requiredSources.filter((s) => !s.optional).map((s) => s.id);
+    expect(requiredIds).toEqual(
+      expect.arrayContaining([
+        'a96_defaults_spec_freeze',
+        'pilot_tenant_balance_group',
+        'settlement_readiness_hardening',
+        'allocation_load_test',
+        'incident_runbook',
+        'compliance_signoff_evidence',
+        'rollback_dr_readiness',
+      ])
+    );
+  });
+
   it('redispatch-settlement: requires grid_operator_identity and audit_period', () => {
     const plan = { routeKey: 'redispatch-settlement' };
     const result = planEvidence(plan, {});

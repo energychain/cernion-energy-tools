@@ -6140,6 +6140,154 @@
     "sourceIssue": 230
   },
   {
+    "id": "energy_sharing_42c_cutover_readiness",
+    "description": "Read-only §42c cutover readiness evidence gate",
+    "routeLabel": "energy_sharing_42c_cutover_readiness",
+    "capability": "energy_sharing_42c_cutover_readiness",
+    "action": "dashboard-api.energySharing42cCutoverReadinessStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "tenant.provision",
+        "tenant.migrate",
+        "energy-sharing.createProject",
+        "energy-sharing-allocation.allocate",
+        "settlement.prepareA96",
+        "settlement.reconcileA96",
+        "settlement.exportA96",
+        "allocation.execute",
+        "billing.release",
+        "mako.dispatch",
+        "hitl.create",
+        "pager.escalate",
+        "rollback.execute",
+        "backup.restore",
+        "external.connector.call",
+        "secret.read",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "§42c cutover readiness",
+      "42c cutover readiness",
+      "energieteilen cutover",
+      "a96 defaults",
+      "a96 spec freeze",
+      "pilot tenant",
+      "settlement readiness haertetest",
+      "allocation load test",
+      "runbook readiness",
+      "compliance sign-off",
+      "rollback readiness",
+      "energy_sharing_42c_cutover_readiness"
+    ],
+    "paramTemplate": {
+      "cutoverId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:cutoverId|cutover|case)[:=]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "pilotTenantId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:pilotTenantId|pilotTenant|tenant)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "balanceGroupId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:balanceGroupId|bilanzkreis|bk)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        {
+          "paths": [
+            "capabilityKey",
+            "dossierEvidence.capabilityKey"
+          ],
+          "label": "Capability",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "status",
+            "dossierEvidence.status"
+          ],
+          "label": "Status",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "riskLevel",
+            "dossierEvidence.riskLevel"
+          ],
+          "label": "Risk Level",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "pilotTenantId",
+            "dossierEvidence.pilotTenantId"
+          ],
+          "label": "Pilot Tenant",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "missingEvidence.0.missingDataPoint",
+            "dossierEvidence.missingEvidence.0.missingDataPoint"
+          ],
+          "label": "First Gap",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "positiveFollowUps.0.enablesDossierAddition",
+            "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"
+          ],
+          "label": "Positive Follow-up",
+          "maxLen": 180
+        },
+        {
+          "paths": [
+            "sourceActions.notCalled.0",
+            "dossierEvidence.sourceActions.notCalled.0"
+          ],
+          "label": "Side-Effect Guard",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "dossierEvidence.dossierFacts.0"
+          ],
+          "label": "Fact",
+          "maxLen": 160
+        }
+      ],
+      "errorFallback": {
+        "paths": [
+          "message"
+        ],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 64
+  },
+  {
     "id": "liquidity_planning_governance_module",
     "description": "Read-only liquidity planning governance evidence",
     "routeLabel": "liquidity_planning_governance_module",

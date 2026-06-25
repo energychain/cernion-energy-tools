@@ -3527,6 +3527,79 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- energySharing42cCutoverReadinessStatus -----------------------------
+
+  describe('energySharing42cCutoverReadinessStatus', () => {
+    it('blocks §42c cutover readiness when high-risk sub-track evidence is missing', async () => {
+      const result = await broker.call('dashboard-api.energySharing42cCutoverReadinessStatus', {
+        cutoverId: 'es42c-2026',
+        pilotTenantId: 'tenant-hoeheinoed',
+        balanceGroupId: 'bk_hoeheinoed_es_001',
+        a96DefaultsStatus: 'ready',
+        specFreezeStatus: 'ready',
+        runbookStatus: 'ready',
+        owner: 'regulatory-owner',
+        targetDate: '2026-07-01',
+      });
+
+      expect(result.status).toBe('blocked');
+      expect(result.riskLevel).toBe('high');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'pilot_tenant_balance_group',
+          'settlement_readiness_hardening',
+          'allocation_load_test',
+          'compliance_signoff_evidence',
+          'rollback_dr_readiness',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('energy_sharing_42c_cutover_readiness');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'tenant.migrate',
+          'settlement.exportA96',
+          'energy-sharing-allocation.allocate',
+          'billing.release',
+          'mako.dispatch',
+          'hitl.create',
+          'rollback.execute',
+          'backup.restore',
+          'external.connector.call',
+          'secret.read',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready only when all §42c sub-track evidence is present', async () => {
+      const result = await broker.call('dashboard-api.energySharing42cCutoverReadinessStatus', {
+        cutoverId: 'es42c-2026',
+        pilotTenantId: 'tenant-hoeheinoed',
+        balanceGroupId: 'bk_hoeheinoed_es_001',
+        a96DefaultsStatus: 'ready',
+        specFreezeStatus: 'ready',
+        pilotTenantStatus: 'ready',
+        settlementHardeningStatus: 'ready',
+        allocationLoadTestStatus: 'ready',
+        runbookStatus: 'ready',
+        complianceSignoffStatus: 'ready',
+        rollbackPlanStatus: 'ready',
+        owner: 'regulatory-owner',
+        targetDate: '2026-07-01',
+        evidenceRefs: ['docs:energy-sharing-abnahme', 'drill:rollback-2026'],
+      });
+
+      expect(result.status).toBe('ready');
+      expect(result.riskLevel).toBe('low');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.subTracks).toHaveLength(7);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided §42c sub-track evidence: 7/7');
+      expect(result.sourceActions.notCalled).toContain('settlement.exportA96');
+    });
+  });
+
   // ── regulatoryChangeReadinessStatus ─────────────────────────────────────
 
   describe('regulatoryChangeReadinessStatus', () => {

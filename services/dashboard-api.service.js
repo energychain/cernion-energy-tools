@@ -54,6 +54,7 @@ module.exports = {
       specialGridUsageImpactMapStatus: 5 * 60 * 1000, // 5 min
       liquidityPlanningGovernanceStatus: 5 * 60 * 1000, // 5 min
       energySharingSimulationGateStatus: 5 * 60 * 1000, // 5 min
+      energySharing42cCutoverReadinessStatus: 5 * 60 * 1000, // 5 min
       regulatoryChangeReadinessStatus: 5 * 60 * 1000, // 5 min
       investmentTwoTrackControlStatus: 5 * 60 * 1000, // 5 min
       sapBudgetPspGateStatus: 5 * 60 * 1000, // 5 min
@@ -2089,6 +2090,96 @@ module.exports = {
           this.settings.cacheTtlMs.energySharingSimulationGateStatus,
           async () => ({
             ...this.buildEnergySharingSimulationGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- energySharing42cCutoverReadinessStatus ---------------------------
+    /**
+     * GET /api/dashboard/energy-sharing-42c-cutover-readiness?cutoverId=...
+     *
+     * Read-only dossier-safe §42c cutover readiness gate. It makes the seven
+     * cutover sub-tracks reviewable without tenant migration, A96 export,
+     * settlement/allocation execution, HITL, rollback or connector side effects.
+     */
+    energySharing42cCutoverReadinessStatus: {
+      rest: 'GET /energy-sharing-42c-cutover-readiness',
+      params: {
+        cutoverId: { type: 'string', optional: true, min: 1 },
+        pilotTenantId: { type: 'string', optional: true, min: 1 },
+        balanceGroupId: { type: 'string', optional: true, min: 1 },
+        a96DefaultsStatus: { type: 'string', optional: true, min: 1 },
+        specFreezeStatus: { type: 'string', optional: true, min: 1 },
+        pilotTenantStatus: { type: 'string', optional: true, min: 1 },
+        settlementHardeningStatus: { type: 'string', optional: true, min: 1 },
+        allocationLoadTestStatus: { type: 'string', optional: true, min: 1 },
+        runbookStatus: { type: 'string', optional: true, min: 1 },
+        complianceSignoffStatus: { type: 'string', optional: true, min: 1 },
+        rollbackPlanStatus: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        targetDate: { type: 'string', optional: true, min: 1 },
+        evidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: '§42c cutover readiness - read-only dossier-safe status',
+        description:
+          'Evaluates supplied §42c cutover evidence across sub-tracks A-G and returns a dossier-safe readiness gate. ' +
+          'The endpoint is read-only and does not provision tenants, migrate data, release A96 exports, execute allocation/settlement, create HITL tasks, run rollback/restore, call external connectors, handle secrets or mutate Personal Agent behavior.',
+        parameters: [
+          { name: 'cutoverId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'pilotTenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'balanceGroupId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'a96DefaultsStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'specFreezeStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'pilotTenantStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'settlementHardeningStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'allocationLoadTestStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'runbookStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'complianceSignoffStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'rollbackPlanStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'targetDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceRefs', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only §42c cutover readiness status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    riskLevel: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    subTracks: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `energy-sharing-42c-cutover-readiness:${params.cutoverId || 'no-cutover'}:${params.pilotTenantId || 'no-tenant'}:${params.balanceGroupId || 'no-bg'}:${params.a96DefaultsStatus || ''}:${params.specFreezeStatus || ''}:${params.pilotTenantStatus || ''}:${params.settlementHardeningStatus || ''}:${params.allocationLoadTestStatus || ''}:${params.runbookStatus || ''}:${params.complianceSignoffStatus || ''}:${params.rollbackPlanStatus || ''}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.energySharing42cCutoverReadinessStatus,
+          async () => ({
+            ...this.buildEnergySharing42cCutoverReadinessStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -9878,6 +9969,212 @@ module.exports = {
           missingEvidence,
           positiveFollowUps,
           sourceArtifacts,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildEnergySharing42cCutoverReadinessStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const normalizeStatus = (value) => {
+        if (value === true) return 'ready';
+        if (value === false || value == null || value === '') return 'missing';
+        const text = String(value).trim().toLowerCase();
+        if (['ready', 'ok', 'complete', 'completed', 'provided', 'valid', 'validated', 'available', 'confirmed', 'approved', 'done', 'passed'].includes(text)) return 'ready';
+        if (['blocked', 'invalid', 'failed', 'rejected', 'red', 'critical'].includes(text)) return 'blocked';
+        if (['risk', 'risky', 'warning', 'late', 'overdue', 'pending_legal', 'pending-regulatory'].includes(text)) return 'risk';
+        if (['partial', 'in_progress', 'in-progress', 'draft', 'pending', 'review'].includes(text)) return 'partial';
+        return 'ready';
+      };
+      const evidenceRefs = toList(params.evidenceRefs);
+      const cutoverId = params.cutoverId || 'energy-sharing-42c-cutover';
+      const subTrackSpecs = [
+        {
+          id: 'a96_defaults_spec_freeze',
+          subTrack: 'A',
+          label: 'A96 defaults and spec-freeze evidence',
+          value: params.a96DefaultsStatus && params.specFreezeStatus,
+          displayValue: [params.a96DefaultsStatus, params.specFreezeStatus].filter(Boolean).join(' / '),
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add A96 defaults and spec-freeze evidence before any export release is considered',
+        },
+        {
+          id: 'pilot_tenant_balance_group',
+          subTrack: 'B',
+          label: 'Pilot tenant and balance-group readiness',
+          value: params.pilotTenantStatus && params.pilotTenantId && params.balanceGroupId,
+          displayValue: [params.pilotTenantId, params.balanceGroupId, params.pilotTenantStatus].filter(Boolean).join(' / '),
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add pilot-tenant and virtual balance-group readiness evidence without provisioning production tenants',
+        },
+        {
+          id: 'settlement_readiness_hardening',
+          subTrack: 'C',
+          label: 'Settlement-readiness hardening evidence',
+          value: params.settlementHardeningStatus,
+          displayValue: params.settlementHardeningStatus,
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add settlement-readiness hardening and data-quality evidence before billing-adjacent decisions',
+        },
+        {
+          id: 'allocation_load_test',
+          subTrack: 'D',
+          label: 'Allocation/load-test evidence',
+          value: params.allocationLoadTestStatus,
+          displayValue: params.allocationLoadTestStatus,
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add allocation load-test and deterministic export evidence without executing allocation',
+        },
+        {
+          id: 'incident_runbook',
+          subTrack: 'E',
+          label: 'Incident/runbook readiness',
+          value: params.runbookStatus,
+          displayValue: params.runbookStatus,
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add incident runbook and escalation evidence without creating HITL or pager tasks',
+        },
+        {
+          id: 'compliance_signoff_evidence',
+          subTrack: 'F',
+          label: 'Compliance/sign-off evidence',
+          value: params.complianceSignoffStatus,
+          displayValue: params.complianceSignoffStatus,
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add compliance and sign-off evidence without automating legal/regulatory interpretation',
+        },
+        {
+          id: 'rollback_dr_readiness',
+          subTrack: 'G',
+          label: 'Rollback/DR readiness evidence',
+          value: params.rollbackPlanStatus,
+          displayValue: params.rollbackPlanStatus,
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add rollback and DR readiness evidence without running restore or rollback actions',
+        },
+      ];
+
+      const subTracks = subTrackSpecs.map((spec) => {
+        const status = normalizeStatus(spec.value);
+        return {
+          id: spec.id,
+          subTrack: spec.subTrack,
+          label: spec.label,
+          status,
+          value: spec.displayValue || spec.value || null,
+          risk: status === 'ready' ? 'low' : spec.riskWhenMissing,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        };
+      });
+      const evidenceItems = subTracks.filter((item) => item.status === 'ready');
+      const missingEvidence = subTracks
+        .filter((item) => item.status !== 'ready')
+        .map((item) => ({
+          missingDataPoint: item.id,
+          subTrack: item.subTrack,
+          label: item.label,
+          status: item.status,
+          value: item.value,
+          risk: item.risk,
+          enablesDossierAddition: item.enablesDossierAddition,
+          category: 'energy_sharing_42c_cutover_readiness',
+        }));
+      const hasHighRiskGap = missingEvidence.some((item) => item.risk === 'high');
+      const hasMediumRiskGap = missingEvidence.some((item) => item.risk === 'medium');
+      const status = missingEvidence.length === 0
+        ? 'ready'
+        : hasHighRiskGap
+          ? 'blocked'
+          : 'partial';
+      const riskLevel = status === 'ready' ? 'low' : hasHighRiskGap ? 'high' : hasMediumRiskGap ? 'medium' : 'low';
+      const readinessScore = Number((evidenceItems.length / subTrackSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        subTrack: item.subTrack,
+        status: item.status,
+        risk: item.risk,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'energy_sharing_42c_cutover_readiness',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.energySharing42cCutoverReadinessStatus'],
+        referenced: [
+          'docs/roadmap/issues/10-energy-sharing-42c-cutover.md',
+          'docs/ENERGY_SHARING_ABNAHME.md',
+          'docs/ENERGY_SHARING_A96_DEFAULTS.md',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+        ],
+        notCalled: [
+          'tenant.provision',
+          'tenant.migrate',
+          'energy-sharing.createProject',
+          'energy-sharing-allocation.allocate',
+          'settlement.prepareA96',
+          'settlement.reconcileA96',
+          'settlement.exportA96',
+          'allocation.execute',
+          'billing.release',
+          'mako.dispatch',
+          'hitl.create',
+          'pager.escalate',
+          'rollback.execute',
+          'backup.restore',
+          'external.connector.call',
+          'secret.read',
+          'personal-agent.execute',
+        ],
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Risk Level: ${riskLevel}`,
+        `Provided §42c sub-track evidence: ${evidenceItems.length}/${subTrackSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.pilotTenantId) dossierFacts.push(`Pilot Tenant: ${params.pilotTenantId}`);
+      if (params.balanceGroupId) dossierFacts.push(`Balance Group: ${params.balanceGroupId}`);
+      if (params.targetDate) dossierFacts.push(`Target Date: ${params.targetDate}`);
+
+      return {
+        energySharing42cCutoverReadinessId: `es42c:${Buffer.from(`${cutoverId}:${params.pilotTenantId || ''}:${params.balanceGroupId || ''}:${params.owner || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'energy_sharing_42c_cutover_readiness',
+        safety: 'read_only',
+        status,
+        riskLevel,
+        readinessScore,
+        cutoverId,
+        pilotTenantId: params.pilotTenantId || null,
+        balanceGroupId: params.balanceGroupId || null,
+        targetDate: params.targetDate || null,
+        owner: params.owner || null,
+        subTracks,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        evidenceRefs,
+        sourceActions,
+        validationFindings: missingEvidence,
+        dossierEvidence: {
+          status,
+          riskLevel,
+          readinessScore,
+          cutoverId,
+          pilotTenantId: params.pilotTenantId || null,
+          balanceGroupId: params.balanceGroupId || null,
+          targetDate: params.targetDate || null,
+          owner: params.owner || null,
+          subTracks,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          evidenceRefs,
           sourceActions: {
             notCalled: sourceActions.notCalled,
           },
