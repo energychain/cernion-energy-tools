@@ -1337,6 +1337,25 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('evu_api_migration_diagnostics: requires endpoint, auth, context and closure evidence', () => {
+    const plan = { routeKey: 'evu_api_migration_diagnostics' };
+    const result = planEvidence(plan, {});
+
+    const requiredIds = result.requiredSources.filter((s) => !s.optional).map((s) => s.id);
+    expect(requiredIds).toEqual(
+      expect.arrayContaining([
+        'business_process',
+        'endpoint_method',
+        'auth_scope',
+        'data_context',
+        'request_shape',
+        'failure_signal',
+        'completion_criterion',
+        'owner_next_step',
+      ])
+    );
+  });
+
   it('nova_decision_lifecycle_readiness: requires lifecycle/source/audit/HITL/replay/SSE evidence', () => {
     const plan = { routeKey: 'nova_decision_lifecycle_readiness' };
     const result = planEvidence(plan, {});

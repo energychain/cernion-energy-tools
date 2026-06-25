@@ -1327,6 +1327,26 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes EVU API migration diagnostics prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe EVU API Migration Diagnostics fuer Schnittstellenmigration mit OAuth Scope, Request Validation Error, Response Code und Endpoint /api/v2/malo/patch.',
+    });
+
+    expect(result.capability).toBe('evu_api_migration_diagnostics');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'evu_api_migration_diagnostics'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.evuApiMigrationDiagnosticsStatus');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('oauth.authorize');
+    expect(actionNames).not.toContain('json-patch.apply');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes NOVA decision lifecycle readiness prompts to the read-only evidence gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe NOVA TRL-7 Production Readiness fuer Decision Lifecycle, Decision Source Catalogue, HITL Bridge Policy, Replay Audit Readiness und tenant-isolierte SSE Evidence.',

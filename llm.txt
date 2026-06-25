@@ -181,8 +181,8 @@ recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (11 capabilities · 9 recipes · 353 operations)
-capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, evidence_grounding_confidence_audit, file_ingest_monitor, hitl_role_based_evidence_request, live_update_stream_contract_status, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
+### platform (12 capabilities · 9 recipes · 354 operations)
+capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, evidence_grounding_confidence_audit, evu_api_migration_diagnostics, file_ingest_monitor, hitl_role_based_evidence_request, live_update_stream_contract_status, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted…"
   dashboard-load-profile-stream-monitor "Operations teams need a single read-only view that separates…"
@@ -245,17 +245,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: cabeb4f04ff19039c3469966fca5908acd997b3550158928eed558337a20473e
+- CHANGELOG.md: f83c38262c84522c751c6d380fc85a9e43327e99120e7c819406532789392ad2
 - README.md: 149317e9eea460588ca9ff477c91a9009d275c51fd4bd4f88e9ff1785746836b
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 5190fa2814db597464408cb11f08dfa7bd7798df74e650adbebb6fab71b7f5d4
-- src/capability-catalog.js: 30aa8d2a9f98fca2145a2c49d34e72e6a5faf2d5e4c19e785cd97645df80c709
-- openapi-export.json: 2ea0e0aacb6eb4e2ad54d306abd1f8e1ddd53da69cd94263dd5db3b93b20af7c
+- src/capability-catalog.js: 86f44672efc90aacdfc80ac45255208ecbff46239bf42d69a1e0f07a6cb6433a
+- openapi-export.json: a58f63bae5a2318a0b3fd7ebd55c8cf7be567bf2a5c26fab8aefdaec089a309a
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 888
-- operation_count: 997
+- path_count: 890
+- operation_count: 999
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 7555cc2afe2ef24d556f0cbbae52c45817e2218ef3228b8266375b9cb1e8d040
+- llm_txt_sha256: f70bde41d6f1b02c612bd3dc4049662c104b63710a0e8dc18e431d7665c765b2

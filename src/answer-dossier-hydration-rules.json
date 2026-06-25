@@ -6288,6 +6288,158 @@
     "sourceIssue": 64
   },
   {
+    "id": "evu_api_migration_diagnostics",
+    "description": "Read-only EVU/VNB API migration diagnostics evidence gate",
+    "routeLabel": "evu_api_migration_diagnostics",
+    "capability": "evu_api_migration_diagnostics",
+    "action": "dashboard-api.evuApiMigrationDiagnosticsStatus",
+    "safety": {
+      "classification": "read_only_diagnostics",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "external.connector.call",
+        "oauth.authorize",
+        "oauth.refreshToken",
+        "secret.read",
+        "json-patch.apply",
+        "api.retryRequest",
+        "migration.execute",
+        "third-party.closeProcess",
+        "hitl.create",
+        "mako.dispatch",
+        "settlement.exportA96",
+        "settlement.prepareBilling",
+        "billing.release",
+        "tariff.mutate",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "evu api migration diagnostics",
+      "evu api migration",
+      "vnb api migration",
+      "schnittstellenmigration",
+      "api migrationsdiagnose",
+      "oauth scope diagnose",
+      "request validation error",
+      "response code diagnostics",
+      "evu_api_migration_diagnostics"
+    ],
+    "paramTemplate": {
+      "businessProcess": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:businessProcess|prozess|geschaeftsprozess)[:= ]+([A-Za-z0-9:_./-]+)",
+          "group": 1
+        }
+      },
+      "endpoint": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:endpoint|endpunkt)[:= ]+([A-Za-z0-9:_./?-]+)",
+          "group": 1
+        }
+      },
+      "method": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "\\b(GET|POST|PUT|PATCH|DELETE)\\b",
+          "group": 1
+        }
+      },
+      "authScope": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:authScope|scope)[:= ]+([A-Za-z0-9:_./-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        {
+          "paths": [
+            "capabilityKey",
+            "dossierEvidence.capabilityKey"
+          ],
+          "label": "Capability",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "status",
+            "dossierEvidence.status"
+          ],
+          "label": "Status",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "businessProcess",
+            "dossierEvidence.businessProcess"
+          ],
+          "label": "Process",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "endpoint",
+            "dossierEvidence.endpoint"
+          ],
+          "label": "Endpoint",
+          "maxLen": 160
+        },
+        {
+          "paths": [
+            "authScope",
+            "dossierEvidence.authScope"
+          ],
+          "label": "Auth Scope",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "missingEvidence.0.missingDataPoint",
+            "dossierEvidence.missingEvidence.0.missingDataPoint"
+          ],
+          "label": "First Gap",
+          "maxLen": 120
+        },
+        {
+          "paths": [
+            "positiveFollowUps.0.enablesDossierAddition",
+            "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"
+          ],
+          "label": "Positive Follow-up",
+          "maxLen": 180
+        },
+        {
+          "paths": [
+            "sourceActions.notCalled.0",
+            "dossierEvidence.sourceActions.notCalled.0"
+          ],
+          "label": "Side-Effect Guard",
+          "maxLen": 120
+        }
+      ],
+      "errorFallback": {
+        "paths": [
+          "message"
+        ],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 298
+  },
+  {
     "id": "nova_decision_lifecycle_readiness",
     "description": "Read-only NOVA decision lifecycle readiness evidence gate",
     "routeLabel": "nova_decision_lifecycle_readiness",

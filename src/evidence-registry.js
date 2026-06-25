@@ -1768,6 +1768,67 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  evu_api_migration_diagnostics: {
+    sources: [
+      {
+        id: 'business_process',
+        label: 'EVU/VNB-Geschaeftsprozess',
+        resolvedBy: ['dashboard-api.evuApiMigrationDiagnosticsStatus', 'vdmi.dossier'],
+        contextKeys: ['businessProcess'],
+        optional: false,
+      },
+      {
+        id: 'endpoint_method',
+        label: 'Endpoint und HTTP-Methode',
+        resolvedBy: ['dashboard-api.evuApiMigrationDiagnosticsStatus', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['endpoint', 'method'],
+        optional: false,
+      },
+      {
+        id: 'auth_scope',
+        label: 'OAuth-/Auth-Scope',
+        resolvedBy: ['dashboard-api.evuApiMigrationDiagnosticsStatus'],
+        contextKeys: ['authScope'],
+        optional: false,
+      },
+      {
+        id: 'data_context',
+        label: 'Daten- und Marktrollenkontext',
+        resolvedBy: ['dashboard-api.evuApiMigrationDiagnosticsStatus', 'vdmi.dossier'],
+        contextKeys: ['dataContext'],
+        optional: false,
+      },
+      {
+        id: 'request_shape',
+        label: 'Request-Shape / Schema-Hinweis',
+        resolvedBy: ['dashboard-api.evuApiMigrationDiagnosticsStatus'],
+        contextKeys: ['requestShape'],
+        optional: false,
+      },
+      {
+        id: 'failure_signal',
+        label: 'Validierungsfehler und Response-Code',
+        resolvedBy: ['dashboard-api.evuApiMigrationDiagnosticsStatus'],
+        contextKeys: ['validationError', 'responseCode'],
+        optional: false,
+      },
+      {
+        id: 'completion_criterion',
+        label: 'Abschlusskriterium',
+        resolvedBy: ['dashboard-api.evuApiMigrationDiagnosticsStatus', 'vdmi.dossier'],
+        contextKeys: ['completionCriterion'],
+        optional: false,
+      },
+      {
+        id: 'owner_next_step',
+        label: 'Owner und naechster Schritt',
+        resolvedBy: ['dashboard-api.evuApiMigrationDiagnosticsStatus', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['owner', 'nextStep'],
+        optional: false,
+      },
+    ],
+  },
+
   nova_decision_lifecycle_readiness: {
     sources: [
       {

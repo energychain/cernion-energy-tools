@@ -86,6 +86,8 @@ const CAPABILITY_DOMAIN_MAP = {
   platform_ui_contracts: 'platform',
   // human-in-the-loop request plumbing — agent/process infrastructure
   hitl: 'platform',
+  // EVU/VNB API migration diagnostics are interface-readiness evidence, not a live connector
+  api_migration: 'platform',
   // MSCONS/MK40 messkonzept, Bilanzkreis/SLP — internal metering data
   edm: 'inhouse-data',
   // BESS flex-forecast advisory for grid operations

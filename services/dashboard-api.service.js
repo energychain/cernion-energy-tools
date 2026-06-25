@@ -55,6 +55,7 @@ module.exports = {
       liquidityPlanningGovernanceStatus: 5 * 60 * 1000, // 5 min
       energySharingSimulationGateStatus: 5 * 60 * 1000, // 5 min
       energySharing42cCutoverReadinessStatus: 5 * 60 * 1000, // 5 min
+      evuApiMigrationDiagnosticsStatus: 5 * 60 * 1000, // 5 min
       novaDecisionLifecycleReadinessStatus: 5 * 60 * 1000, // 5 min
       regulatoryChangeReadinessStatus: 5 * 60 * 1000, // 5 min
       investmentTwoTrackControlStatus: 5 * 60 * 1000, // 5 min
@@ -2181,6 +2182,95 @@ module.exports = {
           this.settings.cacheTtlMs.energySharing42cCutoverReadinessStatus,
           async () => ({
             ...this.buildEnergySharing42cCutoverReadinessStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- evuApiMigrationDiagnosticsStatus ---------------------------------
+    /**
+     * GET /api/dashboard/evu-api-migration-diagnostics?businessProcess=...
+     *
+     * Read-only dossier-safe EVU/VNB API migration diagnostics. It evaluates
+     * supplied interface observations without connector calls, OAuth handling,
+     * JSON-Patch execution, HITL creation or downstream process mutation.
+     */
+    evuApiMigrationDiagnosticsStatus: {
+      rest: 'GET /evu-api-migration-diagnostics',
+      params: {
+        businessProcess: { type: 'string', optional: true, min: 1 },
+        endpoint: { type: 'string', optional: true, min: 1 },
+        method: { type: 'string', optional: true, min: 1 },
+        authScope: { type: 'string', optional: true, min: 1 },
+        dataContext: { type: 'string', optional: true, min: 1 },
+        requestShape: { type: 'string', optional: true, min: 1 },
+        validationError: { type: 'string', optional: true, min: 1 },
+        responseCode: { type: 'string', optional: true, min: 1 },
+        completionCriterion: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        nextStep: { type: 'string', optional: true, min: 1 },
+        ticketRef: { type: 'string', optional: true, min: 1 },
+        systemRef: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'EVU API migration diagnostics - read-only dossier-safe status',
+        description:
+          'Evaluates supplied EVU/VNB API migration observations as a read-only diagnostic matrix. ' +
+          'The endpoint does not call live endpoints, run OAuth flows, handle secrets, execute JSON Patch, close third-party processes, create HITL tasks, or trigger MaKo/Billing/Settlement/Tariff actions.',
+        parameters: [
+          { name: 'businessProcess', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'endpoint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'method', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'authScope', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataContext', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'requestShape', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'validationError', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'responseCode', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'completionCriterion', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextStep', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ticketRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'systemRef', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only EVU API migration diagnostic status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    safety: { type: 'string' },
+                    evidenceCompleteness: { type: 'number' },
+                    missingEvidence: { type: 'array' },
+                    diagnosticFindings: { type: 'array' },
+                    riskHints: { type: 'array' },
+                    next90DayStep: { type: 'string' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `evu-api-migration-diagnostics:${params.businessProcess || ''}:${params.endpoint || ''}:${params.method || ''}:${params.authScope || ''}:${params.dataContext || ''}:${params.requestShape || ''}:${params.validationError || ''}:${params.responseCode || ''}:${params.completionCriterion || ''}:${params.owner || ''}:${params.nextStep || ''}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.evuApiMigrationDiagnosticsStatus,
+          async () => ({
+            ...this.buildEvuApiMigrationDiagnosticsStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -10263,6 +10353,217 @@ module.exports = {
           missingEvidence,
           positiveFollowUps,
           evidenceRefs,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildEvuApiMigrationDiagnosticsStatus(params = {}) {
+      const normalizeText = (value) => String(value || '').trim();
+      const method = normalizeText(params.method).toUpperCase() || null;
+      const responseCodeText = normalizeText(params.responseCode);
+      const responseCode = responseCodeText ? Number.parseInt(responseCodeText, 10) : null;
+      const evidenceSpecs = [
+        {
+          id: 'business_process',
+          label: 'Business process',
+          value: params.businessProcess,
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add the affected EVU/VNB business process and migration scope',
+        },
+        {
+          id: 'endpoint_method',
+          label: 'Endpoint and method',
+          value: params.endpoint && method,
+          displayValue: [method, params.endpoint].filter(Boolean).join(' '),
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add the concrete endpoint and HTTP method under migration',
+        },
+        {
+          id: 'auth_scope',
+          label: 'OAuth/auth scope',
+          value: params.authScope,
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add scope mismatch or authorization boundary evidence',
+        },
+        {
+          id: 'data_context',
+          label: 'Data context',
+          value: params.dataContext,
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add tenant, market-role or metering-context ambiguity evidence',
+        },
+        {
+          id: 'request_shape',
+          label: 'Request shape',
+          value: params.requestShape,
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add request-body/schema mismatch diagnostics',
+        },
+        {
+          id: 'failure_signal',
+          label: 'Validation error and response code',
+          value: params.validationError && params.responseCode,
+          displayValue: [params.responseCode, params.validationError].filter(Boolean).join(' / '),
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add concrete failure class evidence from validation error and response code',
+        },
+        {
+          id: 'completion_criterion',
+          label: 'Completion criterion',
+          value: params.completionCriterion,
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add the migration closure or readiness criterion',
+        },
+        {
+          id: 'owner_next_step',
+          label: 'Owner and next step',
+          value: params.owner && params.nextStep,
+          displayValue: [params.owner, params.nextStep].filter(Boolean).join(' -> '),
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add accountable owner and next 90-day follow-up',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((item) => item.value)
+        .map((item) => ({
+          id: item.id,
+          label: item.label,
+          value: item.displayValue || item.value,
+          status: 'provided',
+          category: 'evu_api_migration_diagnostics',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((item) => !item.value)
+        .map((item) => ({
+          missingDataPoint: item.id,
+          label: item.label,
+          risk: item.riskWhenMissing,
+          enablesDossierAddition: item.enablesDossierAddition,
+          category: 'evu_api_migration_diagnostics',
+        }));
+      const hasHighRiskGap = missingEvidence.some((item) => item.risk === 'high');
+      const status = missingEvidence.length === 0
+        ? 'diagnostics_complete'
+        : hasHighRiskGap
+          ? 'needs_migration_context'
+          : 'partial_diagnostics';
+      const evidenceCompleteness = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const riskHints = [];
+      if (!params.authScope) riskHints.push('auth_scope_missing');
+      if (!params.dataContext) riskHints.push('data_context_missing');
+      if (!params.completionCriterion) riskHints.push('completion_criterion_missing');
+      if (responseCode >= 400) riskHints.push('http_error_response_observed');
+      if (normalizeText(params.validationError)) riskHints.push('validation_error_observed');
+      const diagnosticFindings = [
+        {
+          id: 'api_migration_diagnostic_status',
+          status,
+          evidenceCompleteness,
+          severity: hasHighRiskGap ? 'high' : missingEvidence.length ? 'medium' : 'info',
+          message: missingEvidence.length
+            ? `${missingEvidence.length} diagnostic evidence item(s) still missing`
+            : 'Supplied EVU/VNB API migration evidence is complete for dossier diagnostics',
+        },
+      ];
+      if (responseCode >= 400 || params.validationError) {
+        diagnosticFindings.push({
+          id: 'api_failure_signal',
+          status: 'observed',
+          severity: responseCode >= 500 ? 'high' : 'medium',
+          message: [responseCodeText, normalizeText(params.validationError)].filter(Boolean).join(' / '),
+        });
+      }
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        risk: item.risk,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'evu_api_migration_diagnostics',
+      }));
+      const next90DayStep = normalizeText(params.nextStep) || 'Collect missing API migration evidence before migration execution';
+      const sourceActions = {
+        inspected: ['dashboard-api.evuApiMigrationDiagnosticsStatus'],
+        referenced: ['vdmi.dossier', 'interface-placeholder.requestEvidence'],
+        notCalled: [
+          'external.connector.call',
+          'oauth.authorize',
+          'oauth.refreshToken',
+          'secret.read',
+          'json-patch.apply',
+          'api.retryRequest',
+          'migration.execute',
+          'third-party.closeProcess',
+          'hitl.create',
+          'mako.dispatch',
+          'settlement.exportA96',
+          'settlement.prepareBilling',
+          'billing.release',
+          'tariff.mutate',
+          'personal-agent.execute',
+        ],
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Evidence Completeness: ${evidenceCompleteness}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.businessProcess) dossierFacts.push(`Business Process: ${params.businessProcess}`);
+      if (params.endpoint || method) dossierFacts.push(`Endpoint: ${[method, params.endpoint].filter(Boolean).join(' ')}`);
+      if (params.authScope) dossierFacts.push(`Auth Scope: ${params.authScope}`);
+      if (params.dataContext) dossierFacts.push(`Data Context: ${params.dataContext}`);
+      if (params.completionCriterion) dossierFacts.push(`Completion Criterion: ${params.completionCriterion}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (next90DayStep) dossierFacts.push(`Next Step: ${next90DayStep}`);
+
+      return {
+        evuApiMigrationDiagnosticsId: `evu-api:${Buffer.from(`${params.businessProcess || ''}:${params.endpoint || ''}:${method || ''}:${params.systemRef || ''}:${params.ticketRef || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'evu_api_migration_diagnostics',
+        safety: 'read_only_diagnostics',
+        status,
+        evidenceCompleteness,
+        businessProcess: params.businessProcess || null,
+        endpoint: params.endpoint || null,
+        method,
+        authScope: params.authScope || null,
+        dataContext: params.dataContext || null,
+        requestShape: params.requestShape || null,
+        validationError: params.validationError || null,
+        responseCode: params.responseCode || null,
+        completionCriterion: params.completionCriterion || null,
+        owner: params.owner || null,
+        nextStep: params.nextStep || null,
+        next90DayStep,
+        ticketRef: params.ticketRef || null,
+        systemRef: params.systemRef || null,
+        evidenceItems,
+        missingEvidence,
+        diagnosticFindings,
+        riskHints,
+        positiveFollowUps,
+        sourceActions,
+        validationFindings: missingEvidence,
+        dossierEvidence: {
+          status,
+          safety: 'read_only_diagnostics',
+          evidenceCompleteness,
+          businessProcess: params.businessProcess || null,
+          endpoint: params.endpoint || null,
+          method,
+          authScope: params.authScope || null,
+          dataContext: params.dataContext || null,
+          requestShape: params.requestShape || null,
+          validationError: params.validationError || null,
+          responseCode: params.responseCode || null,
+          completionCriterion: params.completionCriterion || null,
+          owner: params.owner || null,
+          next90DayStep,
+          missingEvidence,
+          diagnosticFindings,
+          riskHints,
+          positiveFollowUps,
           sourceActions: {
             notCalled: sourceActions.notCalled,
           },
