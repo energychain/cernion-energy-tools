@@ -5,6 +5,22 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.67.0] — 2026-06-25
+
+### Added
+- **Referenzprozess 1: Technischer Steuerbarkeits-/Redispatch-Prozess** (`tests/reference-process-redispatch.test.js`, #295, sub-issue of #275 — schließt die gesamte #275-Sub-Issue-Kette ab): End-to-End-Validierung des Governance-Stacks für einen technischen Netz-Steuerungsfall. Dokumentiert explizit die Unterschiede zum kommerziellen Referenzprozess (#296):
+  - `controlCase: 'redispatch'` — Netzbetriebs-Scope: §14a EnWG Steuerbarkeit, Redispatch-Abrechnung, Engpassmanagement.
+  - `decisionPolicy.onMissingEvidence: 'clarification'` — fehlende Evidenz löst eine konkrete Rückfrage an den Netzbetreiber aus (`requiresClarification: true`), statt nur eine Gap-Liste (#296 verwendet `'evidence_gap'`).
+  - `decisionPolicy.onHighFinancialImpact: 'none'` — finanzieller Impact eskaliert den technischen Prozess NICHT (#296 würde auf `mandatory_human_decision` wechseln).
+  - `decisionPolicy.onConflictingSources: 'evidence_gap'` — technische Messdatenkonflikte werden als Gap markiert, nicht per Pflicht-HITL gesperrt (#296 verwendet `'mandatory_human_decision'`).
+  - RACI: `ROLE_NETZPLANUNG`/`ROLE_GRID_OPERATOR`/`ROLE_REDISPATCH_COORDINATOR` (netzoperativ) statt kaufmännischer Rollen.
+  - Evidenzanforderungen: Fernsteuerungsnachweis (§14a EnWG), Verfügbarkeitsprüfung, Kongestions-Signal — keine kommerziellen Dokumente.
+
+### Tests
+- 7 neue Fälle in `tests/reference-process-redispatch.test.js`: vollständige Evidenz erlaubt, fehlende Evidenz löst Clarification aus (nicht nur Evidence-Gap), `highFinancialImpact`-Flag hat keinen Effekt, Fallback-Rollenableitung ohne RACI-Metadaten, vollständige Kette mit Hash-Chain-Verifikation.
+
+Alle 9 Sub-Issues von #275 (#288–#296) sind damit abgeschlossen.
+
 ## [0.66.9] — 2026-06-25
 
 ### Added
