@@ -3,6 +3,9 @@
 const { ServiceBroker } = require('moleculer');
 const AgentReceiptsService = require('../services/agent-receipts.service');
 
+// #289: promote / setStatus(active) require an authorized caller.
+const FULL_ACCESS_CTX = { meta: { authUser: { roles: ['full-access'] } } };
+
 function validReceipt(overrides = {}) {
   return {
     receiptId: 'bess-screening-v1',
@@ -276,10 +279,14 @@ describe('Agent Receipts Service', () => {
     });
     expect(created.data.status).toBe('draft');
 
-    const activated = await broker.call('agent-receipts.setStatus', {
-      id: 'active-valid',
-      status: 'active',
-    });
+    const activated = await broker.call(
+      'agent-receipts.setStatus',
+      {
+        id: 'active-valid',
+        status: 'active',
+      },
+      FULL_ACCESS_CTX
+    );
     expect(activated.data.status).toBe('active');
     expect(typeof activated.data.activatedAt).toBe('string');
   });
@@ -548,7 +555,11 @@ describe('Agent Receipts Service', () => {
         requiredInputs: [],
       }),
     });
-    await broker.call('agent-receipts.setStatus', { id: 'force-active-v1', status: 'active' });
+    await broker.call(
+      'agent-receipts.setStatus',
+      { id: 'force-active-v1', status: 'active' },
+      FULL_ACCESS_CTX
+    );
 
     const selected = await broker.call('agent-receipts.select', {
       message: 'Bitte prüfe Troisdorf.',
@@ -874,11 +885,15 @@ describe('Agent Receipts Service — v0.54.5 proposeDraft + promote', () => {
       creatorSource: 'api',
     });
 
-    const result = await broker.call('agent-receipts.promote', {
-      id: 'promote-test-v1',
-      promotedBy: 'reviewer@example.com',
-      changeReason: 'Validated against known test cases. Promoting to active.',
-    });
+    const result = await broker.call(
+      'agent-receipts.promote',
+      {
+        id: 'promote-test-v1',
+        promotedBy: 'reviewer@example.com',
+        changeReason: 'Validated against known test cases. Promoting to active.',
+      },
+      FULL_ACCESS_CTX
+    );
 
     expect(result.success).toBe(true);
     const { data } = result;
@@ -938,10 +953,14 @@ describe('Agent Receipts Service — v0.54.5 proposeDraft + promote', () => {
     });
 
     await expect(
-      broker.call('agent-receipts.promote', {
-        id: corruptId,
-        promotedBy: 'reviewer@example.com',
-      })
+      broker.call(
+        'agent-receipts.promote',
+        {
+          id: corruptId,
+          promotedBy: 'reviewer@example.com',
+        },
+        FULL_ACCESS_CTX
+      )
     ).rejects.toMatchObject({
       code: 409,
       type: 'AGENT_RECEIPT_BLOCKING_VALIDATION',
@@ -956,17 +975,25 @@ describe('Agent Receipts Service — v0.54.5 proposeDraft + promote', () => {
     });
 
     // First promote succeeds
-    await broker.call('agent-receipts.promote', {
-      id: 'already-active-v1',
-      promotedBy: 'admin@example.com',
-    });
+    await broker.call(
+      'agent-receipts.promote',
+      {
+        id: 'already-active-v1',
+        promotedBy: 'admin@example.com',
+      },
+      FULL_ACCESS_CTX
+    );
 
     // Second promote attempt must fail
     await expect(
-      broker.call('agent-receipts.promote', {
-        id: 'already-active-v1',
-        promotedBy: 'admin@example.com',
-      })
+      broker.call(
+        'agent-receipts.promote',
+        {
+          id: 'already-active-v1',
+          promotedBy: 'admin@example.com',
+        },
+        FULL_ACCESS_CTX
+      )
     ).rejects.toMatchObject({
       code: 409,
       type: 'AGENT_RECEIPT_PROMOTE_NOT_DRAFT',
@@ -985,22 +1012,30 @@ describe('Agent Receipts Service — v0.54.5 proposeDraft + promote', () => {
 
     // Promote with a fabricated stale rev must be rejected
     await expect(
-      broker.call('agent-receipts.promote', {
-        id: 'cas-guard-test-v1',
-        promotedBy: 'reviewer@example.com',
-        _rev: '1-stalerevisiontokenxxx',
-      })
+      broker.call(
+        'agent-receipts.promote',
+        {
+          id: 'cas-guard-test-v1',
+          promotedBy: 'reviewer@example.com',
+          _rev: '1-stalerevisiontokenxxx',
+        },
+        FULL_ACCESS_CTX
+      )
     ).rejects.toMatchObject({
       code: 409,
       type: 'AGENT_RECEIPT_CONFLICT',
     });
 
     // Promote with correct rev succeeds
-    const result = await broker.call('agent-receipts.promote', {
-      id: 'cas-guard-test-v1',
-      promotedBy: 'reviewer@example.com',
-      _rev: correctRev,
-    });
+    const result = await broker.call(
+      'agent-receipts.promote',
+      {
+        id: 'cas-guard-test-v1',
+        promotedBy: 'reviewer@example.com',
+        _rev: correctRev,
+      },
+      FULL_ACCESS_CTX
+    );
     expect(result.data.status).toBe('active');
   });
 
@@ -1028,11 +1063,15 @@ describe('Agent Receipts Service — v0.54.5 proposeDraft + promote', () => {
     });
 
     // Promote the draft — should auto-deprecate superseded-active-v1
-    const result = await broker.call('agent-receipts.promote', {
-      id: 'successor-draft-v1',
-      promotedBy: 'admin@example.com',
-      changeReason: 'Improved version replaces original.',
-    });
+    const result = await broker.call(
+      'agent-receipts.promote',
+      {
+        id: 'successor-draft-v1',
+        promotedBy: 'admin@example.com',
+        changeReason: 'Improved version replaces original.',
+      },
+      FULL_ACCESS_CTX
+    );
 
     expect(result.success).toBe(true);
     expect(result.data.status).toBe('active');
@@ -1119,10 +1158,14 @@ describe('Agent Receipts Service — v0.54.5 proposeDraft + promote', () => {
         },
       }),
     });
-    await broker.call('agent-receipts.promote', {
-      id: 'vnb-autoselect-city-v1',
-      promotedBy: 'test-admin',
-    });
+    await broker.call(
+      'agent-receipts.promote',
+      {
+        id: 'vnb-autoselect-city-v1',
+        promotedBy: 'test-admin',
+      },
+      FULL_ACCESS_CTX
+    );
 
     const result = await broker.call('agent-receipts.select', {
       message: 'Wer ist der Netzbetreiber in Wiesloch?',
@@ -1139,5 +1182,83 @@ describe('Agent Receipts Service — v0.54.5 proposeDraft + promote', () => {
     expect(['vnb-lookup-v1', 'vnb-autoselect-city-v1', 'vnb-resolution-chain-v1']).toContain(
       result.data.receiptId
     );
+  });
+
+  // ── Receipt-promotion authorization (#289, gap identified in #275's Bestandsanalyse) ─
+  describe('promotion authorization', () => {
+    test('promote is rejected for a caller without full-access or ROLE_RECEIPT_PROMOTER', async () => {
+      await broker.call('agent-receipts.proposeDraft', {
+        ...draftProposal({ receiptId: 'unauthorized-promote-v1' }),
+        creatorSource: 'api',
+      });
+
+      await expect(
+        broker.call(
+          'agent-receipts.promote',
+          { id: 'unauthorized-promote-v1', promotedBy: 'someone@example.com' },
+          { meta: { authUser: { roles: ['ROLE_UNRELATED'] } } }
+        )
+      ).rejects.toMatchObject({ code: 403, type: 'AGENT_RECEIPT_PROMOTE_FORBIDDEN' });
+
+      const unchanged = await broker.call('agent-receipts.get', { id: 'unauthorized-promote-v1' });
+      expect(unchanged.data.status).toBe('draft');
+    });
+
+    test('promote is rejected for a caller with no auth meta at all', async () => {
+      await broker.call('agent-receipts.proposeDraft', {
+        ...draftProposal({ receiptId: 'no-meta-promote-v1' }),
+        creatorSource: 'api',
+      });
+
+      await expect(
+        broker.call('agent-receipts.promote', {
+          id: 'no-meta-promote-v1',
+          promotedBy: 'someone@example.com',
+        })
+      ).rejects.toMatchObject({ code: 403, type: 'AGENT_RECEIPT_PROMOTE_FORBIDDEN' });
+    });
+
+    test('promote succeeds for a caller with ROLE_RECEIPT_PROMOTER (no full-access needed)', async () => {
+      await broker.call('agent-receipts.proposeDraft', {
+        ...draftProposal({ receiptId: 'dedicated-role-promote-v1' }),
+        creatorSource: 'api',
+      });
+
+      const result = await broker.call(
+        'agent-receipts.promote',
+        { id: 'dedicated-role-promote-v1', promotedBy: 'reviewer@example.com' },
+        { meta: { authUser: { roles: ['ROLE_RECEIPT_PROMOTER'] } } }
+      );
+      expect(result.data.status).toBe('active');
+    });
+
+    test('setStatus to active is also rejected for an unauthorized caller (parallel bypass closed)', async () => {
+      await broker.call('agent-receipts.proposeDraft', {
+        ...draftProposal({ receiptId: 'unauthorized-setstatus-v1' }),
+        creatorSource: 'api',
+      });
+
+      await expect(
+        broker.call(
+          'agent-receipts.setStatus',
+          { id: 'unauthorized-setstatus-v1', status: 'active' },
+          { meta: { authUser: { roles: ['ROLE_UNRELATED'] } } }
+        )
+      ).rejects.toMatchObject({ code: 403, type: 'AGENT_RECEIPT_PROMOTE_FORBIDDEN' });
+    });
+
+    test('setStatus to a non-active status does not require promotion authorization', async () => {
+      await broker.call('agent-receipts.proposeDraft', {
+        ...draftProposal({ receiptId: 'archive-no-auth-v1' }),
+        creatorSource: 'api',
+      });
+
+      const result = await broker.call(
+        'agent-receipts.setStatus',
+        { id: 'archive-no-auth-v1', status: 'archived' },
+        { meta: { authUser: { roles: ['ROLE_UNRELATED'] } } }
+      );
+      expect(result.data.status).toBe('archived');
+    });
   });
 });

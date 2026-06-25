@@ -14,6 +14,13 @@ const {
 const { buildActionRegistry } = require('../src/agent-receipts-registry');
 const { evaluateReceiptPlan } = require('../src/agent-receipts-evaluation');
 const { queryKnowledgeEvidence } = require('../src/personal-agent-knowledge-rag');
+const { hasFullAccessPrincipal, callerHasAnyRole } = require('../src/auth-role-helpers');
+
+// Receipt-promotion authorization (#289, gap identified in #275's Bestandsanalyse):
+// promotedBy was a free-text audit field, never an actual permission check — any
+// caller could promote any draft. Unlike HITL (#288), a receipt carries no
+// per-document role requirement, so this is a static action-level gate instead.
+const RECEIPT_PROMOTION_ROLES = ['ROLE_RECEIPT_PROMOTER'];
 
 function toDocId(receiptId) {
   return `ar:${receiptId}`;
@@ -1016,6 +1023,8 @@ module.exports = {
       openapi: {
         summary: 'Set receipt lifecycle status',
         tags: ['Agent Receipts'],
+        description:
+          'Transitions a receipt between lifecycle statuses. Transitioning to active requires full-access scope or ROLE_RECEIPT_PROMOTER (#289), same as promote.',
         parameters: [
           {
             name: 'id',
@@ -1043,6 +1052,22 @@ module.exports = {
       },
       async handler(ctx) {
         const { id, status, reason } = ctx.params;
+
+        // #289: setStatus can also transition a receipt to 'active' (parallel
+        // path to promote) — same authorization requirement applies whenever
+        // the target status is 'active', regardless of which action got there.
+        if (
+          status === 'active' &&
+          !hasFullAccessPrincipal(ctx) &&
+          !callerHasAnyRole(ctx, RECEIPT_PROMOTION_ROLES)
+        ) {
+          throw new MoleculerClientError(
+            'Caller is not authorized to set a receipt to active — requires full-access or ROLE_RECEIPT_PROMOTER.',
+            403,
+            'AGENT_RECEIPT_PROMOTE_FORBIDDEN'
+          );
+        }
+
         const doc = await this.loadReceipt(id);
         const requestedRev = normalizeRevToken(ctx.params._rev);
 
@@ -1291,7 +1316,7 @@ module.exports = {
         summary: 'Promote a draft receipt to active (explicit review gate)',
         tags: ['Agent Receipts'],
         description:
-          'Transitions a draft receipt to active. Requires promotedBy identity. Validates the receipt fully before promotion. Optionally auto-deprecates a superseded active receipt. Requires _rev for CAS conflict protection.',
+          'Transitions a draft receipt to active. Requires promotedBy identity. Validates the receipt fully before promotion. Optionally auto-deprecates a superseded active receipt. Requires _rev for CAS conflict protection. Caller must have full-access scope or ROLE_RECEIPT_PROMOTER (#289).',
         parameters: [
           {
             name: 'id',
@@ -1332,6 +1357,14 @@ module.exports = {
         },
       },
       async handler(ctx) {
+        if (!hasFullAccessPrincipal(ctx) && !callerHasAnyRole(ctx, RECEIPT_PROMOTION_ROLES)) {
+          throw new MoleculerClientError(
+            'Caller is not authorized to promote receipts — requires full-access or ROLE_RECEIPT_PROMOTER.',
+            403,
+            'AGENT_RECEIPT_PROMOTE_FORBIDDEN'
+          );
+        }
+
         const { id, promotedBy, changeReason, supersedes } = ctx.params;
         const doc = await this.loadReceipt(id);
         const requestedRev = normalizeRevToken(ctx.params._rev);
