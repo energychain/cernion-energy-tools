@@ -2,6 +2,7 @@
 
 const { getRule } = require('./dossier-hydration-registry');
 const { validateToolDefinition } = require('./agent-sidecar-tool-manifest');
+const { evaluateGovernancePolicy } = require('./governance-policy-evaluator');
 
 const FORBIDDEN_TARGET_PATTERNS = [
   /\bcreate\b/i,
@@ -95,9 +96,23 @@ function assertHydrationActionAllowed(actionName) {
   return null;
 }
 
+function evaluateToolPolicy(tool, input = {}) {
+  const action = input.targetAction || input.action || tool?.targetAction;
+  return evaluateGovernancePolicy({
+    capability: input.capability || tool?.name,
+    action,
+    context: {
+      ...input,
+      toolName: tool?.name || null,
+      targetAction: action || null,
+    },
+  });
+}
+
 module.exports = {
   assertHydrationActionAllowed,
   assertToolAllowed,
   buildPolicyBlocked,
+  evaluateToolPolicy,
   getAuthenticatedTenant,
 };
