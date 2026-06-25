@@ -1337,6 +1337,24 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('nova_decision_lifecycle_readiness: requires lifecycle/source/audit/HITL/replay/SSE evidence', () => {
+    const plan = { routeKey: 'nova_decision_lifecycle_readiness' };
+    const result = planEvidence(plan, {});
+
+    const requiredIds = result.requiredSources.filter((s) => !s.optional).map((s) => s.id);
+    expect(requiredIds).toEqual(
+      expect.arrayContaining([
+        'decision_lifecycle_model',
+        'decision_source_catalogue',
+        'transition_audit_history',
+        'tenant_isolated_sse_evidence',
+        'hitl_bridge_policy',
+        'replay_testability',
+        'expiry_non_execution',
+      ])
+    );
+  });
+
   it('redispatch-settlement: requires grid_operator_identity and audit_period', () => {
     const plan = { routeKey: 'redispatch-settlement' };
     const result = planEvidence(plan, {});

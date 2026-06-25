@@ -1327,6 +1327,27 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes NOVA decision lifecycle readiness prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe NOVA TRL-7 Production Readiness fuer Decision Lifecycle, Decision Source Catalogue, HITL Bridge Policy, Replay Audit Readiness und tenant-isolierte SSE Evidence.',
+    });
+
+    expect(result.capability).toBe('nova_decision_lifecycle_readiness');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'nova_decision_lifecycle_readiness'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.novaDecisionLifecycleReadinessStatus');
+    expect(actionNames).not.toContain('nova.decisions.create');
+    expect(actionNames).not.toContain('nova.decisions.transition');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('webhook.emit');
+    expect(actionNames).not.toContain('nova.sse.emit');
+    expect(actionNames).not.toContain('assets.applyOverride');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes investment two-track control prompts to the read-only evidence gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Investitionsprozess Zwei Spuren fuer Budgetabgabe, Investitionsabgabe, Abgabesicherheit, Investdaten Datenqualitaet, ISO 55001 Zielbild, Freigabelogik und Vorstandsformat.',

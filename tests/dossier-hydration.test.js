@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 90 static rules', () => {
+    it('loads all 91 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(90);
+      expect(rules.length).toBe(91);
     });
 
-    it('compiles all 90 static rules without error', () => {
+    it('compiles all 91 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(90);
+      expect(rules.length).toBe(91);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -2035,6 +2035,44 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Risk Level: high');
       expect(formatted).toContain('Pilot Tenant: tenant-hoeheinoed');
       expect(formatted).toContain('Side-Effect Guard: tenant.migrate');
+    });
+
+    it('dashboard-api.novaDecisionLifecycleReadinessStatus is dossier-safe and formats NOVA lifecycle facts', () => {
+      const rule = getRule('dashboard-api.novaDecisionLifecycleReadinessStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte NOVA readiness case=nova-trl7 kind=asset_override pruefen'
+        )
+      ).toEqual({
+        caseId: 'nova-trl7',
+        decisionKind: 'asset_override',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'nova_decision_lifecycle_readiness',
+        status: 'blocked',
+        riskLevel: 'high',
+        decisionKind: 'asset_override',
+        missingEvidence: [{ missingDataPoint: 'decision_lifecycle_model' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add a documented NOVA lifecycle model from proposed to applied/rejected/expired' },
+        ],
+        sourceActions: {
+          notCalled: ['nova.decisions.create', 'hitl.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: blocked'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: nova_decision_lifecycle_readiness');
+      expect(formatted).toContain('Status: blocked');
+      expect(formatted).toContain('Risk Level: high');
+      expect(formatted).toContain('Decision Kind: asset_override');
+      expect(formatted).toContain('Side-Effect Guard: nova.decisions.create');
     });
 
     it('dashboard-api.redispatchProjectControllingKpiCockpitStatus is dossier-safe and formats controlling facts', () => {

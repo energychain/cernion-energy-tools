@@ -6288,6 +6288,92 @@
     "sourceIssue": 64
   },
   {
+    "id": "nova_decision_lifecycle_readiness",
+    "description": "Read-only NOVA decision lifecycle readiness evidence gate",
+    "routeLabel": "nova_decision_lifecycle_readiness",
+    "capability": "nova_decision_lifecycle_readiness",
+    "action": "dashboard-api.novaDecisionLifecycleReadinessStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "nova.decisions.create",
+        "nova.decisions.transition",
+        "nova.decisions.approve",
+        "nova.decisions.reject",
+        "nova.decisions.expire",
+        "nova.decisions.apply",
+        "nova.decisions.replayTrigger",
+        "hitl.create",
+        "webhook.emit",
+        "nova.sse.emit",
+        "assets.applyOverride",
+        "mastr-quality.applyCorrection",
+        "redispatch-expost.applyCorrection",
+        "vnb-monitor.updateThreshold",
+        "settlement.exportA96",
+        "billing.release",
+        "tariff.update",
+        "device-control.execute",
+        "external.connector.call",
+        "secret.read",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "nova decision lifecycle readiness",
+      "nova decision lifecycle",
+      "nova trl 7 readiness",
+      "nova production readiness",
+      "nova decision source catalogue",
+      "nova hitl bridge policy",
+      "nova replay audit readiness",
+      "nova tenant isolated sse readiness",
+      "nova_decision_lifecycle_readiness"
+    ],
+    "paramTemplate": {
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:caseId|case|fall)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "decisionKind": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:decisionKind|kind|art)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 120 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Status", "maxLen": 120 },
+        { "paths": ["riskLevel", "dossierEvidence.riskLevel"], "label": "Risk Level", "maxLen": 120 },
+        { "paths": ["decisionKind", "dossierEvidence.decisionKind"], "label": "Decision Kind", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "First Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Positive Follow-up", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": [
+          "message"
+        ],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 70
+  },
+  {
     "id": "liquidity_planning_governance_module",
     "description": "Read-only liquidity planning governance evidence",
     "routeLabel": "liquidity_planning_governance_module",

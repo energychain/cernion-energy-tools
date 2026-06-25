@@ -111,6 +111,7 @@ const CAPABILITY_DOMAIN_MAP = {
   governance_decision_closure: 'governance',
   governance_management: 'governance',
   management_steering: 'governance',
+  nova_governance: 'governance',
   automation_governance: 'governance',
   ki_governance: 'governance',
   // metering asset financial/accounting governance (off-balance treatment) —

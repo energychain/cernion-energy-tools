@@ -229,6 +229,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasNovaDecisionLifecycleReadinessSignal =
+    /\bnova\b/i.test(haystack) &&
+    /(decision lifecycle|decision-lifecycle|entscheidungslifecycle|entscheidungslebenszyklus|decision source catalogue|source catalogue|hitl bridge|replay audit|tenant.?isolated sse|trl.?7.*decision|decision.*trl.?7|production readiness.*decision|decision.*production readiness)/i.test(haystack) &&
+    !/(nova apply|nova anwenden|entscheidung ausfuehren|entscheidung ausführen|apply endpoint|approve endpoint|reject endpoint|replay endpoint|state machine runtime|sse protocol change|webhook emit|asset override ausfuehren|asset override ausführen)/i.test(haystack);
+
+  if (hasNovaDecisionLifecycleReadinessSignal) {
+    const novaReadinessCapability = findCapabilityByName('nova_decision_lifecycle_readiness');
+    if (novaReadinessCapability) {
+      return { capability: novaReadinessCapability, score: 134, usedFallback: false };
+    }
+  }
+
   if (hasSettlementA96SpecificSignal) {
     const settlementA96Capability = findCapabilityByName('settlement_a96_reconciliation');
     if (settlementA96Capability) {

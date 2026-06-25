@@ -55,6 +55,7 @@ module.exports = {
       liquidityPlanningGovernanceStatus: 5 * 60 * 1000, // 5 min
       energySharingSimulationGateStatus: 5 * 60 * 1000, // 5 min
       energySharing42cCutoverReadinessStatus: 5 * 60 * 1000, // 5 min
+      novaDecisionLifecycleReadinessStatus: 5 * 60 * 1000, // 5 min
       regulatoryChangeReadinessStatus: 5 * 60 * 1000, // 5 min
       investmentTwoTrackControlStatus: 5 * 60 * 1000, // 5 min
       sapBudgetPspGateStatus: 5 * 60 * 1000, // 5 min
@@ -2180,6 +2181,93 @@ module.exports = {
           this.settings.cacheTtlMs.energySharing42cCutoverReadinessStatus,
           async () => ({
             ...this.buildEnergySharing42cCutoverReadinessStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- novaDecisionLifecycleReadinessStatus -----------------------------
+    /**
+     * GET /api/dashboard/nova-decision-lifecycle-readiness?caseId=...
+     *
+     * Read-only dossier-safe NOVA readiness gate. It makes the TRL-5 -> TRL-7
+     * lifecycle evidence visible without creating decisions, changing SSE,
+     * creating HITL items, replaying triggers or applying asset overrides.
+     */
+    novaDecisionLifecycleReadinessStatus: {
+      rest: 'GET /nova-decision-lifecycle-readiness',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        decisionKind: { type: 'string', optional: true, min: 1 },
+        lifecycleModel: { type: 'string', optional: true, min: 1 },
+        sourceCatalogue: { type: 'string', optional: true, min: 1 },
+        auditTrail: { type: 'string', optional: true, min: 1 },
+        tenantIsolationEvidence: { type: 'string', optional: true, min: 1 },
+        hitlPolicyEvidence: { type: 'string', optional: true, min: 1 },
+        replayEvidence: { type: 'string', optional: true, min: 1 },
+        expiryEvidence: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        deadline: { type: 'string', optional: true, min: 1 },
+        openMeasure: { type: 'string', optional: true, min: 1 },
+        evidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'NOVA decision lifecycle readiness - read-only dossier-safe status',
+        description:
+          'Evaluates supplied NOVA decision-lifecycle evidence and returns a dossier-safe readiness gate. ' +
+          'The endpoint is read-only and does not create decisions, transition lifecycle state, create HITL items, emit webhooks/SSE events, replay triggers, apply asset overrides, mutate MaStR/Redispatch/thresholds, call external connectors, handle secrets or mutate Personal Agent behavior.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionKind', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'lifecycleModel', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceCatalogue', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'auditTrail', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'tenantIsolationEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'hitlPolicyEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'replayEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'expiryEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'deadline', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'openMeasure', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceRefs', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only NOVA decision lifecycle readiness status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    riskLevel: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `nova-decision-lifecycle-readiness:${params.caseId || 'no-case'}:${params.decisionKind || 'no-kind'}:${params.lifecycleModel || ''}:${params.sourceCatalogue || ''}:${params.auditTrail || ''}:${params.tenantIsolationEvidence || ''}:${params.hitlPolicyEvidence || ''}:${params.replayEvidence || ''}:${params.expiryEvidence || ''}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.novaDecisionLifecycleReadinessStatus,
+          async () => ({
+            ...this.buildNovaDecisionLifecycleReadinessStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -10171,6 +10259,226 @@ module.exports = {
           targetDate: params.targetDate || null,
           owner: params.owner || null,
           subTracks,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          evidenceRefs,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildNovaDecisionLifecycleReadinessStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const normalizeStatus = (value) => {
+        if (value === true) return 'ready';
+        if (value === false || value == null || value === '') return 'missing';
+        const text = String(value).trim().toLowerCase();
+        if (['ready', 'ok', 'complete', 'completed', 'provided', 'valid', 'validated', 'available', 'confirmed', 'approved', 'done', 'passed'].includes(text)) return 'ready';
+        if (['blocked', 'invalid', 'failed', 'rejected', 'red', 'critical'].includes(text)) return 'blocked';
+        if (['risk', 'risky', 'warning', 'late', 'overdue', 'pending_legal', 'pending-regulatory'].includes(text)) return 'risk';
+        if (['partial', 'in_progress', 'in-progress', 'draft', 'pending', 'review'].includes(text)) return 'partial';
+        return 'ready';
+      };
+      const evidenceRefs = toList(params.evidenceRefs);
+      const caseId = params.caseId || 'nova-decision-lifecycle-readiness';
+      const evidenceSpecs = [
+        {
+          id: 'decision_lifecycle_model',
+          label: 'Decision lifecycle model evidence',
+          value: params.lifecycleModel,
+          stage: 'lifecycle',
+          expectedStates: ['proposed', 'triaged', 'pending_approval', 'approved', 'rejected', 'expired', 'applied'],
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add a documented NOVA lifecycle model from proposed to applied/rejected/expired',
+        },
+        {
+          id: 'decision_source_catalogue',
+          label: 'Decision source catalogue evidence',
+          value: params.sourceCatalogue,
+          stage: 'sources',
+          expectedSources: ['mastr-quality.audit', 'redispatch-expost.audit', 'vnb-monitor', 'cya.a2a.consensus.failed', 'mastr-monitor.delta.detected', 'assets.override'],
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add NOVA decision-source coverage for MaStR, Redispatch, VNB monitor, CYA/A2A, MaStR monitor and asset override triggers',
+        },
+        {
+          id: 'transition_audit_history',
+          label: 'Transition audit/history evidence',
+          value: params.auditTrail,
+          stage: 'audit',
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add lifecycle transition auditability evidence without writing NOVA decisions',
+        },
+        {
+          id: 'tenant_isolated_sse_evidence',
+          label: 'Tenant-isolated SSE readiness evidence',
+          value: params.tenantIsolationEvidence,
+          stage: 'sse',
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add tenant-channel readiness evidence without changing SSE runtime behavior',
+        },
+        {
+          id: 'hitl_bridge_policy',
+          label: 'HITL bridge policy evidence',
+          value: params.hitlPolicyEvidence,
+          stage: 'hitl_policy',
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add approval/escalation policy evidence without creating HITL items',
+        },
+        {
+          id: 'replay_testability',
+          label: 'Replay/testability evidence',
+          value: params.replayEvidence,
+          stage: 'replay',
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add replay and audit testability evidence without adding a replay endpoint',
+        },
+        {
+          id: 'expiry_non_execution',
+          label: 'Expiry and non-execution evidence',
+          value: params.expiryEvidence,
+          stage: 'non_execution',
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add expiry and non-execution evidence before production lifecycle execution is considered',
+        },
+      ];
+
+      const readinessItems = evidenceSpecs.map((spec) => {
+        const status = normalizeStatus(spec.value);
+        return {
+          id: spec.id,
+          label: spec.label,
+          stage: spec.stage,
+          status,
+          value: spec.value || null,
+          risk: status === 'ready' ? 'low' : spec.riskWhenMissing,
+          expectedStates: spec.expectedStates || undefined,
+          expectedSources: spec.expectedSources || undefined,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        };
+      });
+      const evidenceItems = readinessItems.filter((item) => item.status === 'ready');
+      const missingEvidence = readinessItems
+        .filter((item) => item.status !== 'ready')
+        .map((item) => ({
+          missingDataPoint: item.id,
+          label: item.label,
+          stage: item.stage,
+          status: item.status,
+          value: item.value,
+          risk: item.risk,
+          enablesDossierAddition: item.enablesDossierAddition,
+          category: 'nova_decision_lifecycle_readiness',
+        }));
+      const hasHighRiskGap = missingEvidence.some((item) => item.risk === 'high');
+      const hasMediumRiskGap = missingEvidence.some((item) => item.risk === 'medium');
+      const status = missingEvidence.length === 0
+        ? 'ready_for_trl7_review'
+        : hasHighRiskGap
+          ? 'blocked'
+          : 'partial_readiness';
+      const riskLevel = status === 'ready_for_trl7_review' ? 'low' : hasHighRiskGap ? 'high' : hasMediumRiskGap ? 'medium' : 'low';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        stage: item.stage,
+        status: item.status,
+        risk: item.risk,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'nova_decision_lifecycle_readiness',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.novaDecisionLifecycleReadinessStatus'],
+        referenced: [
+          'docs/use-cases/nova-decision-lifecycle-readiness.md',
+          'services/nova.service.js',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
+        notCalled: [
+          'nova.decisions.create',
+          'nova.decisions.transition',
+          'nova.decisions.approve',
+          'nova.decisions.reject',
+          'nova.decisions.expire',
+          'nova.decisions.apply',
+          'nova.decisions.replayTrigger',
+          'hitl.create',
+          'webhook.emit',
+          'nova.sse.emit',
+          'assets.applyOverride',
+          'mastr-quality.applyCorrection',
+          'redispatch-expost.applyCorrection',
+          'vnb-monitor.updateThreshold',
+          'settlement.exportA96',
+          'billing.release',
+          'tariff.update',
+          'device-control.execute',
+          'external.connector.call',
+          'secret.read',
+          'personal-agent.execute',
+        ],
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Risk Level: ${riskLevel}`,
+        `Provided NOVA readiness evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.decisionKind) dossierFacts.push(`Decision Kind: ${params.decisionKind}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (params.deadline) dossierFacts.push(`Deadline: ${params.deadline}`);
+
+      return {
+        novaDecisionLifecycleReadinessId: `nova-readiness:${Buffer.from(`${caseId}:${params.decisionKind || ''}:${params.owner || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'nova_decision_lifecycle_readiness',
+        safety: 'read_only',
+        status,
+        riskLevel,
+        readinessScore,
+        caseId,
+        decisionKind: params.decisionKind || null,
+        owner: params.owner || null,
+        deadline: params.deadline || null,
+        openMeasure: params.openMeasure || null,
+        decisionLifecycle: {
+          expectedStates: ['proposed', 'triaged', 'pending_approval', 'approved', 'rejected', 'expired', 'applied'],
+          evidenceStatus: readinessItems.find((item) => item.id === 'decision_lifecycle_model')?.status || 'missing',
+        },
+        sourceCatalogue: {
+          expectedSources: ['mastr-quality.audit', 'redispatch-expost.audit', 'vnb-monitor', 'cya.a2a.consensus.failed', 'mastr-monitor.delta.detected', 'assets.override'],
+          evidenceStatus: readinessItems.find((item) => item.id === 'decision_source_catalogue')?.status || 'missing',
+        },
+        auditAndReplayReadiness: {
+          auditTrailStatus: readinessItems.find((item) => item.id === 'transition_audit_history')?.status || 'missing',
+          replayEvidenceStatus: readinessItems.find((item) => item.id === 'replay_testability')?.status || 'missing',
+        },
+        sseTenantIsolationReadiness: readinessItems.find((item) => item.id === 'tenant_isolated_sse_evidence')?.status || 'missing',
+        hitlPolicyReadiness: readinessItems.find((item) => item.id === 'hitl_bridge_policy')?.status || 'missing',
+        nonExecutionEvidence: readinessItems.find((item) => item.id === 'expiry_non_execution')?.status || 'missing',
+        readinessItems,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        evidenceRefs,
+        sourceActions,
+        validationFindings: missingEvidence,
+        dossierEvidence: {
+          status,
+          riskLevel,
+          readinessScore,
+          caseId,
+          decisionKind: params.decisionKind || null,
+          owner: params.owner || null,
+          deadline: params.deadline || null,
+          readinessItems,
           evidenceItems,
           missingEvidence,
           positiveFollowUps,

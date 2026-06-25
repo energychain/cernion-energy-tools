@@ -3600,6 +3600,75 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- novaDecisionLifecycleReadinessStatus --------------------------------
+
+  describe('novaDecisionLifecycleReadinessStatus', () => {
+    it('blocks NOVA lifecycle readiness when high-risk evidence is missing', async () => {
+      const result = await broker.call('dashboard-api.novaDecisionLifecycleReadinessStatus', {
+        caseId: 'nova-trl7',
+        decisionKind: 'asset_override',
+        tenantIsolationEvidence: 'ready',
+        hitlPolicyEvidence: 'ready',
+        owner: 'nova-owner',
+        deadline: '2026-07-15',
+      });
+
+      expect(result.status).toBe('blocked');
+      expect(result.riskLevel).toBe('high');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'decision_lifecycle_model',
+          'decision_source_catalogue',
+          'transition_audit_history',
+          'replay_testability',
+          'expiry_non_execution',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('nova_decision_lifecycle_readiness');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'nova.decisions.create',
+          'nova.decisions.transition',
+          'hitl.create',
+          'webhook.emit',
+          'nova.sse.emit',
+          'assets.applyOverride',
+          'settlement.exportA96',
+          'external.connector.call',
+          'secret.read',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready for TRL-7 review only when all NOVA readiness evidence is present', async () => {
+      const result = await broker.call('dashboard-api.novaDecisionLifecycleReadinessStatus', {
+        caseId: 'nova-trl7',
+        decisionKind: 'mastr_correction',
+        lifecycleModel: 'ready',
+        sourceCatalogue: 'ready',
+        auditTrail: 'ready',
+        tenantIsolationEvidence: 'ready',
+        hitlPolicyEvidence: 'ready',
+        replayEvidence: 'ready',
+        expiryEvidence: 'ready',
+        owner: 'nova-owner',
+        deadline: '2026-07-15',
+        evidenceRefs: ['docs:nova-lifecycle', 'test:tenant-sse'],
+      });
+
+      expect(result.status).toBe('ready_for_trl7_review');
+      expect(result.riskLevel).toBe('low');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.readinessItems).toHaveLength(7);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided NOVA readiness evidence: 7/7');
+      expect(result.sourceActions.notCalled).toContain('nova.decisions.apply');
+      expect(result.sourceActions.notCalled).toContain('nova.sse.emit');
+    });
+  });
+
   // ── regulatoryChangeReadinessStatus ─────────────────────────────────────
 
   describe('regulatoryChangeReadinessStatus', () => {

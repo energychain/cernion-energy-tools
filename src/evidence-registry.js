@@ -1768,6 +1768,60 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  nova_decision_lifecycle_readiness: {
+    sources: [
+      {
+        id: 'decision_lifecycle_model',
+        label: 'NOVA Decision-Lifecycle-Modell',
+        resolvedBy: ['dashboard-api.novaDecisionLifecycleReadinessStatus', 'vdmi.dossier'],
+        contextKeys: ['lifecycleModel'],
+        optional: false,
+      },
+      {
+        id: 'decision_source_catalogue',
+        label: 'NOVA Decision-Quellenkatalog',
+        resolvedBy: ['dashboard-api.novaDecisionLifecycleReadinessStatus', 'mastr-quality.audit', 'redispatch-expost.audit', 'vnb-monitor'],
+        contextKeys: ['sourceCatalogue', 'decisionKind'],
+        optional: false,
+      },
+      {
+        id: 'transition_audit_history',
+        label: 'Transition Audit-/History-Evidenz',
+        resolvedBy: ['dashboard-api.novaDecisionLifecycleReadinessStatus', 'vdmi.dossier'],
+        contextKeys: ['auditTrail'],
+        optional: false,
+      },
+      {
+        id: 'tenant_isolated_sse_evidence',
+        label: 'Tenant-isolierte SSE-Evidenz',
+        resolvedBy: ['dashboard-api.novaDecisionLifecycleReadinessStatus'],
+        contextKeys: ['tenantIsolationEvidence'],
+        optional: false,
+      },
+      {
+        id: 'hitl_bridge_policy',
+        label: 'HITL-Bridge-Policy-Evidenz',
+        resolvedBy: ['dashboard-api.novaDecisionLifecycleReadinessStatus', 'hitl.summary'],
+        contextKeys: ['hitlPolicyEvidence'],
+        optional: false,
+      },
+      {
+        id: 'replay_testability',
+        label: 'Replay-/Testability-Evidenz',
+        resolvedBy: ['dashboard-api.novaDecisionLifecycleReadinessStatus'],
+        contextKeys: ['replayEvidence'],
+        optional: false,
+      },
+      {
+        id: 'expiry_non_execution',
+        label: 'Expiry- und Non-Execution-Evidenz',
+        resolvedBy: ['dashboard-api.novaDecisionLifecycleReadinessStatus', 'vdmi.dossier'],
+        contextKeys: ['expiryEvidence'],
+        optional: false,
+      },
+    ],
+  },
+
   legal_clarification_operating_model: {
     sources: [
       {

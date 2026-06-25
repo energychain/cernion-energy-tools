@@ -1426,6 +1426,8 @@ module.exports = {
             'dashboard-api.energySharingSimulationGateStatus',
           'GET /dashboard/energy-sharing-42c-cutover-readiness':
             'dashboard-api.energySharing42cCutoverReadinessStatus',
+          'GET /dashboard/nova-decision-lifecycle-readiness':
+            'dashboard-api.novaDecisionLifecycleReadinessStatus',
           'GET /dashboard/stadtwerk-mauer-sandbox-runtime':
             'dashboard-api.stadtwerkMauerSandboxRuntimeStatus',
           'GET /dashboard/stadtwerk-mauer-external-interface-stubs':
