@@ -5,6 +5,19 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.66.9] — 2026-06-25
+
+### Added
+- **Referenzprozess 2: Asset-/Transformationsprozess mit kaufmännisch-regulatorischer Wirkung** (`tests/reference-process-asset-transformation.test.js`, #296, sub-issue of #275): End-to-End-Validierung des vollständigen Governance-Primitive-Stacks (#291–#294) für einen kommerziell-regulatorisch wirksamen Steuerungsfall. Der Test zeigt die vollständige Kette: `governance.evaluatePolicy` → `governance.deriveHitlResolverRoles` → `governance.recordDecisionAudit` → `governance.verifyDecisionAuditTrail`. Kein neuer Service, kein neuer REST-Endpunkt — reine Kompositions- und Dokumentationsschicht. Dokumentiert explizit die Unterschiede zum technischen Steuerbarkeits-/Redispatch-Referenzprozess (#295):
+  - `controlCase: 'asset_transformation'` (kaufmännisches Asset-Leben, EOG/AfA-Wirkung, regulatorische Abschreibungen).
+  - `decisionPolicy.onHighFinancialImpact: 'mandatory_human_decision'` — feuert bei `context.highFinancialImpact: true` (materieller Buchwert-Schwellenwert); diese Eskalationsregel existiert in technischen Control-Cases nicht.
+  - `decisionPolicy.onConflictingSources: 'mandatory_human_decision'` — regulatorische Datenkonflikte erfordern menschliches Sign-off; technische Cases tolerieren `evidence_gap`.
+  - RACI-Rollen sind kaufmännisch/organisatorisch verankert (`ROLE_CONTROLLING`, `ROLE_ASSET_MANAGER`, `ROLE_REGULATORY`) statt netzoperativ (`ROLE_NETZPLANUNG`, `ROLE_GRID_OPERATOR`).
+  - `evidenceRequirements`: kaufmännisches Anlageverzeichnis, regulatorische Relevanzprüfung (§ 6/§ 32 StromNEV), EOG-/AfA-Wirkungsanalyse — keine Messdaten oder Fernsteuerungsnachweise.
+
+### Tests
+- 7 neue Fälle in `tests/reference-process-asset-transformation.test.js`: vollständige Evidenz ohne Financial-Impact-Flag erlaubt, Financial-Impact-Eskalation blockiert mit `requiresHumanDecision: true`, fehlende Evidenz gibt `evidence_gap` (nicht Clarification), ungültiger `controlCase` wird durch Schema-Validierung abgefangen, HITL-Rollenableitung aus VDMI-Zeile, Multi-Party-Approval-Policy, vollständige Kette mit Hash-Chain-Verifikation.
+
 ## [0.66.8] — 2026-06-25
 
 ### Fixed
