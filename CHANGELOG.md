@@ -5,6 +5,18 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.66.3] — 2026-06-25
+
+### Added
+- **Energy Sharing: Restmengen-/Überschuss-Aggregation pro Teilnehmer** (`src/timeseries-allocation.js#buildConsumptionAwareConsumerSummary`, #283, sub-issue of #280): new aggregation function building on #282's per-interval `cappedAllocations`/`surplus`/`deficit`/`consumptionDataMissing` output. Per consumer, over the requested period: `allocatedKWh` (solar received), `surplusKWh` (unused quota), `remainderKWh` (Restmenge — consumption beyond the solar share, i.e. grid draw), `consumptionKWh` (= `allocatedKWh + remainderKWh`, the consistency invariant), and `solarSharePercent` (plausibility ratio). Aggregates are computed over intervals with known consumption data only — intervals with `consumptionDataMissing` are excluded from the sums rather than treated as zero. A consumer with **zero** known intervals across the whole period gets `null` for every consumption-derived field (never silently `0`); `dataCompleteness` (`totalIntervals`/`knownIntervals`/`missingIntervals`/`complete`) is always reported so partial coverage is visible even when the available intervals still produce computable numbers.
+- The existing `buildConsumerSummary` is unaffected — this is a new, separate function.
+
+### Tests
+- 5 new cases in `tests/energy-sharing-allocation.test.js`: fully solar-covered consumer, consumer with a significant Restmenge, the `allocatedKWh + remainderKWh = consumptionKWh` consistency invariant, a consumer with zero consumption data (all fields `null`, not `0`), and partial data coverage (still computable from the known subset, `dataCompleteness.complete = false`).
+
+### Scope note
+- Not yet wired into `services/energy-sharing-allocation.service.js`'s `allocate` action, consistent with #282's scoping — that integration lands with the monthly/yearly report in #284, which is where this aggregation becomes meaningful to API consumers.
+
 ## [0.66.2] — 2026-06-25
 
 ### Added
