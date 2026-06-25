@@ -1616,4 +1616,114 @@ describe('energy-sharing-allocation service', () => {
       ).rejects.toThrow(/could not be resolved/);
     });
   });
+
+  // ── Korrekturlauf-Mechanismus (#286) ───────────────────────────────────────────
+  describe('allocate — Korrekturlauf via supersedesAllocationId (#286)', () => {
+    test('a normal run without supersedesAllocationId behaves exactly as before (no breaking change)', async () => {
+      const result = await broker.call('energy-sharing-allocation.allocate', makeAllocateParams());
+      expect(result.success).toBe(true);
+      expect(result.supersedesAllocationId).toBeNull();
+      expect(result.correctionReason).toBeNull();
+    });
+
+    test('throws when supersedesAllocationId is set without a correctionReason', async () => {
+      const original = await broker.call(
+        'energy-sharing-allocation.allocate',
+        makeAllocateParams()
+      );
+      await expect(
+        broker.call(
+          'energy-sharing-allocation.allocate',
+          makeAllocateParams({ supersedesAllocationId: original.id })
+        )
+      ).rejects.toThrow(/correctionReason is required/);
+    });
+
+    test('throws when supersedesAllocationId does not reference an existing allocation', async () => {
+      await expect(
+        broker.call(
+          'energy-sharing-allocation.allocate',
+          makeAllocateParams({
+            supersedesAllocationId: 'does-not-exist',
+            correctionReason: 'Test',
+          })
+        )
+      ).rejects.toThrow(/does not reference an existing allocation/);
+    });
+
+    test('a correction run links to the prior run, and the prior run is marked superseded (never deleted)', async () => {
+      const original = await broker.call(
+        'energy-sharing-allocation.allocate',
+        makeAllocateParams()
+      );
+
+      const correction = await broker.call(
+        'energy-sharing-allocation.allocate',
+        makeAllocateParams({
+          supersedesAllocationId: original.id,
+          correctionReason: 'Korrigierte Messwerte nachgemeldet',
+        })
+      );
+      expect(correction.success).toBe(true);
+      expect(correction.supersedesAllocationId).toBe(original.id);
+      expect(correction.correctionReason).toBe('Korrigierte Messwerte nachgemeldet');
+
+      // get on the OLD run still returns its historical data, plus a pointer to the replacement.
+      const oldFetched = await broker.call('energy-sharing-allocation.get', { id: original.id });
+      expect(oldFetched.success).toBe(true);
+      expect(oldFetched.superseded).toBe(true);
+      expect(oldFetched.supersededBy).toBe(correction.id);
+      expect(oldFetched.summary).toBeDefined(); // historical data preserved, not deleted
+    });
+
+    test('list excludes superseded runs by default, but includes them with includeSuperseded=true', async () => {
+      const original = await broker.call(
+        'energy-sharing-allocation.allocate',
+        makeAllocateParams()
+      );
+      const correction = await broker.call(
+        'energy-sharing-allocation.allocate',
+        makeAllocateParams({
+          supersedesAllocationId: original.id,
+          correctionReason: 'Korrektur',
+        })
+      );
+
+      const defaultList = await broker.call('energy-sharing-allocation.list', {});
+      expect(defaultList.allocations.find((a) => a.id === original.id)).toBeUndefined();
+      expect(defaultList.allocations.find((a) => a.id === correction.id)).toBeDefined();
+
+      const fullList = await broker.call('energy-sharing-allocation.list', {
+        includeSuperseded: true,
+      });
+      const oldEntry = fullList.allocations.find((a) => a.id === original.id);
+      expect(oldEntry).toBeDefined();
+      expect(oldEntry.superseded).toBe(true);
+      expect(oldEntry.supersededBy).toBe(correction.id);
+    });
+
+    test('refuses to supersede a run that was already superseded — must target the latest in the chain', async () => {
+      const original = await broker.call(
+        'energy-sharing-allocation.allocate',
+        makeAllocateParams()
+      );
+      await broker.call(
+        'energy-sharing-allocation.allocate',
+        makeAllocateParams({
+          supersedesAllocationId: original.id,
+          correctionReason: 'Erste Korrektur',
+        })
+      );
+
+      await expect(
+        broker.call(
+          'energy-sharing-allocation.allocate',
+          makeAllocateParams({
+            supersedesAllocationId: original.id, // targeting the now-superseded original again
+            correctionReason: 'Zweite Korrektur',
+          })
+        )
+      ).rejects.toThrow(/already superseded/);
+    });
+  });
 });

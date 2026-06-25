@@ -25,6 +25,29 @@
  *   up the data fetch/availability reporting; consumption-capped allocation
  *   arithmetic is a separate step (#282).
  *
+ * Korrekturlauf / Verteilregel-Versionierung (issue #286, gap identified in
+ * #280): `allocate` accepts an optional `supersedesAllocationId` (+ mandatory
+ * `correctionReason`) to mark a run as a correction of a prior run for the
+ * same period (e.g. measured data corrected after the fact). The prior run
+ * is marked `superseded`/`supersededBy`/`supersededAt` — never deleted — and
+ * `list` excludes superseded runs by default (`includeSuperseded` to see
+ * them). `get` on a superseded run still returns its full historical
+ * metadata plus the pointer to its replacement.
+ *
+ *   KRITIS assessment (required by #286's own scoping, not pre-decided):
+ *   the existing metadata-only retention (this doc: inputs, per-consumer
+ *   SUMMARIES, the new supersede links) is sufficient for the Korrekturlauf
+ *   audit trail. The audit question a Jahresabrechnung correction needs to
+ *   answer is "which run replaced which run, and why" — answered entirely by
+ *   `supersedesAllocationId`/`supersededBy`/`correctionReason`, never by
+ *   re-examining raw 15-min values from an old run. Raw interval-level data
+ *   remains re-derivable on demand via `download`/`billingReport` for as
+ *   long as the underlying source data (forecast MCP tool, inhouse upload,
+ *   or EDM) is still available — an existing, unchanged limitation, not a
+ *   gap introduced or solved by this issue. No additional raw-series
+ *   retention was added — that would conflict with the KRITIS
+ *   data-minimization principle already established for this service.
+ *
  * Regulatory basis: § 42c EnWG, § 12 StromNZV, § 20b EnWG (Interimsprozess, deadline 01.06.2026).
  */
 
@@ -140,6 +163,12 @@ module.exports = {
       params: {
         communityId: { type: 'string', optional: true, default: '' },
         validationReportId: { type: 'string', optional: true, default: '' },
+        // Korrekturlauf (#286): supersedesAllocationId marks this run as a
+        // correction of a prior run for the same period (e.g. corrected
+        // measured data). correctionReason is required whenever
+        // supersedesAllocationId is set — never an unexplained correction.
+        supersedesAllocationId: { type: 'string', optional: true, default: '' },
+        correctionReason: { type: 'string', optional: true, default: '' },
         // generators/consumers are optional when communityId resolves to a
         // persisted community (#285) — stepValidateInput requires at least
         // one of {inline arrays, resolvable communityId}.
@@ -197,6 +226,21 @@ module.exports = {
                     description:
                       'Optional v0.15 validation report UUID — skips redundant generator/consumer validation when set',
                     example: 'a1b2c3d4-...',
+                  },
+                  supersedesAllocationId: {
+                    type: 'string',
+                    description:
+                      'Korrekturlauf (#286): UUID of a prior allocation this run corrects/replaces ' +
+                      '(e.g. after measured data was corrected). The prior run is marked superseded ' +
+                      '(never deleted — full audit trail preserved) and linked to this run. Requires ' +
+                      'correctionReason. Omit for a normal, non-correction run (default behavior).',
+                    example: 'b2c3d4e5-...',
+                  },
+                  correctionReason: {
+                    type: 'string',
+                    description:
+                      'Required when supersedesAllocationId is set — never an unexplained correction.',
+                    example: 'Korrigierte Verbrauchsdaten für Müller (DE000...) nachgemeldet',
                   },
                   generators: {
                     type: 'array',
@@ -487,6 +531,15 @@ module.exports = {
               redispatchApplied,
               consumptionStatus,
               warnings,
+              // Korrekturlauf-Versionierung (#286) — supersedesAllocationId
+              // links this run to the prior run it corrects; superseded/
+              // supersededBy/supersededAt are set on the PRIOR run below,
+              // never on this (the newest) run.
+              supersedesAllocationId: params.supersedesAllocationId || null,
+              correctionReason: params.correctionReason || null,
+              superseded: false,
+              supersededBy: null,
+              supersededAt: null,
               _deleted: false,
               markedDeleted: false,
               metadata: {
@@ -499,6 +552,18 @@ module.exports = {
 
             await this.db.put(doc);
 
+            // Mark the prior run as superseded — never deleted, full audit
+            // trail preserved (#286). Done after the new run is durably
+            // persisted, so a failure here never leaves an orphaned new run
+            // without its prior-run link already saved.
+            if (params.supersedesAllocationId) {
+              const priorDoc = await this.db.get(`alloc:${params.supersedesAllocationId}`);
+              priorDoc.superseded = true;
+              priorDoc.supersededBy = id;
+              priorDoc.supersededAt = new Date().toISOString();
+              await this.db.put(priorDoc);
+            }
+
             return {
               success: true,
               id,
@@ -510,6 +575,8 @@ module.exports = {
               redispatchApplied,
               consumptionStatus,
               warnings,
+              supersedesAllocationId: doc.supersedesAllocationId,
+              correctionReason: doc.correctionReason,
               generators: doc.generators,
               consumers: consumerSummaries,
               summary: totalSummary,
@@ -529,6 +596,7 @@ module.exports = {
       params: {
         communityId: { type: 'string', optional: true },
         includeDeleted: { type: 'boolean', optional: true, default: false, convert: true },
+        includeSuperseded: { type: 'boolean', optional: true, default: false, convert: true },
         limit: { type: 'number', optional: true, default: 50, convert: true, max: 200 },
         cursor: { type: 'string', optional: true },
         offset: { type: 'number', optional: true, convert: true, min: 0 },
@@ -536,7 +604,9 @@ module.exports = {
       openapi: {
         summary: 'List past Energy Sharing allocation records',
         description:
-          'Returns allocation metadata records stored in PouchDB, newest first. Soft-deleted records are excluded unless includeDeleted=true.',
+          'Returns allocation metadata records stored in PouchDB, newest first. Soft-deleted ' +
+          'records are excluded unless includeDeleted=true. Superseded records (replaced by a ' +
+          'later Korrekturlauf, #286) are excluded unless includeSuperseded=true.',
         tags: ['Energy Sharing Allocation'],
         parameters: [
           {
@@ -550,6 +620,13 @@ module.exports = {
             in: 'query',
             schema: { type: 'boolean', default: false },
             description: 'Include soft-deleted records (for audit access)',
+          },
+          {
+            name: 'includeSuperseded',
+            in: 'query',
+            schema: { type: 'boolean', default: false },
+            description:
+              'Include records that were superseded by a later Korrekturlauf (#286, for audit access)',
           },
           {
             name: 'limit',
@@ -607,6 +684,10 @@ module.exports = {
           docs = docs.filter((d) => !d.markedDeleted);
         }
 
+        if (!ctx.params.includeSuperseded) {
+          docs = docs.filter((d) => !d.superseded);
+        }
+
         if (ctx.params.communityId) {
           docs = docs.filter((d) => d.communityId === ctx.params.communityId);
         }
@@ -617,6 +698,7 @@ module.exports = {
         const filterHash = buildFilterHash({
           communityId: ctx.params.communityId || null,
           includeDeleted: !!ctx.params.includeDeleted,
+          includeSuperseded: !!ctx.params.includeSuperseded,
         });
         const page = applyCursorPagination({
           items: docs,
@@ -644,6 +726,11 @@ module.exports = {
             durationMs: d.summary?.durationMs,
             createdAt: d.createdAt,
             _deleted: d.markedDeleted || false,
+            supersedesAllocationId: d.supersedesAllocationId || null,
+            correctionReason: d.correctionReason || null,
+            superseded: d.superseded || false,
+            supersededBy: d.supersededBy || null,
+            supersededAt: d.supersededAt || null,
           })),
           pageInfo: page.pageInfo,
         };
@@ -1211,6 +1298,31 @@ module.exports = {
             code: 'ALLOC_VALIDATION_REPORT_NOT_FOUND',
             message: `Could not load v0.15 report "${params.validationReportId}": ${err.message}. Continuing without it.`,
           });
+        }
+      }
+
+      // ── Korrekturlauf validation (#286) ──────────────────────────────────
+      // Fail fast, before the (potentially expensive) generation fetch below:
+      // correctionReason is mandatory whenever supersedesAllocationId is set
+      // — never an unexplained correction — and the prior run must exist.
+      if (params.supersedesAllocationId) {
+        if (!params.correctionReason || !params.correctionReason.trim()) {
+          throw new Error(
+            'correctionReason is required when supersedesAllocationId is set — explain why this run corrects the prior one.'
+          );
+        }
+        let priorDoc;
+        try {
+          priorDoc = await this.db.get(`alloc:${params.supersedesAllocationId}`);
+        } catch (err) {
+          throw new Error(
+            `supersedesAllocationId "${params.supersedesAllocationId}" does not reference an existing allocation: ${err.message}`
+          );
+        }
+        if (priorDoc.superseded) {
+          throw new Error(
+            `Allocation "${params.supersedesAllocationId}" was already superseded by "${priorDoc.supersededBy}" — supersede the latest run in the chain instead.`
+          );
         }
       }
 
