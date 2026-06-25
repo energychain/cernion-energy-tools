@@ -1424,6 +1424,10 @@ module.exports = {
             'dashboard-api.liquidityPlanningGovernanceStatus',
           'GET /dashboard/energy-sharing-simulation-gate':
             'dashboard-api.energySharingSimulationGateStatus',
+          'GET /dashboard/energy-sharing-42c-cutover-readiness':
+            'dashboard-api.energySharing42cCutoverReadinessStatus',
+          'GET /dashboard/nova-decision-lifecycle-readiness':
+            'dashboard-api.novaDecisionLifecycleReadinessStatus',
           'GET /dashboard/stadtwerk-mauer-sandbox-runtime':
             'dashboard-api.stadtwerkMauerSandboxRuntimeStatus',
           'GET /dashboard/stadtwerk-mauer-external-interface-stubs':
@@ -1448,6 +1452,10 @@ module.exports = {
             'dashboard-api.arealNetworkIntegrationOfferGateStatus',
           'GET /dashboard/transformation-financing-scenario-view':
             'dashboard-api.transformationFinancingScenarioViewStatus',
+          'GET /dashboard/investment-owner-deadline-budget-gate':
+            'dashboard-api.investmentOwnerDeadlineBudgetGateStatus',
+          'GET /dashboard/no-regret-measure-definition-gate':
+            'dashboard-api.noRegretMeasureDefinitionGateStatus',
           'GET /dashboard/gas-grid-transformation-asset-cockpit':
             'dashboard-api.gasGridTransformationAssetCockpitStatus',
           'GET /dashboard/leadership-delta-cockpit':

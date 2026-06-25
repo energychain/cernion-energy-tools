@@ -1113,6 +1113,47 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes investment owner/deadline/budget prompts to the read-only gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Investitionsprozess Owner Frist Budget Gate fuer Massnahmenfreigabe, Budgetwirkung, blockierte Folgeentscheidung und naechste Eskalationsstufe.',
+    });
+
+    expect(result.capability).toBe('investment_owner_deadline_budget_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'investment_owner_deadline_budget_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.investmentOwnerDeadlineBudgetGateStatus');
+    expect(actionNames).not.toContain('investment.approve');
+    expect(actionNames).not.toContain('budget.release');
+    expect(actionNames).not.toContain('finance.createBooking');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('routes No-Regret measure definition prompts to the read-only definition gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe No-Regret Massnahmen Definitionsgate fuer Transformationsprogramm Szenariowirkung Budgetwirkung regulatorische Anschlussfaehigkeit Priorisierungsrecht Datenqualitaet Kommunikationsregel und Review Gate.',
+    });
+
+    expect(result.capability).toBe('no_regret_measure_definition_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'no_regret_measure_definition_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.noRegretMeasureDefinitionGateStatus');
+    expect(actionNames).not.toContain('measure.approve');
+    expect(actionNames).not.toContain('budget.release');
+    expect(actionNames).not.toContain('finance.createBooking');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('device-control.execute');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Gasnetz transformation asset cockpit prompts to the read-only asset view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Gasnetztransformation VDMI Asset Cockpit fuer Gaszielnetz H2 Weiterverwendung Gasnetz Stilllegung Rueckbaukosten Cashflow Gasnetz Waermenetz Abhaengigkeit Stromnetz Abhaengigkeit und Gremiengate.',
@@ -1262,6 +1303,48 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('settlement.exportA96');
     expect(actionNames).not.toContain('billing.release');
     expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('routes §42c cutover readiness prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe §42c Cutover Readiness fuer Energieteilen mit A96 Defaults, Spec Freeze, Pilot Tenant Hoeheinoed, Settlement Readiness Haertetest, Allokations Lasttest, Runbook, Compliance Sign-Off und Rollback DR Readiness.',
+    });
+
+    expect(result.capability).toBe('energy_sharing_42c_cutover_readiness');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'energy_sharing_42c_cutover_readiness'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.energySharing42cCutoverReadinessStatus');
+    expect(actionNames).not.toContain('tenant.migrate');
+    expect(actionNames).not.toContain('energy-sharing-allocation.allocate');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('rollback.execute');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('routes NOVA decision lifecycle readiness prompts to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe NOVA TRL-7 Production Readiness fuer Decision Lifecycle, Decision Source Catalogue, HITL Bridge Policy, Replay Audit Readiness und tenant-isolierte SSE Evidence.',
+    });
+
+    expect(result.capability).toBe('nova_decision_lifecycle_readiness');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'nova_decision_lifecycle_readiness'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.novaDecisionLifecycleReadinessStatus');
+    expect(actionNames).not.toContain('nova.decisions.create');
+    expect(actionNames).not.toContain('nova.decisions.transition');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('webhook.emit');
+    expect(actionNames).not.toContain('nova.sse.emit');
+    expect(actionNames).not.toContain('assets.applyOverride');
+    expect(actionNames).not.toContain('external.connector.call');
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 

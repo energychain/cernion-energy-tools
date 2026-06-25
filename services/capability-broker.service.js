@@ -218,6 +218,29 @@ function findBestCapability(taskText, options = {}) {
     /\ba96\b/i.test(haystack) &&
     /(settlement|reconciliation|reconcile|abgleich|bilanzierungsabweichung)/i.test(haystack);
 
+  const hasEnergySharing42cCutoverSignal =
+    /(§42c|42c|cutover|energieteilen cutover|energy sharing 42c|energy-sharing 42c)/i.test(haystack) &&
+    /(cutover|readiness|a96 defaults|spec freeze|pilot tenant|settlement readiness|allokations|allocation load|runbook|compliance sign-off|rollback)/i.test(haystack);
+
+  if (hasEnergySharing42cCutoverSignal) {
+    const energySharing42cCutoverCapability = findCapabilityByName('energy_sharing_42c_cutover_readiness');
+    if (energySharing42cCutoverCapability) {
+      return { capability: energySharing42cCutoverCapability, score: 134, usedFallback: false };
+    }
+  }
+
+  const hasNovaDecisionLifecycleReadinessSignal =
+    /\bnova\b/i.test(haystack) &&
+    /(decision lifecycle|decision-lifecycle|entscheidungslifecycle|entscheidungslebenszyklus|decision source catalogue|source catalogue|hitl bridge|replay audit|tenant.?isolated sse|trl.?7.*decision|decision.*trl.?7|production readiness.*decision|decision.*production readiness)/i.test(haystack) &&
+    !/(nova apply|nova anwenden|entscheidung ausfuehren|entscheidung ausführen|apply endpoint|approve endpoint|reject endpoint|replay endpoint|state machine runtime|sse protocol change|webhook emit|asset override ausfuehren|asset override ausführen)/i.test(haystack);
+
+  if (hasNovaDecisionLifecycleReadinessSignal) {
+    const novaReadinessCapability = findCapabilityByName('nova_decision_lifecycle_readiness');
+    if (novaReadinessCapability) {
+      return { capability: novaReadinessCapability, score: 134, usedFallback: false };
+    }
+  }
+
   if (hasSettlementA96SpecificSignal) {
     const settlementA96Capability = findCapabilityByName('settlement_a96_reconciliation');
     if (settlementA96Capability) {
@@ -650,6 +673,30 @@ function findBestCapability(taskText, options = {}) {
     const gridConnectionGateCapability = findCapabilityByName('grid_connection_transformation_gate');
     if (gridConnectionGateCapability) {
       return { capability: gridConnectionGateCapability, score: 138, usedFallback: false };
+    }
+  }
+
+  const hasNoRegretDefinitionGateSpecificSignal =
+    /(no-regret|no regret|no_regret_measure_definition_gate|definitionsgate)/i.test(haystack) &&
+    /(szenariowirkung|transformationseffekt|budgetwirkung|regulatorische anschlussfaehigkeit|regulatorische anschlussfähigkeit|priorisierungsrecht|nominierungsrecht|datenqualitaet|datenqualität|kommunikationsregel|review gate|pruefgate|prüfgate)/i.test(haystack) &&
+    !/(measure\.approve|budget\.release|finance\.createBooking|accounting\.postJournal|treasury\.executeTransfer|hitl\.create|vdmi\.mutate|settlement\.exportA96|billing\.release|tariff\.mutate|mako\.dispatch|device-control\.execute|external\.connector\.call|personal-agent\.execute|wallet|key material|schluessel|schlüssel|crypto)/i.test(haystack);
+
+  if (hasNoRegretDefinitionGateSpecificSignal) {
+    const noRegretDefinitionCapability = findCapabilityByName('no_regret_measure_definition_gate');
+    if (noRegretDefinitionCapability) {
+      return { capability: noRegretDefinitionCapability, score: 150, usedFallback: false };
+    }
+  }
+
+  const hasInvestmentOwnerDeadlineBudgetGateSpecificSignal =
+    /(investitionsprozess|investment process|investment_owner_deadline_budget_gate|owner.?frist.?budget|owner deadline budget|massnahmenfreigabe|maßnahmenfreigabe|budgetwirkung|strategy-to-execution)/i.test(haystack) &&
+    /(owner|frist|deadline|budget|budgetwirkung|freigabestatus|approval status|blockierte folgeentscheidung|blocked follow.?up decision|eskalationsstufe|escalation step)/i.test(haystack) &&
+    !/(zwei spuren|two.?track|budgetabgabe|investitionsabgabe|abgabesicherheit|iso 55001|vorstandsformat|investment\.approve|budget\.release|finance\.createBooking|accounting\.postJournal|treasury\.executeTransfer|hitl\.create|vdmi\.mutate|settlement\.exportA96|billing\.release|tariff\.mutate|mako\.dispatch|external\.connector\.call|personal-agent\.execute|wallet|key material|schluessel|schlüssel|crypto)/i.test(haystack);
+
+  if (hasInvestmentOwnerDeadlineBudgetGateSpecificSignal) {
+    const investmentOwnerBudgetCapability = findCapabilityByName('investment_owner_deadline_budget_gate');
+    if (investmentOwnerBudgetCapability) {
+      return { capability: investmentOwnerBudgetCapability, score: 149, usedFallback: false };
     }
   }
 
@@ -1669,6 +1716,26 @@ function findBestCapability(taskText, options = {}) {
       return {
         capability: vnbLookupCapability,
         score: 90,
+        usedFallback: false,
+      };
+    }
+  }
+
+  const noRegretDefinitionSignals = [
+    'no-regret',
+    'no regret',
+    'definitionsgate',
+    'no_regret_measure_definition_gate',
+  ];
+  const hasNoRegretDefinitionIntent =
+    noRegretDefinitionSignals.some((signal) => haystack.includes(signal)) &&
+    /(szenariowirkung|budgetwirkung|priorisierungsrecht|nominierungsrecht|datenqualitaet|datenqualität|kommunikationsregel|review gate|pruefgate|prüfgate)/i.test(haystack);
+  if (hasNoRegretDefinitionIntent) {
+    const noRegretCapability = findCapabilityByName('no_regret_measure_definition_gate');
+    if (noRegretCapability) {
+      return {
+        capability: noRegretCapability,
+        score: 92,
         usedFallback: false,
       };
     }

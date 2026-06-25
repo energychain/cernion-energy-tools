@@ -54,6 +54,8 @@ module.exports = {
       specialGridUsageImpactMapStatus: 5 * 60 * 1000, // 5 min
       liquidityPlanningGovernanceStatus: 5 * 60 * 1000, // 5 min
       energySharingSimulationGateStatus: 5 * 60 * 1000, // 5 min
+      energySharing42cCutoverReadinessStatus: 5 * 60 * 1000, // 5 min
+      novaDecisionLifecycleReadinessStatus: 5 * 60 * 1000, // 5 min
       regulatoryChangeReadinessStatus: 5 * 60 * 1000, // 5 min
       investmentTwoTrackControlStatus: 5 * 60 * 1000, // 5 min
       sapBudgetPspGateStatus: 5 * 60 * 1000, // 5 min
@@ -78,6 +80,8 @@ module.exports = {
       heatTransformationLineAssetModelStatus: 5 * 60 * 1000, // 5 min
       kiFloorwalkerGovernanceStatus: 5 * 60 * 1000, // 5 min
       investmentWaterfallGovernanceStatus: 5 * 60 * 1000, // 5 min
+      investmentOwnerDeadlineBudgetGateStatus: 5 * 60 * 1000, // 5 min
+      noRegretMeasureDefinitionGateStatus: 5 * 60 * 1000, // 5 min
       capacityContractRiskAssetCockpitStatus: 5 * 60 * 1000, // 5 min
       imsysTaf2ComplianceStatus: 5 * 60 * 1000, // 5 min
       scheduleManagementGovernanceRoadmapStatus: 5 * 60 * 1000, // 5 min
@@ -2087,6 +2091,183 @@ module.exports = {
           this.settings.cacheTtlMs.energySharingSimulationGateStatus,
           async () => ({
             ...this.buildEnergySharingSimulationGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- energySharing42cCutoverReadinessStatus ---------------------------
+    /**
+     * GET /api/dashboard/energy-sharing-42c-cutover-readiness?cutoverId=...
+     *
+     * Read-only dossier-safe §42c cutover readiness gate. It makes the seven
+     * cutover sub-tracks reviewable without tenant migration, A96 export,
+     * settlement/allocation execution, HITL, rollback or connector side effects.
+     */
+    energySharing42cCutoverReadinessStatus: {
+      rest: 'GET /energy-sharing-42c-cutover-readiness',
+      params: {
+        cutoverId: { type: 'string', optional: true, min: 1 },
+        pilotTenantId: { type: 'string', optional: true, min: 1 },
+        balanceGroupId: { type: 'string', optional: true, min: 1 },
+        a96DefaultsStatus: { type: 'string', optional: true, min: 1 },
+        specFreezeStatus: { type: 'string', optional: true, min: 1 },
+        pilotTenantStatus: { type: 'string', optional: true, min: 1 },
+        settlementHardeningStatus: { type: 'string', optional: true, min: 1 },
+        allocationLoadTestStatus: { type: 'string', optional: true, min: 1 },
+        runbookStatus: { type: 'string', optional: true, min: 1 },
+        complianceSignoffStatus: { type: 'string', optional: true, min: 1 },
+        rollbackPlanStatus: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        targetDate: { type: 'string', optional: true, min: 1 },
+        evidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: '§42c cutover readiness - read-only dossier-safe status',
+        description:
+          'Evaluates supplied §42c cutover evidence across sub-tracks A-G and returns a dossier-safe readiness gate. ' +
+          'The endpoint is read-only and does not provision tenants, migrate data, release A96 exports, execute allocation/settlement, create HITL tasks, run rollback/restore, call external connectors, handle secrets or mutate Personal Agent behavior.',
+        parameters: [
+          { name: 'cutoverId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'pilotTenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'balanceGroupId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'a96DefaultsStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'specFreezeStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'pilotTenantStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'settlementHardeningStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'allocationLoadTestStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'runbookStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'complianceSignoffStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'rollbackPlanStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'targetDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceRefs', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only §42c cutover readiness status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    riskLevel: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    subTracks: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `energy-sharing-42c-cutover-readiness:${params.cutoverId || 'no-cutover'}:${params.pilotTenantId || 'no-tenant'}:${params.balanceGroupId || 'no-bg'}:${params.a96DefaultsStatus || ''}:${params.specFreezeStatus || ''}:${params.pilotTenantStatus || ''}:${params.settlementHardeningStatus || ''}:${params.allocationLoadTestStatus || ''}:${params.runbookStatus || ''}:${params.complianceSignoffStatus || ''}:${params.rollbackPlanStatus || ''}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.energySharing42cCutoverReadinessStatus,
+          async () => ({
+            ...this.buildEnergySharing42cCutoverReadinessStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- novaDecisionLifecycleReadinessStatus -----------------------------
+    /**
+     * GET /api/dashboard/nova-decision-lifecycle-readiness?caseId=...
+     *
+     * Read-only dossier-safe NOVA readiness gate. It makes the TRL-5 -> TRL-7
+     * lifecycle evidence visible without creating decisions, changing SSE,
+     * creating HITL items, replaying triggers or applying asset overrides.
+     */
+    novaDecisionLifecycleReadinessStatus: {
+      rest: 'GET /nova-decision-lifecycle-readiness',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        decisionKind: { type: 'string', optional: true, min: 1 },
+        lifecycleModel: { type: 'string', optional: true, min: 1 },
+        sourceCatalogue: { type: 'string', optional: true, min: 1 },
+        auditTrail: { type: 'string', optional: true, min: 1 },
+        tenantIsolationEvidence: { type: 'string', optional: true, min: 1 },
+        hitlPolicyEvidence: { type: 'string', optional: true, min: 1 },
+        replayEvidence: { type: 'string', optional: true, min: 1 },
+        expiryEvidence: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        deadline: { type: 'string', optional: true, min: 1 },
+        openMeasure: { type: 'string', optional: true, min: 1 },
+        evidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'NOVA decision lifecycle readiness - read-only dossier-safe status',
+        description:
+          'Evaluates supplied NOVA decision-lifecycle evidence and returns a dossier-safe readiness gate. ' +
+          'The endpoint is read-only and does not create decisions, transition lifecycle state, create HITL items, emit webhooks/SSE events, replay triggers, apply asset overrides, mutate MaStR/Redispatch/thresholds, call external connectors, handle secrets or mutate Personal Agent behavior.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionKind', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'lifecycleModel', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceCatalogue', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'auditTrail', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'tenantIsolationEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'hitlPolicyEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'replayEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'expiryEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'deadline', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'openMeasure', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceRefs', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only NOVA decision lifecycle readiness status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    riskLevel: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `nova-decision-lifecycle-readiness:${params.caseId || 'no-case'}:${params.decisionKind || 'no-kind'}:${params.lifecycleModel || ''}:${params.sourceCatalogue || ''}:${params.auditTrail || ''}:${params.tenantIsolationEvidence || ''}:${params.hitlPolicyEvidence || ''}:${params.replayEvidence || ''}:${params.expiryEvidence || ''}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.novaDecisionLifecycleReadinessStatus,
+          async () => ({
+            ...this.buildNovaDecisionLifecycleReadinessStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -5883,6 +6064,115 @@ module.exports = {
           this.settings.cacheTtlMs.transformationFinancingScenarioViewStatus,
           async () => ({
             ...this.buildTransformationFinancingScenarioViewStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- investmentOwnerDeadlineBudgetGateStatus ---------------------------
+    /**
+     * GET /api/dashboard/investment-owner-deadline-budget-gate
+     *
+     * Read-only dossier-safe evidence gate for supplied investment measure
+     * owner/deadline/budget facts. It does not approve budgets, book finance
+     * entries, create HITL tasks, or call external systems.
+     */
+    investmentOwnerDeadlineBudgetGateStatus: {
+      rest: 'GET /investment-owner-deadline-budget-gate',
+      params: {
+        measureId: { type: 'string', optional: true, min: 1 },
+        measureTitle: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        deadline: { type: 'string', optional: true, min: 1 },
+        budgetEffect: { type: 'string', optional: true, min: 1 },
+        requiredEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        approvalStatus: { type: 'string', optional: true, min: 1 },
+        blockedFollowUpDecision: { type: 'string', optional: true, min: 1 },
+        nextEscalationStep: { type: 'string', optional: true, min: 1 },
+        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceActions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Investment Owner-Frist-Budget Gate -- read-only evidence gate',
+        description:
+          'Returns a deterministic dossier-safe view over investment measure owner, deadline, budget effect, required evidence, approval status, blocked follow-up decision and next escalation step. ' +
+          'The endpoint is read-only and never approves budgets, creates finance/accounting records, mutates investment workflows, prepares billing/settlement/tariff/MaKo output, creates HITL tasks, or calls external connectors.',
+        responses: {
+          200: {
+            description: 'Read-only investment owner/deadline/budget gate evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `investment-owner-deadline-budget-gate:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.investmentOwnerDeadlineBudgetGateStatus,
+          async () => ({
+            ...this.buildInvestmentOwnerDeadlineBudgetGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- noRegretMeasureDefinitionGateStatus -------------------------------
+    /**
+     * GET /api/dashboard/no-regret-measure-definition-gate
+     *
+     * Read-only dossier-safe definition gate for supplied No-Regret measure
+     * facts. It does not approve measures, reserve budgets, create HITL
+     * tasks, mutate programmes, or call external systems.
+     */
+    noRegretMeasureDefinitionGateStatus: {
+      rest: 'GET /no-regret-measure-definition-gate',
+      params: {
+        measureId: { type: 'string', optional: true, min: 1 },
+        programmeId: { type: 'string', optional: true, min: 1 },
+        measureName: { type: 'string', optional: true, min: 1 },
+        scenarioAssumption: { type: 'string', optional: true, min: 1 },
+        transformationEffect: { type: 'string', optional: true, min: 1 },
+        budgetEffect: { type: 'string', optional: true, min: 1 },
+        fundingOwner: { type: 'string', optional: true, min: 1 },
+        regulatoryFit: { type: 'string', optional: true, min: 1 },
+        constraintHint: { type: 'string', optional: true, min: 1 },
+        prioritisationRule: { type: 'string', optional: true, min: 1 },
+        nominationRight: { type: 'string', optional: true, min: 1 },
+        dataQualityStatus: { type: 'string', optional: true, min: 1 },
+        sourceSnapshot: { type: 'string', optional: true, min: 1 },
+        communicationRule: { type: 'string', optional: true, min: 1 },
+        stakeholderGroup: { type: 'string', optional: true, min: 1 },
+        nextReviewGate: { type: 'string', optional: true, min: 1 },
+        dueDate: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceActions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'No-Regret measure definition gate -- read-only evidence gate',
+        description:
+          'Returns a deterministic dossier-safe view over No-Regret measure definition evidence: scenario/effect, budget/funding owner, regulatory fit, prioritisation/nomination rule, data quality, communication rule, and next review gate. ' +
+          'The endpoint is read-only and never approves measures or budgets, mutates programmes, creates HITL tasks, runs MaKo/A96/billing/settlement/tariff/device-control effects, or calls external connectors.',
+        responses: {
+          200: {
+            description: 'Read-only No-Regret measure definition evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `no-regret-measure-definition-gate:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.noRegretMeasureDefinitionGateStatus,
+          async () => ({
+            ...this.buildNoRegretMeasureDefinitionGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -9767,6 +10057,432 @@ module.exports = {
           missingEvidence,
           positiveFollowUps,
           sourceArtifacts,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildEnergySharing42cCutoverReadinessStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const normalizeStatus = (value) => {
+        if (value === true) return 'ready';
+        if (value === false || value == null || value === '') return 'missing';
+        const text = String(value).trim().toLowerCase();
+        if (['ready', 'ok', 'complete', 'completed', 'provided', 'valid', 'validated', 'available', 'confirmed', 'approved', 'done', 'passed'].includes(text)) return 'ready';
+        if (['blocked', 'invalid', 'failed', 'rejected', 'red', 'critical'].includes(text)) return 'blocked';
+        if (['risk', 'risky', 'warning', 'late', 'overdue', 'pending_legal', 'pending-regulatory'].includes(text)) return 'risk';
+        if (['partial', 'in_progress', 'in-progress', 'draft', 'pending', 'review'].includes(text)) return 'partial';
+        return 'ready';
+      };
+      const evidenceRefs = toList(params.evidenceRefs);
+      const cutoverId = params.cutoverId || 'energy-sharing-42c-cutover';
+      const subTrackSpecs = [
+        {
+          id: 'a96_defaults_spec_freeze',
+          subTrack: 'A',
+          label: 'A96 defaults and spec-freeze evidence',
+          value: params.a96DefaultsStatus && params.specFreezeStatus,
+          displayValue: [params.a96DefaultsStatus, params.specFreezeStatus].filter(Boolean).join(' / '),
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add A96 defaults and spec-freeze evidence before any export release is considered',
+        },
+        {
+          id: 'pilot_tenant_balance_group',
+          subTrack: 'B',
+          label: 'Pilot tenant and balance-group readiness',
+          value: params.pilotTenantStatus && params.pilotTenantId && params.balanceGroupId,
+          displayValue: [params.pilotTenantId, params.balanceGroupId, params.pilotTenantStatus].filter(Boolean).join(' / '),
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add pilot-tenant and virtual balance-group readiness evidence without provisioning production tenants',
+        },
+        {
+          id: 'settlement_readiness_hardening',
+          subTrack: 'C',
+          label: 'Settlement-readiness hardening evidence',
+          value: params.settlementHardeningStatus,
+          displayValue: params.settlementHardeningStatus,
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add settlement-readiness hardening and data-quality evidence before billing-adjacent decisions',
+        },
+        {
+          id: 'allocation_load_test',
+          subTrack: 'D',
+          label: 'Allocation/load-test evidence',
+          value: params.allocationLoadTestStatus,
+          displayValue: params.allocationLoadTestStatus,
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add allocation load-test and deterministic export evidence without executing allocation',
+        },
+        {
+          id: 'incident_runbook',
+          subTrack: 'E',
+          label: 'Incident/runbook readiness',
+          value: params.runbookStatus,
+          displayValue: params.runbookStatus,
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add incident runbook and escalation evidence without creating HITL or pager tasks',
+        },
+        {
+          id: 'compliance_signoff_evidence',
+          subTrack: 'F',
+          label: 'Compliance/sign-off evidence',
+          value: params.complianceSignoffStatus,
+          displayValue: params.complianceSignoffStatus,
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add compliance and sign-off evidence without automating legal/regulatory interpretation',
+        },
+        {
+          id: 'rollback_dr_readiness',
+          subTrack: 'G',
+          label: 'Rollback/DR readiness evidence',
+          value: params.rollbackPlanStatus,
+          displayValue: params.rollbackPlanStatus,
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add rollback and DR readiness evidence without running restore or rollback actions',
+        },
+      ];
+
+      const subTracks = subTrackSpecs.map((spec) => {
+        const status = normalizeStatus(spec.value);
+        return {
+          id: spec.id,
+          subTrack: spec.subTrack,
+          label: spec.label,
+          status,
+          value: spec.displayValue || spec.value || null,
+          risk: status === 'ready' ? 'low' : spec.riskWhenMissing,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        };
+      });
+      const evidenceItems = subTracks.filter((item) => item.status === 'ready');
+      const missingEvidence = subTracks
+        .filter((item) => item.status !== 'ready')
+        .map((item) => ({
+          missingDataPoint: item.id,
+          subTrack: item.subTrack,
+          label: item.label,
+          status: item.status,
+          value: item.value,
+          risk: item.risk,
+          enablesDossierAddition: item.enablesDossierAddition,
+          category: 'energy_sharing_42c_cutover_readiness',
+        }));
+      const hasHighRiskGap = missingEvidence.some((item) => item.risk === 'high');
+      const hasMediumRiskGap = missingEvidence.some((item) => item.risk === 'medium');
+      const status = missingEvidence.length === 0
+        ? 'ready'
+        : hasHighRiskGap
+          ? 'blocked'
+          : 'partial';
+      const riskLevel = status === 'ready' ? 'low' : hasHighRiskGap ? 'high' : hasMediumRiskGap ? 'medium' : 'low';
+      const readinessScore = Number((evidenceItems.length / subTrackSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        subTrack: item.subTrack,
+        status: item.status,
+        risk: item.risk,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'energy_sharing_42c_cutover_readiness',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.energySharing42cCutoverReadinessStatus'],
+        referenced: [
+          'docs/roadmap/issues/10-energy-sharing-42c-cutover.md',
+          'docs/ENERGY_SHARING_ABNAHME.md',
+          'docs/ENERGY_SHARING_A96_DEFAULTS.md',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+        ],
+        notCalled: [
+          'tenant.provision',
+          'tenant.migrate',
+          'energy-sharing.createProject',
+          'energy-sharing-allocation.allocate',
+          'settlement.prepareA96',
+          'settlement.reconcileA96',
+          'settlement.exportA96',
+          'allocation.execute',
+          'billing.release',
+          'mako.dispatch',
+          'hitl.create',
+          'pager.escalate',
+          'rollback.execute',
+          'backup.restore',
+          'external.connector.call',
+          'secret.read',
+          'personal-agent.execute',
+        ],
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Risk Level: ${riskLevel}`,
+        `Provided §42c sub-track evidence: ${evidenceItems.length}/${subTrackSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.pilotTenantId) dossierFacts.push(`Pilot Tenant: ${params.pilotTenantId}`);
+      if (params.balanceGroupId) dossierFacts.push(`Balance Group: ${params.balanceGroupId}`);
+      if (params.targetDate) dossierFacts.push(`Target Date: ${params.targetDate}`);
+
+      return {
+        energySharing42cCutoverReadinessId: `es42c:${Buffer.from(`${cutoverId}:${params.pilotTenantId || ''}:${params.balanceGroupId || ''}:${params.owner || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'energy_sharing_42c_cutover_readiness',
+        safety: 'read_only',
+        status,
+        riskLevel,
+        readinessScore,
+        cutoverId,
+        pilotTenantId: params.pilotTenantId || null,
+        balanceGroupId: params.balanceGroupId || null,
+        targetDate: params.targetDate || null,
+        owner: params.owner || null,
+        subTracks,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        evidenceRefs,
+        sourceActions,
+        validationFindings: missingEvidence,
+        dossierEvidence: {
+          status,
+          riskLevel,
+          readinessScore,
+          cutoverId,
+          pilotTenantId: params.pilotTenantId || null,
+          balanceGroupId: params.balanceGroupId || null,
+          targetDate: params.targetDate || null,
+          owner: params.owner || null,
+          subTracks,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          evidenceRefs,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildNovaDecisionLifecycleReadinessStatus(params = {}) {
+      const toList = (value) => Array.isArray(value)
+        ? value.filter(Boolean)
+        : value
+          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+      const normalizeStatus = (value) => {
+        if (value === true) return 'ready';
+        if (value === false || value == null || value === '') return 'missing';
+        const text = String(value).trim().toLowerCase();
+        if (['ready', 'ok', 'complete', 'completed', 'provided', 'valid', 'validated', 'available', 'confirmed', 'approved', 'done', 'passed'].includes(text)) return 'ready';
+        if (['blocked', 'invalid', 'failed', 'rejected', 'red', 'critical'].includes(text)) return 'blocked';
+        if (['risk', 'risky', 'warning', 'late', 'overdue', 'pending_legal', 'pending-regulatory'].includes(text)) return 'risk';
+        if (['partial', 'in_progress', 'in-progress', 'draft', 'pending', 'review'].includes(text)) return 'partial';
+        return 'ready';
+      };
+      const evidenceRefs = toList(params.evidenceRefs);
+      const caseId = params.caseId || 'nova-decision-lifecycle-readiness';
+      const evidenceSpecs = [
+        {
+          id: 'decision_lifecycle_model',
+          label: 'Decision lifecycle model evidence',
+          value: params.lifecycleModel,
+          stage: 'lifecycle',
+          expectedStates: ['proposed', 'triaged', 'pending_approval', 'approved', 'rejected', 'expired', 'applied'],
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add a documented NOVA lifecycle model from proposed to applied/rejected/expired',
+        },
+        {
+          id: 'decision_source_catalogue',
+          label: 'Decision source catalogue evidence',
+          value: params.sourceCatalogue,
+          stage: 'sources',
+          expectedSources: ['mastr-quality.audit', 'redispatch-expost.audit', 'vnb-monitor', 'cya.a2a.consensus.failed', 'mastr-monitor.delta.detected', 'assets.override'],
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add NOVA decision-source coverage for MaStR, Redispatch, VNB monitor, CYA/A2A, MaStR monitor and asset override triggers',
+        },
+        {
+          id: 'transition_audit_history',
+          label: 'Transition audit/history evidence',
+          value: params.auditTrail,
+          stage: 'audit',
+          riskWhenMissing: 'high',
+          enablesDossierAddition: 'add lifecycle transition auditability evidence without writing NOVA decisions',
+        },
+        {
+          id: 'tenant_isolated_sse_evidence',
+          label: 'Tenant-isolated SSE readiness evidence',
+          value: params.tenantIsolationEvidence,
+          stage: 'sse',
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add tenant-channel readiness evidence without changing SSE runtime behavior',
+        },
+        {
+          id: 'hitl_bridge_policy',
+          label: 'HITL bridge policy evidence',
+          value: params.hitlPolicyEvidence,
+          stage: 'hitl_policy',
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add approval/escalation policy evidence without creating HITL items',
+        },
+        {
+          id: 'replay_testability',
+          label: 'Replay/testability evidence',
+          value: params.replayEvidence,
+          stage: 'replay',
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add replay and audit testability evidence without adding a replay endpoint',
+        },
+        {
+          id: 'expiry_non_execution',
+          label: 'Expiry and non-execution evidence',
+          value: params.expiryEvidence,
+          stage: 'non_execution',
+          riskWhenMissing: 'medium',
+          enablesDossierAddition: 'add expiry and non-execution evidence before production lifecycle execution is considered',
+        },
+      ];
+
+      const readinessItems = evidenceSpecs.map((spec) => {
+        const status = normalizeStatus(spec.value);
+        return {
+          id: spec.id,
+          label: spec.label,
+          stage: spec.stage,
+          status,
+          value: spec.value || null,
+          risk: status === 'ready' ? 'low' : spec.riskWhenMissing,
+          expectedStates: spec.expectedStates || undefined,
+          expectedSources: spec.expectedSources || undefined,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        };
+      });
+      const evidenceItems = readinessItems.filter((item) => item.status === 'ready');
+      const missingEvidence = readinessItems
+        .filter((item) => item.status !== 'ready')
+        .map((item) => ({
+          missingDataPoint: item.id,
+          label: item.label,
+          stage: item.stage,
+          status: item.status,
+          value: item.value,
+          risk: item.risk,
+          enablesDossierAddition: item.enablesDossierAddition,
+          category: 'nova_decision_lifecycle_readiness',
+        }));
+      const hasHighRiskGap = missingEvidence.some((item) => item.risk === 'high');
+      const hasMediumRiskGap = missingEvidence.some((item) => item.risk === 'medium');
+      const status = missingEvidence.length === 0
+        ? 'ready_for_trl7_review'
+        : hasHighRiskGap
+          ? 'blocked'
+          : 'partial_readiness';
+      const riskLevel = status === 'ready_for_trl7_review' ? 'low' : hasHighRiskGap ? 'high' : hasMediumRiskGap ? 'medium' : 'low';
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        stage: item.stage,
+        status: item.status,
+        risk: item.risk,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'nova_decision_lifecycle_readiness',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.novaDecisionLifecycleReadinessStatus'],
+        referenced: [
+          'docs/use-cases/nova-decision-lifecycle-readiness.md',
+          'services/nova.service.js',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
+        notCalled: [
+          'nova.decisions.create',
+          'nova.decisions.transition',
+          'nova.decisions.approve',
+          'nova.decisions.reject',
+          'nova.decisions.expire',
+          'nova.decisions.apply',
+          'nova.decisions.replayTrigger',
+          'hitl.create',
+          'webhook.emit',
+          'nova.sse.emit',
+          'assets.applyOverride',
+          'mastr-quality.applyCorrection',
+          'redispatch-expost.applyCorrection',
+          'vnb-monitor.updateThreshold',
+          'settlement.exportA96',
+          'billing.release',
+          'tariff.update',
+          'device-control.execute',
+          'external.connector.call',
+          'secret.read',
+          'personal-agent.execute',
+        ],
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Risk Level: ${riskLevel}`,
+        `Provided NOVA readiness evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.decisionKind) dossierFacts.push(`Decision Kind: ${params.decisionKind}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (params.deadline) dossierFacts.push(`Deadline: ${params.deadline}`);
+
+      return {
+        novaDecisionLifecycleReadinessId: `nova-readiness:${Buffer.from(`${caseId}:${params.decisionKind || ''}:${params.owner || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'nova_decision_lifecycle_readiness',
+        safety: 'read_only',
+        status,
+        riskLevel,
+        readinessScore,
+        caseId,
+        decisionKind: params.decisionKind || null,
+        owner: params.owner || null,
+        deadline: params.deadline || null,
+        openMeasure: params.openMeasure || null,
+        decisionLifecycle: {
+          expectedStates: ['proposed', 'triaged', 'pending_approval', 'approved', 'rejected', 'expired', 'applied'],
+          evidenceStatus: readinessItems.find((item) => item.id === 'decision_lifecycle_model')?.status || 'missing',
+        },
+        sourceCatalogue: {
+          expectedSources: ['mastr-quality.audit', 'redispatch-expost.audit', 'vnb-monitor', 'cya.a2a.consensus.failed', 'mastr-monitor.delta.detected', 'assets.override'],
+          evidenceStatus: readinessItems.find((item) => item.id === 'decision_source_catalogue')?.status || 'missing',
+        },
+        auditAndReplayReadiness: {
+          auditTrailStatus: readinessItems.find((item) => item.id === 'transition_audit_history')?.status || 'missing',
+          replayEvidenceStatus: readinessItems.find((item) => item.id === 'replay_testability')?.status || 'missing',
+        },
+        sseTenantIsolationReadiness: readinessItems.find((item) => item.id === 'tenant_isolated_sse_evidence')?.status || 'missing',
+        hitlPolicyReadiness: readinessItems.find((item) => item.id === 'hitl_bridge_policy')?.status || 'missing',
+        nonExecutionEvidence: readinessItems.find((item) => item.id === 'expiry_non_execution')?.status || 'missing',
+        readinessItems,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        evidenceRefs,
+        sourceActions,
+        validationFindings: missingEvidence,
+        dossierEvidence: {
+          status,
+          riskLevel,
+          readinessScore,
+          caseId,
+          decisionKind: params.decisionKind || null,
+          owner: params.owner || null,
+          deadline: params.deadline || null,
+          readinessItems,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          evidenceRefs,
           sourceActions: {
             notCalled: sourceActions.notCalled,
           },
@@ -21267,6 +21983,314 @@ module.exports = {
           missingEvidence,
           positiveFollowUps,
           nextActions,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildInvestmentOwnerDeadlineBudgetGateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value && typeof value === 'string') return value.split(',').map((item) => item.trim()).filter(Boolean);
+        return [];
+      };
+      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const sourceDatapoints = toList(params.sourceDatapoints);
+      const callerSourceActions = toList(params.sourceActions);
+      const requiredEvidence = toList(params.requiredEvidence);
+      const gapMap = {
+        measure_identity: 'add investment measure id or title',
+        owner: 'assign or confirm the accountable investment measure owner',
+        deadline: 'add deadline or target committee date evidence',
+        budget_effect: 'clarify budget effect, envelope, overhang or funding impact',
+        required_evidence: 'attach required approval or measure evidence',
+        approval_status: 'add current approval status without approving the budget',
+        blocked_follow_up_decision: 'name the follow-up decision blocked by this gate',
+        next_escalation_step: 'define the next escalation step for the measure',
+        source_datapoints: 'add source datapoints for auditability',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint) => {
+        missingEvidence.push({
+          missingDataPoint,
+          status: 'missing',
+          enablesDossierAddition: gapMap[missingDataPoint],
+        });
+      };
+
+      if (!isProvided(params.measureId) && !isProvided(params.measureTitle)) addGap('measure_identity');
+      if (!isProvided(params.owner)) addGap('owner');
+      if (!isProvided(params.deadline)) addGap('deadline');
+      if (!isProvided(params.budgetEffect)) addGap('budget_effect');
+      if (requiredEvidence.length === 0) addGap('required_evidence');
+      if (!isProvided(params.approvalStatus)) addGap('approval_status');
+      if (!isProvided(params.blockedFollowUpDecision)) addGap('blocked_follow_up_decision');
+      if (!isProvided(params.nextEscalationStep)) addGap('next_escalation_step');
+      if (sourceDatapoints.length === 0 && callerSourceActions.length === 0) addGap('source_datapoints');
+
+      let status = 'ready_for_investment_gate_review';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'measure_identity')) {
+        status = 'needs_measure_identity';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'owner' || gap.missingDataPoint === 'deadline' || gap.missingDataPoint === 'budget_effect')) {
+        status = 'needs_owner_deadline_budget_evidence';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'approval_status' || gap.missingDataPoint === 'next_escalation_step')) {
+        status = 'needs_approval_or_escalation';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_gate_evidence';
+      }
+
+      const requiredCount = Object.keys(gapMap).length;
+      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'investment_owner_deadline_budget_gate',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.investmentOwnerDeadlineBudgetGateStatus'],
+        referenced: [
+          'investment-planning.review',
+          'finance-agent.analyze',
+          'vdmi.dossier',
+          'evidence-registry.lookup',
+          'presentation.generate',
+          ...callerSourceActions,
+        ],
+        notCalled: [
+          'investment.approve',
+          'budget.release',
+          'finance.createBooking',
+          'accounting.postJournal',
+          'treasury.executeTransfer',
+          'hitl.create',
+          'vdmi.mutate',
+          'billing.release',
+          'settlement.exportA96',
+          'tariff.mutate',
+          'mako.dispatch',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const measure = {
+        measureId: params.measureId || null,
+        measureTitle: params.measureTitle || null,
+      };
+      const gateEvidence = {
+        owner: params.owner || null,
+        deadline: params.deadline || null,
+        budgetEffect: params.budgetEffect || null,
+        requiredEvidence,
+        approvalStatus: params.approvalStatus || null,
+        blockedFollowUpDecision: params.blockedFollowUpDecision || null,
+        nextEscalationStep: params.nextEscalationStep || null,
+        budgetApproved: false,
+        bookingCreated: false,
+        hitlCreated: false,
+        settlementExported: false,
+        externalConnectorCalled: false,
+      };
+      const nextActions = positiveFollowUps.map((gap) => ({
+        action: 'requestEvidence',
+        missingDataPoint: gap.missingDataPoint,
+        description: gap.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `Investment Gate Status: ${status}`,
+        `Measure: ${measure.measureId || measure.measureTitle || 'missing'}`,
+        `Owner: ${gateEvidence.owner || 'missing'}`,
+        `Deadline: ${gateEvidence.deadline || 'missing'}`,
+        `Budget Effect: ${gateEvidence.budgetEffect || 'missing'}`,
+        `Approval Status: ${gateEvidence.approvalStatus || 'missing'}`,
+        `Blocked Decision: ${gateEvidence.blockedFollowUpDecision || 'missing'}`,
+        `Next Escalation: ${gateEvidence.nextEscalationStep || 'missing'}`,
+      ];
+
+      return {
+        investmentOwnerDeadlineBudgetGateStatusId: `iodbg:${Buffer.from(`${params.measureId || params.measureTitle || ''}:${params.owner || ''}:${params.deadline || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'investment_owner_deadline_budget_gate',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        measure,
+        gateEvidence,
+        missingEvidence,
+        positiveFollowUps,
+        nextActions,
+        sourceDatapoints,
+        sourceActions,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          measure,
+          gateEvidence,
+          missingEvidence,
+          positiveFollowUps,
+          nextActions,
+          sourceDatapoints,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildNoRegretMeasureDefinitionGateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+
+      const sourceDatapoints = toList(params.sourceDatapoints);
+      const callerSourceActions = toList(params.sourceActions);
+      const gapMap = {
+        measure_identity: 'add measure and programme identity for the No-Regret definition',
+        scenario_effect: 'add scenario assumption and expected transformation effect',
+        budget_funding: 'add budget effect and funding owner basis',
+        regulatory_fit: 'add regulatory-fit or constraint boundary',
+        prioritisation_rule: 'add prioritisation or nomination rule justification',
+        data_quality: 'add data-quality status and source snapshot',
+        communication_rule: 'add communication rule and stakeholder boundary',
+        review_gate: 'add next review gate, due date and accountable owner',
+        source_datapoints: 'add source datapoints or source actions for provenance',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint) => {
+        missingEvidence.push({
+          missingDataPoint,
+          status: 'missing',
+          enablesDossierAddition: gapMap[missingDataPoint],
+        });
+      };
+
+      if (!isProvided(params.measureId) && !isProvided(params.measureName) && !isProvided(params.programmeId)) addGap('measure_identity');
+      if (!isProvided(params.scenarioAssumption) || !isProvided(params.transformationEffect)) addGap('scenario_effect');
+      if (!isProvided(params.budgetEffect) || !isProvided(params.fundingOwner)) addGap('budget_funding');
+      if (!isProvided(params.regulatoryFit) && !isProvided(params.constraintHint)) addGap('regulatory_fit');
+      if (!isProvided(params.prioritisationRule) && !isProvided(params.nominationRight)) addGap('prioritisation_rule');
+      if (!isProvided(params.dataQualityStatus) || !isProvided(params.sourceSnapshot)) addGap('data_quality');
+      if (!isProvided(params.communicationRule) || !isProvided(params.stakeholderGroup)) addGap('communication_rule');
+      if (!isProvided(params.nextReviewGate) || !isProvided(params.dueDate) || !isProvided(params.owner)) addGap('review_gate');
+      if (sourceDatapoints.length === 0 && callerSourceActions.length === 0) addGap('source_datapoints');
+
+      let status = 'ready_for_no_regret_gate_review';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'measure_identity')) {
+        status = 'needs_measure_identity';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'scenario_effect')) {
+        status = 'needs_scenario_effect_basis';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'budget_funding')) {
+        status = 'needs_budget_funding_basis';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_fit' || gap.missingDataPoint === 'prioritisation_rule')) {
+        status = 'needs_definition_boundary';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_definition_evidence';
+      }
+
+      const requiredCount = Object.keys(gapMap).length;
+      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'no_regret_measure_definition_gate',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.noRegretMeasureDefinitionGateStatus'],
+        referenced: [
+          'vdmi.dossier',
+          'evidence-registry.lookup',
+          'investment-planning.review',
+          'finance-agent.analyze',
+          'datasource-registry.get',
+          'presentation.generate',
+          ...callerSourceActions,
+        ],
+        notCalled: [
+          'transformation-program.mutate',
+          'measure.approve',
+          'budget.release',
+          'finance.createBooking',
+          'accounting.postJournal',
+          'treasury.executeTransfer',
+          'hitl.create',
+          'vdmi.mutate',
+          'device-control.execute',
+          'billing.release',
+          'settlement.exportA96',
+          'tariff.mutate',
+          'mako.dispatch',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const measure = {
+        measureId: params.measureId || null,
+        programmeId: params.programmeId || null,
+        measureName: params.measureName || null,
+      };
+      const definitionEvidence = {
+        scenarioAssumption: params.scenarioAssumption || null,
+        transformationEffect: params.transformationEffect || null,
+        budgetEffect: params.budgetEffect || null,
+        fundingOwner: params.fundingOwner || null,
+        regulatoryFit: params.regulatoryFit || null,
+        constraintHint: params.constraintHint || null,
+        prioritisationRule: params.prioritisationRule || null,
+        nominationRight: params.nominationRight || null,
+        dataQualityStatus: params.dataQualityStatus || null,
+        sourceSnapshot: params.sourceSnapshot || null,
+        communicationRule: params.communicationRule || null,
+        stakeholderGroup: params.stakeholderGroup || null,
+        nextReviewGate: params.nextReviewGate || null,
+        dueDate: params.dueDate || null,
+        owner: params.owner || null,
+        measureApproved: false,
+        budgetApproved: false,
+        programmeMutated: false,
+        hitlCreated: false,
+        settlementExported: false,
+        externalConnectorCalled: false,
+      };
+      const nextActions = positiveFollowUps.map((gap) => ({
+        action: 'requestEvidence',
+        missingDataPoint: gap.missingDataPoint,
+        description: gap.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `No-Regret Gate Status: ${status}`,
+        `Measure: ${measure.measureId || measure.measureName || measure.programmeId || 'missing'}`,
+        `Scenario Effect: ${definitionEvidence.transformationEffect || 'missing'}`,
+        `Budget Effect: ${definitionEvidence.budgetEffect || 'missing'}`,
+        `Regulatory Fit: ${definitionEvidence.regulatoryFit || definitionEvidence.constraintHint || 'missing'}`,
+        `Prioritisation: ${definitionEvidence.prioritisationRule || definitionEvidence.nominationRight || 'missing'}`,
+        `Data Quality: ${definitionEvidence.dataQualityStatus || 'missing'}`,
+        `Communication Rule: ${definitionEvidence.communicationRule || 'missing'}`,
+        `Next Review Gate: ${definitionEvidence.nextReviewGate || 'missing'}`,
+      ];
+
+      return {
+        noRegretMeasureDefinitionGateStatusId: `nrg:${Buffer.from(`${params.measureId || params.measureName || params.programmeId || ''}:${params.owner || ''}:${params.nextReviewGate || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'no_regret_measure_definition_gate',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        measure,
+        definitionEvidence,
+        missingEvidence,
+        positiveFollowUps,
+        nextActions,
+        sourceDatapoints,
+        sourceActions,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          measure,
+          definitionEvidence,
+          missingEvidence,
+          positiveFollowUps,
+          nextActions,
+          sourceDatapoints,
           sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,
         },

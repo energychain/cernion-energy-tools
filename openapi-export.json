@@ -13270,6 +13270,365 @@
         ]
       }
     },
+    "/api/dashboard-api/energy-sharing-42c-cutover-readiness": {
+      "get": {
+        "operationId": "dashboard-api_energySharing42cCutoverReadinessStatus",
+        "summary": "§42c cutover readiness - read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only §42c cutover readiness status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "riskLevel": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "subTracks": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Evaluates supplied §42c cutover evidence across sub-tracks A-G and returns a dossier-safe readiness gate. The endpoint is read-only and does not provision tenants, migrate data, release A96 exports, execute allocation/settlement, create HITL tasks, run rollback/restore, call external connectors, handle secrets or mutate Personal Agent behavior.",
+        "parameters": [
+          {
+            "name": "cutoverId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pilotTenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "balanceGroupId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "a96DefaultsStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "specFreezeStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pilotTenantStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "settlementHardeningStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "allocationLoadTestStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "runbookStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "complianceSignoffStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rollbackPlanStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceRefs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/nova-decision-lifecycle-readiness": {
+      "get": {
+        "operationId": "dashboard-api_novaDecisionLifecycleReadinessStatus",
+        "summary": "NOVA decision lifecycle readiness - read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only NOVA decision lifecycle readiness status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "riskLevel": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Evaluates supplied NOVA decision-lifecycle evidence and returns a dossier-safe readiness gate. The endpoint is read-only and does not create decisions, transition lifecycle state, create HITL items, emit webhooks/SSE events, replay triggers, apply asset overrides, mutate MaStR/Redispatch/thresholds, call external connectors, handle secrets or mutate Personal Agent behavior.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionKind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lifecycleModel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceCatalogue",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "auditTrail",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenantIsolationEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hitlPolicyEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "replayEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expiryEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deadline",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "openMeasure",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceRefs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/regulatory-change-readiness": {
       "get": {
         "operationId": "dashboard-api_regulatoryChangeReadinessStatus",
@@ -17433,6 +17792,36 @@
             }
           }
         ]
+      }
+    },
+    "/api/dashboard-api/investment-owner-deadline-budget-gate": {
+      "get": {
+        "operationId": "dashboard-api_investmentOwnerDeadlineBudgetGateStatus",
+        "summary": "Investment Owner-Frist-Budget Gate -- read-only evidence gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only investment owner/deadline/budget gate evidence"
+          }
+        },
+        "description": "Returns a deterministic dossier-safe view over investment measure owner, deadline, budget effect, required evidence, approval status, blocked follow-up decision and next escalation step. The endpoint is read-only and never approves budgets, creates finance/accounting records, mutates investment workflows, prepares billing/settlement/tariff/MaKo output, creates HITL tasks, or calls external connectors."
+      }
+    },
+    "/api/dashboard-api/no-regret-measure-definition-gate": {
+      "get": {
+        "operationId": "dashboard-api_noRegretMeasureDefinitionGateStatus",
+        "summary": "No-Regret measure definition gate -- read-only evidence gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only No-Regret measure definition evidence"
+          }
+        },
+        "description": "Returns a deterministic dossier-safe view over No-Regret measure definition evidence: scenario/effect, budget/funding owner, regulatory fit, prioritisation/nomination rule, data quality, communication rule, and next review gate. The endpoint is read-only and never approves measures or budgets, mutates programmes, creates HITL tasks, runs MaKo/A96/billing/settlement/tariff/device-control effects, or calls external connectors."
       }
     },
     "/api/dashboard-api/gas-grid-transformation-asset-cockpit": {
@@ -56485,6 +56874,365 @@
         ]
       }
     },
+    "/api/dashboard/energy-sharing-42c-cutover-readiness": {
+      "get": {
+        "operationId": "dashboard-api_energySharing42cCutoverReadinessStatus",
+        "summary": "§42c cutover readiness - read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only §42c cutover readiness status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "riskLevel": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "subTracks": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Evaluates supplied §42c cutover evidence across sub-tracks A-G and returns a dossier-safe readiness gate. The endpoint is read-only and does not provision tenants, migrate data, release A96 exports, execute allocation/settlement, create HITL tasks, run rollback/restore, call external connectors, handle secrets or mutate Personal Agent behavior.",
+        "parameters": [
+          {
+            "name": "cutoverId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pilotTenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "balanceGroupId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "a96DefaultsStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "specFreezeStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pilotTenantStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "settlementHardeningStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "allocationLoadTestStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "runbookStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "complianceSignoffStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rollbackPlanStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceRefs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/nova-decision-lifecycle-readiness": {
+      "get": {
+        "operationId": "dashboard-api_novaDecisionLifecycleReadinessStatus",
+        "summary": "NOVA decision lifecycle readiness - read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only NOVA decision lifecycle readiness status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "riskLevel": {
+                      "type": "string"
+                    },
+                    "readinessScore": {
+                      "type": "number"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Evaluates supplied NOVA decision-lifecycle evidence and returns a dossier-safe readiness gate. The endpoint is read-only and does not create decisions, transition lifecycle state, create HITL items, emit webhooks/SSE events, replay triggers, apply asset overrides, mutate MaStR/Redispatch/thresholds, call external connectors, handle secrets or mutate Personal Agent behavior.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionKind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lifecycleModel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceCatalogue",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "auditTrail",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenantIsolationEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hitlPolicyEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "replayEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expiryEvidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deadline",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "openMeasure",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceRefs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard/stadtwerk-mauer-sandbox-runtime": {
       "get": {
         "operationId": "dashboard-api_stadtwerkMauerSandboxRuntimeStatus",
@@ -58209,6 +58957,36 @@
             }
           }
         ]
+      }
+    },
+    "/api/dashboard/investment-owner-deadline-budget-gate": {
+      "get": {
+        "operationId": "dashboard-api_investmentOwnerDeadlineBudgetGateStatus",
+        "summary": "Investment Owner-Frist-Budget Gate -- read-only evidence gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only investment owner/deadline/budget gate evidence"
+          }
+        },
+        "description": "Returns a deterministic dossier-safe view over investment measure owner, deadline, budget effect, required evidence, approval status, blocked follow-up decision and next escalation step. The endpoint is read-only and never approves budgets, creates finance/accounting records, mutates investment workflows, prepares billing/settlement/tariff/MaKo output, creates HITL tasks, or calls external connectors."
+      }
+    },
+    "/api/dashboard/no-regret-measure-definition-gate": {
+      "get": {
+        "operationId": "dashboard-api_noRegretMeasureDefinitionGateStatus",
+        "summary": "No-Regret measure definition gate -- read-only evidence gate",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only No-Regret measure definition evidence"
+          }
+        },
+        "description": "Returns a deterministic dossier-safe view over No-Regret measure definition evidence: scenario/effect, budget/funding owner, regulatory fit, prioritisation/nomination rule, data quality, communication rule, and next review gate. The endpoint is read-only and never approves measures or budgets, mutates programmes, creates HITL tasks, runs MaKo/A96/billing/settlement/tariff/device-control effects, or calls external connectors."
       }
     },
     "/api/dashboard/gas-grid-transformation-asset-cockpit": {

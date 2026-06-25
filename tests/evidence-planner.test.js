@@ -1319,6 +1319,42 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     expect(requiredIds).toContain('settlement_a96_evidence');
   });
 
+  it('energy_sharing_42c_cutover_readiness: requires sub-track evidence A-G', () => {
+    const plan = { routeKey: 'energy_sharing_42c_cutover_readiness' };
+    const result = planEvidence(plan, {});
+
+    const requiredIds = result.requiredSources.filter((s) => !s.optional).map((s) => s.id);
+    expect(requiredIds).toEqual(
+      expect.arrayContaining([
+        'a96_defaults_spec_freeze',
+        'pilot_tenant_balance_group',
+        'settlement_readiness_hardening',
+        'allocation_load_test',
+        'incident_runbook',
+        'compliance_signoff_evidence',
+        'rollback_dr_readiness',
+      ])
+    );
+  });
+
+  it('nova_decision_lifecycle_readiness: requires lifecycle/source/audit/HITL/replay/SSE evidence', () => {
+    const plan = { routeKey: 'nova_decision_lifecycle_readiness' };
+    const result = planEvidence(plan, {});
+
+    const requiredIds = result.requiredSources.filter((s) => !s.optional).map((s) => s.id);
+    expect(requiredIds).toEqual(
+      expect.arrayContaining([
+        'decision_lifecycle_model',
+        'decision_source_catalogue',
+        'transition_audit_history',
+        'tenant_isolated_sse_evidence',
+        'hitl_bridge_policy',
+        'replay_testability',
+        'expiry_non_execution',
+      ])
+    );
+  });
+
   it('redispatch-settlement: requires grid_operator_identity and audit_period', () => {
     const plan = { routeKey: 'redispatch-settlement' };
     const result = planEvidence(plan, {});
@@ -1516,6 +1552,54 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
         'next_decision_date',
         'offer_decision_status',
         'source_refs',
+      ])
+    );
+  });
+
+  it('investment_owner_deadline_budget_gate: requires owner/deadline/budget evidence', () => {
+    const plan = { routeKey: 'investment_owner_deadline_budget_gate' };
+    const result = planEvidence(plan, {
+      measureId: 'measure-278',
+      owner: 'netzbetrieb',
+    });
+
+    expect(result.registryKey).toBe('investment_owner_deadline_budget_gate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['measure_identity', 'owner'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'deadline',
+        'budget_effect',
+        'required_evidence',
+        'approval_status',
+        'blocked_follow_up_decision',
+        'next_escalation_step',
+        'source_datapoints',
+      ])
+    );
+  });
+
+  it('no_regret_measure_definition_gate: requires definition and review evidence', () => {
+    const plan = { routeKey: 'no_regret_measure_definition_gate' };
+    const result = planEvidence(plan, {
+      measureId: 'measure-279',
+    });
+
+    expect(result.registryKey).toBe('no_regret_measure_definition_gate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['measure_identity'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'scenario_effect',
+        'budget_funding',
+        'regulatory_fit',
+        'prioritisation_rule',
+        'data_quality',
+        'communication_rule',
+        'review_gate',
+        'source_datapoints',
       ])
     );
   });

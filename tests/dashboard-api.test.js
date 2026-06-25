@@ -2996,6 +2996,165 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- investmentOwnerDeadlineBudgetGateStatus -----------------------------
+
+  describe('investmentOwnerDeadlineBudgetGateStatus', () => {
+    it('reports missing investment gate evidence without executing mutations', async () => {
+      const result = await broker.call('dashboard-api.investmentOwnerDeadlineBudgetGateStatus', {
+        measureId: 'measure-278',
+        owner: 'netzbetrieb',
+      });
+
+      expect(result.status).toBe('needs_owner_deadline_budget_evidence');
+      expect(result.safety).toBe('read_only');
+      expect(result.measure.measureId).toBe('measure-278');
+      expect(result.gateEvidence.budgetApproved).toBe(false);
+      expect(result.gateEvidence.bookingCreated).toBe(false);
+      expect(result.gateEvidence.hitlCreated).toBe(false);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'deadline',
+          'budget_effect',
+          'required_evidence',
+          'approval_status',
+          'blocked_follow_up_decision',
+          'next_escalation_step',
+          'source_datapoints',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe(
+        'investment_owner_deadline_budget_gate'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'investment.approve',
+          'budget.release',
+          'finance.createBooking',
+          'accounting.postJournal',
+          'hitl.create',
+          'settlement.exportA96',
+          'tariff.mutate',
+          'mako.dispatch',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_investment_gate_review for complete caller-supplied evidence', async () => {
+      const result = await broker.call('dashboard-api.investmentOwnerDeadlineBudgetGateStatus', {
+        measureId: 'measure-ready-278',
+        measureTitle: 'Trafostation Rueckbaupfad',
+        owner: 'investment-board',
+        deadline: '2026-09-30',
+        budgetEffect: 'capex-envelope-42',
+        requiredEvidence: 'psp:4711,board-template:v1',
+        approvalStatus: 'review-ready',
+        blockedFollowUpDecision: 'portfolio-prioritization',
+        nextEscalationStep: 'investment-committee-q3',
+        sourceDatapoints: 'psp:4711,capex:42',
+      });
+
+      expect(result.status).toBe('ready_for_investment_gate_review');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.gateEvidence.budgetApproved).toBe(false);
+      expect(result.gateEvidence.settlementExported).toBe(false);
+      expect(result.gateEvidence.externalConnectorCalled).toBe(false);
+      expect(result.dossierEvidence.dossierFacts).toContain(
+        'Investment Gate Status: ready_for_investment_gate_review'
+      );
+      expect(result.dossierEvidence.sourceDatapoints).toEqual(
+        expect.arrayContaining(['psp:4711', 'capex:42'])
+      );
+    });
+  });
+
+  // -- noRegretMeasureDefinitionGateStatus --------------------------------
+
+  describe('noRegretMeasureDefinitionGateStatus', () => {
+    it('reports missing No-Regret definition evidence without executing mutations', async () => {
+      const result = await broker.call('dashboard-api.noRegretMeasureDefinitionGateStatus', {
+        measureId: 'measure-279',
+        programmeId: 'transformation-2030',
+      });
+
+      expect(result.status).toBe('needs_scenario_effect_basis');
+      expect(result.safety).toBe('read_only');
+      expect(result.measure.measureId).toBe('measure-279');
+      expect(result.definitionEvidence.measureApproved).toBe(false);
+      expect(result.definitionEvidence.budgetApproved).toBe(false);
+      expect(result.definitionEvidence.hitlCreated).toBe(false);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'scenario_effect',
+          'budget_funding',
+          'regulatory_fit',
+          'prioritisation_rule',
+          'data_quality',
+          'communication_rule',
+          'review_gate',
+          'source_datapoints',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe(
+        'no_regret_measure_definition_gate'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'transformation-program.mutate',
+          'measure.approve',
+          'budget.release',
+          'finance.createBooking',
+          'accounting.postJournal',
+          'hitl.create',
+          'device-control.execute',
+          'settlement.exportA96',
+          'tariff.mutate',
+          'mako.dispatch',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns ready_for_no_regret_gate_review for complete caller-supplied evidence', async () => {
+      const result = await broker.call('dashboard-api.noRegretMeasureDefinitionGateStatus', {
+        measureId: 'measure-ready-279',
+        programmeId: 'transformation-2030',
+        measureName: 'No-Regret Trafostationsreserve',
+        scenarioAssumption: 'stromlast-plus-2030',
+        transformationEffect: 'keeps-option-open',
+        budgetEffect: 'capex-buffer-42',
+        fundingOwner: 'investment-office',
+        regulatoryFit: 'enwg-compatible-assumption',
+        prioritisationRule: 'no-regret-before-path-dependent',
+        dataQualityStatus: 'source-reviewed',
+        sourceSnapshot: 'snapshot:279',
+        communicationRule: 'committee-briefing-required',
+        stakeholderGroup: 'netzstrategie',
+        nextReviewGate: 'portfolio-review-q3',
+        dueDate: '2026-09-30',
+        owner: 'transformation-board',
+        sourceDatapoints: 'scenario:2030,budget:42,regulatory:fit',
+      });
+
+      expect(result.status).toBe('ready_for_no_regret_gate_review');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.definitionEvidence.measureApproved).toBe(false);
+      expect(result.definitionEvidence.programmeMutated).toBe(false);
+      expect(result.definitionEvidence.settlementExported).toBe(false);
+      expect(result.definitionEvidence.externalConnectorCalled).toBe(false);
+      expect(result.dossierEvidence.dossierFacts).toContain(
+        'No-Regret Gate Status: ready_for_no_regret_gate_review'
+      );
+      expect(result.dossierEvidence.sourceDatapoints).toEqual(
+        expect.arrayContaining(['scenario:2030', 'budget:42', 'regulatory:fit'])
+      );
+    });
+  });
+
   // -- gasGridTransformationAssetCockpitStatus -----------------------------
 
   describe('gasGridTransformationAssetCockpitStatus', () => {
@@ -3365,6 +3524,148 @@ describe('dashboard-api.service', () => {
       expect(result.readinessBlocks.settlementReadiness.status).toBe('ready');
       expect(result.dossierEvidence.dossierFacts).toContain('Provided Energy-Sharing gate evidence: 9/9');
       expect(result.sourceActions.notCalled).toContain('energy-sharing-allocation.allocate');
+    });
+  });
+
+  // -- energySharing42cCutoverReadinessStatus -----------------------------
+
+  describe('energySharing42cCutoverReadinessStatus', () => {
+    it('blocks §42c cutover readiness when high-risk sub-track evidence is missing', async () => {
+      const result = await broker.call('dashboard-api.energySharing42cCutoverReadinessStatus', {
+        cutoverId: 'es42c-2026',
+        pilotTenantId: 'tenant-hoeheinoed',
+        balanceGroupId: 'bk_hoeheinoed_es_001',
+        a96DefaultsStatus: 'ready',
+        specFreezeStatus: 'ready',
+        runbookStatus: 'ready',
+        owner: 'regulatory-owner',
+        targetDate: '2026-07-01',
+      });
+
+      expect(result.status).toBe('blocked');
+      expect(result.riskLevel).toBe('high');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'pilot_tenant_balance_group',
+          'settlement_readiness_hardening',
+          'allocation_load_test',
+          'compliance_signoff_evidence',
+          'rollback_dr_readiness',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('energy_sharing_42c_cutover_readiness');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'tenant.migrate',
+          'settlement.exportA96',
+          'energy-sharing-allocation.allocate',
+          'billing.release',
+          'mako.dispatch',
+          'hitl.create',
+          'rollback.execute',
+          'backup.restore',
+          'external.connector.call',
+          'secret.read',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready only when all §42c sub-track evidence is present', async () => {
+      const result = await broker.call('dashboard-api.energySharing42cCutoverReadinessStatus', {
+        cutoverId: 'es42c-2026',
+        pilotTenantId: 'tenant-hoeheinoed',
+        balanceGroupId: 'bk_hoeheinoed_es_001',
+        a96DefaultsStatus: 'ready',
+        specFreezeStatus: 'ready',
+        pilotTenantStatus: 'ready',
+        settlementHardeningStatus: 'ready',
+        allocationLoadTestStatus: 'ready',
+        runbookStatus: 'ready',
+        complianceSignoffStatus: 'ready',
+        rollbackPlanStatus: 'ready',
+        owner: 'regulatory-owner',
+        targetDate: '2026-07-01',
+        evidenceRefs: ['docs:energy-sharing-abnahme', 'drill:rollback-2026'],
+      });
+
+      expect(result.status).toBe('ready');
+      expect(result.riskLevel).toBe('low');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.subTracks).toHaveLength(7);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided §42c sub-track evidence: 7/7');
+      expect(result.sourceActions.notCalled).toContain('settlement.exportA96');
+    });
+  });
+
+  // -- novaDecisionLifecycleReadinessStatus --------------------------------
+
+  describe('novaDecisionLifecycleReadinessStatus', () => {
+    it('blocks NOVA lifecycle readiness when high-risk evidence is missing', async () => {
+      const result = await broker.call('dashboard-api.novaDecisionLifecycleReadinessStatus', {
+        caseId: 'nova-trl7',
+        decisionKind: 'asset_override',
+        tenantIsolationEvidence: 'ready',
+        hitlPolicyEvidence: 'ready',
+        owner: 'nova-owner',
+        deadline: '2026-07-15',
+      });
+
+      expect(result.status).toBe('blocked');
+      expect(result.riskLevel).toBe('high');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'decision_lifecycle_model',
+          'decision_source_catalogue',
+          'transition_audit_history',
+          'replay_testability',
+          'expiry_non_execution',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('nova_decision_lifecycle_readiness');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'nova.decisions.create',
+          'nova.decisions.transition',
+          'hitl.create',
+          'webhook.emit',
+          'nova.sse.emit',
+          'assets.applyOverride',
+          'settlement.exportA96',
+          'external.connector.call',
+          'secret.read',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready for TRL-7 review only when all NOVA readiness evidence is present', async () => {
+      const result = await broker.call('dashboard-api.novaDecisionLifecycleReadinessStatus', {
+        caseId: 'nova-trl7',
+        decisionKind: 'mastr_correction',
+        lifecycleModel: 'ready',
+        sourceCatalogue: 'ready',
+        auditTrail: 'ready',
+        tenantIsolationEvidence: 'ready',
+        hitlPolicyEvidence: 'ready',
+        replayEvidence: 'ready',
+        expiryEvidence: 'ready',
+        owner: 'nova-owner',
+        deadline: '2026-07-15',
+        evidenceRefs: ['docs:nova-lifecycle', 'test:tenant-sse'],
+      });
+
+      expect(result.status).toBe('ready_for_trl7_review');
+      expect(result.riskLevel).toBe('low');
+      expect(result.readinessScore).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.readinessItems).toHaveLength(7);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided NOVA readiness evidence: 7/7');
+      expect(result.sourceActions.notCalled).toContain('nova.decisions.apply');
+      expect(result.sourceActions.notCalled).toContain('nova.sse.emit');
     });
   });
 

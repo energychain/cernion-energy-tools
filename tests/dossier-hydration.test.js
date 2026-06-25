@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 87 static rules', () => {
+    it('loads all 91 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(87);
+      expect(rules.length).toBe(91);
     });
 
-    it('compiles all 87 static rules without error', () => {
+    it('compiles all 91 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(87);
+      expect(rules.length).toBe(91);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -1577,6 +1577,103 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Side-Effect Guard: finance.createBooking');
     });
 
+    it('dashboard-api.investmentOwnerDeadlineBudgetGateStatus is dossier-safe and formats gate facts', () => {
+      const rule = getRule('dashboard-api.investmentOwnerDeadlineBudgetGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Investitionsprozess massnahme=measure-278 owner=netzbetrieb frist=2026-09-30 budgetwirkung=capex-42 freigabe=review-ready folgeentscheidung=portfolio-prio eskalation=investment-board pruefen'
+        )
+      ).toEqual({
+        measureId: 'measure-278',
+        owner: 'netzbetrieb',
+        deadline: '2026-09-30',
+        budgetEffect: 'capex-42',
+        approvalStatus: 'review-ready',
+        blockedFollowUpDecision: 'portfolio-prio',
+        nextEscalationStep: 'investment-board',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'investment_owner_deadline_budget_gate',
+        status: 'needs_owner_deadline_budget_evidence',
+        measure: { measureId: 'measure-278' },
+        gateEvidence: {
+          owner: 'netzbetrieb',
+          deadline: '2026-09-30',
+          budgetEffect: 'capex-42',
+          approvalStatus: 'review-ready',
+          blockedFollowUpDecision: 'portfolio-prio',
+          nextEscalationStep: 'investment-board',
+        },
+        missingEvidence: [{ missingDataPoint: 'required_evidence' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'attach required approval evidence' }],
+        sourceActions: {
+          notCalled: ['investment.approve'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: investment_owner_deadline_budget_gate');
+      expect(formatted).toContain('Investment Gate Status: needs_owner_deadline_budget_evidence');
+      expect(formatted).toContain('Measure: measure-278');
+      expect(formatted).toContain('Leading Gap: required_evidence');
+      expect(formatted).toContain('Side-Effect Guard: investment.approve');
+    });
+
+    it('dashboard-api.noRegretMeasureDefinitionGateStatus is dossier-safe and formats definition facts', () => {
+      const rule = getRule('dashboard-api.noRegretMeasureDefinitionGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte no-regret massnahme=measure-279 programm=trans-2030 szenario=load-plus wirkung=optionality budgetwirkung=capex-42 finanzierungsowner=invest regulatorik=fit priorisierung=no-regret-first datenqualitaet=reviewed kommunikationsregel=committee pruefgate=q3 frist=2026-09-30 owner=board pruefen'
+        )
+      ).toEqual({
+        measureId: 'measure-279',
+        programmeId: 'trans-2030',
+        scenarioAssumption: 'load-plus',
+        transformationEffect: 'optionality',
+        budgetEffect: 'capex-42',
+        fundingOwner: 'invest',
+        regulatoryFit: 'fit',
+        prioritisationRule: 'no-regret-first',
+        dataQualityStatus: 'reviewed',
+        communicationRule: 'committee',
+        nextReviewGate: 'q3',
+        dueDate: '2026-09-30',
+        owner: 'board',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'no_regret_measure_definition_gate',
+        status: 'needs_definition_evidence',
+        measure: { measureId: 'measure-279' },
+        definitionEvidence: {
+          transformationEffect: 'optionality',
+          budgetEffect: 'capex-42',
+          regulatoryFit: 'fit',
+          prioritisationRule: 'no-regret-first',
+          dataQualityStatus: 'reviewed',
+          communicationRule: 'committee',
+          nextReviewGate: 'q3',
+        },
+        missingEvidence: [{ missingDataPoint: 'review_gate' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add next review gate evidence' }],
+        sourceActions: {
+          notCalled: ['measure.approve'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: no_regret_measure_definition_gate');
+      expect(formatted).toContain('No-Regret Gate Status: needs_definition_evidence');
+      expect(formatted).toContain('Measure: measure-279');
+      expect(formatted).toContain('Leading Gap: review_gate');
+      expect(formatted).toContain('Side-Effect Guard: measure.approve');
+    });
+
     it('dashboard-api.gasGridTransformationAssetCockpitStatus is dossier-safe and formats asset-cockpit facts', () => {
       const rule = getRule('dashboard-api.gasGridTransformationAssetCockpitStatus');
       expect(rule).not.toBeNull();
@@ -1899,6 +1996,83 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Simulation Stage: learning_pilot');
       expect(formatted).toContain('Community: es-230');
       expect(formatted).toContain('Side-Effect Guard: energy-sharing-allocation.allocate');
+    });
+
+    it('dashboard-api.energySharing42cCutoverReadinessStatus is dossier-safe and formats cutover facts', () => {
+      const rule = getRule('dashboard-api.energySharing42cCutoverReadinessStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte 42c cutover cutover=es42c-2026 tenant=tenant-hoeheinoed bilanzkreis=bk_hoeheinoed_es_001 pruefen'
+        )
+      ).toEqual({
+        cutoverId: 'es42c-2026',
+        pilotTenantId: 'tenant-hoeheinoed',
+        balanceGroupId: 'bk_hoeheinoed_es_001',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'energy_sharing_42c_cutover_readiness',
+        status: 'blocked',
+        riskLevel: 'high',
+        pilotTenantId: 'tenant-hoeheinoed',
+        missingEvidence: [{ missingDataPoint: 'compliance_signoff_evidence' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add compliance and sign-off evidence without automating legal/regulatory interpretation' },
+        ],
+        sourceActions: {
+          notCalled: ['tenant.migrate', 'settlement.exportA96'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: blocked'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: energy_sharing_42c_cutover_readiness');
+      expect(formatted).toContain('Status: blocked');
+      expect(formatted).toContain('Risk Level: high');
+      expect(formatted).toContain('Pilot Tenant: tenant-hoeheinoed');
+      expect(formatted).toContain('Side-Effect Guard: tenant.migrate');
+    });
+
+    it('dashboard-api.novaDecisionLifecycleReadinessStatus is dossier-safe and formats NOVA lifecycle facts', () => {
+      const rule = getRule('dashboard-api.novaDecisionLifecycleReadinessStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte NOVA readiness case=nova-trl7 kind=asset_override pruefen'
+        )
+      ).toEqual({
+        caseId: 'nova-trl7',
+        decisionKind: 'asset_override',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'nova_decision_lifecycle_readiness',
+        status: 'blocked',
+        riskLevel: 'high',
+        decisionKind: 'asset_override',
+        missingEvidence: [{ missingDataPoint: 'decision_lifecycle_model' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add a documented NOVA lifecycle model from proposed to applied/rejected/expired' },
+        ],
+        sourceActions: {
+          notCalled: ['nova.decisions.create', 'hitl.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: blocked'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: nova_decision_lifecycle_readiness');
+      expect(formatted).toContain('Status: blocked');
+      expect(formatted).toContain('Risk Level: high');
+      expect(formatted).toContain('Decision Kind: asset_override');
+      expect(formatted).toContain('Side-Effect Guard: nova.decisions.create');
     });
 
     it('dashboard-api.redispatchProjectControllingKpiCockpitStatus is dossier-safe and formats controlling facts', () => {

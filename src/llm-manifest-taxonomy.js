@@ -100,6 +100,7 @@ const CAPABILITY_DOMAIN_MAP = {
   investment_governance: 'grid-planning',
   'investment-finance-governance': 'grid-planning',
   transformation_finance_governance: 'grid-planning',
+  transformation_governance: 'grid-planning',
   // gas/heat network transformation governance — WPG-driven, regulatory
   gas_transformation_governance: 'regulatory',
   gas_grid_transformation: 'regulatory',
@@ -110,6 +111,7 @@ const CAPABILITY_DOMAIN_MAP = {
   governance_decision_closure: 'governance',
   governance_management: 'governance',
   management_steering: 'governance',
+  nova_governance: 'governance',
   automation_governance: 'governance',
   ki_governance: 'governance',
   // metering asset financial/accounting governance (off-balance treatment) —

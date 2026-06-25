@@ -285,6 +285,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/controllability-asset-handover']).toBeDefined();
       expect(schema.paths['/api/dashboard/legal-clarification-operating-model']).toBeDefined();
       expect(schema.paths['/api/dashboard/regulatory-change-readiness']).toBeDefined();
+      expect(schema.paths['/api/dashboard/nova-decision-lifecycle-readiness']).toBeDefined();
       expect(schema.paths['/api/dashboard/observability-mini']).toBeDefined();
       expect(schema.paths['/api/observability/logs']).toBeDefined();
       expect(schema.paths['/api/observability/agent-prompt']).toBeDefined();
@@ -298,6 +299,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/controllability-asset-handover'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/legal-clarification-operating-model'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/regulatory-change-readiness'].get).toBeDefined();
+      expect(schema.paths['/api/dashboard/nova-decision-lifecycle-readiness'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/observability-mini'].get).toBeDefined();
       expect(schema.paths['/api/observability/logs'].get).toBeDefined();
       expect(schema.paths['/api/observability/agent-prompt'].get).toBeDefined();
@@ -319,6 +321,9 @@ describe('API Gateway Service', () => {
         'Dashboard API'
       );
       expect(schema.paths['/api/dashboard/regulatory-change-readiness'].get.tags).toContain(
+        'Dashboard API'
+      );
+      expect(schema.paths['/api/dashboard/nova-decision-lifecycle-readiness'].get.tags).toContain(
         'Dashboard API'
       );
       expect(schema.paths['/api/dashboard/observability-mini'].get.tags).toContain('Dashboard API');
@@ -488,6 +493,12 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/energy-sharing-simulation-gate']).toBe(
         'dashboard-api.energySharingSimulationGateStatus'
       );
+      expect(aliases['GET /dashboard/energy-sharing-42c-cutover-readiness']).toBe(
+        'dashboard-api.energySharing42cCutoverReadinessStatus'
+      );
+      expect(aliases['GET /dashboard/nova-decision-lifecycle-readiness']).toBe(
+        'dashboard-api.novaDecisionLifecycleReadinessStatus'
+      );
       expect(aliases['GET /dashboard/stadtwerk-mauer-sandbox-runtime']).toBe(
         'dashboard-api.stadtwerkMauerSandboxRuntimeStatus'
       );
@@ -523,6 +534,12 @@ describe('API Gateway Service', () => {
       );
       expect(aliases['GET /dashboard/transformation-financing-scenario-view']).toBe(
         'dashboard-api.transformationFinancingScenarioViewStatus'
+      );
+      expect(aliases['GET /dashboard/investment-owner-deadline-budget-gate']).toBe(
+        'dashboard-api.investmentOwnerDeadlineBudgetGateStatus'
+      );
+      expect(aliases['GET /dashboard/no-regret-measure-definition-gate']).toBe(
+        'dashboard-api.noRegretMeasureDefinitionGateStatus'
       );
       expect(aliases['GET /dashboard/gas-grid-transformation-asset-cockpit']).toBe(
         'dashboard-api.gasGridTransformationAssetCockpitStatus'
