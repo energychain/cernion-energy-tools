@@ -47677,6 +47677,16 @@
                   "userId": {
                     "type": "string",
                     "example": "svc:powerbi-connector"
+                  },
+                  "scopes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "rundeck-read",
+                      "rundeck-dry-run"
+                    ]
                   }
                 }
               },

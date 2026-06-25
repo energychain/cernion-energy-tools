@@ -14,6 +14,13 @@ const { tenantExistsInRegistry } = require('../src/provisioning-registry');
 
 const DEFAULT_STORAGE_FILE = process.env.TOKEN_STORAGE_FILE || './uploads/.api-tokens.json';
 const MAX_NAME_LENGTH = 60;
+const ALLOWED_EXTRA_SCOPES = new Set([
+  'vnb-monitor',
+  'rundeck-read',
+  'rundeck-dry-run',
+  'rundeck-ack',
+  'rundeck-execute-dev',
+]);
 // Free-form user identity for token binding: letters, digits, and . _ @ : - separators
 // (e.g. "thorsten", "svc:data-quality-campaign"), max 120 chars.
 const USER_ID_PATTERN = /^[a-zA-Z0-9_.@:-]{1,120}$/;
@@ -44,6 +51,31 @@ function nowIso() {
 
 function normaliseScope(scope) {
   return scope === 'full-access' ? 'full-access' : 'read-only';
+}
+
+function normalizeScopes(scope, requestedScopes = []) {
+  const primaryScope = normaliseScope(scope);
+  const scopes = new Set([primaryScope, 'vnb-monitor']);
+  for (const entry of Array.isArray(requestedScopes) ? requestedScopes : []) {
+    const value = String(entry || '').trim();
+    if (!value) continue;
+    if (value === 'full-access' && primaryScope !== 'full-access') {
+      throw new Errors.MoleculerClientError(
+        'full-access cannot be added as an extra scope to a read-only token.',
+        422,
+        'INVALID_TOKEN_SCOPE'
+      );
+    }
+    if (value !== primaryScope && value !== 'full-access' && !ALLOWED_EXTRA_SCOPES.has(value)) {
+      throw new Errors.MoleculerClientError(
+        `Unsupported token scope: ${value}.`,
+        422,
+        'INVALID_TOKEN_SCOPE'
+      );
+    }
+    scopes.add(value);
+  }
+  return [...scopes];
 }
 
 function isWriteMethod(method) {
@@ -126,6 +158,20 @@ module.exports = {
         },
         tenantId: { type: 'string', min: 1, max: 64, trim: true },
         userId: { type: 'string', min: 1, max: 120, pattern: USER_ID_PATTERN, trim: true },
+        scopes: {
+          type: 'array',
+          optional: true,
+          items: {
+            type: 'enum',
+            values: [
+              'vnb-monitor',
+              'rundeck-read',
+              'rundeck-dry-run',
+              'rundeck-ack',
+              'rundeck-execute-dev',
+            ],
+          },
+        },
       },
       openapi: {
         summary: 'Create API token',
@@ -146,6 +192,11 @@ module.exports = {
                   },
                   tenantId: { type: 'string', example: 'stadtwerk-a' },
                   userId: { type: 'string', example: 'svc:powerbi-connector' },
+                  scopes: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    example: ['rundeck-read', 'rundeck-dry-run'],
+                  },
                 },
               },
               examples: {
@@ -175,6 +226,7 @@ module.exports = {
       handler(ctx) {
         const { name, tenantId, userId } = ctx.params;
         const scope = normaliseScope(ctx.params.scope);
+        const scopes = normalizeScopes(scope, ctx.params.scopes || []);
 
         // Explicit checks (not just the params schema) so direct handler
         // invocation — bypassing the moleculer-web validator — still rejects
@@ -241,7 +293,7 @@ module.exports = {
           lastUsedAt: null,
           usageCount: 0,
           scope,
-          scopes: [scope, 'vnb-monitor'],
+          scopes,
           tenantId,
           userId,
           active: true,

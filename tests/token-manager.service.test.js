@@ -112,7 +112,18 @@ describe('token-manager.service', () => {
       scope: 'read-only',
       tenantId: 'stadtwerk-a',
       userId: 'svc:rundeck',
+      scopes: ['rundeck-read', 'rundeck-dry-run', 'rundeck-ack', 'rundeck-execute-dev'],
     });
+    expect(created.data.scopes).toEqual(
+      expect.arrayContaining([
+        'read-only',
+        'vnb-monitor',
+        'rundeck-read',
+        'rundeck-dry-run',
+        'rundeck-ack',
+        'rundeck-execute-dev',
+      ])
+    );
 
     const allowedRunbookPost = await broker.call('token-manager.verify', {
       token: created.data.token,
@@ -130,6 +141,18 @@ describe('token-manager.service', () => {
     });
     expect(deniedRawHitlPost.valid).toBe(false);
     expect(deniedRawHitlPost.reason).toBe('SCOPE_VIOLATION');
+  });
+
+  it('rejects unsupported or privilege-escalating extra token scopes before storage', async () => {
+    await expect(
+      broker.call('token-manager.create', {
+        name: 'Bad Scope',
+        scope: 'read-only',
+        tenantId: 'stadtwerk-a',
+        userId: 'svc:bad-scope',
+        scopes: ['full-access'],
+      })
+    ).rejects.toMatchObject({ code: 422 });
   });
 
   it('revokes token and invalidates verification', async () => {
