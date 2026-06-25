@@ -20,6 +20,14 @@ module.exports = class VDMISpectatorService extends Service {
     };
 
     this.db = null;
+
+    this.parseServiceSchema({
+      name: this.name,
+      settings: this.settings,
+      actions: this.actions,
+      created: this.created,
+      started: this.started,
+    });
   }
 
   created() {
@@ -87,7 +95,7 @@ module.exports = class VDMISpectatorService extends Service {
       },
       async handler(ctx) {
         const { tenantId, taskId } = ctx.params;
-        const { phase, agentFilter } = ctx.query;
+        const { phase, agentFilter } = ctx.query || ctx.params || {};
 
         // Authorization: spectator, hitl-approver, data-steward
         const userRole = ctx.meta.userRole || 'user';
@@ -97,39 +105,28 @@ module.exports = class VDMISpectatorService extends Service {
         }
 
         try {
-          // Fetch task from VDMI service
-          const task = await ctx.call('vdmi.getTask', { id: taskId });
-          if (!task || task.tenantId !== tenantId) {
-            throw new Error('Task not found');
-          }
+          const result = await ctx.call(
+            'vdmi.negotiationTrace',
+            { taskId },
+            { meta: { ...ctx.meta, tenantId } }
+          );
+          let trace = Array.isArray(result?.trace) ? result.trace : [];
 
-          // Retrieve negotiation trace
-          const trace = task.negotiationTrace || [];
-
-          // Filter by phase
-          let filteredTrace = trace;
           if (phase && phase !== 'all') {
-            filteredTrace = trace.filter((entry) => entry.phase === phase);
+            trace = trace.filter((entry) => entry.phase === phase || entry.eventName === phase);
           }
 
-          // Filter by agent
           if (agentFilter) {
             const agents = agentFilter.split(',').map((a) => a.trim());
-            filteredTrace = filteredTrace.filter((entry) => agents.includes(entry.agent));
+            trace = trace.filter((entry) => agents.includes(entry.agent || entry.actorId));
           }
 
-          // Get consensus matrix
-          const consensusMatrix = task.consensusMatrix || null;
-
           return {
+            ...result,
             taskId,
             tenantId,
-            negotiationPhase: task.negotiationPhase,
-            totalRounds: filteredTrace.length,
-            consensusReachedAt: task.consensusReachedAt,
-            trace: filteredTrace,
-            consensusMatrix,
-            humanTouchpoints: task.humanTouchpoints || [],
+            totalRounds: trace.length,
+            trace,
           };
         } catch (error) {
           this.logger.error('Error retrieving negotiation trace:', error);
@@ -189,7 +186,7 @@ module.exports = class VDMISpectatorService extends Service {
       },
       async handler(ctx) {
         const { tenantId, taskId } = ctx.params;
-        const { format = 'json', includeDelta } = ctx.query;
+        const { format = 'json' } = ctx.query || ctx.params || {};
 
         // Authorization
         const userRole = ctx.meta.userRole || 'user';
@@ -199,56 +196,12 @@ module.exports = class VDMISpectatorService extends Service {
         }
 
         try {
-          // Fetch task
-          const task = await ctx.call('vdmi.getTask', { id: taskId });
-          if (!task || task.tenantId !== tenantId) {
-            throw new Error('Task not found');
-          }
-
-          // Build dossier
-          const dossier = {
-            id: `dossier-${taskId}`,
-            taskId,
-            createdAt: new Date().toISOString(),
-            summary: {
-              title: `VDMI Matrix Update: ${task.systemName || 'Unknown'}`,
-              affectedApplications: task.affectedMatrices?.length || 0,
-              affectedRoles: task.affectedRoles?.length || 0,
-              riskLevel: this._assessRiskLevel(task),
-            },
-            executive_summary: this._generateExecutiveSummary(task),
-            matrices: task.consensusMatrix ? [task.consensusMatrix] : [],
-            governance_checks: {
-              access_control: {
-                status: task.accessControlPassed ? 'passed' : 'failed',
-                findings: task.accessControlFindings || [],
-              },
-              separation_of_duties: {
-                status: task.sodCheckPassed ? 'passed' : 'warning',
-                details: 'SoD validation complete',
-              },
-              least_privilege: {
-                status: 'passed',
-                details: 'Privilege verification passed',
-              },
-            },
-            audit_trail: {
-              inferredBy: task.inferredBy || 'nova-decision-machine',
-              inferenceTime: task.inferenceTime,
-              validatedBy: task.agents || ['A1', 'A2', 'A3'],
-              evidenceSources: task.evidenceSources || [],
-            },
-            humanTouchpoints: task.humanTouchpoints || [],
-            links: {
-              negotiationTrace: `/api/vdmi/tenants/${tenantId}/tasks/${taskId}/negotiation-trace`,
-              matrixDetail: `/api/vdmi/tenants/${tenantId}/matrices/${task.matrixId}`,
-            },
-          };
-
-          // Add delta if requested
-          if (includeDelta && task.previousMatrixId) {
-            dossier.delta = await this._generateDelta(task.previousMatrixId, task.consensusMatrix);
-          }
+          const result = await ctx.call(
+            'vdmi.dossier',
+            { taskId },
+            { meta: { ...ctx.meta, tenantId } }
+          );
+          const dossier = result?.dossier || result;
 
           // Format output
           if (format === 'json') {

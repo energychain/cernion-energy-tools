@@ -5,6 +5,7 @@
  */
 
 const Service = require('moleculer').Service;
+const { MoleculerClientError } = require('moleculer').Errors;
 const PouchDB = require('pouchdb');
 const VDMIAuditTrail = require('../src/vdmi-audit-trail');
 const VDMISignature = require('../src/vdmi-signature');
@@ -29,6 +30,14 @@ module.exports = class VDMIEvidenceService extends Service {
     this.db = null;
     this.auditTrail = null;
     this.signature = null;
+
+    this.parseServiceSchema({
+      name: this.name,
+      settings: this.settings,
+      actions: this.actions,
+      created: this.created,
+      started: this.started,
+    });
   }
 
   created() {
@@ -104,6 +113,7 @@ module.exports = class VDMIEvidenceService extends Service {
       },
       async handler(ctx) {
         const { tenantId, taskId } = ctx.params;
+        const body = ctx.request?.body || ctx.params;
         const {
           evidenceType,
           category,
@@ -112,7 +122,7 @@ module.exports = class VDMIEvidenceService extends Service {
           sourceQuality,
           signatureRequired,
           rationale,
-        } = ctx.request.body;
+        } = body;
 
         try {
           // Validate evidence category
@@ -126,14 +136,14 @@ module.exports = class VDMIEvidenceService extends Service {
             throw new Error(`Invalid evidence category: ${category}`);
           }
 
-          // Fetch task
-          const task = await ctx.call('vdmi.getTask', { id: taskId });
-          if (!task || task.tenantId !== tenantId) {
-            throw new Error('Task not found');
-          }
-
-          if (task.status === 'approved' || task.status === 'applied') {
-            throw new Error('Cannot inject evidence for already-approved tasks');
+          const matrixId = affectedMatrix?.matrixId;
+          if (!matrixId) {
+            throw new MoleculerClientError(
+              'Legacy task-scoped VDMI evidence injection is retired. Provide affectedMatrix.matrixId so evidence can be added through the canonical vdmi.evidence action.',
+              410,
+              'VDMI_LEGACY_TASK_EVIDENCE_RETIRED',
+              { tenantId, taskId }
+            );
           }
 
           // Create evidence document
@@ -157,8 +167,29 @@ module.exports = class VDMIEvidenceService extends Service {
 
           await this.db.put(evidenceDoc);
 
-          // Assess dual-evidence status
-          const dualEvidenceStatus = await this._assessDualEvidenceStatus(task, evidenceDoc);
+          const coreEvidence = await ctx.call(
+            'vdmi.evidence',
+            {
+              id: matrixId,
+              reason: rationale,
+              type: evidenceType,
+              reference: evidenceDoc._id,
+              content: {
+                category,
+                taskId,
+                data,
+                sourceQuality,
+                signatureRequired: Boolean(signatureRequired),
+              },
+            },
+            { meta: { ...ctx.meta, tenantId } }
+          );
+
+          // Assess dual-evidence status against the current canonical matrix evidence list.
+          const dualEvidenceStatus = await this._assessDualEvidenceStatus(
+            coreEvidence?.matrix,
+            evidenceDoc
+          );
 
           // Create signature request if required
           let signatureRequest = null;
@@ -190,14 +221,6 @@ module.exports = class VDMIEvidenceService extends Service {
             },
           });
 
-          // Update task's evidence reference
-          task.injectedEvidence = task.injectedEvidence || [];
-          task.injectedEvidence.push(evidenceDoc._id);
-          if (dualEvidenceStatus.satisfied) {
-            task.status = 'pending_approval';
-          }
-          await ctx.call('vdmi.updateTask', task);
-
           return {
             evidence: {
               id: evidenceDoc._id,
@@ -220,10 +243,11 @@ module.exports = class VDMIEvidenceService extends Service {
                 }
               : null,
             matrixImpact: {
-              matrixId: affectedMatrix?.matrixId,
+              matrixId,
               willUnblockMatrix: dualEvidenceStatus.satisfied,
               triggeredApprovalAfterSignature: signatureRequired && dualEvidenceStatus.satisfied,
             },
+            coreEvidence: coreEvidence?.evidence || null,
           };
         } catch (error) {
           this.logger.error('Error injecting evidence:', error);
@@ -239,7 +263,8 @@ module.exports = class VDMIEvidenceService extends Service {
       rest: 'POST /tenants/:tenantId/evidence/:evidenceId/sign',
       async handler(ctx) {
         const { tenantId, evidenceId } = ctx.params;
-        const { signatureRequestId, signatureData } = ctx.request.body;
+        const body = ctx.request?.body || ctx.params;
+        const { signatureRequestId, signatureData } = body;
 
         try {
           // Verify signature
@@ -287,6 +312,7 @@ module.exports = class VDMIEvidenceService extends Service {
     const hasFirstSource = existingSources.some((s) => s !== newSource);
     const hasSecondSource = newSource;
 
+    const satisfied = Boolean(hasFirstSource && hasSecondSource);
     return {
       firstSource: {
         type: existingSources[0] || 'unknown',
@@ -297,7 +323,8 @@ module.exports = class VDMIEvidenceService extends Service {
         status: 'pending_injection',
         evidenceId: newEvidence._id,
       },
-      dualEvidenceSatisfied: hasFirstSource && hasSecondSource,
+      dualEvidenceSatisfied: satisfied,
+      satisfied,
       satisfiedAfterSignature: newEvidence.signatureRequired,
     };
   }

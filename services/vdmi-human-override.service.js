@@ -5,6 +5,7 @@
  */
 
 const Service = require('moleculer').Service;
+const { MoleculerClientError } = require('moleculer').Errors;
 const PouchDB = require('pouchdb');
 const VDMIAuditTrail = require('../src/vdmi-audit-trail');
 
@@ -25,6 +26,14 @@ module.exports = class VDMIHumanOverrideService extends Service {
 
     this.db = null;
     this.auditTrail = null;
+
+    this.parseServiceSchema({
+      name: this.name,
+      settings: this.settings,
+      actions: this.actions,
+      created: this.created,
+      started: this.started,
+    });
   }
 
   created() {
@@ -128,7 +137,8 @@ module.exports = class VDMIHumanOverrideService extends Service {
       },
       async handler(ctx) {
         const { tenantId, matrixId } = ctx.params;
-        const { overrides, rationale, changeCategory, urgency } = ctx.request.body;
+        const body = ctx.request?.body || ctx.params;
+        const { overrides, rationale, changeCategory, urgency } = body;
 
         // Authorization check
         const userRole = ctx.meta.userRole || 'user';
@@ -145,10 +155,24 @@ module.exports = class VDMIHumanOverrideService extends Service {
           throw new Error('At least one role override must be provided');
         }
 
-        // Fetch matrix from VDMI service
-        const matrix = await ctx.call('vdmi.get', { id: matrixId });
+        const coreResult = await ctx.call(
+          'vdmi.get',
+          { id: matrixId },
+          { meta: { ...ctx.meta, tenantId } }
+        );
+        const matrix = coreResult?.matrix;
         if (!matrix) {
           throw new Error('Matrix not found');
+        }
+
+        const patch = overrides.patch || null;
+        if (!patch) {
+          throw new MoleculerClientError(
+            'Legacy role-object VDMI override is retired for this facade. Provide overrides.patch for canonical vdmi.update or define the VDMI row schema in the governance model first.',
+            410,
+            'VDMI_LEGACY_ROLE_OVERRIDE_RETIRED',
+            { tenantId, matrixId }
+          );
         }
 
         // Create override document
@@ -188,11 +212,18 @@ module.exports = class VDMIHumanOverrideService extends Service {
           userAgent: ctx.meta.userAgent,
         });
 
-        // Update matrix status
-        matrix.status = 'pending_review';
-        matrix.version += 1;
-        matrix.lastOverride = overrideDoc._id;
-        await ctx.call('vdmi.update', matrix);
+        const updated = await ctx.call(
+          'vdmi.update',
+          {
+            id: matrixId,
+            reason: rationale,
+            patch: {
+              ...patch,
+              status: patch.status || 'pending_review',
+            },
+          },
+          { meta: { ...ctx.meta, tenantId } }
+        );
 
         // Send notification
         await ctx.emit('vdmi.matrix.overridden', {
@@ -207,7 +238,7 @@ module.exports = class VDMIHumanOverrideService extends Service {
           tenantId,
           matrixId,
           status: 'pending_review',
-          version: matrix.version,
+          version: updated?.matrix?.version || matrix.version,
           changes: {
             modified_roles: overrides.roles.length,
             audit_trail_entries: 1,
@@ -262,7 +293,8 @@ module.exports = class VDMIHumanOverrideService extends Service {
       },
       async handler(ctx) {
         const { tenantId, matrixId } = ctx.params;
-        const { targetVersion, reason, notifyStakeholders } = ctx.request.body;
+        const body = ctx.request?.body || ctx.params;
+        const { targetVersion, reason, notifyStakeholders } = body;
 
         // Authorization
         const userRole = ctx.meta.userRole || 'user';
@@ -271,8 +303,12 @@ module.exports = class VDMIHumanOverrideService extends Service {
           throw new Error('FORBIDDEN: Only matrix admins can revert versions');
         }
 
-        // Fetch matrix
-        const matrix = await ctx.call('vdmi.get', { id: matrixId });
+        const coreResult = await ctx.call(
+          'vdmi.get',
+          { id: matrixId },
+          { meta: { ...ctx.meta, tenantId } }
+        );
+        const matrix = coreResult?.matrix;
         if (!matrix) {
           throw new Error('Matrix not found');
         }
@@ -285,14 +321,13 @@ module.exports = class VDMIHumanOverrideService extends Service {
           throw new Error('Cannot revert more than 10 versions; request archive');
         }
 
-        // Get historical version
-        const historicalMatrix = await ctx.call('vdmi.getVersion', {
-          id: matrixId,
-          version: targetVersion,
-        });
-
-        if (!historicalMatrix) {
-          throw new Error('Historical version not found');
+        if (targetVersion !== matrix.version - 1) {
+          throw new MoleculerClientError(
+            'Version-targeted VDMI rollback is retired for this facade. The canonical vdmi.revert action only supports reverting the latest stored revision.',
+            410,
+            'VDMI_VERSIONED_REVERT_RETIRED',
+            { tenantId, matrixId, currentVersion: matrix.version, targetVersion }
+          );
         }
 
         // Create revert document
@@ -325,12 +360,14 @@ module.exports = class VDMIHumanOverrideService extends Service {
           },
         });
 
-        // Restore historical version as new version
-        matrix.roles = historicalMatrix.roles;
-        matrix.version += 1;
-        matrix.revertedFrom = matrix.version - 1;
-        matrix.revertedAt = new Date().toISOString();
-        await ctx.call('vdmi.update', matrix);
+        const reverted = await ctx.call(
+          'vdmi.revert',
+          {
+            id: matrixId,
+            reason,
+          },
+          { meta: { ...ctx.meta, tenantId } }
+        );
 
         // Notify
         if (notifyStakeholders) {
@@ -348,7 +385,7 @@ module.exports = class VDMIHumanOverrideService extends Service {
           matrixId,
           previousVersion: revertDoc.fromVersion,
           targetVersion: revertDoc.toVersion,
-          currentVersion: matrix.version,
+          currentVersion: reverted?.matrix?.version || matrix.version,
           revertedAt: revertDoc.revertedAt,
           revertedBy: ctx.meta.userId,
           auditEntry,

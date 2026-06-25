@@ -5,6 +5,7 @@
  */
 
 const Service = require('moleculer').Service;
+const { MoleculerClientError } = require('moleculer').Errors;
 const PouchDB = require('pouchdb');
 const VDMIAuditTrail = require('../src/vdmi-audit-trail');
 
@@ -26,6 +27,14 @@ module.exports = class VDMIFindingsService extends Service {
 
     this.db = null;
     this.auditTrail = null;
+
+    this.parseServiceSchema({
+      name: this.name,
+      settings: this.settings,
+      actions: this.actions,
+      created: this.created,
+      started: this.started,
+    });
   }
 
   created() {
@@ -175,8 +184,8 @@ module.exports = class VDMIFindingsService extends Service {
       },
       async handler(ctx) {
         const { tenantId, findingId } = ctx.params;
-        const { mitigationStrategy, proposedActions, riskAssessment, approvalRequired } =
-          ctx.request.body;
+        const body = ctx.request?.body || ctx.params;
+        const { mitigationStrategy, proposedActions, riskAssessment, approvalRequired } = body;
 
         try {
           // Get finding
@@ -276,7 +285,8 @@ module.exports = class VDMIFindingsService extends Service {
       },
       async handler(ctx) {
         const { tenantId, findingId } = ctx.params;
-        const { resolutionType, justification, evidenceProof, applyChanges } = ctx.request.body;
+        const body = ctx.request?.body || ctx.params;
+        const { resolutionType, justification, evidenceProof, applyChanges } = body;
 
         // Authorization
         const userRole = ctx.meta.userRole || 'user';
@@ -290,6 +300,19 @@ module.exports = class VDMIFindingsService extends Service {
           const finding = await this.db.get(`vdmi-finding:${tenantId}:${findingId}`);
           if (!finding) {
             throw new Error('Finding not found');
+          }
+
+          if (applyChanges && finding.affectedMatrix) {
+            throw new MoleculerClientError(
+              'Legacy finding applyChanges is retired until a canonical finding-to-matrix patch contract exists.',
+              410,
+              'VDMI_FINDING_APPLY_CHANGES_RETIRED',
+              {
+                tenantId,
+                findingId,
+                matrixId: finding.affectedMatrix.matrixId,
+              }
+            );
           }
 
           // Update lifecycle
@@ -316,14 +339,6 @@ module.exports = class VDMIFindingsService extends Service {
               id: findingId,
             },
           });
-
-          // Apply changes if requested
-          if (applyChanges && finding.affectedMatrix) {
-            await ctx.call('vdmi.update', {
-              id: finding.affectedMatrix.matrixId,
-              role: finding.affectedMatrix.roleId,
-            });
-          }
 
           return {
             id: finding._id,

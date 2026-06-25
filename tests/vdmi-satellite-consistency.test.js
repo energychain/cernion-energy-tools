@@ -20,10 +20,10 @@ function extractVdmiActionNames() {
 
 function extractVdmiCalls(relativePath) {
   const source = read(relativePath);
-  return [...source.matchAll(/ctx\.call\(['"]vdmi\.([^'"]+)['"]/g)].map((match) => match[1]);
+  return [...source.matchAll(/ctx\.call\(\s*['"]vdmi\.([^'"]+)['"]/g)].map((match) => match[1]);
 }
 
-describe('VDMI satellite consistency audit (#290)', () => {
+describe('VDMI satellite consistency audit (#290/#297)', () => {
   const expectedMissingCoreActions = ['getTask', 'updateTask', 'getVersion'];
 
   test('documents the four exposed satellite services and their classification', () => {
@@ -38,7 +38,7 @@ describe('VDMI satellite consistency audit (#290)', () => {
       expect(doc).toContain(`\`${serviceName}\``);
     }
 
-    expect(doc).toContain('incomplete integration requiring follow-up');
+    expect(doc).toContain('compatibility facade');
     expect(doc).toContain('No new Capability Broker route');
     expect(doc).toContain('Personal-Agent shortcut');
   });
@@ -55,7 +55,7 @@ describe('VDMI satellite consistency audit (#290)', () => {
     }
   });
 
-  test('captures every live satellite call to missing core VDMI task/version actions', () => {
+  test('keeps satellite calls on canonical core VDMI actions only', () => {
     const actionNames = extractVdmiActionNames();
     const satelliteCalls = {
       'services/vdmi-evidence.service.js': extractVdmiCalls('services/vdmi-evidence.service.js'),
@@ -66,34 +66,37 @@ describe('VDMI satellite consistency audit (#290)', () => {
       'services/vdmi-findings.service.js': extractVdmiCalls('services/vdmi-findings.service.js'),
     };
 
-    expect(satelliteCalls['services/vdmi-evidence.service.js']).toEqual([
-      'getTask',
-      'updateTask',
-    ]);
+    expect(satelliteCalls['services/vdmi-evidence.service.js']).toEqual(['evidence']);
     expect(satelliteCalls['services/vdmi-spectator.service.js']).toEqual([
-      'getTask',
-      'getTask',
+      'negotiationTrace',
+      'dossier',
     ]);
     expect(satelliteCalls['services/vdmi-human-override.service.js']).toEqual([
       'get',
       'update',
       'get',
-      'getVersion',
-      'update',
+      'revert',
     ]);
-    expect(satelliteCalls['services/vdmi-findings.service.js']).toEqual(['update']);
+    expect(satelliteCalls['services/vdmi-findings.service.js']).toEqual([]);
 
     const missingCalls = Object.entries(satelliteCalls).flatMap(([file, calls]) =>
       calls.filter((call) => !actionNames.has(call)).map((call) => `${file}:${call}`)
     );
 
-    expect(missingCalls).toEqual([
-      'services/vdmi-evidence.service.js:getTask',
-      'services/vdmi-evidence.service.js:updateTask',
-      'services/vdmi-spectator.service.js:getTask',
-      'services/vdmi-spectator.service.js:getTask',
-      'services/vdmi-human-override.service.js:getVersion',
-    ]);
+    expect(missingCalls).toEqual([]);
+  });
+
+  test('documents retired legacy task/version facade behavior', () => {
+    const doc = read('docs/architecture/vdmi-satellite-consistency-audit.md');
+
+    for (const marker of [
+      'VDMI_LEGACY_TASK_EVIDENCE_RETIRED',
+      'VDMI_LEGACY_ROLE_OVERRIDE_RETIRED',
+      'VDMI_VERSIONED_REVERT_RETIRED',
+      'VDMI_FINDING_APPLY_CHANGES_RETIRED',
+    ]) {
+      expect(doc).toContain(marker);
+    }
   });
 
   test('keeps the legacy satellite API exposure visible', () => {
