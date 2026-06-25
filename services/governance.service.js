@@ -4,6 +4,11 @@ const PouchDB = require('pouchdb');
 const { evaluateGovernancePolicy } = require('../src/governance-policy-evaluator');
 const { DecisionEvidenceAuditTrail } = require('../src/decision-evidence-audit-trail');
 const { deriveHitlResolverRoles } = require('../src/vdmi-hitl-role-derivation');
+const {
+  buildRedispatchReferenceProcessInput,
+  SOURCE_ACTIONS_NOT_CALLED,
+  summarizeRedispatchReferenceProcess,
+} = require('../src/redispatch-reference-process');
 
 module.exports = {
   name: 'governance',
@@ -53,6 +58,75 @@ module.exports = {
       },
       handler(ctx) {
         return deriveHitlResolverRoles(ctx.params);
+      },
+    },
+
+    runRedispatchReferenceProcess: {
+      params: {
+        tenantId: { type: 'string', optional: true },
+        caseId: { type: 'string', optional: true },
+        matrixId: { type: 'string', optional: true },
+        rowId: { type: 'string', optional: true },
+        controlCase: { type: 'string', optional: true },
+        evidence: { type: 'array', optional: true, default: [], items: 'any' },
+        responsibleRole: { type: 'string', optional: true },
+        contributorRole: { type: 'string', optional: true },
+        actor: { type: 'string', optional: true },
+        actorRole: { type: 'string', optional: true },
+        timestamp: { type: 'string', optional: true },
+      },
+      openapi: {
+        summary: 'Run the explicit technical Redispatch governance reference process',
+        tags: ['Governance'],
+      },
+      async handler(ctx) {
+        const input = buildRedispatchReferenceProcessInput(ctx.params);
+        const policyDecision = await ctx.call('governance.evaluatePolicy', {
+          controlCase: input.row,
+          context: input.context,
+        });
+        const roleDerivation = await ctx.call('governance.deriveHitlResolverRoles', {
+          row: input.row,
+          decisionPolicy: input.row.decisionPolicy,
+        });
+        const auditRecord = await ctx.call('governance.recordDecisionAudit', {
+          tenantId: input.tenantId,
+          entityId: input.caseId,
+          rowId: input.row.taskId,
+          mandate: 'technical-redispatch-reference-process',
+          controlCase: input.row.controlCase,
+          actor: input.actor || 'governance-reference-process',
+          role: input.actorRole,
+          evidenceState: input.evidenceState,
+          decision: policyDecision.reason,
+          followUpAction: policyDecision.requiresHumanDecision
+            ? 'create_hitl_item_for_derived_roles_reference_only'
+            : 'continue_technical_reference_process',
+          policyDecision: {
+            ...policyDecision,
+            requiredResolverRoles: roleDerivation.requiredResolverRoles,
+            contributorApprovalRoles: roleDerivation.contributorApprovalRoles,
+          },
+          metadata: {
+            matrixId: input.matrixId,
+            referenceProcess: 'technical_redispatch_steuerbarkeitscheck',
+            sourceActionsNotCalled: SOURCE_ACTIONS_NOT_CALLED,
+          },
+          timestamp: ctx.params.timestamp,
+        });
+        const verification = await ctx.call('governance.verifyDecisionAuditTrail', {
+          tenantId: input.tenantId,
+          entityId: input.caseId,
+          rowId: input.row.taskId,
+        });
+
+        return summarizeRedispatchReferenceProcess({
+          input,
+          policyDecision,
+          roleDerivation,
+          auditRecord,
+          verification,
+        });
       },
     },
 
