@@ -39,7 +39,10 @@ module.exports = {
   buildConsumerSummary,
   buildConsumptionAwareConsumerSummary,
   buildTotalSummary,
+  buildBillingReport,
+  buildAnnualBillingReport,
   formatAsCsv,
+  formatBillingReportAsCsv,
 };
 
 // ---------------------------------------------------------------------------
@@ -515,6 +518,190 @@ function formatAsCsv(grid, maloId) {
       interval.redispatchDeductionKWh.toFixed(4),
       interval.netGenerationKWh.toFixed(4),
       alloc.toFixed(4),
+    ].join(';');
+  });
+  return [header, ...rows].join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// buildBillingReport
+// ---------------------------------------------------------------------------
+
+/**
+ * Apply an internal tariff to a consumption-aware consumer summary (#283) to
+ * produce a billing report (issue #284, gap identified in #280's gap
+ * analysis: no pricing/tariff layer existed anywhere for Energy Sharing
+ * allocations).
+ *
+ * `tariffEurPerKWh` is a required input — never a hardcoded business
+ * decision baked into this module (out of scope per the issue: concrete
+ * Betriebskosten-/Servicepreis-Logik is a business decision, not a code fact).
+ *
+ * Only `allocatedKWh` (the internal solar share actually used) is billed.
+ * `remainderKWh` (Restmenge / grid draw) is reported for transparency but
+ * deliberately NEVER billed here — that remains the regular supplier's/grid
+ * operator's responsibility, not this internal community settlement.
+ *
+ * A consumer summary with `allocatedKWh === null` (no consumption data at
+ * all, see #283) produces `billingAmountEur: null` — never a misleading
+ * €0.00 for "no data".
+ *
+ * @param {Array} consumerSummaries — output of buildConsumptionAwareConsumerSummary (#283)
+ * @param {object} options
+ * @param {number} options.tariffEurPerKWh — internal price per kWh of allocated solar (required)
+ * @param {string} options.periodFrom — ISO-8601 date, inclusive
+ * @param {string} options.periodTo — ISO-8601 date, inclusive
+ * @param {string} [options.allocationId] — Berechnungslaufreferenz for reproducibility
+ * @returns {{periodFrom, periodTo, allocationId, tariffEurPerKWh, consumers: Array, totals: object}}
+ */
+function buildBillingReport(consumerSummaries, options) {
+  const { tariffEurPerKWh, periodFrom, periodTo, allocationId } = options || {};
+  if (typeof tariffEurPerKWh !== 'number' || !Number.isFinite(tariffEurPerKWh)) {
+    throw new Error('buildBillingReport requires a numeric tariffEurPerKWh (€/kWh)');
+  }
+
+  const consumers = consumerSummaries.map((summary) => {
+    const billable = summary.allocatedKWh != null;
+    return {
+      maloId: summary.maloId,
+      name: summary.name,
+      allocatedKWh: summary.allocatedKWh,
+      billingAmountEur: billable ? round4(summary.allocatedKWh * tariffEurPerKWh) : null,
+      remainderKWh: summary.remainderKWh,
+      surplusKWh: summary.surplusKWh,
+      solarSharePercent: summary.solarSharePercent,
+      dataCompleteness: summary.dataCompleteness,
+    };
+  });
+
+  const totals = consumers.reduce(
+    (acc, c) => ({
+      totalAllocatedKWh: round4(acc.totalAllocatedKWh + (c.allocatedKWh ?? 0)),
+      totalBillingAmountEur: round4(acc.totalBillingAmountEur + (c.billingAmountEur ?? 0)),
+      totalRemainderKWh: round4(acc.totalRemainderKWh + (c.remainderKWh ?? 0)),
+      consumersWithData: acc.consumersWithData + (c.allocatedKWh != null ? 1 : 0),
+      consumersWithoutData: acc.consumersWithoutData + (c.allocatedKWh == null ? 1 : 0),
+    }),
+    {
+      totalAllocatedKWh: 0,
+      totalBillingAmountEur: 0,
+      totalRemainderKWh: 0,
+      consumersWithData: 0,
+      consumersWithoutData: 0,
+    }
+  );
+
+  return {
+    periodFrom,
+    periodTo,
+    allocationId: allocationId || null,
+    tariffEurPerKWh,
+    consumers,
+    totals,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// buildAnnualBillingReport
+// ---------------------------------------------------------------------------
+
+/**
+ * Aggregate multiple monthly billing reports (#284's buildBillingReport
+ * output, one per month) into an annual report with the same per-consumer
+ * shape, summed across months.
+ *
+ * Months where a consumer's `billingAmountEur` is `null` (no consumption
+ * data that month) are excluded from that consumer's sum — never treated as
+ * €0 — and tracked via `monthsWithData`/`monthsWithoutData` per consumer, so
+ * an incomplete year is never silently presented as a complete one.
+ *
+ * Assumes the same set of consumers (by maloId) across all monthly reports —
+ * mid-year membership changes are out of scope here (see #285, persistent
+ * community/participant master data).
+ *
+ * @param {Array} monthlyReports — ordered array of buildBillingReport() outputs
+ * @returns {{periodFrom, periodTo, monthCount, consumers: Array, totals: object}}
+ */
+function buildAnnualBillingReport(monthlyReports) {
+  if (!monthlyReports || monthlyReports.length === 0) {
+    throw new Error('buildAnnualBillingReport requires at least one monthly report');
+  }
+
+  const periodFrom = monthlyReports[0].periodFrom;
+  const periodTo = monthlyReports[monthlyReports.length - 1].periodTo;
+
+  const byMalo = new Map();
+  for (const report of monthlyReports) {
+    for (const c of report.consumers) {
+      const entry = byMalo.get(c.maloId) || {
+        maloId: c.maloId,
+        name: c.name,
+        allocatedKWh: 0,
+        billingAmountEur: 0,
+        remainderKWh: 0,
+        monthsWithData: 0,
+        monthsWithoutData: 0,
+      };
+
+      if (c.allocatedKWh != null) {
+        entry.allocatedKWh = round4(entry.allocatedKWh + c.allocatedKWh);
+        entry.billingAmountEur = round4(entry.billingAmountEur + (c.billingAmountEur ?? 0));
+        entry.remainderKWh = round4(entry.remainderKWh + (c.remainderKWh ?? 0));
+        entry.monthsWithData += 1;
+      } else {
+        entry.monthsWithoutData += 1;
+      }
+
+      byMalo.set(c.maloId, entry);
+    }
+  }
+
+  const consumers = [...byMalo.values()].map((entry) => ({
+    ...entry,
+    complete: entry.monthsWithoutData === 0,
+  }));
+
+  const totals = consumers.reduce(
+    (acc, c) => ({
+      totalAllocatedKWh: round4(acc.totalAllocatedKWh + c.allocatedKWh),
+      totalBillingAmountEur: round4(acc.totalBillingAmountEur + c.billingAmountEur),
+      totalRemainderKWh: round4(acc.totalRemainderKWh + c.remainderKWh),
+    }),
+    { totalAllocatedKWh: 0, totalBillingAmountEur: 0, totalRemainderKWh: 0 }
+  );
+
+  return {
+    periodFrom,
+    periodTo,
+    monthCount: monthlyReports.length,
+    consumers,
+    totals,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// formatBillingReportAsCsv
+// ---------------------------------------------------------------------------
+
+/**
+ * Render a billing report (monthly or annual — both share the same
+ * `consumers[]` shape for the columns used here) as a semicolon-delimited
+ * CSV export, one row per consumer.
+ *
+ * @param {{consumers: Array}} report — buildBillingReport() or buildAnnualBillingReport() output
+ * @returns {string} — CSV string with header + one row per consumer
+ */
+function formatBillingReportAsCsv(report) {
+  const header = 'maloId;name;allocated_kwh;billing_amount_eur;remainder_kwh;data_complete';
+  const rows = report.consumers.map((c) => {
+    const isComplete = c.complete ?? c.dataCompleteness?.complete ?? '';
+    return [
+      c.maloId,
+      c.name || '',
+      c.allocatedKWh != null ? c.allocatedKWh.toFixed(4) : '',
+      c.billingAmountEur != null ? c.billingAmountEur.toFixed(2) : '',
+      c.remainderKWh != null ? c.remainderKWh.toFixed(4) : '',
+      String(isComplete),
     ].join(';');
   });
   return [header, ...rows].join('\n');

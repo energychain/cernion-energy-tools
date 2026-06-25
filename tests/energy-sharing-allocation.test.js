@@ -31,7 +31,10 @@ const {
   allocateTimeseriesCappedByConsumption,
   buildConsumerSummary,
   buildConsumptionAwareConsumerSummary,
+  buildBillingReport,
+  buildAnnualBillingReport,
   formatAsCsv,
+  formatBillingReportAsCsv,
   INTERVAL_MS,
   INTERVALS_PER_DAY,
   RECOMMENDED_MAX_DAYS,
@@ -572,6 +575,173 @@ describe('timeseries-allocation — pure unit tests', () => {
       expect(a.dataCompleteness.missingIntervals).toBe(INTERVALS_PER_DAY / 2);
       // Still computable from the half that IS known — not null.
       expect(a.allocatedKWh).not.toBeNull();
+    });
+  });
+
+  // ── buildBillingReport / buildAnnualBillingReport (#284) ──────────────────────
+  describe('buildBillingReport', () => {
+    const FULL_SUMMARY = [
+      {
+        maloId: CONSUMER_A.maloId,
+        name: 'Müller',
+        allocatedKWh: 100,
+        surplusKWh: 20,
+        remainderKWh: 10,
+        consumptionKWh: 110,
+        solarSharePercent: 90.9091,
+        dataCompleteness: {
+          totalIntervals: 96,
+          knownIntervals: 96,
+          missingIntervals: 0,
+          complete: true,
+        },
+      },
+      {
+        maloId: CONSUMER_B.maloId,
+        name: 'Schmidt',
+        allocatedKWh: null,
+        surplusKWh: null,
+        remainderKWh: null,
+        consumptionKWh: null,
+        solarSharePercent: null,
+        dataCompleteness: {
+          totalIntervals: 96,
+          knownIntervals: 0,
+          missingIntervals: 96,
+          complete: false,
+        },
+      },
+    ];
+
+    test('throws when tariffEurPerKWh is missing (no hardcoded business value allowed)', () => {
+      expect(() =>
+        buildBillingReport(FULL_SUMMARY, { periodFrom: '2026-06-01', periodTo: '2026-06-30' })
+      ).toThrow(/tariffEurPerKWh/);
+    });
+
+    test('computes billingAmountEur = allocatedKWh × tariffEurPerKWh for a consumer with data', () => {
+      const report = buildBillingReport(FULL_SUMMARY, {
+        tariffEurPerKWh: 0.25,
+        periodFrom: '2026-06-01',
+        periodTo: '2026-06-30',
+        allocationId: 'alloc-123',
+      });
+
+      const a = report.consumers.find((c) => c.maloId === CONSUMER_A.maloId);
+      expect(a.billingAmountEur).toBe(25.0);
+      expect(a.remainderKWh).toBe(10); // reported, never billed
+      expect(report.allocationId).toBe('alloc-123');
+      expect(report.tariffEurPerKWh).toBe(0.25);
+    });
+
+    test('a consumer with no consumption data gets billingAmountEur: null, never €0', () => {
+      const report = buildBillingReport(FULL_SUMMARY, {
+        tariffEurPerKWh: 0.25,
+        periodFrom: '2026-06-01',
+        periodTo: '2026-06-30',
+      });
+
+      const b = report.consumers.find((c) => c.maloId === CONSUMER_B.maloId);
+      expect(b.billingAmountEur).toBeNull();
+      expect(b.allocatedKWh).toBeNull();
+    });
+
+    test('totals exclude consumers without data from the sum but count them separately', () => {
+      const report = buildBillingReport(FULL_SUMMARY, {
+        tariffEurPerKWh: 0.25,
+        periodFrom: '2026-06-01',
+        periodTo: '2026-06-30',
+      });
+
+      expect(report.totals.totalAllocatedKWh).toBe(100);
+      expect(report.totals.totalBillingAmountEur).toBe(25.0);
+      expect(report.totals.consumersWithData).toBe(1);
+      expect(report.totals.consumersWithoutData).toBe(1);
+    });
+  });
+
+  describe('buildAnnualBillingReport', () => {
+    function makeMonthlyReport(month, allocatedA, allocatedB) {
+      const consumers = [
+        {
+          maloId: CONSUMER_A.maloId,
+          name: 'Müller',
+          allocatedKWh: allocatedA,
+          billingAmountEur: allocatedA != null ? round4(allocatedA * 0.25) : null,
+          remainderKWh: allocatedA != null ? 5 : null,
+        },
+        {
+          maloId: CONSUMER_B.maloId,
+          name: 'Schmidt',
+          allocatedKWh: allocatedB,
+          billingAmountEur: allocatedB != null ? round4(allocatedB * 0.25) : null,
+          remainderKWh: allocatedB != null ? 2 : null,
+        },
+      ];
+      return { periodFrom: `2026-${month}-01`, periodTo: `2026-${month}-28`, consumers };
+    }
+
+    test('sums 12 monthly reports into an annual report (full year, both consumers fully covered)', () => {
+      const monthly = Array.from({ length: 12 }, (_, i) =>
+        makeMonthlyReport(String(i + 1).padStart(2, '0'), 100, 50)
+      );
+      const annual = buildAnnualBillingReport(monthly);
+
+      expect(annual.monthCount).toBe(12);
+      const a = annual.consumers.find((c) => c.maloId === CONSUMER_A.maloId);
+      expect(a.allocatedKWh).toBeCloseTo(1200, 4);
+      expect(a.billingAmountEur).toBeCloseTo(300, 4);
+      expect(a.monthsWithData).toBe(12);
+      expect(a.monthsWithoutData).toBe(0);
+      expect(a.complete).toBe(true);
+      expect(annual.totals.totalAllocatedKWh).toBeCloseTo(1800, 4); // 1200 + 600
+    });
+
+    test('a consumer missing data in some months is summed only over the months with data, and flagged incomplete', () => {
+      const monthly = [
+        makeMonthlyReport('01', 100, 50),
+        makeMonthlyReport('02', null, 50), // A has no data this month
+        makeMonthlyReport('03', 100, 50),
+      ];
+      const annual = buildAnnualBillingReport(monthly);
+
+      const a = annual.consumers.find((c) => c.maloId === CONSUMER_A.maloId);
+      expect(a.allocatedKWh).toBeCloseTo(200, 4); // only Jan + Mar
+      expect(a.monthsWithData).toBe(2);
+      expect(a.monthsWithoutData).toBe(1);
+      expect(a.complete).toBe(false);
+
+      const b = annual.consumers.find((c) => c.maloId === CONSUMER_B.maloId);
+      expect(b.complete).toBe(true);
+    });
+
+    test('throws on an empty monthly-reports array', () => {
+      expect(() => buildAnnualBillingReport([])).toThrow();
+    });
+  });
+
+  describe('formatBillingReportAsCsv', () => {
+    test('produces a header plus one row per consumer', () => {
+      const report = buildBillingReport(
+        [
+          {
+            maloId: CONSUMER_A.maloId,
+            name: 'Müller',
+            allocatedKWh: 100,
+            surplusKWh: 20,
+            remainderKWh: 10,
+            dataCompleteness: { complete: true },
+          },
+        ],
+        { tariffEurPerKWh: 0.25, periodFrom: '2026-06-01', periodTo: '2026-06-30' }
+      );
+      const csv = formatBillingReportAsCsv(report);
+      const lines = csv.split('\n');
+      expect(lines).toHaveLength(2);
+      expect(lines[0]).toBe(
+        'maloId;name;allocated_kwh;billing_amount_eur;remainder_kwh;data_complete'
+      );
+      expect(lines[1]).toContain('25.00');
     });
   });
 
@@ -1226,5 +1396,100 @@ describe('energy-sharing-allocation service', () => {
     });
     expect(result.success).toBe(false);
     expect(result.message).toMatch(/deleted/);
+  });
+
+  // ── billingReport / annualBillingReport (#284) ────────────────────────────────
+  // EDM mock (set up in beforeAll above): CONSUMER_A has a full 7-day consumption
+  // series at 0.25 kWh/interval; CONSUMER_B has none (found: false).
+  describe('billingReport', () => {
+    test('throws when tariffEurPerKWh is missing', async () => {
+      const created = await broker.call('energy-sharing-allocation.allocate', makeAllocateParams());
+      await expect(
+        broker.call('energy-sharing-allocation.billingReport', { id: created.id })
+      ).rejects.toThrow();
+    });
+
+    test('returns 404 for an unknown allocation id', async () => {
+      const result = await broker.call('energy-sharing-allocation.billingReport', {
+        id: 'does-not-exist',
+        tariffEurPerKWh: 0.25,
+      });
+      expect(result.success).toBe(false);
+      expect(result.message).toMatch(/not found/);
+    });
+
+    test('bills the consumer with EDM consumption data, reports null for the one without', async () => {
+      const created = await broker.call('energy-sharing-allocation.allocate', makeAllocateParams());
+      const report = await broker.call('energy-sharing-allocation.billingReport', {
+        id: created.id,
+        tariffEurPerKWh: 0.25,
+      });
+
+      expect(report.success).toBe(true);
+      expect(report.allocationId).toBe(created.id);
+      expect(report.tariffEurPerKWh).toBe(0.25);
+
+      const a = report.consumers.find((c) => c.maloId === CONSUMER_A.maloId);
+      const b = report.consumers.find((c) => c.maloId === CONSUMER_B.maloId);
+
+      expect(a.allocatedKWh).toBeGreaterThan(0);
+      expect(a.billingAmountEur).toBeCloseTo(a.allocatedKWh * 0.25, 4);
+      // Consumption (0.25 kWh/interval) exceeds A's 30% quota share → some Restmenge.
+      expect(a.remainderKWh).toBeGreaterThan(0);
+
+      expect(b.allocatedKWh).toBeNull();
+      expect(b.billingAmountEur).toBeNull();
+    });
+
+    test('format=csv returns a semicolon-delimited export', async () => {
+      const created = await broker.call('energy-sharing-allocation.allocate', makeAllocateParams());
+      const csv = await broker.call('energy-sharing-allocation.billingReport', {
+        id: created.id,
+        tariffEurPerKWh: 0.25,
+        format: 'csv',
+      });
+
+      expect(typeof csv).toBe('string');
+      expect(csv.split('\n')[0]).toBe(
+        'maloId;name;allocated_kwh;billing_amount_eur;remainder_kwh;data_complete'
+      );
+    });
+  });
+
+  describe('annualBillingReport', () => {
+    test('sums multiple allocations into one annual report', async () => {
+      const created1 = await broker.call(
+        'energy-sharing-allocation.allocate',
+        makeAllocateParams({ dateFrom: '2026-06-01', dateTo: '2026-06-07' })
+      );
+      const created2 = await broker.call(
+        'energy-sharing-allocation.allocate',
+        makeAllocateParams({ dateFrom: '2026-06-01', dateTo: '2026-06-07' })
+      );
+
+      const annual = await broker.call('energy-sharing-allocation.annualBillingReport', {
+        allocationIds: [created1.id, created2.id],
+        tariffEurPerKWh: 0.25,
+      });
+
+      expect(annual.success).toBe(true);
+      expect(annual.monthCount).toBe(2);
+      const a = annual.consumers.find((c) => c.maloId === CONSUMER_A.maloId);
+      expect(a.monthsWithData).toBe(2);
+      expect(a.complete).toBe(true);
+      const b = annual.consumers.find((c) => c.maloId === CONSUMER_B.maloId);
+      expect(b.monthsWithData).toBe(0);
+      expect(b.complete).toBe(false);
+    });
+
+    test('throws on an unknown allocation id within the list', async () => {
+      const created = await broker.call('energy-sharing-allocation.allocate', makeAllocateParams());
+      await expect(
+        broker.call('energy-sharing-allocation.annualBillingReport', {
+          allocationIds: [created.id, 'does-not-exist'],
+          tariffEurPerKWh: 0.25,
+        })
+      ).rejects.toThrow(/not found/);
+    });
   });
 });

@@ -44,9 +44,14 @@ const {
   mergeGeneratorForecasts,
   applyRedispatchDeductions,
   allocateTimeseries,
+  allocateTimeseriesCappedByConsumption,
   buildConsumerSummary,
+  buildConsumptionAwareConsumerSummary,
   buildTotalSummary,
+  buildBillingReport,
+  buildAnnualBillingReport,
   formatAsCsv,
+  formatBillingReportAsCsv,
   RECOMMENDED_MAX_DAYS,
 } = require('../src/timeseries-allocation');
 
@@ -753,28 +758,7 @@ module.exports = {
         }
 
         // Re-compute time-series from stored metadata
-        const generators = doc.generators || [];
-        const consumers = doc.consumers.map((c) => ({
-          maloId: c.maloId,
-          sharePercent: c.sharePercent,
-          name: c.name,
-        }));
-
-        const replayParams = {
-          dateFrom: doc.dateFrom,
-          dateTo: doc.dateTo,
-          dataSource: doc.dataSource,
-          inhouseSourceId: doc.inhouseSourceId,
-          includeRedispatchDeduction: doc.redispatchApplied,
-          gridOperatorId: doc.gridOperatorId,
-        };
-
-        const grid = await this.stepFetchGeneration(replayParams, generators, token);
-
-        if (doc.redispatchApplied) {
-          const warnings = [];
-          await this.stepRedispatchDeduction(grid, replayParams, token, warnings);
-        }
+        const { grid, consumers } = await this.stepReplayGenerationGrid(doc, token);
 
         allocateTimeseries(grid, consumers);
 
@@ -785,6 +769,227 @@ module.exports = {
           'Content-Disposition': `attachment; filename="allocation-${id}-${maloId}.csv"`,
         };
         return csv;
+      },
+    },
+
+    /**
+     * Monthly billing report for an existing allocation (#284, sub-issue of #280).
+     *
+     * Replays the allocation's generation grid, fetches each consumer's EDM
+     * consumption (#281), runs consumption-capped allocation (#282), builds
+     * the Restmenge/Überschuss aggregation (#283), and applies the supplied
+     * tariff to produce a billing report. Never persists the report itself —
+     * re-derived on demand, same KRITIS data-minimization stance as `download`.
+     */
+    billingReport: {
+      rest: 'POST /allocations/:id/billing-report',
+      timeout: 120_000,
+      params: {
+        id: { type: 'string' },
+        tariffEurPerKWh: { type: 'number', convert: true, positive: true },
+        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
+      },
+      openapi: {
+        summary: 'Monthly billing report for an existing allocation (kWh → EUR, #284)',
+        description:
+          "Replays the allocation, fetches each consumer's EDM consumption timeseries, caps the " +
+          'quota-based allocation at actual consumption (#282), aggregates Restmenge/Überschuss per ' +
+          'consumer (#283), and applies `tariffEurPerKWh` to produce a billing report. Only ' +
+          'allocatedKWh (internal solar share actually used) is billed — remainderKWh (grid draw) is ' +
+          'reported for transparency but never billed here. A consumer with no EDM consumption data ' +
+          'for the period gets billingAmountEur: null, never a misleading €0.00.',
+        tags: ['Energy Sharing Allocation'],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'b2c3d4e5-f6a7-b8c9-d0e1-f2a3b4c5d6e7' },
+            description: 'Allocation UUID',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['tariffEurPerKWh'],
+                properties: {
+                  tariffEurPerKWh: {
+                    type: 'number',
+                    description:
+                      'Internal price per kWh of allocated solar — required input, never a hardcoded default.',
+                    example: 0.25,
+                  },
+                  format: { type: 'string', enum: ['json', 'csv'], default: 'json' },
+                },
+              },
+              examples: {
+                default: {
+                  value: { tariffEurPerKWh: 0.25 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Billing report (JSON) or semicolon-delimited CSV export' },
+          404: { description: 'Allocation not found' },
+        },
+      },
+      async handler(ctx) {
+        const { id, tariffEurPerKWh, format } = ctx.params;
+        const token = ctx.meta?.cernionToken;
+        const callOpts = { meta: { ...ctx.meta, $gateway: false } };
+
+        let doc;
+        try {
+          doc = await this.db.get(`alloc:${id}`);
+        } catch (err) {
+          if (err.status === 404 || err.name === 'not_found') {
+            ctx.meta.$statusCode = 404;
+            return { success: false, message: `Allocation ${id} not found` };
+          }
+          throw err;
+        }
+        if (doc.markedDeleted) {
+          ctx.meta.$statusCode = 404;
+          return { success: false, message: `Allocation ${id} has been deleted` };
+        }
+
+        const { grid, consumers, replayParams } = await this.stepReplayGenerationGrid(doc, token);
+        const consumptionResult = await this.stepFetchConsumptionEdm(
+          ctx,
+          replayParams,
+          consumers,
+          callOpts
+        );
+
+        allocateTimeseriesCappedByConsumption(grid, consumers, consumptionResult.consumptionByMalo);
+        const consumerSummaries = buildConsumptionAwareConsumerSummary(grid, consumers);
+        const report = buildBillingReport(consumerSummaries, {
+          tariffEurPerKWh,
+          periodFrom: doc.dateFrom,
+          periodTo: doc.dateTo,
+          allocationId: id,
+        });
+
+        if (format === 'csv') {
+          const csv = formatBillingReportAsCsv(report);
+          ctx.meta.$responseType = 'text/csv';
+          ctx.meta.$responseHeaders = {
+            'Content-Disposition': `attachment; filename="billing-report-${id}.csv"`,
+          };
+          return csv;
+        }
+
+        return { success: true, ...report, consumptionWarnings: consumptionResult.warnings };
+      },
+    },
+
+    /**
+     * Annual billing report — replays and bills N (typically 12) monthly
+     * allocations and sums them per consumer (#284, sub-issue of #280).
+     */
+    annualBillingReport: {
+      rest: 'POST /annual-billing-report',
+      timeout: 600_000,
+      params: {
+        allocationIds: { type: 'array', items: 'string', min: 1, max: 12 },
+        tariffEurPerKWh: { type: 'number', convert: true, positive: true },
+        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
+      },
+      openapi: {
+        summary: 'Annual billing report — sums N monthly allocations per consumer (#284)',
+        description:
+          'Replays and bills each allocation in `allocationIds` (same logic as billingReport, one ' +
+          'call per ID) using the same tariffEurPerKWh, then sums the results per consumer. A ' +
+          'consumer missing data in some months is summed only over the months that have data — ' +
+          'monthsWithData/monthsWithoutData/complete report the coverage transparently, never masking ' +
+          'an incomplete year as a complete one.',
+        tags: ['Energy Sharing Allocation'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['allocationIds', 'tariffEurPerKWh'],
+                properties: {
+                  allocationIds: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Allocation UUIDs to sum, typically 12 monthly runs.',
+                    example: ['alloc-jan', 'alloc-feb'],
+                  },
+                  tariffEurPerKWh: { type: 'number', example: 0.25 },
+                  format: { type: 'string', enum: ['json', 'csv'], default: 'json' },
+                },
+              },
+              examples: {
+                default: {
+                  value: { allocationIds: ['alloc-jan', 'alloc-feb'], tariffEurPerKWh: 0.25 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Annual billing report (JSON) or semicolon-delimited CSV export' },
+          404: { description: 'One of the referenced allocations was not found' },
+        },
+      },
+      async handler(ctx) {
+        const { allocationIds, tariffEurPerKWh, format } = ctx.params;
+        const token = ctx.meta?.cernionToken;
+        const callOpts = { meta: { ...ctx.meta, $gateway: false } };
+
+        const monthlyReports = [];
+        for (const id of allocationIds) {
+          let doc;
+          try {
+            doc = await this.db.get(`alloc:${id}`);
+          } catch (err) {
+            ctx.meta.$statusCode = 404;
+            throw new Error(`Allocation ${id} not found: ${err.message}`);
+          }
+
+          const { grid, consumers, replayParams } = await this.stepReplayGenerationGrid(doc, token);
+          const consumptionResult = await this.stepFetchConsumptionEdm(
+            ctx,
+            replayParams,
+            consumers,
+            callOpts
+          );
+          allocateTimeseriesCappedByConsumption(
+            grid,
+            consumers,
+            consumptionResult.consumptionByMalo
+          );
+          const consumerSummaries = buildConsumptionAwareConsumerSummary(grid, consumers);
+          monthlyReports.push(
+            buildBillingReport(consumerSummaries, {
+              tariffEurPerKWh,
+              periodFrom: doc.dateFrom,
+              periodTo: doc.dateTo,
+              allocationId: id,
+            })
+          );
+        }
+
+        const annualReport = buildAnnualBillingReport(monthlyReports);
+
+        if (format === 'csv') {
+          const csv = formatBillingReportAsCsv(annualReport);
+          ctx.meta.$responseType = 'text/csv';
+          ctx.meta.$responseHeaders = {
+            'Content-Disposition': 'attachment; filename="annual-billing-report.csv"',
+          };
+          return csv;
+        }
+
+        return { success: true, ...annualReport };
       },
     },
 
@@ -1182,6 +1387,46 @@ module.exports = {
       }
 
       return { consumptionStatus, consumptionByMalo, warnings };
+    },
+
+    // ── Replay (download, billingReport, annualBillingReport) ───────────────
+
+    /**
+     * Re-derive the generation interval grid + consumer list from a persisted
+     * allocation document — shared by `download` (#16) and `billingReport`/
+     * `annualBillingReport` (#284). KRITIS: the grid is never persisted, only
+     * re-computed on demand from stored metadata, same as before this was
+     * extracted into its own method (behavior-preserving refactor).
+     *
+     * @param {object} doc — persisted allocation document (this.db.get result)
+     * @param {string} token — MCP token
+     * @returns {{ grid: Array, consumers: Array, replayParams: object }}
+     */
+    async stepReplayGenerationGrid(doc, token) {
+      const generators = doc.generators || [];
+      const consumers = doc.consumers.map((c) => ({
+        maloId: c.maloId,
+        sharePercent: c.sharePercent,
+        name: c.name,
+      }));
+
+      const replayParams = {
+        dateFrom: doc.dateFrom,
+        dateTo: doc.dateTo,
+        dataSource: doc.dataSource,
+        inhouseSourceId: doc.inhouseSourceId,
+        includeRedispatchDeduction: doc.redispatchApplied,
+        gridOperatorId: doc.gridOperatorId,
+      };
+
+      const grid = await this.stepFetchGeneration(replayParams, generators, token);
+
+      if (doc.redispatchApplied) {
+        const warnings = [];
+        await this.stepRedispatchDeduction(grid, replayParams, token, warnings);
+      }
+
+      return { grid, consumers, replayParams };
     },
 
     // ── Step 3 ─────────────────────────────────────────────────────────────
