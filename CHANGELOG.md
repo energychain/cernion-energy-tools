@@ -5,6 +5,17 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.66.8] — 2026-06-25
+
+### Fixed
+- **Agent-Receipts-Promotion: Rollenprüfung ergänzt** (`services/agent-receipts.service.js#promote`/`#setStatus`, #289, sub-issue of #275): `promote` recorded `promotedBy` as a free-text audit field but never checked whether the caller was actually authorized to promote a draft receipt to active — any caller could promote any draft. `promote` now requires `full-access` scope or the new `ROLE_RECEIPT_PROMOTER` role, rejecting with `403 AGENT_RECEIPT_PROMOTE_FORBIDDEN` otherwise; the CAS (`_rev`) protection and full validation gate are unchanged and still run for authorized callers.
+- **Closed a parallel bypass via `setStatus`**: `setStatus({status: 'active'})` can reach the exact same `draft → active` transition as `promote` without going through any of `promote`'s checks. The same authorization requirement now applies to `setStatus` whenever the target status is `active`, regardless of the source status (`draft`/`deprecated` → `active`); transitions to any other status (`archived`, `deprecated`, etc.) are unaffected.
+- Reuses the shared `src/auth-role-helpers.js` module introduced in #288 (`hasFullAccessPrincipal`, `callerHasAnyRole`) instead of duplicating role-extraction logic a third time.
+
+### Tests
+- 5 new cases in `tests/agent-receipts.service.test.js`: unauthorized caller rejected (receipt stays `draft`), caller with no auth meta at all rejected, `ROLE_RECEIPT_PROMOTER` alone succeeds (no `full-access` needed), `setStatus`-to-`active` parallel bypass closed, `setStatus`-to-non-`active` remains unauthenticated-callable (unaffected).
+- All 8 pre-existing `promote` tests and 2 pre-existing `setStatus`-to-`active` tests updated to supply `full-access` auth context, preserving their original assertions.
+
 ## [0.66.7] — 2026-06-25
 
 ### Fixed
