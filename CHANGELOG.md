@@ -5,6 +5,19 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.66.5] — 2026-06-25
+
+### Added
+- **Energy Sharing: persistente Gemeinschafts-/Teilnehmer-Stammdaten** (`services/energy-sharing-community.service.js`, #285, sub-issue of #280): new PouchDB-backed service for a durable Energy Sharing "Gemeinschaft" (community) + embedded "Teilnehmer" (member) registry — gap identified in #280's gap analysis (every prior `allocate` call was stateless, with no Teilnahmezeitraum/join-leave tracking).
+  - `createCommunity` / `getCommunity` (resolves by internal UUID **or** the external `communityId` business key) / `listCommunities` / `removeCommunity` (soft delete).
+  - `addMember` / `updateMember` (the normal way to end a membership — set `validTo`, preserving history) / `removeMember` (hard delete, data-entry corrections only). A member's `roles` is a combinable array: `generator`, `consumer`, `storage` — e.g. `['generator', 'consumer']` for a Prosumer. `storage` is modelable per the issue's acceptance criteria but not yet fed into allocation arithmetic (no storage charge/discharge model exists yet).
+  - `resolveActiveMembers`: derives the `generators[]`/`consumers[]` shape `energy-sharing-allocation.service.js#allocate` expects, for a given date range. A member is active if their `[validFrom, validTo]` Teilnahmezeitraum overlaps the requested range — members whose `validTo` is before the requested `dateFrom` are excluded automatically, no manual filtering needed. No prorating of `sharePercent` for partial-period membership (binary in/out only).
+  - `services/energy-sharing-allocation.service.js#allocate`: `generators`/`consumers` are now **optional** when `communityId` resolves to a persisted community — additive only, inline arrays still fully supported and always take precedence when provided (no breaking change). When inline arrays are empty and `communityId` resolves, the run is tagged with an `ALLOC_GENERATORS_CONSUMERS_RESOLVED_FROM_COMMUNITY` warning. When neither inline arrays nor a resolvable `communityId` are given, `allocate` throws a clear, actionable error instead of the old generic "at least one generator/consumer is required" message.
+
+### Tests
+- 17 new cases in `tests/energy-sharing-community.test.js`: CRUD basics, dual-lookup by id/communityId, role validation (including the Prosumer and pure-storage cases), `updateMember`/`removeMember`, and `resolveActiveMembers`'s Teilnahmezeitraum overlap logic (mid-period join, left-before-period exclusion, joins-after-period exclusion).
+- 4 new integration cases in `tests/energy-sharing-allocation.test.js`: resolves generators/consumers from `communityId`, excludes a member who left before the period, inline arrays take precedence over `communityId`, and a clear error when `communityId` cannot be resolved.
+
 ## [0.66.4] — 2026-06-25
 
 ### Added

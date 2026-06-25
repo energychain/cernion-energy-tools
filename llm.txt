@@ -2,8 +2,8 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.66.4
-- changelog_latest_release: 0.66.4
+- version: 0.66.5
+- changelog_latest_release: 0.66.5
 
 ## Purpose
 This file is a navigation manifest for LLM/agent consumers. It lists cluster
@@ -126,7 +126,7 @@ recipes:
   znp-strategic-assumptions "A planner wants to add forward-looking assumptions (e.g., data…"
 resolve: GET /api/_agent/operations?domain=grid-planning
 
-### energy-sharing (3 capabilities · 4 recipes · 11 operations)
+### energy-sharing (3 capabilities · 4 recipes · 19 operations)
 capabilities: energy_sharing_42c_cutover_readiness, energy_sharing_prosumer_advisory, energy_sharing_simulation_gate
 recipes:
   energy-sharing-42c-radar "A VNB needs to identify potential Energy Sharing clusters early…"
@@ -245,17 +245,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: 58cfd295b79cd58dc8f0e963f8110676e2fed68472640e58fe38be6d7852a423
+- CHANGELOG.md: 1afdbf7997af52ec954fc1852ea4aefa01f8f7e15b841969081de340f762d34e
 - README.md: 149317e9eea460588ca9ff477c91a9009d275c51fd4bd4f88e9ff1785746836b
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 5190fa2814db597464408cb11f08dfa7bd7798df74e650adbebb6fab71b7f5d4
 - src/capability-catalog.js: 30aa8d2a9f98fca2145a2c49d34e72e6a5faf2d5e4c19e785cd97645df80c709
-- openapi-export.json: a4fcda64aa249739d95c2a1f2bd497f6d25480cde58229b0732b145b38294a8c
+- openapi-export.json: 5dc7c48c2f0097838df14e7356c72f778da2f6a7de4bda43a565dc4934381d42
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 875
-- operation_count: 981
+- path_count: 880
+- operation_count: 989
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 67d0eba879ea85a4bb163a30320130d2f13d7d1fc67130749e79077d81ab886f
+- llm_txt_sha256: b2135a690b096beecf849403de86e863891627ce8009dad134e3149ca42fd462

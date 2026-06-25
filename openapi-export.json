@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.66.4",
+    "version": "0.66.5",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "servers": [
@@ -24132,15 +24132,13 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "generators",
-                  "consumers",
                   "dateFrom",
                   "dateTo"
                 ],
                 "properties": {
                   "communityId": {
                     "type": "string",
-                    "description": "External community ID from VNB",
+                    "description": "External community ID from VNB. Also used (#285) to resolve generators/consumers automatically from a persisted energy-sharing-community when neither array is provided inline — see generators/consumers below.",
                     "example": "ES-2026-001"
                   },
                   "validationReportId": {
@@ -24153,7 +24151,7 @@
                     "items": {
                       "type": "object"
                     },
-                    "description": "Generator list with mastrNummer and sharePercent (must sum to 100)",
+                    "description": "Generator list with mastrNummer and sharePercent (must sum to 100). Optional (#285) when communityId resolves to a persisted community with active generator members for the requested period — required otherwise.",
                     "example": [
                       {
                         "mastrNummer": "SEE904837264953",
@@ -24166,7 +24164,7 @@
                     "items": {
                       "type": "object"
                     },
-                    "description": "Consumer list with maloId, sharePercent (must sum to 100), optional name",
+                    "description": "Consumer list with maloId, sharePercent (must sum to 100), optional name. Optional (#285) when communityId resolves to a persisted community with active consumer members for the requested period — required otherwise.",
                     "example": [
                       {
                         "maloId": "DE0001234567890123456789012345678",
@@ -24601,6 +24599,349 @@
             }
           }
         }
+      }
+    },
+    "/api/energy-sharing-community/communities": {
+      "post": {
+        "operationId": "energy-sharing-community_createCommunity",
+        "summary": "Create a new Energy Sharing community (#285)",
+        "tags": [
+          "Energy Sharing Community"
+        ],
+        "responses": {
+          "200": {
+            "description": "Created community"
+          }
+        },
+        "description": "Creates a persistent community record. Add members via POST /communities/:id/members.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "PV-Gemeinschaft Musterstraße"
+                  },
+                  "communityId": {
+                    "type": "string",
+                    "description": "External community ID from VNB",
+                    "example": "ES-2026-001"
+                  },
+                  "validationReportId": {
+                    "type": "string",
+                    "example": "a1b2c3d4-..."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "energy-sharing-community_listCommunities",
+        "summary": "List Energy Sharing communities (#285)",
+        "tags": [
+          "Energy Sharing Community"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of communities"
+          }
+        },
+        "parameters": [
+          {
+            "name": "includeDeleted",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Include soft-deleted communities (for audit access)"
+          }
+        ]
+      }
+    },
+    "/api/energy-sharing-community/communities/:id": {
+      "get": {
+        "operationId": "energy-sharing-community_getCommunity",
+        "summary": "Get an Energy Sharing community by ID (#285)",
+        "tags": [
+          "Energy Sharing Community"
+        ],
+        "responses": {
+          "200": {
+            "description": "Community record"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "energy-sharing-community_removeCommunity",
+        "summary": "Soft-delete an Energy Sharing community (#285)",
+        "tags": [
+          "Energy Sharing Community"
+        ],
+        "responses": {
+          "200": {
+            "description": "Soft-delete confirmed"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/energy-sharing-community/communities/:id/members": {
+      "post": {
+        "operationId": "energy-sharing-community_addMember",
+        "summary": "Add a member to an Energy Sharing community (#285)",
+        "tags": [
+          "Energy Sharing Community"
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated community with the new member"
+          },
+          "404": {
+            "description": "Community not found"
+          }
+        },
+        "description": "roles is combinable: [\"generator\"], [\"consumer\"], [\"storage\"], or e.g. [\"generator\",\"consumer\"] for a Prosumer. \"storage\" is modelable but not yet fed into allocation arithmetic. validTo is optional (omit for an open-ended membership).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "roles",
+                  "validFrom"
+                ],
+                "properties": {
+                  "maloId": {
+                    "type": "string",
+                    "example": "DE0001234567890123456789012345678"
+                  },
+                  "mastrNummer": {
+                    "type": "string",
+                    "example": "SEE904837264953"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Müller"
+                  },
+                  "roles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "generator",
+                        "consumer",
+                        "storage"
+                      ]
+                    }
+                  },
+                  "generatorSharePercent": {
+                    "type": "number",
+                    "example": 100
+                  },
+                  "consumerSharePercent": {
+                    "type": "number",
+                    "example": 30
+                  },
+                  "validFrom": {
+                    "type": "string",
+                    "example": "2026-01-01"
+                  },
+                  "validTo": {
+                    "type": "string",
+                    "example": "2026-12-31"
+                  }
+                }
+              },
+              "examples": {
+                "consumer": {
+                  "value": {
+                    "maloId": "DE0001234567890123456789012345678",
+                    "name": "Müller",
+                    "roles": [
+                      "consumer"
+                    ],
+                    "consumerSharePercent": 30,
+                    "validFrom": "2026-01-01"
+                  }
+                },
+                "prosumer": {
+                  "value": {
+                    "maloId": "DE0001234567890123456789012345678",
+                    "mastrNummer": "SEE904837264953",
+                    "name": "Schmidt",
+                    "roles": [
+                      "generator",
+                      "consumer"
+                    ],
+                    "generatorSharePercent": 50,
+                    "consumerSharePercent": 20,
+                    "validFrom": "2026-01-01"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/energy-sharing-community/communities/:id/members/:memberId": {
+      "put": {
+        "operationId": "energy-sharing-community_updateMember",
+        "summary": "Update a community member, e.g. to end their membership via validTo (#285)",
+        "tags": [
+          "Energy Sharing Community"
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated member"
+          },
+          "404": {
+            "description": "Community or member not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "energy-sharing-community_removeMember",
+        "summary": "Hard-remove a member from a community — data-entry correction only (#285)",
+        "tags": [
+          "Energy Sharing Community"
+        ],
+        "responses": {
+          "200": {
+            "description": "Member removed"
+          },
+          "404": {
+            "description": "Community or member not found"
+          }
+        },
+        "description": "Removes the member record entirely. To end an active membership normally, use PUT /communities/:id/members/:memberId with validTo instead, which preserves history.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/energy-sharing-community/communities/:id/active-members": {
+      "get": {
+        "operationId": "energy-sharing-community_resolveActiveMembers",
+        "summary": "Resolve active generators/consumers for a date range (#285)",
+        "tags": [
+          "Energy Sharing Community"
+        ],
+        "responses": {
+          "200": {
+            "description": "Active generators/consumers for the period"
+          },
+          "404": {
+            "description": "Community not found"
+          }
+        },
+        "description": "A member is active for [dateFrom, dateTo] if their [validFrom, validTo] Teilnahmezeitraum overlaps it. Members whose validTo is before dateFrom are excluded — no manual filtering needed by the caller. No prorating of sharePercent for partial-period membership.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateFrom",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2026-06-01"
+            }
+          },
+          {
+            "name": "dateTo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2026-06-30"
+            }
+          }
+        ]
       }
     },
     "/api/energy-sharing/validate": {
@@ -67552,5 +67893,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.66.4"
+  "x-version": "0.66.5"
 }
