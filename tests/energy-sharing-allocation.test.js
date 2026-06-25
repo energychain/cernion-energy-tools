@@ -456,6 +456,32 @@ describe('energy-sharing-allocation service', () => {
       },
     });
 
+    // Stub edm.getTimeseries for includeConsumptionData tests (#281)
+    broker.createService({
+      name: 'edm',
+      actions: {
+        getTimeseries: {
+          async handler(ctx) {
+            if (ctx.params.meloId === CONSUMER_A.maloId) {
+              const values = makeForecastIntervals('2026-06-01', '2026-06-07', 1.0).map((fi) => ({
+                ts: fi.timestamp,
+                value: 0.25,
+              }));
+              return { success: true, values };
+            }
+            if (ctx.params.meloId === 'DE0000000000000000000000000000404') {
+              const err = new Error('MeLo not found');
+              err.code = 404;
+              err.type = 'MELO_NOT_FOUND';
+              throw err;
+            }
+            // Registered MeLo but no rows in range
+            return { success: true, values: [] };
+          },
+        },
+      },
+    });
+
     await broker.start();
   });
 
@@ -639,6 +665,94 @@ describe('energy-sharing-allocation service', () => {
         })
       )
     ).rejects.toThrow(/Duplicate MaLo-ID/);
+  });
+
+  // ── allocate — includeConsumptionData (#281) ─────────────────────────────────
+  test('includeConsumptionData defaults to false — no consumptionStatus, existing behavior unchanged', async () => {
+    const result = await broker.call('energy-sharing-allocation.allocate', makeAllocateParams());
+
+    expect(result.consumptionStatus).toBeNull();
+    expect(result.warnings.some((w) => w.code === 'ALLOC_CONSUMPTION_DATA_NOT_FOUND')).toBe(false);
+  });
+
+  test('includeConsumptionData=true reports found:true with intervalCount/totalKWh for a consumer with EDM data', async () => {
+    const result = await broker.call(
+      'energy-sharing-allocation.allocate',
+      makeAllocateParams({ includeConsumptionData: true })
+    );
+
+    const statusA = result.consumptionStatus.find((s) => s.maloId === CONSUMER_A.maloId);
+    expect(statusA.found).toBe(true);
+    expect(statusA.intervalCount).toBe(7 * INTERVALS_PER_DAY);
+    expect(statusA.totalKWh).toBeCloseTo(7 * INTERVALS_PER_DAY * 0.25, 4);
+  });
+
+  test('includeConsumptionData=true reports found:false plus ALLOC_CONSUMPTION_DATA_NOT_FOUND for a consumer without EDM data', async () => {
+    const result = await broker.call(
+      'energy-sharing-allocation.allocate',
+      makeAllocateParams({ includeConsumptionData: true })
+    );
+
+    const statusB = result.consumptionStatus.find((s) => s.maloId === CONSUMER_B.maloId);
+    expect(statusB.found).toBe(false);
+    expect(statusB.intervalCount).toBe(0);
+    expect(statusB.totalKWh).toBeNull();
+
+    const warning = result.warnings.find((w) => w.code === 'ALLOC_CONSUMPTION_DATA_NOT_FOUND');
+    expect(warning).toBeDefined();
+    expect(warning.maloId).toBe(CONSUMER_B.maloId);
+    expect(warning.message).toContain(CONSUMER_B.maloId);
+  });
+
+  test('includeConsumptionData=true handles a mixed community (one found, one not) and does not change allocation arithmetic', async () => {
+    const withConsumption = await broker.call(
+      'energy-sharing-allocation.allocate',
+      makeAllocateParams({ includeConsumptionData: true })
+    );
+    const withoutConsumption = await broker.call(
+      'energy-sharing-allocation.allocate',
+      makeAllocateParams({ includeConsumptionData: false })
+    );
+
+    expect(withConsumption.consumptionStatus).toHaveLength(2);
+    expect(withConsumption.consumptionStatus.filter((s) => s.found)).toHaveLength(1);
+    expect(withConsumption.consumptionStatus.filter((s) => !s.found)).toHaveLength(1);
+
+    // Allocation totals (quota-based) must be identical regardless of includeConsumptionData —
+    // #281 only adds data-availability reporting, it never feeds into the allocation math.
+    expect(withConsumption.consumers).toEqual(withoutConsumption.consumers);
+    expect(withConsumption.summary.totalNetGenerationKWh).toBe(
+      withoutConsumption.summary.totalNetGenerationKWh
+    );
+  });
+
+  test('includeConsumptionData=true treats an EDM 404 (unregistered MeLo) the same as an empty result', async () => {
+    const result = await broker.call(
+      'energy-sharing-allocation.allocate',
+      makeAllocateParams({
+        includeConsumptionData: true,
+        consumers: [
+          { ...CONSUMER_A, sharePercent: 50 },
+          {
+            maloId: 'DE0000000000000000000000000000404',
+            sharePercent: 50,
+            name: 'Unregistered',
+          },
+        ],
+      })
+    );
+
+    const status404 = result.consumptionStatus.find(
+      (s) => s.maloId === 'DE0000000000000000000000000000404'
+    );
+    expect(status404.found).toBe(false);
+    expect(
+      result.warnings.find(
+        (w) =>
+          w.code === 'ALLOC_CONSUMPTION_DATA_NOT_FOUND' &&
+          w.maloId === 'DE0000000000000000000000000000404'
+      )
+    ).toBeDefined();
   });
 
   // ── allocate — redispatch ────────────────────────────────────────────────────

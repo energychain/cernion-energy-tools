@@ -16,6 +16,15 @@
  *   Stufe A (default) — synthetic 15-min forecast via mastr_generation_forecast MCP tool.
  *   Stufe B           — real iMSys metering data via Inhouse-Data upload (datasource-cache).
  *
+ * Consumer-side consumption data (issue #281, gap identified in #280):
+ *   Optional, opt-in (`includeConsumptionData: true`) per-consumer EDM lookup
+ *   (services/edm.service.js, OBIS 1-0:1.8.0) for the same date range. Missing
+ *   data for a consumer is reported as a structured warning
+ *   (ALLOC_CONSUMPTION_DATA_NOT_FOUND) rather than silently assumed — mirrors
+ *   the locationResolutionWarning convention from #274. This issue only wires
+ *   up the data fetch/availability reporting; consumption-capped allocation
+ *   arithmetic is a separate step (#282).
+ *
  * Regulatory basis: § 42c EnWG, § 12 StromNZV, § 20b EnWG (Interimsprozess, deadline 01.06.2026).
  */
 
@@ -138,13 +147,20 @@ module.exports = {
           default: true,
           convert: true,
         },
+        includeConsumptionData: {
+          type: 'boolean',
+          optional: true,
+          default: false,
+          convert: true,
+        },
         gridOperatorId: { type: 'string', optional: true, default: '' },
       },
       openapi: {
         summary: 'Calculate 15-min Energy Sharing allocation time-series (§ 42c EnWG)',
         description:
-          'Executes a 6-step deterministic allocation pipeline: input validation → ' +
+          'Executes a deterministic allocation pipeline: input validation → ' +
           'generation time-series fetch (Stufe A: forecast / Stufe B: inhouse metering) → ' +
+          'optional EDM consumption-data availability check (#281, includeConsumptionData) → ' +
           'redispatch deduction → allocation arithmetic → summary assembly → PouchDB persist. ' +
           'Returns metadata and per-consumer summaries. Full 15-min time-series is available ' +
           'for download via GET /energy-sharing/allocations/:id/download. ' +
@@ -219,6 +235,17 @@ module.exports = {
                     default: true,
                     description:
                       'Apply Redispatch 2.0 deductions (affected intervals → generation = 0)',
+                  },
+                  includeConsumptionData: {
+                    type: 'boolean',
+                    default: false,
+                    description:
+                      "Opt-in (#281): look up each consumer's EDM consumption timeseries " +
+                      '(services/edm.service.js, OBIS 1-0:1.8.0) for the same date range. ' +
+                      'Does not change the allocation arithmetic — only reports per-consumer ' +
+                      'data availability via consumptionStatus[] and warnings[]. A consumer ' +
+                      'without a matching EDM timeseries is reported via ' +
+                      'ALLOC_CONSUMPTION_DATA_NOT_FOUND, never silently treated as zero.',
                   },
                   gridOperatorId: {
                     type: 'string',
@@ -335,6 +362,20 @@ module.exports = {
                     intervalCount: 672,
                     durationMs: 6500,
                   },
+                  consumptionStatus: [
+                    {
+                      maloId: 'DE0001234567890123456789012345678',
+                      found: true,
+                      intervalCount: 672,
+                      totalKWh: 41.2,
+                    },
+                    {
+                      maloId: 'DE0009876543210987654321098765432',
+                      found: false,
+                      intervalCount: 0,
+                      totalKWh: null,
+                    },
+                  ],
                 },
               },
             },
@@ -377,6 +418,21 @@ module.exports = {
               warnings
             );
 
+            // ── Step 3b: Consumption-data availability check (#281, opt-in) ───
+            // Data-fetch only — does not change the allocation arithmetic below.
+            // Consumption-capped allocation is a separate step (#282).
+            let consumptionStatus = null;
+            if (params.includeConsumptionData) {
+              const consumptionResult = await this.stepFetchConsumptionEdm(
+                ctx,
+                params,
+                consumers,
+                callOpts
+              );
+              consumptionStatus = consumptionResult.consumptionStatus;
+              warnings.push(...consumptionResult.warnings);
+            }
+
             // ── Step 4: Allocation arithmetic ────────────────────────────────
             allocateTimeseries(grid, consumers);
 
@@ -414,6 +470,7 @@ module.exports = {
               consumers: consumerSummaries,
               summary: totalSummary,
               redispatchApplied,
+              consumptionStatus,
               warnings,
               _deleted: false,
               markedDeleted: false,
@@ -436,6 +493,7 @@ module.exports = {
               dateTo: doc.dateTo,
               dataSource: doc.dataSource,
               redispatchApplied,
+              consumptionStatus,
               warnings,
               generators: doc.generators,
               consumers: consumerSummaries,
@@ -1035,6 +1093,95 @@ module.exports = {
       }
 
       return grid;
+    },
+
+    // ── Step 3b (#281) ───────────────────────────────────────────────────────
+
+    /**
+     * Opt-in EDM consumption-data lookup, one MeLo per consumer.
+     *
+     * Data-fetch and availability-reporting only — does NOT change the
+     * allocation arithmetic (consumption-capped allocation is #282). A
+     * consumer whose maloId has no EDM timeseries for the requested period
+     * (MeLo never registered in EDM, or registered but no rows in range) is
+     * reported via a structured ALLOC_CONSUMPTION_DATA_NOT_FOUND warning —
+     * never silently treated as zero or skipped. Mirrors the
+     * locationResolutionWarning convention from #274
+     * (services/energy-market.service.js / services/assets.service.js).
+     *
+     * @param {Context} ctx
+     * @param {object} params — allocation params (dateFrom/dateTo)
+     * @param {Array<{maloId: string}>} consumers
+     * @param {object} callOpts — { meta: { ...ctx.meta, $gateway: false } }
+     * @returns {{ consumptionStatus: Array<{maloId, found, intervalCount, totalKWh}>,
+     *             consumptionByMalo: Map<string, Array<{ts: string, value: number}>>,
+     *             warnings: Array }}
+     */
+    async stepFetchConsumptionEdm(ctx, params, consumers, callOpts) {
+      const from = `${params.dateFrom}T00:00:00.000Z`;
+      // dateTo is inclusive — EDM's `to` is exclusive, advance one day
+      // (mirrors src/timeseries-allocation.js#buildIntervalGrid's convention).
+      const to = new Date(
+        new Date(`${params.dateTo}T00:00:00.000Z`).getTime() + 24 * 60 * 60 * 1000
+      ).toISOString();
+
+      const consumptionStatus = [];
+      const consumptionByMalo = new Map();
+      const warnings = [];
+
+      for (const consumer of consumers) {
+        let values = [];
+        try {
+          const result = await ctx.call(
+            'edm.getTimeseries',
+            {
+              meloId: consumer.maloId,
+              obis: '1-0:1.8.0',
+              from,
+              to,
+              resolution: '15min',
+            },
+            callOpts
+          );
+          values = Array.isArray(result?.values) ? result.values : [];
+        } catch (err) {
+          this.logger.debug(
+            `stepFetchConsumptionEdm: EDM lookup failed for ${consumer.maloId}: ${err.message}`
+          );
+          values = [];
+        }
+
+        const found = values.length > 0;
+        const totalKWh = found
+          ? Math.round(values.reduce((sum, v) => sum + (Number(v.value) || 0), 0) * 10000) / 10000
+          : null;
+
+        consumptionStatus.push({
+          maloId: consumer.maloId,
+          found,
+          intervalCount: values.length,
+          totalKWh,
+        });
+        consumptionByMalo.set(
+          consumer.maloId,
+          values.map((v) => ({ ts: v.ts, value: Number(v.value) || 0 }))
+        );
+
+        if (!found) {
+          warnings.push({
+            code: 'ALLOC_CONSUMPTION_DATA_NOT_FOUND',
+            message:
+              `No EDM consumption timeseries (OBIS 1-0:1.8.0) found for consumer "${consumer.maloId}" ` +
+              `in ${params.dateFrom}..${params.dateTo}. Consumption-aware allocation is not possible ` +
+              'for this consumer for this period — only the fixed sharePercent quota result is available. ' +
+              "Import the consumer's metering data via POST /api/edm/timeseries/import, or pass " +
+              'a known MeLo with existing data.',
+            maloId: consumer.maloId,
+          });
+        }
+      }
+
+      return { consumptionStatus, consumptionByMalo, warnings };
     },
 
     // ── Step 3 ─────────────────────────────────────────────────────────────
