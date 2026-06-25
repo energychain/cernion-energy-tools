@@ -85,7 +85,7 @@
     "moleculer-web": "^0.11.0",
     "nodemailer": "^9.0.1",
     "pdf-parse": "^2.4.5",
-    "pdfkit": "^0.18.0",
+    "pdfkit": "^0.19.1",
     "pino": "^10.1.0",
     "pouchdb": "^9.0.0",
     "pouchdb-find": "^9.0.0",
