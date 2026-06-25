@@ -5,6 +5,15 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.66.7] — 2026-06-25
+
+### Fixed
+- **HITL-Freigabe: Rollenprüfung gegen `requiredResolverRoles` ergänzt** (`services/hitl.service.js#resolveItem`, #288, sub-issue of #275): `approve`/`reject`/`bulkApprove`/`bulkReject` recorded `requiredResolverRoles`/`responsibleRole` on every HITL item but never checked the caller against them — anyone with access to the action could resolve any item regardless of documented responsibility. This is a real authorization gap, not cosmetic. `resolveItem` (the shared resolution path for all four actions) now rejects with `403 HITL_RESOLVER_ROLE_REQUIRED` when the item declares required roles and the caller has none of them. Enforcement only activates when an item actually declares a requirement — items without role metadata keep today's permissive behavior (no breaking change). `full-access`/`cross-tenant-admin` always bypasses, consistent with `personal-agent.service.js#hasFullAccessPrincipal`'s existing bypass convention. `bulkApprove`/`bulkReject` reject only the individual items the caller lacks the role for; other items in the same batch still resolve.
+- New shared module `src/auth-role-helpers.js` (`extractCallerRoles`, `hasFullAccessPrincipal`, `callerHasAnyRole`) — the one canonical place that extracts role-like values from `ctx.meta` (handles `authUser.roles`, `authUser.groups`, `apiToken.scope(s)`, `meta.roles/scopes` uniformly). Used by `hitl.service.js` only in this release; `services/personal-agent.service.js`'s existing local equivalent is intentionally left unchanged (zero external callers today, no need to touch a heavily-tested file for a risk-free extraction).
+
+### Tests
+- 6 new cases in `tests/hitl.service.test.js`: non-matching role rejected (item stays `pending`), matching role succeeds, `full-access` bypass, `responsibleRole`-only enforcement, no-role-requirement backward compatibility, and `bulkApprove` partial success/failure.
+
 ## [0.66.6] — 2026-06-25
 
 ### Added
