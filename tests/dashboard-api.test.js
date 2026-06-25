@@ -3600,6 +3600,86 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- evuApiMigrationDiagnosticsStatus -----------------------------------
+
+  describe('evuApiMigrationDiagnosticsStatus', () => {
+    it('returns stable missing evidence and follow-ups for incomplete migration diagnostics', async () => {
+      const result = await broker.call('dashboard-api.evuApiMigrationDiagnosticsStatus', {
+        businessProcess: 'Lieferantenwechsel',
+        endpoint: '/api/v2/malo/patch',
+        method: 'PATCH',
+        responseCode: '422',
+        validationError: 'maloId missing in data context',
+      });
+
+      expect(result.status).toBe('needs_migration_context');
+      expect(result.safety).toBe('read_only_diagnostics');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'auth_scope',
+          'data_context',
+          'request_shape',
+          'completion_criterion',
+          'owner_next_step',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('evu_api_migration_diagnostics');
+      expect(result.riskHints).toEqual(
+        expect.arrayContaining([
+          'auth_scope_missing',
+          'data_context_missing',
+          'completion_criterion_missing',
+          'http_error_response_observed',
+          'validation_error_observed',
+        ])
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'external.connector.call',
+          'oauth.authorize',
+          'secret.read',
+          'json-patch.apply',
+          'migration.execute',
+          'hitl.create',
+          'settlement.exportA96',
+          'settlement.prepareBilling',
+          'billing.release',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns complete diagnostics when all supplied evidence is present', async () => {
+      const result = await broker.call('dashboard-api.evuApiMigrationDiagnosticsStatus', {
+        businessProcess: 'Lieferantenwechsel',
+        endpoint: '/api/v2/malo/patch',
+        method: 'PATCH',
+        authScope: 'mako:process.write',
+        dataContext: 'tenant=stadtwerk-mauer role=VNB malo=DE01234567890',
+        requestShape: 'PATCH op=replace path=/marketLocation/status',
+        responseCode: '204',
+        validationError: 'resolved after MaLo context supplied',
+        completionCriterion: 'HTTP 204 plus process receipt in migration ticket',
+        owner: 'integration-team',
+        nextStep: 'replay three sampled migration tickets in QA',
+        ticketRef: 'MIG-298',
+        systemRef: 'evu-api-gw',
+      });
+
+      expect(result.status).toBe('diagnostics_complete');
+      expect(result.evidenceCompleteness).toBe(1);
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.dossierEvidence.dossierFacts).toEqual(
+        expect.arrayContaining([
+          'Business Process: Lieferantenwechsel',
+          'Endpoint: PATCH /api/v2/malo/patch',
+          'Owner: integration-team',
+        ])
+      );
+      expect(result.sourceActions.notCalled).toContain('external.connector.call');
+    });
+  });
+
   // -- novaDecisionLifecycleReadinessStatus --------------------------------
 
   describe('novaDecisionLifecycleReadinessStatus', () => {

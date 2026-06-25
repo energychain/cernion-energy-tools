@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 91 static rules', () => {
+    it('loads all 92 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(91);
+      expect(rules.length).toBe(92);
     });
 
-    it('compiles all 91 static rules without error', () => {
+    it('compiles all 92 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(91);
+      expect(rules.length).toBe(92);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -2035,6 +2035,43 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Risk Level: high');
       expect(formatted).toContain('Pilot Tenant: tenant-hoeheinoed');
       expect(formatted).toContain('Side-Effect Guard: tenant.migrate');
+    });
+
+    it('dashboard-api.evuApiMigrationDiagnosticsStatus is dossier-safe and formats API migration facts', () => {
+      const rule = getRule('dashboard-api.evuApiMigrationDiagnosticsStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte EVU API Migration endpoint=/api/v2/malo/patch PATCH scope=mako:process.write pruefen'
+        )
+      ).toEqual({
+        endpoint: '/api/v2/malo/patch',
+        method: 'patch',
+        authScope: 'mako:process.write',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'evu_api_migration_diagnostics',
+        status: 'partial_diagnostics',
+        businessProcess: 'Lieferantenwechsel',
+        endpoint: '/api/v2/malo/patch',
+        authScope: 'mako:process.write',
+        missingEvidence: [{ missingDataPoint: 'completion_criterion' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add the migration closure or readiness criterion' },
+        ],
+        sourceActions: {
+          notCalled: ['external.connector.call', 'oauth.authorize'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: evu_api_migration_diagnostics');
+      expect(formatted).toContain('Status: partial_diagnostics');
+      expect(formatted).toContain('Process: Lieferantenwechsel');
+      expect(formatted).toContain('Endpoint: /api/v2/malo/patch');
+      expect(formatted).toContain('Side-Effect Guard: external.connector.call');
     });
 
     it('dashboard-api.novaDecisionLifecycleReadinessStatus is dossier-safe and formats NOVA lifecycle facts', () => {

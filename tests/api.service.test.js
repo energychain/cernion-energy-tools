@@ -511,6 +511,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/energy-sharing-42c-cutover-readiness']).toBe(
         'dashboard-api.energySharing42cCutoverReadinessStatus'
       );
+      expect(aliases['GET /dashboard/evu-api-migration-diagnostics']).toBe(
+        'dashboard-api.evuApiMigrationDiagnosticsStatus'
+      );
       expect(aliases['GET /dashboard/nova-decision-lifecycle-readiness']).toBe(
         'dashboard-api.novaDecisionLifecycleReadinessStatus'
       );
