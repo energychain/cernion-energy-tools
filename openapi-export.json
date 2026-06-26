@@ -17121,6 +17121,39 @@
         ]
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-grid-planning-role-queue": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerGridPlanningRoleQueueStatus",
+        "summary": "Stadtwerk Mauer grid-planning role queue -- read-only evidence handover",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer grid-planning role queue projection"
+          }
+        },
+        "description": "Returns deterministic Budibase-renderable Zielnetzplanung queue and evidence handover rows for the Stadtwerk Mauer Workbench. The endpoint exposes scalar generated role queue facts for the synthetic PV missing-NAP case without role assignment writes, Budibase writes, grid-capacity calculations, MaKo, billing, settlement, device-control, HITL or external connector actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/fnav-fast-track-contract-gate": {
       "get": {
         "operationId": "dashboard-api_fnavFastTrackContractGateStatus",
@@ -59658,6 +59691,39 @@
           }
         },
         "description": "Returns deterministic Budibase-renderable role Workbench target metadata for the Stadtwerk Mauer Workbench Hub. The endpoint exposes scalar role/open-target rows for Administrator, Zielnetzplanung, Vertrieb, Key Account and VDMI governance views without implementing role calculations, Budibase writes, authorization changes, MaKo, billing, settlement, device-control, HITL or external connector actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-grid-planning-role-queue": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerGridPlanningRoleQueueStatus",
+        "summary": "Stadtwerk Mauer grid-planning role queue -- read-only evidence handover",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer grid-planning role queue projection"
+          }
+        },
+        "description": "Returns deterministic Budibase-renderable Zielnetzplanung queue and evidence handover rows for the Stadtwerk Mauer Workbench. The endpoint exposes scalar generated role queue facts for the synthetic PV missing-NAP case without role assignment writes, Budibase writes, grid-capacity calculations, MaKo, billing, settlement, device-control, HITL or external connector actions.",
         "parameters": [
           {
             "name": "tenantId",

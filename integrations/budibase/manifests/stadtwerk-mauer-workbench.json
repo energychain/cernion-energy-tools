@@ -348,6 +348,96 @@
       }
     },
     {
+      "name": "getStadtwerkMauerGridPlanningRoleQueue",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-grid-planning-role-queue",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "schema": {
+        "status": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "caseId": { "type": "string" },
+        "roleKey": { "type": "string" },
+        "blueprintRoleKey": { "type": "string" },
+        "queueRows": { "type": "array" },
+        "evidenceHandoverRows": { "type": "array" },
+        "summary": { "type": "object" },
+        "timestamp": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerGridPlanningQueueRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-grid-planning-role-queue",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "return data.queueRows || []",
+      "schema": {
+        "queueItemId": { "type": "string" },
+        "roleKey": { "type": "string" },
+        "blueprintRoleKey": { "type": "string" },
+        "roleRelationLabel": { "type": "string" },
+        "caseId": { "type": "string" },
+        "controlCase": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "nextGate": { "type": "string" },
+        "allowedActionClass": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "sourceClass": { "type": "string" },
+        "detailLabel": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerGridPlanningEvidenceHandoverRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-grid-planning-role-queue",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "return data.evidenceHandoverRows || []",
+      "schema": {
+        "handoverId": { "type": "string" },
+        "evidenceId": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "present": { "type": "boolean" },
+        "required": { "type": "boolean" },
+        "roleKey": { "type": "string" },
+        "blueprintRoleKey": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "sourceClass": { "type": "string" },
+        "nextGate": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" }
+      }
+    },
+    {
       "name": "getStadtwerkMauerMastrDataOverlay",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-mastr-data-overlay",
@@ -457,6 +547,18 @@
       "tableTitle": "Role Open Targets"
     },
     {
+      "id": "grid_planning_role_queue",
+      "title": "Zielnetzplanung Role Queue",
+      "queryName": "getStadtwerkMauerGridPlanningQueueRows",
+      "tableTitle": "Zielnetzplanung Role Queue"
+    },
+    {
+      "id": "grid_planning_evidence_handover",
+      "title": "Zielnetzplanung Evidence Handover",
+      "queryName": "getStadtwerkMauerGridPlanningEvidenceHandoverRows",
+      "tableTitle": "Zielnetzplanung Evidence Handover"
+    },
+    {
       "id": "mastr",
       "title": "MaStR Overlay",
       "queryName": "getStadtwerkMauerMastrDataOverlay",
@@ -475,6 +577,7 @@
     "Selected Case Evidence and Next Gates bind to scalar rows so tables do not render nested objects.",
     "Selected-case action rows are curated read-only/verify-only button metadata; Budibase may refresh queries but must not write arbitrary Cernion tables.",
     "Role Workbench Catalog binds to scalar role/open-target rows for Administrator, Zielnetzplanung, Vertrieb, Key Account and VDMI governance views.",
+    "Zielnetzplanung Role Queue binds to scalar queue and evidence-handover rows for the generated grid-planning target.",
     "Controlled Action runStadtwerkMauerE2ESmoke remains scope-protected by Cernion.",
     "Budibase renders the workbench; Cernion remains the system of record and command gate."
   ]
