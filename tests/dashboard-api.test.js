@@ -8130,6 +8130,154 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- stadtwerkMauerWorkbenchLandingStatus -----------------------------
+  describe('stadtwerkMauerWorkbenchLandingStatus', () => {
+    it('returns presenter-ready landing rows with scalar section and action cues', async () => {
+      handlers.stadtwerkMauerE2eProcessDemoStatus = () => ({
+        capabilityKey: 'stadtwerk_mauer_e2e_process_demo',
+        safety: 'sandbox_only_non_consequential_e2e_demo_with_read_only_status',
+        tenantId: 'stadtwerk-mauer',
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: true,
+        status: 'e2e_demo_trace_needs_evidence',
+        demoPath: 'pv_registration_electrician_missing_nap',
+        caseId: 'smm-budibase-workbench',
+        traceCount: 1,
+        artifactCount: 3,
+        recentTraces: [{ traceId: 'smm-e2e-trace:test', status: 'demo_trace_needs_evidence' }],
+        evidenceQuality: 'incomplete_demo_evidence',
+        missingEvidence: [{ missingDataPoint: 'napReference' }],
+        positiveFollowUps: [{ missingDataPoint: 'napReference' }],
+        sourceActions: {
+          inspected: ['stadtwerk-mauer-e2e-process-demo.getStatus'],
+          referenced: ['object-store.query'],
+          notCalled: ['mako.dispatch', 'external.connector.call', 'personal-agent.execute'],
+        },
+      });
+
+      const result = await broker.call('dashboard-api.stadtwerkMauerWorkbenchLandingStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+      });
+
+      expect(result.capabilityKey).toBe('stadtwerk_mauer_workbench_landing');
+      expect(result.safety).toBe('read_only');
+      expect(result.found).toBe(true);
+      expect(result.status).toBe('workbench_landing_presenter_ready');
+      expect(result.title).toBe('Stadtwerk Mauer Demo Workbench');
+      expect(result.summary.safePresenterAction).toBe('Open Workbench Hub');
+      expect(result.landingRows.map((row) => row.rowKey)).toEqual(
+        expect.arrayContaining([
+          'demo_identity',
+          'public_context',
+          'tenant_seed',
+          'workbench_sections',
+          'grid_planning',
+          'safe_actions',
+        ])
+      );
+      expect(result.sectionRows.map((row) => row.sectionKey)).toEqual(
+        expect.arrayContaining([
+          'hub',
+          'administrator_inventory',
+          'selected_case_detail',
+          'selected_case_actions',
+          'role_workbench_catalog',
+          'grid_planning_role_queue',
+        ])
+      );
+      expect(result.presenterActionRows.map((row) => row.actionId)).toEqual(
+        expect.arrayContaining(['presenter-open-hub', 'presenter-open-znp'])
+      );
+      expect(result.presenterActionRows.find((row) => row.actionId === 'presenter-open-znp')).toMatchObject({
+        riskClass: 'read_only',
+        boundary: 'cernion-api',
+        enabled: true,
+        targetSection: 'grid_planning_role_queue',
+      });
+      expectScalarTableRows(result.landingRows);
+      expectScalarTableRows(result.sectionRows);
+      expectScalarTableRows(result.presenterActionRows);
+      expect(result.capabilityBroker.exposed).toBe(false);
+      expect(result.hydrationRegistry.exposed).toBe(false);
+      expect(result.summary.budibaseBoundary).toContain('Cernion remains the system of record');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'budibase.table.write',
+          'budibase.system_of_record',
+          'tenant.provision',
+          'setup.execute',
+          'reset.execute',
+          'public-context.mutate',
+          'operations-runbook.execute',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'device-control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns safe empty landing rows outside the sandbox tenant', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerWorkbenchLandingStatus', {
+        tenantId: 'other-tenant',
+        caseId: 'smm-budibase-workbench',
+      });
+
+      expect(result.found).toBe(false);
+      expect(result.status).toBe('workbench_landing_blocked_outside_sandbox_tenant');
+      expect(result.landingRows).toEqual([]);
+      expect(result.sectionRows).toEqual([]);
+      expect(result.presenterActionRows).toEqual([]);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
+        'stadtwerk_mauer_tenant_scope'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['budibase.table.write', 'tenant.provision', 'personal-agent.execute'])
+      );
+    });
+
+    it('binds the Budibase manifest to landing scalar rows', () => {
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.map((query) => query.name)).toEqual(
+        expect.arrayContaining([
+          'getStadtwerkMauerWorkbenchLanding',
+          'getStadtwerkMauerWorkbenchLandingRows',
+          'getStadtwerkMauerWorkbenchSectionRows',
+          'getStadtwerkMauerWorkbenchPresenterActionRows',
+        ])
+      );
+      expect(
+        STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+          (query) => query.name === 'getStadtwerkMauerWorkbenchLandingRows'
+        )
+      ).toMatchObject({
+        method: 'GET',
+        path: '/api/dashboard/stadtwerk-mauer-workbench-landing',
+        transformer: 'return data.landingRows || []',
+      });
+      expect(
+        STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+          (query) => query.name === 'getStadtwerkMauerWorkbenchPresenterActionRows'
+        )
+      ).toMatchObject({
+        method: 'GET',
+        path: '/api/dashboard/stadtwerk-mauer-workbench-landing',
+        transformer: 'return data.presenterActionRows || []',
+      });
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.sections.slice(0, 3).map((section) => section.id)).toEqual([
+        'landing_status',
+        'landing_sections',
+        'presenter_actions',
+      ]);
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
+        'Workbench Landing binds to scalar landing/status'
+      );
+    });
+  });
+
   describe('stadtwerkMauerMastrDataOverlayStatus', () => {
     it('reports the blended MaStR overlay without mutating source records', async () => {
       const result = await broker.call('dashboard-api.stadtwerkMauerMastrDataOverlayStatus', {

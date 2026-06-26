@@ -19,6 +19,7 @@ The first generated workbench is:
 
 The workbench renders:
 
+- Presenter-ready landing/status rows from `GET /api/dashboard/stadtwerk-mauer-workbench-landing`
 - Workbench Hub target readiness from `GET /api/dashboard/stadtwerk-mauer-workbench-hub`
 - Administrator inventory rows from `GET /api/dashboard/stadtwerk-mauer-administrator-inventory`
 - MaStR overlay status from `GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay`
@@ -47,6 +48,10 @@ The role workbench catalog query is read-only: it returns scalar role/open-targe
 Administrator, Zielnetzplanung, Vertrieb, Key Account and VDMI governance/reviewer targets.
 It does not implement role-specific calculations, authorization changes, role assignments or
 Budibase-owned workflow state.
+The Workbench landing query is read-only: it returns scalar first-screen status, section readiness
+and presenter walkthrough rows so the app opens as a demo surface instead of an internal build
+surface. It does not perform setup, reset, provisioning, Budibase table writes, runbook execution
+or production mutations.
 
 ## Apply Locally
 

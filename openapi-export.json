@@ -17154,6 +17154,39 @@
         ]
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-workbench-landing": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerWorkbenchLandingStatus",
+        "summary": "Stadtwerk Mauer Workbench landing -- presenter readiness projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer Workbench landing projection"
+          }
+        },
+        "description": "Returns deterministic Budibase-renderable landing/status rows for the Stadtwerk Mauer Workbench first screen. The endpoint exposes demo readiness, available sections, safe presenter actions and guard gaps without Budibase writes, setup/reset, provisioning, MaKo, billing, settlement, device-control, HITL or external actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/fnav-fast-track-contract-gate": {
       "get": {
         "operationId": "dashboard-api_fnavFastTrackContractGateStatus",
@@ -59724,6 +59757,39 @@
           }
         },
         "description": "Returns deterministic Budibase-renderable Zielnetzplanung queue and evidence handover rows for the Stadtwerk Mauer Workbench. The endpoint exposes scalar generated role queue facts for the synthetic PV missing-NAP case without role assignment writes, Budibase writes, grid-capacity calculations, MaKo, billing, settlement, device-control, HITL or external connector actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-workbench-landing": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerWorkbenchLandingStatus",
+        "summary": "Stadtwerk Mauer Workbench landing -- presenter readiness projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer Workbench landing projection"
+          }
+        },
+        "description": "Returns deterministic Budibase-renderable landing/status rows for the Stadtwerk Mauer Workbench first screen. The endpoint exposes demo readiness, available sections, safe presenter actions and guard gaps without Budibase writes, setup/reset, provisioning, MaKo, billing, settlement, device-control, HITL or external actions.",
         "parameters": [
           {
             "name": "tenantId",
