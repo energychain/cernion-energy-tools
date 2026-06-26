@@ -7971,6 +7971,212 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- stadtwerkMauerTenantDatabrowserStatus -----------------------------
+  describe('stadtwerkMauerTenantDatabrowserStatus', () => {
+    it('returns bounded scalar category, item, trace and detail rows for the tenant databrowser', async () => {
+      handlers.stadtwerkMauerE2eProcessDemoStatus = () => ({
+        capabilityKey: 'stadtwerk_mauer_e2e_process_demo',
+        safety: 'sandbox_only_non_consequential_e2e_demo_with_read_only_status',
+        tenantId: 'stadtwerk-mauer',
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: true,
+        status: 'e2e_demo_trace_needs_evidence',
+        demoPath: 'pv_registration_electrician_missing_nap',
+        caseId: 'smm-budibase-workbench',
+        traceCount: 2,
+        artifactCount: 3,
+        recentTraces: [
+          {
+            traceId: 'smm-e2e-trace:test-1',
+            stepKey: 'blueprint_seed_verified',
+            stepLabel: 'Blueprint seed verified',
+            status: 'verified',
+            evidenceRef: 'vdmi-blueprint-pack',
+            artifactRef: 'artifact:seed-check',
+            timestamp: '2026-06-26T18:00:00.000Z',
+          },
+          {
+            traceId: 'smm-e2e-trace:test-2',
+            stepKey: 'nap_missing',
+            stepLabel: 'NAP evidence missing',
+            status: 'needs_evidence',
+            evidenceRef: 'napReference',
+            artifactRef: 'artifact:nap-gap',
+            timestamp: '2026-06-26T18:01:00.000Z',
+          },
+        ],
+        evidenceQuality: 'incomplete_demo_evidence',
+        missingEvidence: [{ missingDataPoint: 'napReference' }],
+        positiveFollowUps: [{ missingDataPoint: 'napReference' }],
+        sourceActions: {
+          inspected: ['stadtwerk-mauer-e2e-process-demo.getStatus'],
+          referenced: ['object-store.query'],
+          notCalled: ['mako.dispatch', 'external.connector.call', 'personal-agent.execute'],
+        },
+      });
+
+      const result = await broker.call('dashboard-api.stadtwerkMauerTenantDatabrowserStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+        categoryId: 'process-trace',
+        itemId: 'smm-e2e-trace:test-1',
+        limit: 1,
+      });
+
+      expect(result.capabilityKey).toBe('stadtwerk_mauer_tenant_databrowser');
+      expect(result.safety).toBe('read_only');
+      expect(result.found).toBe(true);
+      expect(result.status).toBe('tenant_databrowser_ready');
+      expect(result.categoryId).toBe('process_trace');
+      expect(result.selectedItemId).toBe('smm-e2e-trace:test-1');
+      expect(result.summary.boundedLimit).toBe(1);
+      expect(result.pagination).toMatchObject({ limit: 1, returned: 1, totalAvailable: 2, hasMore: true });
+      expect(result.categoryRows.map((row) => row.categoryId)).toEqual(
+        expect.arrayContaining([
+          'public_context_layer',
+          'synthetic_tenant_seed',
+          'sandbox_runtime_artifact',
+          'generated_workbench_item',
+          'case_evidence',
+          'process_trace',
+          'artifact',
+          'runbook_readiness',
+        ])
+      );
+      expect(result.itemRows).toHaveLength(1);
+      expect(result.itemRows[0]).toMatchObject({
+        categoryId: 'process_trace',
+        itemId: 'smm-e2e-trace:test-1',
+        sourceType: 'stadtwerk-mauer-e2e-process-demo.getStatus',
+        readinessStatus: 'verified',
+      });
+      expect(result.traceRows).toHaveLength(1);
+      expect(result.traceRows[0]).toMatchObject({
+        traceId: 'smm-e2e-trace:test-1',
+        stepKey: 'blueprint_seed_verified',
+        status: 'verified',
+      });
+      expect(result.detailRows.map((row) => row.detailId)).toEqual(
+        expect.arrayContaining(['category', 'item', 'evidence'])
+      );
+      expect(result.sourceRows.map((row) => row.sourceId)).toEqual(
+        expect.arrayContaining(['administrator_inventory', 'case_detail', 'workbench_hub', 'e2e_trace'])
+      );
+      expectScalarTableRows(result.categoryRows);
+      expectScalarTableRows(result.itemRows);
+      expectScalarTableRows(result.traceRows);
+      expectScalarTableRows(result.detailRows);
+      expectScalarTableRows(result.sourceRows);
+      expect(result.summary.exportBoundary).toContain('not an unrestricted tenant dump/export endpoint');
+      expect(result.capabilityBroker.exposed).toBe(false);
+      expect(result.hydrationRegistry.exposed).toBe(false);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'tenant.export.unbounded',
+          'tenant.data.dump',
+          'trace.replay',
+          'budibase.table.write',
+          'budibase.system_of_record',
+          'public-context.mutate',
+          'operations-runbook.execute',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'device-control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns safe fallback rows for unknown categories and items', async () => {
+      const unknownCategory = await broker.call('dashboard-api.stadtwerkMauerTenantDatabrowserStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+        categoryId: 'unknown-category',
+      });
+
+      expect(unknownCategory.found).toBe(false);
+      expect(unknownCategory.status).toBe('tenant_databrowser_category_not_found');
+      expect(unknownCategory.itemRows).toEqual([]);
+      expect(unknownCategory.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
+        'supported_databrowser_category'
+      );
+
+      const unknownItem = await broker.call('dashboard-api.stadtwerkMauerTenantDatabrowserStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+        categoryId: 'public-context',
+        itemId: 'missing-item',
+      });
+
+      expect(unknownItem.found).toBe(false);
+      expect(unknownItem.status).toBe('tenant_databrowser_item_not_found');
+      expect(unknownItem.detailRows.find((row) => row.detailId === 'item_not_found')).toMatchObject({
+        itemId: 'missing-item',
+        status: 'not_found',
+      });
+      expect(unknownItem.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
+        'supported_databrowser_item'
+      );
+    });
+
+    it('returns safe empty databrowser rows outside the sandbox tenant', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerTenantDatabrowserStatus', {
+        tenantId: 'other-tenant',
+        caseId: 'smm-budibase-workbench',
+      });
+
+      expect(result.found).toBe(false);
+      expect(result.status).toBe('tenant_databrowser_blocked_outside_sandbox_tenant');
+      expect(result.categoryRows).toEqual([]);
+      expect(result.itemRows).toEqual([]);
+      expect(result.traceRows).toEqual([]);
+      expect(result.detailRows).toEqual([]);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
+        'stadtwerk_mauer_tenant_scope'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['budibase.table.write', 'tenant.provision', 'personal-agent.execute'])
+      );
+    });
+
+    it('binds the Budibase manifest to Tenant Databrowser scalar rows', () => {
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.map((query) => query.name)).toEqual(
+        expect.arrayContaining([
+          'getStadtwerkMauerTenantDatabrowser',
+          'getStadtwerkMauerTenantDatabrowserCategoryRows',
+          'getStadtwerkMauerTenantDatabrowserItemRows',
+          'getStadtwerkMauerTenantDatabrowserTraceRows',
+          'getStadtwerkMauerTenantDatabrowserDetailRows',
+          'getStadtwerkMauerTenantDatabrowserSourceRows',
+        ])
+      );
+      expect(
+        STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+          (query) => query.name === 'getStadtwerkMauerTenantDatabrowserItemRows'
+        )
+      ).toMatchObject({
+        method: 'GET',
+        path: '/api/dashboard/stadtwerk-mauer-tenant-databrowser',
+        transformer: 'return data.itemRows || []',
+      });
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.sections.map((section) => section.id)).toEqual(
+        expect.arrayContaining([
+          'tenant_databrowser_categories',
+          'tenant_databrowser_items',
+          'tenant_databrowser_traces',
+          'tenant_databrowser_detail',
+          'tenant_databrowser_sources',
+        ])
+      );
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
+        'Tenant Databrowser binds to bounded scalar category'
+      );
+    });
+  });
+
   // -- stadtwerkMauerRoleWorkbenchCatalogStatus -------------------------
   describe('stadtwerkMauerRoleWorkbenchCatalogStatus', () => {
     it('returns a read-only role catalog with scalar open-target rows and no-call guards', async () => {

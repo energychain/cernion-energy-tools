@@ -550,6 +550,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/stadtwerk-mauer-workbench-selected-target']).toBe(
         'dashboard-api.stadtwerkMauerWorkbenchSelectedTargetStatus'
       );
+      expect(aliases['GET /dashboard/stadtwerk-mauer-tenant-databrowser']).toBe(
+        'dashboard-api.stadtwerkMauerTenantDatabrowserStatus'
+      );
       expect(aliases['GET /dashboard/fnav-fast-track-contract-gate']).toBe(
         'dashboard-api.fnavFastTrackContractGateStatus'
       );

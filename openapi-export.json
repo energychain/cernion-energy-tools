@@ -17055,6 +17055,65 @@
         ]
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-tenant-databrowser": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerTenantDatabrowserStatus",
+        "summary": "Stadtwerk Mauer Tenant Databrowser -- read-only bounded inspection rows",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only bounded Stadtwerk Mauer Tenant Databrowser projection"
+          }
+        },
+        "description": "Returns bounded scalar category, item, trace and detail rows for the Stadtwerk Mauer Administrator Workbench. The endpoint is read-only, sandbox-scoped and does not export, replay traces, mutate public context, write Budibase tables or execute runbooks.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/stadtwerk-mauer-case-actions": {
       "get": {
         "operationId": "dashboard-api_stadtwerkMauerCaseActionsStatus",
@@ -59714,6 +59773,65 @@
             "required": false,
             "schema": {
               "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-tenant-databrowser": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerTenantDatabrowserStatus",
+        "summary": "Stadtwerk Mauer Tenant Databrowser -- read-only bounded inspection rows",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only bounded Stadtwerk Mauer Tenant Databrowser projection"
+          }
+        },
+        "description": "Returns bounded scalar category, item, trace and detail rows for the Stadtwerk Mauer Administrator Workbench. The endpoint is read-only, sandbox-scoped and does not export, replay traces, mutate public context, write Budibase tables or execute runbooks.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
             }
           }
         ]

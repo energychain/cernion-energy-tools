@@ -23,6 +23,7 @@ The workbench renders:
 - Workbench Hub target readiness from `GET /api/dashboard/stadtwerk-mauer-workbench-hub`
 - selected Hub target/focus rows from `GET /api/dashboard/stadtwerk-mauer-workbench-selected-target?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&targetId=hub`
 - Administrator inventory rows from `GET /api/dashboard/stadtwerk-mauer-administrator-inventory`
+- Tenant Databrowser category/item/trace/detail/source rows from `GET /api/dashboard/stadtwerk-mauer-tenant-databrowser`
 - MaStR overlay status from `GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay`
 - E2E demo status from `GET /api/dashboard/stadtwerk-mauer-e2e-process-demo`
 - selectable case detail from `GET /api/dashboard/stadtwerk-mauer-case-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
@@ -41,6 +42,9 @@ readiness model only; role-specific workbenches and Administrator inventory stay
 The Administrator inventory query is read-only and returns scalar category/item rows that separate
 public context, synthetic tenant seed, sandbox runtime artifacts, generated workbench targets and
 read/verify runbook surfaces for Budibase tables.
+The Tenant Databrowser query is read-only and bounded: it renders scalar inspection rows over
+curated tenant categories, selected items, trace hints, detail rows and source rows, but it is not
+an unrestricted tenant export, trace replay path or Budibase-owned data store.
 The selected-case action query is read-only / verify-only: it returns scalar button metadata for
 refreshing the selected case, verifying the Blueprint seed and validating evidence completeness.
 Budibase may use these rows for UI-near query refreshes, but setup/reset/provisioning, arbitrary

@@ -1473,6 +1473,8 @@ module.exports = {
             'dashboard-api.stadtwerkMauerWorkbenchHubStatus',
           'GET /dashboard/stadtwerk-mauer-administrator-inventory':
             'dashboard-api.stadtwerkMauerAdministratorInventoryStatus',
+          'GET /dashboard/stadtwerk-mauer-tenant-databrowser':
+            'dashboard-api.stadtwerkMauerTenantDatabrowserStatus',
           'GET /dashboard/stadtwerk-mauer-case-actions':
             'dashboard-api.stadtwerkMauerCaseActionsStatus',
           'GET /dashboard/stadtwerk-mauer-role-workbench-catalog':
