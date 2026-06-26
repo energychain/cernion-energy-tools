@@ -16,6 +16,7 @@ const { ServiceBroker } = require('moleculer');
 
 const DashboardApiService = require('../services/dashboard-api.service');
 const { FINDING_CODE_METADATA } = require('../src/validation-findings');
+const STADTWERK_MAUER_WORKBENCH_MANIFEST = require('../integrations/budibase/manifests/stadtwerk-mauer-workbench.json');
 
 // ── Fixtures ──────────────────────────────────────────────────────────────
 
@@ -7502,6 +7503,142 @@ describe('dashboard-api.service', () => {
       expect(result.traceSummaries).toEqual([]);
       expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
         expect.arrayContaining(['napReference', 'customerConsentStatus'])
+      );
+    });
+  });
+
+  // -- stadtwerkMauerWorkbenchHubStatus ----------------------------------
+  describe('stadtwerkMauerWorkbenchHubStatus', () => {
+    it('returns a read-only Hub launcher with target readiness and no-call guards', async () => {
+      handlers.stadtwerkMauerE2eProcessDemoStatus = () => ({
+        capabilityKey: 'stadtwerk_mauer_e2e_process_demo',
+        safety: 'sandbox_only_non_consequential_e2e_demo_with_read_only_status',
+        tenantId: 'stadtwerk-mauer',
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: true,
+        status: 'e2e_demo_trace_needs_evidence',
+        demoPath: 'pv_registration_electrician_missing_nap',
+        caseId: 'smm-budibase-workbench',
+        traceCount: 1,
+        artifactCount: 3,
+        recentTraces: [
+          {
+            traceId: 'smm-e2e-trace:test',
+            caseId: 'smm-budibase-workbench',
+            demoPath: 'pv_registration_electrician_missing_nap',
+            status: 'demo_trace_needs_evidence',
+            evidenceQuality: 'incomplete_demo_evidence',
+          },
+        ],
+        evidenceQuality: 'incomplete_demo_evidence',
+        missingEvidence: [{ missingDataPoint: 'napReference' }],
+        positiveFollowUps: [{ missingDataPoint: 'napReference' }],
+        sourceActions: {
+          inspected: ['stadtwerk-mauer-e2e-process-demo.getStatus'],
+          referenced: ['object-store.query'],
+          notCalled: ['mako.dispatch', 'external.connector.call', 'personal-agent.execute'],
+        },
+      });
+
+      const result = await broker.call('dashboard-api.stadtwerkMauerWorkbenchHubStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+      });
+
+      expect(result.capabilityKey).toBe('stadtwerk_mauer_workbench_hub');
+      expect(result.safety).toBe('read_only');
+      expect(result.found).toBe(true);
+      expect(result.status).toBe('workbench_hub_ready_with_planned_targets');
+      expect(result.routeKey).toBe('stadtwerk-mauer');
+      expect(result.dataClasses.map((item) => item.id)).toEqual(
+        expect.arrayContaining(['publicContextLayer', 'syntheticTenantSeed', 'sandboxRuntimeArtifact'])
+      );
+      expect(result.targets.map((target) => target.targetId)).toEqual(
+        expect.arrayContaining([
+          'administrator-workbench',
+          'selected-case-detail',
+          'selected-case-actions',
+          'zielnetzplanung-workbench',
+          'sales-key-account-workbench',
+          'role-workbench-catalog',
+        ])
+      );
+      expect(result.targets.find((target) => target.targetId === 'selected-case-detail')).toMatchObject({
+        status: 'available',
+        routeKey: 'case-detail',
+        safety: 'read_only',
+      });
+      expect(result.targets.find((target) => target.targetId === 'administrator-workbench')).toMatchObject({
+        status: 'planned',
+        nextGate: { id: 'product_cut_307' },
+      });
+      expect(result.targets.find((target) => target.targetId === 'role-workbench-catalog')).toMatchObject({
+        status: 'planned',
+        nextGate: { id: 'product_cut_308' },
+      });
+      expect(result.readiness.availableTargets).toBeGreaterThanOrEqual(1);
+      expect(result.positiveFollowUps.map((item) => item.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'administrator-workbench',
+          'selected-case-actions',
+          'role-workbench-catalog',
+        ])
+      );
+      expect(result.capabilityBroker.exposed).toBe(false);
+      expect(result.hydrationRegistry.exposed).toBe(false);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'budibase.table.write',
+          'budibase.system_of_record',
+          'rundeck.job.execute',
+          'setup.execute',
+          'reset.execute',
+          'provisioning.execute',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'device-control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns a safe empty Hub outside the sandbox tenant', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerWorkbenchHubStatus', {
+        tenantId: 'other-tenant',
+        caseId: 'smm-budibase-workbench',
+      });
+
+      expect(result.found).toBe(false);
+      expect(result.status).toBe('workbench_hub_blocked_outside_sandbox_tenant');
+      expect(result.targets).toEqual([]);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
+        'stadtwerk_mauer_tenant_scope'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['budibase.table.write', 'public-context.mutate', 'personal-agent.execute'])
+      );
+    });
+
+    it('binds the Budibase manifest to the Hub and selected-case read queries', () => {
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.map((query) => query.name)).toEqual(
+        expect.arrayContaining(['getStadtwerkMauerWorkbenchHub', 'getStadtwerkMauerCaseDetail'])
+      );
+      expect(
+        STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+          (query) => query.name === 'getStadtwerkMauerWorkbenchHub'
+        )
+      ).toMatchObject({
+        method: 'GET',
+        path: '/api/dashboard/stadtwerk-mauer-workbench-hub',
+      });
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.sections.map((section) => section.id)).toEqual(
+        expect.arrayContaining(['hub', 'case_detail'])
+      );
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
+        'Budibase renders navigation and readiness only'
       );
     });
   });

@@ -19,6 +19,7 @@ The first generated workbench is:
 
 The workbench renders:
 
+- Workbench Hub target readiness from `GET /api/dashboard/stadtwerk-mauer-workbench-hub`
 - MaStR overlay status from `GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay`
 - E2E demo status from `GET /api/dashboard/stadtwerk-mauer-e2e-process-demo`
 - selectable case detail from `GET /api/dashboard/stadtwerk-mauer-case-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
@@ -28,6 +29,10 @@ The action query is intentionally still guarded by Cernion scopes. A Budibase bu
 wired to it later, but the successful UI rendering path does not bypass Cernion authorization.
 The case-detail query is read-only and returns evidence, trace, artifact, Blueprint, role and
 next-gate summaries; it does not write Budibase tables or execute Rundeck jobs.
+The Hub query is also read-only: it lists generated launcher targets and readiness metadata for
+Administrator Workbench (#307), selected case detail (#304), selected-case actions (#305),
+Zielnetzplanung, Vertrieb/Key Account and role-workbench catalog (#308). It is a navigation and
+readiness model only; role-specific workbenches and Administrator inventory stay separate slices.
 
 ## Apply Locally
 

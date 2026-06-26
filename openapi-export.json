@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.67.1",
+    "version": "0.67.2",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "servers": [
@@ -16961,6 +16961,39 @@
           }
         },
         "description": "Returns a deterministic Budibase-renderable detail model for a selectable synthetic Stadtwerk Mauer PV missing-NAP demo case. The endpoint summarizes Blueprint seed, role-workbench hints, E2E trace/artifact status and operations-runbook links without executing Budibase, Rundeck, MaKo, billing, settlement, device-control or external actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/stadtwerk-mauer-workbench-hub": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerWorkbenchHubStatus",
+        "summary": "Stadtwerk Mauer Workbench Hub -- read-only launcher projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer Workbench Hub projection"
+          }
+        },
+        "description": "Returns a deterministic Budibase-renderable hub model for the Stadtwerk Mauer Workbench. The endpoint exposes target readiness, route metadata, data-class separation, next gates and no-call guards without executing Budibase writes, Rundeck jobs, MaKo, billing, settlement, device-control or external actions.",
         "parameters": [
           {
             "name": "tenantId",
@@ -59398,6 +59431,39 @@
         ]
       }
     },
+    "/api/dashboard/stadtwerk-mauer-workbench-hub": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerWorkbenchHubStatus",
+        "summary": "Stadtwerk Mauer Workbench Hub -- read-only launcher projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer Workbench Hub projection"
+          }
+        },
+        "description": "Returns a deterministic Budibase-renderable hub model for the Stadtwerk Mauer Workbench. The endpoint exposes target readiness, route metadata, data-class separation, next gates and no-call guards without executing Budibase writes, Rundeck jobs, MaKo, billing, settlement, device-control or external actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard/fnav-fast-track-contract-gate": {
       "get": {
         "operationId": "dashboard-api_fnavFastTrackContractGateStatus",
@@ -69190,5 +69256,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.67.1"
+  "x-version": "0.67.2"
 }
