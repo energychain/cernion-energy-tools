@@ -181,7 +181,7 @@ recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (12 capabilities · 9 recipes · 360 operations)
+### platform (12 capabilities · 9 recipes · 361 operations)
 capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, evidence_grounding_confidence_audit, evu_api_migration_diagnostics, file_ingest_monitor, hitl_role_based_evidence_request, live_update_stream_contract_status, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted…"
@@ -245,17 +245,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: ba1c349174b4f90b3feb8962edde921e44547d824175807dd96a12f697e5601c
+- CHANGELOG.md: 29b7760892adc61d6a2331720fabc6122962a103c49061e1c96c485e200e53a5
 - README.md: 149317e9eea460588ca9ff477c91a9009d275c51fd4bd4f88e9ff1785746836b
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 5190fa2814db597464408cb11f08dfa7bd7798df74e650adbebb6fab71b7f5d4
 - src/capability-catalog.js: 31fbef920699d783823095e7b91751b9660477f45333d5bdf98b6f47e3e20071
-- openapi-export.json: c808390010ea328423272d62c708e3409c3919a46603566f3e652effa19021c1
+- openapi-export.json: f20fb01fee17ed5475f81a4f937c86b54c6bcb2d6f4f429e690c38f1e7a69322
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 902
-- operation_count: 1011
+- path_count: 904
+- operation_count: 1013
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 053067653680dca7efc9a04fed41489035e526547600a777fe50964c02f367bf
+- llm_txt_sha256: 02b01e7736f8ed11b055c2ff3aa6d8d38efd31976ab3dafaa70098a3e397a845

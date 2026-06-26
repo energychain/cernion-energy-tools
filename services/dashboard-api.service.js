@@ -114,6 +114,7 @@ module.exports = {
       stadtwerkMauerCaseDetailStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerWorkbenchHubStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerAdministratorInventoryStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerCaseActionsStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
       assetValuationTransformationGateStatus: 5 * 60 * 1000, // 5 min
@@ -5830,6 +5831,90 @@ module.exports = {
                 mastrStatus,
                 caseDetailStatus,
                 hubStatus,
+              }),
+              timestamp: new Date().toISOString(),
+              _errors: errors,
+            };
+          }
+        );
+      },
+    },
+
+    // -- stadtwerkMauerCaseActionsStatus --------------------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-case-actions
+     *
+     * Read-only / verify-only selected-case action contract for the
+     * Stadtwerk Mauer Workbench. This slice is Workbench/dashboard-only and
+     * deliberately does not add broker or dossier hydration exposure.
+     */
+    stadtwerkMauerCaseActionsStatus: {
+      rest: 'GET /stadtwerk-mauer-case-actions',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer case actions -- read-only/verify-only action contract',
+        description:
+          'Returns deterministic Budibase-renderable selected-case action metadata for the ' +
+          'Stadtwerk Mauer Workbench. The endpoint exposes refresh, Blueprint verify and ' +
+          'evidence validation actions as scalar rows and automation hints without executing ' +
+          'Budibase writes, setup/reset/provisioning, Rundeck jobs, MaKo, billing, settlement, ' +
+          'device-control, HITL or external connector actions.',
+        parameters: [
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Stadtwerk Mauer selected-case action contract',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const caseId = params.caseId || 'smm-budibase-workbench';
+        const errors = [];
+        const cacheKey = `stadtwerk-mauer-case-actions:${tenantId}:${caseId}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.stadtwerkMauerCaseActionsStatus,
+          async () => {
+            if (tenantId !== 'stadtwerk-mauer') {
+              return {
+                ...this.buildStadtwerkMauerCaseActionsStatus({
+                  tenantId,
+                  caseId,
+                  caseDetailStatus: null,
+                }),
+                timestamp: new Date().toISOString(),
+                _errors: errors,
+              };
+            }
+
+            const e2eStatus = await this.safeCall(
+              ctx,
+              'stadtwerk-mauer-e2e-process-demo.getStatus',
+              { tenantId, caseId, limit: 10 },
+              this.buildMissingStadtwerkMauerE2eProcessDemoStatus(tenantId, caseId),
+              errors,
+              'stadtwerk-mauer-e2e-process-demo.getStatus'
+            );
+            const caseDetailStatus = this.buildStadtwerkMauerCaseDetailStatus({
+              tenantId,
+              caseId,
+              e2eStatus,
+            });
+
+            return {
+              ...this.buildStadtwerkMauerCaseActionsStatus({
+                tenantId,
+                caseId,
+                caseDetailStatus,
               }),
               timestamp: new Date().toISOString(),
               _errors: errors,
@@ -21800,20 +21885,22 @@ module.exports = {
           targetId: 'selected-case-actions',
           routeKey: 'case-actions',
           label: 'Selected Case Actions',
-          status: 'planned',
+          status: 'available',
           safety: 'read_only_verify_only',
           dataClasses: ['sandboxRuntimeArtifact'],
           requiredEvidenceDomains: ['action_contract', 'automation_boundary', 'forbidden_actions'],
           allowedActionClasses: ['refresh_read_model', 'verify_blueprint_seed', 'validate_evidence_completeness'],
-          readinessSummary: 'Curated action-button contract is reserved for #305.',
+          readinessSummary: 'Curated action-button contract is available as a read-only/verify-only API.',
           nextGate: {
-            id: 'product_cut_305',
-            label: 'Cut #305 as read-only/verify-only selected-case action contract',
+            id: 'render_case_actions',
+            label: 'Render selected-case action rows from #305',
           },
           routeTarget: {
-            type: 'planned_api_query',
+            type: 'api_query',
             routeKey: 'case-actions',
-            path: '/api/dashboard/stadtwerk-mauer-case-actions',
+            path: `/api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=${encodeURIComponent(
+              caseId
+            )}`,
           },
           enablesDossierAddition:
             'add curated refresh, verify and lightweight validation button metadata from #305',
@@ -21896,6 +21983,299 @@ module.exports = {
         nextGateLabel: target.nextGate?.label || this.humanizeWorkbenchLabel(target.nextGate?.id),
         safetyLabel: this.humanizeWorkbenchLabel(target.safety || 'read_only'),
         targetType: target.routeTarget?.type || null,
+      }));
+    },
+
+    buildStadtwerkMauerCaseActionsStatus({
+      tenantId = 'stadtwerk-mauer',
+      caseId = 'smm-budibase-workbench',
+      caseDetailStatus = null,
+    } = {}) {
+      const seed = stadtwerkMauerPvMissingNap;
+      const sandboxBoundaryAllowed = tenantId === seed.demoTenant.tenantId;
+      const selectedCaseAllowed = caseId === 'smm-budibase-workbench';
+      const found = sandboxBoundaryAllowed && selectedCaseAllowed && caseDetailStatus?.found !== false;
+      const missingEvidence = found
+        ? caseDetailStatus?.missingEvidence || []
+        : sandboxBoundaryAllowed
+          ? [
+              {
+                missingDataPoint: 'stadtwerk_mauer_case_scope',
+                enablesDossierAddition:
+                  'select the synthetic case smm-budibase-workbench before rendering action buttons',
+                dataClass: 'syntheticTenantSeed',
+                state: 'clarification',
+              },
+            ]
+          : [
+              {
+                missingDataPoint: 'stadtwerk_mauer_tenant_scope',
+                enablesDossierAddition:
+                  'select the synthetic tenant stadtwerk-mauer before rendering selected-case actions',
+                dataClass: 'syntheticTenantSeed',
+                state: 'clarification',
+              },
+            ];
+      const noCallGuards = Array.from(
+        new Set([
+          ...(seed.forbiddenActions || []),
+          ...(caseDetailStatus?.sourceActions?.notCalled || []),
+          'budibase.table.write',
+          'budibase.api.call',
+          'budibase.system_of_record',
+          'budibase.automation.arbitrary_write',
+          'rundeck.job.execute',
+          'operations-runbook.setup',
+          'operations-runbook.reset',
+          'operations-runbook.provision',
+          'operations-runbook.e2e_smoke.execute',
+          'tenant.seed.import',
+          'tenant.seed.delete',
+          'public-context.mutate',
+          'production.mutate',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'device-control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+      const availableActions = found
+        ? this.buildStadtwerkMauerSelectedCaseActions({
+            tenantId,
+            caseId,
+            caseDetailStatus,
+            missingEvidence,
+          })
+        : [];
+      const actionRows = this.buildStadtwerkMauerCaseActionRows(availableActions);
+      const status = found
+        ? missingEvidence.length > 0
+          ? 'case_actions_ready_with_evidence_gaps'
+          : 'case_actions_ready'
+        : sandboxBoundaryAllowed
+          ? 'case_actions_not_found'
+          : 'case_actions_blocked_outside_sandbox_tenant';
+      const positiveFollowUps = [
+        ...missingEvidence.map((item) => ({
+          ...item,
+          category: 'stadtwerk_mauer_case_actions',
+        })),
+        ...availableActions
+          .filter((action) => action.enabled === false)
+          .map((action) => ({
+            missingDataPoint: action.actionId,
+            enablesDossierAddition: action.disabledReason || action.enablesDossierAddition,
+            category: 'stadtwerk_mauer_case_actions',
+            state: 'blocked',
+          })),
+      ];
+      const budibaseAutomationHints = found
+        ? [
+            {
+              hintId: 'refresh_selected_case_detail',
+              trigger: 'button_click',
+              actionId: 'refresh_read_model',
+              method: 'GET',
+              path: `/api/dashboard/stadtwerk-mauer-case-detail?tenantId=${encodeURIComponent(
+                tenantId
+              )}&caseId=${encodeURIComponent(caseId)}`,
+              execution: 'ui_near_query_refresh_only',
+            },
+            {
+              hintId: 'verify_blueprint_seed_read_only',
+              trigger: 'button_click',
+              actionId: 'verify_blueprint_seed',
+              method: 'GET',
+              path: '/api/operations-runbook/vdmi-blueprint-packs/verify?seedId=stadtwerk-mauer-pv-missing-nap-v1',
+              execution: 'read_verify_only_no_setup_reset',
+            },
+            {
+              hintId: 'validate_selected_case_evidence',
+              trigger: 'button_click',
+              actionId: 'validate_evidence_completeness',
+              method: 'GET',
+              path: `/api/dashboard/stadtwerk-mauer-case-actions?tenantId=${encodeURIComponent(
+                tenantId
+              )}&caseId=${encodeURIComponent(caseId)}`,
+              execution: 'synchronous_metadata_validation_only',
+            },
+          ]
+        : [];
+      const rundeckBoundary = [
+        {
+          boundaryId: 'operations_runbook_verify_only',
+          label: 'Blueprint Pack verify is read-only and may be referenced by Budibase buttons.',
+          allowedPath: '/api/operations-runbook/vdmi-blueprint-packs/verify',
+          forbiddenExecution: 'setup_reset_provisioning_e2e_smoke_rundeck_job_execute',
+        },
+        {
+          boundaryId: 'operations_runbook_operational_execution',
+          label: 'Setup, reset, provisioning and E2E smoke remain Cernion-controlled runbook surfaces.',
+          allowedPath: '/api/operations-runbook/**',
+          forbiddenExecution: 'direct_budibase_execution_without_scope_gate',
+        },
+      ];
+      const forbiddenActions = Array.from(new Set([...noCallGuards, 'arbitrary_budibase_table_write']));
+      const dossierFacts = [
+        `Case Actions Status: ${status}`,
+        `Tenant: ${tenantId}`,
+        `Case: ${caseId}`,
+        `Actions: ${availableActions.length}`,
+        `Action rows: ${actionRows.length}`,
+      ];
+
+      return {
+        capabilityKey: 'stadtwerk_mauer_case_actions',
+        safety: 'read_only_verify_only',
+        found,
+        status,
+        tenantId,
+        requiredTenantId: seed.demoTenant.tenantId,
+        sandboxBoundaryAllowed,
+        caseId,
+        requiredCaseId: 'smm-budibase-workbench',
+        processFamily: seed.processFamily,
+        controlCase: seed.controlCase,
+        blueprintSeedId: seed.id,
+        caseDetailStatus: caseDetailStatus?.status || null,
+        availableActions,
+        actionRows,
+        budibaseAutomationHints,
+        rundeckBoundary,
+        forbiddenActions,
+        missingEvidence,
+        positiveFollowUps,
+        summary: {
+          actionCount: availableActions.length,
+          enabledActionCount: availableActions.filter((action) => action.enabled !== false).length,
+          riskClass: 'read_only_verify_only',
+          syntheticIdDisclaimer:
+            'Stadtwerk Mauer case, MaLo, MeLo, meter, consent and device-control values are synthetic demo identifiers unless explicitly marked as public context.',
+          budibaseBoundary:
+            'Budibase may refresh queries and render curated button metadata; Cernion remains the command gate and system of record.',
+        },
+        capabilityBroker: {
+          exposed: false,
+          reason:
+            'Selected-case actions are Workbench button metadata; no broad Personal-Agent capability route is added.',
+        },
+        hydrationRegistry: {
+          exposed: false,
+          reason:
+            'No dossier hydration rule is added for this Workbench-only action-bar slice.',
+        },
+        sourceActions: {
+          inspected: ['dashboard-api.stadtwerkMauerCaseActionsStatus'],
+          referenced: [
+            'dashboard-api.stadtwerkMauerCaseDetailStatus',
+            'stadtwerk-mauer-e2e-process-demo.getStatus',
+            'operations-runbook.verifyVdmiBlueprintPackSeed',
+            'integrations/budibase/manifests/stadtwerk-mauer-workbench.json',
+            'integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js',
+          ],
+          notCalled: noCallGuards,
+        },
+        noCallGuards,
+        dossierFacts,
+        dossierEvidence: {
+          status,
+          tenantId,
+          caseId,
+          availableActions: actionRows,
+          missingEvidence,
+          positiveFollowUps,
+          noCallGuards,
+          dossierFacts,
+        },
+        meta: {
+          inspected: [
+            'dashboard-api.stadtwerkMauerCaseActionsStatus',
+            'dashboard-api.stadtwerkMauerCaseDetailStatus',
+            'budibase-stadtwerk-mauer-workbench-manifest',
+          ],
+        },
+      };
+    },
+
+    buildStadtwerkMauerSelectedCaseActions({
+      tenantId,
+      caseId,
+      caseDetailStatus = {},
+      missingEvidence = [],
+    }) {
+      const evidenceMissing = missingEvidence.length > 0;
+      return [
+        {
+          actionId: 'refresh_read_model',
+          label: 'Refresh Read Model',
+          actionType: 'refresh_read_model',
+          riskClass: 'read_only',
+          method: 'GET',
+          path: `/api/dashboard/stadtwerk-mauer-case-detail?tenantId=${encodeURIComponent(
+            tenantId
+          )}&caseId=${encodeURIComponent(caseId)}`,
+          requiredScope: 'dashboard:read',
+          confirmationRequired: false,
+          enabled: true,
+          nextGate: 'reload_selected_case_detail',
+          evidenceStatus: caseDetailStatus.status || 'case_detail_status_unknown',
+          enablesDossierAddition:
+            'refresh selected-case evidence, trace and next-gate labels without mutating source data',
+        },
+        {
+          actionId: 'verify_blueprint_seed',
+          label: 'Verify Blueprint Seed',
+          actionType: 'verify_blueprint_seed',
+          riskClass: 'read_verify_only',
+          method: 'GET',
+          path: '/api/operations-runbook/vdmi-blueprint-packs/verify?seedId=stadtwerk-mauer-pv-missing-nap-v1',
+          requiredScope: 'runbook:read',
+          confirmationRequired: false,
+          enabled: true,
+          nextGate: 'show_blueprint_seed_integrity',
+          evidenceStatus: 'verify_surface_available',
+          enablesDossierAddition:
+            'add Blueprint Pack integrity facts and evidence requirement labels to the selected case',
+        },
+        {
+          actionId: 'validate_evidence_completeness',
+          label: 'Validate Evidence Completeness',
+          actionType: 'validate_evidence_completeness',
+          riskClass: 'read_only',
+          method: 'GET',
+          path: `/api/dashboard/stadtwerk-mauer-case-actions?tenantId=${encodeURIComponent(
+            tenantId
+          )}&caseId=${encodeURIComponent(caseId)}`,
+          requiredScope: 'dashboard:read',
+          confirmationRequired: false,
+          enabled: true,
+          nextGate: evidenceMissing ? 'resolve_missing_evidence' : 'case_ready_for_next_gate_review',
+          evidenceStatus: evidenceMissing ? 'evidence_gaps_present' : 'evidence_complete',
+          enablesDossierAddition: evidenceMissing
+            ? 'show which missing evidence must arrive before the next selected-case gate is complete'
+            : 'show that selected-case evidence is complete for the current demo gate',
+        },
+      ];
+    },
+
+    buildStadtwerkMauerCaseActionRows(actions = []) {
+      return actions.map((action) => ({
+        actionId: action.actionId,
+        label: action.label,
+        actionType: action.actionType,
+        riskClass: action.riskClass,
+        method: action.method,
+        path: action.path,
+        requiredScope: action.requiredScope,
+        confirmationRequired: action.confirmationRequired === true,
+        enabled: action.enabled !== false,
+        disabledReason: action.disabledReason || null,
+        nextGate: action.nextGate || null,
+        evidenceStatus: action.evidenceStatus || null,
       }));
     },
 

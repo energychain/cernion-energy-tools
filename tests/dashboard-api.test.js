@@ -7619,7 +7619,6 @@ describe('dashboard-api.service', () => {
       expect(result.positiveFollowUps.map((item) => item.missingDataPoint)).toEqual(
         expect.arrayContaining([
           'administrator-workbench',
-          'selected-case-actions',
           'role-workbench-catalog',
         ])
       );
@@ -7977,6 +7976,158 @@ describe('dashboard-api.service', () => {
       it('accepts request without gridOperatorId (all operators)', async () => {
         await expect(broker.call('dashboard-api.qualitySummary', {})).resolves.toBeDefined();
       });
+    });
+  });
+
+  // -- stadtwerkMauerCaseActionsStatus -----------------------------------
+  describe('stadtwerkMauerCaseActionsStatus', () => {
+    it('returns selected-case read/verify actions with scalar rows and no-call guards', async () => {
+      handlers.stadtwerkMauerE2eProcessDemoStatus = () => ({
+        capabilityKey: 'stadtwerk_mauer_e2e_process_demo',
+        safety: 'sandbox_only_non_consequential_e2e_demo_with_read_only_status',
+        tenantId: 'stadtwerk-mauer',
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: true,
+        status: 'e2e_demo_trace_needs_evidence',
+        demoPath: 'pv_registration_electrician_missing_nap',
+        caseId: 'smm-budibase-workbench',
+        traceCount: 1,
+        artifactCount: 3,
+        recentTraces: [{ traceId: 'smm-e2e-trace:test', status: 'demo_trace_needs_evidence' }],
+        evidenceQuality: 'incomplete_demo_evidence',
+        missingEvidence: [
+          { missingDataPoint: 'napReference' },
+          { missingDataPoint: 'customerConsentStatus' },
+        ],
+        positiveFollowUps: [{ missingDataPoint: 'napReference' }],
+        sourceActions: {
+          inspected: ['stadtwerk-mauer-e2e-process-demo.getStatus'],
+          referenced: ['object-store.query'],
+          notCalled: ['mako.dispatch', 'external.connector.call', 'personal-agent.execute'],
+        },
+      });
+
+      const result = await broker.call('dashboard-api.stadtwerkMauerCaseActionsStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+      });
+
+      expect(result.capabilityKey).toBe('stadtwerk_mauer_case_actions');
+      expect(result.safety).toBe('read_only_verify_only');
+      expect(result.found).toBe(true);
+      expect(result.status).toBe('case_actions_ready_with_evidence_gaps');
+      expect(result.availableActions.map((action) => action.actionId)).toEqual(
+        expect.arrayContaining([
+          'refresh_read_model',
+          'verify_blueprint_seed',
+          'validate_evidence_completeness',
+        ])
+      );
+      expect(result.actionRows.find((row) => row.actionId === 'verify_blueprint_seed')).toMatchObject({
+        method: 'GET',
+        riskClass: 'read_verify_only',
+        requiredScope: 'runbook:read',
+        enabled: true,
+      });
+      expect(result.actionRows.find((row) => row.actionId === 'validate_evidence_completeness')).toMatchObject({
+        nextGate: 'resolve_missing_evidence',
+        evidenceStatus: 'evidence_gaps_present',
+      });
+      expectScalarTableRows(result.actionRows);
+      expect(result.budibaseAutomationHints.map((hint) => hint.actionId)).toEqual(
+        expect.arrayContaining([
+          'refresh_read_model',
+          'verify_blueprint_seed',
+          'validate_evidence_completeness',
+        ])
+      );
+      expect(result.rundeckBoundary[0]).toMatchObject({
+        boundaryId: 'operations_runbook_verify_only',
+      });
+      expect(result.capabilityBroker.exposed).toBe(false);
+      expect(result.hydrationRegistry.exposed).toBe(false);
+      expect(result.summary.budibaseBoundary).toContain('Cernion remains the command gate');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'budibase.table.write',
+          'budibase.automation.arbitrary_write',
+          'rundeck.job.execute',
+          'operations-runbook.setup',
+          'operations-runbook.reset',
+          'operations-runbook.provision',
+          'operations-runbook.e2e_smoke.execute',
+          'public-context.mutate',
+          'production.mutate',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'device-control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.forbiddenActions).toEqual(
+        expect.arrayContaining(['arbitrary_budibase_table_write', 'budibase.table.write'])
+      );
+    });
+
+    it('returns safe empty action rows outside the sandbox tenant', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerCaseActionsStatus', {
+        tenantId: 'other-tenant',
+        caseId: 'smm-budibase-workbench',
+      });
+
+      expect(result.found).toBe(false);
+      expect(result.status).toBe('case_actions_blocked_outside_sandbox_tenant');
+      expect(result.availableActions).toEqual([]);
+      expect(result.actionRows).toEqual([]);
+      expect(result.budibaseAutomationHints).toEqual([]);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
+        'stadtwerk_mauer_tenant_scope'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['budibase.table.write', 'personal-agent.execute'])
+      );
+    });
+
+    it('returns safe empty action rows for unknown sandbox cases', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerCaseActionsStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'unknown-case',
+      });
+
+      expect(result.found).toBe(false);
+      expect(result.status).toBe('case_actions_not_found');
+      expect(result.availableActions).toEqual([]);
+      expect(result.actionRows).toEqual([]);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
+        'stadtwerk_mauer_case_scope'
+      );
+    });
+
+    it('binds the Budibase manifest to selected-case scalar action rows', () => {
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.map((query) => query.name)).toEqual(
+        expect.arrayContaining([
+          'getStadtwerkMauerCaseActions',
+          'getStadtwerkMauerCaseActionRows',
+        ])
+      );
+      expect(
+        STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+          (query) => query.name === 'getStadtwerkMauerCaseActionRows'
+        )
+      ).toMatchObject({
+        method: 'GET',
+        path: '/api/dashboard/stadtwerk-mauer-case-actions',
+        transformer: 'return data.actionRows || []',
+      });
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.sections.map((section) => section.id)).toContain(
+        'case_actions'
+      );
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
+        'Selected-case action rows are curated read-only/verify-only button metadata'
+      );
     });
   });
 });

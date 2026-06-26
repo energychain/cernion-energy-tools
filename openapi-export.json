@@ -17055,6 +17055,39 @@
         ]
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-case-actions": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerCaseActionsStatus",
+        "summary": "Stadtwerk Mauer case actions -- read-only/verify-only action contract",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer selected-case action contract"
+          }
+        },
+        "description": "Returns deterministic Budibase-renderable selected-case action metadata for the Stadtwerk Mauer Workbench. The endpoint exposes refresh, Blueprint verify and evidence validation actions as scalar rows and automation hints without executing Budibase writes, setup/reset/provisioning, Rundeck jobs, MaKo, billing, settlement, device-control, HITL or external connector actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/fnav-fast-track-contract-gate": {
       "get": {
         "operationId": "dashboard-api_fnavFastTrackContractGateStatus",
@@ -59541,6 +59574,39 @@
             "required": false,
             "schema": {
               "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-case-actions": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerCaseActionsStatus",
+        "summary": "Stadtwerk Mauer case actions -- read-only/verify-only action contract",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer selected-case action contract"
+          }
+        },
+        "description": "Returns deterministic Budibase-renderable selected-case action metadata for the Stadtwerk Mauer Workbench. The endpoint exposes refresh, Blueprint verify and evidence validation actions as scalar rows and automation hints without executing Budibase writes, setup/reset/provisioning, Rundeck jobs, MaKo, billing, settlement, device-control, HITL or external connector actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ]
