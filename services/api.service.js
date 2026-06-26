@@ -944,6 +944,19 @@ module.exports = {
             }
           },
 
+          // Municipal value landing UI - public-facing advisory demo
+          'GET /municipal-value'(req, res) {
+            const appHtml = path.join(__dirname, '..', 'src', 'municipal-value.html');
+            try {
+              const html = fs.readFileSync(appHtml, 'utf-8');
+              res.setHeader(CONTENT_TYPE_HEADER, 'text/html; charset=utf-8');
+              res.end(html);
+            } catch (err) {
+              res.writeHead(500);
+              res.end('Municipal value app not found: ' + err.message);
+            }
+          },
+
           // LLM context file – machine-readable API surface for AI tooling
           'GET /llm.txt'(req, res) {
             const llmTxt = path.join(__dirname, '..', 'llm.txt');
