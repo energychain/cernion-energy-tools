@@ -8,7 +8,11 @@ const { ServiceBroker } = require('moleculer');
 
 const GovernanceService = require('../services/governance.service');
 const VDMIAuditTrail = require('../src/vdmi-audit-trail');
-const { DecisionEvidenceAuditTrail } = require('../src/decision-evidence-audit-trail');
+const {
+  DecisionEvidenceAuditTrail,
+  KNOWN_SOURCE_TYPES,
+  normalizeSources,
+} = require('../src/decision-evidence-audit-trail');
 
 describe('Decision/Evidence Audit Trail (#294)', () => {
   let dbPath;
@@ -92,9 +96,9 @@ describe('Decision/Evidence Audit Trail (#294)', () => {
     await expect(
       trail.getTrail({ tenantId: 'tenant-a', entityId: 'matrix-1', rowId: 'row-a' })
     ).resolves.toHaveLength(1);
-    await expect(trail.getTrail({ tenantId: 'tenant-a', entityId: 'matrix-1' })).resolves.toHaveLength(
-      2
-    );
+    await expect(
+      trail.getTrail({ tenantId: 'tenant-a', entityId: 'matrix-1' })
+    ).resolves.toHaveLength(2);
     await expect(
       trail.getTrail({ tenantId: 'tenant-b', entityId: 'matrix-1', rowId: 'row-a' })
     ).resolves.toHaveLength(1);
@@ -236,5 +240,134 @@ describe('governance decision audit actions (#294)', () => {
       entryCount: 1,
       failures: [],
     });
+  });
+});
+
+// ── Provenance sources (Option B, #276) ───────────────────────────────────────
+
+describe('Provenance sources (#276 Option B)', () => {
+  let dbPath;
+  let db;
+  let trail;
+
+  beforeEach(() => {
+    dbPath = path.join(os.tmpdir(), `cernion-provenance-${Date.now()}-${Math.random()}`);
+    db = new PouchDB(dbPath, { auto_compaction: true });
+    trail = new DecisionEvidenceAuditTrail(db);
+  });
+
+  afterEach(async () => {
+    await db.close();
+    fs.rmSync(dbPath, { recursive: true, force: true });
+  });
+
+  it('KNOWN_SOURCE_TYPES exports the expected taxonomy', () => {
+    expect(KNOWN_SOURCE_TYPES).toContain('mastr');
+    expect(KNOWN_SOURCE_TYPES).toContain('edm');
+    expect(KNOWN_SOURCE_TYPES).toContain('object-store');
+    expect(KNOWN_SOURCE_TYPES).toContain('vdmi');
+    expect(KNOWN_SOURCE_TYPES).toContain('mcp-tool');
+    expect(KNOWN_SOURCE_TYPES).toContain('external-api');
+  });
+
+  it('normalizeSources filters out entries with missing sourceType or sourceId', () => {
+    const result = normalizeSources([
+      { sourceType: 'mastr', sourceId: 'SEE123' },
+      { sourceType: '', sourceId: 'X' }, // invalid sourceType → dropped
+      { sourceType: 'edm', sourceId: null }, // invalid sourceId → dropped
+      null, // null → dropped
+      'string', // wrong type → dropped
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].sourceType).toBe('mastr');
+    expect(result[0].sourceId).toBe('SEE123');
+  });
+
+  it('stores and returns provenance sources on an appended entry', async () => {
+    const entry = await trail.appendEntry({
+      tenantId: 'tenant-a',
+      entityId: 'asset-001',
+      decision: 'allowed',
+      sources: [
+        {
+          sourceType: 'mastr',
+          sourceId: 'SEE904837264953',
+          sourceVersion: '2026-06-25T10:00:00Z',
+          sourceTimestamp: '2026-06-25T10:00:00Z',
+          fieldNames: ['nettonennleistung', 'einheitBetriebsstatus'],
+        },
+        {
+          sourceType: 'vdmi',
+          sourceId: 'matrix-redispatch-001',
+          sourceVersion: null,
+          sourceTimestamp: null,
+        },
+      ],
+    });
+
+    expect(entry.sources).toHaveLength(2);
+    expect(entry.sources[0].sourceType).toBe('mastr');
+    expect(entry.sources[0].sourceId).toBe('SEE904837264953');
+    expect(entry.sources[0].fieldNames).toEqual(['nettonennleistung', 'einheitBetriebsstatus']);
+    expect(entry.sources[1].sourceType).toBe('vdmi');
+  });
+
+  it('verifies a chain containing sources successfully', async () => {
+    await trail.appendEntry({
+      tenantId: 'tenant-a',
+      entityId: 'asset-001',
+      decision: 'allowed',
+      sources: [{ sourceType: 'mastr', sourceId: 'SEE904837264953', sourceVersion: 'v1' }],
+    });
+    await trail.appendEntry({
+      tenantId: 'tenant-a',
+      entityId: 'asset-001',
+      decision: 're-validated',
+      sources: [{ sourceType: 'mastr', sourceId: 'SEE904837264953', sourceVersion: 'v2' }],
+    });
+
+    const result = await trail.verifyTrail({ tenantId: 'tenant-a', entityId: 'asset-001' });
+    expect(result.verified).toBe(true);
+    expect(result.entryCount).toBe(2);
+    expect(result.failures).toHaveLength(0);
+  });
+
+  it('sources are included in the hash — tampering sources breaks verification', async () => {
+    const entry = await trail.appendEntry({
+      tenantId: 'tenant-a',
+      entityId: 'asset-002',
+      decision: 'allowed',
+      sources: [{ sourceType: 'mastr', sourceId: 'SEE111', sourceVersion: 'v1' }],
+    });
+
+    // Manually tamper the sources in the stored doc
+    const storedDoc = await db.get(entry.id);
+    storedDoc.sources = [{ sourceType: 'mastr', sourceId: 'SEE999-FORGED', sourceVersion: 'v1' }];
+    await db.put(storedDoc);
+
+    const result = await trail.verifyTrail({ tenantId: 'tenant-a', entityId: 'asset-002' });
+    expect(result.verified).toBe(false);
+    expect(result.failures.length).toBeGreaterThan(0);
+    expect(result.failures[0].reason).toBe('entry_hash_mismatch');
+  });
+
+  it('entry without sources stores sources as empty array (no provenance recorded)', async () => {
+    const entry = await trail.appendEntry({
+      tenantId: 'tenant-a',
+      entityId: 'asset-003',
+      decision: 'allowed',
+      // no sources field
+    });
+
+    expect(entry.sources).toEqual([]);
+
+    const result = await trail.verifyTrail({ tenantId: 'tenant-a', entityId: 'asset-003' });
+    expect(result.verified).toBe(true);
+  });
+
+  it('supports custom sourceType strings beyond the known taxonomy', async () => {
+    const result = normalizeSources([{ sourceType: 'my-custom-erp', sourceId: 'ERP-12345' }]);
+    expect(result).toHaveLength(1);
+    expect(result[0].sourceType).toBe('my-custom-erp');
   });
 });

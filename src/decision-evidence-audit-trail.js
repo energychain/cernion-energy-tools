@@ -42,6 +42,59 @@ function stripPouchFields(doc) {
   return { id: _id, ...rest };
 }
 
+// ── Provenance (Option B, #276) ──────────────────────────────────────────────
+// A decision 'source' describes one data origin that was consulted when the
+// decision was made (e.g. a MaStR asset record, an EDM time-series, an
+// object-store object). Storing these with the entry enables future dependency
+// lookup: "which decisions used asset X and may be affected by its change?"
+//
+// sourceType: known taxonomy values — 'mastr' | 'edm' | 'object-store' |
+//   'vdmi' | 'mcp-tool' | 'external-api' | any custom string.
+// sourceId: the unique identifier within the source (MaStR Einheitennummer,
+//   EDM MeLo-ID, object-store "${ns}:${key}", VDMI matrix ID, etc.).
+// sourceVersion: the version/revision at the time of consultation
+//   (MaStR lastUpdatedAt, PouchDB _rev, snapshot hash, etc.) — null if
+//   the source has no versioning concept.
+// sourceTimestamp: ISO timestamp when the data was fetched/observed.
+// fieldNames: which fields of the source were actually used (optional;
+//   useful for fine-grained re-validation — only re-validate if a
+//   RELEVANT field changed).
+//
+// Note: sources[] is included in calculateHash (schema version 2). Entries
+// created before this version will have entryHash computed without sources
+// and will show as unverified by verifyTrail — this is honest behavior for
+// a schema-breaking provenance upgrade. See CHANGELOG [0.67.2].
+
+const KNOWN_SOURCE_TYPES = Object.freeze([
+  'mastr',
+  'edm',
+  'object-store',
+  'vdmi',
+  'mcp-tool',
+  'external-api',
+]);
+
+function normalizeSource(item) {
+  if (!isPlainObject(item)) return null;
+  const sourceType = normalizeString(item.sourceType);
+  const sourceId = normalizeString(item.sourceId);
+  if (!sourceType || !sourceId) return null;
+  return {
+    sourceType,
+    sourceId,
+    sourceVersion: normalizeString(item.sourceVersion),
+    sourceTimestamp: normalizeString(item.sourceTimestamp),
+    fieldNames: Array.isArray(item.fieldNames)
+      ? item.fieldNames.map((f) => String(f || '').trim()).filter(Boolean)
+      : null,
+  };
+}
+
+function normalizeSources(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map(normalizeSource).filter(Boolean);
+}
+
 class DecisionEvidenceAuditTrail {
   constructor(pouchdb) {
     this.db = pouchdb;
@@ -91,6 +144,9 @@ class DecisionEvidenceAuditTrail {
       followUpAction: normalizeString(input.followUpAction),
       policyDecision: stableCopy(normalizeObject(input.policyDecision)),
       metadata: stableCopy(normalizeObject(input.metadata)),
+      // Provenance sources (#276 Option B) — which data origins justified this
+      // decision. Empty array means "no provenance recorded" (not an error).
+      sources: normalizeSources(input.sources),
       timestamp,
       previousHash,
       createdAt: new Date().toISOString(),
@@ -193,6 +249,11 @@ class DecisionEvidenceAuditTrail {
           followUpAction: entry.followUpAction || null,
           policyDecision: entry.policyDecision || {},
           metadata: entry.metadata || {},
+          // Provenance sources included in hash (schema v2, #276): changing
+          // sources post-hoc is detectable. Pre-v2 entries stored without
+          // sources default to [] here, so they will fail verification —
+          // this is the correct, honest behavior (see CHANGELOG [0.67.2]).
+          sources: entry.sources || [],
           timestamp: entry.timestamp,
           previousHash: entry.previousHash || null,
         })
@@ -204,4 +265,6 @@ class DecisionEvidenceAuditTrail {
 module.exports = {
   DecisionEvidenceAuditTrail,
   stableStringify,
+  KNOWN_SOURCE_TYPES,
+  normalizeSources,
 };

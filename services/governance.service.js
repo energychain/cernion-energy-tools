@@ -2,7 +2,10 @@
 
 const PouchDB = require('pouchdb');
 const { evaluateGovernancePolicy } = require('../src/governance-policy-evaluator');
-const { DecisionEvidenceAuditTrail } = require('../src/decision-evidence-audit-trail');
+const {
+  DecisionEvidenceAuditTrail,
+  KNOWN_SOURCE_TYPES,
+} = require('../src/decision-evidence-audit-trail');
 const { deriveHitlResolverRoles } = require('../src/vdmi-hitl-role-derivation');
 const {
   buildRedispatchReferenceProcessInput,
@@ -147,10 +150,20 @@ module.exports = {
         followUpAction: { type: 'string', optional: true },
         policyDecision: { type: 'object', optional: true, default: {} },
         metadata: { type: 'object', optional: true, default: {} },
+        // Provenance sources (#276 Option B): data origins that justified this
+        // decision. Each entry: { sourceType, sourceId, sourceVersion?,
+        // sourceTimestamp?, fieldNames? }. Known sourceType values:
+        // 'mastr','edm','object-store','vdmi','mcp-tool','external-api'.
+        sources: { type: 'array', optional: true, default: [], items: 'object' },
         timestamp: { type: 'string', optional: true },
       },
       openapi: {
         summary: 'Append an explicit decision/evidence audit entry',
+        description:
+          'Appends a hash-chained decision/evidence audit entry. ' +
+          `sources[] carries provenance: which data origins (sourceType one of ${KNOWN_SOURCE_TYPES.join(', ')}) ` +
+          'justified the decision, at which version/timestamp. ' +
+          'Included in the hash chain — cannot be altered post-hoc without detection.',
         tags: ['Governance'],
       },
       async handler(ctx) {
