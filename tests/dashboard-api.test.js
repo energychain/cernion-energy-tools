@@ -7489,6 +7489,21 @@ describe('dashboard-api.service', () => {
         expect.arrayContaining(['public-context.mutate', 'personal-agent.execute'])
       );
     });
+
+    it('returns a structured not-found detail state for unknown sandbox cases', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerCaseDetailStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'unknown-case',
+      });
+
+      expect(result.found).toBe(false);
+      expect(result.status).toBe('case_detail_not_found');
+      expect(result.caseId).toBe('unknown-case');
+      expect(result.traceSummaries).toEqual([]);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['napReference', 'customerConsentStatus'])
+      );
+    });
   });
 
   describe('stadtwerkMauerMastrDataOverlayStatus', () => {

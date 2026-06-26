@@ -21079,7 +21079,6 @@ module.exports = {
       const hasCase =
         sandboxBoundaryAllowed &&
         (selectedTrace != null ||
-          e2eStatus.caseId === requiredCaseId ||
           requiredCaseId === 'smm-budibase-workbench');
 
       const evidence = this.buildStadtwerkMauerCaseEvidence(seed, e2eStatus);
