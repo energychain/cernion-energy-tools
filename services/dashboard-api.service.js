@@ -49,6 +49,7 @@ module.exports = {
       marketCommunicationEvidenceChainStatus: 5 * 60 * 1000, // 5 min
       e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
+      anschlusskapazitaetEvidenceQueueStatus: 5 * 60 * 1000, // 5 min
       legalClarificationOperatingModelStatus: 5 * 60 * 1000, // 5 min
       drReadinessEvidenceStatus: 5 * 60 * 1000, // 5 min
       specialGridUsageImpactMapStatus: 5 * 60 * 1000, // 5 min
@@ -1640,6 +1641,91 @@ module.exports = {
           this.settings.cacheTtlMs.controllabilityAssetHandoverStatus,
           async () => ({
             ...this.buildControllabilityAssetHandoverStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── anschlusskapazitaetEvidenceQueueStatus ──────────────────────────────
+    /**
+     * GET /api/dashboard/anschlusskapazitaet-evidence-queue
+     *
+     * Read-only dossier-safe evidence queue for connection capacity cases.
+     * It structures capacity, NVP, restriction, legal/fNAV and owner evidence
+     * without reserving capacity, approving/rejecting requests or creating work.
+     */
+    anschlusskapazitaetEvidenceQueueStatus: {
+      rest: 'GET /anschlusskapazitaet-evidence-queue',
+      params: {
+        connectionRequestId: { type: 'string', optional: true, min: 1 },
+        netzverknuepfungspunktHint: { type: 'string', optional: true, min: 1 },
+        capacityAssumptionKw: { type: 'number', optional: true, convert: true },
+        gridRestrictionHint: { type: 'string', optional: true, min: 1 },
+        futureDemandContext: { type: 'string', optional: true, min: 1 },
+        legalQuestionMarker: { type: 'string', optional: true, min: 1 },
+        fnavOptionMarker: { type: 'string', optional: true, min: 1 },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        dueDate: { type: 'string', optional: true, min: 1 },
+        nextGate: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Anschlusskapazitaet evidence queue - read-only dossier-safe status',
+        description:
+          'Builds a deterministic evidence queue for VNB connection-capacity cases. The endpoint is read-only and ' +
+          'does not reserve capacity, approve or reject grid-connection requests, decide fNAV/legal questions, ' +
+          'create HITL tasks, or mutate billing, tariff, MaKo, settlement or external connector state.',
+        parameters: [
+          { name: 'connectionRequestId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'netzverknuepfungspunktHint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'capacityAssumptionKw', in: 'query', required: false, schema: { type: 'number' } },
+          { name: 'gridRestrictionHint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'futureDemandContext', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'legalQuestionMarker', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'fnavOptionMarker', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dueDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextGate', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only connection-capacity evidence queue',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    evidenceQueue: { type: 'object' },
+                    evidenceItems: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    nextGate: { type: 'string' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `anschlusskapazitaet-evidence-queue:${params.connectionRequestId || 'no-request'}:${params.netzverknuepfungspunktHint || 'no-nvp'}:${params.capacityAssumptionKw ?? 'no-capacity'}:${params.gridRestrictionHint || 'no-restriction'}:${params.legalQuestionMarker || 'no-legal'}:${params.fnavOptionMarker || 'no-fnav'}:${params.owner || 'no-owner'}:${params.dueDate || 'no-due'}:${params.nextGate || 'no-gate'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.anschlusskapazitaetEvidenceQueueStatus,
+          async () => ({
+            ...this.buildAnschlusskapazitaetEvidenceQueueStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -8893,6 +8979,150 @@ module.exports = {
           nextReportingCycle: params.nextReportingCycle || null,
           nonExecutionReason: params.nonExecutionReason || null,
           blockingFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildAnschlusskapazitaetEvidenceQueueStatus(params = {}) {
+      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const gapMap = {
+        connection_request_id: 'add the connection request id for case traceability',
+        netzverknuepfungspunkt_hint: 'add the NVP hint for grid-connection location assessment',
+        capacity_assumption: 'add requested or assumed capacity for management review',
+        grid_restriction_hint: 'add grid restriction evidence or the explicit no-restriction basis',
+        future_demand_context: 'add derived future-demand context for capacity plausibility',
+        legal_question_marker: 'route the open legal question without automated legal qualification',
+        fnav_option_marker: 'state whether fNAV is an option, blocker or not applicable',
+        evidence_status: 'add current evidence status before the next gate',
+        owner_due_date: 'assign owner and due date for queue governance',
+        next_gate: 'name the next gate for management review readiness',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint) => {
+        missingEvidence.push({
+          missingDataPoint,
+          status: 'missing',
+          enablesDossierAddition: gapMap[missingDataPoint],
+        });
+      };
+
+      if (!isProvided(params.connectionRequestId)) addGap('connection_request_id');
+      if (!isProvided(params.netzverknuepfungspunktHint)) addGap('netzverknuepfungspunkt_hint');
+      if (!isProvided(params.capacityAssumptionKw)) addGap('capacity_assumption');
+      if (!isProvided(params.gridRestrictionHint)) addGap('grid_restriction_hint');
+      if (!isProvided(params.futureDemandContext)) addGap('future_demand_context');
+      if (!isProvided(params.legalQuestionMarker)) addGap('legal_question_marker');
+      if (!isProvided(params.fnavOptionMarker)) addGap('fnav_option_marker');
+      if (!isProvided(params.evidenceStatus)) addGap('evidence_status');
+      if (!isProvided(params.owner) || !isProvided(params.dueDate)) addGap('owner_due_date');
+      if (!isProvided(params.nextGate)) addGap('next_gate');
+
+      let status = 'ready_for_review';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'connection_request_id')) {
+        status = 'needs_connection_request';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'netzverknuepfungspunkt_hint')) {
+        status = 'needs_nvp_evidence';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'capacity_assumption')) {
+        status = 'needs_capacity_assumption';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'legal_question_marker' || gap.missingDataPoint === 'fnav_option_marker')) {
+        status = 'needs_legal_review';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'owner_due_date')) {
+        status = 'needs_owner_due_date';
+      } else if (missingEvidence.length > 0) {
+        status = 'missing_evidence';
+      }
+
+      const requiredCount = Object.keys(gapMap).length;
+      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'anschlusskapazitaet_evidence_queue',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus'],
+        referenced: [
+          'grid-connection.validate',
+          'grid-connection.capacityCheck',
+          'vdmi.dossier',
+          'evidence-registry.lookup',
+          'interface-placeholder.requestEvidence',
+        ],
+        notCalled: [
+          'grid-connection.reserveCapacity',
+          'grid-connection.approve',
+          'grid-connection.reject',
+          'fnav.decide',
+          'legal.interpret',
+          'billing.release',
+          'tariff.mutate',
+          'mako.dispatch',
+          'settlement.exportA96',
+          'settlement.prepareBilling',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const evidenceQueue = {
+        connectionRequestId: params.connectionRequestId || null,
+        netzverknuepfungspunktHint: params.netzverknuepfungspunktHint || null,
+        capacityAssumptionKw: params.capacityAssumptionKw ?? null,
+        gridRestrictionHint: params.gridRestrictionHint || null,
+        futureDemandContext: params.futureDemandContext || null,
+        legalQuestionMarker: params.legalQuestionMarker || null,
+        fnavOptionMarker: params.fnavOptionMarker || null,
+        evidenceStatus: params.evidenceStatus || null,
+        owner: params.owner || null,
+        dueDate: params.dueDate || null,
+        nextGate: params.nextGate || null,
+        capacityReserved: false,
+        connectionDecisionApplied: false,
+        legalConclusionAutomated: false,
+      };
+      const evidenceItems = Object.entries(evidenceQueue)
+        .filter(([key, value]) => !['capacityReserved', 'connectionDecisionApplied', 'legalConclusionAutomated'].includes(key) && isProvided(value))
+        .map(([key, value]) => ({ id: key, value, status: 'provided' }));
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Connection Request: ${evidenceQueue.connectionRequestId || 'missing'}`,
+        `NVP Hint: ${evidenceQueue.netzverknuepfungspunktHint || 'missing'}`,
+        `Capacity Assumption: ${evidenceQueue.capacityAssumptionKw ?? 'missing'}`,
+        `Grid Restriction: ${evidenceQueue.gridRestrictionHint || 'missing'}`,
+        `Legal/FNAV: ${evidenceQueue.legalQuestionMarker || 'missing'} / ${evidenceQueue.fnavOptionMarker || 'missing'}`,
+        `Owner/Due Date: ${evidenceQueue.owner || 'missing'} / ${evidenceQueue.dueDate || 'missing'}`,
+        `Next Gate: ${evidenceQueue.nextGate || 'missing'}`,
+      ];
+
+      return {
+        queueId: `aceq:${Buffer.from(`${params.connectionRequestId || ''}:${params.netzverknuepfungspunktHint || ''}:${params.owner || ''}`).toString('base64url').slice(0, 28)}`,
+        capabilityKey: 'anschlusskapazitaet_evidence_queue',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        evidenceQueue,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        nextGate: params.nextGate || null,
+        sourceActions,
+        validationFindings: missingEvidence.map((gap) => ({
+          code: `ACEQ_${String(gap.missingDataPoint).toUpperCase()}_MISSING`,
+          severity: ['connection_request_id', 'capacity_assumption', 'legal_question_marker', 'fnav_option_marker'].includes(gap.missingDataPoint)
+            ? 'high'
+            : 'medium',
+          message: gap.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          capabilityKey: 'anschlusskapazitaet_evidence_queue',
+          status,
+          readinessScore,
+          evidenceQueue,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          nextGate: params.nextGate || null,
+          sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,
         },
       };

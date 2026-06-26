@@ -2116,6 +2116,75 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── anschlusskapazitaetEvidenceQueueStatus ────────────────────────────
+
+  describe('anschlusskapazitaetEvidenceQueueStatus', () => {
+    it('reports connection-capacity evidence gaps without consequential actions', async () => {
+      const result = await broker.call('dashboard-api.anschlusskapazitaetEvidenceQueueStatus', {
+        connectionRequestId: 'ar-299',
+        netzverknuepfungspunktHint: 'nvp-mauer-west',
+        capacityAssumptionKw: 1250,
+        owner: 'netzplanung',
+      });
+
+      expect(result.status).toBe('needs_legal_review');
+      expect(result.evidenceQueue).toMatchObject({
+        connectionRequestId: 'ar-299',
+        netzverknuepfungspunktHint: 'nvp-mauer-west',
+        capacityAssumptionKw: 1250,
+        owner: 'netzplanung',
+        capacityReserved: false,
+        connectionDecisionApplied: false,
+      });
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'grid_restriction_hint',
+          'future_demand_context',
+          'legal_question_marker',
+          'fnav_option_marker',
+          'owner_due_date',
+          'next_gate',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('anschlusskapazitaet_evidence_queue');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'grid-connection.reserveCapacity',
+          'grid-connection.approve',
+          'grid-connection.reject',
+          'fnav.decide',
+          'hitl.create',
+          'settlement.prepareBilling',
+          'external.connector.call',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_review when all evidence queue facts are supplied', async () => {
+      const result = await broker.call('dashboard-api.anschlusskapazitaetEvidenceQueueStatus', {
+        connectionRequestId: 'ar-299',
+        netzverknuepfungspunktHint: 'nvp-mauer-west',
+        capacityAssumptionKw: 1250,
+        gridRestrictionHint: 'ms-ring-west-constraint-documented',
+        futureDemandContext: 'pv-and-storage-growth-2026',
+        legalQuestionMarker: 'fnav-check-required',
+        fnavOptionMarker: 'fnav-option-open',
+        evidenceStatus: 'complete',
+        owner: 'netzplanung',
+        dueDate: '2026-07-15',
+        nextGate: 'management-review',
+      });
+
+      expect(result.status).toBe('ready_for_review');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.readinessScore).toBe(1);
+      expect(result.nextGate).toBe('management-review');
+      expect(result.dossierEvidence.dossierFacts).toContain('Status: ready_for_review');
+      expect(result.sourceActions.notCalled).toContain('grid-connection.reserveCapacity');
+    });
+  });
+
   // -- legalClarificationOperatingModelStatus -----------------------------
 
   describe('legalClarificationOperatingModelStatus', () => {

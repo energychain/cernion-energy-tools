@@ -817,6 +817,24 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Anschlusskapazitaet evidence queue prompts to the read-only review view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle Anschlusskapazitaet Evidenzqueue fuer Netzverknuepfungspunkt NVP-West mit Kapazitaetsannahme, Netzrestriktion, fNAV Evidenz und Anschlussentscheidung Readiness.',
+    });
+
+    expect(result.capability).toBe('anschlusskapazitaet_evidence_queue');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'anschlusskapazitaet_evidence_queue'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.anschlusskapazitaetEvidenceQueueStatus');
+    expect(actionNames).not.toContain('grid-connection.reserveCapacity');
+    expect(actionNames).not.toContain('grid-connection.approve');
+    expect(actionNames).not.toContain('grid-connection.reject');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Stadtwerk Mauer sandbox runtime prompts to the read-only status view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Stadtwerk Mauer Sandbox Runtime fuer tenant reset cleanup readiness demo event ingestion status und reset delete proof.',

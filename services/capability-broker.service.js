@@ -1480,6 +1480,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasAnschlusskapazitaetEvidenceQueueSpecificSignal =
+    /(anschlusskapazitaet|anschlusskapazität|connection capacity|netzkapazitaet|netzkapazität|netzverknuepfungspunkt|netzverknüpfungspunkt|kapazitaetsannahme|kapazitätsannahme)/i.test(haystack) &&
+    /(evidenzqueue|evidence queue|fnav.?evidenz|fnav evidence|netzrestriktion|anschlussentscheidung readiness|management.?review)/i.test(haystack) &&
+    !/(reserve|reservieren|approve|genehmigen|freigeben|ablehnen|reject|verbindliche zusage|kapazitaetszusage|kapazitätszusage|§17|17 enwg|formales netzanschlussbegehren|grid-connection\.reserveCapacity|grid-connection\.approve|grid-connection\.reject|hitl\.create|settlement|billing|tariff|mako|external connector|personal-agent execute)/i.test(haystack);
+
+  if (hasAnschlusskapazitaetEvidenceQueueSpecificSignal || haystack.includes('anschlusskapazitaet_evidence_queue')) {
+    const anschlusskapazitaetCapability = findCapabilityByName('anschlusskapazitaet_evidence_queue');
+    if (anschlusskapazitaetCapability) {
+      return { capability: anschlusskapazitaetCapability, score: 123, usedFallback: false };
+    }
+  }
+
   if (
     vdmiAssetValidationSignals.some((signal) => haystack.includes(signal)) ||
     hasVdmiAssetValidationCombo

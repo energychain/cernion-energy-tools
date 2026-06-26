@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 92 static rules', () => {
+    it('loads all 93 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(92);
+      expect(rules.length).toBe(93);
     });
 
-    it('compiles all 92 static rules without error', () => {
+    it('compiles all 93 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(92);
+      expect(rules.length).toBe(93);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -472,6 +472,57 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Asset: asset-194');
       expect(formatted).toContain('Owner: assetmanagement');
       expect(formatted).toContain('Leading Gap: feedback_capability');
+    });
+
+    it('dashboard-api.anschlusskapazitaetEvidenceQueueStatus is dossier-safe and formats queue facts', () => {
+      const rule = getRule('dashboard-api.anschlusskapazitaetEvidenceQueueStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Anschlusskapazitaet Evidenzqueue anfrage=ar-299 nvp=nvp-west kapazitaet=1250 owner=netzplanung frist=2026-07-15 gate=management-review laden'
+        )
+      ).toEqual({
+        connectionRequestId: 'ar-299',
+        netzverknuepfungspunktHint: 'nvp-west',
+        capacityAssumptionKw: '1250',
+        owner: 'netzplanung',
+        dueDate: '2026-07-15',
+        nextGate: 'management-review',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'anschlusskapazitaet_evidence_queue',
+        status: 'missing_evidence',
+        readinessScore: 0.4,
+        evidenceQueue: {
+          connectionRequestId: 'ar-299',
+          netzverknuepfungspunktHint: 'nvp-west',
+          capacityAssumptionKw: 1250,
+          gridRestrictionHint: 'constraint-open',
+          fnavOptionMarker: 'fnav-open',
+          owner: 'netzplanung',
+        },
+        nextGate: 'management-review',
+        missingEvidence: [{ missingDataPoint: 'legal_question_marker' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'route the open legal question without automated legal qualification' },
+        ],
+        sourceActions: {
+          notCalled: ['grid-connection.reserveCapacity'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: missing_evidence'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: anschlusskapazitaet_evidence_queue');
+      expect(formatted).toContain('Status: missing_evidence');
+      expect(formatted).toContain('Connection Request: ar-299');
+      expect(formatted).toContain('NVP Hint: nvp-west');
+      expect(formatted).toContain('Capacity kW: 1250');
+      expect(formatted).toContain('Side-Effect Guard: grid-connection.reserveCapacity');
     });
 
     it('dashboard-api.regulatoryChangeReadinessStatus is dossier-safe and formats readiness facts', () => {

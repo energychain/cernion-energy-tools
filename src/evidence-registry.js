@@ -4727,6 +4727,81 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  anschlusskapazitaet_evidence_queue: {
+    sources: [
+      {
+        id: 'connection_request_id',
+        label: 'Connection request id',
+        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'grid-connection.validate'],
+        contextKeys: ['connectionRequestId'],
+        optional: false,
+      },
+      {
+        id: 'netzverknuepfungspunkt_hint',
+        label: 'Netzverknuepfungspunkt hint',
+        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'grid-connection.validate'],
+        contextKeys: ['netzverknuepfungspunktHint'],
+        optional: false,
+      },
+      {
+        id: 'capacity_assumption',
+        label: 'Capacity assumption',
+        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'grid-connection.capacityCheck'],
+        contextKeys: ['capacityAssumptionKw'],
+        optional: false,
+      },
+      {
+        id: 'grid_restriction_hint',
+        label: 'Grid restriction hint',
+        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'grid-connection.capacityCheck'],
+        contextKeys: ['gridRestrictionHint'],
+        optional: false,
+      },
+      {
+        id: 'future_demand_context',
+        label: 'Future-demand context',
+        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'vdmi.dossier'],
+        contextKeys: ['futureDemandContext'],
+        optional: false,
+      },
+      {
+        id: 'legal_question_marker',
+        label: 'Legal question marker',
+        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['legalQuestionMarker'],
+        optional: false,
+      },
+      {
+        id: 'fnav_option_marker',
+        label: 'fNAV option marker',
+        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'interface-placeholder.requestEvidence'],
+        contextKeys: ['fnavOptionMarker'],
+        optional: false,
+      },
+      {
+        id: 'evidence_status',
+        label: 'Evidence status',
+        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'evidence-registry.lookup'],
+        contextKeys: ['evidenceStatus'],
+        optional: false,
+      },
+      {
+        id: 'owner_due_date',
+        label: 'Owner and due date',
+        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'vdmi.dossier'],
+        contextKeys: ['owner', 'dueDate'],
+        optional: false,
+      },
+      {
+        id: 'next_gate',
+        label: 'Next management gate',
+        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'vdmi.dossier'],
+        contextKeys: ['nextGate'],
+        optional: false,
+      },
+    ],
+  },
+
   'forecast-flex': {
     sources: [
       {

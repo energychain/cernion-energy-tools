@@ -5702,6 +5702,123 @@
     "sourceIssue": 265
   },
   {
+    "id": "anschlusskapazitaet_evidence_queue",
+    "description": "Read-only Anschlusskapazitaet evidence queue",
+    "routeLabel": "anschlusskapazitaet_evidence_queue",
+    "capability": "anschlusskapazitaet_evidence_queue",
+    "action": "dashboard-api.anschlusskapazitaetEvidenceQueueStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "grid-connection.reserveCapacity",
+        "grid-connection.approve",
+        "grid-connection.reject",
+        "fnav.decide",
+        "legal.interpret",
+        "billing.release",
+        "settlement.prepareBilling",
+        "settlement.exportA96",
+        "tariff.mutate",
+        "mako.dispatch",
+        "hitl.create",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "anschlusskapazitaet",
+      "anschlusskapazität",
+      "anschlusskapazitaet evidenzqueue",
+      "netzverknuepfungspunkt",
+      "netzverknüpfungspunkt",
+      "kapazitaetsannahme",
+      "netzrestriktion",
+      "fnav evidence",
+      "fnav evidenz",
+      "anschlussentscheidung readiness",
+      "connection capacity evidence",
+      "anschlusskapazitaet_evidence_queue"
+    ],
+    "paramTemplate": {
+      "connectionRequestId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:connectionRequestId|connection-request|anfrage|anschlussbegehren)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "netzverknuepfungspunktHint": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:nvp|netzverknuepfungspunkt|netzverknüpfungspunkt)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "capacityAssumptionKw": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:capacityAssumptionKw|capacity|kapazitaet|kapazität)[:= ]+([0-9]+(?:\\.[0-9]+)?)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner|verantwortlich)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "dueDate": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:dueDate|due-date|frist)[:= ]+([0-9]{4}-[0-9]{2}-[0-9]{2})",
+          "group": 1
+        }
+      },
+      "nextGate": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:nextGate|next-gate|gate)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 120 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Status", "maxLen": 120 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness Score", "maxLen": 40 },
+        { "paths": ["evidenceQueue.connectionRequestId", "dossierEvidence.evidenceQueue.connectionRequestId"], "label": "Connection Request", "maxLen": 120 },
+        { "paths": ["evidenceQueue.netzverknuepfungspunktHint", "dossierEvidence.evidenceQueue.netzverknuepfungspunktHint"], "label": "NVP Hint", "maxLen": 160 },
+        { "paths": ["evidenceQueue.capacityAssumptionKw", "dossierEvidence.evidenceQueue.capacityAssumptionKw"], "label": "Capacity kW", "maxLen": 80 },
+        { "paths": ["evidenceQueue.gridRestrictionHint", "dossierEvidence.evidenceQueue.gridRestrictionHint"], "label": "Grid Restriction", "maxLen": 160 },
+        { "paths": ["evidenceQueue.fnavOptionMarker", "dossierEvidence.evidenceQueue.fnavOptionMarker"], "label": "fNAV Marker", "maxLen": 120 },
+        { "paths": ["evidenceQueue.owner", "dossierEvidence.evidenceQueue.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["nextGate", "dossierEvidence.nextGate"], "label": "Next Gate", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "First Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Positive Follow-up", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 299
+  },
+  {
     "id": "legal_clarification_operating_model",
     "description": "Read-only legal clarification operating-model evidence view",
     "routeLabel": "legal_clarification_operating_model",
