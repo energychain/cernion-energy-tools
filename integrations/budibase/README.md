@@ -62,6 +62,30 @@ The script is idempotent for the local spike:
 4. upserts the REST queries with explicit schemas,
 5. upserts the generated screen with query-backed table blocks.
 
+## Dev Loop Apply Gate
+
+For Budibase workbench issues, repo changes alone are not enough for a visible demo update.
+After a Budibase-related implementation has been committed, pushed, deployed to the Cernion
+DevServer when needed, and verified by focused tests, the DevOps issue loop should run a
+controlled Budibase apply/smoke step against the development Budibase instance.
+
+Use this only for generated Budibase artifacts in `integrations/budibase/`; do not hand-edit the
+Budibase app as the source of truth.
+
+Recommended development gate:
+
+```bash
+BUDIBASE_BASE_URL=http://localhost:10000 \
+BUDIBASE_COOKIE_FILE=/mnt/backup/openclaw/.openclaw/workspace/devops/data/budibase-local.cookies \
+CERNION_BASE_URL=http://172.17.0.1:3900 \
+node integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js
+```
+
+If the cookie is expired or the Budibase container is unavailable, stop and report the Budibase
+apply as a visible-demo blocker instead of silently closing the issue as fully visible. The issue
+may still close as a code/API slice only when the closeout explicitly says that no live Budibase
+apply was completed.
+
 ## Reverse-Engineering Notes
 
 Two Budibase details are important for generated query-backed screens:
