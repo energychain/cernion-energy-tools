@@ -1471,6 +1471,8 @@ module.exports = {
             'dashboard-api.stadtwerkMauerCaseDetailStatus',
           'GET /dashboard/stadtwerk-mauer-workbench-hub':
             'dashboard-api.stadtwerkMauerWorkbenchHubStatus',
+          'GET /dashboard/stadtwerk-mauer-administrator-inventory':
+            'dashboard-api.stadtwerkMauerAdministratorInventoryStatus',
           'GET /dashboard/fnav-fast-track-contract-gate':
             'dashboard-api.fnavFastTrackContractGateStatus',
           'GET /dashboard/cross-channel-vnb-signal-queue':

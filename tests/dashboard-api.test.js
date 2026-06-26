@@ -7699,6 +7699,131 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- stadtwerkMauerAdministratorInventoryStatus ------------------------
+  describe('stadtwerkMauerAdministratorInventoryStatus', () => {
+    it('returns a read-only Administrator inventory with scalar rows and data-class separation', async () => {
+      handlers.stadtwerkMauerE2eProcessDemoStatus = () => ({
+        capabilityKey: 'stadtwerk_mauer_e2e_process_demo',
+        safety: 'sandbox_only_non_consequential_e2e_demo_with_read_only_status',
+        tenantId: 'stadtwerk-mauer',
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: true,
+        status: 'e2e_demo_trace_needs_evidence',
+        demoPath: 'pv_registration_electrician_missing_nap',
+        caseId: 'smm-budibase-workbench',
+        traceCount: 1,
+        artifactCount: 3,
+        recentTraces: [{ traceId: 'smm-e2e-trace:test', status: 'demo_trace_needs_evidence' }],
+        evidenceQuality: 'incomplete_demo_evidence',
+        missingEvidence: [{ missingDataPoint: 'napReference' }],
+        positiveFollowUps: [{ missingDataPoint: 'napReference' }],
+        sourceActions: {
+          inspected: ['stadtwerk-mauer-e2e-process-demo.getStatus'],
+          referenced: ['object-store.query'],
+          notCalled: ['mako.dispatch', 'external.connector.call', 'personal-agent.execute'],
+        },
+      });
+
+      const result = await broker.call('dashboard-api.stadtwerkMauerAdministratorInventoryStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+      });
+
+      expect(result.capabilityKey).toBe('stadtwerk_mauer_administrator_inventory');
+      expect(result.safety).toBe('read_only');
+      expect(result.found).toBe(true);
+      expect(result.status).toBe('administrator_inventory_ready');
+      expect(result.categories.map((category) => category.categoryKey)).toEqual(
+        expect.arrayContaining([
+          'public_context_layer',
+          'synthetic_tenant_seed',
+          'sandbox_runtime_artifact',
+          'generated_workbench_item',
+          'read_verify_runbook_surface',
+        ])
+      );
+      expect(result.summary.publicContextReadOnly).toBe(true);
+      expect(result.summary.syntheticDataClass).toBe('syntheticTenantSeed');
+      expect(result.summary.syntheticIdDisclaimer).toContain('synthetic demo identifiers');
+      expect(result.inventoryRows.map((row) => row.categoryKey)).toEqual(
+        expect.arrayContaining(['public_context_layer', 'synthetic_tenant_seed'])
+      );
+      expect(result.inventoryRows.find((row) => row.itemKey === 'blueprint-seed')).toMatchObject({
+        dataClass: 'syntheticTenantSeed',
+        riskClass: 'demo_invented_identifiers',
+      });
+      expect(result.inventoryRows.find((row) => row.itemKey === 'mastr-osm-baseline')).toMatchObject({
+        dataClass: 'publicContextLayer',
+        riskClass: 'read_only_baseline',
+      });
+      expectScalarTableRows(result.inventoryRows);
+      expect(result.capabilityBroker.exposed).toBe(false);
+      expect(result.hydrationRegistry.exposed).toBe(false);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'budibase.table.write',
+          'budibase.system_of_record',
+          'tenant.provision',
+          'tenant.seed.import',
+          'reset.execute',
+          'delete.execute',
+          'public-context.mutate',
+          'sandbox-runtime.mutate',
+          'operations-runbook.execute',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'device-control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns a safe empty Administrator inventory outside the sandbox tenant', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerAdministratorInventoryStatus', {
+        tenantId: 'other-tenant',
+        caseId: 'smm-budibase-workbench',
+      });
+
+      expect(result.found).toBe(false);
+      expect(result.status).toBe('administrator_inventory_blocked_outside_sandbox_tenant');
+      expect(result.categories).toEqual([]);
+      expect(result.inventoryRows).toEqual([]);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
+        'stadtwerk_mauer_tenant_scope'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['budibase.table.write', 'tenant.provision', 'personal-agent.execute'])
+      );
+    });
+
+    it('binds the Budibase manifest to Administrator inventory scalar rows', () => {
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.map((query) => query.name)).toEqual(
+        expect.arrayContaining([
+          'getStadtwerkMauerAdministratorInventory',
+          'getStadtwerkMauerAdministratorInventoryRows',
+        ])
+      );
+      expect(
+        STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+          (query) => query.name === 'getStadtwerkMauerAdministratorInventoryRows'
+        )
+      ).toMatchObject({
+        method: 'GET',
+        path: '/api/dashboard/stadtwerk-mauer-administrator-inventory',
+        transformer: 'return data.inventoryRows || []',
+      });
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.sections.map((section) => section.id)).toContain(
+        'administrator_inventory'
+      );
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
+        'Administrator Inventory binds to scalar rows'
+      );
+    });
+  });
+
   describe('stadtwerkMauerMastrDataOverlayStatus', () => {
     it('reports the blended MaStR overlay without mutating source records', async () => {
       const result = await broker.call('dashboard-api.stadtwerkMauerMastrDataOverlayStatus', {

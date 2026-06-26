@@ -17014,6 +17014,47 @@
         ]
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-administrator-inventory": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerAdministratorInventoryStatus",
+        "summary": "Stadtwerk Mauer Administrator inventory -- read-only catalog projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer Administrator inventory projection"
+          }
+        },
+        "description": "Returns a deterministic Budibase-renderable Administrator inventory for the Stadtwerk Mauer Workbench. The endpoint separates public context, synthetic seed, sandbox runtime, generated Workbench items and runbook read/verify surfaces without provisioning, reset, Budibase writes, MaKo, billing, settlement, device-control or external actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeRuntime",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/fnav-fast-track-contract-gate": {
       "get": {
         "operationId": "dashboard-api_fnavFastTrackContractGateStatus",
@@ -59459,6 +59500,47 @@
             "required": false,
             "schema": {
               "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-administrator-inventory": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerAdministratorInventoryStatus",
+        "summary": "Stadtwerk Mauer Administrator inventory -- read-only catalog projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer Administrator inventory projection"
+          }
+        },
+        "description": "Returns a deterministic Budibase-renderable Administrator inventory for the Stadtwerk Mauer Workbench. The endpoint separates public context, synthetic seed, sandbox runtime, generated Workbench items and runbook read/verify surfaces without provisioning, reset, Budibase writes, MaKo, billing, settlement, device-control or external actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeRuntime",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
             }
           }
         ]

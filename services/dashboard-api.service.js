@@ -113,6 +113,7 @@ module.exports = {
       stadtwerkMauerMastrDataOverlayStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerCaseDetailStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerWorkbenchHubStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerAdministratorInventoryStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
       assetValuationTransformationGateStatus: 5 * 60 * 1000, // 5 min
@@ -5718,6 +5719,117 @@ module.exports = {
                 e2eStatus,
                 mastrStatus,
                 caseDetailStatus,
+              }),
+              timestamp: new Date().toISOString(),
+              _errors: errors,
+            };
+          }
+        );
+      },
+    },
+
+    // -- stadtwerkMauerAdministratorInventoryStatus ----------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-administrator-inventory
+     *
+     * Read-only Budibase-renderable Administrator inventory/catalog for the
+     * Stadtwerk Mauer Workbench. This slice is Workbench/dashboard-only and
+     * deliberately does not add broker or dossier hydration exposure.
+     */
+    stadtwerkMauerAdministratorInventoryStatus: {
+      rest: 'GET /stadtwerk-mauer-administrator-inventory',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+        includeRuntime: { type: 'boolean', optional: true, convert: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer Administrator inventory -- read-only catalog projection',
+        description:
+          'Returns a deterministic Budibase-renderable Administrator inventory for the Stadtwerk ' +
+          'Mauer Workbench. The endpoint separates public context, synthetic seed, sandbox runtime, ' +
+          'generated Workbench items and runbook read/verify surfaces without provisioning, reset, ' +
+          'Budibase writes, MaKo, billing, settlement, device-control or external actions.',
+        parameters: [
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'includeRuntime', in: 'query', required: false, schema: { type: 'boolean' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Stadtwerk Mauer Administrator inventory projection',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const caseId = params.caseId || 'smm-budibase-workbench';
+        const includeRuntime = params.includeRuntime !== false;
+        const errors = [];
+        const cacheKey = `stadtwerk-mauer-administrator-inventory:${tenantId}:${caseId}:${includeRuntime}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.stadtwerkMauerAdministratorInventoryStatus,
+          async () => {
+            if (tenantId !== 'stadtwerk-mauer') {
+              return {
+                ...this.buildStadtwerkMauerAdministratorInventoryStatus({
+                  tenantId,
+                  caseId,
+                  includeRuntime,
+                  e2eStatus: null,
+                  mastrStatus: null,
+                  caseDetailStatus: null,
+                  hubStatus: null,
+                }),
+                timestamp: new Date().toISOString(),
+                _errors: errors,
+              };
+            }
+
+            const e2eStatus = includeRuntime
+              ? await this.safeCall(
+                  ctx,
+                  'stadtwerk-mauer-e2e-process-demo.getStatus',
+                  { tenantId, caseId, limit: 10 },
+                  this.buildMissingStadtwerkMauerE2eProcessDemoStatus(tenantId, caseId),
+                  errors,
+                  'stadtwerk-mauer-e2e-process-demo.getStatus'
+                )
+              : this.buildMissingStadtwerkMauerE2eProcessDemoStatus(tenantId, caseId);
+            const mastrStatus = await this.safeCall(
+              ctx,
+              'stadtwerk-mauer-mastr-data-overlay.getStatus',
+              { tenantId, limit: 10 },
+              this.buildMissingStadtwerkMauerMastrDataOverlayStatus(tenantId, {}),
+              errors,
+              'stadtwerk-mauer-mastr-data-overlay.getStatus'
+            );
+            const caseDetailStatus = this.buildStadtwerkMauerCaseDetailStatus({
+              tenantId,
+              caseId,
+              e2eStatus,
+            });
+            const hubStatus = this.buildStadtwerkMauerWorkbenchHubStatus({
+              tenantId,
+              caseId,
+              e2eStatus,
+              mastrStatus,
+              caseDetailStatus,
+            });
+
+            return {
+              ...this.buildStadtwerkMauerAdministratorInventoryStatus({
+                tenantId,
+                caseId,
+                includeRuntime,
+                e2eStatus,
+                mastrStatus,
+                caseDetailStatus,
+                hubStatus,
               }),
               timestamp: new Date().toISOString(),
               _errors: errors,
@@ -21785,6 +21897,340 @@ module.exports = {
         safetyLabel: this.humanizeWorkbenchLabel(target.safety || 'read_only'),
         targetType: target.routeTarget?.type || null,
       }));
+    },
+
+    buildStadtwerkMauerAdministratorInventoryStatus({
+      tenantId = 'stadtwerk-mauer',
+      caseId = 'smm-budibase-workbench',
+      includeRuntime = true,
+      e2eStatus = null,
+      mastrStatus = null,
+      caseDetailStatus = null,
+      hubStatus = null,
+    } = {}) {
+      const seed = stadtwerkMauerPvMissingNap;
+      const sandboxBoundaryAllowed = tenantId === seed.demoTenant.tenantId;
+      const runtimeEvidence = includeRuntime ? e2eStatus || {} : {};
+      const missingEvidence = sandboxBoundaryAllowed
+        ? [
+            ...(caseDetailStatus?.missingEvidence || []),
+            ...(hubStatus?.missingEvidence || []),
+          ]
+        : [
+            {
+              missingDataPoint: 'stadtwerk_mauer_tenant_scope',
+              enablesDossierAddition:
+                'select the synthetic tenant stadtwerk-mauer before rendering Administrator inventory',
+              dataClass: 'syntheticTenantSeed',
+              state: 'clarification',
+            },
+          ];
+      const noCallGuards = Array.from(
+        new Set([
+          ...(seed.forbiddenActions || []),
+          ...(e2eStatus?.sourceActions?.notCalled || []),
+          ...(mastrStatus?.sourceActions?.notCalled || []),
+          ...(caseDetailStatus?.sourceActions?.notCalled || []),
+          'budibase.table.write',
+          'budibase.api.call',
+          'budibase.system_of_record',
+          'tenant.provision',
+          'tenant.seed.import',
+          'setup.execute',
+          'reset.execute',
+          'delete.execute',
+          'public-context.mutate',
+          'sandbox-runtime.mutate',
+          'production.mutate',
+          'rundeck.job.execute',
+          'operations-runbook.execute',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'device-control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+      const categories = sandboxBoundaryAllowed
+        ? this.buildStadtwerkMauerAdministratorInventoryCategories({
+            seed,
+            caseId,
+            e2eStatus: runtimeEvidence,
+            mastrStatus,
+            caseDetailStatus,
+            hubStatus,
+          })
+        : [];
+      const inventoryRows = this.buildStadtwerkMauerAdministratorInventoryRows(categories);
+      const status = sandboxBoundaryAllowed
+        ? 'administrator_inventory_ready'
+        : 'administrator_inventory_blocked_outside_sandbox_tenant';
+      const categoryCounts = categories.reduce((acc, category) => {
+        acc[category.categoryKey] = category.count;
+        return acc;
+      }, {});
+      const positiveFollowUps = [
+        ...missingEvidence.map((item) => ({
+          ...item,
+          category: 'stadtwerk_mauer_administrator_inventory',
+        })),
+        {
+          missingDataPoint: 'selected_case_actions',
+          enablesDossierAddition:
+            'add curated selected-case action metadata once #305 is cut and implemented',
+          category: 'stadtwerk_mauer_administrator_inventory',
+          state: 'planned',
+        },
+        {
+          missingDataPoint: 'role_workbench_catalog',
+          enablesDossierAddition:
+            'add stable role Workbench route metadata once #308 is cut and implemented',
+          category: 'stadtwerk_mauer_administrator_inventory',
+          state: 'planned',
+        },
+      ];
+      const dossierFacts = [
+        `Administrator Inventory Status: ${status}`,
+        `Tenant: ${tenantId}`,
+        `Categories: ${categories.length}`,
+        `Inventory rows: ${inventoryRows.length}`,
+        `Runtime included: ${includeRuntime === true}`,
+      ];
+
+      return {
+        capabilityKey: 'stadtwerk_mauer_administrator_inventory',
+        safety: 'read_only',
+        found: sandboxBoundaryAllowed,
+        status,
+        tenantId,
+        requiredTenantId: seed.demoTenant.tenantId,
+        sandboxBoundaryAllowed,
+        caseId,
+        inventoryId: 'stadtwerk-mauer-administrator-inventory',
+        title: 'Stadtwerk Mauer Administrator Workbench',
+        summary: {
+          categoryCount: categories.length,
+          itemCount: inventoryRows.length,
+          categoryCounts,
+          publicContextReadOnly: true,
+          syntheticDataClass: 'syntheticTenantSeed',
+          runtimeIncluded: includeRuntime === true,
+          hubStatus: hubStatus?.status || null,
+          caseDetailStatus: caseDetailStatus?.status || null,
+          e2eDemoStatus: e2eStatus?.status || null,
+          mastrOverlayStatus: mastrStatus?.status || null,
+          syntheticIdDisclaimer:
+            'Stadtwerk Mauer app, case, MaLo, MeLo, meter, consent and device-control values are synthetic demo identifiers unless explicitly marked as public context.',
+        },
+        categories,
+        inventoryRows,
+        missingEvidence,
+        positiveFollowUps,
+        nextGates: [
+          {
+            id: 'selected_case_actions_cut_305',
+            label: 'Cut selected-case action buttons as curated read/verify metadata (#305)',
+            execution: 'planned_read_verify_model',
+          },
+          {
+            id: 'role_catalog_cut_308',
+            label: 'Cut role Workbench catalog and open-target contract (#308)',
+            execution: 'planned_read_model',
+          },
+        ],
+        capabilityBroker: {
+          exposed: false,
+          reason:
+            'Administrator inventory is a Workbench/dashboard catalog, not a broad Personal-Agent capability route.',
+        },
+        hydrationRegistry: {
+          exposed: false,
+          reason:
+            'No dossier hydration rule is added for this Workbench-only Administrator inventory slice.',
+        },
+        sourceActions: {
+          inspected: ['dashboard-api.stadtwerkMauerAdministratorInventoryStatus'],
+          referenced: [
+            'dashboard-api.stadtwerkMauerWorkbenchHubStatus',
+            'dashboard-api.stadtwerkMauerCaseDetailStatus',
+            'stadtwerk-mauer-e2e-process-demo.getStatus',
+            'stadtwerk-mauer-mastr-data-overlay.getStatus',
+            'operations-runbook.verifyVdmiBlueprintPackSeed',
+            'integrations/budibase/manifests/stadtwerk-mauer-workbench.json',
+          ],
+          notCalled: noCallGuards,
+        },
+        noCallGuards,
+        dossierFacts,
+        dossierEvidence: {
+          status,
+          tenantId,
+          inventoryId: 'stadtwerk-mauer-administrator-inventory',
+          categories: categories.map((category) => ({
+            categoryKey: category.categoryKey,
+            count: category.count,
+            dataClass: category.dataClass,
+            riskClass: category.riskClass,
+          })),
+          missingEvidence,
+          positiveFollowUps,
+          noCallGuards,
+          dossierFacts,
+        },
+        meta: {
+          inspected: [
+            'dashboard-api.stadtwerkMauerAdministratorInventoryStatus',
+            'dashboard-api.stadtwerkMauerWorkbenchHubStatus',
+            'dashboard-api.stadtwerkMauerCaseDetailStatus',
+            'budibase-stadtwerk-mauer-workbench-manifest',
+          ],
+        },
+      };
+    },
+
+    buildStadtwerkMauerAdministratorInventoryCategories({
+      seed,
+      caseId,
+      e2eStatus = {},
+      mastrStatus = {},
+      caseDetailStatus = {},
+      hubStatus = {},
+    }) {
+      return [
+        {
+          categoryKey: 'public_context_layer',
+          title: 'Public Context Layer',
+          dataClass: 'publicContextLayer',
+          riskClass: 'read_only_baseline',
+          source: 'stadtwerk-mauer-mastr-data-overlay.getStatus',
+          count: mastrStatus?.assetCount || 0,
+          readiness: mastrStatus?.status || 'blended_overlay_status_unavailable',
+          routeTarget: '/api/dashboard/stadtwerk-mauer-mastr-data-overlay?tenantId=stadtwerk-mauer',
+          items: [
+            {
+              itemKey: 'mastr-osm-baseline',
+              title: 'MaStR/OSM baseline',
+              status: mastrStatus?.status || 'unavailable',
+              provenance: 'public_context_read_only',
+              detail:
+                `${mastrStatus?.assetCount || 0} public-context asset rows, original MaStR facts preserved`,
+            },
+          ],
+        },
+        {
+          categoryKey: 'synthetic_tenant_seed',
+          title: 'Synthetic Tenant Seed',
+          dataClass: 'syntheticTenantSeed',
+          riskClass: 'demo_invented_identifiers',
+          source: 'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json',
+          count: (seed.roles || []).length + (seed.evidenceRequirements || []).length + 1,
+          readiness: 'seed_available',
+          routeTarget: '/api/dashboard/stadtwerk-mauer-case-detail?tenantId=stadtwerk-mauer',
+          items: [
+            {
+              itemKey: 'blueprint-seed',
+              title: seed.id,
+              status: seed.safetyClassification || 'read_only_blueprint_seed',
+              provenance: 'synthetic_demo_tenant',
+              detail: `${seed.roles?.length || 0} roles, ${seed.evidenceRequirements?.length || 0} evidence requirements`,
+            },
+            {
+              itemKey: 'selected-case',
+              title: caseId,
+              status: caseDetailStatus?.status || 'case_detail_unknown',
+              provenance: 'synthetic_demo_case',
+              detail: caseDetailStatus?.caseSummary?.syntheticIdDisclaimer,
+            },
+          ],
+        },
+        {
+          categoryKey: 'sandbox_runtime_artifact',
+          title: 'Sandbox Runtime Artifact',
+          dataClass: 'sandboxRuntimeArtifact',
+          riskClass: 'resettable_demo_output',
+          source: 'stadtwerk-mauer-e2e-process-demo.getStatus',
+          count: (e2eStatus?.traceCount || 0) + (e2eStatus?.artifactCount || 0),
+          readiness: e2eStatus?.status || 'e2e_demo_status_unknown',
+          routeTarget: '/api/dashboard/stadtwerk-mauer-e2e-process-demo',
+          items: [
+            {
+              itemKey: 'e2e-traces',
+              title: 'E2E process traces',
+              status: e2eStatus?.status || 'unavailable',
+              provenance: 'resettable_sandbox_runtime',
+              detail: `${e2eStatus?.traceCount || 0} traces, ${e2eStatus?.artifactCount || 0} artifacts`,
+            },
+          ],
+        },
+        {
+          categoryKey: 'generated_workbench_item',
+          title: 'Generated Workbench Item',
+          dataClass: 'generatedWorkbenchItem',
+          riskClass: 'render_shell_navigation',
+          source: 'dashboard-api.stadtwerkMauerWorkbenchHubStatus',
+          count: hubStatus?.targets?.length || 0,
+          readiness: hubStatus?.status || 'workbench_hub_status_unknown',
+          routeTarget: '/api/dashboard/stadtwerk-mauer-workbench-hub?tenantId=stadtwerk-mauer',
+          items: (hubStatus?.targets || []).map((target) => ({
+            itemKey: target.targetId,
+            title: target.label,
+            status: target.status,
+            provenance: target.routeTarget?.type || 'workbench_target',
+            detail: target.readinessSummary,
+          })),
+        },
+        {
+          categoryKey: 'read_verify_runbook_surface',
+          title: 'Read/Verify Runbook Surface',
+          dataClass: 'sandboxRuntimeArtifact',
+          riskClass: 'curated_read_verify_only',
+          source: 'operations-runbook.service',
+          count: 2,
+          readiness: 'read_verify_available',
+          routeTarget: '/api/operations-runbook/vdmi-blueprint-packs/verify',
+          items: [
+            {
+              itemKey: 'vdmi-blueprint-pack-verify',
+              title: 'Blueprint Pack verify',
+              status: 'available_read_only',
+              provenance: 'operations_runbook_read',
+              detail: 'GET verify surface; does not execute Rundeck or mutate tenant state',
+            },
+            {
+              itemKey: 'stadtwerk-mauer-e2e-smoke',
+              title: 'Stadtwerk Mauer E2E smoke',
+              status: 'scope_protected_curated_command',
+              provenance: 'operations_runbook_curated',
+              detail: 'POST smoke remains Cernion-scoped and is not an arbitrary Budibase write',
+            },
+          ],
+        },
+      ];
+    },
+
+    buildStadtwerkMauerAdministratorInventoryRows(categories = []) {
+      const rows = [];
+      for (const category of categories) {
+        for (const item of category.items || []) {
+          rows.push({
+            categoryKey: category.categoryKey,
+            categoryLabel: category.title,
+            itemKey: item.itemKey,
+            label: item.title,
+            status: item.status || category.readiness || 'unknown',
+            dataClass: category.dataClass,
+            riskClass: category.riskClass,
+            source: category.source,
+            provenance: item.provenance || category.source,
+            routeTarget: category.routeTarget || null,
+            detailLabel: item.detail || null,
+          });
+        }
+      }
+      return rows;
     },
 
     humanizeWorkbenchLabel(value) {

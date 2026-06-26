@@ -20,6 +20,7 @@ The first generated workbench is:
 The workbench renders:
 
 - Workbench Hub target readiness from `GET /api/dashboard/stadtwerk-mauer-workbench-hub`
+- Administrator inventory rows from `GET /api/dashboard/stadtwerk-mauer-administrator-inventory`
 - MaStR overlay status from `GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay`
 - E2E demo status from `GET /api/dashboard/stadtwerk-mauer-e2e-process-demo`
 - selectable case detail from `GET /api/dashboard/stadtwerk-mauer-case-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
@@ -33,6 +34,9 @@ The Hub query is also read-only: it lists generated launcher targets and readine
 Administrator Workbench (#307), selected case detail (#304), selected-case actions (#305),
 Zielnetzplanung, Vertrieb/Key Account and role-workbench catalog (#308). It is a navigation and
 readiness model only; role-specific workbenches and Administrator inventory stay separate slices.
+The Administrator inventory query is read-only and returns scalar category/item rows that separate
+public context, synthetic tenant seed, sandbox runtime artifacts, generated workbench targets and
+read/verify runbook surfaces for Budibase tables.
 
 ## Apply Locally
 
