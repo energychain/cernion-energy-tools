@@ -15,8 +15,21 @@ Initial jobs:
 - `cernion-blocked-work.yaml`
 - `cernion-revalidation-execute-dev.yaml`
 - `cernion-stadtwerk-mauer-e2e-smoke.yaml`
+- `vdmi-blueprint-pack-verify` via `GET /api/operations-runbook/vdmi-blueprint-packs/verify`
 
 The examples call only `/api/operations-runbook/**`. Do not encode Cernion domain rules in Rundeck jobs.
+
+## Read-Only Blueprint Pack Verify
+
+Rundeck and Budibase can inspect the Stadtwerk Mauer Blueprint Pack seed without loading or mutating it through:
+
+```text
+GET /api/operations-runbook/vdmi-blueprint-packs/verify?tenantId=stadtwerk-mauer&seedId=stadtwerk-mauer-pv-missing-nap-v1
+```
+
+The endpoint requires the read-only `rundeck-read` scope and returns the normal runbook envelope with `summary.markdown`, machine-readable `data`, counts, warnings and next-action hints. The payload separates the public context layer from the synthetic tenant seed and resettable sandbox runtime artifacts. It also exposes required evidence, role relations, Workbench projection hints, forbidden-action guards and no-call guards for Blueprint-Pack loading, provisioning, seed import, reset, Rundeck execution, Budibase API calls, HITL, external connectors, MaKo, billing, settlement, tariff and device-control actions.
+
+This verify runbook is intentionally not a Blueprint-Pack loader, tenant provisioner or Rundeck executor. Budibase should render the returned read model or call curated Cernion commands; it must not write raw seed/state tables.
 
 ## E2E Example: Stadtwerk Mauer
 

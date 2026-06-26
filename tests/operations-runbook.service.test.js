@@ -342,6 +342,78 @@ describe('operations-runbook.service', () => {
     expect(result.data.finalStatus.traceCount).toBe(0);
   });
 
+  it('verifies the Stadtwerk Mauer Blueprint Pack seed as a read-only runbook', async () => {
+    const result = await broker.call(
+      'operations-runbook.verifyVdmiBlueprintPackSeed',
+      {
+        tenantId: 'stadtwerk-mauer',
+        seedId: 'stadtwerk-mauer-pv-missing-nap-v1',
+      },
+      meta(['rundeck-read'])
+    );
+
+    expect(result.runbookId).toBe('vdmi-blueprint-pack-verify');
+    expect(result.status).toBe('completed');
+    expect(result.riskClass).toBe('read_only');
+    expect(result.summary.markdown).toContain('VDMI Blueprint Pack verification');
+    expect(result.summary.counts.requiredEvidence).toBe(5);
+    expect(result.summary.counts.roleRelations).toBe(3);
+    expect(result.data.validation).toEqual({ valid: true, errors: [] });
+    expect(result.data.publicContextLayer).toMatchObject({ present: true, mutable: false });
+    expect(result.data.syntheticTenantSeed).toMatchObject({ present: true, syntheticOnly: true });
+    expect(result.data.sandboxRuntimeArtifacts).toMatchObject({
+      present: true,
+      ignoredByVerify: true,
+      resettable: true,
+    });
+    expect(result.data.requiredEvidence).toEqual(
+      expect.arrayContaining(['napReference', 'maloId', 'meloId', 'meterId', 'customerConsentStatus'])
+    );
+    expect(result.data.roleRelations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ roleId: 'ROLE_NETZPLANUNG', relation: 'verantwortlich' }),
+        expect.objectContaining({ roleId: 'ROLE_GRID_OPERATOR', relation: 'mitwirkend' }),
+        expect.objectContaining({ roleId: 'ROLE_COMMERCIAL_AUDIT', relation: 'information' }),
+      ])
+    );
+    expect(result.data.workbenchProjectionHint.targetEndpoint).toBe('/api/governance/role-workbench');
+    expect(result.data.budibaseRenderTarget).toBe('budibase:stadtwerk-mauer-workbench');
+    expect(result.data.sourceActions.notCalled).toEqual(
+      expect.arrayContaining([
+        'blueprint-pack.load',
+        'tenant.provision',
+        'seed.import',
+        'sandbox.reset',
+        'rundeck.execute',
+        'budibase.api.call',
+        'hitl.create',
+        'external.connector.call',
+        'mako.write',
+        'public-context.mutate',
+        'personal-agent.execute',
+      ])
+    );
+    expect(result.data.brokerDossierHydration.exposed).toBe(false);
+  });
+
+  it('blocks unknown Blueprint Pack seed verification without write-side effects', async () => {
+    const result = await broker.call(
+      'operations-runbook.verifyVdmiBlueprintPackSeed',
+      { tenantId: 'stadtwerk-mauer', seedId: 'missing-seed' },
+      meta(['rundeck-read'])
+    );
+
+    expect(result.status).toBe('blocked');
+    expect(result.riskClass).toBe('read_only');
+    expect(result.summary.counts.seedsFound).toBe(0);
+    expect(result.summary.counts.validationErrors).toBeGreaterThan(0);
+    expect(result.warnings).toContain('seed must be an object');
+    expect(result.data.seedFound).toBe(false);
+    expect(result.data.sourceActions.notCalled).toEqual(
+      expect.arrayContaining(['blueprint-pack.load', 'tenant.provision', 'external.connector.call'])
+    );
+  });
+
   it('rejects Stadtwerk Mauer E2E smoke without execute-dev scope or dev mode', async () => {
     await expect(
       broker.call(

@@ -1281,6 +1281,8 @@ module.exports = {
             'operations-runbook.executeRevalidationDev',
           'POST /operations-runbook/stadtwerk-mauer/e2e-smoke':
             'operations-runbook.stadtwerkMauerE2eSmoke',
+          'GET /operations-runbook/vdmi-blueprint-packs/verify':
+            'operations-runbook.verifyVdmiBlueprintPackSeed',
           // OEP (Open Energy Platform) read-only connector (v0.12)
           'GET /oep/schemas': 'oep.listSchemas',
           'GET /oep/schemas/:schema/tables': 'oep.listTables',

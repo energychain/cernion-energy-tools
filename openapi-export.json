@@ -42114,6 +42114,27 @@
         }
       }
     },
+    "/api/operations-runbook/vdmi-blueprint-packs/verify": {
+      "get": {
+        "operationId": "operations-runbook_verifyVdmiBlueprintPackSeed",
+        "summary": "Verify a read-only VDMI Blueprint Pack seed for Rundeck and Budibase",
+        "tags": [
+          "Operations Runbook"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/osm-geo/validate": {
       "post": {
         "operationId": "osm-geo_validate",

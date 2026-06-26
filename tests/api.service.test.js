@@ -161,6 +161,9 @@ describe('API Gateway Service', () => {
       expect(apiRoute.aliases['POST /operations-runbook/stadtwerk-mauer/e2e-smoke']).toBe(
         'operations-runbook.stadtwerkMauerE2eSmoke'
       );
+      expect(apiRoute.aliases['GET /operations-runbook/vdmi-blueprint-packs/verify']).toBe(
+        'operations-runbook.verifyVdmiBlueprintPackSeed'
+      );
     });
   });
 
