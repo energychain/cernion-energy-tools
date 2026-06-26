@@ -5,6 +5,18 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.67.2] — 2026-06-26
+
+### Added
+- **Decision Provenance Schema** (`src/decision-evidence-audit-trail.js`, `services/governance.service.js#recordDecisionAudit`, #276 Option B): Alle Governance-Entscheidungen können jetzt die Datenherkunft (`sources[]`) strukturiert festhalten — welche konkreten Datenquellen welche Entscheidung begründet haben. Jeder `sources`-Eintrag trägt `sourceType` (Taxonomie: `mastr`, `edm`, `object-store`, `vdmi`, `mcp-tool`, `external-api` plus Custom), `sourceId` (eindeutiger Bezeichner — MaStR Einheitennummer, EDM MeLo-ID, Object-Store-Key etc.), `sourceVersion` (Version/Revision zum Zeitpunkt der Nutzung, z. B. MaStR `lastUpdatedAt`, PouchDB `_rev`), `sourceTimestamp` (ISO-Zeitstempel der Beobachtung) und `fieldNames` (welche Felder der Quelle tatsächlich konsultiert wurden). `sources[]` wird in den SHA-256-Hash der Hash-Kette einbezogen — nachträgliche Änderung der Herkunft ist damit nachweisbar. `KNOWN_SOURCE_TYPES` und `normalizeSources` sind als Exporte verfügbar. Das `governance.recordDecisionAudit`-Param-Schema akzeptiert `sources[]` mit vollständiger OpenAPI-Dokumentation.
+- **Wegbereiter für Agentic Governance (#276):** Mit diesem Schema kann ein künftiger Impact Analyzer abfragen "welche Entscheidungen verwendeten MaStR-Asset X?" und bei `mastr-monitor.delta.detected`-Events gezielt Re-Validierungen auslösen. Das ist die Datenstruktur-Grundlage, die bisher fehlte.
+
+### Breaking Change (schema v2)
+Bestehende Audit-Einträge, die **vor dieser Version** persistiert wurden, werden von `verifyDecisionAuditTrail` als **nicht verifiziert** (`verified: false`) zurückgegeben — ihr `entryHash` wurde ohne das `sources: []`-Feld berechnet. Einträge, die mit v0.67.2+ erstellt werden, verifizieren korrekt. Für eine Neuberechnung der Hashes alter Einträge ist eine Migration nötig (außerhalb dieses Slice nicht enthalten). In Test- und Entwicklungsumgebungen ist kein Handlungsbedarf (ephemere DBs).
+
+### Tests
+- 7 neue Fälle in `tests/decision-evidence-audit-trail.test.js`: `KNOWN_SOURCE_TYPES`-Taxonomie, `normalizeSources`-Bereinigung (ungültige Einträge gefiltert), Speichern und Zurückgeben von Sources, Hash-Kette mit Sources verifiziert erfolgreich, Source-Manipulation bricht Verifikation (tamper-evidence), Entry ohne Sources → `sources: []` (kein Fehler), Custom-sourceType außerhalb Taxonomie unterstützt.
+
 ## [0.67.1] — 2026-06-25
 
 ### Added
