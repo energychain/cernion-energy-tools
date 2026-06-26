@@ -547,6 +547,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/stadtwerk-mauer-grid-planning-role-queue']).toBe(
         'dashboard-api.stadtwerkMauerGridPlanningRoleQueueStatus'
       );
+      expect(aliases['GET /dashboard/stadtwerk-mauer-sales-workbench-briefing']).toBe(
+        'dashboard-api.stadtwerkMauerSalesWorkbenchBriefingStatus'
+      );
       expect(aliases['GET /dashboard/stadtwerk-mauer-workbench-selected-target']).toBe(
         'dashboard-api.stadtwerkMauerWorkbenchSelectedTargetStatus'
       );

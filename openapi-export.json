@@ -17213,6 +17213,57 @@
         ]
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-sales-workbench-briefing": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerSalesWorkbenchBriefingStatus",
+        "summary": "Stadtwerk Mauer sales Workbench briefing -- read-only evidence-backed claims",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer sales Workbench briefing projection"
+          }
+        },
+        "description": "Returns deterministic Budibase-renderable Vertrieb and Key Account briefing rows for the Stadtwerk Mauer Workbench. Claims are explicitly evidence-backed, assumption-backed or not-yet-claimable and the endpoint does not create CRM/customer data, Budibase writes, MaKo, billing, settlement, tariff, device-control, HITL or external connector actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "audience",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/stadtwerk-mauer-workbench-landing": {
       "get": {
         "operationId": "dashboard-api_stadtwerkMauerWorkbenchLandingStatus",
@@ -59931,6 +59982,57 @@
             "required": false,
             "schema": {
               "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-sales-workbench-briefing": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerSalesWorkbenchBriefingStatus",
+        "summary": "Stadtwerk Mauer sales Workbench briefing -- read-only evidence-backed claims",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer sales Workbench briefing projection"
+          }
+        },
+        "description": "Returns deterministic Budibase-renderable Vertrieb and Key Account briefing rows for the Stadtwerk Mauer Workbench. Claims are explicitly evidence-backed, assumption-backed or not-yet-claimable and the endpoint does not create CRM/customer data, Budibase writes, MaKo, billing, settlement, tariff, device-control, HITL or external connector actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "audience",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25
             }
           }
         ]

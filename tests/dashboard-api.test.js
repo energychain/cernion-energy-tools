@@ -8227,12 +8227,14 @@ describe('dashboard-api.service', () => {
         openTarget: 'grid_planning_role_queue',
       });
       expect(result.targets.find((target) => target.roleKey === 'sales')).toMatchObject({
-        status: 'planned',
+        status: 'available',
         roleCode: 'ROLE_VERTRIEB',
+        openTarget: 'sales_briefing',
       });
       expect(result.targets.find((target) => target.roleKey === 'key-account')).toMatchObject({
-        status: 'planned',
+        status: 'available',
         roleCode: 'ROLE_KEY_ACCOUNT',
+        openTarget: 'sales_briefing',
       });
       expect(result.targets.find((target) => target.roleKey === 'vdmi-governance')).toMatchObject({
         status: 'planned',
@@ -8249,9 +8251,7 @@ describe('dashboard-api.service', () => {
       });
       expectScalarTableRows(result.roleRows);
       expectScalarTableRows(result.openTargetRows);
-      expect(result.positiveFollowUps.map((item) => item.missingDataPoint)).toEqual(
-        expect.arrayContaining(['sales', 'key-account', 'vdmi-governance'])
-      );
+      expect(result.positiveFollowUps.map((item) => item.missingDataPoint)).toContain('vdmi-governance');
       expect(result.capabilityBroker.exposed).toBe(false);
       expect(result.hydrationRegistry.exposed).toBe(false);
       expect(result.summary.budibaseBoundary).toContain('Cernion remains the system of record');
@@ -8483,6 +8483,153 @@ describe('dashboard-api.service', () => {
       );
       expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
         'Zielnetzplanung Role Queue binds to scalar queue and evidence-handover rows'
+      );
+    });
+  });
+
+  // -- stadtwerkMauerSalesWorkbenchBriefingStatus ----------------------
+  describe('stadtwerkMauerSalesWorkbenchBriefingStatus', () => {
+    it('returns read-only Vertrieb briefing rows with safe claims and open gaps separated', async () => {
+      handlers.stadtwerkMauerE2eProcessDemoStatus = () => ({
+        capabilityKey: 'stadtwerk_mauer_e2e_process_demo',
+        safety: 'sandbox_only_non_consequential_e2e_demo_with_read_only_status',
+        tenantId: 'stadtwerk-mauer',
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: true,
+        status: 'e2e_demo_trace_needs_evidence',
+        demoPath: 'pv_registration_electrician_missing_nap',
+        caseId: 'smm-budibase-workbench',
+        traceCount: 1,
+        artifactCount: 3,
+        recentTraces: [{ traceId: 'smm-e2e-trace:test', status: 'demo_trace_needs_evidence' }],
+        evidenceQuality: 'incomplete_demo_evidence',
+        missingEvidence: [
+          { missingDataPoint: 'napReference' },
+          { missingDataPoint: 'maloId' },
+          { missingDataPoint: 'meloId' },
+        ],
+        positiveFollowUps: [{ missingDataPoint: 'napReference' }],
+        sourceActions: {
+          inspected: ['stadtwerk-mauer-e2e-process-demo.getStatus'],
+          referenced: ['object-store.query'],
+          notCalled: ['mako.dispatch', 'external.connector.call', 'personal-agent.execute'],
+        },
+      });
+
+      const result = await broker.call('dashboard-api.stadtwerkMauerSalesWorkbenchBriefingStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+        audience: 'vertrieb',
+      });
+
+      expect(result.capabilityKey).toBe('stadtwerk_mauer_sales_workbench_briefing');
+      expect(result.safety).toBe('read_only');
+      expect(result.found).toBe(true);
+      expect(result.status).toBe('sales_briefing_ready_with_open_gaps');
+      expect(result.audience).toBe('vertrieb');
+      expect(result.briefingRows.length).toBeGreaterThanOrEqual(4);
+      expect(result.claimRows.map((row) => row.topicKey)).toEqual(
+        expect.arrayContaining(['demo_scope', 'case_evidence', 'znp_handover', 'commercial_value'])
+      );
+      expect(result.claimRows.find((row) => row.topicKey === 'demo_scope')).toMatchObject({
+        claimStatus: 'evidence_backed',
+        evidenceStatus: 'available',
+      });
+      expect(result.claimRows.find((row) => row.topicKey === 'commercial_value')).toMatchObject({
+        claimStatus: 'not_yet_claimable',
+        openGap: 'municipal_energy_value_analysis',
+      });
+      expect(result.gapRows.map((row) => row.gapKey)).toEqual(
+        expect.arrayContaining(['napReference', 'maloId', 'meloId', 'commercial_value'])
+      );
+      expect(result.followUpRows.find((row) => row.topicKey === 'commercial_value')).toMatchObject({
+        enablesSafeClaim: 'after_gap_resolution',
+      });
+      expectScalarTableRows(result.briefingRows);
+      expectScalarTableRows(result.claimRows);
+      expectScalarTableRows(result.evidenceRows);
+      expectScalarTableRows(result.gapRows);
+      expectScalarTableRows(result.followUpRows);
+      expect(result.capabilityBroker.exposed).toBe(false);
+      expect(result.hydrationRegistry.exposed).toBe(false);
+      expect(result.summary.claimBoundary).toContain('not-yet-claimable');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'crm.customer.create',
+          'customer-master.write',
+          'claim.generate.llm',
+          'offer.create',
+          'customer.communication.send',
+          'budibase.table.write',
+          'budibase.system_of_record',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'device-control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns safe fallback rows for unsupported audiences and outside tenants', async () => {
+      const unsupportedAudience = await broker.call('dashboard-api.stadtwerkMauerSalesWorkbenchBriefingStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+        audience: 'press',
+      });
+
+      expect(unsupportedAudience.found).toBe(false);
+      expect(unsupportedAudience.status).toBe('sales_briefing_unsupported_audience');
+      expect(unsupportedAudience.briefingRows).toEqual([]);
+      expect(unsupportedAudience.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
+        'supported_sales_audience'
+      );
+
+      const outsideTenant = await broker.call('dashboard-api.stadtwerkMauerSalesWorkbenchBriefingStatus', {
+        tenantId: 'other-tenant',
+        caseId: 'smm-budibase-workbench',
+      });
+
+      expect(outsideTenant.found).toBe(false);
+      expect(outsideTenant.status).toBe('sales_briefing_blocked_outside_sandbox_tenant');
+      expect(outsideTenant.briefingRows).toEqual([]);
+      expect(outsideTenant.claimRows).toEqual([]);
+      expect(outsideTenant.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
+        'stadtwerk_mauer_tenant_scope'
+      );
+      expect(outsideTenant.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['crm.customer.create', 'budibase.table.write', 'personal-agent.execute'])
+      );
+    });
+
+    it('binds the Budibase manifest to Vertrieb scalar briefing rows', () => {
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.map((query) => query.name)).toEqual(
+        expect.arrayContaining([
+          'getStadtwerkMauerSalesWorkbenchBriefing',
+          'getStadtwerkMauerSalesBriefingRows',
+          'getStadtwerkMauerSalesClaimRows',
+          'getStadtwerkMauerSalesEvidenceRows',
+          'getStadtwerkMauerSalesGapRows',
+          'getStadtwerkMauerSalesFollowUpRows',
+        ])
+      );
+      expect(
+        STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+          (query) => query.name === 'getStadtwerkMauerSalesBriefingRows'
+        )
+      ).toMatchObject({
+        method: 'GET',
+        path: '/api/dashboard/stadtwerk-mauer-sales-workbench-briefing',
+        transformer: 'return data.briefingRows || []',
+      });
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.sections.map((section) => section.id)).toEqual(
+        expect.arrayContaining(['sales_briefing', 'sales_claims', 'sales_evidence', 'sales_gaps', 'sales_followups'])
+      );
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
+        'Vertrieb Briefing binds to scalar evidence-backed claim'
       );
     });
   });

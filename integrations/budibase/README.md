@@ -29,6 +29,7 @@ The workbench renders:
 - selectable case detail from `GET /api/dashboard/stadtwerk-mauer-case-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - selected-case action rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - role workbench catalog/open-target rows from `GET /api/dashboard/stadtwerk-mauer-role-workbench-catalog?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
+- Vertrieb/Key Account briefing rows from `GET /api/dashboard/stadtwerk-mauer-sales-workbench-briefing?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&audience=vertrieb`
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
 The action query is intentionally still guarded by Cernion scopes. A Budibase button may be
@@ -53,6 +54,11 @@ The role workbench catalog query is read-only: it returns scalar role/open-targe
 Administrator, Zielnetzplanung, Vertrieb, Key Account and VDMI governance/reviewer targets.
 It does not implement role-specific calculations, authorization changes, role assignments or
 Budibase-owned workflow state.
+The Vertrieb briefing query is read-only: it returns scalar briefing, claim, evidence, gap and
+follow-up rows for a presenter-safe sales or Key Account view. Claims are deterministic from
+Cernion evidence and explicitly marked evidence-backed, assumption-backed or not-yet-claimable;
+CRM/customer master data, offer creation, arbitrary LLM claims, Budibase writes and production
+actions stay out of scope.
 The Workbench landing query is read-only: it returns scalar first-screen status, section readiness
 and presenter walkthrough rows so the app opens as a demo surface instead of an internal build
 surface. It does not perform setup, reset, provisioning, Budibase table writes, runbook execution

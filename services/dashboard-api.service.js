@@ -118,6 +118,7 @@ module.exports = {
       stadtwerkMauerCaseActionsStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerRoleWorkbenchCatalogStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerGridPlanningRoleQueueStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerSalesWorkbenchBriefingStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerWorkbenchLandingStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerWorkbenchSelectedTargetStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
@@ -6296,6 +6297,159 @@ module.exports = {
                 caseId,
                 caseDetailStatus,
                 roleCatalogStatus,
+              }),
+              timestamp: new Date().toISOString(),
+              _errors: errors,
+            };
+          }
+        );
+      },
+    },
+
+    // -- stadtwerkMauerSalesWorkbenchBriefingStatus --------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-sales-workbench-briefing
+     *
+     * Read-only Vertrieb / Key Account briefing projection for the
+     * Stadtwerk Mauer Workbench. This slice is Workbench/dashboard-only and
+     * deliberately does not add broker or dossier hydration exposure.
+     */
+    stadtwerkMauerSalesWorkbenchBriefingStatus: {
+      rest: 'GET /stadtwerk-mauer-sales-workbench-briefing',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+        audience: { type: 'string', optional: true, min: 1 },
+        limit: { type: 'number', optional: true, convert: true, integer: true, min: 1, max: 25 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer sales Workbench briefing -- read-only evidence-backed claims',
+        description:
+          'Returns deterministic Budibase-renderable Vertrieb and Key Account briefing rows for ' +
+          'the Stadtwerk Mauer Workbench. Claims are explicitly evidence-backed, assumption-backed ' +
+          'or not-yet-claimable and the endpoint does not create CRM/customer data, Budibase writes, ' +
+          'MaKo, billing, settlement, tariff, device-control, HITL or external connector actions.',
+        parameters: [
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'audience', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'limit', in: 'query', required: false, schema: { type: 'integer', minimum: 1, maximum: 25 } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Stadtwerk Mauer sales Workbench briefing projection',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const caseId = params.caseId || 'smm-budibase-workbench';
+        const audience = params.audience || 'vertrieb';
+        const limit = Math.max(1, Math.min(Number(params.limit || 10), 25));
+        const errors = [];
+        const cacheKey = `stadtwerk-mauer-sales-workbench-briefing:${tenantId}:${caseId}:${audience}:${limit}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.stadtwerkMauerSalesWorkbenchBriefingStatus,
+          async () => {
+            if (tenantId !== 'stadtwerk-mauer') {
+              return {
+                ...this.buildStadtwerkMauerSalesWorkbenchBriefingStatus({
+                  tenantId,
+                  caseId,
+                  audience,
+                  limit,
+                  caseDetailStatus: null,
+                  roleCatalogStatus: null,
+                  gridPlanningRoleQueueStatus: null,
+                  tenantDatabrowserStatus: null,
+                }),
+                timestamp: new Date().toISOString(),
+                _errors: errors,
+              };
+            }
+
+            const e2eStatus = await this.safeCall(
+              ctx,
+              'stadtwerk-mauer-e2e-process-demo.getStatus',
+              { tenantId, caseId, limit: 10 },
+              this.buildMissingStadtwerkMauerE2eProcessDemoStatus(tenantId, caseId),
+              errors,
+              'stadtwerk-mauer-e2e-process-demo.getStatus'
+            );
+            const mastrStatus = await this.safeCall(
+              ctx,
+              'stadtwerk-mauer-mastr-data-overlay.getStatus',
+              { tenantId, limit: 10 },
+              this.buildMissingStadtwerkMauerMastrDataOverlayStatus(tenantId, {}),
+              errors,
+              'stadtwerk-mauer-mastr-data-overlay.getStatus'
+            );
+            const caseDetailStatus = this.buildStadtwerkMauerCaseDetailStatus({
+              tenantId,
+              caseId,
+              e2eStatus,
+            });
+            const hubStatus = this.buildStadtwerkMauerWorkbenchHubStatus({
+              tenantId,
+              caseId,
+              e2eStatus,
+              mastrStatus,
+              caseDetailStatus,
+            });
+            const administratorInventoryStatus = this.buildStadtwerkMauerAdministratorInventoryStatus({
+              tenantId,
+              caseId,
+              includeRuntime: true,
+              e2eStatus,
+              mastrStatus,
+              caseDetailStatus,
+              hubStatus,
+            });
+            const caseActionsStatus = this.buildStadtwerkMauerCaseActionsStatus({
+              tenantId,
+              caseId,
+              caseDetailStatus,
+            });
+            const roleCatalogStatus = this.buildStadtwerkMauerRoleWorkbenchCatalogStatus({
+              tenantId,
+              caseId,
+              hubStatus,
+              administratorInventoryStatus,
+              caseActionsStatus,
+            });
+            const gridPlanningRoleQueueStatus = this.buildStadtwerkMauerGridPlanningRoleQueueStatus({
+              tenantId,
+              caseId,
+              caseDetailStatus,
+              roleCatalogStatus,
+            });
+            const tenantDatabrowserStatus = this.buildStadtwerkMauerTenantDatabrowserStatus({
+              tenantId,
+              caseId,
+              categoryId: 'case-evidence',
+              itemId: null,
+              limit,
+              e2eStatus,
+              mastrStatus,
+              caseDetailStatus,
+              hubStatus,
+              administratorInventoryStatus,
+            });
+
+            return {
+              ...this.buildStadtwerkMauerSalesWorkbenchBriefingStatus({
+                tenantId,
+                caseId,
+                audience,
+                limit,
+                caseDetailStatus,
+                roleCatalogStatus,
+                gridPlanningRoleQueueStatus,
+                tenantDatabrowserStatus,
               }),
               timestamp: new Date().toISOString(),
               _errors: errors,
@@ -24132,44 +24286,44 @@ module.exports = {
           roleKey: 'sales',
           roleCode: 'ROLE_VERTRIEB',
           displayName: 'Vertrieb',
-          status: 'planned',
+          status: 'available',
           routeKey: 'sales',
           routeTarget: '/stadtwerk-mauer/sales',
-          openTarget: 'sales_advisory_read_model',
+          openTarget: 'sales_briefing',
           requiredEvidenceDomains: ['customer_advisory_context', 'commercial_boundary'],
           allowedActionClasses: ['read_model_navigation'],
           nextGate: {
-            id: 'sales_role_workbench_cut',
-            label: 'Cut a Vertrieb advisory read model',
+            id: 'render_sales_briefing',
+            label: 'Render Vertrieb evidence-backed briefing rows from #321',
           },
           safetyNotes: 'No offer, tariff, billing or settlement release is implemented.',
-          dataClassNotes: 'synthetic tenant seed only until a sales evidence contract is cut.',
+          dataClassNotes: 'synthetic tenant seed and generated evidence rows only; no real customer data.',
           readinessSummary: actionsAvailable
-            ? 'Selected-case read/verify actions are available; sales advisory content is not cut yet.'
+            ? 'Evidence-backed Vertrieb briefing rows are available for the synthetic demo case.'
             : 'Selected-case actions are unavailable for this tenant/case.',
           enablesDossierAddition:
-            'add customer advisory readiness facts once Vertrieb evidence contracts exist',
+            'add evidence-backed safe claims and open gaps for Vertrieb and Key Account briefing',
         },
         {
           targetId: 'key-account-workbench',
           roleKey: 'key-account',
           roleCode: 'ROLE_KEY_ACCOUNT',
           displayName: 'Key Account / Project Advisory',
-          status: 'planned',
+          status: 'available',
           routeKey: 'key-account',
           routeTarget: '/stadtwerk-mauer/key-account',
-          openTarget: 'project_customer_advisory',
+          openTarget: 'sales_briefing',
           requiredEvidenceDomains: ['project_customer_context', 'advisory_boundary'],
           allowedActionClasses: ['read_model_navigation'],
           nextGate: {
-            id: 'key_account_role_workbench_cut',
-            label: 'Cut a project customer advisory read model',
+            id: 'render_sales_briefing_key_account',
+            label: 'Render Key Account evidence-backed briefing rows from #321',
           },
           safetyNotes: 'No customer communication, offer creation, billing or contract mutation is implemented.',
-          dataClassNotes: 'synthetic tenant and case data only.',
-          readinessSummary: 'Project customer advisory is a future read-only projection target.',
+          dataClassNotes: 'synthetic tenant, case and evidence-backed advisory rows only.',
+          readinessSummary: 'Key Account briefing uses the same evidence-backed sales projection.',
           enablesDossierAddition:
-            'add project-customer handover and advisory context once a Key Account slice is cut',
+            'add project-customer advisory context separated into safe claims and open evidence gaps',
         },
         {
           targetId: 'vdmi-governance-reviewer',
@@ -24539,6 +24693,467 @@ module.exports = {
         nextGate: item.nextGate,
         enablesDossierAddition: item.enablesDossierAddition,
       }));
+    },
+
+    buildStadtwerkMauerSalesWorkbenchBriefingStatus({
+      tenantId = 'stadtwerk-mauer',
+      caseId = 'smm-budibase-workbench',
+      audience = 'vertrieb',
+      limit = 10,
+      caseDetailStatus = null,
+      roleCatalogStatus = null,
+      gridPlanningRoleQueueStatus = null,
+      tenantDatabrowserStatus = null,
+    } = {}) {
+      const seed = stadtwerkMauerPvMissingNap;
+      const sandboxBoundaryAllowed = tenantId === seed.demoTenant.tenantId;
+      const selectedCaseAllowed = caseId === 'smm-budibase-workbench';
+      const normalizedAudience = this.normalizeStadtwerkMauerSalesAudience(audience);
+      const audienceSupported = Boolean(normalizedAudience);
+      const briefingAudience = normalizedAudience || 'vertrieb';
+      const found = sandboxBoundaryAllowed && selectedCaseAllowed && audienceSupported && caseDetailStatus?.found !== false;
+      const unsupportedAudienceGap = audienceSupported
+        ? []
+        : [
+            {
+              missingDataPoint: 'supported_sales_audience',
+              enablesDossierAddition:
+                'select vertrieb, key-account or utility-expert before rendering evidence-backed briefing rows',
+              dataClass: 'syntheticTenantSeed',
+              state: 'clarification',
+            },
+          ];
+      const missingEvidence = found
+        ? [
+            ...(caseDetailStatus?.missingEvidence || []),
+            ...unsupportedAudienceGap,
+          ]
+        : sandboxBoundaryAllowed && selectedCaseAllowed
+          ? unsupportedAudienceGap
+          : sandboxBoundaryAllowed
+            ? [
+                {
+                  missingDataPoint: 'stadtwerk_mauer_case_scope',
+                  enablesDossierAddition:
+                    'select the synthetic case smm-budibase-workbench before rendering Vertrieb briefing rows',
+                  dataClass: 'syntheticTenantSeed',
+                  state: 'clarification',
+                },
+                ...unsupportedAudienceGap,
+              ]
+            : [
+                {
+                  missingDataPoint: 'stadtwerk_mauer_tenant_scope',
+                  enablesDossierAddition:
+                    'select the synthetic tenant stadtwerk-mauer before rendering Vertrieb briefing rows',
+                  dataClass: 'syntheticTenantSeed',
+                  state: 'clarification',
+                },
+                ...unsupportedAudienceGap,
+              ];
+      const noCallGuards = Array.from(
+        new Set([
+          ...(seed.forbiddenActions || []),
+          ...(caseDetailStatus?.sourceActions?.notCalled || []),
+          ...(roleCatalogStatus?.sourceActions?.notCalled || []),
+          ...(gridPlanningRoleQueueStatus?.sourceActions?.notCalled || []),
+          ...(tenantDatabrowserStatus?.sourceActions?.notCalled || []),
+          'crm.customer.create',
+          'crm.customer.update',
+          'customer-master.write',
+          'claim.generate.llm',
+          'claim.publish',
+          'offer.create',
+          'contract.create',
+          'customer.communication.send',
+          'budibase.table.write',
+          'budibase.api.call',
+          'budibase.system_of_record',
+          'budibase.automation.arbitrary_write',
+          'tenant.provision',
+          'setup.execute',
+          'reset.execute',
+          'delete.execute',
+          'public-context.mutate',
+          'sandbox-runtime.mutate',
+          'production.mutate',
+          'rundeck.job.execute',
+          'operations-runbook.execute',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'device-control.execute',
+          'smgw.connector.call',
+          'cls.control.execute',
+          'external.connector.call',
+          'webhook.emit',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+      const briefingItems = found
+        ? this.buildStadtwerkMauerSalesBriefingItems({
+            seed,
+            caseId,
+            audience: briefingAudience,
+            caseDetailStatus,
+            gridPlanningRoleQueueStatus,
+            tenantDatabrowserStatus,
+          }).slice(0, limit)
+        : [];
+      const briefingRows = this.buildStadtwerkMauerSalesBriefingRows(briefingItems);
+      const claimRows = briefingRows.filter((row) => row.rowType === 'claim');
+      const evidenceRows = this.buildStadtwerkMauerSalesEvidenceRows({ briefingItems, caseDetailStatus });
+      const gapRows = this.buildStadtwerkMauerSalesGapRows({ missingEvidence, briefingItems });
+      const followUpRows = this.buildStadtwerkMauerSalesFollowUpRows({ missingEvidence, briefingItems });
+      const safeClaimCount = claimRows.filter((row) => row.claimStatus === 'evidence_backed').length;
+      const notClaimableCount = claimRows.filter((row) => row.claimStatus === 'not_yet_claimable').length;
+      const status = !sandboxBoundaryAllowed
+        ? 'sales_briefing_blocked_outside_sandbox_tenant'
+        : !selectedCaseAllowed || caseDetailStatus?.found === false
+          ? 'sales_briefing_not_found'
+          : !audienceSupported
+            ? 'sales_briefing_unsupported_audience'
+            : notClaimableCount > 0
+              ? 'sales_briefing_ready_with_open_gaps'
+              : 'sales_briefing_ready';
+      const positiveFollowUps = [
+        ...missingEvidence.map((item) => ({
+          ...item,
+          category: 'stadtwerk_mauer_sales_workbench_briefing',
+        })),
+        ...briefingItems
+          .filter((item) => item.claimStatus === 'not_yet_claimable')
+          .map((item) => ({
+            missingDataPoint: item.topicKey,
+            enablesDossierAddition: item.recommendedInternalFollowUp,
+            category: 'stadtwerk_mauer_sales_workbench_briefing',
+            state: item.claimStatus,
+          })),
+      ];
+      const dossierFacts = [
+        `Sales Briefing Status: ${status}`,
+        `Tenant: ${tenantId}`,
+        `Case: ${caseId}`,
+        `Audience: ${briefingAudience}`,
+        `Safe claims: ${safeClaimCount}`,
+        `Not-yet-claimable rows: ${notClaimableCount}`,
+      ];
+
+      return {
+        capabilityKey: 'stadtwerk_mauer_sales_workbench_briefing',
+        safety: 'read_only',
+        found,
+        status,
+        tenantId,
+        requiredTenantId: seed.demoTenant.tenantId,
+        sandboxBoundaryAllowed,
+        caseId,
+        requiredCaseId: 'smm-budibase-workbench',
+        audience: briefingAudience,
+        requestedAudience: audience,
+        supportedAudiences: ['vertrieb', 'key-account', 'utility-expert'],
+        briefingId: 'stadtwerk-mauer-sales-workbench-briefing',
+        title: 'Stadtwerk Mauer Vertrieb Briefing',
+        summary: {
+          briefingRowCount: briefingRows.length,
+          claimRowCount: claimRows.length,
+          evidenceRowCount: evidenceRows.length,
+          gapRowCount: gapRows.length,
+          safeClaimCount,
+          notClaimableCount,
+          roleCatalogStatus: roleCatalogStatus?.status || null,
+          gridPlanningRoleQueueStatus: gridPlanningRoleQueueStatus?.status || null,
+          tenantDatabrowserStatus: tenantDatabrowserStatus?.status || null,
+          claimBoundary:
+            'Claims are deterministic from Cernion evidence rows and explicitly marked evidence-backed, assumption-backed or not-yet-claimable.',
+          budibaseBoundary:
+            'Budibase renders scalar briefing rows only; Cernion remains the system of record and command gate.',
+          syntheticIdDisclaimer:
+            'Stadtwerk Mauer app, tenant, case and briefing values are synthetic demo identifiers unless explicitly marked as public context.',
+        },
+        briefingRows,
+        claimRows,
+        evidenceRows,
+        gapRows,
+        followUpRows,
+        missingEvidence,
+        positiveFollowUps,
+        nextGate:
+          notClaimableCount > 0
+            ? {
+                id: 'resolve_sales_briefing_open_gaps',
+                label: 'Resolve open evidence before using not-yet-claimable statements',
+              }
+            : {
+                id: 'open_sales_briefing',
+                label: 'Use safe claims as presenter talking points',
+              },
+        capabilityBroker: {
+          exposed: false,
+          reason:
+            'Sales Workbench briefing is a Workbench-first projection; no broad Personal-Agent capability route is added.',
+        },
+        hydrationRegistry: {
+          exposed: false,
+          reason:
+            'No dossier hydration rule is added for this Workbench-only Vertrieb briefing slice.',
+        },
+        sourceActions: {
+          inspected: ['dashboard-api.stadtwerkMauerSalesWorkbenchBriefingStatus'],
+          referenced: [
+            'dashboard-api.stadtwerkMauerCaseDetailStatus',
+            'dashboard-api.stadtwerkMauerRoleWorkbenchCatalogStatus',
+            'dashboard-api.stadtwerkMauerGridPlanningRoleQueueStatus',
+            'dashboard-api.stadtwerkMauerTenantDatabrowserStatus',
+            'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json',
+            'integrations/budibase/manifests/stadtwerk-mauer-workbench.json',
+          ],
+          notCalled: noCallGuards,
+        },
+        noCallGuards,
+        dossierFacts,
+        dossierEvidence: {
+          status,
+          tenantId,
+          caseId,
+          audience: briefingAudience,
+          claimRows,
+          evidenceRows,
+          gapRows,
+          followUpRows,
+          missingEvidence,
+          positiveFollowUps,
+          noCallGuards,
+          dossierFacts,
+        },
+        meta: {
+          inspected: [
+            'dashboard-api.stadtwerkMauerSalesWorkbenchBriefingStatus',
+            'dashboard-api.stadtwerkMauerCaseDetailStatus',
+            'dashboard-api.stadtwerkMauerRoleWorkbenchCatalogStatus',
+            'budibase-stadtwerk-mauer-workbench-manifest',
+          ],
+        },
+      };
+    },
+
+    normalizeStadtwerkMauerSalesAudience(audience = 'vertrieb') {
+      const normalized = String(audience || 'vertrieb').trim().toLowerCase().replace(/_/g, '-');
+      const aliases = {
+        sales: 'vertrieb',
+        vertrieb: 'vertrieb',
+        'key-account': 'key-account',
+        keyaccount: 'key-account',
+        'utility-expert': 'utility-expert',
+        expert: 'utility-expert',
+        fachpublikum: 'utility-expert',
+      };
+      return aliases[normalized] || null;
+    },
+
+    buildStadtwerkMauerSalesBriefingItems({
+      seed,
+      caseId,
+      audience,
+      caseDetailStatus,
+      gridPlanningRoleQueueStatus,
+      tenantDatabrowserStatus,
+    }) {
+      const missingEvidenceIds = new Set((caseDetailStatus?.missingEvidence || []).map((item) => item.missingDataPoint));
+      const evidenceRows = caseDetailStatus?.evidence || this.buildStadtwerkMauerCaseEvidence(seed, {});
+      const presentEvidence = evidenceRows.filter((item) => item.present === true).map((item) => item.id);
+      const openEvidence = evidenceRows.filter((item) => item.present !== true).map((item) => item.id);
+      const audienceLabel =
+        audience === 'key-account'
+          ? 'Key Account'
+          : audience === 'utility-expert'
+            ? 'Stadtwerke Fachpublikum'
+            : 'Vertrieb';
+      return [
+        {
+          topicKey: 'demo_scope',
+          topicLabel: 'Demo Scope',
+          rowType: 'claim',
+          audience,
+          audienceLabel,
+          safeClaim:
+            'Stadtwerk Mauer ist als synthetischer Demo-Tenant mit klarer Trennung von Public Context, Seed und Sandbox-Artefakten inspectable.',
+          claimStatus: 'evidence_backed',
+          evidenceStatus: 'available',
+          backingCaseId: caseId,
+          backingWorkbenchItem: tenantDatabrowserStatus?.status || 'tenant_databrowser_ready',
+          openGap: '',
+          recommendedInternalFollowUp: 'Open Tenant Databrowser for category, trace and source evidence rows.',
+          notClaimableReason: '',
+          sourceLabel: 'Tenant Databrowser / Blueprint seed',
+        },
+        {
+          topicKey: 'case_evidence',
+          topicLabel: 'Case Evidence',
+          rowType: 'claim',
+          audience,
+          audienceLabel,
+          safeClaim:
+            'Der PV-Anmeldefall zeigt vorhandene und fehlende Evidenz getrennt, bevor ein fachlicher Anschluss- oder Beratungsstatus behauptet wird.',
+          claimStatus: openEvidence.length > 0 ? 'assumption_backed' : 'evidence_backed',
+          evidenceStatus: openEvidence.length > 0 ? 'partial' : 'complete',
+          backingCaseId: caseId,
+          backingWorkbenchItem: caseDetailStatus?.status || 'case_detail_status_unknown',
+          openGap: openEvidence.join(', '),
+          recommendedInternalFollowUp: 'Resolve missing evidence before turning partial statements into firm claims.',
+          notClaimableReason: '',
+          sourceLabel: 'Selected Case Evidence',
+        },
+        {
+          topicKey: 'znp_handover',
+          topicLabel: 'Zielnetzplanung Handover',
+          rowType: 'claim',
+          audience,
+          audienceLabel,
+          safeClaim:
+            'Zielnetzplanung sieht die Rolle, den naechsten Gate und die Evidence-Handover-Zeilen fuer den synthetischen Fall.',
+          claimStatus: gridPlanningRoleQueueStatus?.found === true ? 'evidence_backed' : 'not_yet_claimable',
+          evidenceStatus: gridPlanningRoleQueueStatus?.found === true ? 'available' : 'missing',
+          backingCaseId: caseId,
+          backingWorkbenchItem: gridPlanningRoleQueueStatus?.status || 'grid_planning_role_queue_missing',
+          openGap: gridPlanningRoleQueueStatus?.found === true ? '' : 'grid_planning_role_queue',
+          recommendedInternalFollowUp: 'Open Zielnetzplanung Role Queue and verify NAP handover gaps.',
+          notClaimableReason:
+            gridPlanningRoleQueueStatus?.found === true ? '' : 'ZNP handover rows are not available for this case.',
+          sourceLabel: 'Zielnetzplanung Role Queue',
+        },
+        {
+          topicKey: 'commercial_value',
+          topicLabel: 'Commercial Value',
+          rowType: 'claim',
+          audience,
+          audienceLabel,
+          safeClaim:
+            'Ein kommunales Wert- oder Budgetversprechen ist im aktuellen Demo-Slice noch nicht belegbar.',
+          claimStatus: 'not_yet_claimable',
+          evidenceStatus: 'missing',
+          backingCaseId: caseId,
+          backingWorkbenchItem: 'municipal_energy_value_analysis',
+          openGap: 'municipal_energy_value_analysis',
+          recommendedInternalFollowUp: 'Implement #324 before using municipal value or concession-fee talking points.',
+          notClaimableReason: 'Municipal value analysis is a separate read-only endpoint and not implemented in #321.',
+          sourceLabel: 'Planned #324 Municipal Energy Value Lagebild',
+        },
+        {
+          topicKey: 'crm_customer_context',
+          topicLabel: 'Customer Context',
+          rowType: 'claim',
+          audience,
+          audienceLabel,
+          safeClaim:
+            'Es werden keine realen Kundenstammdaten, CRM-Datensaetze oder Angebote aus diesem Briefing erzeugt.',
+          claimStatus: 'evidence_backed',
+          evidenceStatus: 'guarded',
+          backingCaseId: caseId,
+          backingWorkbenchItem: 'no_call_guards',
+          openGap: missingEvidenceIds.has('customerReference') ? 'customerReference' : '',
+          recommendedInternalFollowUp: 'Add a future customer-master integration only after a separate product cut.',
+          notClaimableReason: '',
+          sourceLabel: 'No-call guard contract',
+        },
+      ].filter((item) => item.audience === audience || item.topicKey !== 'crm_customer_context' || presentEvidence.length >= 0);
+    },
+
+    buildStadtwerkMauerSalesBriefingRows(briefingItems = []) {
+      return briefingItems.map((item) => ({
+        topicKey: item.topicKey,
+        topicLabel: item.topicLabel,
+        rowType: item.rowType,
+        audience: item.audience,
+        audienceLabel: item.audienceLabel,
+        safeClaim: item.safeClaim,
+        claimStatus: item.claimStatus,
+        evidenceStatus: item.evidenceStatus,
+        backingCaseId: item.backingCaseId,
+        backingWorkbenchItem: item.backingWorkbenchItem,
+        openGap: item.openGap,
+        recommendedInternalFollowUp: item.recommendedInternalFollowUp,
+        notClaimableReason: item.notClaimableReason,
+        sourceLabel: item.sourceLabel,
+      }));
+    },
+
+    buildStadtwerkMauerSalesEvidenceRows({ briefingItems = [], caseDetailStatus = null } = {}) {
+      const caseEvidence = caseDetailStatus?.evidence || [];
+      const evidenceRows = caseEvidence.map((item) => ({
+        evidenceId: item.id,
+        topicKey: item.id,
+        label: this.humanizeWorkbenchLabel(item.id),
+        evidenceStatus: item.present ? 'present' : item.state || 'missing',
+        present: item.present === true,
+        required: item.required === true,
+        dataClass: item.dataClass || 'syntheticTenantSeed',
+        sourceLabel: 'Selected Case Evidence',
+        enablesSafeClaim: item.present === true ? 'yes' : 'no',
+      }));
+      const topicRows = briefingItems.map((item) => ({
+        evidenceId: `briefing:${item.topicKey}`,
+        topicKey: item.topicKey,
+        label: item.topicLabel,
+        evidenceStatus: item.evidenceStatus,
+        present: item.claimStatus !== 'not_yet_claimable',
+        required: item.claimStatus === 'not_yet_claimable',
+        dataClass: item.topicKey === 'commercial_value' ? 'plannedReadModel' : 'generatedWorkbenchProjection',
+        sourceLabel: item.sourceLabel,
+        enablesSafeClaim: item.claimStatus === 'evidence_backed' ? 'yes' : 'partial',
+      }));
+      return [...topicRows, ...evidenceRows];
+    },
+
+    buildStadtwerkMauerSalesGapRows({ missingEvidence = [], briefingItems = [] } = {}) {
+      const evidenceGaps = missingEvidence.map((gap) => ({
+        gapKey: gap.missingDataPoint,
+        topicKey: gap.missingDataPoint,
+        label: this.humanizeWorkbenchLabel(gap.missingDataPoint),
+        status: gap.state || 'open',
+        openGap: gap.missingDataPoint,
+        requiredForSafeClaim: 'yes',
+        nextInternalFollowUp: gap.enablesDossierAddition,
+        sourceLabel: gap.dataClass || 'case_evidence',
+      }));
+      const claimGaps = briefingItems
+        .filter((item) => item.claimStatus === 'not_yet_claimable')
+        .map((item) => ({
+          gapKey: item.topicKey,
+          topicKey: item.topicKey,
+          label: item.topicLabel,
+          status: item.claimStatus,
+          openGap: item.openGap,
+          requiredForSafeClaim: 'yes',
+          nextInternalFollowUp: item.recommendedInternalFollowUp,
+          sourceLabel: item.sourceLabel,
+        }));
+      return [...evidenceGaps, ...claimGaps];
+    },
+
+    buildStadtwerkMauerSalesFollowUpRows({ missingEvidence = [], briefingItems = [] } = {}) {
+      return [
+        ...briefingItems.map((item) => ({
+          followUpKey: item.topicKey,
+          topicKey: item.topicKey,
+          audience: item.audience,
+          claimStatus: item.claimStatus,
+          label: item.topicLabel,
+          nextInternalFollowUp: item.recommendedInternalFollowUp,
+          enablesSafeClaim: item.claimStatus === 'not_yet_claimable' ? 'after_gap_resolution' : 'already_safe',
+        })),
+        ...missingEvidence.map((gap) => ({
+          followUpKey: gap.missingDataPoint,
+          topicKey: gap.missingDataPoint,
+          audience: 'all',
+          claimStatus: 'evidence_gap',
+          label: this.humanizeWorkbenchLabel(gap.missingDataPoint),
+          nextInternalFollowUp: gap.enablesDossierAddition,
+          enablesSafeClaim: 'after_gap_resolution',
+        })),
+      ];
     },
 
     buildStadtwerkMauerWorkbenchSelectedTargetStatus({

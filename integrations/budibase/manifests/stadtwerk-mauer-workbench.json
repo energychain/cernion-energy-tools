@@ -864,6 +864,201 @@
       }
     },
     {
+      "name": "getStadtwerkMauerSalesWorkbenchBriefing",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-sales-workbench-briefing",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&audience={{audience}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "audience",
+          "default": "vertrieb"
+        }
+      ],
+      "schema": {
+        "status": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "caseId": { "type": "string" },
+        "audience": { "type": "string" },
+        "briefingRows": { "type": "array" },
+        "claimRows": { "type": "array" },
+        "evidenceRows": { "type": "array" },
+        "gapRows": { "type": "array" },
+        "followUpRows": { "type": "array" },
+        "summary": { "type": "object" },
+        "timestamp": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerSalesBriefingRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-sales-workbench-briefing",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&audience={{audience}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "audience",
+          "default": "vertrieb"
+        }
+      ],
+      "transformer": "return data.briefingRows || []",
+      "schema": {
+        "topicKey": { "type": "string" },
+        "topicLabel": { "type": "string" },
+        "rowType": { "type": "string" },
+        "audience": { "type": "string" },
+        "audienceLabel": { "type": "string" },
+        "safeClaim": { "type": "string" },
+        "claimStatus": { "type": "string" },
+        "evidenceStatus": { "type": "string" },
+        "backingCaseId": { "type": "string" },
+        "backingWorkbenchItem": { "type": "string" },
+        "openGap": { "type": "string" },
+        "recommendedInternalFollowUp": { "type": "string" },
+        "notClaimableReason": { "type": "string" },
+        "sourceLabel": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerSalesClaimRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-sales-workbench-briefing",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&audience={{audience}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "audience",
+          "default": "vertrieb"
+        }
+      ],
+      "transformer": "return data.claimRows || []",
+      "schema": {
+        "topicKey": { "type": "string" },
+        "topicLabel": { "type": "string" },
+        "audience": { "type": "string" },
+        "safeClaim": { "type": "string" },
+        "claimStatus": { "type": "string" },
+        "evidenceStatus": { "type": "string" },
+        "openGap": { "type": "string" },
+        "notClaimableReason": { "type": "string" },
+        "sourceLabel": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerSalesEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-sales-workbench-briefing",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&audience={{audience}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "audience",
+          "default": "vertrieb"
+        }
+      ],
+      "transformer": "return data.evidenceRows || []",
+      "schema": {
+        "evidenceId": { "type": "string" },
+        "topicKey": { "type": "string" },
+        "label": { "type": "string" },
+        "evidenceStatus": { "type": "string" },
+        "present": { "type": "boolean" },
+        "required": { "type": "boolean" },
+        "dataClass": { "type": "string" },
+        "sourceLabel": { "type": "string" },
+        "enablesSafeClaim": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerSalesGapRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-sales-workbench-briefing",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&audience={{audience}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "audience",
+          "default": "vertrieb"
+        }
+      ],
+      "transformer": "return data.gapRows || []",
+      "schema": {
+        "gapKey": { "type": "string" },
+        "topicKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "openGap": { "type": "string" },
+        "requiredForSafeClaim": { "type": "string" },
+        "nextInternalFollowUp": { "type": "string" },
+        "sourceLabel": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerSalesFollowUpRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-sales-workbench-briefing",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&audience={{audience}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "audience",
+          "default": "vertrieb"
+        }
+      ],
+      "transformer": "return data.followUpRows || []",
+      "schema": {
+        "followUpKey": { "type": "string" },
+        "topicKey": { "type": "string" },
+        "audience": { "type": "string" },
+        "claimStatus": { "type": "string" },
+        "label": { "type": "string" },
+        "nextInternalFollowUp": { "type": "string" },
+        "enablesSafeClaim": { "type": "string" }
+      }
+    },
+    {
       "name": "getStadtwerkMauerMastrDataOverlay",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-mastr-data-overlay",
@@ -1051,6 +1246,36 @@
       "tableTitle": "Zielnetzplanung Evidence Handover"
     },
     {
+      "id": "sales_briefing",
+      "title": "Vertrieb Briefing",
+      "queryName": "getStadtwerkMauerSalesBriefingRows",
+      "tableTitle": "Vertrieb Briefing"
+    },
+    {
+      "id": "sales_claims",
+      "title": "Evidence-backed Claims",
+      "queryName": "getStadtwerkMauerSalesClaimRows",
+      "tableTitle": "Evidence-backed Claims"
+    },
+    {
+      "id": "sales_evidence",
+      "title": "Vertrieb Evidence",
+      "queryName": "getStadtwerkMauerSalesEvidenceRows",
+      "tableTitle": "Vertrieb Evidence"
+    },
+    {
+      "id": "sales_gaps",
+      "title": "Open Claim Gaps",
+      "queryName": "getStadtwerkMauerSalesGapRows",
+      "tableTitle": "Open Claim Gaps"
+    },
+    {
+      "id": "sales_followups",
+      "title": "Internal Follow-ups",
+      "queryName": "getStadtwerkMauerSalesFollowUpRows",
+      "tableTitle": "Internal Follow-ups"
+    },
+    {
       "id": "mastr",
       "title": "MaStR Overlay",
       "queryName": "getStadtwerkMauerMastrDataOverlay",
@@ -1073,6 +1298,7 @@
     "Selected-case action rows are curated read-only/verify-only button metadata; Budibase may refresh queries but must not write arbitrary Cernion tables.",
     "Role Workbench Catalog binds to scalar role/open-target rows for Administrator, Zielnetzplanung, Vertrieb, Key Account and VDMI governance views.",
     "Zielnetzplanung Role Queue binds to scalar queue and evidence-handover rows for the generated grid-planning target.",
+    "Vertrieb Briefing binds to scalar evidence-backed claim, evidence, gap and internal follow-up rows; unsupported claims stay not-yet-claimable.",
     "Controlled Action runStadtwerkMauerE2ESmoke remains scope-protected by Cernion.",
     "Budibase renders the workbench; Cernion remains the system of record and command gate."
   ]
