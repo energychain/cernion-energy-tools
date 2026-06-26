@@ -835,6 +835,24 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Layer-0 audit drilldown prompts to the read-only validation note', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle layer0_audit_drilldown_note als Layer-0 Audit Drilldown Generator Validierungsnotiz fuer KPI Auffaelligkeit mit Peer-Abweichung und naechstem 90-Tage-Schritt.',
+    });
+
+    expect(result.capability).toBe('layer0_audit_drilldown_note');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'layer0_audit_drilldown_note'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.layer0AuditDrilldownNoteStatus');
+    expect(actionNames).not.toContain('audit-queue.create');
+    expect(actionNames).not.toContain('benchmark.connector.fetch');
+    expect(actionNames).not.toContain('report.pdf.generate');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Stadtwerk Mauer sandbox runtime prompts to the read-only status view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Stadtwerk Mauer Sandbox Runtime fuer tenant reset cleanup readiness demo event ingestion status und reset delete proof.',

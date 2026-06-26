@@ -4802,6 +4802,60 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  layer0_audit_drilldown_note: {
+    sources: [
+      {
+        id: 'anomaly_scope',
+        label: 'Layer-0 KPI or anomaly topic',
+        resolvedBy: ['dashboard-api.layer0AuditDrilldownNoteStatus', 'evidence-registry.lookup'],
+        contextKeys: ['kpiId', 'topic'],
+        optional: false,
+      },
+      {
+        id: 'data_source',
+        label: 'Data source basis',
+        resolvedBy: ['dashboard-api.layer0AuditDrilldownNoteStatus', 'datapoint.health'],
+        contextKeys: ['dataSource'],
+        optional: false,
+      },
+      {
+        id: 'peer_deviation',
+        label: 'Benchmark or peer deviation',
+        resolvedBy: ['dashboard-api.layer0AuditDrilldownNoteStatus', 'vnb-monitor.snapshot'],
+        contextKeys: ['peerDeviation', 'benchmarkPeerGroup'],
+        optional: false,
+      },
+      {
+        id: 'process_context',
+        label: 'Process and period context',
+        resolvedBy: ['dashboard-api.layer0AuditDrilldownNoteStatus', 'vdmi.dossier'],
+        contextKeys: ['processHint', 'periodHint'],
+        optional: true,
+      },
+      {
+        id: 'observed_expected_value',
+        label: 'Observed and expected value',
+        resolvedBy: ['dashboard-api.layer0AuditDrilldownNoteStatus', 'mastr-quality.audit'],
+        contextKeys: ['observedValue', 'expectedValue', 'unit'],
+        optional: true,
+      },
+      {
+        id: 'owner',
+        label: 'Accountable owner',
+        resolvedBy: ['dashboard-api.layer0AuditDrilldownNoteStatus', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'next_90_day_focus',
+        label: 'Next 90-day validation step',
+        resolvedBy: ['dashboard-api.layer0AuditDrilldownNoteStatus', 'vdmi.dossier'],
+        contextKeys: ['next90DayFocus'],
+        optional: false,
+      },
+    ],
+  },
+
   'forecast-flex': {
     sources: [
       {

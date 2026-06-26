@@ -50,6 +50,7 @@ module.exports = {
       e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
       anschlusskapazitaetEvidenceQueueStatus: 5 * 60 * 1000, // 5 min
+      layer0AuditDrilldownNoteStatus: 5 * 60 * 1000, // 5 min
       legalClarificationOperatingModelStatus: 5 * 60 * 1000, // 5 min
       drReadinessEvidenceStatus: 5 * 60 * 1000, // 5 min
       specialGridUsageImpactMapStatus: 5 * 60 * 1000, // 5 min
@@ -1726,6 +1727,96 @@ module.exports = {
           this.settings.cacheTtlMs.anschlusskapazitaetEvidenceQueueStatus,
           async () => ({
             ...this.buildAnschlusskapazitaetEvidenceQueueStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- layer0AuditDrilldownNoteStatus ----------------------------------
+    /**
+     * GET /api/dashboard/layer0-audit-drilldown
+     *
+     * Read-only dossier-safe validation note for anomalous Layer-0 audit KPIs.
+     * It structures source, peer deviation, hypothesis, misinterpretation risk,
+     * ten check fields, owner and 90-day next step without creating queues,
+     * reports, HITL tasks, connectors or operational mutations.
+     */
+    layer0AuditDrilldownNoteStatus: {
+      rest: 'GET /layer0-audit-drilldown',
+      params: {
+        kpiId: { type: 'string', optional: true, min: 1 },
+        topic: { type: 'string', optional: true, min: 1 },
+        dataSource: { type: 'string', optional: true, min: 1 },
+        peerDeviation: { type: 'string', optional: true, min: 1 },
+        processHint: { type: 'string', optional: true, min: 1 },
+        periodHint: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        next90DayFocus: { type: 'string', optional: true, min: 1 },
+        benchmarkPeerGroup: { type: 'string', optional: true, min: 1 },
+        observedValue: { type: 'string', optional: true, min: 1 },
+        expectedValue: { type: 'string', optional: true, min: 1 },
+        unit: { type: 'string', optional: true, min: 1 },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Layer-0 audit drilldown note - read-only dossier-safe validation note',
+        description:
+          'Turns an anomalous Layer-0 KPI into a deterministic validation note with data source, peer deviation, ' +
+          'hypothesis, misinterpretation risk, ten check fields, owner, next 90-day step, evidence gaps and positive follow-ups. ' +
+          'The endpoint is read-only and does not create persistent audit queues, external benchmark calls, reports, HITL tasks, ' +
+          'legal/regulatory final judgments or production mutations.',
+        parameters: [
+          { name: 'kpiId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'topic', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataSource', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'peerDeviation', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'processHint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'periodHint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'next90DayFocus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'benchmarkPeerGroup', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'observedValue', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'expectedValue', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'unit', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceStatus', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Layer-0 audit drilldown validation note',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    auditNote: { type: 'object' },
+                    checkFields: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `layer0-audit-drilldown:${params.kpiId || 'no-kpi'}:${params.topic || 'no-topic'}:${params.dataSource || 'no-source'}:${params.peerDeviation || 'no-deviation'}:${params.owner || 'no-owner'}:${params.next90DayFocus || 'no-focus'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.layer0AuditDrilldownNoteStatus,
+          async () => ({
+            ...this.buildLayer0AuditDrilldownNoteStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -9122,6 +9213,160 @@ module.exports = {
           missingEvidence,
           positiveFollowUps,
           nextGate: params.nextGate || null,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildLayer0AuditDrilldownNoteStatus(params = {}) {
+      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const anomalyScope = params.kpiId || params.topic || null;
+      const gapMap = {
+        anomaly_scope: 'add the concrete Layer-0 KPI or anomaly topic',
+        data_source: 'add the data source basis for the audit note',
+        peer_deviation: 'add the benchmark or peer deviation',
+        owner: 'add accountable follow-up ownership',
+        next_90_day_focus: 'add the next 90-day validation step',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint) => {
+        missingEvidence.push({
+          missingDataPoint,
+          status: 'missing',
+          enablesDossierAddition: gapMap[missingDataPoint],
+        });
+      };
+
+      if (!isProvided(anomalyScope)) addGap('anomaly_scope');
+      if (!isProvided(params.dataSource)) addGap('data_source');
+      if (!isProvided(params.peerDeviation)) addGap('peer_deviation');
+      if (!isProvided(params.owner)) addGap('owner');
+      if (!isProvided(params.next90DayFocus)) addGap('next_90_day_focus');
+
+      let status = 'ready_for_management_validation';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'anomaly_scope')) {
+        status = 'needs_anomaly_scope';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'data_source')) {
+        status = 'needs_data_source';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'peer_deviation')) {
+        status = 'needs_peer_deviation';
+      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'owner')) {
+        status = 'needs_owner';
+      } else if (missingEvidence.length > 0) {
+        status = 'missing_evidence';
+      }
+
+      const validationScore = Number(((Object.keys(gapMap).length - missingEvidence.length) / Object.keys(gapMap).length).toFixed(2));
+      const hypothesis = isProvided(params.peerDeviation)
+        ? `The Layer-0 signal ${anomalyScope || 'without a named KPI'} deviates from the peer basis (${params.peerDeviation}) and should be validated before management interpretation.`
+        : `The Layer-0 signal ${anomalyScope || 'without a named KPI'} requires a peer deviation before management interpretation.`;
+      const possibleMisinterpretation = 'The benchmark signal is a validation lead, not a final legal, regulatory or operational finding.';
+      const checkFields = [
+        { id: 'source_lineage', label: 'Data source lineage', value: params.dataSource || null, status: isProvided(params.dataSource) ? 'provided' : 'missing' },
+        { id: 'kpi_definition', label: 'KPI definition', value: anomalyScope, status: isProvided(anomalyScope) ? 'provided' : 'missing' },
+        { id: 'peer_group', label: 'Peer group', value: params.benchmarkPeerGroup || null, status: isProvided(params.benchmarkPeerGroup) ? 'provided' : 'open' },
+        { id: 'peer_deviation', label: 'Peer deviation', value: params.peerDeviation || null, status: isProvided(params.peerDeviation) ? 'provided' : 'missing' },
+        { id: 'process_context', label: 'Process context', value: params.processHint || null, status: isProvided(params.processHint) ? 'provided' : 'open' },
+        { id: 'period_context', label: 'Period context', value: params.periodHint || null, status: isProvided(params.periodHint) ? 'provided' : 'open' },
+        { id: 'observed_expected_value', label: 'Observed vs expected value', value: isProvided(params.observedValue) || isProvided(params.expectedValue) ? `${params.observedValue || 'n/a'} / ${params.expectedValue || 'n/a'} ${params.unit || ''}`.trim() : null, status: isProvided(params.observedValue) || isProvided(params.expectedValue) ? 'provided' : 'open' },
+        { id: 'misinterpretation_risk', label: 'Misinterpretation risk', value: possibleMisinterpretation, status: 'provided' },
+        { id: 'owner', label: 'Owner', value: params.owner || null, status: isProvided(params.owner) ? 'provided' : 'missing' },
+        { id: 'next_90_day_step', label: 'Next 90-day step', value: params.next90DayFocus || null, status: isProvided(params.next90DayFocus) ? 'provided' : 'missing' },
+      ];
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'layer0_audit_drilldown_note',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.layer0AuditDrilldownNoteStatus'],
+        referenced: [
+          'evidence-registry.lookup',
+          'vdmi.dossier',
+          'datapoint.health',
+          'mastr-quality.audit',
+          'vnb-monitor.snapshot',
+        ],
+        notCalled: [
+          'audit-queue.create',
+          'benchmark.connector.fetch',
+          'object-store.watch',
+          'report.pdf.generate',
+          'presentation.deck.generate',
+          'legal.interpret',
+          'regulatory.finalJudgment',
+          'billing.release',
+          'tariff.mutate',
+          'mako.dispatch',
+          'settlement.exportA96',
+          'device-control.execute',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const auditNote = {
+        noteId: `l0ad:${Buffer.from(`${anomalyScope || ''}:${params.dataSource || ''}:${params.owner || ''}`).toString('base64url').slice(0, 28)}`,
+        kpiId: params.kpiId || null,
+        topic: params.topic || null,
+        dataSource: params.dataSource || null,
+        peerDeviation: params.peerDeviation || null,
+        benchmarkPeerGroup: params.benchmarkPeerGroup || null,
+        observedValue: params.observedValue || null,
+        expectedValue: params.expectedValue || null,
+        unit: params.unit || null,
+        processHint: params.processHint || null,
+        periodHint: params.periodHint || null,
+        hypothesis,
+        possibleMisinterpretation,
+        owner: params.owner || null,
+        next90DayStep: params.next90DayFocus || null,
+        evidenceStatus: params.evidenceStatus || (missingEvidence.length ? 'incomplete' : 'complete'),
+        persistentQueueCreated: false,
+        reportGenerated: false,
+        finalJudgmentApplied: false,
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Anomaly: ${anomalyScope || 'missing'}`,
+        `Data Source: ${auditNote.dataSource || 'missing'}`,
+        `Peer Deviation: ${auditNote.peerDeviation || 'missing'}`,
+        `Hypothesis: ${hypothesis}`,
+        `Misinterpretation Risk: ${possibleMisinterpretation}`,
+        `Check Fields: ${checkFields.length}/10`,
+        `Owner: ${auditNote.owner || 'missing'}`,
+        `Next 90-Day Step: ${auditNote.next90DayStep || 'missing'}`,
+      ];
+
+      return {
+        capabilityKey: 'layer0_audit_drilldown_note',
+        safety: 'read_only',
+        status,
+        validationScore,
+        auditNote,
+        hypothesis,
+        possibleMisinterpretation,
+        checkFields,
+        evidenceStatus: auditNote.evidenceStatus,
+        missingEvidence,
+        positiveFollowUps,
+        sourceActions,
+        validationFindings: missingEvidence.map((gap) => ({
+          code: `L0AD_${String(gap.missingDataPoint).toUpperCase()}_MISSING`,
+          severity: ['anomaly_scope', 'data_source', 'peer_deviation'].includes(gap.missingDataPoint) ? 'high' : 'medium',
+          message: gap.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          capabilityKey: 'layer0_audit_drilldown_note',
+          status,
+          validationScore,
+          auditNote,
+          hypothesis,
+          possibleMisinterpretation,
+          checkFields,
+          evidenceStatus: auditNote.evidenceStatus,
+          missingEvidence,
+          positiveFollowUps,
           sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,
         },

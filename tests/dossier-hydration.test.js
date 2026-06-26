@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 93 static rules', () => {
+    it('loads all 94 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(93);
+      expect(rules.length).toBe(94);
     });
 
-    it('compiles all 93 static rules without error', () => {
+    it('compiles all 94 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(93);
+      expect(rules.length).toBe(94);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -523,6 +523,59 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('NVP Hint: nvp-west');
       expect(formatted).toContain('Capacity kW: 1250');
       expect(formatted).toContain('Side-Effect Guard: grid-connection.reserveCapacity');
+    });
+
+    it('dashboard-api.layer0AuditDrilldownNoteStatus is dossier-safe and formats audit note facts', () => {
+      const rule = getRule('dashboard-api.layer0AuditDrilldownNoteStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Layer-0 Audit Drilldown kpi=l0-grid-duration datenquelle=layer0-export abweichung=+38pct owner=prozessmanagement 90tage=source-validation laden'
+        )
+      ).toEqual({
+        kpiId: 'l0-grid-duration',
+        dataSource: 'layer0-export',
+        peerDeviation: '+38pct',
+        owner: 'prozessmanagement',
+        next90DayFocus: 'source-validation',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'layer0_audit_drilldown_note',
+        status: 'needs_peer_deviation',
+        auditNote: {
+          kpiId: 'l0-grid-duration',
+          dataSource: 'layer0-export',
+          peerDeviation: '+38pct',
+          hypothesis: 'Peer deviation requires validation before interpretation.',
+          possibleMisinterpretation: 'Benchmark signal is not a final finding.',
+          owner: 'prozessmanagement',
+          next90DayStep: 'source-validation',
+        },
+        hypothesis: 'Peer deviation requires validation before interpretation.',
+        possibleMisinterpretation: 'Benchmark signal is not a final finding.',
+        checkFields: Array.from({ length: 10 }, (_, index) => ({ id: `check-${index + 1}` })),
+        missingEvidence: [{ missingDataPoint: 'peer_deviation' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add the benchmark or peer deviation' },
+        ],
+        sourceActions: {
+          notCalled: ['audit-queue.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: needs_peer_deviation'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: layer0_audit_drilldown_note');
+      expect(formatted).toContain('Status: needs_peer_deviation');
+      expect(formatted).toContain('KPI: l0-grid-duration');
+      expect(formatted).toContain('Data Source: layer0-export');
+      expect(formatted).toContain('Peer Deviation: +38pct');
+      expect(formatted).toContain('Owner: prozessmanagement');
+      expect(formatted).toContain('Side-Effect Guard: audit-queue.create');
     });
 
     it('dashboard-api.regulatoryChangeReadinessStatus is dossier-safe and formats readiness facts', () => {

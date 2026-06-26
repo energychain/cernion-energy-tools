@@ -2185,6 +2185,71 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- layer0AuditDrilldownNoteStatus ------------------------------------
+
+  describe('layer0AuditDrilldownNoteStatus', () => {
+    it('reports audit drilldown evidence gaps without consequential actions', async () => {
+      const result = await broker.call('dashboard-api.layer0AuditDrilldownNoteStatus', {
+        kpiId: 'l0-grid-process-duration',
+        dataSource: 'layer0-kpi-export-q2',
+        owner: 'prozessmanagement',
+      });
+
+      expect(result.status).toBe('needs_peer_deviation');
+      expect(result.auditNote).toMatchObject({
+        kpiId: 'l0-grid-process-duration',
+        dataSource: 'layer0-kpi-export-q2',
+        owner: 'prozessmanagement',
+        persistentQueueCreated: false,
+        reportGenerated: false,
+        finalJudgmentApplied: false,
+      });
+      expect(result.checkFields).toHaveLength(10);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['peer_deviation', 'next_90_day_focus'])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('layer0_audit_drilldown_note');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'audit-queue.create',
+          'benchmark.connector.fetch',
+          'report.pdf.generate',
+          'legal.interpret',
+          'hitl.create',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_management_validation with ten check fields when all core facts are supplied', async () => {
+      const result = await broker.call('dashboard-api.layer0AuditDrilldownNoteStatus', {
+        kpiId: 'l0-grid-process-duration',
+        topic: 'grid-connection-cycle-time',
+        dataSource: 'layer0-kpi-export-q2',
+        peerDeviation: '+38pct-vs-peer-median',
+        benchmarkPeerGroup: 'regional-vnb-peer-group',
+        processHint: 'netzanschluss',
+        periodHint: '2026-Q2',
+        observedValue: '42',
+        expectedValue: '30',
+        unit: 'days',
+        evidenceStatus: 'validated',
+        owner: 'prozessmanagement',
+        next90DayFocus: 'validate-source-and-owner-action',
+      });
+
+      expect(result.status).toBe('ready_for_management_validation');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.validationScore).toBe(1);
+      expect(result.checkFields).toHaveLength(10);
+      expect(result.auditNote.next90DayStep).toBe('validate-source-and-owner-action');
+      expect(result.dossierEvidence.dossierFacts).toContain('Check Fields: 10/10');
+      expect(result.sourceActions.notCalled).toContain('benchmark.connector.fetch');
+    });
+  });
+
   // -- legalClarificationOperatingModelStatus -----------------------------
 
   describe('legalClarificationOperatingModelStatus', () => {

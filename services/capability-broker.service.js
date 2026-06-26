@@ -1528,6 +1528,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasLayer0AuditDrilldownSignal =
+    /(layer.?0|layer-0|layer0|audit drilldown|audit-drilldown|validierungsnotiz|kpi auffaelligkeit|kpi auffälligkeit|peer.?abweichung|90.?tage)/i.test(haystack) &&
+    /(audit|drilldown|validierungsnotiz|kpi|benchmark|peer.?abweichung|management.?validation|90.?tage)/i.test(haystack) &&
+    !/(audit.?queue create|queue worker|report\.pdf|pdf generieren|powerpoint|deck generieren|external connector|hitl\.create|legal opinion|rechtsgutachten|billing|settlement|tariff|mako|device.?control|personal-agent execute)/i.test(haystack);
+
+  if (hasLayer0AuditDrilldownSignal || haystack.includes('layer0_audit_drilldown_note')) {
+    const layer0AuditCapability = findCapabilityByName('layer0_audit_drilldown_note');
+    if (layer0AuditCapability) {
+      return { capability: layer0AuditCapability, score: 123, usedFallback: false };
+    }
+  }
+
   if (benchmarkSignals.some((signal) => haystack.includes(signal))) {
     const benchmarkCapability = findCapabilityByName('vnb_kpi_benchmark_comparison');
     if (benchmarkCapability) {

@@ -1439,6 +1439,8 @@ module.exports = {
             'dashboard-api.controllabilityAssetHandoverStatus',
           'GET /dashboard/anschlusskapazitaet-evidence-queue':
             'dashboard-api.anschlusskapazitaetEvidenceQueueStatus',
+          'GET /dashboard/layer0-audit-drilldown':
+            'dashboard-api.layer0AuditDrilldownNoteStatus',
           'GET /dashboard/legal-clarification-operating-model':
             'dashboard-api.legalClarificationOperatingModelStatus',
           'GET /dashboard/dr-readiness-evidence':

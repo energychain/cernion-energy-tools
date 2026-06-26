@@ -116,6 +116,7 @@ const CAPABILITY_DOMAIN_MAP = {
   nova_governance: 'governance',
   automation_governance: 'governance',
   ki_governance: 'governance',
+  audit_governance: 'governance',
   // metering asset financial/accounting governance (off-balance treatment) —
   // a finance/compliance gate, not operational metering data
   metering_finance_governance: 'governance',

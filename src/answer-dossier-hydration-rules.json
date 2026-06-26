@@ -6973,5 +6973,123 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 222
+  },
+  {
+    "id": "layer0_audit_drilldown_note",
+    "description": "Read-only Layer-0 audit drilldown validation note",
+    "routeLabel": "layer0_audit_drilldown_note",
+    "capability": "layer0_audit_drilldown_note",
+    "action": "dashboard-api.layer0AuditDrilldownNoteStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "audit-queue.create",
+        "benchmark.connector.fetch",
+        "object-store.watch",
+        "report.pdf.generate",
+        "presentation.deck.generate",
+        "legal.interpret",
+        "regulatory.finalJudgment",
+        "billing.release",
+        "tariff.mutate",
+        "mako.dispatch",
+        "settlement.exportA96",
+        "settlement.prepareBilling",
+        "device-control.execute",
+        "hitl.create",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "layer-0 audit",
+      "layer0 audit",
+      "audit drilldown",
+      "benchmark abweichung",
+      "peer abweichung",
+      "validierungsnotiz",
+      "kpi auffaelligkeit",
+      "90 tage schritt",
+      "layer0_audit_drilldown_note"
+    ],
+    "paramTemplate": {
+      "kpiId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:kpiId|kpi-id|kpi)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "topic": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:topic|thema)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "dataSource": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:dataSource|datenquelle|source)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "peerDeviation": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:peerDeviation|peer-abweichung|abweichung|deviation)[:= ]+([A-Za-z0-9:%.,_+-]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner|verantwortlich)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "next90DayFocus": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:next90DayFocus|90tage|90-tage|next-step|naechster-schritt)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 120 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Status", "maxLen": 120 },
+        { "paths": ["auditNote.kpiId", "dossierEvidence.auditNote.kpiId"], "label": "KPI", "maxLen": 120 },
+        { "paths": ["auditNote.topic", "dossierEvidence.auditNote.topic"], "label": "Topic", "maxLen": 120 },
+        { "paths": ["auditNote.dataSource", "dossierEvidence.auditNote.dataSource"], "label": "Data Source", "maxLen": 120 },
+        { "paths": ["auditNote.peerDeviation", "dossierEvidence.auditNote.peerDeviation"], "label": "Peer Deviation", "maxLen": 120 },
+        { "paths": ["hypothesis", "dossierEvidence.hypothesis", "auditNote.hypothesis"], "label": "Hypothesis", "maxLen": 180 },
+        { "paths": ["possibleMisinterpretation", "dossierEvidence.possibleMisinterpretation", "auditNote.possibleMisinterpretation"], "label": "Misinterpretation Risk", "maxLen": 180 },
+        { "paths": ["checkFields.length", "dossierEvidence.checkFields.length"], "label": "Check Fields" },
+        { "paths": ["auditNote.owner", "dossierEvidence.auditNote.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["auditNote.next90DayStep", "dossierEvidence.auditNote.next90DayStep"], "label": "Next 90-Day Step", "maxLen": 160 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Positive Follow-up", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 300
   }
 ]
