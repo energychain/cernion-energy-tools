@@ -7737,6 +7737,7 @@ describe('dashboard-api.service', () => {
       expect(result.selectedRows[0]).toMatchObject({
         rowKey: 'selected_target',
         label: 'Selected Target',
+        valueLabel: 'Zielnetzplanung',
         status: 'available',
         sectionKey: 'grid_planning_role_queue',
         roleKey: 'grid-planning',
@@ -7749,6 +7750,7 @@ describe('dashboard-api.service', () => {
       expect(result.helperRows.map((row) => row.safeNextAction)).toEqual(
         expect.arrayContaining(['show_selected_section', 'query_refresh_only'])
       );
+      expect(JSON.stringify(result.helperRows)).not.toContain('undefined');
       expectScalarTableRows(result.selectedRows);
       expectScalarTableRows(result.focusRows);
       expectScalarTableRows(result.helperRows);

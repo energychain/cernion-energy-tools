@@ -23994,7 +23994,7 @@ module.exports = {
       }));
       const roleTargets = (roleCatalogStatus?.targets || []).map((target) => ({
         targetId: target.roleKey,
-        title: target.label,
+        title: target.displayName || target.label || this.humanizeWorkbenchLabel(target.roleKey),
         roleKey: target.roleKey,
         sectionKey: target.openTarget || this.mapStadtwerkMauerTargetToSection(target.roleKey, target.routeKey),
         anchor: `#${target.openTarget || this.mapStadtwerkMauerTargetToSection(target.roleKey, target.routeKey)}`,
