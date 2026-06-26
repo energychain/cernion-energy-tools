@@ -17088,6 +17088,39 @@
         ]
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-role-workbench-catalog": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerRoleWorkbenchCatalogStatus",
+        "summary": "Stadtwerk Mauer role Workbench catalog -- read-only open-target contract",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer role Workbench catalog projection"
+          }
+        },
+        "description": "Returns deterministic Budibase-renderable role Workbench target metadata for the Stadtwerk Mauer Workbench Hub. The endpoint exposes scalar role/open-target rows for Administrator, Zielnetzplanung, Vertrieb, Key Account and VDMI governance views without implementing role calculations, Budibase writes, authorization changes, MaKo, billing, settlement, device-control, HITL or external connector actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/fnav-fast-track-contract-gate": {
       "get": {
         "operationId": "dashboard-api_fnavFastTrackContractGateStatus",
@@ -59592,6 +59625,39 @@
           }
         },
         "description": "Returns deterministic Budibase-renderable selected-case action metadata for the Stadtwerk Mauer Workbench. The endpoint exposes refresh, Blueprint verify and evidence validation actions as scalar rows and automation hints without executing Budibase writes, setup/reset/provisioning, Rundeck jobs, MaKo, billing, settlement, device-control, HITL or external connector actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-role-workbench-catalog": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerRoleWorkbenchCatalogStatus",
+        "summary": "Stadtwerk Mauer role Workbench catalog -- read-only open-target contract",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer role Workbench catalog projection"
+          }
+        },
+        "description": "Returns deterministic Budibase-renderable role Workbench target metadata for the Stadtwerk Mauer Workbench Hub. The endpoint exposes scalar role/open-target rows for Administrator, Zielnetzplanung, Vertrieb, Key Account and VDMI governance views without implementing role calculations, Budibase writes, authorization changes, MaKo, billing, settlement, device-control, HITL or external connector actions.",
         "parameters": [
           {
             "name": "tenantId",

@@ -263,6 +263,91 @@
       }
     },
     {
+      "name": "getStadtwerkMauerRoleWorkbenchCatalog",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-role-workbench-catalog",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "schema": {
+        "status": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "catalogId": { "type": "string" },
+        "targets": { "type": "array" },
+        "roleRows": { "type": "array" },
+        "openTargetRows": { "type": "array" },
+        "summary": { "type": "object" },
+        "timestamp": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerRoleWorkbenchRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-role-workbench-catalog",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "return data.roleRows || []",
+      "schema": {
+        "roleKey": { "type": "string" },
+        "roleCode": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "statusLabel": { "type": "string" },
+        "routeKey": { "type": "string" },
+        "routeTarget": { "type": "string" },
+        "openTarget": { "type": "string" },
+        "nextGateLabel": { "type": "string" },
+        "evidenceDomainsLabel": { "type": "string" },
+        "allowedActionClassesLabel": { "type": "string" },
+        "safetyLabel": { "type": "string" },
+        "dataClassLabel": { "type": "string" },
+        "readinessLabel": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerRoleOpenTargetRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-role-workbench-catalog",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "return data.openTargetRows || []",
+      "schema": {
+        "openTarget": { "type": "string" },
+        "routeKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "targetPath": { "type": "string" },
+        "allowedActionClassesLabel": { "type": "string" },
+        "nextGateLabel": { "type": "string" }
+      }
+    },
+    {
       "name": "getStadtwerkMauerMastrDataOverlay",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-mastr-data-overlay",
@@ -360,6 +445,18 @@
       "tableTitle": "Selected Case Actions"
     },
     {
+      "id": "role_workbench_catalog",
+      "title": "Role Workbench Catalog",
+      "queryName": "getStadtwerkMauerRoleWorkbenchRows",
+      "tableTitle": "Role Workbench Targets"
+    },
+    {
+      "id": "role_open_targets",
+      "title": "Role Open Targets",
+      "queryName": "getStadtwerkMauerRoleOpenTargetRows",
+      "tableTitle": "Role Open Targets"
+    },
+    {
       "id": "mastr",
       "title": "MaStR Overlay",
       "queryName": "getStadtwerkMauerMastrDataOverlay",
@@ -377,7 +474,7 @@
     "Administrator Inventory binds to scalar rows that separate public context, synthetic seed, sandbox runtime, generated workbench items and read/verify runbooks.",
     "Selected Case Evidence and Next Gates bind to scalar rows so tables do not render nested objects.",
     "Selected-case action rows are curated read-only/verify-only button metadata; Budibase may refresh queries but must not write arbitrary Cernion tables.",
-    "Role workbench catalog is a planned follow-up target, not implemented in this slice.",
+    "Role Workbench Catalog binds to scalar role/open-target rows for Administrator, Zielnetzplanung, Vertrieb, Key Account and VDMI governance views.",
     "Controlled Action runStadtwerkMauerE2ESmoke remains scope-protected by Cernion.",
     "Budibase renders the workbench; Cernion remains the system of record and command gate."
   ]

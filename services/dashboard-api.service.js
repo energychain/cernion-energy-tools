@@ -115,6 +115,7 @@ module.exports = {
       stadtwerkMauerWorkbenchHubStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerAdministratorInventoryStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerCaseActionsStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerRoleWorkbenchCatalogStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
       assetValuationTransformationGateStatus: 5 * 60 * 1000, // 5 min
@@ -5915,6 +5916,123 @@ module.exports = {
                 tenantId,
                 caseId,
                 caseDetailStatus,
+              }),
+              timestamp: new Date().toISOString(),
+              _errors: errors,
+            };
+          }
+        );
+      },
+    },
+
+    // -- stadtwerkMauerRoleWorkbenchCatalogStatus -----------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-role-workbench-catalog
+     *
+     * Read-only role Workbench catalog/open-target contract for the
+     * Stadtwerk Mauer Workbench Hub. This slice is Workbench/dashboard-only
+     * and deliberately does not add broker or dossier hydration exposure.
+     */
+    stadtwerkMauerRoleWorkbenchCatalogStatus: {
+      rest: 'GET /stadtwerk-mauer-role-workbench-catalog',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer role Workbench catalog -- read-only open-target contract',
+        description:
+          'Returns deterministic Budibase-renderable role Workbench target metadata for the ' +
+          'Stadtwerk Mauer Workbench Hub. The endpoint exposes scalar role/open-target rows ' +
+          'for Administrator, Zielnetzplanung, Vertrieb, Key Account and VDMI governance views ' +
+          'without implementing role calculations, Budibase writes, authorization changes, ' +
+          'MaKo, billing, settlement, device-control, HITL or external connector actions.',
+        parameters: [
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Stadtwerk Mauer role Workbench catalog projection',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const caseId = params.caseId || 'smm-budibase-workbench';
+        const errors = [];
+        const cacheKey = `stadtwerk-mauer-role-workbench-catalog:${tenantId}:${caseId}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.stadtwerkMauerRoleWorkbenchCatalogStatus,
+          async () => {
+            if (tenantId !== 'stadtwerk-mauer') {
+              return {
+                ...this.buildStadtwerkMauerRoleWorkbenchCatalogStatus({
+                  tenantId,
+                  caseId,
+                  hubStatus: null,
+                  administratorInventoryStatus: null,
+                  caseActionsStatus: null,
+                }),
+                timestamp: new Date().toISOString(),
+                _errors: errors,
+              };
+            }
+
+            const e2eStatus = await this.safeCall(
+              ctx,
+              'stadtwerk-mauer-e2e-process-demo.getStatus',
+              { tenantId, caseId, limit: 10 },
+              this.buildMissingStadtwerkMauerE2eProcessDemoStatus(tenantId, caseId),
+              errors,
+              'stadtwerk-mauer-e2e-process-demo.getStatus'
+            );
+            const mastrStatus = await this.safeCall(
+              ctx,
+              'stadtwerk-mauer-mastr-data-overlay.getStatus',
+              { tenantId, limit: 10 },
+              this.buildMissingStadtwerkMauerMastrDataOverlayStatus(tenantId, {}),
+              errors,
+              'stadtwerk-mauer-mastr-data-overlay.getStatus'
+            );
+            const caseDetailStatus = this.buildStadtwerkMauerCaseDetailStatus({
+              tenantId,
+              caseId,
+              e2eStatus,
+            });
+            const hubStatus = this.buildStadtwerkMauerWorkbenchHubStatus({
+              tenantId,
+              caseId,
+              e2eStatus,
+              mastrStatus,
+              caseDetailStatus,
+            });
+            const administratorInventoryStatus = this.buildStadtwerkMauerAdministratorInventoryStatus({
+              tenantId,
+              caseId,
+              includeRuntime: true,
+              e2eStatus,
+              mastrStatus,
+              caseDetailStatus,
+              hubStatus,
+            });
+            const caseActionsStatus = this.buildStadtwerkMauerCaseActionsStatus({
+              tenantId,
+              caseId,
+              caseDetailStatus,
+            });
+
+            return {
+              ...this.buildStadtwerkMauerRoleWorkbenchCatalogStatus({
+                tenantId,
+                caseId,
+                hubStatus,
+                administratorInventoryStatus,
+                caseActionsStatus,
               }),
               timestamp: new Date().toISOString(),
               _errors: errors,
@@ -21953,18 +22071,18 @@ module.exports = {
           targetId: 'role-workbench-catalog',
           routeKey: 'role-catalog',
           label: 'Role Workbench Catalog',
-          status: 'planned',
+          status: 'available',
           safety: 'read_only',
           dataClasses: ['syntheticTenantSeed'],
           requiredEvidenceDomains: ['role_catalog', 'route_contract', 'target_status'],
           allowedActionClasses: ['read_model_navigation'],
-          readinessSummary: `E2E demo status: ${e2eReady}. Stable role target contract is reserved for #308.`,
+          readinessSummary: `E2E demo status: ${e2eReady}. Stable role target contract is available from #308.`,
           nextGate: {
-            id: 'product_cut_308',
-            label: 'Implement #308 as generated role-workbench catalog/open-target contract',
+            id: 'render_role_workbench_catalog',
+            label: 'Render #308 role-workbench catalog/open-target rows',
           },
           routeTarget: {
-            type: 'planned_api_query',
+            type: 'api_query',
             routeKey: 'role-catalog',
             path: '/api/dashboard/stadtwerk-mauer-role-workbench-catalog',
           },
@@ -22611,6 +22729,332 @@ module.exports = {
         }
       }
       return rows;
+    },
+
+    buildStadtwerkMauerRoleWorkbenchCatalogStatus({
+      tenantId = 'stadtwerk-mauer',
+      caseId = 'smm-budibase-workbench',
+      hubStatus = null,
+      administratorInventoryStatus = null,
+      caseActionsStatus = null,
+    } = {}) {
+      const seed = stadtwerkMauerPvMissingNap;
+      const sandboxBoundaryAllowed = tenantId === seed.demoTenant.tenantId;
+      const missingEvidence = sandboxBoundaryAllowed
+        ? []
+        : [
+            {
+              missingDataPoint: 'stadtwerk_mauer_tenant_scope',
+              enablesDossierAddition:
+                'select the synthetic tenant stadtwerk-mauer before rendering role Workbench targets',
+              dataClass: 'syntheticTenantSeed',
+              state: 'clarification',
+            },
+          ];
+      const noCallGuards = Array.from(
+        new Set([
+          ...(seed.forbiddenActions || []),
+          ...(hubStatus?.sourceActions?.notCalled || []),
+          ...(administratorInventoryStatus?.sourceActions?.notCalled || []),
+          ...(caseActionsStatus?.sourceActions?.notCalled || []),
+          'budibase.table.write',
+          'budibase.api.call',
+          'budibase.system_of_record',
+          'budibase.automation.arbitrary_write',
+          'role.assignment.write',
+          'auth.policy.mutate',
+          'tenant.provision',
+          'tenant.seed.import',
+          'setup.execute',
+          'reset.execute',
+          'delete.execute',
+          'public-context.mutate',
+          'sandbox-runtime.mutate',
+          'production.mutate',
+          'rundeck.job.execute',
+          'operations-runbook.execute',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'device-control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+      const targets = sandboxBoundaryAllowed
+        ? this.buildStadtwerkMauerRoleWorkbenchCatalogTargets({
+            caseId,
+            hubStatus,
+            administratorInventoryStatus,
+            caseActionsStatus,
+          })
+        : [];
+      const roleRows = this.buildStadtwerkMauerRoleWorkbenchRows(targets);
+      const openTargetRows = this.buildStadtwerkMauerOpenTargetRows(targets);
+      const statusCounts = targets.reduce(
+        (acc, target) => {
+          acc[target.status] = (acc[target.status] || 0) + 1;
+          return acc;
+        },
+        { available: 0, planned: 0, blocked: 0 }
+      );
+      const status = sandboxBoundaryAllowed
+        ? 'role_workbench_catalog_ready'
+        : 'role_workbench_catalog_blocked_outside_sandbox_tenant';
+      const plannedOrBlocked = targets.filter((target) => target.status !== 'available');
+      const positiveFollowUps = [
+        ...missingEvidence.map((item) => ({
+          ...item,
+          category: 'stadtwerk_mauer_role_workbench_catalog',
+        })),
+        ...plannedOrBlocked.map((target) => ({
+          missingDataPoint: target.roleKey,
+          enablesDossierAddition: target.enablesDossierAddition,
+          category: 'stadtwerk_mauer_role_workbench_catalog',
+          state: target.status,
+        })),
+      ];
+      const dossierFacts = [
+        `Role Workbench Catalog Status: ${status}`,
+        `Tenant: ${tenantId}`,
+        `Role targets: ${targets.length}`,
+        `Available role targets: ${statusCounts.available || 0}`,
+        `Planned role targets: ${statusCounts.planned || 0}`,
+        `Open-target rows: ${openTargetRows.length}`,
+      ];
+
+      return {
+        capabilityKey: 'stadtwerk_mauer_role_workbench_catalog',
+        safety: 'read_only',
+        found: sandboxBoundaryAllowed,
+        status,
+        tenantId,
+        requiredTenantId: seed.demoTenant.tenantId,
+        sandboxBoundaryAllowed,
+        caseId,
+        catalogId: 'stadtwerk-mauer-role-workbench-catalog',
+        title: 'Stadtwerk Mauer Role Workbench Catalog',
+        roleVocabulary: ['admin', 'grid-planning', 'sales', 'key-account', 'vdmi-governance'],
+        summary: {
+          targetCount: targets.length,
+          statusCounts,
+          hubStatus: hubStatus?.status || null,
+          administratorInventoryStatus: administratorInventoryStatus?.status || null,
+          caseActionsStatus: caseActionsStatus?.status || null,
+          budibaseBoundary:
+            'Budibase renders role/open-target rows only; Cernion remains the system of record and command gate.',
+          syntheticIdDisclaimer:
+            'Stadtwerk Mauer app, role targets and case values are synthetic demo identifiers unless explicitly marked as public context.',
+        },
+        targets,
+        roleRows,
+        openTargetRows,
+        missingEvidence,
+        positiveFollowUps,
+        nextGate:
+          plannedOrBlocked[0]?.nextGate || {
+            id: 'grid_planning_role_queue_cut_317',
+            label: 'Cut a ZNP/grid-planning role queue projection (#317)',
+          },
+        capabilityBroker: {
+          exposed: false,
+          reason:
+            'Role Workbench catalog is Hub navigation/readiness metadata; no broad Personal-Agent capability route is added.',
+        },
+        hydrationRegistry: {
+          exposed: false,
+          reason:
+            'No dossier hydration rule is added for this Workbench-only role catalog slice.',
+        },
+        sourceActions: {
+          inspected: ['dashboard-api.stadtwerkMauerRoleWorkbenchCatalogStatus'],
+          referenced: [
+            'dashboard-api.stadtwerkMauerWorkbenchHubStatus',
+            'dashboard-api.stadtwerkMauerAdministratorInventoryStatus',
+            'dashboard-api.stadtwerkMauerCaseActionsStatus',
+            'src/role-workbench-projector.js',
+            'integrations/budibase/manifests/stadtwerk-mauer-workbench.json',
+            'integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js',
+          ],
+          notCalled: noCallGuards,
+        },
+        noCallGuards,
+        dossierFacts,
+        dossierEvidence: {
+          status,
+          tenantId,
+          catalogId: 'stadtwerk-mauer-role-workbench-catalog',
+          roleTargets: roleRows,
+          missingEvidence,
+          positiveFollowUps,
+          noCallGuards,
+          dossierFacts,
+        },
+        meta: {
+          inspected: [
+            'dashboard-api.stadtwerkMauerRoleWorkbenchCatalogStatus',
+            'dashboard-api.stadtwerkMauerWorkbenchHubStatus',
+            'dashboard-api.stadtwerkMauerAdministratorInventoryStatus',
+            'dashboard-api.stadtwerkMauerCaseActionsStatus',
+            'budibase-stadtwerk-mauer-workbench-manifest',
+          ],
+        },
+      };
+    },
+
+    buildStadtwerkMauerRoleWorkbenchCatalogTargets({
+      caseId = 'smm-budibase-workbench',
+      hubStatus = {},
+      administratorInventoryStatus = {},
+      caseActionsStatus = {},
+    } = {}) {
+      const adminAvailable = administratorInventoryStatus?.found === true;
+      const actionsAvailable = caseActionsStatus?.found === true;
+      const hubReady = hubStatus?.found === true;
+      return [
+        {
+          targetId: 'administrator-workbench',
+          roleKey: 'admin',
+          roleCode: 'ROLE_ADMINISTRATOR',
+          displayName: 'Administrator Workbench',
+          status: adminAvailable ? 'available' : 'blocked',
+          routeKey: 'admin',
+          routeTarget: '/stadtwerk-mauer/admin',
+          openTarget: 'administrator_inventory',
+          requiredEvidenceDomains: ['tenant_inventory', 'data_catalog', 'source_boundaries'],
+          allowedActionClasses: ['read_model_navigation', 'verify_readiness'],
+          nextGate: adminAvailable
+            ? { id: 'inspect_administrator_inventory', label: 'Render Administrator inventory rows' }
+            : { id: 'restore_administrator_inventory', label: 'Restore Administrator inventory read model' },
+          safetyNotes: 'Read-only inventory; no tenant provisioning, reset, delete or Budibase table writes.',
+          dataClassNotes: 'public context, synthetic tenant seed and sandbox runtime are separated.',
+          readinessSummary:
+            administratorInventoryStatus?.status || 'administrator_inventory_status_unknown',
+          enablesDossierAddition:
+            'add Administrator inventory categories, generated workbench items and read/verify runbook references',
+        },
+        {
+          targetId: 'zielnetzplanung-workbench',
+          roleKey: 'grid-planning',
+          roleCode: 'ROLE_NETZPLANUNG',
+          displayName: 'Zielnetzplanung',
+          status: 'planned',
+          routeKey: 'grid-planning',
+          routeTarget: '/stadtwerk-mauer/grid-planning',
+          openTarget: 'grid_planning_role_queue',
+          requiredEvidenceDomains: ['nap_reference', 'grid_capacity_context', 'malo_melo_meter_context'],
+          allowedActionClasses: ['read_model_navigation', 'verify_evidence_completeness'],
+          nextGate: {
+            id: 'grid_planning_role_queue_cut_317',
+            label: 'Cut a ZNP/grid-planning role queue projection (#317)',
+          },
+          safetyNotes: 'Read-only role queue target; no grid-capacity calculation or device-control action.',
+          dataClassNotes: 'public context and synthetic tenant seed stay explicit in the future role queue.',
+          readinessSummary: hubReady
+            ? `Hub target is launchable for case ${caseId}; role queue rows are the next cut.`
+            : 'Hub target is not available for this tenant/case.',
+          enablesDossierAddition:
+            'add ZNP role queue rows and evidence handover once the grid-planning projection is cut',
+        },
+        {
+          targetId: 'sales-workbench',
+          roleKey: 'sales',
+          roleCode: 'ROLE_VERTRIEB',
+          displayName: 'Vertrieb',
+          status: 'planned',
+          routeKey: 'sales',
+          routeTarget: '/stadtwerk-mauer/sales',
+          openTarget: 'sales_advisory_read_model',
+          requiredEvidenceDomains: ['customer_advisory_context', 'commercial_boundary'],
+          allowedActionClasses: ['read_model_navigation'],
+          nextGate: {
+            id: 'sales_role_workbench_cut',
+            label: 'Cut a Vertrieb advisory read model',
+          },
+          safetyNotes: 'No offer, tariff, billing or settlement release is implemented.',
+          dataClassNotes: 'synthetic tenant seed only until a sales evidence contract is cut.',
+          readinessSummary: actionsAvailable
+            ? 'Selected-case read/verify actions are available; sales advisory content is not cut yet.'
+            : 'Selected-case actions are unavailable for this tenant/case.',
+          enablesDossierAddition:
+            'add customer advisory readiness facts once Vertrieb evidence contracts exist',
+        },
+        {
+          targetId: 'key-account-workbench',
+          roleKey: 'key-account',
+          roleCode: 'ROLE_KEY_ACCOUNT',
+          displayName: 'Key Account / Project Advisory',
+          status: 'planned',
+          routeKey: 'key-account',
+          routeTarget: '/stadtwerk-mauer/key-account',
+          openTarget: 'project_customer_advisory',
+          requiredEvidenceDomains: ['project_customer_context', 'advisory_boundary'],
+          allowedActionClasses: ['read_model_navigation'],
+          nextGate: {
+            id: 'key_account_role_workbench_cut',
+            label: 'Cut a project customer advisory read model',
+          },
+          safetyNotes: 'No customer communication, offer creation, billing or contract mutation is implemented.',
+          dataClassNotes: 'synthetic tenant and case data only.',
+          readinessSummary: 'Project customer advisory is a future read-only projection target.',
+          enablesDossierAddition:
+            'add project-customer handover and advisory context once a Key Account slice is cut',
+        },
+        {
+          targetId: 'vdmi-governance-reviewer',
+          roleKey: 'vdmi-governance',
+          roleCode: 'ROLE_VDMI_GOVERNANCE_REVIEWER',
+          displayName: 'VDMI Governance / Reviewer',
+          status: 'planned',
+          routeKey: 'vdmi-governance',
+          routeTarget: '/stadtwerk-mauer/vdmi-governance',
+          openTarget: 'vdmi_governance_reviewer',
+          requiredEvidenceDomains: ['vdmi_blueprint_seed', 'decision_policy', 'evidence_requirements'],
+          allowedActionClasses: ['read_model_navigation', 'verify_blueprint_seed'],
+          nextGate: {
+            id: 'vdmi_governance_reviewer_cut',
+            label: 'Cut a VDMI governance/reviewer projection',
+          },
+          safetyNotes: 'Reviewer target is metadata-only; no policy mutation or HITL case creation.',
+          dataClassNotes: 'generated VDMI seed facts and sandbox runtime evidence only.',
+          readinessSummary: 'Blueprint verify exists; reviewer workbench projection is not cut yet.',
+          enablesDossierAddition:
+            'add VDMI reviewer evidence and policy-boundary rows once a governance slice is cut',
+        },
+      ];
+    },
+
+    buildStadtwerkMauerRoleWorkbenchRows(targets = []) {
+      return targets.map((target) => ({
+        roleKey: target.roleKey,
+        roleCode: target.roleCode,
+        label: target.displayName,
+        status: target.status,
+        statusLabel: this.humanizeWorkbenchLabel(target.status),
+        routeKey: target.routeKey,
+        routeTarget: target.routeTarget,
+        openTarget: target.openTarget,
+        nextGateLabel: target.nextGate?.label || this.humanizeWorkbenchLabel(target.nextGate?.id),
+        evidenceDomainsLabel: (target.requiredEvidenceDomains || []).join(', '),
+        allowedActionClassesLabel: (target.allowedActionClasses || []).join(', '),
+        safetyLabel: target.safetyNotes,
+        dataClassLabel: target.dataClassNotes,
+        readinessLabel: target.readinessSummary,
+      }));
+    },
+
+    buildStadtwerkMauerOpenTargetRows(targets = []) {
+      return targets.map((target) => ({
+        openTarget: target.openTarget,
+        routeKey: target.routeKey,
+        label: target.displayName,
+        status: target.status,
+        targetPath: target.routeTarget,
+        allowedActionClassesLabel: (target.allowedActionClasses || []).join(', '),
+        nextGateLabel: target.nextGate?.label || this.humanizeWorkbenchLabel(target.nextGate?.id),
+      }));
     },
 
     humanizeWorkbenchLabel(value) {

@@ -7612,15 +7612,12 @@ describe('dashboard-api.service', () => {
         nextGate: { id: 'product_cut_307' },
       });
       expect(result.targets.find((target) => target.targetId === 'role-workbench-catalog')).toMatchObject({
-        status: 'planned',
-        nextGate: { id: 'product_cut_308' },
+        status: 'available',
+        nextGate: { id: 'render_role_workbench_catalog' },
       });
       expect(result.readiness.availableTargets).toBeGreaterThanOrEqual(1);
       expect(result.positiveFollowUps.map((item) => item.missingDataPoint)).toEqual(
-        expect.arrayContaining([
-          'administrator-workbench',
-          'role-workbench-catalog',
-        ])
+        expect.arrayContaining(['administrator-workbench'])
       );
       expect(result.capabilityBroker.exposed).toBe(false);
       expect(result.hydrationRegistry.exposed).toBe(false);
@@ -7819,6 +7816,161 @@ describe('dashboard-api.service', () => {
       );
       expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
         'Administrator Inventory binds to scalar rows'
+      );
+    });
+  });
+
+  // -- stadtwerkMauerRoleWorkbenchCatalogStatus -------------------------
+  describe('stadtwerkMauerRoleWorkbenchCatalogStatus', () => {
+    it('returns a read-only role catalog with scalar open-target rows and no-call guards', async () => {
+      handlers.stadtwerkMauerE2eProcessDemoStatus = () => ({
+        capabilityKey: 'stadtwerk_mauer_e2e_process_demo',
+        safety: 'sandbox_only_non_consequential_e2e_demo_with_read_only_status',
+        tenantId: 'stadtwerk-mauer',
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: true,
+        status: 'e2e_demo_trace_needs_evidence',
+        demoPath: 'pv_registration_electrician_missing_nap',
+        caseId: 'smm-budibase-workbench',
+        traceCount: 1,
+        artifactCount: 3,
+        recentTraces: [{ traceId: 'smm-e2e-trace:test', status: 'demo_trace_needs_evidence' }],
+        evidenceQuality: 'incomplete_demo_evidence',
+        missingEvidence: [{ missingDataPoint: 'napReference' }],
+        positiveFollowUps: [{ missingDataPoint: 'napReference' }],
+        sourceActions: {
+          inspected: ['stadtwerk-mauer-e2e-process-demo.getStatus'],
+          referenced: ['object-store.query'],
+          notCalled: ['mako.dispatch', 'external.connector.call', 'personal-agent.execute'],
+        },
+      });
+
+      const result = await broker.call('dashboard-api.stadtwerkMauerRoleWorkbenchCatalogStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+      });
+
+      expect(result.capabilityKey).toBe('stadtwerk_mauer_role_workbench_catalog');
+      expect(result.safety).toBe('read_only');
+      expect(result.found).toBe(true);
+      expect(result.status).toBe('role_workbench_catalog_ready');
+      expect(result.roleVocabulary).toEqual(
+        expect.arrayContaining(['admin', 'grid-planning', 'sales', 'key-account', 'vdmi-governance'])
+      );
+      expect(result.targets.map((target) => target.roleKey)).toEqual(
+        expect.arrayContaining(['admin', 'grid-planning', 'sales', 'key-account', 'vdmi-governance'])
+      );
+      expect(result.targets.find((target) => target.roleKey === 'admin')).toMatchObject({
+        status: 'available',
+        openTarget: 'administrator_inventory',
+      });
+      expect(result.targets.find((target) => target.roleKey === 'grid-planning')).toMatchObject({
+        status: 'planned',
+        roleCode: 'ROLE_NETZPLANUNG',
+        openTarget: 'grid_planning_role_queue',
+      });
+      expect(result.targets.find((target) => target.roleKey === 'sales')).toMatchObject({
+        status: 'planned',
+        roleCode: 'ROLE_VERTRIEB',
+      });
+      expect(result.targets.find((target) => target.roleKey === 'key-account')).toMatchObject({
+        status: 'planned',
+        roleCode: 'ROLE_KEY_ACCOUNT',
+      });
+      expect(result.targets.find((target) => target.roleKey === 'vdmi-governance')).toMatchObject({
+        status: 'planned',
+        roleCode: 'ROLE_VDMI_GOVERNANCE_REVIEWER',
+      });
+      expect(result.roleRows.find((row) => row.roleKey === 'grid-planning')).toMatchObject({
+        label: 'Zielnetzplanung',
+        routeKey: 'grid-planning',
+        openTarget: 'grid_planning_role_queue',
+      });
+      expect(result.openTargetRows.find((row) => row.openTarget === 'administrator_inventory')).toMatchObject({
+        status: 'available',
+        routeKey: 'admin',
+      });
+      expectScalarTableRows(result.roleRows);
+      expectScalarTableRows(result.openTargetRows);
+      expect(result.positiveFollowUps.map((item) => item.missingDataPoint)).toEqual(
+        expect.arrayContaining(['grid-planning', 'sales', 'key-account', 'vdmi-governance'])
+      );
+      expect(result.capabilityBroker.exposed).toBe(false);
+      expect(result.hydrationRegistry.exposed).toBe(false);
+      expect(result.summary.budibaseBoundary).toContain('Cernion remains the system of record');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'budibase.table.write',
+          'budibase.system_of_record',
+          'budibase.automation.arbitrary_write',
+          'role.assignment.write',
+          'auth.policy.mutate',
+          'tenant.provision',
+          'public-context.mutate',
+          'sandbox-runtime.mutate',
+          'rundeck.job.execute',
+          'operations-runbook.execute',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'device-control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns safe empty role rows outside the sandbox tenant', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerRoleWorkbenchCatalogStatus', {
+        tenantId: 'other-tenant',
+        caseId: 'smm-budibase-workbench',
+      });
+
+      expect(result.found).toBe(false);
+      expect(result.status).toBe('role_workbench_catalog_blocked_outside_sandbox_tenant');
+      expect(result.targets).toEqual([]);
+      expect(result.roleRows).toEqual([]);
+      expect(result.openTargetRows).toEqual([]);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
+        'stadtwerk_mauer_tenant_scope'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['budibase.table.write', 'auth.policy.mutate', 'personal-agent.execute'])
+      );
+    });
+
+    it('binds the Budibase manifest to role catalog scalar rows', () => {
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.map((query) => query.name)).toEqual(
+        expect.arrayContaining([
+          'getStadtwerkMauerRoleWorkbenchCatalog',
+          'getStadtwerkMauerRoleWorkbenchRows',
+          'getStadtwerkMauerRoleOpenTargetRows',
+        ])
+      );
+      expect(
+        STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+          (query) => query.name === 'getStadtwerkMauerRoleWorkbenchRows'
+        )
+      ).toMatchObject({
+        method: 'GET',
+        path: '/api/dashboard/stadtwerk-mauer-role-workbench-catalog',
+        transformer: 'return data.roleRows || []',
+      });
+      expect(
+        STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+          (query) => query.name === 'getStadtwerkMauerRoleOpenTargetRows'
+        )
+      ).toMatchObject({
+        method: 'GET',
+        path: '/api/dashboard/stadtwerk-mauer-role-workbench-catalog',
+        transformer: 'return data.openTargetRows || []',
+      });
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.sections.map((section) => section.id)).toEqual(
+        expect.arrayContaining(['role_workbench_catalog', 'role_open_targets'])
+      );
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
+        'Role Workbench Catalog binds to scalar role/open-target rows'
       );
     });
   });
