@@ -7385,6 +7385,112 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- stadtwerkMauerCaseDetailStatus ------------------------------------
+  describe('stadtwerkMauerCaseDetailStatus', () => {
+    it('returns a Budibase-renderable case detail with evidence gaps, role hints and no-call guards', async () => {
+      handlers.stadtwerkMauerE2eProcessDemoStatus = () => ({
+        capabilityKey: 'stadtwerk_mauer_e2e_process_demo',
+        safety: 'sandbox_only_non_consequential_e2e_demo_with_read_only_status',
+        tenantId: 'stadtwerk-mauer',
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: true,
+        status: 'e2e_demo_trace_needs_evidence',
+        demoPath: 'pv_registration_electrician_missing_nap',
+        caseId: 'smm-budibase-workbench',
+        traceCount: 1,
+        artifactCount: 5,
+        recentTraces: [
+          {
+            traceId: 'smm-e2e-trace:test',
+            caseId: 'smm-budibase-workbench',
+            demoPath: 'pv_registration_electrician_missing_nap',
+            status: 'demo_trace_needs_evidence',
+            transcriptId: 'smm-stub:test',
+            evidenceQuality: 'incomplete_demo_evidence',
+          },
+        ],
+        evidenceQuality: 'incomplete_demo_evidence',
+        missingEvidence: [
+          { missingDataPoint: 'napReference' },
+          { missingDataPoint: 'customerConsentStatus' },
+        ],
+        positiveFollowUps: [{ missingDataPoint: 'napReference' }],
+        sourceActions: {
+          inspected: ['stadtwerk-mauer-e2e-process-demo.getStatus'],
+          referenced: ['object-store.query'],
+          notCalled: ['mako.dispatch', 'external.connector.call', 'personal-agent.execute'],
+        },
+      });
+
+      const result = await broker.call('dashboard-api.stadtwerkMauerCaseDetailStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+      });
+
+      expect(result.capabilityKey).toBe('stadtwerk_mauer_case_detail');
+      expect(result.safety).toBe('read_only');
+      expect(result.found).toBe(true);
+      expect(result.status).toBe('case_detail_needs_evidence');
+      expect(result.processFamily).toBe('pv_registration');
+      expect(result.controlCase).toBe('electrician_missing_nap');
+      expect(result.dataClasses.map((item) => item.id)).toEqual(
+        expect.arrayContaining(['publicContextLayer', 'syntheticTenantSeed', 'sandboxRuntimeArtifact'])
+      );
+      expect(result.evidence.map((item) => item.id)).toEqual(
+        expect.arrayContaining(['napReference', 'maloId', 'meloId', 'meterId', 'customerConsentStatus'])
+      );
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining(['napReference', 'customerConsentStatus'])
+      );
+      expect(result.roleWorkbenchHints.map((hint) => hint.roleId)).toEqual(
+        expect.arrayContaining(['ROLE_NETZPLANUNG', 'ROLE_GRID_OPERATOR', 'ROLE_COMMERCIAL_AUDIT'])
+      );
+      expect(result.traceSummaries[0]).toMatchObject({
+        traceId: 'smm-e2e-trace:test',
+        dataClass: 'sandboxRuntimeArtifact',
+      });
+      expect(result.operationsRunbookHints[0]).toMatchObject({
+        execution: 'not_executed_by_case_detail',
+      });
+      expect(result.capabilityBroker.exposed).toBe(false);
+      expect(result.hydrationRegistry.exposed).toBe(false);
+      expect(result.caseSummary.syntheticIdDisclaimer).toContain('synthetic demo identifiers');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'budibase.table.write',
+          'budibase.api.call',
+          'rundeck.job.execute',
+          'mako.dispatch',
+          'billing',
+          'settlement',
+          'device-control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'public_context_mutation',
+          'production_mutation',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns a structured not-found detail state outside the sandbox tenant', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerCaseDetailStatus', {
+        tenantId: 'other-tenant',
+        caseId: 'unknown-case',
+      });
+
+      expect(result.found).toBe(false);
+      expect(result.status).toBe('case_detail_blocked_outside_sandbox_tenant');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
+        'stadtwerk_mauer_tenant_scope'
+      );
+      expect(result.traceSummaries).toEqual([]);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['public-context.mutate', 'personal-agent.execute'])
+      );
+    });
+  });
+
   describe('stadtwerkMauerMastrDataOverlayStatus', () => {
     it('reports the blended MaStR overlay without mutating source records', async () => {
       const result = await broker.call('dashboard-api.stadtwerkMauerMastrDataOverlayStatus', {

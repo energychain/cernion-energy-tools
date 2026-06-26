@@ -16948,6 +16948,39 @@
         ]
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-case-detail": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerCaseDetailStatus",
+        "summary": "Stadtwerk Mauer case detail -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer case detail projection"
+          }
+        },
+        "description": "Returns a deterministic Budibase-renderable detail model for a selectable synthetic Stadtwerk Mauer PV missing-NAP demo case. The endpoint summarizes Blueprint seed, role-workbench hints, E2E trace/artifact status and operations-runbook links without executing Budibase, Rundeck, MaKo, billing, settlement, device-control or external actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/fnav-fast-track-contract-gate": {
       "get": {
         "operationId": "dashboard-api_fnavFastTrackContractGateStatus",
@@ -59323,6 +59356,39 @@
           },
           {
             "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-case-detail": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerCaseDetailStatus",
+        "summary": "Stadtwerk Mauer case detail -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer case detail projection"
+          }
+        },
+        "description": "Returns a deterministic Budibase-renderable detail model for a selectable synthetic Stadtwerk Mauer PV missing-NAP demo case. The endpoint summarizes Blueprint seed, role-workbench hints, E2E trace/artifact status and operations-runbook links without executing Budibase, Rundeck, MaKo, billing, settlement, device-control or external actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
             "in": "query",
             "required": false,
             "schema": {

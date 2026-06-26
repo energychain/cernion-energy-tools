@@ -21,10 +21,13 @@ The workbench renders:
 
 - MaStR overlay status from `GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay`
 - E2E demo status from `GET /api/dashboard/stadtwerk-mauer-e2e-process-demo`
+- selectable case detail from `GET /api/dashboard/stadtwerk-mauer-case-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
 The action query is intentionally still guarded by Cernion scopes. A Budibase button may be
 wired to it later, but the successful UI rendering path does not bypass Cernion authorization.
+The case-detail query is read-only and returns evidence, trace, artifact, Blueprint, role and
+next-gate summaries; it does not write Budibase tables or execute Rundeck jobs.
 
 ## Apply Locally
 

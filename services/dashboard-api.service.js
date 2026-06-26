@@ -26,6 +26,10 @@ const { FINDING_CODE_METADATA } = require('../src/validation-findings');
 const {
   evaluatePresentationGrounding,
 } = require('../src/receipt-grounded-presentation-contract');
+const {
+  buildWorkbenchClarificationItems,
+  stadtwerkMauerPvMissingNap,
+} = require('../src/vdmi-blueprint-pack-seeds');
 
 const OPENAPI_TAG = 'Dashboard API';
 const ACTION_MQ_LIST = 'mastr-quality.list';
@@ -107,6 +111,7 @@ module.exports = {
       stadtwerkMauerExternalInterfaceStubsStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerE2eProcessDemoStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerMastrDataOverlayStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerCaseDetailStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
       assetValuationTransformationGateStatus: 5 * 60 * 1000, // 5 min
@@ -5557,6 +5562,72 @@ module.exports = {
           timestamp: new Date().toISOString(),
           _errors: errors,
         };
+      },
+    },
+
+    // -- stadtwerkMauerCaseDetailStatus ----------------------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-case-detail
+     *
+     * Read-only Budibase-renderable detail projection for a selectable
+     * synthetic Stadtwerk Mauer demo case. This first slice is intentionally
+     * Workbench/dashboard-only and does not add broker or dossier hydration.
+     */
+    stadtwerkMauerCaseDetailStatus: {
+      rest: 'GET /stadtwerk-mauer-case-detail',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer case detail -- read-only Workbench projection',
+        description:
+          'Returns a deterministic Budibase-renderable detail model for a selectable synthetic ' +
+          'Stadtwerk Mauer PV missing-NAP demo case. The endpoint summarizes Blueprint seed, ' +
+          'role-workbench hints, E2E trace/artifact status and operations-runbook links without ' +
+          'executing Budibase, Rundeck, MaKo, billing, settlement, device-control or external actions.',
+        parameters: [
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Stadtwerk Mauer case detail projection',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const caseId = params.caseId || 'smm-budibase-workbench';
+        const errors = [];
+        const cacheKey = `stadtwerk-mauer-case-detail:${tenantId}:${caseId}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.stadtwerkMauerCaseDetailStatus,
+          async () => {
+            const e2eStatus = await this.safeCall(
+              ctx,
+              'stadtwerk-mauer-e2e-process-demo.getStatus',
+              { tenantId, caseId, limit: 10 },
+              this.buildMissingStadtwerkMauerE2eProcessDemoStatus(tenantId, caseId),
+              errors,
+              'stadtwerk-mauer-e2e-process-demo.getStatus'
+            );
+
+            return {
+              ...this.buildStadtwerkMauerCaseDetailStatus({
+                tenantId,
+                caseId,
+                e2eStatus,
+              }),
+              timestamp: new Date().toISOString(),
+              _errors: errors,
+            };
+          }
+        );
       },
     },
 
@@ -20995,6 +21066,255 @@ module.exports = {
           ],
         },
       };
+    },
+
+    buildStadtwerkMauerCaseDetailStatus({ tenantId = 'stadtwerk-mauer', caseId, e2eStatus = {} }) {
+      const seed = stadtwerkMauerPvMissingNap;
+      const requiredCaseId = caseId || 'smm-budibase-workbench';
+      const sandboxBoundaryAllowed = tenantId === seed.demoTenant.tenantId;
+      const traces = Array.isArray(e2eStatus.recentTraces) ? e2eStatus.recentTraces : [];
+      const selectedTrace =
+        traces.find((trace) => trace.caseId === requiredCaseId) ||
+        (e2eStatus.caseId === requiredCaseId && traces[0] ? traces[0] : null);
+      const hasCase =
+        sandboxBoundaryAllowed &&
+        (selectedTrace != null ||
+          e2eStatus.caseId === requiredCaseId ||
+          requiredCaseId === 'smm-budibase-workbench');
+
+      const evidence = this.buildStadtwerkMauerCaseEvidence(seed, e2eStatus);
+      const missingEvidence = evidence
+        .filter((item) => item.state !== 'present')
+        .map((item) => ({
+          missingDataPoint: item.id,
+          enablesDossierAddition: item.enablesDossierAddition,
+          dataClass: item.dataClass,
+          state: item.state,
+        }));
+      if (!sandboxBoundaryAllowed) {
+        missingEvidence.unshift({
+          missingDataPoint: 'stadtwerk_mauer_tenant_scope',
+          enablesDossierAddition:
+            'select the synthetic tenant stadtwerk-mauer before rendering demo case details',
+          dataClass: 'syntheticTenantSeed',
+          state: 'clarification',
+        });
+      }
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        ...item,
+        category: 'stadtwerk_mauer_case_detail',
+      }));
+      const traceSummaries = traces.slice(0, 5).map((trace) => ({
+        traceId: trace.traceId || null,
+        caseId: trace.caseId || null,
+        demoPath: trace.demoPath || seed.processFamily,
+        status: trace.status || null,
+        evidenceQuality: trace.evidenceQuality || null,
+        transcriptId: trace.transcriptId || null,
+        dataClass: 'sandboxRuntimeArtifact',
+      }));
+      const artifactSummaries = [
+        {
+          artifactKind: 'blueprint_seed',
+          label: seed.title,
+          sourceRef: seed.id,
+          dataClass: 'syntheticTenantSeed',
+        },
+        {
+          artifactKind: 'operations_runbook_hint',
+          label: 'Blueprint Pack verify endpoint',
+          sourceRef: '/api/operations-runbook/vdmi-blueprint-packs/verify',
+          dataClass: 'sandboxRuntimeArtifact',
+          execution: 'not_executed',
+        },
+        ...traceSummaries.map((trace) => ({
+          artifactKind: 'process_trace_summary',
+          label: trace.traceId || 'selected trace summary',
+          sourceRef: trace.traceId || null,
+          dataClass: 'sandboxRuntimeArtifact',
+        })),
+      ];
+      const roleWorkbenchHints = seed.roles.map((role) => ({
+        roleId: role.roleId,
+        relation: role.relation,
+        responsibility: role.responsibility,
+        workbenchHint:
+          role.roleId === 'ROLE_NETZPLANUNG'
+            ? 'inspect NAP clarification and grid-capacity context'
+            : role.roleId === 'ROLE_GRID_OPERATOR'
+              ? 'inspect grid-operation plausibility without control execution'
+              : 'inspect commercial/audit evidence gaps without billing or settlement action',
+      }));
+      const noCallGuards = Array.from(
+        new Set([
+          ...(seed.forbiddenActions || []),
+          ...(e2eStatus.sourceActions?.notCalled || []),
+          'budibase.table.write',
+          'budibase.api.call',
+          'rundeck.job.execute',
+          'operations-runbook.execute',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'device-control.execute',
+          'hitl.create',
+          'public-context.mutate',
+          'personal-agent.execute',
+        ])
+      );
+      const status = !sandboxBoundaryAllowed
+        ? 'case_detail_blocked_outside_sandbox_tenant'
+        : hasCase
+          ? missingEvidence.length > 0
+            ? 'case_detail_needs_evidence'
+            : 'case_detail_ready'
+          : 'case_detail_not_found';
+      const found = sandboxBoundaryAllowed && hasCase;
+      const dataClasses = Object.entries(seed.dataClasses || {}).map(([id, value]) => ({
+        id,
+        description: value.description,
+        examples: value.examples || [],
+      }));
+      const dossierFacts = [
+        `Case Detail Status: ${status}`,
+        `Tenant: ${tenantId}`,
+        `Case: ${requiredCaseId}`,
+        `Blueprint Seed: ${seed.id}`,
+        `Evidence gaps: ${missingEvidence.length}`,
+      ];
+
+      return {
+        capabilityKey: 'stadtwerk_mauer_case_detail',
+        safety: 'read_only',
+        found,
+        status,
+        tenantId,
+        requiredTenantId: seed.demoTenant.tenantId,
+        sandboxBoundaryAllowed,
+        caseId: requiredCaseId,
+        demoPath: 'pv_registration_electrician_missing_nap',
+        processFamily: seed.processFamily,
+        controlCase: seed.controlCase,
+        blueprintSeedId: seed.id,
+        realWorldClaim: seed.realWorldClaim,
+        dataClasses,
+        caseSummary: {
+          status,
+          evidenceQuality: e2eStatus.evidenceQuality || 'no_demo_trace_yet',
+          traceCount: e2eStatus.traceCount || 0,
+          artifactCount: e2eStatus.artifactCount || 0,
+          syntheticIdDisclaimer:
+            'Stadtwerk Mauer case, MaLo, MeLo, meter, consent and device-control values are synthetic demo identifiers unless explicitly marked as public context.',
+        },
+        evidence,
+        missingEvidence,
+        positiveFollowUps,
+        traceSummaries: found ? traceSummaries : [],
+        artifactSummaries: found ? artifactSummaries : [],
+        roleWorkbenchHints,
+        nextGates: [
+          {
+            id: 'verify_blueprint_seed',
+            label: 'Verify Blueprint Pack seed',
+            endpoint: '/api/operations-runbook/vdmi-blueprint-packs/verify',
+            execution: 'hint_only',
+          },
+          {
+            id: 'inspect_missing_nap',
+            label: 'Inspect missing NAP and evidence gaps',
+            execution: 'read_only_workbench',
+          },
+          {
+            id: 'review_role_workbench_item',
+            label: 'Review generated role-workbench handover item',
+            execution: 'read_only_workbench',
+          },
+        ],
+        operationsRunbookHints: [
+          {
+            id: 'vdmi-blueprint-pack-verify',
+            method: 'GET',
+            path: '/api/operations-runbook/vdmi-blueprint-packs/verify?seedId=stadtwerk-mauer-pv-missing-nap-v1',
+            execution: 'not_executed_by_case_detail',
+          },
+          {
+            id: 'stadtwerk-mauer-e2e-smoke',
+            method: 'POST',
+            path: '/api/operations-runbook/stadtwerk-mauer/e2e-smoke',
+            execution: 'curated_runbook_only_not_budibase_table_write',
+          },
+        ],
+        capabilityBroker: {
+          exposed: false,
+          reason:
+            'First slice is a Workbench/dashboard read model; no broad broker route or case-editing intent is registered.',
+        },
+        hydrationRegistry: {
+          exposed: false,
+          reason:
+            'No Personal-Agent dossier hydration rule is added in this first Workbench-only slice.',
+        },
+        forbiddenActions: seed.forbiddenActions || [],
+        sourceActions: {
+          inspected: ['dashboard-api.stadtwerkMauerCaseDetailStatus'],
+          referenced: [
+            'stadtwerk-mauer-e2e-process-demo.getStatus',
+            'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json',
+            'operations-runbook.verifyVdmiBlueprintPackSeed',
+            'governance.roleWorkbenchProjection',
+          ],
+          notCalled: noCallGuards,
+        },
+        noCallGuards,
+        dossierFacts,
+        dossierEvidence: {
+          status,
+          tenantId,
+          caseId: requiredCaseId,
+          processFamily: seed.processFamily,
+          controlCase: seed.controlCase,
+          evidence,
+          missingEvidence,
+          positiveFollowUps,
+          roleWorkbenchHints,
+          traceSummaries: found ? traceSummaries : [],
+          nextGates: ['verify_blueprint_seed', 'inspect_missing_nap', 'review_role_workbench_item'],
+          noCallGuards,
+          dossierFacts,
+        },
+        meta: {
+          inspected: [
+            'dashboard-api.stadtwerkMauerCaseDetailStatus',
+            'stadtwerk-mauer-e2e-process-demo.getStatus',
+            'vdmi-blueprint-pack-seeds',
+          ],
+        },
+      };
+    },
+
+    buildStadtwerkMauerCaseEvidence(seed, e2eStatus = {}) {
+      const missing = new Set((e2eStatus.missingEvidence || []).map((item) => item.missingDataPoint));
+      const clarificationItems = buildWorkbenchClarificationItems(seed);
+      return (seed.evidenceRequirements || []).map((item) => {
+        const clarification = clarificationItems.find((candidate) => candidate.evidenceId === item.id);
+        const state = missing.has(item.id)
+          ? item.missingState
+          : e2eStatus.traceCount > 0
+            ? 'present'
+            : item.missingState;
+        return {
+          id: item.id,
+          required: item.required,
+          dataClass: item.dataClass,
+          state,
+          present: state === 'present',
+          roleHint: clarification?.roleHint || 'ROLE_GRID_OPERATOR',
+          enablesDossierAddition: item.enablesDossierAddition,
+          sourceSeedId: seed.id,
+        };
+      });
     },
 
     buildMissingStadtwerkMauerMastrDataOverlayStatus(
