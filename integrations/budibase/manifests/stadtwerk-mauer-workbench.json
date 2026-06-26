@@ -184,6 +184,134 @@
       }
     },
     {
+      "name": "getStadtwerkMauerWorkbenchSelectedTarget",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-workbench-selected-target",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&targetId={{targetId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "targetId",
+          "default": "hub"
+        }
+      ],
+      "schema": {
+        "status": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "caseId": { "type": "string" },
+        "requestedTargetId": { "type": "string" },
+        "selectedTargetId": { "type": "string" },
+        "selectedTitle": { "type": "string" },
+        "selectedRoleKey": { "type": "string" },
+        "selectedSectionKey": { "type": "string" },
+        "selectedAnchor": { "type": "string" },
+        "selectedRows": { "type": "array" },
+        "focusRows": { "type": "array" },
+        "helperRows": { "type": "array" },
+        "timestamp": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerWorkbenchSelectedRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-workbench-selected-target",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&targetId={{targetId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "targetId",
+          "default": "hub"
+        }
+      ],
+      "transformer": "return data.selectedRows || []",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "valueLabel": { "type": "string" },
+        "status": { "type": "string" },
+        "sectionKey": { "type": "string" },
+        "anchor": { "type": "string" },
+        "roleKey": { "type": "string" },
+        "safetyLabel": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerWorkbenchFocusRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-workbench-selected-target",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&targetId={{targetId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "targetId",
+          "default": "hub"
+        }
+      ],
+      "transformer": "return data.focusRows || []",
+      "schema": {
+        "focusId": { "type": "string" },
+        "targetId": { "type": "string" },
+        "title": { "type": "string" },
+        "sectionKey": { "type": "string" },
+        "anchor": { "type": "string" },
+        "focusState": { "type": "string" },
+        "status": { "type": "string" },
+        "routeKey": { "type": "string" },
+        "targetType": { "type": "string" },
+        "nextGateLabel": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerWorkbenchFocusHelperRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-workbench-selected-target",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&targetId={{targetId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "targetId",
+          "default": "hub"
+        }
+      ],
+      "transformer": "return data.helperRows || []",
+      "schema": {
+        "helperId": { "type": "string" },
+        "label": { "type": "string" },
+        "helperText": { "type": "string" },
+        "safeNextAction": { "type": "string" },
+        "requiredEvidence": { "type": "string" },
+        "followUp": { "type": "string" }
+      }
+    },
+    {
       "name": "getStadtwerkMauerAdministratorInventory",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-administrator-inventory",
@@ -641,6 +769,24 @@
       "tableTitle": "Hub Targets"
     },
     {
+      "id": "selected_target",
+      "title": "Selected Hub Target",
+      "queryName": "getStadtwerkMauerWorkbenchSelectedRows",
+      "tableTitle": "Selected Hub Target"
+    },
+    {
+      "id": "selected_target_focus",
+      "title": "Selected Target Focus",
+      "queryName": "getStadtwerkMauerWorkbenchFocusRows",
+      "tableTitle": "Selected Target Focus"
+    },
+    {
+      "id": "selected_target_helpers",
+      "title": "Selected Target Helpers",
+      "queryName": "getStadtwerkMauerWorkbenchFocusHelperRows",
+      "tableTitle": "Selected Target Helpers"
+    },
+    {
       "id": "administrator_inventory",
       "title": "Administrator Inventory",
       "queryName": "getStadtwerkMauerAdministratorInventoryRows",
@@ -704,6 +850,7 @@
   "notes": [
     "Workbench Landing binds to scalar landing/status, section and presenter action rows so the first screen is immediately presenter-ready.",
     "Workbench Hub targets are generated by Cernion; Budibase renders scalar display rows for navigation and readiness only.",
+    "Selected Hub Target binds to scalar selected/focus/helper rows so presenters can open a Workbench section without Budibase becoming the state owner.",
     "Administrator Inventory binds to scalar rows that separate public context, synthetic seed, sandbox runtime, generated workbench items and read/verify runbooks.",
     "Selected Case Evidence and Next Gates bind to scalar rows so tables do not render nested objects.",
     "Selected-case action rows are curated read-only/verify-only button metadata; Budibase may refresh queries but must not write arbitrary Cernion tables.",

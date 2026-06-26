@@ -17187,6 +17187,47 @@
         ]
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-workbench-selected-target": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerWorkbenchSelectedTargetStatus",
+        "summary": "Stadtwerk Mauer Workbench selected target -- read-only focus projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer selected Workbench target projection"
+          }
+        },
+        "description": "Returns deterministic Budibase-renderable selected/focused target rows for the Stadtwerk Mauer Workbench Hub. The endpoint maps Hub/role targets to scalar focus/helper rows without role-specific calculations, permission changes, Budibase writes, setup/reset, Rundeck execution, MaKo, billing, settlement, device-control, HITL or external connector actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/fnav-fast-track-contract-gate": {
       "get": {
         "operationId": "dashboard-api_fnavFastTrackContractGateStatus",
@@ -59801,6 +59842,47 @@
           },
           {
             "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-workbench-selected-target": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerWorkbenchSelectedTargetStatus",
+        "summary": "Stadtwerk Mauer Workbench selected target -- read-only focus projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer selected Workbench target projection"
+          }
+        },
+        "description": "Returns deterministic Budibase-renderable selected/focused target rows for the Stadtwerk Mauer Workbench Hub. The endpoint maps Hub/role targets to scalar focus/helper rows without role-specific calculations, permission changes, Budibase writes, setup/reset, Rundeck execution, MaKo, billing, settlement, device-control, HITL or external connector actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetId",
             "in": "query",
             "required": false,
             "schema": {

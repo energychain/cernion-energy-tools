@@ -21,6 +21,7 @@ The workbench renders:
 
 - Presenter-ready landing/status rows from `GET /api/dashboard/stadtwerk-mauer-workbench-landing`
 - Workbench Hub target readiness from `GET /api/dashboard/stadtwerk-mauer-workbench-hub`
+- selected Hub target/focus rows from `GET /api/dashboard/stadtwerk-mauer-workbench-selected-target?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&targetId=hub`
 - Administrator inventory rows from `GET /api/dashboard/stadtwerk-mauer-administrator-inventory`
 - MaStR overlay status from `GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay`
 - E2E demo status from `GET /api/dashboard/stadtwerk-mauer-e2e-process-demo`
@@ -52,6 +53,9 @@ The Workbench landing query is read-only: it returns scalar first-screen status,
 and presenter walkthrough rows so the app opens as a demo surface instead of an internal build
 surface. It does not perform setup, reset, provisioning, Budibase table writes, runbook execution
 or production mutations.
+The selected-target query is read-only: it maps a supported Hub or role target to scalar selected,
+focus and helper rows so Budibase can visibly focus a section without owning persistent state or
+mutating Cernion tenant data.
 
 ## Apply Locally
 

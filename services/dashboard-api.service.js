@@ -118,6 +118,7 @@ module.exports = {
       stadtwerkMauerRoleWorkbenchCatalogStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerGridPlanningRoleQueueStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerWorkbenchLandingStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerWorkbenchSelectedTargetStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
       assetValuationTransformationGateStatus: 5 * 60 * 1000, // 5 min
@@ -6296,6 +6297,153 @@ module.exports = {
                 caseDetailStatus,
                 e2eStatus,
                 mastrStatus,
+              }),
+              timestamp: new Date().toISOString(),
+              _errors: errors,
+            };
+          }
+        );
+      },
+    },
+
+    // -- stadtwerkMauerWorkbenchSelectedTargetStatus --------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-workbench-selected-target
+     *
+     * Read-only selected/focused Hub target projection for the Stadtwerk
+     * Mauer Workbench. This slice is Workbench/dashboard-only and deliberately
+     * does not add broker or dossier hydration exposure.
+     */
+    stadtwerkMauerWorkbenchSelectedTargetStatus: {
+      rest: 'GET /stadtwerk-mauer-workbench-selected-target',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+        targetId: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer Workbench selected target -- read-only focus projection',
+        description:
+          'Returns deterministic Budibase-renderable selected/focused target rows for the ' +
+          'Stadtwerk Mauer Workbench Hub. The endpoint maps Hub/role targets to scalar ' +
+          'focus/helper rows without role-specific calculations, permission changes, ' +
+          'Budibase writes, setup/reset, Rundeck execution, MaKo, billing, settlement, ' +
+          'device-control, HITL or external connector actions.',
+        parameters: [
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'targetId', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Stadtwerk Mauer selected Workbench target projection',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const caseId = params.caseId || 'smm-budibase-workbench';
+        const targetId = params.targetId || 'hub';
+        const errors = [];
+        const cacheKey = `stadtwerk-mauer-workbench-selected-target:${tenantId}:${caseId}:${targetId}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.stadtwerkMauerWorkbenchSelectedTargetStatus,
+          async () => {
+            if (tenantId !== 'stadtwerk-mauer') {
+              return {
+                ...this.buildStadtwerkMauerWorkbenchSelectedTargetStatus({
+                  tenantId,
+                  caseId,
+                  targetId,
+                  hubStatus: null,
+                  roleCatalogStatus: null,
+                  landingStatus: null,
+                }),
+                timestamp: new Date().toISOString(),
+                _errors: errors,
+              };
+            }
+
+            const e2eStatus = await this.safeCall(
+              ctx,
+              'stadtwerk-mauer-e2e-process-demo.getStatus',
+              { tenantId, caseId, limit: 10 },
+              this.buildMissingStadtwerkMauerE2eProcessDemoStatus(tenantId, caseId),
+              errors,
+              'stadtwerk-mauer-e2e-process-demo.getStatus'
+            );
+            const mastrStatus = await this.safeCall(
+              ctx,
+              'stadtwerk-mauer-mastr-data-overlay.getStatus',
+              { tenantId, limit: 10 },
+              this.buildMissingStadtwerkMauerMastrDataOverlayStatus(tenantId, {}),
+              errors,
+              'stadtwerk-mauer-mastr-data-overlay.getStatus'
+            );
+            const caseDetailStatus = this.buildStadtwerkMauerCaseDetailStatus({
+              tenantId,
+              caseId,
+              e2eStatus,
+            });
+            const hubStatus = this.buildStadtwerkMauerWorkbenchHubStatus({
+              tenantId,
+              caseId,
+              e2eStatus,
+              mastrStatus,
+              caseDetailStatus,
+            });
+            const administratorInventoryStatus = this.buildStadtwerkMauerAdministratorInventoryStatus({
+              tenantId,
+              caseId,
+              includeRuntime: true,
+              e2eStatus,
+              mastrStatus,
+              caseDetailStatus,
+              hubStatus,
+            });
+            const caseActionsStatus = this.buildStadtwerkMauerCaseActionsStatus({
+              tenantId,
+              caseId,
+              caseDetailStatus,
+            });
+            const roleCatalogStatus = this.buildStadtwerkMauerRoleWorkbenchCatalogStatus({
+              tenantId,
+              caseId,
+              hubStatus,
+              administratorInventoryStatus,
+              caseActionsStatus,
+            });
+            const gridPlanningRoleQueueStatus = this.buildStadtwerkMauerGridPlanningRoleQueueStatus({
+              tenantId,
+              caseId,
+              caseDetailStatus,
+              roleCatalogStatus,
+            });
+            const landingStatus = this.buildStadtwerkMauerWorkbenchLandingStatus({
+              tenantId,
+              caseId,
+              hubStatus,
+              administratorInventoryStatus,
+              roleCatalogStatus,
+              gridPlanningRoleQueueStatus,
+              caseActionsStatus,
+              caseDetailStatus,
+              e2eStatus,
+              mastrStatus,
+            });
+
+            return {
+              ...this.buildStadtwerkMauerWorkbenchSelectedTargetStatus({
+                tenantId,
+                caseId,
+                targetId,
+                hubStatus,
+                roleCatalogStatus,
+                landingStatus,
               }),
               timestamp: new Date().toISOString(),
               _errors: errors,
@@ -23633,6 +23781,348 @@ module.exports = {
         nextGate: item.nextGate,
         enablesDossierAddition: item.enablesDossierAddition,
       }));
+    },
+
+    buildStadtwerkMauerWorkbenchSelectedTargetStatus({
+      tenantId = 'stadtwerk-mauer',
+      caseId = 'smm-budibase-workbench',
+      targetId = 'hub',
+      hubStatus = null,
+      roleCatalogStatus = null,
+      landingStatus = null,
+    } = {}) {
+      const seed = stadtwerkMauerPvMissingNap;
+      const sandboxBoundaryAllowed = tenantId === seed.demoTenant.tenantId;
+      const normalizedTargetId = this.normalizeStadtwerkMauerWorkbenchTargetId(targetId);
+      const targetDirectory = sandboxBoundaryAllowed
+        ? this.buildStadtwerkMauerWorkbenchTargetDirectory({ hubStatus, roleCatalogStatus, landingStatus })
+        : [];
+      const selectedTarget = targetDirectory.find((target) => target.targetId === normalizedTargetId) || null;
+      const selectedRows = selectedTarget ? this.buildStadtwerkMauerWorkbenchSelectedRows(selectedTarget) : [];
+      const focusRows = selectedTarget ? this.buildStadtwerkMauerWorkbenchFocusRows(selectedTarget) : [];
+      const helperRows = selectedTarget
+        ? this.buildStadtwerkMauerWorkbenchFocusHelperRows(selectedTarget)
+        : [];
+      const missingEvidence = !sandboxBoundaryAllowed
+        ? [
+            {
+              missingDataPoint: 'stadtwerk_mauer_tenant_scope',
+              enablesDossierAddition:
+                'select the synthetic tenant stadtwerk-mauer before rendering selected Workbench focus state',
+              dataClass: 'syntheticTenantSeed',
+              state: 'clarification',
+            },
+          ]
+        : selectedTarget
+          ? []
+          : [
+              {
+                missingDataPoint: 'supported_workbench_target',
+                enablesDossierAddition:
+                  'choose one of the supported Hub or role target ids before rendering a focus panel',
+                dataClass: 'generatedWorkbenchItem',
+                state: 'not_found',
+              },
+            ];
+      const noCallGuards = Array.from(
+        new Set([
+          ...(seed.forbiddenActions || []),
+          ...(hubStatus?.sourceActions?.notCalled || []),
+          ...(roleCatalogStatus?.sourceActions?.notCalled || []),
+          ...(landingStatus?.sourceActions?.notCalled || []),
+          'budibase.table.write',
+          'budibase.system_of_record',
+          'budibase.automation.arbitrary_write',
+          'budibase.ui_state.persist',
+          'role.assignment.write',
+          'auth.policy.mutate',
+          'tenant.provision',
+          'setup.execute',
+          'reset.execute',
+          'delete.execute',
+          'public-context.mutate',
+          'sandbox-runtime.mutate',
+          'production.mutate',
+          'rundeck.job.execute',
+          'operations-runbook.execute',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'device-control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+      const status = !sandboxBoundaryAllowed
+        ? 'workbench_selected_target_blocked_outside_sandbox_tenant'
+        : selectedTarget
+          ? selectedTarget.status === 'available'
+            ? 'workbench_selected_target_ready'
+            : 'workbench_selected_target_ready_with_planned_detail'
+          : 'workbench_selected_target_not_found';
+      const positiveFollowUps = [
+        ...missingEvidence.map((item) => ({
+          ...item,
+          category: 'stadtwerk_mauer_workbench_selected_target',
+        })),
+        ...(selectedTarget && selectedTarget.status !== 'available'
+          ? [
+              {
+                missingDataPoint: selectedTarget.targetId,
+                enablesDossierAddition: selectedTarget.followUp,
+                category: 'stadtwerk_mauer_workbench_selected_target',
+                state: selectedTarget.status,
+              },
+            ]
+          : []),
+      ];
+      const supportedTargetIds = targetDirectory.map((target) => target.targetId);
+      const dossierFacts = [
+        `Workbench Selected Target Status: ${status}`,
+        `Tenant: ${tenantId}`,
+        `Case: ${caseId}`,
+        `Requested target: ${normalizedTargetId}`,
+        `Supported targets: ${supportedTargetIds.length}`,
+      ];
+
+      return {
+        capabilityKey: 'stadtwerk_mauer_workbench_selected_target',
+        safety: 'read_only',
+        found: sandboxBoundaryAllowed && Boolean(selectedTarget),
+        status,
+        tenantId,
+        requiredTenantId: seed.demoTenant.tenantId,
+        sandboxBoundaryAllowed,
+        caseId,
+        requiredCaseId: 'smm-budibase-workbench',
+        requestedTargetId: normalizedTargetId,
+        selectedTargetId: selectedTarget?.targetId || null,
+        selectedTitle: selectedTarget?.title || null,
+        selectedRoleKey: selectedTarget?.roleKey || null,
+        selectedSectionKey: selectedTarget?.sectionKey || null,
+        selectedAnchor: selectedTarget?.anchor || null,
+        selectedStatus: selectedTarget?.status || 'not_found',
+        selectedRows,
+        focusRows,
+        helperRows,
+        supportedTargetIds,
+        missingEvidence,
+        positiveFollowUps,
+        capabilityBroker: {
+          exposed: false,
+          reason:
+            'Workbench selected-target state is UI-near presentation metadata; no broad Personal-Agent route is added.',
+        },
+        hydrationRegistry: {
+          exposed: false,
+          reason:
+            'No dossier hydration rule is added for this Workbench-only focus-state slice.',
+        },
+        sourceActions: {
+          inspected: ['dashboard-api.stadtwerkMauerWorkbenchSelectedTargetStatus'],
+          referenced: [
+            'dashboard-api.stadtwerkMauerWorkbenchHubStatus',
+            'dashboard-api.stadtwerkMauerRoleWorkbenchCatalogStatus',
+            'dashboard-api.stadtwerkMauerWorkbenchLandingStatus',
+            'integrations/budibase/manifests/stadtwerk-mauer-workbench.json',
+          ],
+          notCalled: noCallGuards,
+        },
+        noCallGuards,
+        dossierFacts,
+        dossierEvidence: {
+          status,
+          tenantId,
+          caseId,
+          selectedTargetId: selectedTarget?.targetId || null,
+          selectedRows,
+          focusRows,
+          helperRows,
+          missingEvidence,
+          positiveFollowUps,
+          noCallGuards,
+          dossierFacts,
+        },
+        meta: {
+          inspected: [
+            'dashboard-api.stadtwerkMauerWorkbenchSelectedTargetStatus',
+            'budibase-stadtwerk-mauer-workbench-manifest',
+          ],
+        },
+      };
+    },
+
+    normalizeStadtwerkMauerWorkbenchTargetId(targetId = 'hub') {
+      const normalized = String(targetId || 'hub').trim().toLowerCase();
+      const aliases = {
+        admin: 'administrator-workbench',
+        administrator: 'administrator-workbench',
+        administrator_inventory: 'administrator-workbench',
+        case: 'selected-case-detail',
+        detail: 'selected-case-detail',
+        case_detail: 'selected-case-detail',
+        actions: 'selected-case-actions',
+        case_actions: 'selected-case-actions',
+        znp: 'grid-planning',
+        grid: 'grid-planning',
+        grid_planning: 'grid-planning',
+        role_catalog: 'role-workbench-catalog',
+        roles: 'role-workbench-catalog',
+        sales: 'sales-key-account-workbench',
+        vertrieb: 'sales-key-account-workbench',
+        key_account: 'sales-key-account-workbench',
+      };
+      return aliases[normalized] || normalized.replace(/_/g, '-');
+    },
+
+    buildStadtwerkMauerWorkbenchTargetDirectory({ hubStatus = null, roleCatalogStatus = null, landingStatus = null } = {}) {
+      const hubTargets = (hubStatus?.targets || []).map((target) => ({
+        targetId: target.targetId,
+        title: target.label,
+        roleKey: target.routeKey,
+        sectionKey: this.mapStadtwerkMauerTargetToSection(target.targetId, target.routeKey),
+        anchor: `#${this.mapStadtwerkMauerTargetToSection(target.targetId, target.routeKey)}`,
+        status: target.status || 'planned',
+        readiness: target.readinessSummary || null,
+        routeKey: target.routeKey || null,
+        targetType: target.routeTarget?.type || 'read_model_navigation',
+        safety: target.safety || 'read_only',
+        nextGateLabel: target.nextGate?.label || this.humanizeWorkbenchLabel(target.nextGate?.id),
+        followUp: target.enablesDossierAddition || target.nextGate?.label || null,
+      }));
+      const roleTargets = (roleCatalogStatus?.targets || []).map((target) => ({
+        targetId: target.roleKey,
+        title: target.label,
+        roleKey: target.roleKey,
+        sectionKey: target.openTarget || this.mapStadtwerkMauerTargetToSection(target.roleKey, target.routeKey),
+        anchor: `#${target.openTarget || this.mapStadtwerkMauerTargetToSection(target.roleKey, target.routeKey)}`,
+        status: target.status || 'planned',
+        readiness: target.readinessSummary || null,
+        routeKey: target.routeKey || null,
+        targetType: 'role_workbench_open_target',
+        safety: target.safety || 'read_only',
+        nextGateLabel: target.nextGate?.label || this.humanizeWorkbenchLabel(target.nextGate?.id),
+        followUp: target.enablesDossierAddition || target.nextGate?.label || null,
+      }));
+      const landingTargets = [
+        {
+          targetId: 'hub',
+          title: 'Workbench Hub',
+          roleKey: 'presenter',
+          sectionKey: 'hub',
+          anchor: '#hub',
+          status: hubStatus?.found === false ? 'blocked' : 'available',
+          readiness: hubStatus?.status || 'workbench_hub_status_unknown',
+          routeKey: 'stadtwerk-mauer',
+          targetType: 'landing_focus',
+          safety: 'read_only',
+          nextGateLabel: 'Open generated Hub target rows',
+          followUp: 'show the generated Workbench Hub and choose a supported target',
+        },
+        {
+          targetId: 'landing',
+          title: 'Demo Landing',
+          roleKey: 'presenter',
+          sectionKey: 'landing_status',
+          anchor: '#landing_status',
+          status: landingStatus?.found === false ? 'blocked' : 'available',
+          readiness: landingStatus?.status || 'workbench_landing_status_unknown',
+          routeKey: 'stadtwerk-mauer',
+          targetType: 'landing_focus',
+          safety: 'read_only',
+          nextGateLabel: 'Review presenter-ready first screen',
+          followUp: 'show landing, inspectable sections and presenter walkthrough cues',
+        },
+      ];
+      const seen = new Set();
+      return [...landingTargets, ...hubTargets, ...roleTargets].filter((target) => {
+        if (!target.targetId || seen.has(target.targetId)) return false;
+        seen.add(target.targetId);
+        return true;
+      });
+    },
+
+    mapStadtwerkMauerTargetToSection(targetId, routeKey) {
+      const key = String(targetId || routeKey || '').replace(/_/g, '-');
+      const map = {
+        'administrator-workbench': 'administrator_inventory',
+        'selected-case-detail': 'case_detail',
+        'selected-case-actions': 'case_actions',
+        'zielnetzplanung-workbench': 'grid_planning_role_queue',
+        'sales-key-account-workbench': 'sales_briefing',
+        'role-workbench-catalog': 'role_workbench_catalog',
+        'grid-planning': 'grid_planning_role_queue',
+        admin: 'administrator_inventory',
+        sales: 'sales_briefing',
+        'key-account': 'sales_briefing',
+        'vdmi-governance': 'role_workbench_catalog',
+      };
+      return map[key] || map[String(routeKey || '').replace(/_/g, '-')] || 'hub';
+    },
+
+    buildStadtwerkMauerWorkbenchSelectedRows(target) {
+      return [
+        {
+          rowKey: 'selected_target',
+          label: 'Selected Target',
+          valueLabel: target.title,
+          status: target.status,
+          sectionKey: target.sectionKey,
+          anchor: target.anchor,
+          roleKey: target.roleKey,
+          safetyLabel: this.humanizeWorkbenchLabel(target.safety || 'read_only'),
+        },
+        {
+          rowKey: 'target_readiness',
+          label: 'Readiness',
+          valueLabel: target.readiness || target.status,
+          status: target.status,
+          sectionKey: target.sectionKey,
+          anchor: target.anchor,
+          roleKey: target.roleKey,
+          safetyLabel: this.humanizeWorkbenchLabel(target.safety || 'read_only'),
+        },
+      ];
+    },
+
+    buildStadtwerkMauerWorkbenchFocusRows(target) {
+      return [
+        {
+          focusId: `${target.targetId}:section`,
+          targetId: target.targetId,
+          title: target.title,
+          sectionKey: target.sectionKey,
+          anchor: target.anchor,
+          focusState: target.status === 'available' ? 'focus_available_section' : 'focus_planned_section',
+          status: target.status,
+          routeKey: target.routeKey,
+          targetType: target.targetType,
+          nextGateLabel: target.nextGateLabel,
+        },
+      ];
+    },
+
+    buildStadtwerkMauerWorkbenchFocusHelperRows(target) {
+      return [
+        {
+          helperId: `${target.targetId}:open`,
+          label: 'Open Target Section',
+          helperText: `Focus ${target.title} in section ${target.sectionKey}.`,
+          safeNextAction: target.status === 'available' ? 'show_selected_section' : 'show_planned_target_context',
+          requiredEvidence: target.readiness || target.status,
+          followUp: target.followUp,
+        },
+        {
+          helperId: `${target.targetId}:boundary`,
+          label: 'Interaction Boundary',
+          helperText: 'Budibase may select and render this section; Cernion remains the source of truth.',
+          safeNextAction: 'query_refresh_only',
+          requiredEvidence: 'read_only_workbench_query',
+          followUp: 'do not write tenant data or execute runbooks from this focus state',
+        },
+      ];
     },
 
     buildStadtwerkMauerWorkbenchLandingStatus({

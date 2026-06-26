@@ -7695,6 +7695,155 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- stadtwerkMauerWorkbenchSelectedTargetStatus ----------------------
+  describe('stadtwerkMauerWorkbenchSelectedTargetStatus', () => {
+    it('returns scalar selected/focus rows for a valid Hub target', async () => {
+      handlers.stadtwerkMauerE2eProcessDemoStatus = () => ({
+        capabilityKey: 'stadtwerk_mauer_e2e_process_demo',
+        safety: 'sandbox_only_non_consequential_e2e_demo_with_read_only_status',
+        tenantId: 'stadtwerk-mauer',
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: true,
+        status: 'e2e_demo_trace_needs_evidence',
+        demoPath: 'pv_registration_electrician_missing_nap',
+        caseId: 'smm-budibase-workbench',
+        traceCount: 1,
+        artifactCount: 3,
+        recentTraces: [{ traceId: 'smm-e2e-trace:test', status: 'demo_trace_needs_evidence' }],
+        evidenceQuality: 'incomplete_demo_evidence',
+        missingEvidence: [{ missingDataPoint: 'napReference' }],
+        positiveFollowUps: [{ missingDataPoint: 'napReference' }],
+        sourceActions: {
+          inspected: ['stadtwerk-mauer-e2e-process-demo.getStatus'],
+          referenced: ['object-store.query'],
+          notCalled: ['mako.dispatch', 'external.connector.call', 'personal-agent.execute'],
+        },
+      });
+
+      const result = await broker.call('dashboard-api.stadtwerkMauerWorkbenchSelectedTargetStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+        targetId: 'grid-planning',
+      });
+
+      expect(result.capabilityKey).toBe('stadtwerk_mauer_workbench_selected_target');
+      expect(result.safety).toBe('read_only');
+      expect(result.found).toBe(true);
+      expect(result.status).toBe('workbench_selected_target_ready');
+      expect(result.requestedTargetId).toBe('grid-planning');
+      expect(result.selectedTargetId).toBe('grid-planning');
+      expect(result.selectedSectionKey).toBe('grid_planning_role_queue');
+      expect(result.selectedAnchor).toBe('#grid_planning_role_queue');
+      expect(result.selectedRows[0]).toMatchObject({
+        rowKey: 'selected_target',
+        label: 'Selected Target',
+        status: 'available',
+        sectionKey: 'grid_planning_role_queue',
+        roleKey: 'grid-planning',
+      });
+      expect(result.focusRows[0]).toMatchObject({
+        targetId: 'grid-planning',
+        sectionKey: 'grid_planning_role_queue',
+        focusState: 'focus_available_section',
+      });
+      expect(result.helperRows.map((row) => row.safeNextAction)).toEqual(
+        expect.arrayContaining(['show_selected_section', 'query_refresh_only'])
+      );
+      expectScalarTableRows(result.selectedRows);
+      expectScalarTableRows(result.focusRows);
+      expectScalarTableRows(result.helperRows);
+      expect(result.capabilityBroker.exposed).toBe(false);
+      expect(result.hydrationRegistry.exposed).toBe(false);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'budibase.table.write',
+          'budibase.system_of_record',
+          'budibase.automation.arbitrary_write',
+          'budibase.ui_state.persist',
+          'role.assignment.write',
+          'auth.policy.mutate',
+          'tenant.provision',
+          'setup.execute',
+          'reset.execute',
+          'public-context.mutate',
+          'rundeck.job.execute',
+          'operations-runbook.execute',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'device-control.execute',
+          'external.connector.call',
+          'hitl.create',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns a safe fallback for unknown targets', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerWorkbenchSelectedTargetStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+        targetId: 'unknown-target',
+      });
+
+      expect(result.found).toBe(false);
+      expect(result.status).toBe('workbench_selected_target_not_found');
+      expect(result.selectedRows).toEqual([]);
+      expect(result.focusRows).toEqual([]);
+      expect(result.helperRows).toEqual([]);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
+        'supported_workbench_target'
+      );
+      expect(result.supportedTargetIds).toEqual(expect.arrayContaining(['hub', 'administrator-workbench']));
+    });
+
+    it('returns safe empty focus rows outside the sandbox tenant', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerWorkbenchSelectedTargetStatus', {
+        tenantId: 'other-tenant',
+        caseId: 'smm-budibase-workbench',
+        targetId: 'hub',
+      });
+
+      expect(result.found).toBe(false);
+      expect(result.status).toBe('workbench_selected_target_blocked_outside_sandbox_tenant');
+      expect(result.selectedRows).toEqual([]);
+      expect(result.focusRows).toEqual([]);
+      expect(result.helperRows).toEqual([]);
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
+        'stadtwerk_mauer_tenant_scope'
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['budibase.table.write', 'auth.policy.mutate', 'personal-agent.execute'])
+      );
+    });
+
+    it('binds the Budibase manifest to selected-target scalar rows', () => {
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.map((query) => query.name)).toEqual(
+        expect.arrayContaining([
+          'getStadtwerkMauerWorkbenchSelectedTarget',
+          'getStadtwerkMauerWorkbenchSelectedRows',
+          'getStadtwerkMauerWorkbenchFocusRows',
+          'getStadtwerkMauerWorkbenchFocusHelperRows',
+        ])
+      );
+      expect(
+        STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+          (query) => query.name === 'getStadtwerkMauerWorkbenchFocusRows'
+        )
+      ).toMatchObject({
+        method: 'GET',
+        path: '/api/dashboard/stadtwerk-mauer-workbench-selected-target',
+        transformer: 'return data.focusRows || []',
+      });
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.sections.map((section) => section.id)).toEqual(
+        expect.arrayContaining(['selected_target', 'selected_target_focus', 'selected_target_helpers'])
+      );
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
+        'Selected Hub Target binds to scalar selected/focus/helper rows'
+      );
+    });
+  });
+
   // -- stadtwerkMauerAdministratorInventoryStatus ------------------------
   describe('stadtwerkMauerAdministratorInventoryStatus', () => {
     it('returns a read-only Administrator inventory with scalar rows and data-class separation', async () => {

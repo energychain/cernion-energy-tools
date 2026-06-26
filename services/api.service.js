@@ -1481,6 +1481,8 @@ module.exports = {
             'dashboard-api.stadtwerkMauerGridPlanningRoleQueueStatus',
           'GET /dashboard/stadtwerk-mauer-workbench-landing':
             'dashboard-api.stadtwerkMauerWorkbenchLandingStatus',
+          'GET /dashboard/stadtwerk-mauer-workbench-selected-target':
+            'dashboard-api.stadtwerkMauerWorkbenchSelectedTargetStatus',
           'GET /dashboard/fnav-fast-track-contract-gate':
             'dashboard-api.fnavFastTrackContractGateStatus',
           'GET /dashboard/cross-channel-vnb-signal-queue':
