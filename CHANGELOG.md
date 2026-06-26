@@ -5,6 +5,23 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.67.3] — 2026-06-26
+
+### Added
+- **Municipal Energy Value Lagebild Endpoint** (`services/dashboard-api.service.js#municipalEnergyValueAnalysisStatus`, `GET /api/dashboard/municipal-energy-value-analysis`, #324): generischer, read-only kommunaler Strom-Wertschöpfungs-Lagebild-Endpunkt für deutsche Gemeinden. Der Endpunkt akzeptiert `municipality`, `ags`, `year` und `scenario` und gibt ein vollständig Budibase-renderbares Lagebild mit scalar Zeilen zurück — keine verschachtelten Objekte, keine `[object Object]`-Renders. Enthält:
+  - **`valueRows`**: Erzeugungswert je Technologie (PV, Biomasse, Wind) mit `installedCapacityKw`, `assumedFullLoadHours`, `estimatedGenerationKwhPerYear`, `assumedMarketPriceEurPerMwh`, `grossMarketValueEurPerYear`, `localRetentionIndicator`, `evidenceStatus`, `assumptionLabel`, `sourceLabel` plus bilanzielle Deckungsquoten-Zeile.
+  - **`riskRows`**: EWK/Anschlussdauer-Risiko, Digitalisierungsindex-Risiko, iMSys/SMGW-Rollout-Bereitschaft und Kapazitätsengpass — je mit `riskKey`, `severity` (`low`/`medium`/`high`), `severityScore`, `valueAtRiskEurPerYear`, `economicImpactEurPerYear`, `delayRiskDays`, `evidenceStatus`, `sourceLabel`, `assumptionLabel`, `nextGateLabel`.
+  - **`budgetImpactRows`**: Konzessionsabgabe NS-Haushalt, NS-Gewerbe und Gesamt-Szenario als assumption-backed/scenario-based Schichten (KAV § 2 Abs. 2, keine rechtliche Abrechnung oder finale Abrechnungslogik).
+  - **`assumptionRows`**: Marktpreisannahme, PV-/Biomasse-Volllaststunden, KAV-Gemeindekatgorisierung.
+  - **`sourceRows`**: MaStR, EWK-Monitoring, vnb-digital, KAV 1992, ENTSO-E Day-Ahead.
+  - **Municipality-Resolver**: `Mauer` (AGS 08226074) und `Heidelberg` (AGS 08221000) als bekannte Profile mit AGS-Fallback-Lookup; für unbekannte Gemeinden stabile 200-Antwort mit `status: lagebild_municipality_unresolved` und vollständigen `missingEvidence`/`sourceRows`-Markierungen.
+  - **Fehlende Daten als Produkt**: `missingEvidence`/`sourceRows`/`positiveFollowUps` zeigen strukturiert, welche BNr-Auflösung, MaStR-Live-Daten, EWK-/iMSys-Quellen fehlen — statt die Antwort zu blockieren.
+  - **`noCallGuards`**: explizite Liste aller nicht ausgelösten Mutationsaktionen (`billing.settlement`, `mako.dispatch`, `budibase.table.write`, `device-control.execute`, `smgw.control`, `rundeck.job.execute`, `external.data.export.unrestricted` u. a.).
+  - Cache-TTL 5 min; Cache-Key aus `municipality + ags + year + scenario`; vollständige OpenAPI-Dokumentation.
+
+### Tests
+- 10 neue Fälle in `tests/dashboard-api.test.js` (`municipalEnergyValueAnalysisStatus`-Describe-Block): Mauer baseline Pflichtfelder, scalar/display-safe `valueRows`, `riskRows` mit EWK/iMSys/Kapazität, `budgetImpactRows` mit Konzessionsabgabe, Heidelberg generischer Pfad mit Evidence-Gaps, AGS-Lookup ohne Municipality-Name, unbekannte Gemeinde stabile 200-Antwort, Szenario `high-price` Preisanpassung, `noCallGuards` vollständig, `_errors: []`.
+
 ## [0.67.2] — 2026-06-26
 
 ### Added

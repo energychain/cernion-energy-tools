@@ -1515,6 +1515,8 @@ module.exports = {
             'dashboard-api.liveUpdateStreamContractStatus',
           'GET /dashboard/smgw-connector-readiness':
             'dashboard-api.smgwConnectorReadinessStatus',
+          'GET /dashboard/municipal-energy-value-analysis':
+            'dashboard-api.municipalEnergyValueAnalysisStatus',
           'POST /stadtwerk-mauer-sandbox-runtime/events':
             'stadtwerk-mauer-sandbox-runtime.ingestEvent',
           'POST /stadtwerk-mauer-sandbox-runtime/reset':

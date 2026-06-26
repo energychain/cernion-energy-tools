@@ -133,6 +133,7 @@ module.exports = {
       leadershipDeltaCockpitStatus: 5 * 60 * 1000, // 5 min
       liveUpdateStreamContractStatus: 5 * 60 * 1000, // 5 min
       smgwConnectorReadinessStatus: 5 * 60 * 1000, // 5 min
+      municipalEnergyValueAnalysisStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -7988,6 +7989,94 @@ module.exports = {
           this.settings.cacheTtlMs.leadershipDeltaCockpitStatus,
           async () => ({
             ...this.buildLeadershipDeltaCockpitStatus(params),
+            timestamp: new Date().toISOString(),
+          })
+        );
+      },
+    },
+
+    // -- municipalEnergyValueAnalysisStatus -----------------------------------
+    /**
+     * GET /api/dashboard/municipal-energy-value-analysis
+     *
+     * Generic read-only municipal electricity-economy Lagebild endpoint.
+     * Returns scalar value, risk, budget-impact, assumption and source rows
+     * for a given municipality (resolved by name or AGS). All rows are
+     * Budibase-renderable (no nested objects). Missing upstream data is
+     * surfaced as missingEvidence/sourceRows rather than blocking the response.
+     */
+    municipalEnergyValueAnalysisStatus: {
+      rest: 'GET /municipal-energy-value-analysis',
+      params: {
+        municipality: { type: 'string', optional: true, min: 1 },
+        ags: { type: 'string', optional: true, min: 1 },
+        year: { type: 'number', optional: true, convert: true, min: 2000, max: 2100 },
+        scenario: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Municipal energy value Lagebild -- read-only dashboard aggregation',
+        description:
+          'Returns a deterministic, Budibase-renderable municipal electricity-economy Lagebild ' +
+          'for a given German municipality (identified by municipality name or AGS). ' +
+          'Includes scalar valueRows (generation/value by technology), riskRows (EWK/digitalization, ' +
+          'iMSys/SMGW rollout readiness, capacity constraints), budgetImpactRows (Konzessionsabgabe ' +
+          'layers as scenario assumptions), assumptionRows, and sourceRows. ' +
+          'Missing data is surfaced in missingEvidence and sourceRows, not as errors. ' +
+          'The endpoint is generic for German municipalities; Mauer serves as the first ' +
+          'demonstrable fixture/regression case. It does not perform billing, settlement, ' +
+          'tariff calculation, concession-fee settlement, device control, MaKo dispatch, ' +
+          'tenant provisioning, reset, Budibase table writes, or unrestricted data exports.',
+        parameters: [
+          { name: 'municipality', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ags', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'year', in: 'query', required: false, schema: { type: 'integer' } },
+          { name: 'scenario', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only municipal energy value Lagebild',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    status: { type: 'string' },
+                    municipality: { type: 'string' },
+                    ags: { type: 'string' },
+                    year: { type: 'number' },
+                    scenario: { type: 'string' },
+                    analysisRunId: { type: 'string' },
+                    valueRows: { type: 'array' },
+                    riskRows: { type: 'array' },
+                    budgetImpactRows: { type: 'array' },
+                    assumptionRows: { type: 'array' },
+                    sourceRows: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    noCallGuards: { type: 'array' },
+                    _errors: { type: 'array' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const municipalityRaw = (params.municipality || '').trim();
+        const ags = (params.ags || '').trim();
+        const year = params.year || 2025;
+        const scenario = (params.scenario || 'baseline').trim().toLowerCase();
+        const cacheKey = `municipal-energy-value-analysis:${municipalityRaw.toLowerCase()}:${ags}:${year}:${scenario}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.municipalEnergyValueAnalysisStatus,
+          async () => ({
+            ...this.buildMunicipalEnergyValueAnalysisStatus({ municipality: municipalityRaw, ags, year, scenario }),
             timestamp: new Date().toISOString(),
           })
         );
@@ -28416,6 +28505,447 @@ module.exports = {
           sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,
         },
+        _errors: [],
+      };
+    },
+
+    buildMunicipalEnergyValueAnalysisStatus(params = {}) {
+      const municipalityKey = String(params.municipality || '').trim().toLowerCase();
+      const agsParam = String(params.ags || '').trim();
+      const year = Number(params.year) || 2025;
+      const scenario = String(params.scenario || 'baseline').trim().toLowerCase();
+
+      const KNOWN = {
+        mauer: {
+          displayName: 'Mauer',
+          ags: '08226074',
+          bundesland: 'Baden-Württemberg',
+          einwohner: 4200,
+          flaecheKm2: 12.3,
+          gridOperatorLabel: 'Stadtwerk Mauer GmbH',
+          gridOperatorBdewHint: 'local-bw-vnb',
+          konzessionsabgabeKategorie: 'Gemeinde bis 25.000 Einwohner',
+          pvCapacityKw: 2650,
+          biomassCapacityKw: 500,
+          windCapacityKw: 0,
+          avgHouseholdConsumptionKwh: 2500,
+          avgHouseholdsPerEinwohner: 0.45,
+        },
+        heidelberg: {
+          displayName: 'Heidelberg',
+          ags: '08221000',
+          bundesland: 'Baden-Württemberg',
+          einwohner: 160000,
+          flaecheKm2: 109.0,
+          gridOperatorLabel: 'Stadtwerke Heidelberg Netze GmbH',
+          gridOperatorBdewHint: 'missing-evidence',
+          konzessionsabgabeKategorie: 'Stadt mehr als 100.000 Einwohner',
+          pvCapacityKw: 48000,
+          biomassCapacityKw: 8000,
+          windCapacityKw: 2000,
+          avgHouseholdConsumptionKwh: 2200,
+          avgHouseholdsPerEinwohner: 0.5,
+        },
+      };
+
+      const resolvedByAgs = agsParam
+        ? Object.values(KNOWN).find((m) => m.ags === agsParam)
+        : null;
+      const profile =
+        KNOWN[municipalityKey] ||
+        resolvedByAgs ||
+        null;
+
+      const resolvedName = profile
+        ? profile.displayName
+        : params.municipality
+          ? String(params.municipality).trim()
+          : 'Unbekannte Gemeinde';
+      const resolvedAgs = profile ? profile.ags : agsParam || null;
+      const isKnown = profile !== null;
+
+      const analysisRunId = `municipal-lagebild:${resolvedAgs || municipalityKey}:${year}:${scenario}`;
+
+      const assumedMarketPriceEurPerMwh = scenario === 'high-price' ? 110 : scenario === 'low-price' ? 45 : 70;
+      const pvFullLoadHours = 1000;
+      const biomassFullLoadHours = 7000;
+      const windFullLoadHours = 1800;
+
+      const valueRows = [];
+      if (profile) {
+        if (profile.pvCapacityKw > 0) {
+          const genKwh = profile.pvCapacityKw * pvFullLoadHours;
+          valueRows.push({
+            rowKey: 'pv_generation_value',
+            rowLabel: 'Photovoltaik -- Erzeugungswert',
+            technology: 'pv',
+            installedCapacityKw: profile.pvCapacityKw,
+            assumedFullLoadHours: pvFullLoadHours,
+            estimatedGenerationKwhPerYear: genKwh,
+            assumedMarketPriceEurPerMwh,
+            grossMarketValueEurPerYear: Math.round((genKwh / 1000) * assumedMarketPriceEurPerMwh),
+            localRetentionIndicator: 'bilanziell-szenario',
+            evidenceStatus: 'assumption-backed',
+            assumptionLabel: `MaStR-Bestand ${year} Annahme; Volllaststunden Standardwert`,
+            sourceLabel: 'MaStR / interne Annahme',
+          });
+        }
+        if (profile.biomassCapacityKw > 0) {
+          const genKwh = profile.biomassCapacityKw * biomassFullLoadHours;
+          valueRows.push({
+            rowKey: 'biomass_generation_value',
+            rowLabel: 'Biomasse -- Erzeugungswert',
+            technology: 'biomass',
+            installedCapacityKw: profile.biomassCapacityKw,
+            assumedFullLoadHours: biomassFullLoadHours,
+            estimatedGenerationKwhPerYear: genKwh,
+            assumedMarketPriceEurPerMwh,
+            grossMarketValueEurPerYear: Math.round((genKwh / 1000) * assumedMarketPriceEurPerMwh),
+            localRetentionIndicator: 'bilanziell-szenario',
+            evidenceStatus: 'assumption-backed',
+            assumptionLabel: `MaStR-Bestand ${year} Annahme; Volllaststunden Standardwert`,
+            sourceLabel: 'MaStR / interne Annahme',
+          });
+        }
+        if (profile.windCapacityKw > 0) {
+          const genKwh = profile.windCapacityKw * windFullLoadHours;
+          valueRows.push({
+            rowKey: 'wind_generation_value',
+            rowLabel: 'Windenergie -- Erzeugungswert',
+            technology: 'wind',
+            installedCapacityKw: profile.windCapacityKw,
+            assumedFullLoadHours: windFullLoadHours,
+            estimatedGenerationKwhPerYear: genKwh,
+            assumedMarketPriceEurPerMwh,
+            grossMarketValueEurPerYear: Math.round((genKwh / 1000) * assumedMarketPriceEurPerMwh),
+            localRetentionIndicator: 'bilanziell-szenario',
+            evidenceStatus: 'assumption-backed',
+            assumptionLabel: `MaStR-Bestand ${year} Annahme; Volllaststunden Standardwert`,
+            sourceLabel: 'MaStR / interne Annahme',
+          });
+        }
+        const totalGenKwh = valueRows.reduce(
+          (sum, r) => sum + (r.estimatedGenerationKwhPerYear || 0),
+          0
+        );
+        const totalHouseholds = Math.round(
+          profile.einwohner * profile.avgHouseholdsPerEinwohner
+        );
+        const totalLocalConsumptionKwh =
+          totalHouseholds * profile.avgHouseholdConsumptionKwh;
+        const localRetentionPercent =
+          totalLocalConsumptionKwh > 0
+            ? Math.min(100, Math.round((totalGenKwh / totalLocalConsumptionKwh) * 100))
+            : null;
+        valueRows.push({
+          rowKey: 'local_retention_indicator',
+          rowLabel: 'Lokale Deckungsquote (bilanziell/Szenario)',
+          technology: 'aggregated',
+          installedCapacityKw: null,
+          assumedFullLoadHours: null,
+          estimatedGenerationKwhPerYear: totalGenKwh,
+          assumedMarketPriceEurPerMwh: null,
+          grossMarketValueEurPerYear: null,
+          localRetentionIndicator: localRetentionPercent !== null
+            ? `${localRetentionPercent}% bilanziell (Szenario ${scenario})`
+            : 'keine Berechnung moeglich',
+          evidenceStatus: 'scenario-based',
+          assumptionLabel:
+            'Bilanzieller Wert; kein physischer Nachweis lokaler Elektronennutzung',
+          sourceLabel: 'interne Berechnung',
+        });
+      } else {
+        valueRows.push({
+          rowKey: 'generation_value_missing',
+          rowLabel: 'Erzeugungsdaten nicht verfuegbar',
+          technology: 'unknown',
+          installedCapacityKw: null,
+          assumedFullLoadHours: null,
+          estimatedGenerationKwhPerYear: null,
+          assumedMarketPriceEurPerMwh: null,
+          grossMarketValueEurPerYear: null,
+          localRetentionIndicator: 'keine Daten',
+          evidenceStatus: 'missing-evidence',
+          assumptionLabel: 'Gemeinde nicht im lokalen Profil; MaStR-Abfrage erforderlich',
+          sourceLabel: 'keine Quelle verfuegbar',
+        });
+      }
+
+      const riskRows = [
+        {
+          riskKey: 'ewk_anschlussdauer_risk',
+          riskLabel: 'EWK Anschlussdauer / Umsetzungsquote',
+          severity: isKnown && profile.gridOperatorBdewHint !== 'missing-evidence' ? 'medium' : 'high',
+          severityScore: isKnown && profile.gridOperatorBdewHint !== 'missing-evidence' ? 45 : 70,
+          valueAtRiskEurPerYear: null,
+          economicImpactEurPerYear: null,
+          delayRiskDays: isKnown ? 60 : null,
+          evidenceStatus: isKnown && profile.gridOperatorBdewHint !== 'missing-evidence'
+            ? 'assumption-backed'
+            : 'missing-evidence',
+          sourceLabel: 'EWK-Monitoring (BNr erforderlich)',
+          assumptionLabel: 'Proxy-Risiko; BNr fuer belastbare EWK-Aufloesung erforderlich',
+          nextGateLabel: 'VNB/BNr auflosen; EWK-Anschlussdauer-Snapshot abrufen',
+        },
+        {
+          riskKey: 'digitalization_index_risk',
+          riskLabel: 'Digitalisierungsindex Netzbetreiber',
+          severity: 'medium',
+          severityScore: 40,
+          valueAtRiskEurPerYear: null,
+          economicImpactEurPerYear: null,
+          delayRiskDays: null,
+          evidenceStatus: 'missing-evidence',
+          sourceLabel: 'vnb-digital / VNB-Monitor (BNr erforderlich)',
+          assumptionLabel: 'Proxy-Risiko; kein belastbarer Digitalisierungsindex ohne BNr',
+          nextGateLabel: 'Netzbetreiber BDEW-Code/BNr bestaetigen; VNB-Monitor-Snapshot starten',
+        },
+        {
+          riskKey: 'imsys_smgw_rollout_readiness_risk',
+          riskLabel: 'iMSys/SMGW Rollout-Bereitschaft',
+          severity: 'medium',
+          severityScore: 50,
+          valueAtRiskEurPerYear: null,
+          economicImpactEurPerYear: null,
+          delayRiskDays: null,
+          evidenceStatus: 'assumption-backed',
+          sourceLabel: 'BNetzA / TAF-Monitoring (lokale Daten fehlen)',
+          assumptionLabel: 'Proxy-Annahme: branchenweiter Rollout-Rueckstand ~30%; keine lokale Anschlussanfrage vorgelegt',
+          nextGateLabel: 'SMGW-Rollout-Quote beim Netzbetreiber abfragen; VDMI-Zeile pruefen',
+        },
+        {
+          riskKey: 'grid_capacity_constraint_risk',
+          riskLabel: 'Kapazitaetsengpass / Netzanschluss-Restriktionen',
+          severity: isKnown ? 'low' : 'medium',
+          severityScore: isKnown ? 20 : 50,
+          valueAtRiskEurPerYear: null,
+          economicImpactEurPerYear: null,
+          delayRiskDays: null,
+          evidenceStatus: 'missing-evidence',
+          sourceLabel: 'Netzkapazitaetsanzeige / Anschlussanfrage (fehlt)',
+          assumptionLabel: 'Kein konkreter Engpass bekannt; ohne Netzkapazitaetsquelle nicht ausschliessbar',
+          nextGateLabel: 'Netzkapazitaetsanzeige Netzbetreiber pruefen; konkrete Anschlussanfrage vorlegen',
+        },
+      ];
+
+      const budgetImpactRows = [];
+      if (profile) {
+        const totalHouseholds = Math.round(
+          profile.einwohner * profile.avgHouseholdsPerEinwohner
+        );
+        const residentialConsumptionKwh = totalHouseholds * profile.avgHouseholdConsumptionKwh;
+        const kavRateNsCtPerKwh = profile.konzessionsabgabeKategorie.includes('100.000') ? 1.99 : 1.32;
+        const kavNsEurPerYear = Math.round(
+          (residentialConsumptionKwh * kavRateNsCtPerKwh) / 100
+        );
+        const kavGewerbeEurPerYear = Math.round(kavNsEurPerYear * 0.25);
+        budgetImpactRows.push(
+          {
+            rowKey: 'konzessionsabgabe_ns_haushalt',
+            rowLabel: 'Konzessionsabgabe NS Haushalt (Annahme)',
+            budgetCategory: 'konzessionsabgabe',
+            segment: 'NS-Haushalt',
+            estimatedEurPerYear: kavNsEurPerYear,
+            calculationStatus: 'assumption-scenario',
+            assumptionStatus: `KAV § 2 Abs. 2 Kategorie: ${profile.konzessionsabgabeKategorie}; ${kavRateNsCtPerKwh} ct/kWh`,
+            evidenceStatus: 'assumption-backed',
+            assumptionLabel: `Einwohner ${profile.einwohner}; ${totalHouseholds} Haushalte; ${profile.avgHouseholdConsumptionKwh} kWh/HH angenommen`,
+            sourceLabel: 'KAV 1992 / interne Annahme; keine rechtliche Abrechnung',
+          },
+          {
+            rowKey: 'konzessionsabgabe_ns_gewerbe',
+            rowLabel: 'Konzessionsabgabe NS Gewerbe (Annahme)',
+            budgetCategory: 'konzessionsabgabe',
+            segment: 'NS-Gewerbe',
+            estimatedEurPerYear: kavGewerbeEurPerYear,
+            calculationStatus: 'assumption-scenario',
+            assumptionStatus: '25% Aufschlag auf HH-Annahme; Gewerbestruktur unbekannt',
+            evidenceStatus: 'assumption-backed',
+            assumptionLabel: 'Gewerbeanteil geschaetzt; keine lokale Gewerbestatistik vorgelegt',
+            sourceLabel: 'interne Annahme / Branchenproxy',
+          },
+          {
+            rowKey: 'konzessionsabgabe_total_estimate',
+            rowLabel: 'Konzessionsabgabe Gesamt (Szenario)',
+            budgetCategory: 'konzessionsabgabe',
+            segment: 'NS-gesamt',
+            estimatedEurPerYear: kavNsEurPerYear + kavGewerbeEurPerYear,
+            calculationStatus: 'assumption-scenario',
+            assumptionStatus: 'Szenario-Summe; keine rechtliche/buchhalterische Finalitaet',
+            evidenceStatus: 'scenario-based',
+            assumptionLabel:
+              'Konzessionsabgabe ist eine kommunale Einnahme des Konzessionsgebers; ' +
+              'diese Zeile ist Szenario-Darstellung, keine rechtliche Abrechnung.',
+            sourceLabel: 'KAV / interne Szenario-Berechnung',
+          }
+        );
+      } else {
+        budgetImpactRows.push({
+          rowKey: 'budget_impact_missing',
+          rowLabel: 'Haushaltswirkung nicht berechenbar',
+          budgetCategory: 'konzessionsabgabe',
+          segment: 'unbekannt',
+          estimatedEurPerYear: null,
+          calculationStatus: 'missing-data',
+          assumptionStatus: 'Gemeindeprofil nicht aufgeloest',
+          evidenceStatus: 'missing-evidence',
+          assumptionLabel: 'Gemeinde nicht im lokalen Profil; Einwohnerzahl und KAV-Kategorie erforderlich',
+          sourceLabel: 'keine Quelle verfuegbar',
+        });
+      }
+
+      const assumptionRows = [
+        {
+          assumptionKey: 'market_price_eur_per_mwh',
+          assumptionLabel: 'Marktpreis Strom (Day-Ahead Szenario)',
+          assumptionValue: String(assumedMarketPriceEurPerMwh),
+          assumptionUnit: 'EUR/MWh',
+          category: 'marktpreis',
+          source: `ENTSO-E Day-Ahead Szenario ${scenario}`,
+          evidenceStatus: 'assumption-backed',
+        },
+        {
+          assumptionKey: 'pv_full_load_hours',
+          assumptionLabel: 'PV Volllaststunden',
+          assumptionValue: String(pvFullLoadHours),
+          assumptionUnit: 'h/a',
+          category: 'erzeugung',
+          source: 'DWD / Branchenwert Sueddeutschland',
+          evidenceStatus: 'assumption-backed',
+        },
+        {
+          assumptionKey: 'biomass_full_load_hours',
+          assumptionLabel: 'Biomasse Volllaststunden',
+          assumptionValue: String(biomassFullLoadHours),
+          assumptionUnit: 'h/a',
+          category: 'erzeugung',
+          source: 'Branchenwert / DBFZ',
+          evidenceStatus: 'assumption-backed',
+        },
+        {
+          assumptionKey: 'local_retention_bilanziell',
+          assumptionLabel: 'Lokale Verbrauchsdeckung (bilanziell)',
+          assumptionValue: 'szenario-basiert',
+          assumptionUnit: '%',
+          category: 'versorgung',
+          source: 'interne Berechnung',
+          evidenceStatus: 'scenario-based',
+        },
+        {
+          assumptionKey: 'kav_category',
+          assumptionLabel: 'KAV Gemeindekategorie',
+          assumptionValue: profile ? profile.konzessionsabgabeKategorie : 'unbekannt',
+          assumptionUnit: 'Kategorie',
+          category: 'konzessionsabgabe',
+          source: 'KAV 1992 § 2 Abs. 2',
+          evidenceStatus: profile ? 'assumption-backed' : 'missing-evidence',
+        },
+      ];
+
+      const sourceRows = [
+        {
+          sourceKey: 'mastr',
+          sourceLabel: 'Marktstammdatenregister (MaStR)',
+          sourceType: 'register',
+          availability: 'public',
+          coverage: 'deutschland-weit',
+          lastUpdated: null,
+          evidenceStatus: isKnown ? 'assumption-backed' : 'missing-evidence',
+        },
+        {
+          sourceKey: 'ewk_monitoring',
+          sourceLabel: 'EWK-Monitoring (BNetzA)',
+          sourceType: 'regulatory',
+          availability: 'conditional',
+          coverage: 'je Netzbetreiber / BNr',
+          lastUpdated: null,
+          evidenceStatus: 'missing-evidence',
+        },
+        {
+          sourceKey: 'vnb_digital',
+          sourceLabel: 'vnb-digital / VNB-Digitalisierungsindex',
+          sourceType: 'market-data',
+          availability: 'conditional',
+          coverage: 'je Netzbetreiber',
+          lastUpdated: null,
+          evidenceStatus: 'missing-evidence',
+        },
+        {
+          sourceKey: 'kav_1992',
+          sourceLabel: 'Konzessionsabgabenverordnung (KAV 1992)',
+          sourceType: 'legal',
+          availability: 'public',
+          coverage: 'deutschland-weit',
+          lastUpdated: '1992-01-01',
+          evidenceStatus: 'available',
+        },
+        {
+          sourceKey: 'entsoe_market',
+          sourceLabel: 'ENTSO-E Day-Ahead Marktdaten',
+          sourceType: 'market-data',
+          availability: 'public',
+          coverage: 'DE/AT/LU',
+          lastUpdated: null,
+          evidenceStatus: 'assumption-backed',
+        },
+      ];
+
+      const missingEvidence = [];
+      const addGap = (missingDataPoint, enablesDossierAddition) => {
+        missingEvidence.push({ missingDataPoint, enablesDossierAddition });
+      };
+
+      if (!isKnown) addGap('municipality_profile', 'Gemeindeprofil (AGS, Einwohnerzahl, Flaeche) ermoeoflicht Grundlagebild.');
+      if (!resolvedAgs) addGap('ags_code', 'AGS-Code ermoeoflicht MaStR-Abfrage und KAV-Kategorisierung.');
+      addGap('vnb_bnr', 'BNr des zustaendigen Netzbetreibers ermoeoflicht EWK-Anschlussdauer und Digitalisierungsindex.');
+      addGap('mastr_live_data', 'Live-MaStR-Abfrage ermoeoflicht belastbare Erzeugungskapazitaeten statt Annahmen.');
+      addGap('netzkapazitaetsnachweis', 'Netzkapazitaetsnachweis ermoeoflicht Kapazitaetsengpass-Risikobewertung.');
+      addGap('imsys_rollout_quote', 'Lokale iMSys/SMGW-Rollout-Quote vom Netzbetreiber ermoeoflicht SMGW-Risikozeile.');
+
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'municipal_energy_value_analysis',
+      }));
+
+      const noCallGuards = [
+        'billing.settlement',
+        'tariff.mutate',
+        'mako.dispatch',
+        'konzessionsabgabe.finalSettle',
+        'device-control.execute',
+        'smgw.register',
+        'smgw.control',
+        'budibase.table.write',
+        'personal-agent.execute',
+        'rundeck.job.execute',
+        'grid-connection.reserve',
+        'tenant.provision',
+        'tenant.reset',
+        'external.data.export.unrestricted',
+      ];
+
+      const status = isKnown
+        ? (missingEvidence.some((g) => g.missingDataPoint === 'vnb_bnr')
+          ? 'lagebild_partial'
+          : 'lagebild_available')
+        : 'lagebild_municipality_unresolved';
+
+      return {
+        capabilityKey: 'municipal_energy_value_analysis',
+        status,
+        municipality: resolvedName,
+        ags: resolvedAgs || null,
+        year,
+        scenario,
+        analysisRunId,
+        valueRows,
+        riskRows,
+        budgetImpactRows,
+        assumptionRows,
+        sourceRows,
+        missingEvidence,
+        positiveFollowUps,
+        noCallGuards,
         _errors: [],
       };
     },

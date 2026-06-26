@@ -9089,4 +9089,199 @@ describe('dashboard-api.service', () => {
       );
     });
   });
+
+  // -- municipalEnergyValueAnalysisStatus ------------------------------------
+  describe('municipalEnergyValueAnalysisStatus', () => {
+    it('returns HTTP 200 Lagebild for Mauer baseline with required top-level fields', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Mauer',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(result.capabilityKey).toBe('municipal_energy_value_analysis');
+      expect(result.status).toBe('lagebild_partial');
+      expect(result.municipality).toBe('Mauer');
+      expect(result.ags).toBe('08226074');
+      expect(result.year).toBe(2025);
+      expect(result.scenario).toBe('baseline');
+      expect(typeof result.analysisRunId).toBe('string');
+      expect(result.analysisRunId).toContain('08226074');
+      expect(Array.isArray(result.valueRows)).toBe(true);
+      expect(Array.isArray(result.riskRows)).toBe(true);
+      expect(Array.isArray(result.budgetImpactRows)).toBe(true);
+      expect(Array.isArray(result.assumptionRows)).toBe(true);
+      expect(Array.isArray(result.sourceRows)).toBe(true);
+      expect(Array.isArray(result.missingEvidence)).toBe(true);
+      expect(Array.isArray(result.positiveFollowUps)).toBe(true);
+      expect(Array.isArray(result.noCallGuards)).toBe(true);
+      expect(Array.isArray(result._errors)).toBe(true);
+      expect(typeof result.timestamp).toBe('string');
+    });
+
+    it('returns scalar/display-safe valueRows for Mauer with no nested objects', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Mauer',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(result.valueRows.length).toBeGreaterThanOrEqual(2);
+      expectScalarTableRows(result.valueRows);
+
+      const pvRow = result.valueRows.find((r) => r.rowKey === 'pv_generation_value');
+      expect(pvRow).toBeDefined();
+      expect(pvRow.technology).toBe('pv');
+      expect(typeof pvRow.installedCapacityKw).toBe('number');
+      expect(typeof pvRow.estimatedGenerationKwhPerYear).toBe('number');
+      expect(typeof pvRow.grossMarketValueEurPerYear).toBe('number');
+      expect(pvRow.evidenceStatus).toBe('assumption-backed');
+
+      const retentionRow = result.valueRows.find((r) => r.rowKey === 'local_retention_indicator');
+      expect(retentionRow).toBeDefined();
+      expect(retentionRow.evidenceStatus).toBe('scenario-based');
+    });
+
+    it('returns scalar/display-safe riskRows with required fields including EWK and iMSys proxy risks', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Mauer',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(result.riskRows.length).toBeGreaterThanOrEqual(3);
+      expectScalarTableRows(result.riskRows);
+
+      for (const row of result.riskRows) {
+        expect(typeof row.riskKey).toBe('string');
+        expect(typeof row.riskLabel).toBe('string');
+        expect(['low', 'medium', 'high']).toContain(row.severity);
+        expect(typeof row.severityScore).toBe('number');
+        expect(typeof row.evidenceStatus).toBe('string');
+        expect(typeof row.sourceLabel).toBe('string');
+        expect(typeof row.assumptionLabel).toBe('string');
+        expect(typeof row.nextGateLabel).toBe('string');
+      }
+
+      expect(result.riskRows.map((r) => r.riskKey)).toEqual(
+        expect.arrayContaining([
+          'ewk_anschlussdauer_risk',
+          'imsys_smgw_rollout_readiness_risk',
+          'grid_capacity_constraint_risk',
+        ])
+      );
+    });
+
+    it('returns scalar/display-safe budgetImpactRows with Konzessionsabgabe for Mauer', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Mauer',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(result.budgetImpactRows.length).toBeGreaterThanOrEqual(1);
+      expectScalarTableRows(result.budgetImpactRows);
+
+      const kavRow = result.budgetImpactRows.find((r) => r.budgetCategory === 'konzessionsabgabe');
+      expect(kavRow).toBeDefined();
+      expect(kavRow.assumptionStatus).toBeDefined();
+      expect(kavRow.evidenceStatus).toMatch(/assumption-backed|scenario-based/);
+      expect(kavRow.sourceLabel).toContain('KAV');
+
+      const totalRow = result.budgetImpactRows.find((r) => r.rowKey === 'konzessionsabgabe_total_estimate');
+      expect(totalRow).toBeDefined();
+      expect(typeof totalRow.estimatedEurPerYear).toBe('number');
+      expect(totalRow.calculationStatus).toBe('assumption-scenario');
+    });
+
+    it('runs the same generic path for Heidelberg and surfaces evidence gaps', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Heidelberg',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(result.status).toBe('lagebild_partial');
+      expect(result.municipality).toBe('Heidelberg');
+      expect(result.ags).toBe('08221000');
+      expectScalarTableRows(result.valueRows);
+      expectScalarTableRows(result.riskRows);
+      expectScalarTableRows(result.budgetImpactRows);
+
+      expect(result.missingEvidence.map((g) => g.missingDataPoint)).toContain('vnb_bnr');
+      expect(result.missingEvidence.map((g) => g.missingDataPoint)).toContain('mastr_live_data');
+    });
+
+    it('resolves municipality by AGS when municipality name is not supplied', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        ags: '08226074',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(result.municipality).toBe('Mauer');
+      expect(result.ags).toBe('08226074');
+    });
+
+    it('returns stable 200 for unknown municipality with missing-evidence markers (no crash)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Unbekannthausen',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(result.status).toBe('lagebild_municipality_unresolved');
+      expect(result.municipality).toBe('Unbekannthausen');
+      expect(result._errors).toEqual([]);
+      expect(result.valueRows.length).toBeGreaterThanOrEqual(1);
+      expect(result.valueRows[0].evidenceStatus).toBe('missing-evidence');
+      expect(result.budgetImpactRows[0].estimatedEurPerYear).toBeNull();
+      expectScalarTableRows(result.valueRows);
+      expectScalarTableRows(result.riskRows);
+      expectScalarTableRows(result.budgetImpactRows);
+    });
+
+    it('applies scenario to market price assumptions (high-price scenario)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Mauer',
+        year: 2025,
+        scenario: 'high-price',
+      });
+
+      const pvRow = result.valueRows.find((r) => r.rowKey === 'pv_generation_value');
+      expect(pvRow.assumedMarketPriceEurPerMwh).toBe(110);
+      expect(pvRow.grossMarketValueEurPerYear).toBeGreaterThan(0);
+    });
+
+    it('does not expose mutation actions in noCallGuards', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Mauer',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(result.noCallGuards).toEqual(
+        expect.arrayContaining([
+          'billing.settlement',
+          'mako.dispatch',
+          'budibase.table.write',
+          'personal-agent.execute',
+          'rundeck.job.execute',
+          'device-control.execute',
+          'smgw.control',
+          'external.data.export.unrestricted',
+        ])
+      );
+    });
+
+    it('returns empty _errors for Mauer baseline (no upstream calls needed)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Mauer',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(result._errors).toEqual([]);
+    });
+  });
 });
