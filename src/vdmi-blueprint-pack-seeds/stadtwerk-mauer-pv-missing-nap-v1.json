@@ -1,0 +1,136 @@
+{
+  "id": "stadtwerk-mauer-pv-missing-nap-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer PV registration missing NAP seed",
+  "processFamily": "pv_registration",
+  "controlCase": "electrician_missing_nap",
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; values are synthetic unless explicitly marked as public context."
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only MaStR, OSM, or comparable public context. Demo reset flows must not mutate this layer.",
+      "examples": ["MaStR baseline", "OSM grid context"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented demo roles, IDs, evidence gaps, process traces, and artifacts for stadtwerk-mauer.",
+      "examples": ["synthetic NAP placeholder", "synthetic MaLo/MeLo placeholder", "synthetic consent status"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck demo runs, separate from public context baselines.",
+      "examples": ["Rundeck smoke trace", "Budibase workbench render artifact"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_NETZPLANUNG",
+      "relation": "verantwortlich",
+      "responsibility": "Clarifies Netzanschlusspunkt and grid-capacity evidence for the PV registration case."
+    },
+    {
+      "roleId": "ROLE_GRID_OPERATOR",
+      "relation": "mitwirkend",
+      "responsibility": "Provides grid-operation context and topology plausibility without executing control actions."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives evidence-gap and audit-context information without billing or settlement action."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "napReference",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds a Netzanschlusspunkt clarification item and capacity/context evidence once tenant-provided data exists."
+    },
+    {
+      "id": "maloId",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds a market-location evidence placeholder once tenant-provided data exists."
+    },
+    {
+      "id": "meloId",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds meter-location evidence once tenant-provided data exists."
+    },
+    {
+      "id": "meterId",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds a metering evidence item without claiming real device-control data."
+    },
+    {
+      "id": "customerConsentStatus",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds consent/evidence status once tenant-provided approval exists."
+    }
+  ],
+  "decisionPolicy": {
+    "onMissingNapReference": "clarification",
+    "onMissingEvidence": "evidence_gap",
+    "allowedStates": ["clarification", "evidence_gap"],
+    "mustNotTrigger": [
+      "mako_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "smgw_cls_device_control",
+      "external_connector_call",
+      "hitl_create",
+      "production_mutation",
+      "public_context_mutation"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "kind": "runbook_hint",
+      "id": "rundeck:stadtwerk-mauer-e2e-smoke",
+      "label": "Cernion Stadtwerk Mauer E2E Smoke",
+      "execution": "metadata_only"
+    },
+    {
+      "kind": "workbench_hint",
+      "id": "budibase:stadtwerk-mauer-workbench",
+      "label": "Cernion Stadtwerk Mauer Workbench",
+      "execution": "metadata_only"
+    }
+  ],
+  "forbiddenActions": [
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "smgw_cls_device_control",
+    "external_connector_call",
+    "webhook",
+    "hitl_create",
+    "tenant_provisioning",
+    "rundeck_execution",
+    "public_context_mutation",
+    "production_mutation",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only",
+  "projectionHints": {
+    "sourceIssue": 302,
+    "priorProjectionIssue": 301,
+    "targetSurface": "role_workbench_projection",
+    "missingEvidenceToWorkbenchItem": true
+  }
+}
