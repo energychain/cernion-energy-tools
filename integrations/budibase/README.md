@@ -28,6 +28,7 @@ The workbench renders:
 - E2E demo status from `GET /api/dashboard/stadtwerk-mauer-e2e-process-demo`
 - selectable case detail from `GET /api/dashboard/stadtwerk-mauer-case-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - selected-case action rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
+- demo process-panel rows, last-result rows, required evidence rows and runbook-boundary rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - role workbench catalog/open-target rows from `GET /api/dashboard/stadtwerk-mauer-role-workbench-catalog?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - Vertrieb/Key Account briefing rows from `GET /api/dashboard/stadtwerk-mauer-sales-workbench-briefing?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&audience=vertrieb`
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
@@ -50,6 +51,10 @@ The selected-case action query is read-only / verify-only: it returns scalar but
 refreshing the selected case, verifying the Blueprint seed and validating evidence completeness.
 Budibase may use these rows for UI-near query refreshes, but setup/reset/provisioning, arbitrary
 table writes, Rundeck execution and production mutations stay out of Budibase.
+The demo process panel uses the same read-only endpoint to render scalar process actions,
+last known results, required evidence and Budibase/Cernion/Rundeck boundary rows. Unsafe
+operational actions are visible as disabled rows only; Budibase does not execute Rundeck jobs
+or become the process system of record.
 The role workbench catalog query is read-only: it returns scalar role/open-target rows for
 Administrator, Zielnetzplanung, Vertrieb, Key Account and VDMI governance/reviewer targets.
 It does not implement role-specific calculations, authorization changes, role assignments or

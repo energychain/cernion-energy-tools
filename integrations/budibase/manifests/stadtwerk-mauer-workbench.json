@@ -652,6 +652,10 @@
         "caseId": { "type": "string" },
         "availableActions": { "type": "array" },
         "actionRows": { "type": "array" },
+        "processActionRows": { "type": "array" },
+        "lastResultRows": { "type": "array" },
+        "boundaryRows": { "type": "array" },
+        "requiredEvidenceRows": { "type": "array" },
         "budibaseAutomationHints": { "type": "array" },
         "noCallGuards": { "type": "array" },
         "timestamp": { "type": "string" }
@@ -686,6 +690,117 @@
         "disabledReason": { "type": "string" },
         "nextGate": { "type": "string" },
         "evidenceStatus": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerProcessActionRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-case-actions",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "return data.processActionRows || []",
+      "schema": {
+        "actionId": { "type": "string" },
+        "label": { "type": "string" },
+        "riskClass": { "type": "string" },
+        "boundary": { "type": "string" },
+        "executionMode": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "enabledLabel": { "type": "string" },
+        "disabledReason": { "type": "string" },
+        "lastResultStatus": { "type": "string" },
+        "lastResultAt": { "type": "string" },
+        "requiredEvidenceKey": { "type": "string" },
+        "requiredGate": { "type": "string" },
+        "nextPresenterAction": { "type": "string" },
+        "sourceLabel": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerProcessLastResultRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-case-actions",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "return data.lastResultRows || []",
+      "schema": {
+        "actionId": { "type": "string" },
+        "label": { "type": "string" },
+        "boundary": { "type": "string" },
+        "lastResultStatus": { "type": "string" },
+        "lastResultAt": { "type": "string" },
+        "resultSource": { "type": "string" },
+        "presenterMeaning": { "type": "string" },
+        "mutationGuard": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerProcessBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-case-actions",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "return data.boundaryRows || []",
+      "schema": {
+        "boundaryId": { "type": "string" },
+        "label": { "type": "string" },
+        "boundary": { "type": "string" },
+        "allowedOperation": { "type": "string" },
+        "blockedOperation": { "type": "string" },
+        "owner": { "type": "string" },
+        "presenterMessage": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerRequiredEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-case-actions",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "return data.requiredEvidenceRows || []",
+      "schema": {
+        "evidenceKey": { "type": "string" },
+        "label": { "type": "string" },
+        "state": { "type": "string" },
+        "requiredGate": { "type": "string" },
+        "enablesAction": { "type": "string" },
+        "presenterMessage": { "type": "string" }
       }
     },
     {
@@ -1222,6 +1337,30 @@
       "tableTitle": "Selected Case Actions"
     },
     {
+      "id": "process_panel_actions",
+      "title": "Demo Process Panel",
+      "queryName": "getStadtwerkMauerProcessActionRows",
+      "tableTitle": "Process Actions and Boundaries"
+    },
+    {
+      "id": "process_panel_last_results",
+      "title": "Process Last Results",
+      "queryName": "getStadtwerkMauerProcessLastResultRows",
+      "tableTitle": "Last Known Results"
+    },
+    {
+      "id": "process_panel_boundaries",
+      "title": "Runbook Boundaries",
+      "queryName": "getStadtwerkMauerProcessBoundaryRows",
+      "tableTitle": "Cernion / Budibase / Rundeck Boundary"
+    },
+    {
+      "id": "process_panel_required_evidence",
+      "title": "Required Evidence",
+      "queryName": "getStadtwerkMauerRequiredEvidenceRows",
+      "tableTitle": "Evidence Required Before Action"
+    },
+    {
       "id": "role_workbench_catalog",
       "title": "Role Workbench Catalog",
       "queryName": "getStadtwerkMauerRoleWorkbenchRows",
@@ -1296,6 +1435,7 @@
     "Tenant Databrowser binds to bounded scalar category, item, trace, detail and source rows; it is not an unrestricted export or Budibase-owned data store.",
     "Selected Case Evidence and Next Gates bind to scalar rows so tables do not render nested objects.",
     "Selected-case action rows are curated read-only/verify-only button metadata; Budibase may refresh queries but must not write arbitrary Cernion tables.",
+    "Demo Process Panel rows show safe verify actions, disabled operational actions, last known results and Cernion/Rundeck boundaries without executing jobs.",
     "Role Workbench Catalog binds to scalar role/open-target rows for Administrator, Zielnetzplanung, Vertrieb, Key Account and VDMI governance views.",
     "Zielnetzplanung Role Queue binds to scalar queue and evidence-handover rows for the generated grid-planning target.",
     "Vertrieb Briefing binds to scalar evidence-backed claim, evidence, gap and internal follow-up rows; unsupported claims stay not-yet-claimable.",

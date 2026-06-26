@@ -8993,6 +8993,43 @@ describe('dashboard-api.service', () => {
         evidenceStatus: 'evidence_gaps_present',
       });
       expectScalarTableRows(result.actionRows);
+      expect(result.processActionRows.map((row) => row.actionId)).toEqual(
+        expect.arrayContaining([
+          'refresh_read_model',
+          'verify_blueprint_seed',
+          'validate_evidence_completeness',
+          'run_e2e_smoke',
+          'setup_reset_or_provision',
+        ])
+      );
+      expect(result.processActionRows.find((row) => row.actionId === 'verify_blueprint_seed')).toMatchObject({
+        boundary: 'cernion-api',
+        executionMode: 'read_verify_only',
+        enabled: true,
+      });
+      expect(result.processActionRows.find((row) => row.actionId === 'run_e2e_smoke')).toMatchObject({
+        boundary: 'rundeck-runbook',
+        enabled: false,
+        lastResultStatus: 'not_called_by_budibase',
+      });
+      expect(result.processActionRows.find((row) => row.actionId === 'setup_reset_or_provision')).toMatchObject({
+        riskClass: 'blocked_mutating_operation',
+        enabled: false,
+      });
+      expectScalarTableRows(result.processActionRows);
+      expect(result.lastResultRows.find((row) => row.actionId === 'validate_evidence_completeness')).toMatchObject({
+        lastResultStatus: 'evidence_gaps_present',
+        mutationGuard: 'read_only_no_execution',
+      });
+      expectScalarTableRows(result.lastResultRows);
+      expect(result.boundaryRows.map((row) => row.boundary)).toEqual(
+        expect.arrayContaining(['budibase-ui-near', 'cernion-api', 'rundeck-runbook'])
+      );
+      expectScalarTableRows(result.boundaryRows);
+      expect(result.requiredEvidenceRows.map((row) => row.evidenceKey)).toEqual(
+        expect.arrayContaining(['napReference', 'customerConsentStatus'])
+      );
+      expectScalarTableRows(result.requiredEvidenceRows);
       expect(result.budibaseAutomationHints.map((hint) => hint.actionId)).toEqual(
         expect.arrayContaining([
           'refresh_read_model',
@@ -9041,6 +9078,10 @@ describe('dashboard-api.service', () => {
       expect(result.status).toBe('case_actions_blocked_outside_sandbox_tenant');
       expect(result.availableActions).toEqual([]);
       expect(result.actionRows).toEqual([]);
+      expect(result.processActionRows).toEqual([]);
+      expect(result.lastResultRows).toEqual([]);
+      expect(result.boundaryRows).toEqual([]);
+      expect(result.requiredEvidenceRows).toEqual([]);
       expect(result.budibaseAutomationHints).toEqual([]);
       expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
         'stadtwerk_mauer_tenant_scope'
@@ -9060,6 +9101,10 @@ describe('dashboard-api.service', () => {
       expect(result.status).toBe('case_actions_not_found');
       expect(result.availableActions).toEqual([]);
       expect(result.actionRows).toEqual([]);
+      expect(result.processActionRows).toEqual([]);
+      expect(result.lastResultRows).toEqual([]);
+      expect(result.boundaryRows).toEqual([]);
+      expect(result.requiredEvidenceRows).toEqual([]);
       expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
         'stadtwerk_mauer_case_scope'
       );
@@ -9070,6 +9115,10 @@ describe('dashboard-api.service', () => {
         expect.arrayContaining([
           'getStadtwerkMauerCaseActions',
           'getStadtwerkMauerCaseActionRows',
+          'getStadtwerkMauerProcessActionRows',
+          'getStadtwerkMauerProcessLastResultRows',
+          'getStadtwerkMauerProcessBoundaryRows',
+          'getStadtwerkMauerRequiredEvidenceRows',
         ])
       );
       expect(
@@ -9081,11 +9130,31 @@ describe('dashboard-api.service', () => {
         path: '/api/dashboard/stadtwerk-mauer-case-actions',
         transformer: 'return data.actionRows || []',
       });
+      expect(
+        STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+          (query) => query.name === 'getStadtwerkMauerProcessActionRows'
+        )
+      ).toMatchObject({
+        method: 'GET',
+        path: '/api/dashboard/stadtwerk-mauer-case-actions',
+        transformer: 'return data.processActionRows || []',
+      });
       expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.sections.map((section) => section.id)).toContain(
         'case_actions'
       );
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.sections.map((section) => section.id)).toEqual(
+        expect.arrayContaining([
+          'process_panel_actions',
+          'process_panel_last_results',
+          'process_panel_boundaries',
+          'process_panel_required_evidence',
+        ])
+      );
       expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
         'Selected-case action rows are curated read-only/verify-only button metadata'
+      );
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
+        'Demo Process Panel rows show safe verify actions'
       );
     });
   });

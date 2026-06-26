@@ -6002,9 +6002,9 @@ module.exports = {
         tags: [OPENAPI_TAG],
         summary: 'Stadtwerk Mauer case actions -- read-only/verify-only action contract',
         description:
-          'Returns deterministic Budibase-renderable selected-case action metadata for the ' +
-          'Stadtwerk Mauer Workbench. The endpoint exposes refresh, Blueprint verify and ' +
-          'evidence validation actions as scalar rows and automation hints without executing ' +
+          'Returns deterministic Budibase-renderable selected-case action and process-panel metadata for the ' +
+          'Stadtwerk Mauer Workbench. The endpoint exposes refresh, Blueprint verify, ' +
+          'evidence validation, runbook boundary and last-result rows without executing ' +
           'Budibase writes, setup/reset/provisioning, Rundeck jobs, MaKo, billing, settlement, ' +
           'device-control, HITL or external connector actions.',
         parameters: [
@@ -22962,6 +22962,24 @@ module.exports = {
           })
         : [];
       const actionRows = this.buildStadtwerkMauerCaseActionRows(availableActions);
+      const processActionRows = found
+        ? this.buildStadtwerkMauerProcessActionRows({
+            actions: availableActions,
+            caseDetailStatus,
+            missingEvidence,
+          })
+        : [];
+      const lastResultRows = found
+        ? this.buildStadtwerkMauerProcessLastResultRows({
+            actions: availableActions,
+            caseDetailStatus,
+            missingEvidence,
+          })
+        : [];
+      const boundaryRows = found ? this.buildStadtwerkMauerProcessBoundaryRows() : [];
+      const requiredEvidenceRows = found
+        ? this.buildStadtwerkMauerRequiredEvidenceRows(missingEvidence)
+        : [];
       const status = found
         ? missingEvidence.length > 0
           ? 'case_actions_ready_with_evidence_gaps'
@@ -23036,6 +23054,8 @@ module.exports = {
         `Case: ${caseId}`,
         `Actions: ${availableActions.length}`,
         `Action rows: ${actionRows.length}`,
+        `Process action rows: ${processActionRows.length}`,
+        `Last result rows: ${lastResultRows.length}`,
       ];
 
       return {
@@ -23054,6 +23074,10 @@ module.exports = {
         caseDetailStatus: caseDetailStatus?.status || null,
         availableActions,
         actionRows,
+        processActionRows,
+        lastResultRows,
+        boundaryRows,
+        requiredEvidenceRows,
         budibaseAutomationHints,
         rundeckBoundary,
         forbiddenActions,
@@ -23062,6 +23086,9 @@ module.exports = {
         summary: {
           actionCount: availableActions.length,
           enabledActionCount: availableActions.filter((action) => action.enabled !== false).length,
+          processActionCount: processActionRows.length,
+          disabledProcessActionCount: processActionRows.filter((row) => row.enabled === false).length,
+          lastResultCount: lastResultRows.length,
           riskClass: 'read_only_verify_only',
           syntheticIdDisclaimer:
             'Stadtwerk Mauer case, MaLo, MeLo, meter, consent and device-control values are synthetic demo identifiers unless explicitly marked as public context.',
@@ -23096,6 +23123,10 @@ module.exports = {
           tenantId,
           caseId,
           availableActions: actionRows,
+          processActionRows,
+          lastResultRows,
+          boundaryRows,
+          requiredEvidenceRows,
           missingEvidence,
           positiveFollowUps,
           noCallGuards,
@@ -23187,6 +23218,169 @@ module.exports = {
         nextGate: action.nextGate || null,
         evidenceStatus: action.evidenceStatus || null,
       }));
+    },
+
+    buildStadtwerkMauerProcessActionRows({
+      actions = [],
+      caseDetailStatus = {},
+      missingEvidence = [],
+    } = {}) {
+      const baseRows = actions.map((action) => ({
+        actionId: action.actionId,
+        label: action.label,
+        riskClass: action.riskClass,
+        boundary:
+          action.actionId === 'verify_blueprint_seed'
+            ? 'cernion-api'
+            : 'budibase-ui-near',
+        executionMode:
+          action.actionId === 'verify_blueprint_seed'
+            ? 'read_verify_only'
+            : 'query_refresh_only',
+        enabled: action.enabled !== false,
+        enabledLabel: action.enabled === false ? 'blocked' : 'verify-ready',
+        disabledReason: action.disabledReason || null,
+        lastResultStatus:
+          action.actionId === 'validate_evidence_completeness'
+            ? missingEvidence.length > 0
+              ? 'evidence_gaps_present'
+              : 'evidence_complete'
+            : action.evidenceStatus || caseDetailStatus?.status || 'not_run_in_panel',
+        lastResultAt: null,
+        requiredEvidenceKey:
+          action.actionId === 'validate_evidence_completeness'
+            ? missingEvidence[0]?.missingDataPoint || 'selected_case_evidence_complete'
+            : action.requiredScope || 'dashboard:read',
+        requiredGate: action.nextGate || 'presenter_review',
+        nextPresenterAction: action.enablesDossierAddition,
+        sourceLabel: 'Cernion read-only dashboard API',
+      }));
+
+      return [
+        ...baseRows,
+        {
+          actionId: 'run_e2e_smoke',
+          label: 'Run E2E Smoke',
+          riskClass: 'non_consequential_sandbox_runbook',
+          boundary: 'rundeck-runbook',
+          executionMode: 'blocked_future_curated_runbook',
+          enabled: false,
+          enabledLabel: 'blocked',
+          disabledReason:
+            'E2E smoke execution stays behind a separately approved Cernion/Rundeck command gate.',
+          lastResultStatus: 'not_called_by_budibase',
+          lastResultAt: null,
+          requiredEvidenceKey: 'curated_runbook_scope_and_operator_approval',
+          requiredGate: 'future_runbook_execution_issue',
+          nextPresenterAction:
+            'explain that Budibase can show readiness now, while execution remains Cernion-controlled',
+          sourceLabel: 'Cernion/Rundeck boundary',
+        },
+        {
+          actionId: 'setup_reset_or_provision',
+          label: 'Setup / Reset / Provision',
+          riskClass: 'blocked_mutating_operation',
+          boundary: 'cernion-api',
+          executionMode: 'forbidden_in_demo_panel',
+          enabled: false,
+          enabledLabel: 'blocked',
+          disabledReason:
+            'Setup, reset, provisioning and imports are intentionally outside the Budibase demo panel.',
+          lastResultStatus: 'not_called_by_budibase',
+          lastResultAt: null,
+          requiredEvidenceKey: 'out_of_scope',
+          requiredGate: 'not_available_in_budibase',
+          nextPresenterAction:
+            'keep the process panel read-only and use repo/runbook documentation for operational setup',
+          sourceLabel: 'Cernion command guard',
+        },
+      ];
+    },
+
+    buildStadtwerkMauerProcessLastResultRows({
+      actions = [],
+      caseDetailStatus = {},
+      missingEvidence = [],
+    } = {}) {
+      const evidenceStatus = missingEvidence.length > 0 ? 'evidence_gaps_present' : 'evidence_complete';
+      return actions.map((action) => ({
+        actionId: action.actionId,
+        label: action.label,
+        boundary:
+          action.actionId === 'verify_blueprint_seed'
+            ? 'cernion-api'
+            : 'budibase-ui-near',
+        lastResultStatus:
+          action.actionId === 'validate_evidence_completeness'
+            ? evidenceStatus
+            : action.evidenceStatus || caseDetailStatus?.status || 'not_run_in_panel',
+        lastResultAt: null,
+        resultSource:
+          action.actionId === 'verify_blueprint_seed'
+            ? 'operations-runbook.verifyVdmiBlueprintPackSeed'
+            : 'dashboard-api.stadtwerkMauerCaseActionsStatus',
+        presenterMeaning:
+          action.actionId === 'validate_evidence_completeness'
+            ? 'Shows whether the selected case still has evidence gaps before the next demo gate.'
+            : action.enablesDossierAddition,
+        mutationGuard: 'read_only_no_execution',
+      }));
+    },
+
+    buildStadtwerkMauerProcessBoundaryRows() {
+      return [
+        {
+          boundaryId: 'budibase_ui_near',
+          label: 'Budibase UI Near',
+          boundary: 'budibase-ui-near',
+          allowedOperation: 'refresh curated Cernion read queries',
+          blockedOperation: 'write Budibase tables as Cernion source of truth',
+          owner: 'Cernion Dashboard API',
+          presenterMessage: 'Presenter clicks may refresh display rows only.',
+        },
+        {
+          boundaryId: 'cernion_api_verify',
+          label: 'Cernion API Verify',
+          boundary: 'cernion-api',
+          allowedOperation: 'read-only Blueprint and evidence verification',
+          blockedOperation: 'setup, reset, provisioning, import or delete',
+          owner: 'Cernion command gate',
+          presenterMessage: 'Verify actions can show proof without changing tenant state.',
+        },
+        {
+          boundaryId: 'rundeck_runbook',
+          label: 'Rundeck Runbook Boundary',
+          boundary: 'rundeck-runbook',
+          allowedOperation: 'future curated runbook wrapper after separate approval',
+          blockedOperation: 'direct Budibase-triggered Rundeck job execution',
+          owner: 'Operations runbook wrapper',
+          presenterMessage: 'Operational execution is visible as a boundary, not available as a free-form button.',
+        },
+      ];
+    },
+
+    buildStadtwerkMauerRequiredEvidenceRows(missingEvidence = []) {
+      const rows = missingEvidence.map((item, index) => ({
+        evidenceKey: item.missingDataPoint || `missing_evidence_${index + 1}`,
+        label: this.humanizeWorkbenchLabel(item.missingDataPoint || `missing evidence ${index + 1}`),
+        state: item.state || 'missing',
+        requiredGate: item.requiredGate || 'selected_case_next_gate',
+        enablesAction: 'validate_evidence_completeness',
+        presenterMessage:
+          item.enablesDossierAddition ||
+          'Resolve this evidence gap before presenting the selected case as complete.',
+      }));
+      if (rows.length > 0) return rows;
+      return [
+        {
+          evidenceKey: 'selected_case_evidence_complete',
+          label: 'Selected Case Evidence Complete',
+          state: 'complete',
+          requiredGate: 'case_ready_for_next_gate_review',
+          enablesAction: 'validate_evidence_completeness',
+          presenterMessage: 'The current selected case has no open evidence gaps in the demo panel.',
+        },
+      ];
     },
 
     buildStadtwerkMauerAdministratorInventoryStatus({

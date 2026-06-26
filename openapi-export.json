@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.67.2",
+    "version": "0.67.3",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "servers": [
@@ -17126,7 +17126,7 @@
             "description": "Read-only Stadtwerk Mauer selected-case action contract"
           }
         },
-        "description": "Returns deterministic Budibase-renderable selected-case action metadata for the Stadtwerk Mauer Workbench. The endpoint exposes refresh, Blueprint verify and evidence validation actions as scalar rows and automation hints without executing Budibase writes, setup/reset/provisioning, Rundeck jobs, MaKo, billing, settlement, device-control, HITL or external connector actions.",
+        "description": "Returns deterministic Budibase-renderable selected-case action and process-panel metadata for the Stadtwerk Mauer Workbench. The endpoint exposes refresh, Blueprint verify, evidence validation, runbook boundary and last-result rows without executing Budibase writes, setup/reset/provisioning, Rundeck jobs, MaKo, billing, settlement, device-control, HITL or external connector actions.",
         "parameters": [
           {
             "name": "tenantId",
@@ -19343,6 +19343,116 @@
           },
           {
             "name": "newSignals",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/municipal-energy-value-analysis": {
+      "get": {
+        "operationId": "dashboard-api_municipalEnergyValueAnalysisStatus",
+        "summary": "Municipal energy value Lagebild -- read-only dashboard aggregation",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only municipal energy value Lagebild",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "municipality": {
+                      "type": "string"
+                    },
+                    "ags": {
+                      "type": "string"
+                    },
+                    "year": {
+                      "type": "number"
+                    },
+                    "scenario": {
+                      "type": "string"
+                    },
+                    "analysisRunId": {
+                      "type": "string"
+                    },
+                    "valueRows": {
+                      "type": "array"
+                    },
+                    "riskRows": {
+                      "type": "array"
+                    },
+                    "budgetImpactRows": {
+                      "type": "array"
+                    },
+                    "assumptionRows": {
+                      "type": "array"
+                    },
+                    "sourceRows": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "noCallGuards": {
+                      "type": "array"
+                    },
+                    "_errors": {
+                      "type": "array"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a deterministic, Budibase-renderable municipal electricity-economy Lagebild for a given German municipality (identified by municipality name or AGS). Includes scalar valueRows (generation/value by technology), riskRows (EWK/digitalization, iMSys/SMGW rollout readiness, capacity constraints), budgetImpactRows (Konzessionsabgabe layers as scenario assumptions), assumptionRows, and sourceRows. Missing data is surfaced in missingEvidence and sourceRows, not as errors. The endpoint is generic for German municipalities; Mauer serves as the first demonstrable fixture/regression case. It does not perform billing, settlement, tariff calculation, concession-fee settlement, device control, MaKo dispatch, tenant provisioning, reset, Budibase table writes, or unrestricted data exports.",
+        "parameters": [
+          {
+            "name": "municipality",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "scenario",
             "in": "query",
             "required": false,
             "schema": {
@@ -59900,7 +60010,7 @@
             "description": "Read-only Stadtwerk Mauer selected-case action contract"
           }
         },
-        "description": "Returns deterministic Budibase-renderable selected-case action metadata for the Stadtwerk Mauer Workbench. The endpoint exposes refresh, Blueprint verify and evidence validation actions as scalar rows and automation hints without executing Budibase writes, setup/reset/provisioning, Rundeck jobs, MaKo, billing, settlement, device-control, HITL or external connector actions.",
+        "description": "Returns deterministic Budibase-renderable selected-case action and process-panel metadata for the Stadtwerk Mauer Workbench. The endpoint exposes refresh, Blueprint verify, evidence validation, runbook boundary and last-result rows without executing Budibase writes, setup/reset/provisioning, Rundeck jobs, MaKo, billing, settlement, device-control, HITL or external connector actions.",
         "parameters": [
           {
             "name": "tenantId",
@@ -62117,6 +62227,116 @@
           },
           {
             "name": "fallbackReason",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/municipal-energy-value-analysis": {
+      "get": {
+        "operationId": "dashboard-api_municipalEnergyValueAnalysisStatus",
+        "summary": "Municipal energy value Lagebild -- read-only dashboard aggregation",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only municipal energy value Lagebild",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "municipality": {
+                      "type": "string"
+                    },
+                    "ags": {
+                      "type": "string"
+                    },
+                    "year": {
+                      "type": "number"
+                    },
+                    "scenario": {
+                      "type": "string"
+                    },
+                    "analysisRunId": {
+                      "type": "string"
+                    },
+                    "valueRows": {
+                      "type": "array"
+                    },
+                    "riskRows": {
+                      "type": "array"
+                    },
+                    "budgetImpactRows": {
+                      "type": "array"
+                    },
+                    "assumptionRows": {
+                      "type": "array"
+                    },
+                    "sourceRows": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "noCallGuards": {
+                      "type": "array"
+                    },
+                    "_errors": {
+                      "type": "array"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a deterministic, Budibase-renderable municipal electricity-economy Lagebild for a given German municipality (identified by municipality name or AGS). Includes scalar valueRows (generation/value by technology), riskRows (EWK/digitalization, iMSys/SMGW rollout readiness, capacity constraints), budgetImpactRows (Konzessionsabgabe layers as scenario assumptions), assumptionRows, and sourceRows. Missing data is surfaced in missingEvidence and sourceRows, not as errors. The endpoint is generic for German municipalities; Mauer serves as the first demonstrable fixture/regression case. It does not perform billing, settlement, tariff calculation, concession-fee settlement, device control, MaKo dispatch, tenant provisioning, reset, Budibase table writes, or unrestricted data exports.",
+        "parameters": [
+          {
+            "name": "municipality",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "scenario",
             "in": "query",
             "required": false,
             "schema": {
@@ -69904,5 +70124,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.67.2"
+  "x-version": "0.67.3"
 }
