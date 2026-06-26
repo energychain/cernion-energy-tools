@@ -21279,6 +21279,24 @@ module.exports = {
         `Blueprint Seed: ${seed.id}`,
         `Evidence gaps: ${missingEvidence.length}`,
       ];
+      const nextGates = [
+        {
+          id: 'verify_blueprint_seed',
+          label: 'Verify Blueprint Pack seed',
+          endpoint: '/api/operations-runbook/vdmi-blueprint-packs/verify',
+          execution: 'hint_only',
+        },
+        {
+          id: 'inspect_missing_nap',
+          label: 'Inspect missing NAP and evidence gaps',
+          execution: 'read_only_workbench',
+        },
+        {
+          id: 'review_role_workbench_item',
+          label: 'Review generated role-workbench handover item',
+          execution: 'read_only_workbench',
+        },
+      ];
 
       return {
         capabilityKey: 'stadtwerk_mauer_case_detail',
@@ -21304,29 +21322,14 @@ module.exports = {
             'Stadtwerk Mauer case, MaLo, MeLo, meter, consent and device-control values are synthetic demo identifiers unless explicitly marked as public context.',
         },
         evidence,
+        evidenceRows: this.buildStadtwerkMauerCaseEvidenceRows(evidence),
         missingEvidence,
         positiveFollowUps,
         traceSummaries: found ? traceSummaries : [],
         artifactSummaries: found ? artifactSummaries : [],
         roleWorkbenchHints,
-        nextGates: [
-          {
-            id: 'verify_blueprint_seed',
-            label: 'Verify Blueprint Pack seed',
-            endpoint: '/api/operations-runbook/vdmi-blueprint-packs/verify',
-            execution: 'hint_only',
-          },
-          {
-            id: 'inspect_missing_nap',
-            label: 'Inspect missing NAP and evidence gaps',
-            execution: 'read_only_workbench',
-          },
-          {
-            id: 'review_role_workbench_item',
-            label: 'Review generated role-workbench handover item',
-            execution: 'read_only_workbench',
-          },
-        ],
+        nextGates,
+        nextGateRows: this.buildStadtwerkMauerNextGateRows(nextGates),
         operationsRunbookHints: [
           {
             id: 'vdmi-blueprint-pack-verify',
@@ -21410,6 +21413,31 @@ module.exports = {
           sourceSeedId: seed.id,
         };
       });
+    },
+
+    buildStadtwerkMauerCaseEvidenceRows(evidence = []) {
+      return evidence.map((item) => ({
+        state: item.state || 'unknown',
+        evidenceId: item.id || null,
+        label: this.humanizeWorkbenchLabel(item.id),
+        roleLabel: this.humanizeWorkbenchLabel(item.roleHint || 'ROLE_GRID_OPERATOR'),
+        sourceClass: item.dataClass || null,
+        nextGateLabel: item.present
+          ? 'Evidence present'
+          : this.humanizeWorkbenchLabel(item.enablesDossierAddition || item.id),
+        required: item.required === true,
+        present: item.present === true,
+      }));
+    },
+
+    buildStadtwerkMauerNextGateRows(nextGates = []) {
+      return nextGates.map((gate) => ({
+        gateId: gate.id || null,
+        label: gate.label || this.humanizeWorkbenchLabel(gate.id),
+        allowedAction: gate.execution || gate.allowedAction || 'read_only_workbench',
+        safetyLabel: gate.execution === 'hint_only' ? 'Hint only' : 'Read-only workbench',
+        status: gate.execution === 'hint_only' ? 'available_hint' : 'available_read_only',
+      }));
     },
 
     buildStadtwerkMauerWorkbenchHubStatus({
@@ -21532,6 +21560,7 @@ module.exports = {
         },
         dataClasses,
         targets,
+        targetRows: this.buildStadtwerkMauerWorkbenchTargetRows(targets),
         readiness: {
           status,
           availableTargets: targetCounts.available || 0,
@@ -21744,6 +21773,29 @@ module.exports = {
             'add stable role-workbench target metadata and open-target contract from #308',
         },
       ];
+    },
+
+    buildStadtwerkMauerWorkbenchTargetRows(targets = []) {
+      return targets.map((target) => ({
+        status: target.status || 'unknown',
+        routeKey: target.routeKey || null,
+        label: target.label || this.humanizeWorkbenchLabel(target.targetId),
+        readinessLabel: target.readinessSummary || null,
+        nextGateLabel: target.nextGate?.label || this.humanizeWorkbenchLabel(target.nextGate?.id),
+        safetyLabel: this.humanizeWorkbenchLabel(target.safety || 'read_only'),
+        targetType: target.routeTarget?.type || null,
+      }));
+    },
+
+    humanizeWorkbenchLabel(value) {
+      if (value == null) return null;
+      return String(value)
+        .replace(/^ROLE_/, '')
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .replace(/[_:-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/\b\w/g, (char) => char.toUpperCase());
     },
 
     buildMissingStadtwerkMauerMastrDataOverlayStatus(

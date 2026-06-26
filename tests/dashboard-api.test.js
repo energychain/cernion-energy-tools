@@ -18,6 +18,18 @@ const DashboardApiService = require('../services/dashboard-api.service');
 const { FINDING_CODE_METADATA } = require('../src/validation-findings');
 const STADTWERK_MAUER_WORKBENCH_MANIFEST = require('../integrations/budibase/manifests/stadtwerk-mauer-workbench.json');
 
+function expectScalarTableRows(rows) {
+  expect(Array.isArray(rows)).toBe(true);
+  for (const row of rows) {
+    for (const value of Object.values(row)) {
+      expect(
+        value == null ||
+          ['string', 'number', 'boolean'].includes(typeof value)
+      ).toBe(true);
+    }
+  }
+}
+
 // ── Fixtures ──────────────────────────────────────────────────────────────
 
 const MOCK_VNB_IDENTITY = {
@@ -7440,6 +7452,19 @@ describe('dashboard-api.service', () => {
       expect(result.evidence.map((item) => item.id)).toEqual(
         expect.arrayContaining(['napReference', 'maloId', 'meloId', 'meterId', 'customerConsentStatus'])
       );
+      expect(result.evidenceRows.map((item) => item.evidenceId)).toEqual(
+        expect.arrayContaining(['napReference', 'customerConsentStatus'])
+      );
+      expect(result.evidenceRows.find((item) => item.evidenceId === 'napReference')).toMatchObject({
+        label: 'Nap Reference',
+        state: 'clarification',
+        roleLabel: 'NETZPLANUNG',
+      });
+      expectScalarTableRows(result.evidenceRows);
+      expect(result.nextGateRows.map((item) => item.gateId)).toEqual(
+        expect.arrayContaining(['verify_blueprint_seed', 'inspect_missing_nap'])
+      );
+      expectScalarTableRows(result.nextGateRows);
       expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
         expect.arrayContaining(['napReference', 'customerConsentStatus'])
       );
@@ -7563,6 +7588,20 @@ describe('dashboard-api.service', () => {
           'role-workbench-catalog',
         ])
       );
+      expect(result.targetRows.map((target) => target.label)).toEqual(
+        expect.arrayContaining([
+          'Administrator Workbench',
+          'Selected Case Detail',
+          'Zielnetzplanung',
+          'Vertrieb / Key Account',
+          'Role Workbench Catalog',
+        ])
+      );
+      expect(result.targetRows.find((target) => target.routeKey === 'case-detail')).toMatchObject({
+        status: 'available',
+        safetyLabel: 'Read Only',
+      });
+      expectScalarTableRows(result.targetRows);
       expect(result.targets.find((target) => target.targetId === 'selected-case-detail')).toMatchObject({
         status: 'available',
         routeKey: 'case-detail',
@@ -7614,6 +7653,7 @@ describe('dashboard-api.service', () => {
       expect(result.found).toBe(false);
       expect(result.status).toBe('workbench_hub_blocked_outside_sandbox_tenant');
       expect(result.targets).toEqual([]);
+      expect(result.targetRows).toEqual([]);
       expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
         'stadtwerk_mauer_tenant_scope'
       );
@@ -7624,21 +7664,37 @@ describe('dashboard-api.service', () => {
 
     it('binds the Budibase manifest to the Hub and selected-case read queries', () => {
       expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.map((query) => query.name)).toEqual(
-        expect.arrayContaining(['getStadtwerkMauerWorkbenchHub', 'getStadtwerkMauerCaseDetail'])
+        expect.arrayContaining([
+          'getStadtwerkMauerWorkbenchHub',
+          'getStadtwerkMauerWorkbenchHubTargetRows',
+          'getStadtwerkMauerCaseDetail',
+          'getStadtwerkMauerCaseEvidenceRows',
+          'getStadtwerkMauerCaseNextGateRows',
+        ])
       );
       expect(
         STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
-          (query) => query.name === 'getStadtwerkMauerWorkbenchHub'
+          (query) => query.name === 'getStadtwerkMauerWorkbenchHubTargetRows'
         )
       ).toMatchObject({
         method: 'GET',
         path: '/api/dashboard/stadtwerk-mauer-workbench-hub',
+        transformer: 'return data.targetRows || []',
+      });
+      expect(
+        STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+          (query) => query.name === 'getStadtwerkMauerCaseEvidenceRows'
+        )
+      ).toMatchObject({
+        method: 'GET',
+        path: '/api/dashboard/stadtwerk-mauer-case-detail',
+        transformer: 'return data.evidenceRows || []',
       });
       expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.sections.map((section) => section.id)).toEqual(
-        expect.arrayContaining(['hub', 'case_detail'])
+        expect.arrayContaining(['hub', 'case_detail', 'case_next_gates'])
       );
       expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
-        'Budibase renders navigation and readiness only'
+        'scalar display rows'
       );
     });
   });

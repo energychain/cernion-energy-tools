@@ -150,7 +150,7 @@ function buildQueryPayload({ manifestQuery, datasourceId, cernionBaseUrl, existi
     parameters: manifestQuery.parameters || [],
     readable: true,
     schema: manifestQuery.schema || {},
-    transformer: 'return data',
+    transformer: manifestQuery.transformer || 'return data',
   };
 }
 
