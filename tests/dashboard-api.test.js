@@ -10352,6 +10352,8 @@ describe('dashboard-api.service', () => {
 
       expect(result.municipality).toBe('Leimen');
       expect(result.ags).toBe('08226041');
+      expect(result.postalCode).toBe('69181');
+      expect(result.postalCodes).toContain('69181');
       expect(result.state).toBe('Baden-Württemberg');
       expect(result.population).toBeGreaterThan(25000);
       expect(result.kavCategory).toBe('Gemeinde über 25.000 bis 100.000 Einwohner');
@@ -10375,6 +10377,7 @@ describe('dashboard-api.service', () => {
       });
       expect(result.municipality).toBe('Leimen');
       expect(result.ags).toBe('08226041');
+      expect(result.postalCode).toBe('69181');
       expect(result.population).toBeGreaterThan(25000);
     });
 

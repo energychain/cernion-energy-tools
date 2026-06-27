@@ -322,6 +322,27 @@
         max-width: 880px;
       }
 
+      .location-identity {
+        border: 1px solid rgba(24, 35, 29, 0.12);
+        border-radius: 8px;
+        background: #fbfdfb;
+        color: #2f4538;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        margin: 12px 0 0;
+        padding: 10px 12px;
+      }
+
+      .location-identity span {
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+
+      .location-identity b {
+        color: var(--ink);
+      }
+
       .executive-main {
         display: grid;
         grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
@@ -1366,6 +1387,21 @@
         return "Lagebild mit belastbarer Datenbasis";
       }
 
+      function renderLocationIdentity(data) {
+        const parts = [
+          ["Ort", data.municipality],
+          ["PLZ", data.postalCode || (data.postalCodes || [])[0]],
+          ["Bundesland", data.state],
+          ["AGS", data.ags],
+        ].filter(([, value]) => value != null && String(value).trim() !== "");
+        if (!parts.length) return "";
+        return `
+          <div class="location-identity" aria-label="Ausgewerteter Ort">
+            ${parts.map(([label, value]) => `<span><b>${escapeHtml(label)}:</b> ${escapeHtml(value)}</span>`).join("")}
+          </div>
+        `;
+      }
+
       function generationRows(rows) {
         const nonTechnologyRows = new Set([
           "aggregated",
@@ -1606,6 +1642,7 @@
               welche lokalen Erzeugungswerte im Ort gehalten werden sollen und welche Nachweise
               die Verwaltung bis zur Beschlussvorlage beschafft.
             </p>
+            ${renderLocationIdentity(data)}
             <div class="executive-main">
               <article class="executive-number">
                 <span>Haushaltsanker</span>

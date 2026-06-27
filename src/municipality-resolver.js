@@ -113,8 +113,9 @@ function selectLayer1ByName(key, stateHint) {
 
 // ── Build Layer 2 indexes (PLZ → name+state, name → PLZ) ─────────────────────
 
-const l2PlzToOrt = new Map();  // '41569' → { name:'Rommerskirchen', state:'Nordrhein-Westfalen' }
-const l2NameToPlz = new Map(); // 'rommerskirchen' → '41569'
+const l2PlzToOrt = new Map();       // '41569' → { name:'Rommerskirchen', state:'Nordrhein-Westfalen' }
+const l2NameToPlz = new Map();      // 'rommerskirchen' → '41569'
+const l2NameStateToPlz = new Map(); // 'leimen|Baden-Württemberg' → '69181'
 
 for (const row of rawPlzData) {
   const plzStr = String(row.plz).padStart(5, '0');
@@ -123,6 +124,8 @@ for (const row of rawPlzData) {
   if (!l2PlzToOrt.has(plzStr)) l2PlzToOrt.set(plzStr, { name, state: row.bundesland });
   const key = name.toLowerCase().trim();
   if (!l2NameToPlz.has(key)) l2NameToPlz.set(key, plzStr);
+  const stateKey = `${key}|${row.bundesland || ''}`;
+  if (!l2NameStateToPlz.has(stateKey)) l2NameStateToPlz.set(stateKey, plzStr);
 }
 
 // ── Helper: build a full return profile from a Layer 1 entry ─────────────────
@@ -132,7 +135,8 @@ function buildFullProfile(l1Entry, resolvedPlz, fallbackName) {
   const pop = l1Entry.ewz || 0;
   const energy = pop > 0 ? estimateEnergyFromPopulation(pop, overlay) : { pvCapacityKw: 0, biomassCapacityKw: 0, windCapacityKw: 0, storagePowerKw: 0, storageCapacityKWh: null };
   const hasExplicitEnergy = overlay && overlay.pvCapacityKw != null;
-  const postalCode = resolvedPlz || null;
+  const nameKey = String(l1Entry.name || fallbackName || '').toLowerCase().trim();
+  const postalCode = resolvedPlz || l2NameStateToPlz.get(`${nameKey}|${l1Entry.state || ''}`) || l2NameToPlz.get(nameKey) || null;
 
   return {
     found: true,

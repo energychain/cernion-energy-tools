@@ -31166,6 +31166,8 @@ module.exports = {
         status,
         municipality: resolvedName,
         ags: resolvedAgs || null,
+        postalCode: profile.postalCode || null,
+        postalCodes: Array.isArray(profile.postalCodes) ? profile.postalCodes : [],
         population: profile.population || null,
         state: profile.state || null,
         district: profile.district || null,

@@ -9,6 +9,7 @@ describe('municipal-value public UI decision framing', () => {
   it('puts the Stadtrat decision layer before technical analysis', () => {
     expect(html).toContain('Das Wichtigste in 30 Sekunden');
     expect(html).toContain('renderExecutiveDecision(data');
+    expect(html).toContain('renderLocationIdentity(data)');
     expect(html).toContain('renderLocalValueStory(data');
     expect(html).toContain('renderActionEvidence(data)');
     expect(html).toContain('Analyse und Referenz öffnen');
@@ -43,6 +44,11 @@ describe('municipal-value public UI decision framing', () => {
     expect(html).toContain('Lokale Strom-Teilung prüfen');
     expect(html).toContain('Energy Sharing (§42c)');
     expect(html).not.toContain('§42c-Liegenschaftspilot');
+    expect(html).toContain('location-identity');
+    expect(html).toContain('Ausgewerteter Ort');
+    expect(html).toContain('["PLZ", data.postalCode || (data.postalCodes || [])[0]]');
+    expect(html).toContain('["Bundesland", data.state]');
+    expect(html).toContain('["AGS", data.ags]');
     expect(html).toContain('Warum PV trotz Biomasse-Signal priorisiert wird');
     expect(html).toContain('PV wird priorisiert, weil absoluter Wert, Dachflächenlogik und politische Umsetzbarkeit am höchsten sind');
     expect(html).toContain('Biomasse passt zeitlich besser zum Verbrauch');
