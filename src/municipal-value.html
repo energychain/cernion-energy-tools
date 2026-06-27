@@ -290,6 +290,162 @@
         margin: 0;
       }
 
+      .executive-box {
+        background: #fff;
+        border: 1px solid rgba(21, 127, 83, 0.28);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        padding: 22px;
+      }
+
+      .executive-kicker {
+        color: var(--green);
+        display: block;
+        font-size: 0.78rem;
+        font-weight: 900;
+        letter-spacing: 0;
+        margin-bottom: 9px;
+        text-transform: uppercase;
+      }
+
+      .executive-box h2 {
+        font-size: clamp(1.55rem, 3vw, 2.35rem);
+        line-height: 1.08;
+        margin: 0;
+      }
+
+      .executive-box > p {
+        color: var(--muted);
+        font-size: 1.02rem;
+        line-height: 1.5;
+        margin: 10px 0 0;
+        max-width: 880px;
+      }
+
+      .executive-main {
+        display: grid;
+        grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+        gap: 14px;
+        margin-top: 16px;
+      }
+
+      .executive-number {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #eef8f2;
+        padding: 16px;
+      }
+
+      .executive-number span,
+      .action-item span,
+      .story-lane span,
+      .evidence-item span {
+        color: var(--muted);
+        display: block;
+        font-size: 0.76rem;
+        font-weight: 900;
+        margin-bottom: 7px;
+        text-transform: uppercase;
+      }
+
+      .executive-number strong {
+        display: block;
+        font-size: clamp(1.6rem, 3vw, 2.25rem);
+        margin-bottom: 8px;
+      }
+
+      .executive-number p,
+      .action-item p,
+      .story-lane p,
+      .evidence-item p,
+      .appendix-panel p {
+        color: var(--muted);
+        line-height: 1.42;
+        margin: 0;
+      }
+
+      .action-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .action-item {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdfb;
+        padding: 14px;
+      }
+
+      .action-item strong,
+      .story-lane strong,
+      .evidence-item strong {
+        display: block;
+        margin-bottom: 7px;
+      }
+
+      .trust-sentence {
+        border-left: 4px solid var(--green);
+        background: #f3faf6;
+        color: #234335;
+        line-height: 1.45;
+        margin-top: 14px;
+        padding: 11px 13px;
+      }
+
+      .story-lanes {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+      }
+
+      .story-lane,
+      .evidence-item {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdfb;
+        padding: 15px;
+      }
+
+      .evidence-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .evidence-item {
+        display: grid;
+        grid-template-columns: minmax(150px, 0.35fr) minmax(0, 1fr);
+        gap: 10px 16px;
+      }
+
+      .appendix-panel {
+        border: 1px solid rgba(24, 35, 29, 0.14);
+        border-radius: 8px;
+        background: #fff;
+        padding: 16px 18px;
+      }
+
+      .appendix-panel summary {
+        cursor: pointer;
+        font-weight: 900;
+      }
+
+      .appendix-panel summary span {
+        color: var(--muted);
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-top: 4px;
+      }
+
+      .appendix-content {
+        display: grid;
+        gap: 18px;
+        margin-top: 16px;
+      }
+
       .mayor-brief,
       .recommendation-panel {
         background: #fff;
@@ -793,6 +949,9 @@
         .summary,
         .insight-band,
         .story-card,
+        .executive-main,
+        .action-strip,
+        .story-lanes,
         .load-profile-visual,
         .sharing-flow,
         .money-grid,
@@ -806,6 +965,10 @@
         }
 
         .recommendation-row {
+          grid-template-columns: 1fr;
+        }
+
+        .evidence-item {
           grid-template-columns: 1fr;
         }
 
@@ -1208,6 +1371,192 @@
         )[0];
       }
 
+      function topEnergySharingScenario(data) {
+        return [...(data.energySharingCommunityRows || [])]
+          .filter((row) => Number(row.potentialLocalCirculationEurPerYear) > 0)
+          .sort((a, b) => (Number(b.potentialLocalCirculationEurPerYear) || 0) - (Number(a.potentialLocalCirculationEurPerYear) || 0))[0];
+      }
+
+      function prioritizedEvidenceItems(data) {
+        const labels = {
+          vnb_bnr: {
+            title: "Netzbetreiber-Fristen belegen",
+            action: "Anschlussdauer und zuständige Prozesswege beim Netzbetreiber abfragen.",
+          },
+          mastr_live_data: {
+            title: "Anlagenbestand aktualisieren",
+            action: "Erzeugungs- und Speicherbestand gegen das Marktstammdatenregister prüfen.",
+          },
+          energy_sharing_vnb_bilanzierungsgebiet: {
+            title: "§42c-Gebiet klären",
+            action: "Prüfen, welche kommunalen Liegenschaften im zulässigen Gebiet gemeinsam nutzbar sind.",
+          },
+          energy_sharing_participant_contracts: {
+            title: "Community-Modell vorbereiten",
+            action: "Betreiber, Teilnehmerkreis, Reststrom und Vertragsmodell als Pilotauftrag schneiden.",
+          },
+          energy_sharing_malo_metering: {
+            title: "Messkonzept beauftragen",
+            action: "Für Bauhof, Schule, Rathaus und weitere Liegenschaften die benötigten Messpunkte sammeln.",
+          },
+          netzkapazitaetsnachweis: {
+            title: "Flächen anschlussfähig machen",
+            action: "Für priorisierte Dächer und Flächen eine konkrete Anschluss- und Kapazitätsprüfung starten.",
+          },
+          operator_locality: {
+            title: "Lokale Betreiberwirkung prüfen",
+            action: "Klären, welche Betreiber, Pachtmodelle und Aufträge wirklich im Ort bleiben.",
+          },
+        };
+        const seen = new Set();
+        const items = [];
+        for (const gap of data.missingEvidence || []) {
+          const mapped = labels[gap.missingDataPoint];
+          if (!mapped || seen.has(gap.missingDataPoint)) continue;
+          seen.add(gap.missingDataPoint);
+          items.push({ key: gap.missingDataPoint, ...mapped });
+        }
+        return items.slice(0, 5);
+      }
+
+      function renderExecutiveDecision(data, generationValue, generationKwh, budgetRows) {
+        const rows = generationRows(data.valueRows || []);
+        const price = marketPrice(data, rows);
+        const topTech = strongestTechnology(rows);
+        const budget = budgetDisplayRange(budgetRows);
+        const totalBudgetRow = budgetTotalRow(budgetRows);
+        const sharing = topEnergySharingScenario(data);
+        const headlinePlace = data.municipality || "die Kommune";
+        const topTechLabel = topTech ? technologyLabel(topTech.technology) : "lokale Erzeugung";
+        const sharingText = sharing
+          ? `§42c-Pilot als stärksten lokalen Nutzungshebel prüfen (${euroRange(sharing.potentialLocalCirculationEurPerYear, 0.9, 1.1)} Prüfwert/Jahr).`
+          : "§42c-Pilot als lokalen Nutzungshebel prüfen, sobald Liegenschaften und Messpunkte vorliegen.";
+
+        return `
+          <section class="executive-box">
+            <span class="executive-kicker">Das Wichtigste in 30 Sekunden</span>
+            <h2>${escapeHtml(headlinePlace)} sollte lokale Stromnutzung als Beschlussprojekt priorisieren.</h2>
+            <p>
+              Die Entscheidung ist keine Technikfrage zuerst. Der Gemeinderat kann beauftragen,
+              welche lokalen Erzeugungswerte im Ort gehalten werden sollen und welche Nachweise
+              die Verwaltung bis zur Beschlussvorlage beschafft.
+            </p>
+            <div class="executive-main">
+              <article class="executive-number">
+                <span>Haushaltsanker</span>
+                <strong>${escapeHtml(budget)}</strong>
+                <p>${escapeHtml(totalBudgetRow.assumptionStatus || "KAV-plausibilisierte Jahresspanne; gegen Ist-Zahlungen und Konzessionsvertrag zu prüfen.")}</p>
+              </article>
+              <div class="action-strip">
+                <article class="action-item">
+                  <span>Prüfen</span>
+                  <strong>§42c-Liegenschaftspilot</strong>
+                  <p>${escapeHtml(sharingText)}</p>
+                </article>
+                <article class="action-item">
+                  <span>Beauftragen</span>
+                  <strong>Nachweise statt Annahmen</strong>
+                  <p>Netzbetreiber-Fristen, Anlagenbestand und Messpunkte als verwaltungsfähige Prüfliste einholen.</p>
+                </article>
+                <article class="action-item">
+                  <span>Priorisieren</span>
+                  <strong>${escapeHtml(topTechLabel)}</strong>
+                  <p>Kommunale Dächer, Flächen und Betreiberoptionen nach lokaler Wertbindung sortieren.</p>
+                </article>
+              </div>
+            </div>
+            <div class="trust-sentence">
+              <strong>Vertrauenssatz:</strong>
+              Die Werte sind eine gerundete Erstschätzung für eine Entscheidungsvorlage, keine Schlussrechnung.
+              Marktwertannahme: ${escapeHtml(euroPerMwh(price))}; Haushaltsanker aus KAV-Sätzen und Verbrauchsannahmen.
+            </div>
+          </section>
+        `;
+      }
+
+      function renderLocalValueStory(data, generationValue, generationKwh, budgetRows) {
+        const rows = generationRows(data.valueRows || []);
+        const price = marketPrice(data, rows);
+        const concessionProxy = budgetPerMwh(budgetRows, generationKwh);
+        const localMwhPublic = price + concessionProxy;
+        const importedMwhPublic = concessionProxy;
+        const localKpi = (data.euroKpiRows || []).find((row) => row.rowKey === "euro_kpi_local_value_capture");
+        const importKpi = (data.euroKpiRows || []).find((row) => row.rowKey === "euro_kpi_import_exposure");
+        const sharing = topEnergySharingScenario(data);
+
+        return `
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Die Geschichte: Importkosten senken, lokalen Wert halten</h2>
+                <p>
+                  Der Kern ist einfach: Importierter Strom bezahlt Erzeugung außerhalb der Kommune.
+                  Lokal erzeugter und lokal genutzter Strom kann Betreiberwert, Pacht, Aufträge
+                  und politische Steuerbarkeit im Ort halten.
+                </p>
+              </div>
+            </div>
+            <div class="story-lanes">
+              <article class="story-lane">
+                <span>Heute importabhängig</span>
+                <strong>${escapeHtml(euroRange(importKpi?.valueEur, 0.9, 1.1))}</strong>
+                <p>Größenordnung des externen Strombezugs nach der ersten lokalen Deckungsschätzung.</p>
+              </article>
+              <article class="story-lane">
+                <span>Bereits lokal passend</span>
+                <strong>${escapeHtml(euroRange(localKpi?.valueEur, 0.9, 1.1))}</strong>
+                <p>Teil des lokalen Erzeugungswerts, der zeitlich am besten zum Verbrauch passt.</p>
+              </article>
+              <article class="story-lane">
+                <span>§42c-Hebel</span>
+                <strong>${escapeHtml(euroRange(sharing?.potentialLocalCirculationEurPerYear, 0.9, 1.1))}</strong>
+                <p>Prüfwert für Energy Sharing zwischen kommunalen, privaten und gewerblichen Teilnehmern.</p>
+              </article>
+            </div>
+            <div class="decision-sentence">
+              <strong>Beschlusslogik:</strong>
+              Eine lokal erzeugte MWh steht hier mit ${escapeHtml(euroPerMwh(localMwhPublic))} als kommunaler Vergleichswert
+              gegen ${escapeHtml(euroPerMwh(importedMwhPublic))} beim Import. Herkunft: gerundete Marktpreisannahme plus KAV-Proxy,
+              nicht als direkte Haushaltseinnahme zu lesen.
+            </div>
+          </section>
+        `;
+      }
+
+      function renderActionEvidence(data) {
+        const items = prioritizedEvidenceItems(data);
+        if (!items.length) return "";
+        return `
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Was die Verwaltung jetzt beauftragen kann</h2>
+                <p>
+                  Diese Liste ist kein Defizitbericht. Sie zeigt die nächsten Nachweise, mit denen
+                  aus dem Lagebild eine belastbare Beschlussvorlage wird.
+                </p>
+              </div>
+            </div>
+            <div class="evidence-list">
+              ${items.map((item, index) => `
+                <article class="evidence-item">
+                  <div>
+                    <span>Nachweis ${index + 1}</span>
+                    <strong>${escapeHtml(item.title)}</strong>
+                  </div>
+                  <p>${escapeHtml(item.action)}</p>
+                </article>
+              `).join("")}
+            </div>
+            <div class="decision-sentence">
+              <strong>Fortschrittssignal:</strong>
+              In der nächsten Version sollte diese Liste kürzer werden. Sinkende Nachweiszahl ist
+              der sichtbare Beleg, dass die Beschlussvorlage reifer wird.
+            </div>
+          </section>
+        `;
+      }
+
       function renderMayorBrief(data, generationValue, generationKwh, budgetValue) {
         const rows = generationRows(data.valueRows || []);
         const price = marketPrice(data, rows);
@@ -1556,10 +1905,9 @@
                 <h2>Energy Sharing Communities: lokale Nutzung über mehrere Orte</h2>
                 <p>
                   §42c EnWG macht Energy Sharing als Teilversorgung möglich: erneuerbarer Strom
-                  kann über das öffentliche Verteilnetz gemeinsam genutzt werden, wenn Vertrag,
-                  Aufteilungsschlüssel, Messung und Reststrombezug sauber geregelt sind. Für Kommunen
-                  ist das besonders relevant, weil Erzeugung und Verbrauch oft nicht auf derselben
-                  Liegenschaft liegen.
+                  kann über das öffentliche Verteilnetz gemeinsam genutzt werden. Für Kommunen ist
+                  das besonders relevant, weil Erzeugung und Verbrauch oft nicht auf derselben
+                  Liegenschaft liegen: PV am Bauhof, Verbrauch in Schule oder Rathaus.
                 </p>
               </div>
             </div>
@@ -1572,8 +1920,8 @@
               <div class="sharing-arrow" aria-hidden="true">›</div>
               <article class="sharing-node">
                 <span>§42c-Modell</span>
-                <strong>Vertrag, Messung, Aufteilung</strong>
-                <p>Gemeinsame Nutzung braucht Liefervertrag, Nutzungsvertrag, 15-Minuten-Messung/RLM und Reststromregelung.</p>
+                <strong>Gemeinsam nutzen</strong>
+                <p>Die Community regelt, wer welchen Anteil lokal erzeugten Stroms nutzen darf und wie Reststrom beschafft wird.</p>
               </article>
               <div class="sharing-arrow" aria-hidden="true">›</div>
               <article class="sharing-node">
@@ -1617,7 +1965,7 @@
                       <td>${escapeHtml(euroRange(row.potentialLocalCirculationEurPerYear, 0.9, 1.1))}</td>
                       <td>${escapeHtml(row.communityModel)}</td>
                       <td>${escapeHtml(row.municipalUseCase)}</td>
-                      <td>${escapeHtml(row.nextGateLabel)}</td>
+                      <td>${escapeHtml(row.rowKey === "energy_sharing_municipal_estates" ? "Liegenschaften und Strombedarf priorisieren." : row.rowKey === "energy_sharing_mixed_community" ? "Teilnehmerkreis und Betreiberform politisch vorbereiten." : "Speicher nur mit belegter Herkunft und Netzverträglichkeit einbeziehen.")}</td>
                     </tr>
                   `).join("")}
                 </tbody>
@@ -1700,8 +2048,8 @@
               <p>${escapeHtml(referenceText(data))}. Die Werte nutzen das Bezugsjahr als Basisjahr, nicht als aktuelle Schlussrechnung.</p>
             </div>
             <div class="insight">
-              <h3>Quellenlage</h3>
-              <p>${sources.length} Quellen und Annahmen liegen vor. ${missing.length} Punkte sollten vor einer Beschlussvorlage vertieft werden.</p>
+              <h3>Nachweisstand</h3>
+              <p>${sources.length} Quellen und Annahmen liegen vor. Die beauftragbaren Nachweise im Hauptteil zeigen, was die nächste Version belastbarer macht.</p>
             </div>
             <div class="insight">
               <h3>Eigenprüfung</h3>
@@ -1829,82 +2177,90 @@
         const genRows = generationRows(valueRows);
         const generationValue = sum(genRows, "grossMarketValueEurPerYear");
         const generationKwh = sum(genRows, "estimatedGenerationKwhPerYear");
-        const budgetValue = budgetTotal(budgetRows);
         const maxRisk = riskRows.reduce((max, row) => Math.max(max, Number(row.severityScore) || 0), 0);
-        const price = marketPrice(data, genRows);
-        const concessionProxy = budgetPerMwh(budgetRows, generationKwh);
-        const localMwhValue = price + concessionProxy;
 
         dataStatus.textContent = `${data.municipality || "Kommune"}: ${statusText(data)}`;
         results.innerHTML = `
-          <div class="summary">
-            ${renderMetric("Haushaltswirkung pro Jahr", budgetDisplayRange(budgetRows), "KAV-plausibilisierte Spanne für den kommunalen Haushalt. Die Sätze und Verbrauchsannahmen stehen in der Konzessionstabelle.", "lead-metric")}
-            ${renderMetric("Zuständiger Netzbetreiber", data.gridOperatorName || "noch nicht aufgelöst", data.gridOperatorName ? "Aus VNBdigital gespiegelt. Arealnetze und konkrete Hausanschlüsse werden in dieser Erstansicht nicht getrennt." : "Der Netzbetreiber konnte für diese Eingabe noch nicht automatisch gespiegelt werden.")}
-            ${renderMetric("Betreiberwert pro Jahr", euroRange(generationValue), "Marktwert lokaler Anlagen. Kein Geldzufluss an die Kommune; relevant über Betreiberlokalität, Flächen, Pacht, Gewerbesteuer und Aufträge.")}
-            ${renderMetric("1 MWh lokal statt importiert", `${euroPerMwh(localMwhValue)} vs. ${euroPerMwh(concessionProxy)}`, "Bei lokaler Erzeugung kann zusätzlich Betreiberwert im Ort entstehen. Bei Importstrom entsteht dieser Wert außerhalb der Kommune.")}
-            ${renderMetric("Datengrundlage", `${(data.sourceRows || []).length} Quellen / ${(data.missingEvidence || []).length} offene Punkte`, "Die Auswertung zeigt, welche Quellen bereits vorliegen und welche Punkte vor einer Entscheidung vertieft werden sollten.")}
-          </div>
+          ${renderExecutiveDecision(data, generationValue, generationKwh, budgetRows)}
 
-          ${renderSources(data)}
-
-          ${renderMayorBrief(data, generationValue, generationKwh, budgetValue)}
-
-          ${renderTimeSeriesInsight(data)}
+          ${renderLocalValueStory(data, generationValue, generationKwh, budgetRows)}
 
           ${renderEnergySharingCommunities(data)}
 
-          ${renderFlexibilityScenarios(data)}
-
-          <div class="analysis-grid">
-            <section class="panel">
-              <div class="panel-head">
-                <div>
-                  <h2>Welche Erzeugung erzeugt Betreiberwert?</h2>
-                  <p>${escapeHtml(data.municipality || "Die Kommune")} zeigt ${escapeHtml(genRows.length)} echte Erzeugungstypen im ${escapeHtml(scenarioLabel(data.scenario))}. Der Wert ist jährlich und nicht als Haushaltseinnahme zu lesen.</p>
-                </div>
-              </div>
-              <div class="chart-wrap"><canvas id="valueChart"></canvas></div>
-            </section>
-
-            <section class="panel">
-              <div class="panel-head">
-                <div>
-                  <h2>Was kann den kommunalen Nutzen bremsen?</h2>
-                  <p>Höchster Risikoscore: ${escapeHtml(maxRisk)}. Die Ampelliste übersetzt Netz- und Prozessrisiken in kommunale Entscheidungssprache.</p>
-                </div>
-              </div>
-              <div class="risk-list">${riskRows.map(renderRisk).join("")}</div>
-            </section>
-          </div>
+          ${renderActionEvidence(data)}
 
           ${renderTechnologyGuidance(data)}
 
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h2>Blocker für lokale Wertschöpfung</h2>
-                <p>Die Zeilen zeigen nicht nur Technik, sondern kommunale Wirkung: Verzögerungen, Datenlücken und Anschlussrisiken können Investitionen und Einnahmen verschieben.</p>
-              </div>
-            </div>
-            <div class="decision-sentence">
-              <strong>Möglicher nächster Schritt:</strong>
-              Für die wichtigsten Projekte wird je Fläche ein Netzanschluss- und Fristencheck eingeholt, bevor Ertragserwartungen politisch kommuniziert werden.
-            </div>
-          </section>
-
-          <section class="table-panel">
-            <div class="panel-head">
-              <div>
-                <h2>Haushalt: Konzession und Szenarioeffekt</h2>
-                <p>Konzessionsabgabe und Budgeteffekte werden als gerundete Jahresspannen gezeigt, nicht als Schlussrechnung. Die Spanne nennt die verwendeten ct/kWh-Sätze und muss gegen Ist-Zahlungen und Konzessionsvertrag geprüft werden.</p>
-              </div>
-            </div>
-            ${renderBudgetTable(budgetRows)}
-          </section>
-
           ${renderClosingRecommendation(data)}
+
+          <details class="appendix-panel">
+            <summary>
+              Analyse und Referenz öffnen
+              <span>Für Kämmerei, Verwaltung und Fachprüfung: Datenstand, Lastprofil, Speicher/Flex, Risiken und Tabellen.</span>
+            </summary>
+            <div class="appendix-content">
+              ${renderSources(data)}
+
+              ${renderMayorBrief(data, generationValue, generationKwh, budgetTotal(budgetRows))}
+
+              ${renderTimeSeriesInsight(data)}
+
+              ${renderFlexibilityScenarios(data)}
+
+              <div class="analysis-grid">
+                <section class="panel">
+                  <div class="panel-head">
+                    <div>
+                      <h2>Welche Erzeugung erzeugt Betreiberwert?</h2>
+                      <p>${escapeHtml(data.municipality || "Die Kommune")} zeigt ${escapeHtml(genRows.length)} echte Erzeugungstypen im ${escapeHtml(scenarioLabel(data.scenario))}. Der Wert ist jährlich und nicht als Haushaltseinnahme zu lesen.</p>
+                    </div>
+                  </div>
+                  <div class="chart-wrap"><canvas id="valueChart"></canvas></div>
+                </section>
+
+                <section class="panel">
+                  <div class="panel-head">
+                    <div>
+                      <h2>Was kann den kommunalen Nutzen bremsen?</h2>
+                      <p>Höchster Risikoscore: ${escapeHtml(maxRisk)}. Die Ampelliste übersetzt Netz- und Prozessrisiken in kommunale Entscheidungssprache.</p>
+                    </div>
+                  </div>
+                  <div class="risk-list">${riskRows.map(renderRisk).join("")}</div>
+                </section>
+              </div>
+
+              <section class="panel">
+                <div class="panel-head">
+                  <div>
+                    <h2>Blocker für lokale Wertschöpfung</h2>
+                    <p>Die Zeilen zeigen nicht nur Technik, sondern kommunale Wirkung: Verzögerungen, Datenlücken und Anschlussrisiken können Investitionen und Einnahmen verschieben.</p>
+                  </div>
+                </div>
+                <div class="decision-sentence">
+                  <strong>Möglicher nächster Schritt:</strong>
+                  Für die wichtigsten Projekte wird je Fläche ein Netzanschluss- und Fristencheck eingeholt, bevor Ertragserwartungen politisch kommuniziert werden.
+                </div>
+              </section>
+
+              <section class="table-panel">
+                <div class="panel-head">
+                  <div>
+                    <h2>Haushalt: Konzession und Szenarioeffekt</h2>
+                    <p>Konzessionsabgabe und Budgeteffekte werden als gerundete Jahresspannen gezeigt, nicht als Schlussrechnung. Die Spanne nennt die verwendeten ct/kWh-Sätze und muss gegen Ist-Zahlungen und Konzessionsvertrag geprüft werden.</p>
+                  </div>
+                </div>
+                ${renderBudgetTable(budgetRows)}
+              </section>
+            </div>
+          </details>
         `;
         drawCharts(data);
+        const appendix = results.querySelector(".appendix-panel");
+        if (appendix) {
+          appendix.addEventListener("toggle", () => {
+            if (appendix.open) drawCharts(data);
+          });
+        }
       }
 
       async function loadLagebild() {
