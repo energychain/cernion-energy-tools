@@ -43670,6 +43670,11 @@
                     "description": "Area name (Gemeinde, Stadt, Landkreis) for OSM area query.",
                     "example": "Ludwigshafen am Rhein"
                   },
+                  "postalCode": {
+                    "type": "string",
+                    "description": "German PLZ (postal code). Combined with location when both are provided (e.g. \"74909 Meckesheim\"). Can be used alone for PLZ-scoped queries.",
+                    "example": "74909"
+                  },
                   "boundingBox": {
                     "type": "object",
                     "description": "Geographic bounding box — directly compatible with the bbox field from vnbdigital_lookup.",
@@ -43757,6 +43762,13 @@
                     "include_geometry": true,
                     "maxResults": 500
                   }
+                },
+                "narrowLocality": {
+                  "summary": "Narrow locality query with PLZ (Meckesheim)",
+                  "value": {
+                    "location": "Meckesheim",
+                    "postalCode": "74909"
+                  }
                 }
               }
             }
@@ -43834,6 +43846,11 @@
                     "type": "string",
                     "description": "Area name (Gemeinde, Stadt, Landkreis).",
                     "example": "Ludwigshafen am Rhein"
+                  },
+                  "postalCode": {
+                    "type": "string",
+                    "description": "German PLZ (postal code). Combined with location when both are provided (e.g. \"74909 Meckesheim\"). Can be used alone for PLZ-scoped queries.",
+                    "example": "74909"
                   },
                   "boundingBox": {
                     "type": "object",
@@ -43922,6 +43939,15 @@
                     },
                     "voltageLevel": "MS",
                     "includeGraphData": true
+                  }
+                },
+                "narrowLocality": {
+                  "summary": "Narrow locality topology (Meckesheim / 74909)",
+                  "value": {
+                    "location": "Meckesheim",
+                    "postalCode": "74909",
+                    "includePathAnalysis": false,
+                    "includeGraphData": false
                   }
                 }
               }

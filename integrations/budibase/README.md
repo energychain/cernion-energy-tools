@@ -33,6 +33,7 @@ The workbench renders:
 - selected Zielnetzplanung item detail, context, evidence-gap, next-gate and safe-follow-up rows from `GET /api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&queueItemId=grid-planning:missing-nap-clarification`
 - Vertrieb/Key Account briefing rows from `GET /api/dashboard/stadtwerk-mauer-sales-workbench-briefing?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&audience=vertrieb`
 - MaStR public-context revalidation rows, affected case, next evidence gate, safe verify actions and no-call boundaries from `GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
+- municipal value peer-corridor evidence rows for `Mauer`, `Sandhausen` and `Wiesloch` from `GET /api/dashboard/municipal-energy-value-analysis`
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
 The action query is intentionally still guarded by Cernion scopes. A Budibase button may be
@@ -81,6 +82,12 @@ The MaStR public-context revalidation rows are read-only: they separate MaStR/OS
 synthetic Stadtwerk-Mauer tenant seed and synthetic revalidation drill/runtime rows. Budibase may
 render refresh/verify hints, but it must not mutate MaStR, write arbitrary Cernion tables, execute
 production tenant actions or turn synthetic case evidence into official public-context changes.
+The municipal value peer-corridor rows are read-only: they reuse the existing municipal energy
+value dashboard model and render scalar presenter evidence for municipal budget effect,
+operator/private value, derived-load status, peer-corridor position, no-autarky guardrails and
+missing evidence gates. Budibase may refresh these queries, but it must not write public context,
+make household-equivalent/autarky/supply claims, create legal opinions, or become the consulting
+or municipal-value system of record.
 
 ## Apply Locally
 

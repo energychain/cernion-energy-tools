@@ -1543,6 +1543,133 @@
       }
     },
     {
+      "name": "getMunicipalValuePeerCorridorMauerSummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/municipal-energy-value-analysis",
+      "queryString": "municipality={{municipality}}&year={{year}}&scenario={{scenario}}",
+      "parameters": [
+        { "name": "municipality", "default": "Mauer" },
+        { "name": "year", "default": "2025" },
+        { "name": "scenario", "default": "baseline" }
+      ],
+      "transformer": "const k=(key)=> (data.euroKpiRows||[]).find((row)=>row.rowKey===key)||{}; const load=(data.derivedLoadProfileRows||[]).find((row)=>row.rowKey==='derived_load_summary')||{}; const peer=data.intermunicipalComparison||{}; return [{rowKey:'municipality',municipality:data.municipality,status:data.status,label:'Gemeinde / AGS',value:`${data.municipality||'unbekannt'} (${data.ags||'ohne AGS'})`,evidenceStatus:data.ags?'available':'missing-evidence',safeNextAction:'present_peer_corridor_context'},{rowKey:'peer_corridor_status',municipality:data.municipality,status:peer.status||'unknown',label:'Peer-Korridor Status',value:peer.statusReason||peer.blockedFallback?.headline||'keine Einordnung',evidenceStatus:peer.dataStatus||peer.status||'unknown',safeNextAction:peer.status==='available'?'explain_peer_position':'show_evidence_gate_before_public_claim'},{rowKey:'municipal_budget_effect',municipality:data.municipality,status:k('euro_kpi_municipal_budget_effect').evidenceStatus||'missing-evidence',label:'Direkter Haushaltseffekt',value:k('euro_kpi_municipal_budget_effect').valueEur||null,evidenceStatus:k('euro_kpi_municipal_budget_effect').evidenceStatus||'missing-evidence',safeNextAction:'keep_separate_from_operator_value'},{rowKey:'operator_private_value',municipality:data.municipality,status:k('euro_kpi_gross_market_value').evidenceStatus||'missing-evidence',label:'Betreiber-/Privatwert',value:k('euro_kpi_gross_market_value').valueEur||null,evidenceStatus:k('euro_kpi_gross_market_value').evidenceStatus||'missing-evidence',safeNextAction:'do_not_present_as_municipal_cash_inflow'},{rowKey:'derived_load_status',municipality:data.municipality,status:load.evidenceStatus||'missing-evidence',label:'Lastprofil',value:load.rowLabel||'kein abgeleitetes Lastprofil',evidenceStatus:load.evidenceStatus||'missing-evidence',safeNextAction:'label_as_derived_not_measured'},{rowKey:'safe_next_action',municipality:data.municipality,status:'read_only',label:'Sicherer naechster Schritt',value:(data.positiveFollowUps||[])[0]?.enablesDossierAddition||'Read model aktualisieren und Evidenz-Gate klaeren.',evidenceStatus:'advisory',safeNextAction:'refresh_or_prepare_consulting_data_request'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "municipality": { "type": "string" },
+        "status": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "evidenceStatus": { "type": "string" },
+        "safeNextAction": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMunicipalValuePeerCorridorSandhausenSummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/municipal-energy-value-analysis",
+      "queryString": "municipality={{municipality}}&year={{year}}&scenario={{scenario}}",
+      "parameters": [
+        { "name": "municipality", "default": "Sandhausen" },
+        { "name": "year", "default": "2025" },
+        { "name": "scenario", "default": "baseline" }
+      ],
+      "transformer": "const k=(key)=> (data.euroKpiRows||[]).find((row)=>row.rowKey===key)||{}; const load=(data.derivedLoadProfileRows||[]).find((row)=>row.rowKey==='derived_load_summary')||{}; const peer=data.intermunicipalComparison||{}; return [{rowKey:'municipality',municipality:data.municipality,status:data.status,label:'Gemeinde / AGS',value:`${data.municipality||'unbekannt'} (${data.ags||'ohne AGS'})`,evidenceStatus:data.ags?'available':'missing-evidence',safeNextAction:'present_peer_corridor_context'},{rowKey:'peer_corridor_status',municipality:data.municipality,status:peer.status||'unknown',label:'Peer-Korridor Status',value:peer.statusReason||peer.blockedFallback?.headline||'keine Einordnung',evidenceStatus:peer.dataStatus||peer.status||'unknown',safeNextAction:peer.status==='available'?'explain_peer_position':'show_evidence_gate_before_public_claim'},{rowKey:'municipal_budget_effect',municipality:data.municipality,status:k('euro_kpi_municipal_budget_effect').evidenceStatus||'missing-evidence',label:'Direkter Haushaltseffekt',value:k('euro_kpi_municipal_budget_effect').valueEur||null,evidenceStatus:k('euro_kpi_municipal_budget_effect').evidenceStatus||'missing-evidence',safeNextAction:'keep_separate_from_operator_value'},{rowKey:'operator_private_value',municipality:data.municipality,status:k('euro_kpi_gross_market_value').evidenceStatus||'missing-evidence',label:'Betreiber-/Privatwert',value:k('euro_kpi_gross_market_value').valueEur||null,evidenceStatus:k('euro_kpi_gross_market_value').evidenceStatus||'missing-evidence',safeNextAction:'do_not_present_as_municipal_cash_inflow'},{rowKey:'derived_load_status',municipality:data.municipality,status:load.evidenceStatus||'missing-evidence',label:'Lastprofil',value:load.rowLabel||'kein abgeleitetes Lastprofil',evidenceStatus:load.evidenceStatus||'missing-evidence',safeNextAction:'label_as_derived_not_measured'},{rowKey:'safe_next_action',municipality:data.municipality,status:'read_only',label:'Sicherer naechster Schritt',value:(data.positiveFollowUps||[])[0]?.enablesDossierAddition||'Read model aktualisieren und Evidenz-Gate klaeren.',evidenceStatus:'advisory',safeNextAction:'refresh_or_prepare_consulting_data_request'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "municipality": { "type": "string" },
+        "status": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "evidenceStatus": { "type": "string" },
+        "safeNextAction": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMunicipalValuePeerCorridorWieslochSummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/municipal-energy-value-analysis",
+      "queryString": "municipality={{municipality}}&year={{year}}&scenario={{scenario}}",
+      "parameters": [
+        { "name": "municipality", "default": "Wiesloch" },
+        { "name": "year", "default": "2025" },
+        { "name": "scenario", "default": "baseline" }
+      ],
+      "transformer": "const k=(key)=> (data.euroKpiRows||[]).find((row)=>row.rowKey===key)||{}; const load=(data.derivedLoadProfileRows||[]).find((row)=>row.rowKey==='derived_load_summary')||{}; const peer=data.intermunicipalComparison||{}; return [{rowKey:'municipality',municipality:data.municipality,status:data.status,label:'Gemeinde / AGS',value:`${data.municipality||'unbekannt'} (${data.ags||'ohne AGS'})`,evidenceStatus:data.ags?'available':'missing-evidence',safeNextAction:'present_peer_corridor_context'},{rowKey:'peer_corridor_status',municipality:data.municipality,status:peer.status||'unknown',label:'Peer-Korridor Status',value:peer.statusReason||peer.blockedFallback?.headline||'keine Einordnung',evidenceStatus:peer.dataStatus||peer.status||'unknown',safeNextAction:peer.status==='available'?'explain_peer_position':'show_evidence_gate_before_public_claim'},{rowKey:'municipal_budget_effect',municipality:data.municipality,status:k('euro_kpi_municipal_budget_effect').evidenceStatus||'missing-evidence',label:'Direkter Haushaltseffekt',value:k('euro_kpi_municipal_budget_effect').valueEur||null,evidenceStatus:k('euro_kpi_municipal_budget_effect').evidenceStatus||'missing-evidence',safeNextAction:'keep_separate_from_operator_value'},{rowKey:'operator_private_value',municipality:data.municipality,status:k('euro_kpi_gross_market_value').evidenceStatus||'missing-evidence',label:'Betreiber-/Privatwert',value:k('euro_kpi_gross_market_value').valueEur||null,evidenceStatus:k('euro_kpi_gross_market_value').evidenceStatus||'missing-evidence',safeNextAction:'do_not_present_as_municipal_cash_inflow'},{rowKey:'derived_load_status',municipality:data.municipality,status:load.evidenceStatus||'missing-evidence',label:'Lastprofil',value:load.rowLabel||'kein abgeleitetes Lastprofil',evidenceStatus:load.evidenceStatus||'missing-evidence',safeNextAction:'label_as_derived_not_measured'},{rowKey:'safe_next_action',municipality:data.municipality,status:'read_only',label:'Sicherer naechster Schritt',value:(data.positiveFollowUps||[])[0]?.enablesDossierAddition||'Read model aktualisieren und Evidenz-Gate klaeren.',evidenceStatus:'advisory',safeNextAction:'refresh_or_prepare_consulting_data_request'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "municipality": { "type": "string" },
+        "status": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "evidenceStatus": { "type": "string" },
+        "safeNextAction": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMunicipalValuePeerCorridorRows",
+      "method": "GET",
+      "path": "/api/dashboard/municipal-energy-value-analysis",
+      "queryString": "municipality={{municipality}}&year={{year}}&scenario={{scenario}}",
+      "parameters": [
+        { "name": "municipality", "default": "Wiesloch" },
+        { "name": "year", "default": "2025" },
+        { "name": "scenario", "default": "baseline" }
+      ],
+      "transformer": "const peer=data.intermunicipalComparison||{}; const rows=(peer.corridorRows||[]).map((row)=>({rowKey:row.metricKey,municipality:data.municipality,metricLabel:row.metricLabel,peerStatus:peer.status,targetValue:row.targetValue,peerRange:row.roundedRangeLabel,evidenceStatus:row.evidenceStatus,framingText:row.framingText,safeNextAction:'present_as_peer_corridor_not_autarky_claim'})); if(rows.length) return rows; return [{rowKey:'peer_corridor_blocked',municipality:data.municipality,metricLabel:'Peer-Korridor',peerStatus:peer.status||'blocked',targetValue:null,peerRange:null,evidenceStatus:peer.dataStatus||'blocked',framingText:peer.blockedFallback?.text||peer.statusReason||'Peer-Korridor noch nicht freigegeben.',safeNextAction:'resolve_peer_evidence_gate_before_public_claim'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "municipality": { "type": "string" },
+        "metricLabel": { "type": "string" },
+        "peerStatus": { "type": "string" },
+        "targetValue": { "type": "number" },
+        "peerRange": { "type": "string" },
+        "evidenceStatus": { "type": "string" },
+        "framingText": { "type": "string" },
+        "safeNextAction": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMunicipalValueNoAutarkyGuardrailRows",
+      "method": "GET",
+      "path": "/api/dashboard/municipal-energy-value-analysis",
+      "queryString": "municipality={{municipality}}&year={{year}}&scenario={{scenario}}",
+      "parameters": [
+        { "name": "municipality", "default": "Wiesloch" },
+        { "name": "year", "default": "2025" },
+        { "name": "scenario", "default": "baseline" }
+      ],
+      "transformer": "return (data.noAutarkyGuardrails||[]).map((guardrail,index)=>({rowKey:guardrail,municipality:data.municipality,guardrail,position:index+1,status:'not_public_claim',presenterInstruction:'Nicht als Autarkie-, Haushalts- oder Lieferbehauptung verwenden.',safeNextAction:'show_eur_and_evidence_rows_only'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "municipality": { "type": "string" },
+        "guardrail": { "type": "string" },
+        "position": { "type": "number" },
+        "status": { "type": "string" },
+        "presenterInstruction": { "type": "string" },
+        "safeNextAction": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMunicipalValueMissingGateRows",
+      "method": "GET",
+      "path": "/api/dashboard/municipal-energy-value-analysis",
+      "queryString": "municipality={{municipality}}&year={{year}}&scenario={{scenario}}",
+      "parameters": [
+        { "name": "municipality", "default": "Wiesloch" },
+        { "name": "year", "default": "2025" },
+        { "name": "scenario", "default": "baseline" }
+      ],
+      "transformer": "return (data.missingEvidence||[]).slice(0,12).map((gap)=>({rowKey:gap.missingDataPoint,municipality:data.municipality,missingDataPoint:gap.missingDataPoint,enablesDossierAddition:gap.enablesDossierAddition,status:'open_evidence_gate',safeNextAction:'prepare_consulting_data_request'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "municipality": { "type": "string" },
+        "missingDataPoint": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "status": { "type": "string" },
+        "safeNextAction": { "type": "string" }
+      }
+    },
+    {
       "name": "getStadtwerkMauerE2EProcessDemo",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-e2e-process-demo",
@@ -1836,6 +1963,42 @@
       "tableTitle": "No-Call Guards"
     },
     {
+      "id": "municipal_value_mauer",
+      "title": "Kommunalwert / Peer-Korridor - Mauer",
+      "queryName": "getMunicipalValuePeerCorridorMauerSummaryRows",
+      "tableTitle": "Mauer Peer-Corridor Evidence"
+    },
+    {
+      "id": "municipal_value_sandhausen",
+      "title": "Kommunalwert / Peer-Korridor - Sandhausen",
+      "queryName": "getMunicipalValuePeerCorridorSandhausenSummaryRows",
+      "tableTitle": "Sandhausen Peer-Corridor Evidence"
+    },
+    {
+      "id": "municipal_value_wiesloch",
+      "title": "Kommunalwert / Peer-Korridor - Wiesloch",
+      "queryName": "getMunicipalValuePeerCorridorWieslochSummaryRows",
+      "tableTitle": "Wiesloch Peer-Corridor Evidence"
+    },
+    {
+      "id": "municipal_value_peer_rows",
+      "title": "Municipal Peer Corridor Rows",
+      "queryName": "getMunicipalValuePeerCorridorRows",
+      "tableTitle": "Peer Corridor Rows"
+    },
+    {
+      "id": "municipal_value_guardrails",
+      "title": "No-Autarky Guardrails",
+      "queryName": "getMunicipalValueNoAutarkyGuardrailRows",
+      "tableTitle": "Presenter Guardrails"
+    },
+    {
+      "id": "municipal_value_missing_gates",
+      "title": "Municipal Value Missing Gates",
+      "queryName": "getMunicipalValueMissingGateRows",
+      "tableTitle": "Missing Evidence Gates"
+    },
+    {
       "id": "e2e",
       "title": "E2E Demo Status",
       "queryName": "getStadtwerkMauerE2EProcessDemo",
@@ -1856,6 +2019,9 @@
     "Selected Zielnetzplanung Item binds to scalar summary, context, evidence-gap, next-gate and safe-follow-up rows; it is advisory evidence context, not a grid-capacity approval.",
     "Vertrieb Briefing binds to scalar evidence-backed claim, evidence, gap and internal follow-up rows; unsupported claims stay not-yet-claimable.",
     "MaStR Revalidation binds to scalar public-context, overlay asset, affected-case, next-gate, safe-action and boundary rows; synthetic drill rows are never represented as real public MaStR changes.",
+    "Kommunalwert / Peer-Korridor binds to existing municipal-energy-value-analysis read rows for Mauer, Sandhausen and Wiesloch; Budibase renders scalar presenter evidence only.",
+    "Municipal peer-corridor rows keep direct municipal budget effect separate from operator/private value and label derived load evidence as not measured.",
+    "No-autarky guardrails and missing evidence gates stay visible for presenters; Budibase may refresh queries but must not make public supply, household-equivalent or autarky claims.",
     "Controlled Action runStadtwerkMauerE2ESmoke remains scope-protected by Cernion.",
     "Budibase renders the workbench; Cernion remains the system of record and command gate."
   ]

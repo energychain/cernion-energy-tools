@@ -9354,6 +9354,122 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  describe('stadtwerkMauerMunicipalValueWorkbenchManifest', () => {
+    function runBudibaseTransformer(query, data) {
+      return Function('data', query.transformer)(data);
+    }
+
+    it('binds the Budibase manifest to municipal peer-corridor scalar rows', async () => {
+      const queryNames = STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.map((query) => query.name);
+      expect(queryNames).toEqual(
+        expect.arrayContaining([
+          'getMunicipalValuePeerCorridorMauerSummaryRows',
+          'getMunicipalValuePeerCorridorSandhausenSummaryRows',
+          'getMunicipalValuePeerCorridorWieslochSummaryRows',
+          'getMunicipalValuePeerCorridorRows',
+          'getMunicipalValueNoAutarkyGuardrailRows',
+          'getMunicipalValueMissingGateRows',
+        ])
+      );
+
+      const mauerQuery = STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+        (query) => query.name === 'getMunicipalValuePeerCorridorMauerSummaryRows'
+      );
+      expect(mauerQuery).toMatchObject({
+        method: 'GET',
+        path: '/api/dashboard/municipal-energy-value-analysis',
+        queryString: 'municipality={{municipality}}&year={{year}}&scenario={{scenario}}',
+      });
+      expect(mauerQuery.parameters).toEqual(
+        expect.arrayContaining([
+          { name: 'municipality', default: 'Mauer' },
+          { name: 'year', default: '2025' },
+          { name: 'scenario', default: 'baseline' },
+        ])
+      );
+
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.sections.map((section) => section.id)).toEqual(
+        expect.arrayContaining([
+          'municipal_value_mauer',
+          'municipal_value_sandhausen',
+          'municipal_value_wiesloch',
+          'municipal_value_peer_rows',
+          'municipal_value_guardrails',
+          'municipal_value_missing_gates',
+        ])
+      );
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
+        'Mauer, Sandhausen and Wiesloch'
+      );
+
+      const wiesloch = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Wiesloch',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      const wieslochSummaryQuery = STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+        (query) => query.name === 'getMunicipalValuePeerCorridorWieslochSummaryRows'
+      );
+      const peerRowsQuery = STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+        (query) => query.name === 'getMunicipalValuePeerCorridorRows'
+      );
+      const guardrailRowsQuery = STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+        (query) => query.name === 'getMunicipalValueNoAutarkyGuardrailRows'
+      );
+      const missingGateRowsQuery = STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+        (query) => query.name === 'getMunicipalValueMissingGateRows'
+      );
+
+      const summaryRows = runBudibaseTransformer(wieslochSummaryQuery, wiesloch);
+      expect(summaryRows.map((row) => row.rowKey)).toEqual(
+        expect.arrayContaining([
+          'municipality',
+          'peer_corridor_status',
+          'municipal_budget_effect',
+          'operator_private_value',
+          'derived_load_status',
+          'safe_next_action',
+        ])
+      );
+      expect(summaryRows.find((row) => row.rowKey === 'municipal_budget_effect')).toMatchObject({
+        label: 'Direkter Haushaltseffekt',
+        safeNextAction: 'keep_separate_from_operator_value',
+      });
+      expect(summaryRows.find((row) => row.rowKey === 'operator_private_value')).toMatchObject({
+        label: 'Betreiber-/Privatwert',
+        safeNextAction: 'do_not_present_as_municipal_cash_inflow',
+      });
+      expect(summaryRows.find((row) => row.rowKey === 'derived_load_status')).toMatchObject({
+        evidenceStatus: 'derived-from-assets',
+        safeNextAction: 'label_as_derived_not_measured',
+      });
+      expectScalarTableRows(summaryRows);
+
+      const peerRows = runBudibaseTransformer(peerRowsQuery, wiesloch);
+      expect(peerRows.length).toBeGreaterThan(0);
+      expect(peerRows[0]).toHaveProperty('peerRange');
+      expect(peerRows[0].safeNextAction).toBe('present_as_peer_corridor_not_autarky_claim');
+      expectScalarTableRows(peerRows);
+
+      const guardrailRows = runBudibaseTransformer(guardrailRowsQuery, wiesloch);
+      expect(guardrailRows.map((row) => row.guardrail)).toEqual(
+        expect.arrayContaining(['keine_haushaltsaequivalente_aus_mwh'])
+      );
+      expect(guardrailRows[0]).toMatchObject({
+        status: 'not_public_claim',
+        safeNextAction: 'show_eur_and_evidence_rows_only',
+      });
+      expectScalarTableRows(guardrailRows);
+
+      const missingGateRows = runBudibaseTransformer(missingGateRowsQuery, wiesloch);
+      expect(missingGateRows.map((row) => row.missingDataPoint)).toEqual(
+        expect.arrayContaining(['vnb_bnr', 'mastr_live_data'])
+      );
+      expect(missingGateRows[0].safeNextAction).toBe('prepare_consulting_data_request');
+      expectScalarTableRows(missingGateRows);
+    });
+  });
+
   describe('marketSnapshot', () => {
       it('throws ValidationError for single-character location', async () => {
         await expect(
