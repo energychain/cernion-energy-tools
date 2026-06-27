@@ -953,11 +953,6 @@
         return `${number(value, " kWh/Jahr")}`;
       }
 
-      function annualGwh(kwh) {
-        if (kwh == null || Number.isNaN(Number(kwh))) return 0;
-        return Number(kwh) / 1000000;
-      }
-
       function percentValue(value) {
         if (value == null || Number.isNaN(Number(value))) return "offen";
         return `${new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 }).format(Number(value) * 100)} %`;
@@ -1318,7 +1313,9 @@
         const strongestProfileText = strongest
           ? `${technologyLabel(strongest.technology)} passt rechnerisch am besten zum lokalen Verbrauchsprofil.`
           : "Die Zeitgleichkeit lokaler Erzeugung kann erst mit weiteren Daten belastbarer eingeordnet werden.";
-        const loadProfileChart = buckets.length
+        const localValueTotal = tsRows.reduce((total, row) => total + (Number(row.localCorrelationValueEur) || 0), 0);
+        const unmatchedValueTotal = tsRows.reduce((total, row) => total + (Number(row.unmatchedGenerationValueEur) || 0), 0);
+        const loadProfileChart = tsRows.length
           ? `
             <div class="load-profile-visual">
               <div class="load-profile-chart">
@@ -1326,14 +1323,19 @@
               </div>
               <div class="load-profile-notes">
                 <article class="load-profile-note">
-                  <span>Verbrauchsprofil</span>
+                  <span>Profilbasis</span>
                   <strong>${escapeHtml(energyAmount(summary?.totalAnnualKwh))}</strong>
-                  <p>Die Balken zeigen die abgeleiteten Jahresanteile der wichtigsten Verbrauchsgruppen, nicht gemessene Zählergänge.</p>
+                  <p>Der GWh-Wert ist die Eingangsgröße. Er bestimmt, welcher Teil des lokalen Erzeugungswerts zeitlich zum Verbrauch passt.</p>
                 </article>
                 <article class="load-profile-note">
-                  <span>Zeitgleichkeit</span>
+                  <span>Euro-Wertabgleich</span>
+                  <strong>${escapeHtml(euroRange(localValueTotal, 0.9, 1.1))} zeitgleich</strong>
+                  <p>Daneben bleiben ${escapeHtml(euroRange(unmatchedValueTotal, 0.9, 1.1))} lokaler Erzeugungswert, der rechnerisch nicht ins Verbrauchsfenster fällt.</p>
+                </article>
+                <article class="load-profile-note">
+                  <span>Stärkstes Signal</span>
                   <strong>${escapeHtml(strongestProfileText)}</strong>
-                  <p>Der Vergleich darunter trennt lokalen zeitgleichen Wert von Erzeugung, die rechnerisch nicht zum Verbrauchsfenster passt.</p>
+                  <p>Die Tabelle darunter zeigt dieselbe Logik mit Marktwert, zeitgleichem Anteil und Profilnähe.</p>
                 </article>
               </div>
             </div>
@@ -1517,7 +1519,7 @@
         destroyCharts();
         const valueRows = data.valueRows || [];
         const genRows = generationRows(valueRows);
-        const loadProfileRows = (data.derivedLoadProfileRows || []).filter((row) => row.rowKey !== "derived_load_summary");
+        const loadProfileRows = data.timeSeriesValueRows || [];
 
         const valueCtx = document.getElementById("valueChart");
 
@@ -1554,12 +1556,18 @@
           charts.loadProfile = new Chart(loadProfileCtx, {
             type: "bar",
             data: {
-              labels: loadProfileRows.map((row) => row.rowLabel || row.rowKey),
+              labels: loadProfileRows.map((row) => technologyLabel(row.technology) || row.rowLabel || row.rowKey),
               datasets: [
                 {
-                  label: "Abgeleiteter Verbrauch GWh/Jahr",
-                  data: loadProfileRows.map((row) => annualGwh(row.totalAnnualKwh)),
-                  backgroundColor: ["#157f53", "#2f6fa7", "#a76116"],
+                  label: "Zeitgleicher lokaler Euro-Beitrag",
+                  data: loadProfileRows.map((row) => Number(row.localCorrelationValueEur) || 0),
+                  backgroundColor: "#157f53",
+                  borderRadius: 4,
+                },
+                {
+                  label: "Nicht zeitgleicher Erzeugungswert",
+                  data: loadProfileRows.map((row) => Number(row.unmatchedGenerationValueEur) || 0),
+                  backgroundColor: "#d9b46a",
                   borderRadius: 4,
                 },
               ],
@@ -1569,17 +1577,24 @@
               responsive: true,
               maintainAspectRatio: false,
               plugins: {
-                legend: { display: false },
+                legend: {
+                  display: true,
+                  labels: { boxWidth: 12, boxHeight: 12 },
+                },
                 tooltip: {
                   callbacks: {
-                    label: (ctx) => `${number(ctx.raw, " GWh/Jahr")} abgeleiteter Verbrauch`,
+                    label: (ctx) => `${ctx.dataset.label}: ${euro(ctx.raw)}`,
                   },
                 },
               },
               scales: {
                 x: {
                   beginAtZero: true,
-                  ticks: { callback: (value) => number(value, " GWh") },
+                  stacked: true,
+                  ticks: { callback: (value) => euro(value) },
+                },
+                y: {
+                  stacked: true,
                 },
               },
             },
