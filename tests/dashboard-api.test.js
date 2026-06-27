@@ -10405,5 +10405,229 @@ describe('dashboard-api.service', () => {
       expect(notFound.found).toBe(false);
       expect(notFound.ags).toBeNull();
     });
+
+    // ── intermunicipalComparison — issue #334 ─────────────────────────────────
+
+    it('intermunicipalComparison block is always present in result (issue #334)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Mauer',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      expect(result.intermunicipalComparison).toBeDefined();
+      expect(['available', 'blocked']).toContain(result.intermunicipalComparison.status);
+      expect(Array.isArray(result.intermunicipalComparison.guardrailRows)).toBe(true);
+      expect(Array.isArray(result.intermunicipalComparison.corridorRows)).toBe(true);
+      expect(result.intermunicipalComparison.blockedFallback !== undefined).toBe(true);
+    });
+
+    it('saubere Daten → Vergleich verfuegbar: Mauer (BW) hat ausreichend Peers (issue #334)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Mauer',
+        ags: '08226048',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      const ic = result.intermunicipalComparison;
+      expect(ic.status).toBe('available');
+      expect(ic.dataStatus).toBe('scenario-based');
+      expect(ic.target).not.toBeNull();
+      expect(ic.target.ags).toBe('08226048');
+      expect(ic.target.state).toBe('Baden-Württemberg');
+      expect(ic.peerGroup).not.toBeNull();
+      expect(ic.peerGroup.validPeerCount).toBeGreaterThanOrEqual(5);
+      expect(ic.peerGroup.anonymized).toBe(true);
+      expect(ic.corridorRows.length).toBeGreaterThan(0);
+      const guardrailsPassed = ic.guardrailRows.every((r) => r.status === 'passed');
+      expect(guardrailsPassed).toBe(true);
+    });
+
+    it('weniger als 5 valide Peers → blocked: Kiel (SH, Großstadt ohne vergleichbare Peers) (issue #334)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Kiel',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      const ic = result.intermunicipalComparison;
+      expect(ic.status).toBe('blocked');
+      const minPeerGuardrail = ic.guardrailRows.find((r) => r.guardrailKey === 'min_peer_count');
+      expect(minPeerGuardrail).toBeDefined();
+      expect(minPeerGuardrail.status).toBe('blocked');
+      expect(ic.blockedFallback).not.toBeNull();
+      expect(typeof ic.blockedFallback.headline).toBe('string');
+      expect(typeof ic.blockedFallback.nextGateLabel).toBe('string');
+    });
+
+    it('keine Ranking-Sprache in corridorRows.framingText (issue #334)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Mauer',
+        ags: '08226048',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      const ic = result.intermunicipalComparison;
+      if (ic.status !== 'available') return; // skip if blocked for unrelated reasons
+      const forbiddenTerms = ['platz', 'rang', 'ranking', 'beste kommune', 'schlechteste', 'liga', 'score', 'sterne'];
+      for (const row of ic.corridorRows) {
+        const text = String(row.framingText || '').toLowerCase();
+        for (const term of forbiddenTerms) {
+          expect(text).not.toContain(term);
+        }
+      }
+    });
+
+    it('keine Peer-Klarnamen im Default-Result (Anonymisierung aktiv) (issue #334)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Mauer',
+        ags: '08226048',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      const ic = result.intermunicipalComparison;
+      expect(ic.peerGroup).toBeDefined();
+      if (ic.peerGroup) {
+        expect(ic.peerGroup.anonymized).toBe(true);
+        expect(ic.peerGroup.peerNames).toBeUndefined();
+        expect(ic.peerGroup.peerAgs).toBeUndefined();
+      }
+    });
+
+    it('unaufgelöste Gemeinde → blocked mit ags_resolution Guardrail (issue #334)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Unbekannthausen',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      const ic = result.intermunicipalComparison;
+      expect(ic.status).toBe('blocked');
+      const agsGuardrail = ic.guardrailRows.find((r) => r.guardrailKey === 'ags_resolution');
+      expect(agsGuardrail).toBeDefined();
+      expect(agsGuardrail.status).toBe('blocked');
+    });
+  });
+
+  // ── intermunicipal-comparison unit tests (direct module, issue #334) ─────────
+
+  describe('buildIntermunicipalComparison unit tests (issue #334)', () => {
+    const {
+      buildIntermunicipalComparison,
+      CONSUMPTION_PER_CAPITA_MIN,
+      CONSUMPTION_PER_CAPITA_MAX,
+      MIN_PEER_COUNT,
+    } = require('../src/intermunicipal-comparison');
+
+    const _baseProfile = {
+      found: true,
+      ags: '08226048',
+      name: 'Mauer',
+      state: 'Baden-Württemberg',
+      population: 6000,
+      areaSqKm: 10,
+      pvCapacityKw: 3300,
+      biomassCapacityKw: 540,
+      windCapacityKw: 0,
+      avgHouseholdsPerEinwohner: 0.44,
+      avgHouseholdConsumptionKwh: 2450,
+      postalCode: '69256',
+    };
+
+    const _baseLoad = {
+      totalAnnualKwh: 6000 * 1563,
+      householdKwh: 6000 * 0.44 * 2450,
+      households: Math.round(6000 * 0.44),
+    };
+
+    it('returns available for profile with sufficient peers and in-range consumption', () => {
+      const result = buildIntermunicipalComparison({
+        profile: _baseProfile,
+        annualLoad: _baseLoad,
+        totalGrossMarketValueEur: 420000,
+        year: 2025,
+        scenario: 'baseline',
+        marketPriceEurPerMwh: 70,
+      });
+      expect(result.status).toBe('available');
+      expect(result.target.ags).toBe('08226048');
+      expect(result.peerGroup.validPeerCount).toBeGreaterThanOrEqual(MIN_PEER_COUNT);
+      expect(result.corridorRows.length).toBeGreaterThan(0);
+    });
+
+    it('Zielkommune außerhalb Verbrauchskorridor → blocked (issue #334 acceptance criterion)', () => {
+      const outOfRangeLoad = {
+        totalAnnualKwh: 6000 * (CONSUMPTION_PER_CAPITA_MAX + 1500), // well above max
+        householdKwh: 6000 * 0.44 * 2450,
+        households: Math.round(6000 * 0.44),
+      };
+      const result = buildIntermunicipalComparison({
+        profile: _baseProfile,
+        annualLoad: outOfRangeLoad,
+        totalGrossMarketValueEur: 420000,
+        year: 2025,
+        scenario: 'baseline',
+        marketPriceEurPerMwh: 70,
+      });
+      expect(result.status).toBe('blocked');
+      const g = result.guardrailRows.find((r) => r.guardrailKey === 'consumption_per_capita');
+      expect(g).toBeDefined();
+      expect(g.status).toBe('blocked');
+      expect(result.blockedFallback).not.toBeNull();
+    });
+
+    it('weniger als 5 Peers → blocked (issue #334 acceptance criterion)', () => {
+      // Fake profile in a tiny fictional state that has no peers
+      const isolatedProfile = {
+        ..._baseProfile,
+        ags: '99999999',
+        state: '__IsolatedTestState__',
+      };
+      const result = buildIntermunicipalComparison({
+        profile: isolatedProfile,
+        annualLoad: _baseLoad,
+        totalGrossMarketValueEur: 420000,
+        year: 2025,
+        scenario: 'baseline',
+        marketPriceEurPerMwh: 70,
+      });
+      expect(result.status).toBe('blocked');
+      const g = result.guardrailRows.find((r) => r.guardrailKey === 'min_peer_count');
+      expect(g).toBeDefined();
+      expect(g.status).toBe('blocked');
+      expect(result.peerGroup.validPeerCount).toBeLessThan(MIN_PEER_COUNT);
+    });
+
+    it('target block: corridorRows and target are null when blocked', () => {
+      const outOfRangeLoad = { totalAnnualKwh: 6000 * 99999, householdKwh: 0, households: 0 };
+      const result = buildIntermunicipalComparison({
+        profile: _baseProfile,
+        annualLoad: outOfRangeLoad,
+        totalGrossMarketValueEur: 0,
+        year: 2025,
+        scenario: 'baseline',
+        marketPriceEurPerMwh: 70,
+      });
+      expect(result.status).toBe('blocked');
+      expect(result.target).toBeNull();
+      expect(result.corridorRows).toEqual([]);
+    });
+
+    it('corridorRows carry only normalised metrics, not absolute Euro Peer-Vergleiche', () => {
+      const result = buildIntermunicipalComparison({
+        profile: _baseProfile,
+        annualLoad: _baseLoad,
+        totalGrossMarketValueEur: 420000,
+        year: 2025,
+        scenario: 'baseline',
+        marketPriceEurPerMwh: 70,
+      });
+      if (result.status !== 'available') return;
+      for (const row of result.corridorRows) {
+        // unit must be % or EUR/EW/Jahr — not a flat EUR value
+        expect(row.unit).not.toBe('EUR');
+        expect(row.unit).not.toBe('EUR/Jahr');
+        expect(typeof row.metricKey).toBe('string');
+        expect(typeof row.framingText).toBe('string');
+        expect(row.evidenceStatus).toBe('scenario-based');
+      }
+    });
   });
 });

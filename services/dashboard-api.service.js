@@ -25,6 +25,7 @@
 const { FINDING_CODE_METADATA } = require('../src/validation-findings');
 const { resolveMunicipalityProfile } = require('../src/municipality-resolver');
 const { estimateMunicipalAnnualLoad, deriveTechnologyCorrelation } = require('../src/municipal-load-estimator');
+const { buildIntermunicipalComparison } = require('../src/intermunicipal-comparison');
 const {
   evaluatePresentationGrounding,
 } = require('../src/receipt-grounded-presentation-contract');
@@ -31161,6 +31162,15 @@ module.exports = {
           ]
         : [];
 
+      const intermunicipalComparison = buildIntermunicipalComparison({
+        profile,
+        annualLoad,
+        totalGrossMarketValueEur,
+        year,
+        scenario,
+        marketPriceEurPerMwh: assumedMarketPriceEurPerMwh,
+      });
+
       return {
         capabilityKey: 'municipal_energy_value_analysis',
         status,
@@ -31190,6 +31200,7 @@ module.exports = {
         positiveFollowUps,
         noCallGuards,
         noAutarkyGuardrails,
+        intermunicipalComparison,
         _errors: [],
       };
     },
