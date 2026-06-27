@@ -19,7 +19,8 @@
  *
  * Layer 3 — Energy profile overlay (selected municipalities):
  *   ENERGY_OVERLAY — explicit pvCapacityKw / biomassCapacityKw / windCapacityKw /
- *   gridOperatorLabel values keyed by AGS. For municipalities not in this overlay,
+ *   optional storagePowerKw / storageCapacityKWh and gridOperatorLabel values keyed by AGS.
+ *   For municipalities not in this overlay,
  *   energy capacity is estimated from population (BSW-Solar / DBFZ proxy formulas).
  *   Add or update entries here as verified MaStR data becomes available.
  *
@@ -77,6 +78,8 @@ function estimateEnergyFromPopulation(pop, overlay) {
     pvCapacityKw: overlay && overlay.pvCapacityKw != null ? overlay.pvCapacityKw : Math.round(pop * 0.55),
     biomassCapacityKw: overlay && overlay.biomassCapacityKw != null ? overlay.biomassCapacityKw : (pop < 10000 ? Math.round(pop * 0.09) : Math.round(pop * 0.04)),
     windCapacityKw: overlay && overlay.windCapacityKw != null ? overlay.windCapacityKw : 0,
+    storagePowerKw: overlay && overlay.storagePowerKw != null ? overlay.storagePowerKw : 0,
+    storageCapacityKWh: overlay && overlay.storageCapacityKWh != null ? overlay.storageCapacityKWh : null,
   };
 }
 
@@ -111,7 +114,7 @@ for (const row of rawPlzData) {
 function buildFullProfile(l1Entry, resolvedPlz, fallbackName) {
   const overlay = ENERGY_OVERLAY[l1Entry.ags] || null;
   const pop = l1Entry.ewz || 0;
-  const energy = pop > 0 ? estimateEnergyFromPopulation(pop, overlay) : { pvCapacityKw: 0, biomassCapacityKw: 0, windCapacityKw: 0 };
+  const energy = pop > 0 ? estimateEnergyFromPopulation(pop, overlay) : { pvCapacityKw: 0, biomassCapacityKw: 0, windCapacityKw: 0, storagePowerKw: 0, storageCapacityKWh: null };
   const hasExplicitEnergy = overlay && overlay.pvCapacityKw != null;
   const postalCode = resolvedPlz || null;
 
@@ -129,6 +132,9 @@ function buildFullProfile(l1Entry, resolvedPlz, fallbackName) {
     pvCapacityKw: energy.pvCapacityKw,
     biomassCapacityKw: energy.biomassCapacityKw,
     windCapacityKw: energy.windCapacityKw,
+    storagePowerKw: energy.storagePowerKw,
+    storageCapacityKWh: energy.storageCapacityKWh,
+    storageEvidenceStatus: energy.storagePowerKw > 0 ? 'assumption-backed' : 'missing-evidence',
     gridOperatorLabel: (overlay && overlay.gridOperatorLabel) || `${l1Entry.state || 'lokaler'} Netzbetreiber (aufgeloest)`,
     gridOperatorBdewHint: (overlay && overlay.gridOperatorBdewHint) || 'missing-evidence',
     konzessionsabgabeKategorie: kavKategorieForPopulation(pop),

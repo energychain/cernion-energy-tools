@@ -30783,6 +30783,15 @@ module.exports = {
           lastUpdated: null,
           evidenceStatus: 'assumption-backed',
         },
+        {
+          sourceKey: 'bnetza_fca_storage_flex',
+          sourceLabel: 'Bundesnetzagentur: Flexible Netzanschlussvereinbarungen für Speicher und Verbrauchsanlagen',
+          sourceType: 'regulatory',
+          availability: 'public',
+          coverage: 'deutschland-weit',
+          lastUpdated: '2026-06-19',
+          evidenceStatus: 'available',
+        },
       ];
 
       const totalGrossMarketValueEur = valueRows.reduce(
@@ -30842,6 +30851,85 @@ module.exports = {
             evidenceStatus: 'missing-evidence',
             sourceLabel: 'Gemeindeprofil nicht aufgelöst',
           }];
+
+      const existingStoragePowerKw = Number(profile.storagePowerKw) || 0;
+      const existingStorageCapacityKWh =
+        profile.storageCapacityKWh != null && !Number.isNaN(Number(profile.storageCapacityKWh))
+          ? Number(profile.storageCapacityKWh)
+          : null;
+      const unmatchedGenerationValueEur = timeSeriesValueRows.reduce(
+        (sum, row) => sum + (Number(row.unmatchedGenerationValueEur) || 0),
+        0
+      );
+      const pvUnmatchedValueEur = timeSeriesValueRows
+        .filter((row) => row.technology === 'pv')
+        .reduce((sum, row) => sum + (Number(row.unmatchedGenerationValueEur) || 0), 0);
+      const flexReferenceValueEur = pvUnmatchedValueEur > 0 ? pvUnmatchedValueEur : unmatchedGenerationValueEur;
+      const buildFlexScenario = (rowKey, rowLabel, captureShare, planningLever, nextGateLabel) => ({
+        rowKey,
+        rowLabel,
+        scenarioType: 'storage_flex_fnav',
+        existingStoragePowerKw,
+        existingStorageCapacityKWh,
+        storageEvidenceStatus: existingStoragePowerKw > 0 ? 'assumption-backed' : 'missing-evidence',
+        referenceUnmatchedValueEur: flexReferenceValueEur || null,
+        captureShare,
+        potentialLocalRetentionEurPerYear: flexReferenceValueEur > 0
+          ? Math.round(flexReferenceValueEur * captureShare)
+          : null,
+        planningLever,
+        evidenceStatus: flexReferenceValueEur > 0 ? 'scenario-based' : 'missing-evidence',
+        assumptionLabel:
+          'Szenario: Speicher, Lastverschiebung oder fNAV-Fahrweise können einen Teil des nicht zeitgleichen Erzeugungswerts lokal nutzbar machen; kein Dispatch- oder Netzanschlussnachweis.',
+        sourceLabel:
+          'BNetzA FCA/Flexible Netzanschlussvereinbarungen; abgeleitete Cernion-Zeitgleichkeitswerte; Speicherbestand nur bei belegtem Profilfeld.',
+        nextGateLabel,
+      });
+      const flexibilityScenarioRows = profile.found
+        ? [
+            {
+              rowKey: 'existing_storage_context',
+              rowLabel: existingStoragePowerKw > 0 ? 'Bestehender Speicherbestand' : 'Speicherbestand noch nicht belegt',
+              scenarioType: 'storage_inventory',
+              existingStoragePowerKw,
+              existingStorageCapacityKWh,
+              storageEvidenceStatus: existingStoragePowerKw > 0 ? 'assumption-backed' : 'missing-evidence',
+              referenceUnmatchedValueEur: flexReferenceValueEur || null,
+              captureShare: null,
+              potentialLocalRetentionEurPerYear: null,
+              planningLever: existingStoragePowerKw > 0
+                ? 'Bestehenden Speicher in Flex-/fNAV-Prüfung und lokale Wertbindung einbeziehen.'
+                : 'Speicherbestand per MaStR/Netzbetreiber prüfen, bevor ein Bestandsnutzen behauptet wird.',
+              evidenceStatus: existingStoragePowerKw > 0 ? 'assumption-backed' : 'missing-evidence',
+              assumptionLabel: existingStoragePowerKw > 0
+                ? 'Speicherbestand aus kommunalem Profil belegt; Dispatch und Netzfahrweise noch offen.'
+                : 'Kein Speicherbestand im kommunalen Profil belegt; öffentliche Live-Abfrage muss nachgeführt werden.',
+              sourceLabel: existingStoragePowerKw > 0 ? 'Kommunales Energieprofil / MaStR-nahe Overlaydaten' : 'Kein belegter Speicherbestand im aktuellen Profil',
+              nextGateLabel: 'Speicher-MaStR, Netzanschlusspunkt, Betreiberstruktur und Steuerbarkeit belegen.',
+            },
+            buildFlexScenario(
+              'storage_flex_conservative',
+              'Konservativ: Speicher/Flex als lokaler Puffer',
+              0.15,
+              'Kommunales Speicher- oder Lastverschiebungsprogramm zunächst auf Flächen mit hoher PV-Nähe prüfen.',
+              'Bestands- und Projektliste Speicher, Wallboxen, Wärmepumpen und Gewerbelasten mit Netzbetreiber abstimmen.'
+            ),
+            buildFlexScenario(
+              'storage_flex_balanced',
+              'Planungspfad: fNAV und Speicher gemeinsam prüfen',
+              0.3,
+              'fNAV-Fenster, Speicherfahrplan und steuerbare Lasten als Paket für schneller anschlussfähige Projekte prüfen.',
+              'Beim Netzbetreiber statische oder dynamische Leistungsfenster, Mess-/Steuerbarkeit und BKZ-Wirkung anfragen.'
+            ),
+            buildFlexScenario(
+              'storage_flex_ambitious',
+              'Ambitioniert: kommunale Flexibilitätszone',
+              0.45,
+              'Gemeinderat kann Förderung, Flächenpriorisierung oder beschleunigte bauliche Prüfung für netzdienliche Speicher vorbereiten.',
+              'Vor politischer Zusage: Baurecht, Brandschutz, Netzverträglichkeit, Betreiber- und Erlösmodell getrennt prüfen.'
+            ),
+          ]
+        : [];
 
       const totalBudgetRow = budgetImpactRows.find((r) =>
         String(r.rowKey || '').includes('total')
@@ -30909,6 +30997,9 @@ module.exports = {
       addGap('mastr_live_data', 'Live-MaStR-Abfrage ermöglicht belastbare Erzeugungskapazitäten statt Annahmen.');
       addGap('netzkapazitaetsnachweis', 'Netzkapazitätsnachweis ermöglicht Kapazitätsengpass-Risikobewertung.');
       addGap('imsys_rollout_quote', 'Lokale iMSys/SMGW-Rollout-Quote vom Netzbetreiber ermöglicht SMGW-Risikozeile.');
+      addGap('storage_mastr_inventory', 'Belegter Speicherbestand ermöglicht Bestandsszenarien statt reiner Speicher-/Flex-Hypothesen.');
+      addGap('fnav_capacity_window', 'fNAV-/FCA-Leistungsfenster des Netzbetreibers ermöglicht statische oder dynamische Flex-Szenarien.');
+      addGap('building_permit_fast_track_policy', 'Kommunale Genehmigungs- und Förderleitplanken ermöglichen eine belastbare Beschlussvorlage für Speicher/Flex-Projekte.');
       addGap('operator_locality', 'Belege zur Lokalität des Netzbetreibers ermöglichen kommunale Steuer-/Umsatzeffekt-Abschätzung.');
       addGap('local_tax_assumptions', 'Lokale Gewerbesteuer-/Einkommensteuerannahmen ermöglichen kommunales Steuereffekt-Szenario.');
 
@@ -30929,6 +31020,8 @@ module.exports = {
         'personal-agent.execute',
         'rundeck.job.execute',
         'grid-connection.reserve',
+        'building-permit.approve',
+        'subsidy.grant',
         'tenant.provision',
         'tenant.reset',
         'external.data.export.unrestricted',
@@ -30982,6 +31075,7 @@ module.exports = {
         valueRows,
         timeSeriesValueRows,
         derivedLoadProfileRows,
+        flexibilityScenarioRows,
         euroKpiRows,
         riskRows,
         budgetImpactRows,

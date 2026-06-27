@@ -1011,6 +1011,7 @@
         if (key === "biomass" || key.includes("biomasse")) return "Biomasse";
         if (key === "wind" || key.includes("wind")) return "Windkraft";
         if (key === "hydro" || key.includes("wasser")) return "Wasserkraft";
+        if (key === "storage" || key.includes("speicher") || key.includes("battery")) return "Speicher";
         return value ? String(value) : "Erzeugung";
       }
 
@@ -1413,6 +1414,79 @@
         `;
       }
 
+      function renderFlexibilityScenarios(data) {
+        const rows = data.flexibilityScenarioRows || [];
+        if (!rows.length) return "";
+        const inventory = rows.find((row) => row.rowKey === "existing_storage_context") || {};
+        const scenarios = rows.filter((row) => row.scenarioType === "storage_flex_fnav");
+        const bestScenario = [...scenarios]
+          .filter((row) => Number(row.potentialLocalRetentionEurPerYear) > 0)
+          .sort((a, b) => (Number(b.potentialLocalRetentionEurPerYear) || 0) - (Number(a.potentialLocalRetentionEurPerYear) || 0))[0];
+
+        return `
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Flexibilität und Speicher als kommunaler Hebel</h2>
+                <p>
+                  Speicher und flexible Anschlussmodelle können aus nicht zeitgleicher Erzeugung
+                  lokalen Nutzen machen. Das ist kein Förder- oder Genehmigungsversprechen:
+                  fNAV/FCA, Netzverträglichkeit, Brandschutz, Betreiberstruktur und Baurecht müssen
+                  vor einer Beschlussvorlage getrennt geprüft werden.
+                </p>
+              </div>
+            </div>
+            <div class="money-grid">
+              <article class="money-card">
+                <span>Speicherbestand</span>
+                <strong>${escapeHtml(inventory.existingStoragePowerKw > 0 ? number(inventory.existingStoragePowerKw, " kW") : "noch nicht belegt")}</strong>
+                <p>${escapeHtml(inventory.nextGateLabel || "Speicherbestand per MaStR und Netzbetreiber prüfen.")}</p>
+              </article>
+              <article class="money-card">
+                <span>Nicht zeitgleicher Wert</span>
+                <strong>${escapeHtml(euroRange(inventory.referenceUnmatchedValueEur, 0.9, 1.1))}</strong>
+                <p>Das ist der rechnerische Suchraum für Speicher, Lastverschiebung und fNAV-Fahrweise. Kein Erlösversprechen.</p>
+              </article>
+              <article class="money-card">
+                <span>Ambitioniertes Flex-Szenario</span>
+                <strong>${escapeHtml(euroRange(bestScenario?.potentialLocalRetentionEurPerYear, 0.9, 1.1))}</strong>
+                <p>Nur als Prüfgröße: Welcher Wert könnte stärker im kommunalen Wirtschaftskreislauf bleiben?</p>
+              </article>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Szenario</th>
+                    <th>Lokale Wertbindung</th>
+                    <th>Annahme</th>
+                    <th>Kommunaler Hebel</th>
+                    <th>Nächster Prüfpunkt</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${scenarios.map((row) => `
+                    <tr>
+                      <td>${escapeHtml(row.rowLabel)}</td>
+                      <td>${escapeHtml(euroRange(row.potentialLocalRetentionEurPerYear, 0.9, 1.1))}</td>
+                      <td>${escapeHtml(percentValue(row.captureShare))} des nicht zeitgleichen Werts</td>
+                      <td>${escapeHtml(row.planningLever)}</td>
+                      <td>${escapeHtml(row.nextGateLabel)}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+            <div class="decision-sentence">
+              <strong>Was ein Gemeinderat daraus machen kann:</strong>
+              Einen Prüfauftrag für Speicherstandorte, steuerbare Lasten und fNAV-Fenster beschließen;
+              Förderkriterien oder erleichterte bauliche Prüfpfade nur für Projekte vorbereiten,
+              die Netzverträglichkeit, Steuerbarkeit und Betreiberverantwortung belegen.
+            </div>
+          </section>
+        `;
+      }
+
       function renderMetric(label, value, note, className = "") {
         return `
           <article class="metric ${escapeHtml(className)}">
@@ -1630,6 +1704,8 @@
           ${renderMayorBrief(data, generationValue, generationKwh, budgetValue)}
 
           ${renderTimeSeriesInsight(data)}
+
+          ${renderFlexibilityScenarios(data)}
 
           <div class="analysis-grid">
             <section class="panel">

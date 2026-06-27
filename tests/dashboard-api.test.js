@@ -9672,6 +9672,7 @@ describe('dashboard-api.service', () => {
       expect(Array.isArray(result.valueRows)).toBe(true);
       expect(Array.isArray(result.riskRows)).toBe(true);
       expect(Array.isArray(result.budgetImpactRows)).toBe(true);
+      expect(Array.isArray(result.flexibilityScenarioRows)).toBe(true);
       expect(Array.isArray(result.assumptionRows)).toBe(true);
       expect(Array.isArray(result.sourceRows)).toBe(true);
       expect(Array.isArray(result.missingEvidence)).toBe(true);
@@ -9857,6 +9858,8 @@ describe('dashboard-api.service', () => {
           'rundeck.job.execute',
           'device-control.execute',
           'smgw.control',
+          'building-permit.approve',
+          'subsidy.grant',
           'external.data.export.unrestricted',
         ])
       );
@@ -10151,6 +10154,42 @@ describe('dashboard-api.service', () => {
       const captureKpi = result.euroKpiRows.find((r) => r.rowKey === 'euro_kpi_local_value_capture');
       expect(typeof captureKpi.valueEur).toBe('number');
       expect(captureKpi.valueEur).toBeGreaterThan(0);
+    });
+
+    it('Wiesloch exposes storage/fNAV flexibility scenarios without claiming unverified storage inventory', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Wiesloch',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(Array.isArray(result.flexibilityScenarioRows)).toBe(true);
+      expect(result.flexibilityScenarioRows.length).toBeGreaterThanOrEqual(4);
+      expectScalarTableRows(result.flexibilityScenarioRows);
+
+      const inventory = result.flexibilityScenarioRows.find((r) => r.rowKey === 'existing_storage_context');
+      expect(inventory).toBeDefined();
+      expect(inventory.existingStoragePowerKw).toBe(0);
+      expect(inventory.existingStorageCapacityKWh).toBeNull();
+      expect(inventory.storageEvidenceStatus).toBe('missing-evidence');
+      expect(inventory.evidenceStatus).toBe('missing-evidence');
+      expect(inventory.assumptionLabel).toContain('Kein Speicherbestand');
+
+      const fnavScenario = result.flexibilityScenarioRows.find((r) => r.rowKey === 'storage_flex_balanced');
+      expect(fnavScenario).toBeDefined();
+      expect(fnavScenario.scenarioType).toBe('storage_flex_fnav');
+      expect(fnavScenario.evidenceStatus).toBe('scenario-based');
+      expect(fnavScenario.potentialLocalRetentionEurPerYear).toBeGreaterThan(0);
+      expect(fnavScenario.sourceLabel).toContain('BNetzA FCA');
+
+      const gapKeys = result.missingEvidence.map((g) => g.missingDataPoint);
+      expect(gapKeys).toEqual(
+        expect.arrayContaining([
+          'storage_mastr_inventory',
+          'fnav_capacity_window',
+          'building_permit_fast_track_policy',
+        ])
+      );
     });
 
     // ── Issue #331 — real PLZ/name/AGS resolver ────────────────────────────
