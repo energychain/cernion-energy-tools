@@ -9715,5 +9715,119 @@ describe('dashboard-api.service', () => {
         }
       }
     });
+
+    // ── Issue #331 — real PLZ/name/AGS resolver ────────────────────────────
+
+    it('resolves Rommerskirchen by name with non-null ags', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Rommerskirchen',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      expect(result.status).toBe('lagebild_partial');
+      expect(result.municipality).toBe('Rommerskirchen');
+      expect(result.ags).toBe('05162036');
+      expect(result._errors).toEqual([]);
+    });
+
+    it('resolves PLZ 41569 to Rommerskirchen as first deterministic hit', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: '41569',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      expect(result.municipality).toBe('Rommerskirchen');
+      expect(result.ags).toBe('05162036');
+      expect(result.status).toBe('lagebild_partial');
+    });
+
+    it('Rommerskirchen valueRows are scalar and contain no [object Object]', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Rommerskirchen',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      expectScalarTableRows(result.valueRows);
+      expectScalarTableRows(result.budgetImpactRows);
+      expectScalarTableRows(result.riskRows);
+    });
+
+    it('Rommerskirchen budgetImpactRows use KAV 1.59 ct/kWh (25k-100k bracket)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Rommerskirchen',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      const nsRow = result.budgetImpactRows.find((r) => r.rowKey === 'konzessionsabgabe_ns_haushalt');
+      expect(nsRow).toBeDefined();
+      expect(nsRow.assumptionStatus).toContain('1.59');
+      expect(nsRow.estimatedEurPerYear).toBeGreaterThan(0);
+    });
+
+    it('Wiesloch by name still resolves (regression #329)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Wiesloch',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      expect(result.municipality).toBe('Wiesloch');
+      expect(result.ags).toBe('08226087');
+      expect(result.status).toBe('lagebild_partial');
+    });
+
+    it('PLZ 69168 still resolves to Wiesloch (regression #329)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: '69168',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      expect(result.municipality).toBe('Wiesloch');
+      expect(result.ags).toBe('08226087');
+    });
+
+    it('Mauer PLZ 69256 still resolves (regression #324)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: '69256',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      expect(result.municipality).toBe('Mauer');
+      expect(result.ags).toBe('08226074');
+    });
+
+    it('Heidelberg PLZ 69115 still resolves (regression #324)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: '69115',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      expect(result.municipality).toBe('Heidelberg');
+      expect(result.ags).toBe('08221000');
+    });
+
+    it('genuinely unknown input returns HTTP 200 with lagebild_municipality_unresolved', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Unbekannthausen',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      expect(result.status).toBe('lagebild_municipality_unresolved');
+      expect(result.municipality).toBe('Unbekannthausen');
+      expect(result.ags).toBeNull();
+      expect(result._errors).toEqual([]);
+    });
+
+    it('resolver is no longer KNOWN/PLZ_TO_KEY embedded — resolveMunicipalityProfile module resolves Rommerskirchen', () => {
+      const { resolveMunicipalityProfile } = require('../src/municipality-resolver');
+      const byName = resolveMunicipalityProfile({ municipality: 'Rommerskirchen' });
+      expect(byName.found).toBe(true);
+      expect(byName.ags).toBe('05162036');
+      const byPlz = resolveMunicipalityProfile({ municipality: '41569' });
+      expect(byPlz.found).toBe(true);
+      expect(byPlz.name).toBe('Rommerskirchen');
+      const notFound = resolveMunicipalityProfile({ municipality: 'Fantasystadt' });
+      expect(notFound.found).toBe(false);
+      expect(notFound.ags).toBeNull();
+    });
   });
 });

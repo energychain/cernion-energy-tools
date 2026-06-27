@@ -23,6 +23,7 @@
  */
 
 const { FINDING_CODE_METADATA } = require('../src/validation-findings');
+const { resolveMunicipalityProfile } = require('../src/municipality-resolver');
 const {
   evaluatePresentationGrounding,
 } = require('../src/receipt-grounded-presentation-contract');
@@ -28975,121 +28976,11 @@ module.exports = {
       const year = Number(params.year) || 2025;
       const scenario = String(params.scenario || 'baseline').trim().toLowerCase();
 
-      const KNOWN = {
-        mauer: {
-          displayName: 'Mauer',
-          ags: '08226074',
-          bundesland: 'Baden-Württemberg',
-          einwohner: 4200,
-          flaecheKm2: 12.3,
-          gridOperatorLabel: 'Stadtwerk Mauer GmbH',
-          gridOperatorBdewHint: 'local-bw-vnb',
-          konzessionsabgabeKategorie: 'Gemeinde bis 25.000 Einwohner',
-          kavRateNsCtPerKwh: 1.32,
-          pvCapacityKw: 2650,
-          biomassCapacityKw: 500,
-          windCapacityKw: 0,
-          avgHouseholdConsumptionKwh: 2500,
-          avgHouseholdsPerEinwohner: 0.45,
-        },
-        heidelberg: {
-          displayName: 'Heidelberg',
-          ags: '08221000',
-          bundesland: 'Baden-Württemberg',
-          einwohner: 160000,
-          flaecheKm2: 109.0,
-          gridOperatorLabel: 'Stadtwerke Heidelberg Netze GmbH',
-          gridOperatorBdewHint: 'missing-evidence',
-          konzessionsabgabeKategorie: 'Stadt mehr als 100.000 Einwohner',
-          kavRateNsCtPerKwh: 1.99,
-          pvCapacityKw: 48000,
-          biomassCapacityKw: 8000,
-          windCapacityKw: 2000,
-          avgHouseholdConsumptionKwh: 2200,
-          avgHouseholdsPerEinwohner: 0.5,
-        },
-        wiesloch: {
-          displayName: 'Wiesloch',
-          ags: '08226087',
-          bundesland: 'Baden-Württemberg',
-          einwohner: 27000,
-          flaecheKm2: 46.1,
-          gridOperatorLabel: 'Stadtwerke Wiesloch GmbH',
-          gridOperatorBdewHint: 'local-bw-vnb',
-          konzessionsabgabeKategorie: 'Gemeinde über 25.000 bis 100.000 Einwohner',
-          kavRateNsCtPerKwh: 1.59,
-          pvCapacityKw: 7200,
-          biomassCapacityKw: 800,
-          windCapacityKw: 0,
-          avgHouseholdConsumptionKwh: 2400,
-          avgHouseholdsPerEinwohner: 0.46,
-        },
-        walldorf: {
-          displayName: 'Walldorf',
-          ags: '08226088',
-          bundesland: 'Baden-Württemberg',
-          einwohner: 15800,
-          flaecheKm2: 13.7,
-          gridOperatorLabel: 'Stadtwerke Walldorf',
-          gridOperatorBdewHint: 'missing-evidence',
-          konzessionsabgabeKategorie: 'Gemeinde bis 25.000 Einwohner',
-          kavRateNsCtPerKwh: 1.32,
-          pvCapacityKw: 5800,
-          biomassCapacityKw: 200,
-          windCapacityKw: 0,
-          avgHouseholdConsumptionKwh: 2300,
-          avgHouseholdsPerEinwohner: 0.47,
-        },
-        sandhausen: {
-          displayName: 'Sandhausen',
-          ags: '08226085',
-          bundesland: 'Baden-Württemberg',
-          einwohner: 14200,
-          flaecheKm2: 14.8,
-          gridOperatorLabel: 'Gemeindewerke Sandhausen',
-          gridOperatorBdewHint: 'missing-evidence',
-          konzessionsabgabeKategorie: 'Gemeinde bis 25.000 Einwohner',
-          kavRateNsCtPerKwh: 1.32,
-          pvCapacityKw: 3900,
-          biomassCapacityKw: 0,
-          windCapacityKw: 0,
-          avgHouseholdConsumptionKwh: 2450,
-          avgHouseholdsPerEinwohner: 0.44,
-        },
-      };
+      const profile = resolveMunicipalityProfile({ municipality: municipalityRaw, ags: agsParam });
 
-      const PLZ_TO_KEY = {
-        69256: 'mauer',
-        69115: 'heidelberg',
-        69117: 'heidelberg',
-        69118: 'heidelberg',
-        69120: 'heidelberg',
-        69121: 'heidelberg',
-        69123: 'heidelberg',
-        69124: 'heidelberg',
-        69126: 'heidelberg',
-        69168: 'wiesloch',
-        69190: 'walldorf',
-        69207: 'sandhausen',
-      };
-
-      const resolvedByPlz = /^\d{5}$/.test(municipalityKey)
-        ? PLZ_TO_KEY[municipalityKey] || null
-        : null;
-      const resolvedByAgs = agsParam
-        ? Object.values(KNOWN).find((m) => m.ags === agsParam)
-        : null;
-      const profile =
-        KNOWN[resolvedByPlz] ||
-        KNOWN[municipalityKey] ||
-        resolvedByAgs ||
-        null;
-
-      const resolvedName = profile
-        ? profile.displayName
-        : municipalityRaw || 'Unbekannte Gemeinde';
-      const resolvedAgs = profile ? profile.ags : agsParam || null;
-      const isKnown = profile !== null;
+      const resolvedName = profile.found ? profile.name : municipalityRaw || 'Unbekannte Gemeinde';
+      const resolvedAgs = profile.found ? profile.ags : agsParam || null;
+      const isKnown = profile.found;
 
       const analysisRunId = `municipal-lagebild:${resolvedAgs || municipalityKey}:${year}:${scenario}`;
 
@@ -29099,7 +28990,7 @@ module.exports = {
       const windFullLoadHours = 1800;
 
       const valueRows = [];
-      if (profile) {
+      if (profile.found) {
         if (profile.pvCapacityKw > 0) {
           const genKwh = profile.pvCapacityKw * pvFullLoadHours;
           valueRows.push({
@@ -29194,7 +29085,7 @@ module.exports = {
       const riskRows = [
         {
           riskKey: 'ewk_anschlussdauer_risk',
-          riskLabel: 'EWK Anschlussdauer / Umsetzungsquote',
+          riskLabel: 'Anschlussdauer beim Netzbetreiber',
           severity: isKnown && profile.gridOperatorBdewHint !== 'missing-evidence' ? 'medium' : 'high',
           severityScore: isKnown && profile.gridOperatorBdewHint !== 'missing-evidence' ? 45 : 70,
           valueAtRiskEurPerYear: null,
@@ -29203,55 +29094,55 @@ module.exports = {
           evidenceStatus: isKnown && profile.gridOperatorBdewHint !== 'missing-evidence'
             ? 'assumption-backed'
             : 'missing-evidence',
-          sourceLabel: 'EWK-Monitoring (BNr erforderlich)',
-          assumptionLabel: 'Proxy-Risiko; BNr für belastbare EWK-Auflösung erforderlich',
-          nextGateLabel: 'VNB/BNr auflösen; EWK-Anschlussdauer-Snapshot abrufen',
+          sourceLabel: 'Netzbetreiber-Monitoring; eindeutige Betreiberkennung erforderlich',
+          assumptionLabel: 'Schätzung: ohne bestätigten Netzbetreiber bleibt die tatsächliche Anschlussdauer offen.',
+          nextGateLabel: 'Zuständigen Netzbetreiber bestätigen und Anschlussdauer mit aktuellen Fällen belegen.',
         },
         {
           riskKey: 'digitalization_index_risk',
-          riskLabel: 'Digitalisierungsindex Netzbetreiber',
+          riskLabel: 'Digitale Prozessreife des Netzbetreibers',
           severity: 'medium',
           severityScore: 40,
           valueAtRiskEurPerYear: null,
           economicImpactEurPerYear: null,
           delayRiskDays: null,
           evidenceStatus: 'missing-evidence',
-          sourceLabel: 'vnb-digital / VNB-Monitor (BNr erforderlich)',
-          assumptionLabel: 'Proxy-Risiko; kein belastbarer Digitalisierungsindex ohne BNr',
-          nextGateLabel: 'Netzbetreiber BDEW-Code/BNr bestätigen; VNB-Monitor-Snapshot starten',
+          sourceLabel: 'Netzbetreiber-Monitoring; Prozessdaten erforderlich',
+          assumptionLabel: 'Schätzung: ohne Prozessdaten bleibt offen, wie transparent Anschluss- und Fristenprozesse laufen.',
+          nextGateLabel: 'Prozessdaten und Ansprechpartner des Netzbetreibers prüfen.',
         },
         {
           riskKey: 'imsys_smgw_rollout_readiness_risk',
-          riskLabel: 'iMSys/SMGW Rollout-Bereitschaft',
+          riskLabel: 'Bereitschaft moderner Messsysteme',
           severity: 'medium',
           severityScore: 50,
           valueAtRiskEurPerYear: null,
           economicImpactEurPerYear: null,
           delayRiskDays: null,
           evidenceStatus: 'assumption-backed',
-          sourceLabel: 'BNetzA / TAF-Monitoring (lokale Daten fehlen)',
-          assumptionLabel: 'Proxy-Annahme: branchenweiter Rollout-Rückstand ~30%; keine lokale Anschlussanfrage vorgelegt',
-          nextGateLabel: 'SMGW-Rollout-Quote beim Netzbetreiber abfragen; VDMI-Zeile prüfen',
+          sourceLabel: 'BNetzA- und Messstellenbetreiber-Daten; lokale Daten fehlen',
+          assumptionLabel: 'Schätzung: verzögerter Smart-Meter-Rollout kann flexible Tarife und steuerbare Anlagen bremsen.',
+          nextGateLabel: 'Rollout-Stand beim Messstellenbetreiber abfragen und auf kommunale Projekte beziehen.',
         },
         {
           riskKey: 'grid_capacity_constraint_risk',
-          riskLabel: 'Kapazitätsengpass / Netzanschluss-Restriktionen',
+          riskLabel: 'Netzkapazität für neue Projekte',
           severity: isKnown ? 'low' : 'medium',
           severityScore: isKnown ? 20 : 50,
           valueAtRiskEurPerYear: null,
           economicImpactEurPerYear: null,
           delayRiskDays: null,
           evidenceStatus: 'missing-evidence',
-          sourceLabel: 'Netzkapazitätsanzeige / Anschlussanfrage (fehlt)',
-          assumptionLabel: 'Kein konkreter Engpass bekannt; ohne Netzkapazitätsquelle nicht ausschließbar',
-          nextGateLabel: 'Netzkapazitätsanzeige Netzbetreiber prüfen; konkrete Anschlussanfrage vorlegen',
+          sourceLabel: 'Netzkapazitätsanzeige oder konkrete Anschlussanfrage fehlt',
+          assumptionLabel: 'Ohne Kapazitätsauskunft bleibt offen, ob neue Projekte wirtschaftlich rechtzeitig ans Netz kommen.',
+          nextGateLabel: 'Für priorisierte Flächen eine Anschluss- und Kapazitätsprüfung starten.',
         },
       ];
 
       const budgetImpactRows = [];
-      if (profile) {
+      if (profile.found) {
         const totalHouseholds = Math.round(
-          profile.einwohner * profile.avgHouseholdsPerEinwohner
+          profile.population * profile.avgHouseholdsPerEinwohner
         );
         const residentialConsumptionKwh = totalHouseholds * profile.avgHouseholdConsumptionKwh;
         const kavRateNsCtPerKwh = profile.kavRateNsCtPerKwh != null
@@ -29264,36 +29155,36 @@ module.exports = {
         budgetImpactRows.push(
           {
             rowKey: 'konzessionsabgabe_ns_haushalt',
-            rowLabel: 'Konzessionsabgabe NS Haushalt (Annahme)',
+            rowLabel: 'Konzessionsabgabe private Haushalte (Schätzung)',
             budgetCategory: 'konzessionsabgabe',
             segment: 'NS-Haushalt',
             estimatedEurPerYear: kavNsEurPerYear,
             calculationStatus: 'assumption-scenario',
-            assumptionStatus: `KAV § 2 Abs. 2 Kategorie: ${profile.konzessionsabgabeKategorie}; ${kavRateNsCtPerKwh} ct/kWh`,
+            assumptionStatus: `Konzessionsabgabenverordnung: ${profile.konzessionsabgabeKategorie}; ${kavRateNsCtPerKwh} ct/kWh`,
             evidenceStatus: 'assumption-backed',
-            assumptionLabel: `Einwohner ${profile.einwohner}; ${totalHouseholds} Haushalte; ${profile.avgHouseholdConsumptionKwh} kWh/HH angenommen`,
+            assumptionLabel: `Einwohner ${profile.population}; ${totalHouseholds} Haushalte; ${profile.avgHouseholdConsumptionKwh} kWh/HH angenommen`,
             sourceLabel: 'KAV 1992 / interne Annahme; Schätzung, keine Schlussrechnung',
           },
           {
             rowKey: 'konzessionsabgabe_ns_gewerbe',
-            rowLabel: 'Konzessionsabgabe NS Gewerbe (Annahme)',
+            rowLabel: 'Konzessionsabgabe Gewerbe (Schätzung)',
             budgetCategory: 'konzessionsabgabe',
             segment: 'NS-Gewerbe',
             estimatedEurPerYear: kavGewerbeEurPerYear,
             calculationStatus: 'assumption-scenario',
-            assumptionStatus: '25% Aufschlag auf HH-Annahme; Gewerbestruktur unbekannt',
+            assumptionStatus: '25% Aufschlag auf Haushaltsannahme; Gewerbestruktur unbekannt',
             evidenceStatus: 'assumption-backed',
             assumptionLabel: 'Gewerbeanteil geschätzt; keine lokale Gewerbestatistik vorgelegt',
             sourceLabel: 'interne Annahme / Branchenproxy',
           },
           {
             rowKey: 'konzessionsabgabe_total_estimate',
-            rowLabel: 'Konzessionsabgabe Gesamt (Szenario)',
+            rowLabel: 'Konzessionsabgabe gesamt (Jahresspanne)',
             budgetCategory: 'konzessionsabgabe',
             segment: 'NS-gesamt',
             estimatedEurPerYear: kavNsEurPerYear + kavGewerbeEurPerYear,
             calculationStatus: 'assumption-scenario',
-            assumptionStatus: 'Szenario-Summe; noch nicht haushalterisch geprüft',
+            assumptionStatus: 'Szenario-Spanne; noch nicht durch Kämmerei geprüft',
             evidenceStatus: 'scenario-based',
             assumptionLabel:
               'Konzessionsabgabe ist eine kommunale Einnahme des Konzessionsgebers; ' +
@@ -29346,7 +29237,7 @@ module.exports = {
         },
         {
           assumptionKey: 'local_value_capture_basis',
-          assumptionLabel: 'Lokale Werterfassung -- Datenbasis',
+          assumptionLabel: 'Lokale Werterfassung - Datenbasis',
           assumptionValue: 'Lastprofil fehlt; Zeitreihen-Korrelation nicht möglich',
           assumptionUnit: 'Evidenzstatus',
           category: 'versorgung',
@@ -29356,11 +29247,11 @@ module.exports = {
         {
           assumptionKey: 'kav_category',
           assumptionLabel: 'KAV Gemeindekategorie',
-          assumptionValue: profile ? profile.konzessionsabgabeKategorie : 'unbekannt',
+          assumptionValue: profile.found ? profile.konzessionsabgabeKategorie : 'unbekannt',
           assumptionUnit: 'Kategorie',
           category: 'konzessionsabgabe',
           source: 'KAV 1992 § 2 Abs. 2',
-          evidenceStatus: profile ? 'assumption-backed' : 'missing-evidence',
+          evidenceStatus: profile.found ? 'assumption-backed' : 'missing-evidence',
         },
       ];
 
@@ -29376,10 +29267,10 @@ module.exports = {
         },
         {
           sourceKey: 'ewk_monitoring',
-          sourceLabel: 'EWK-Monitoring (BNetzA)',
+          sourceLabel: 'Anschlussdauer-Monitoring beim Netzbetreiber',
           sourceType: 'regulatory',
           availability: 'conditional',
-          coverage: 'je Netzbetreiber / BNr',
+          coverage: 'je Netzbetreiber',
           lastUpdated: null,
           evidenceStatus: 'missing-evidence',
         },
@@ -29417,7 +29308,7 @@ module.exports = {
         0
       );
 
-      const timeSeriesValueRows = profile
+      const timeSeriesValueRows = profile.found
         ? [
             ...(profile.pvCapacityKw > 0 ? [{
               rowKey: 'ts_pv_annual',

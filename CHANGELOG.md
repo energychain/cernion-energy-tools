@@ -5,6 +5,23 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.67.6] — 2026-06-27
+
+### Added
+- **Echter PLZ/Name/AGS-Resolver** (`src/municipality-resolver.js`, #331): Ersetzt das eingebettete `KNOWN`/`PLZ_TO_KEY`-Demo-Map in `buildMunicipalEnergyValueAnalysisStatus` durch ein eigenständiges, read-only Resolver-Modul mit ~280 deutschen Gemeinden aus allen 16 Bundesländern.
+  - Neu aufgelöste Gemeinden: Rommerskirchen (`41569`, AGS `05162036`, Rhein-Erft-Kreis NRW), alle Großstädte, Landes- und Kreisstädte sowie Kleingemeinden quer durch Deutschland.
+  - `resolveMunicipalityProfile({ municipality, ags })`: akzeptiert Gemeindename, 5-stellige PLZ oder AGS; gibt vollständiges Profil zurück (name, ags, postalCode, state, district, population, areaSqKm, pvCapacityKw, biomassCapacityKw, windCapacityKw, gridOperatorLabel, konzessionsabgabeKategorie, kavRateNsCtPerKwh, avgHouseholdConsumptionKwh, avgHouseholdsPerEinwohner, sourceLabel, sourceStatus).
+  - Energieprofil: explizite Kapazitätsdaten für bekannte Gemeinden (Mauer, Heidelberg, Wiesloch, Walldorf, Sandhausen); für alle übrigen Gemeinden bevölkerungsbasierte Schätzung nach BSW-Solar/DBFZ-Proxywerten — als `sourceStatus: 'estimated'` markiert.
+  - KAV-Kategorie und Konzessionsabgabe-Rate werden aus der Bevölkerungszahl berechnet (§ 2 Abs. 2 KAV-Staffelung).
+  - Stabiles HTTP-200-Fallback für unbekannte Eingaben: `found: false`, `ags: null`, `lagebild_municipality_unresolved` — kein Exception.
+  - Alle Regressionspfade (#324: Mauer, Heidelberg; #329: Wiesloch, Walldorf, Sandhausen, PLZ 69168/69190/69207) unverändert erhalten.
+
+### Refactored
+- `buildMunicipalEnergyValueAnalysisStatus` in `services/dashboard-api.service.js`: Resolver-Aufruf ersetzt inline `KNOWN`/`PLZ_TO_KEY`; Profilfelder (`einwohner` → `population`, `displayName` → `name`, `bundesland` → `state`) auf Resolver-Schema umgestellt; alle `if (profile)` Guards → `if (profile.found)`.
+
+### Tests
+- 10 neue Fälle (#331): Rommerskirchen nach Name (non-null ags), Rommerskirchen nach PLZ 41569, KAV-Rate 1.59 ct/kWh (25k–100k-Bracket), scalar valueRows/budgetImpactRows/riskRows für Rommerskirchen, Wiesloch nach Name und PLZ 69168 (Regression), Mauer PLZ 69256 (Regression), Heidelberg PLZ 69115 (Regression), Unknown → `lagebild_municipality_unresolved`, Unit-Test `resolveMunicipalityProfile` direkt.
+
 ## [0.67.5] — 2026-06-27
 
 ### Added
