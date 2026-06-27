@@ -17399,6 +17399,27 @@
                     "sampleAssets": {
                       "type": "array"
                     },
+                    "publicContextRows": {
+                      "type": "array"
+                    },
+                    "overlayAssetRows": {
+                      "type": "array"
+                    },
+                    "revalidationRows": {
+                      "type": "array"
+                    },
+                    "affectedCaseRows": {
+                      "type": "array"
+                    },
+                    "nextGateRows": {
+                      "type": "array"
+                    },
+                    "safeActionRows": {
+                      "type": "array"
+                    },
+                    "boundaryRows": {
+                      "type": "array"
+                    },
                     "evidenceQuality": {
                       "type": "string"
                     },
@@ -17456,6 +17477,22 @@
           },
           {
             "name": "municipality",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "revalidationMode",
             "in": "query",
             "required": false,
             "schema": {
@@ -60849,6 +60886,27 @@
                     "sampleAssets": {
                       "type": "array"
                     },
+                    "publicContextRows": {
+                      "type": "array"
+                    },
+                    "overlayAssetRows": {
+                      "type": "array"
+                    },
+                    "revalidationRows": {
+                      "type": "array"
+                    },
+                    "affectedCaseRows": {
+                      "type": "array"
+                    },
+                    "nextGateRows": {
+                      "type": "array"
+                    },
+                    "safeActionRows": {
+                      "type": "array"
+                    },
+                    "boundaryRows": {
+                      "type": "array"
+                    },
                     "evidenceQuality": {
                       "type": "string"
                     },
@@ -60906,6 +60964,22 @@
           },
           {
             "name": "municipality",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "revalidationMode",
             "in": "query",
             "required": false,
             "schema": {

@@ -5791,6 +5791,8 @@ module.exports = {
         tenantId: { type: 'string', optional: true, min: 1 },
         postalCode: { type: 'string', optional: true, min: 5, max: 5 },
         municipality: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+        revalidationMode: { type: 'string', optional: true, min: 1 },
         limit: { type: 'any', optional: true },
       },
       openapi: {
@@ -5804,6 +5806,8 @@ module.exports = {
           { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'postalCode', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'municipality', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'revalidationMode', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'limit', in: 'query', required: false, schema: { type: 'string' } },
         ],
         responses: {
@@ -5823,6 +5827,13 @@ module.exports = {
                     originalGridOperators: { type: 'array' },
                     operatorOverlay: { type: 'object' },
                     sampleAssets: { type: 'array' },
+                    publicContextRows: { type: 'array' },
+                    overlayAssetRows: { type: 'array' },
+                    revalidationRows: { type: 'array' },
+                    affectedCaseRows: { type: 'array' },
+                    nextGateRows: { type: 'array' },
+                    safeActionRows: { type: 'array' },
+                    boundaryRows: { type: 'array' },
                     evidenceQuality: { type: 'string' },
                     missingEvidence: { type: 'array' },
                     positiveFollowUps: { type: 'array' },
@@ -5856,8 +5867,20 @@ module.exports = {
           errors,
           'stadtwerk-mauer-mastr-data-overlay.getStatus'
         );
+        const revalidationRows = this.buildStadtwerkMauerMastrRevalidationRows(status, params);
         return {
           ...status,
+          publicContextRows: status.publicContextRows || this.buildStadtwerkMauerMastrPublicContextRows(status),
+          overlayAssetRows: status.overlayAssetRows || this.buildStadtwerkMauerMastrOverlayAssetRows(status),
+          revalidationRows: status.revalidationRows || revalidationRows,
+          affectedCaseRows:
+            status.affectedCaseRows ||
+            this.buildStadtwerkMauerMastrAffectedCaseRows(status, params, revalidationRows),
+          nextGateRows:
+            status.nextGateRows || this.buildStadtwerkMauerMastrNextGateRows(status, revalidationRows),
+          safeActionRows:
+            status.safeActionRows || this.buildStadtwerkMauerMastrSafeActionRows(status, params, revalidationRows),
+          boundaryRows: status.boundaryRows || this.buildStadtwerkMauerMastrBoundaryRows(status),
           timestamp: new Date().toISOString(),
           _errors: errors,
         };
@@ -27489,6 +27512,215 @@ module.exports = {
         .replace(/\s+/g, ' ')
         .trim()
         .replace(/\b\w/g, (char) => char.toUpperCase());
+    },
+
+    buildStadtwerkMauerMastrPublicContextRows(status = {}) {
+      const operators = Array.isArray(status.originalGridOperators)
+        ? status.originalGridOperators
+        : [];
+      const rows = [
+        {
+          rowKey: 'municipality',
+          label: 'Municipality',
+          value: status.municipality || 'Mauer',
+          sourceClass: 'public_context_layer',
+          evidenceStatus: status.evidenceQuality || status.status || 'unknown',
+          provenance: 'MaStR/OSM public context',
+        },
+        {
+          rowKey: 'postal_code',
+          label: 'Postal Code',
+          value: status.postalCode || '69256',
+          sourceClass: 'public_context_layer',
+          evidenceStatus: status.evidenceQuality || status.status || 'unknown',
+          provenance: 'MaStR/OSM public context',
+        },
+        {
+          rowKey: 'asset_count',
+          label: 'Public MaStR Assets',
+          value: status.assetCount == null ? 0 : status.assetCount,
+          sourceClass: 'public_context_layer',
+          evidenceStatus: status.evidenceQuality || status.status || 'unknown',
+          provenance: 'energy-market.installations',
+        },
+        {
+          rowKey: 'total_capacity_kw',
+          label: 'Total Capacity kW',
+          value: status.totalCapacityKw == null ? 0 : status.totalCapacityKw,
+          sourceClass: 'public_context_layer',
+          evidenceStatus: status.evidenceQuality || status.status || 'unknown',
+          provenance: 'energy-market.installations',
+        },
+      ];
+      for (const [index, operator] of operators.entries()) {
+        rows.push({
+          rowKey: `original_operator_${index + 1}`,
+          label: 'Original Grid Operator',
+          value: operator.name || operator.mastrId || 'unknown',
+          sourceClass: 'public_context_layer',
+          evidenceStatus: status.evidenceQuality || status.status || 'unknown',
+          provenance: operator.mastrId || 'MaStR operator provenance',
+        });
+      }
+      return rows;
+    },
+
+    buildStadtwerkMauerMastrOverlayAssetRows(status = {}) {
+      const sampleAssets = Array.isArray(status.sampleAssets) ? status.sampleAssets : [];
+      if (sampleAssets.length === 0) {
+        return [
+          {
+            rowKey: 'overlay_asset_unavailable',
+            assetId: 'not_available',
+            assetType: 'not_available',
+            capacityKw: 0,
+            originalGridOperatorName:
+              status.operatorOverlay?.realWorldOperatorHint?.name || 'Syna GmbH',
+            virtualGridOperatorName:
+              status.operatorOverlay?.virtualGridOperator?.name || 'Stadtwerk Mauer',
+            sourceClass: 'public_context_layer',
+            overlayClass: 'synthetic_tenant_seed',
+            evidenceStatus: status.status || 'overlay_asset_unavailable',
+          },
+        ];
+      }
+      return sampleAssets.map((asset, index) => ({
+        rowKey: `overlay_asset_${index + 1}`,
+        assetId: asset.mastrNummer || asset.assetId || `asset_${index + 1}`,
+        assetType: asset.assetType || 'unknown',
+        capacityKw: asset.capacityKw == null ? 0 : asset.capacityKw,
+        originalGridOperatorName: asset.originalGridOperatorName || 'unknown',
+        virtualGridOperatorName: asset.virtualGridOperatorName || 'Stadtwerk Mauer',
+        sourceClass: 'public_context_layer',
+        overlayClass: 'synthetic_tenant_seed',
+        evidenceStatus: status.evidenceQuality || status.status || 'unknown',
+      }));
+    },
+
+    buildStadtwerkMauerMastrRevalidationRows(status = {}, params = {}) {
+      const mode = String(params.revalidationMode || '').toLowerCase();
+      const queryFailed = Boolean(status.mastrQuery?.queryFailed);
+      const observedStatus = mode === 'drill'
+        ? 'synthetic_revalidation_drill'
+        : queryFailed
+          ? 'source_unavailable_or_not_watched'
+          : 'no_delta_observed';
+      const evidenceStatus = observedStatus === 'no_delta_observed'
+        ? 'public_context_current_for_demo'
+        : observedStatus === 'synthetic_revalidation_drill'
+          ? 'synthetic_drill_requires_review'
+          : 'source_watch_unavailable';
+      return [
+        {
+          rowKey: 'mastr_revalidation_status',
+          revalidationStatus: observedStatus,
+          evidenceStatus,
+          sourceClass: observedStatus === 'synthetic_revalidation_drill'
+            ? 'synthetic_revalidation_drill'
+            : 'public_context_layer',
+          affectedCaseId: params.caseId || 'smm-budibase-workbench',
+          watchId: params.watchId || 'not_configured',
+          deltaCount: observedStatus === 'public_context_delta_observed' ? 1 : 0,
+          safeNextAction: observedStatus === 'no_delta_observed'
+            ? 'refresh_mastr_overlay_read_model'
+            : 'review_public_context_delta_before_case_claim',
+        },
+      ];
+    },
+
+    buildStadtwerkMauerMastrAffectedCaseRows(status = {}, params = {}, revalidationRows = []) {
+      const revalidationStatus = revalidationRows[0]?.revalidationStatus || 'source_unavailable_or_not_watched';
+      return [
+        {
+          rowKey: 'affected_case',
+          caseId: params.caseId || 'smm-budibase-workbench',
+          workbenchItemId: params.queueItemId || 'grid-planning:missing-nap-clarification',
+          sourceClass: 'synthetic_tenant_seed',
+          affectedByPublicContext: revalidationStatus !== 'no_delta_observed',
+          impactStatus: revalidationStatus === 'no_delta_observed'
+            ? 'public_context_current_for_demo'
+            : 'review_required_before_case_claim',
+          evidenceHint: status.status || 'mastr_overlay_status_unknown',
+        },
+      ];
+    },
+
+    buildStadtwerkMauerMastrNextGateRows(status = {}, revalidationRows = []) {
+      const revalidationStatus = revalidationRows[0]?.revalidationStatus || 'source_unavailable_or_not_watched';
+      const gate = revalidationStatus === 'no_delta_observed'
+        ? 'public_context_current_for_demo'
+        : 'review_public_context_delta_before_case_claim';
+      return [
+        {
+          rowKey: 'next_gate',
+          gateKey: gate,
+          label: this.humanizeWorkbenchLabel(gate),
+          sourceClass: revalidationStatus === 'synthetic_revalidation_drill'
+            ? 'synthetic_revalidation_drill'
+            : 'public_context_layer',
+          status: revalidationStatus,
+          requiredEvidence: status.status || 'mastr_overlay_status_unknown',
+        },
+      ];
+    },
+
+    buildStadtwerkMauerMastrSafeActionRows(status = {}, params = {}, revalidationRows = []) {
+      const affectedCaseId = params.caseId || 'smm-budibase-workbench';
+      const revalidationStatus = revalidationRows[0]?.revalidationStatus || 'source_unavailable_or_not_watched';
+      return [
+        {
+          actionKey: 'refresh_mastr_overlay_read_model',
+          label: 'Refresh MaStR Overlay Read Model',
+          riskClass: 'read_only_verify',
+          boundary: 'cernion-api',
+          enabled: true,
+          enabledLabel: 'Enabled',
+          targetSection: 'mastr_public_context',
+          expectedResult: 'Update scalar public-context rows without mutating MaStR records',
+        },
+        {
+          actionKey: 'view_selected_case_evidence',
+          label: 'View Selected Case Evidence',
+          riskClass: 'read_only_verify',
+          boundary: 'cernion-api',
+          enabled: true,
+          enabledLabel: 'Enabled',
+          targetSection: 'case_detail',
+          expectedResult: `Open evidence rows for ${affectedCaseId}`,
+        },
+        {
+          actionKey: 'review_public_context_delta',
+          label: 'Review Public Context Delta',
+          riskClass: 'read_only_verify',
+          boundary: 'cernion-api',
+          enabled: revalidationStatus !== 'no_delta_observed',
+          enabledLabel: revalidationStatus !== 'no_delta_observed' ? 'Enabled' : 'No delta observed',
+          targetSection: 'mastr_revalidation',
+          expectedResult: 'Review delta/drill evidence before case claims',
+        },
+      ];
+    },
+
+    buildStadtwerkMauerMastrBoundaryRows(status = {}) {
+      const notCalled = status.sourceActions?.notCalled || [
+        'mastr.write',
+        'mako.dispatch',
+        'billing.release',
+        'settlement.prepareBilling',
+        'tariff.mutate',
+        'device-control.execute',
+        'external.connector.call',
+        'hitl.create',
+        'personal-agent.execute',
+      ];
+      return notCalled.map((boundary) => ({
+        boundary,
+        status: 'not_called',
+        sourceClass: boundary === 'mastr.write' ? 'public_context_layer' : 'command_boundary',
+        safeAlternative: boundary === 'mastr.write'
+          ? 'refresh_mastr_overlay_read_model'
+          : 'view_or_verify_existing_evidence',
+      }));
     },
 
     buildMissingStadtwerkMauerMastrDataOverlayStatus(

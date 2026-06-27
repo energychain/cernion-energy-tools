@@ -9262,6 +9262,96 @@ describe('dashboard-api.service', () => {
       expect(result.sampleAssets[0].virtualGridOperatorName).toBe('Stadtwerk Mauer');
       expect(result.sourceActions.notCalled).toContain('mastr.write');
     });
+
+    it('adds scalar Budibase revalidation rows for public context and affected case', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerMastrDataOverlayStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+      });
+
+      expect(result.publicContextRows.map((row) => row.sourceClass)).toEqual(
+        expect.arrayContaining(['public_context_layer'])
+      );
+      expect(result.overlayAssetRows[0]).toMatchObject({
+        sourceClass: 'public_context_layer',
+        overlayClass: 'synthetic_tenant_seed',
+        virtualGridOperatorName: 'Stadtwerk Mauer',
+      });
+      expect(result.revalidationRows[0]).toMatchObject({
+        revalidationStatus: 'no_delta_observed',
+        sourceClass: 'public_context_layer',
+        affectedCaseId: 'smm-budibase-workbench',
+      });
+      expect(result.affectedCaseRows[0]).toMatchObject({
+        sourceClass: 'synthetic_tenant_seed',
+        impactStatus: 'public_context_current_for_demo',
+      });
+      expect(result.nextGateRows[0].gateKey).toBe('public_context_current_for_demo');
+      expect(result.safeActionRows.map((row) => row.actionKey)).toEqual(
+        expect.arrayContaining(['refresh_mastr_overlay_read_model', 'view_selected_case_evidence'])
+      );
+      expect(result.boundaryRows.map((row) => row.boundary)).toEqual(
+        expect.arrayContaining(['mastr.write', 'external.connector.call'])
+      );
+      expectScalarTableRows(result.publicContextRows);
+      expectScalarTableRows(result.overlayAssetRows);
+      expectScalarTableRows(result.revalidationRows);
+      expectScalarTableRows(result.affectedCaseRows);
+      expectScalarTableRows(result.nextGateRows);
+      expectScalarTableRows(result.safeActionRows);
+      expectScalarTableRows(result.boundaryRows);
+    });
+
+    it('labels synthetic revalidation drills without presenting them as public MaStR changes', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerMastrDataOverlayStatus', {
+        tenantId: 'stadtwerk-mauer',
+        revalidationMode: 'drill',
+      });
+
+      expect(result.revalidationRows[0]).toMatchObject({
+        revalidationStatus: 'synthetic_revalidation_drill',
+        sourceClass: 'synthetic_revalidation_drill',
+      });
+      expect(result.nextGateRows[0].gateKey).toBe('review_public_context_delta_before_case_claim');
+      expect(result.affectedCaseRows[0].affectedByPublicContext).toBe(true);
+      expect(result.sourceActions.notCalled).toContain('mastr.write');
+    });
+
+    it('binds the Budibase manifest to MaStR revalidation scalar rows', () => {
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.map((query) => query.name)).toEqual(
+        expect.arrayContaining([
+          'getStadtwerkMauerMastrPublicContextRows',
+          'getStadtwerkMauerMastrOverlayAssetRows',
+          'getStadtwerkMauerMastrRevalidationRows',
+          'getStadtwerkMauerMastrAffectedCaseRows',
+          'getStadtwerkMauerMastrNextGateRows',
+          'getStadtwerkMauerMastrSafeActionRows',
+          'getStadtwerkMauerMastrBoundaryRows',
+        ])
+      );
+      expect(
+        STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+          (query) => query.name === 'getStadtwerkMauerMastrRevalidationRows'
+        )
+      ).toMatchObject({
+        method: 'GET',
+        path: '/api/dashboard/stadtwerk-mauer-mastr-data-overlay',
+        transformer: 'return data.revalidationRows || []',
+      });
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.sections.map((section) => section.id)).toEqual(
+        expect.arrayContaining([
+          'mastr_public_context',
+          'mastr_revalidation',
+          'mastr_affected_case',
+          'mastr_next_gate',
+          'mastr_safe_actions',
+          'mastr_boundaries',
+        ])
+      );
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
+        'MaStR Revalidation binds to scalar public-context'
+      );
+    });
   });
 
   describe('marketSnapshot', () => {

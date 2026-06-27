@@ -32,6 +32,7 @@ The workbench renders:
 - role workbench catalog/open-target rows from `GET /api/dashboard/stadtwerk-mauer-role-workbench-catalog?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - selected Zielnetzplanung item detail, context, evidence-gap, next-gate and safe-follow-up rows from `GET /api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&queueItemId=grid-planning:missing-nap-clarification`
 - Vertrieb/Key Account briefing rows from `GET /api/dashboard/stadtwerk-mauer-sales-workbench-briefing?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&audience=vertrieb`
+- MaStR public-context revalidation rows, affected case, next evidence gate, safe verify actions and no-call boundaries from `GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
 The action query is intentionally still guarded by Cernion scopes. A Budibase button may be
@@ -76,6 +77,10 @@ or production mutations.
 The selected-target query is read-only: it maps a supported Hub or role target to scalar selected,
 focus and helper rows so Budibase can visibly focus a section without owning persistent state or
 mutating Cernion tenant data.
+The MaStR public-context revalidation rows are read-only: they separate MaStR/OSM public context,
+synthetic Stadtwerk-Mauer tenant seed and synthetic revalidation drill/runtime rows. Budibase may
+render refresh/verify hints, but it must not mutate MaStR, write arbitrary Cernion tables, execute
+production tenant actions or turn synthetic case evidence into official public-context changes.
 
 ## Apply Locally
 
