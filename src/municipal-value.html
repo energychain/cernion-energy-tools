@@ -1584,6 +1584,10 @@
         return `${euroPerMwh(price)} Erzeugungswert plus rund ${euroPerMwh(concessionProxy)} KAV-Proxy ergeben den kommunalen Vergleichswert von rund ${euroPerMwh(price + concessionProxy)}`;
       }
 
+      function householdTranslationText() {
+        return "Die Spanne ist kein frei verfügbares Haushaltsgeld. Haushaltsnah wird sie über Stromkostenentlastung kommunaler Liegenschaften; standortpolitisch über Pacht, Gewerbesteuerlokalität und lokale Aufträge.";
+      }
+
       function scenarioLabel(value) {
         const key = String(value || "baseline").toLowerCase();
         if (key === "high-price") return "Hochpreisszenario";
@@ -1780,7 +1784,7 @@
         const topTechLabel = topTech ? technologyLabel(topTech.technology) : "lokale Erzeugung";
         const sharingLabel = integrityValueLabel(data);
         const sharingText = sharing
-          ? `Energy Sharing (§42c) als lokalen Nutzungshebel prüfen (${euroRange(sharing.potentialLocalCirculationEurPerYear, 0.9, 1.1)} ${sharingLabel}/Jahr).`
+          ? `Energy Sharing (§42c) als lokalen Nutzungshebel prüfen (${euroRange(sharing.potentialLocalCirculationEurPerYear, 0.9, 1.1)} ${sharingLabel}/Jahr). ${householdTranslationText()}`
           : "Energy Sharing (§42c) als lokalen Nutzungshebel prüfen, sobald Liegenschaften und Messpunkte vorliegen.";
 
         return `
@@ -1865,7 +1869,7 @@
               <article class="story-lane">
                 <span>§42c-Hebel</span>
                 <strong>${escapeHtml(euroRange(sharing?.potentialLocalCirculationEurPerYear, 0.9, 1.1))}</strong>
-                <p>${escapeHtml(valueLabel)} für Energy Sharing zwischen kommunalen, privaten und gewerblichen Teilnehmern.</p>
+                <p>${escapeHtml(valueLabel)} für Energy Sharing zwischen kommunalen, privaten und gewerblichen Teilnehmern. ${escapeHtml(householdTranslationText())}</p>
               </article>
             </div>
             <div class="decision-sentence">
@@ -1873,6 +1877,10 @@
               Eine lokal erzeugte MWh steht hier mit ${escapeHtml(euroPerMwh(localMwhPublic))} als kommunaler Vergleichswert
               gegen ${escapeHtml(euroPerMwh(importedMwhPublic))} beim Import. Herkunft: ${escapeHtml(localMwhBridgeText(price, concessionProxy))}.
               Dieser Wert ist nicht als direkte Haushaltseinnahme zu lesen.
+            </div>
+            <div class="decision-sentence">
+              <strong>Haushaltsklarheit:</strong>
+              ${escapeHtml(householdTranslationText())}
             </div>
           </section>
         `;
@@ -2297,7 +2305,7 @@
               <article class="money-card">
                 <span>Stärkstes Szenario</span>
                 <strong>${escapeHtml(euroRange(bestScenario?.potentialLocalCirculationEurPerYear, 0.9, 1.1))}</strong>
-                <p>${escapeHtml(valueLabel)} für lokale Wertbindung durch Community, Speicher und flexible Lasten.</p>
+                <p>${escapeHtml(valueLabel)} für lokale Wertbindung durch Community, Speicher und flexible Lasten. ${escapeHtml(householdTranslationText())}</p>
               </article>
             </div>
             <div class="scenario-list">
@@ -2321,6 +2329,10 @@
               Einen §42c-Pilotauftrag beschließen: kommunale Liegenschaften priorisieren,
               gemischte Teilnehmerkreise prüfen, Mess- und Vertragsmodell vorbereiten und Speicher
               nur dort einbeziehen, wo Herkunft, Steuerbarkeit und Netzanschluss belastbar sind.
+            </div>
+            <div class="decision-sentence">
+              <strong>Haushaltsklarheit:</strong>
+              ${escapeHtml(householdTranslationText())}
             </div>
           </section>
         `;

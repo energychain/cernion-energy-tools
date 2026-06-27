@@ -80,6 +80,10 @@ describe('municipal-value public UI decision framing', () => {
     expect(html).toContain('break-inside: avoid');
     expect(html).toContain('.visual-panel');
     expect(html).toContain('Dieser Wert ist nicht als direkte Haushaltseinnahme zu lesen.');
+    expect(html).toContain('function householdTranslationText()');
+    expect(html).toContain('Die Spanne ist kein frei verfügbares Haushaltsgeld');
+    expect(html).toContain('Stromkostenentlastung kommunaler Liegenschaften; standortpolitisch über Pacht, Gewerbesteuerlokalität und lokale Aufträge');
+    expect(html).toContain('<strong>Haushaltsklarheit:</strong>');
     expect(html).not.toContain('€,\\n              nicht als direkte Haushaltseinnahme');
     expect(html).toContain('Welche Erzeugung bringt den größten lokalen Wert?');
     expect(html).not.toContain('Welche Erzeugung erzeugt Erzeugungswert?');
