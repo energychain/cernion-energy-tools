@@ -474,6 +474,12 @@
         gap: 12px;
       }
 
+      .summary .lead-metric {
+        grid-column: 1 / -1;
+        border-color: rgba(21, 127, 83, 0.32);
+        background: #eef8f2;
+      }
+
       .metric {
         box-shadow: none;
         padding: 16px;
@@ -500,6 +506,20 @@
         margin: 0;
         line-height: 1.35;
         font-size: 0.92rem;
+      }
+
+      .decision-sentence {
+        margin-top: 12px;
+        border-left: 4px solid var(--green);
+        padding: 10px 12px;
+        background: #f3faf6;
+        color: #234335;
+        line-height: 1.45;
+      }
+
+      .decision-sentence strong {
+        display: block;
+        margin-bottom: 3px;
       }
 
       .analysis-grid {
@@ -550,6 +570,13 @@
       .risk-row h3 {
         margin: 0;
         font-size: 0.98rem;
+      }
+
+      .risk-row small {
+        display: block;
+        color: var(--muted);
+        font-weight: 700;
+        margin-top: 6px;
       }
 
       .risk-row p {
@@ -834,6 +861,22 @@
         }).format(Number(value));
       }
 
+      function roundedEuro(value) {
+        if (value == null || Number.isNaN(Number(value))) return "offen";
+        const absolute = Math.abs(Number(value));
+        const rounded = absolute >= 100000
+          ? Math.round(Number(value) / 10000) * 10000
+          : Math.round(Number(value) / 1000) * 1000;
+        return euro(rounded);
+      }
+
+      function euroRange(value, lowFactor = 0.8, highFactor = 1.05) {
+        if (value == null || Number.isNaN(Number(value)) || Number(value) <= 0) return "offen";
+        const low = Number(value) * lowFactor;
+        const high = Number(value) * highFactor;
+        return `ca. ${roundedEuro(low)}–${roundedEuro(high)}`;
+      }
+
       function number(value, suffix = "") {
         if (value == null || Number.isNaN(Number(value))) return "offen";
         return `${new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 }).format(Number(value))}${suffix}`;
@@ -917,6 +960,52 @@
         return sum(budgetRows, "estimatedEurPerYear");
       }
 
+      function publicEvidenceLabel(value) {
+        const key = String(value || "").toLowerCase();
+        if (key.includes("missing")) return "offen";
+        if (key.includes("scenario")) return "Szenario";
+        if (key.includes("assumption")) return "Schätzung";
+        if (key.includes("available")) return "belegt";
+        return value || "offen";
+      }
+
+      function publicRisk(row) {
+        const key = String(row.riskKey || "").toLowerCase();
+        if (key.includes("ewk") || key.includes("anschlussdauer")) {
+          return {
+            label: "Wie schnell schließt der Netzbetreiber neue Anlagen an?",
+            explanation: "Lange Bearbeitungszeiten können Investitionen verzögern und erwartete lokale Wertschöpfung in spätere Jahre verschieben.",
+            nextStep: "Netzbetreiber identifizieren und Anschlussdauer mit aktuellen Fällen belegen.",
+          };
+        }
+        if (key.includes("digitalization")) {
+          return {
+            label: "Wie digital und verbindlich laufen Netzprozesse?",
+            explanation: "Fehlen digitale Prozessdaten, bleiben Anschlussstatus, Fristen und Zuständigkeiten schwer steuerbar.",
+            nextStep: "Prozessdaten des Netzbetreibers und erreichbare Ansprechpartner prüfen.",
+          };
+        }
+        if (key.includes("imsys") || key.includes("smgw")) {
+          return {
+            label: "Sind Messsysteme für flexible Tarife und Steuerbarkeit bereit?",
+            explanation: "Ein langsamer Smart-Meter-Rollout kann neue Geschäftsmodelle und steuerbare Lasten verzögern.",
+            nextStep: "Rollout-Stand beim Messstellenbetreiber abfragen und auf kommunale Projekte beziehen.",
+          };
+        }
+        if (key.includes("capacity") || key.includes("kapaz")) {
+          return {
+            label: "Gibt es genügend Netzkapazität für weitere Projekte?",
+            explanation: "Netzengpässe können gute Projektideen wirtschaftlich entwerten, wenn Anschluss oder Einspeisung zu spät kommen.",
+            nextStep: "Für konkrete Flächen eine Anschluss- und Kapazitätsprüfung starten.",
+          };
+        }
+        return {
+          label: row.riskLabel || row.riskKey || "Offener Prüfpunkt",
+          explanation: row.assumptionLabel || row.sourceLabel || "Die wirtschaftliche Wirkung braucht noch belastbare Evidenz.",
+          nextStep: row.nextGateLabel || "Evidenz für den Prüfpunkt ergänzen.",
+        };
+      }
+
       function strongestTechnology(rows) {
         return [...rows].sort(
           (a, b) => (Number(b.grossMarketValueEurPerYear) || 0) - (Number(a.grossMarketValueEurPerYear) || 0)
@@ -927,52 +1016,56 @@
         const rows = generationRows(data.valueRows || []);
         const price = marketPrice(data, rows);
         const concessionProxy = budgetPerMwh(data.budgetImpactRows || [], generationKwh);
-        const localMwh = price + concessionProxy;
-        const importedMwh = concessionProxy;
+        const localMwhPublic = price + concessionProxy;
+        const importedMwhPublic = concessionProxy;
         const topTech = strongestTechnology(rows);
         const topTechText = topTech
-          ? `${technologyLabel(topTech.technology)} trägt im aktuellen Szenario den größten sichtbaren Erzeugungswert.`
+          ? `${technologyLabel(topTech.technology)} trägt im aktuellen Szenario den größten sichtbaren Betreiberwert.`
           : "Die lokale Erzeugungsbasis ist noch nicht belastbar genug, um eine Führungstechnologie zu benennen.";
 
         return `
           <section class="mayor-brief">
             <h2>Einordnung für Bürgermeister und Gemeinderat</h2>
             <p>
-              Die zentrale Frage ist nicht, ob Strom technisch sauber erzeugt wird. Die politische
-              Frage lautet: Bleibt aus jeder MWh ein wirtschaftlicher Gegenwert im Ort, oder bezahlt
-              die Kommune Energie, deren Erzeugungswert anderswo entsteht? ${escapeHtml(data.municipality || "Die Kommune")}
-              sieht hier eine erste, nachvollziehbare Szenario-Rechnung.
+              Die zentrale Frage ist nicht, wie viele Megawatt im Ort stehen. Entscheidend ist,
+              welcher Eurobetrag den kommunalen Haushalt direkt berühren kann und welcher weitere
+              Wert zunächst bei privaten oder gewerblichen Anlagenbetreibern entsteht. Diese beiden
+              Beträge dürfen nicht addiert werden wie eine Haushaltseinnahme.
             </p>
             <div class="money-grid">
               <article class="money-card">
-                <span>1 MWh mit lokalem Erzeugungswert</span>
-                <strong>${escapeHtml(euro(localMwh))}</strong>
-                <p>Beispielrechnung pro MWh: etwa ${escapeHtml(euro(price))} Erzeugungswert plus rund ${escapeHtml(euro(concessionProxy))} kommunaler Budget-/Konzessionseffekt.</p>
+                <span>Direkt haushaltsrelevant pro Jahr</span>
+                <strong>${escapeHtml(euroRange(budgetValue))}</strong>
+                <p>Schätzung der Konzessions-/Budgetwirkung. Das ist die Zahl, die Kämmerei und Rat als erstes prüfen sollten.</p>
               </article>
               <article class="money-card">
-                <span>1 MWh importiert</span>
-                <strong>${escapeHtml(euro(importedMwh))}</strong>
-                <p>Bei reinem Bezug entsteht der Erzeugungswert außerhalb des Ortes. Lokal bleibt in dieser Sicht vor allem der geschätzte Budget-/Konzessionseffekt.</p>
+                <span>Wert bei Anlagenbetreibern pro Jahr</span>
+                <strong>${escapeHtml(euroRange(generationValue))}</strong>
+                <p>Marktwert der lokalen Erzeugung. Dieser Betrag ist kein kommunaler Geldzufluss, kann aber über Betreiber, Flächen, Pachten und Gewerbe indirekt lokal wirken.</p>
               </article>
               <article class="money-card">
-                <span>Jahreshebel im Ort</span>
-                <strong>${escapeHtml(euro(generationValue + budgetValue))}</strong>
-                <p>Geschätzter Jahreswert aus lokal sichtbarem Erzeugungswert und kommunalem Budgeteffekt. Das ist eine erste Lagebild-Rechnung.</p>
+                <span>1 MWh lokal gegenüber Import</span>
+                <strong>${escapeHtml(roundedEuro(localMwhPublic))} vs. ${escapeHtml(roundedEuro(importedMwhPublic))}</strong>
+                <p>Eine lokal erzeugte und zugleich lokal verbrauchte MWh kann zusätzlich Betreiberwert im Ort halten. Bei Importstrom entsteht dieser Erzeugungswert außerhalb.</p>
               </article>
             </div>
             <div class="narrative-grid">
               <article class="narrative-card">
                 <h3>Warum das für den Haushalt zählt</h3>
-                <p>Konzessionsabgaben wirken direkt kommunal. Erzeugungswert wirkt indirekt über lokale Betreiber, Flächen, Gewerbe, Pachten und Stadtwerk-Strategie.</p>
+                <p>Konzessionsabgaben und vergleichbare Budgeteffekte gehören in die Haushaltsprüfung. Der Marktwert lokaler Anlagen gehört zunächst nicht dorthin.</p>
               </article>
               <article class="narrative-card">
                 <h3>Warum das für Standortpolitik zählt</h3>
-                <p>Lokale Erzeugung macht Energiepolitik greifbar: Dachflächen, Gewerbegebiete, Bioenergie und Flächenplanung werden zu wirtschaftlichen Optionen.</p>
+                <p>Lokale Erzeugung macht Dachflächen, Gewerbegebiete, Bioenergie und Flächenplanung zu wirtschaftspolitischen Optionen.</p>
               </article>
               <article class="narrative-card">
                 <h3>Was dieser Ort jetzt lernen kann</h3>
                 <p>${escapeHtml(topTechText)} Danach sollte geklärt werden, welcher Ausbau politisch, netzseitig und kaufmännisch am besten trägt.</p>
               </article>
+            </div>
+            <div class="decision-sentence">
+              <strong>Beschlussvorschlag:</strong>
+              Verwaltung und Kämmerei prüfen zuerst die Haushaltswirkung als Spanne und lassen danach Betreiberstruktur, Flächenwirkung und Netzanschlussrisiken belegen.
             </div>
           </section>
         `;
@@ -984,24 +1077,24 @@
         if (tech.includes("pv")) {
           return {
             label: "Photovoltaik priorisieren",
-            detail: `PV liefert hier ${value} sichtbaren Jahreswert. Politisch passt dazu ein Dachflächen-, Gewerbedach- und kommunales Liegenschaftsprogramm.`,
+            detail: `PV liefert hier ${euroRange(row.grossMarketValueEurPerYear)} Betreiberwert pro Jahr. Politisch passt dazu ein Dachflächen-, Gewerbedach- und kommunales Liegenschaftsprogramm.`,
           };
         }
         if (tech.includes("biomass")) {
           return {
             label: "Biomasse kaufmännisch prüfen",
-            detail: `Biomasse liefert hier ${value} sichtbaren Jahreswert. Der Hebel entsteht durch viele Betriebsstunden; wichtig sind Brennstoffpfad, Wärmenutzung und Betreiberstruktur.`,
+            detail: `Biomasse liefert hier ${euroRange(row.grossMarketValueEurPerYear)} Betreiberwert pro Jahr. Der Hebel entsteht durch planbare Betriebsstunden; wichtig sind Brennstoffpfad, Wärmenutzung und Betreiberstruktur.`,
           };
         }
         if (tech.includes("wind")) {
           return {
             label: "Windkraft als Flächenfrage klären",
-            detail: `Windkraft liefert hier ${value} sichtbaren Jahreswert. Der nächste Schritt ist keine Haushaltszahl in MWh, sondern Flächen-, Akzeptanz-, Steuer- und Netzanschlussprüfung.`,
+            detail: `Windkraft liefert hier ${euroRange(row.grossMarketValueEurPerYear)} Betreiberwert pro Jahr. Der nächste Schritt ist keine Versorgungsbehauptung, sondern Flächen-, Akzeptanz-, Steuer- und Netzanschlussprüfung.`,
           };
         }
         return {
           label: `${technologyLabel(row.technology)} einordnen`,
-          detail: `${technologyLabel(row.technology)} liefert hier ${value} sichtbaren Jahreswert. Die lokale Betreiber- und Flächenwirkung sollte in einer Beratung geklärt werden.`,
+          detail: `${technologyLabel(row.technology)} liefert hier ${euroRange(row.grossMarketValueEurPerYear)} Betreiberwert pro Jahr. Die lokale Betreiber- und Flächenwirkung sollte in einer Beratung geklärt werden.`,
         };
       }
 
@@ -1047,13 +1140,17 @@
                 )
                 .join("")}
             </div>
+            <div class="decision-sentence">
+              <strong>Beschlussvorschlag:</strong>
+              Die Verwaltung erstellt eine priorisierte Projektliste: kommunale Dächer, Gewerbedächer, geeignete Flächen und Betreiberoptionen, jeweils mit erwarteter Euro-Wirkung pro Jahr.
+            </div>
           </section>
         `;
       }
 
-      function renderMetric(label, value, note) {
+      function renderMetric(label, value, note, className = "") {
         return `
-          <article class="metric">
+          <article class="metric ${escapeHtml(className)}">
             <span>${escapeHtml(label)}</span>
             <strong>${escapeHtml(value)}</strong>
             <p>${escapeHtml(note)}</p>
@@ -1063,11 +1160,13 @@
 
       function renderRisk(row) {
         const severity = String(row.severity || "medium").toLowerCase();
+        const risk = publicRisk(row);
         return `
           <div class="risk-row">
             <div>
-              <h3>${escapeHtml(row.riskLabel || row.riskKey || "Risiko")}</h3>
-              <p>${escapeHtml(row.nextGateLabel || row.assumptionLabel || row.sourceLabel || "Nächster Evidenzschritt offen")}</p>
+              <h3>${escapeHtml(risk.label)}</h3>
+              <p>${escapeHtml(risk.explanation)}</p>
+              <small>Nächster Schritt: ${escapeHtml(risk.nextStep)}</small>
             </div>
             <span class="pill ${escapeHtml(severity)}">${escapeHtml(row.severity || "medium")} ${escapeHtml(row.severityScore ?? "")}</span>
           </div>
@@ -1094,8 +1193,8 @@
                     <tr>
                       <td>${escapeHtml(row.budgetLabel || row.budgetCategory || row.rowKey)}</td>
                       <td>${escapeHtml(row.assumptionLabel || row.sourceLabel || "Szenario")}</td>
-                      <td>${escapeHtml(euro(row.estimatedEurPerYear))}</td>
-                      <td>${escapeHtml(row.evidenceStatus || row.calculationStatus || "offen")}</td>
+                      <td>${escapeHtml(euroRange(row.estimatedEurPerYear))}</td>
+                      <td>${escapeHtml(publicEvidenceLabel(row.evidenceStatus || row.calculationStatus || "offen"))}</td>
                     </tr>
                   `
                   )
@@ -1117,7 +1216,7 @@
             </div>
             <div class="insight">
               <h3>Quellenlage</h3>
-              <p>${sources.length} Quellen-/Annahmezeilen sind sichtbar. ${missing.length} Evidenzpunkte bleiben offen und können in einer Beratung geklärt werden.</p>
+              <p>${sources.length} Quellen und Annahmen sind sichtbar. ${missing.length} Punkte bleiben offen. Gerade das macht die Schätzung prüfbar statt verkäuferisch.</p>
             </div>
             <div class="insight">
               <h3>Nächster Schritt</h3>
@@ -1135,10 +1234,8 @@
         destroyCharts();
         const valueRows = data.valueRows || [];
         const genRows = generationRows(valueRows);
-        const riskRows = data.riskRows || [];
 
         const valueCtx = document.getElementById("valueChart");
-        const riskCtx = document.getElementById("riskChart");
 
         charts.value = new Chart(valueCtx, {
           type: "bar",
@@ -1146,7 +1243,7 @@
             labels: genRows.map((row) => row.technologyLabel || technologyLabel(row.technology) || row.rowKey),
             datasets: [
               {
-                label: "Brutto-Marktwert EUR/Jahr",
+                label: "Betreiberwert EUR/Jahr",
                 data: genRows.map((row) => Number(row.grossMarketValueEurPerYear) || 0),
                 backgroundColor: ["#157f53", "#2f6fa7", "#a76116", "#6f7f15"],
                 borderRadius: 4,
@@ -1166,26 +1263,6 @@
           },
         });
 
-        charts.risk = new Chart(riskCtx, {
-          type: "doughnut",
-          data: {
-            labels: riskRows.map((row) => row.riskLabel || row.riskKey),
-            datasets: [
-              {
-                data: riskRows.map((row) => Number(row.severityScore) || 0),
-                backgroundColor: ["#a76116", "#b33b3b", "#2f6fa7", "#157f53"],
-                borderWidth: 0,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { position: "bottom", labels: { boxWidth: 12, usePointStyle: true } },
-            },
-          },
-        });
       }
 
       function render(data) {
@@ -1204,11 +1281,13 @@
         dataStatus.textContent = `${data.municipality || "Kommune"}: ${statusText(data)}`;
         results.innerHTML = `
           <div class="summary">
-            ${renderMetric("Lokaler Marktwert pro Jahr", euro(generationValue), "Geschätzter Jahreswert der Stromerzeugung im Ort, bevor Betreiberstruktur, Pachten und Steuern einzeln bewertet werden.")}
-            ${renderMetric("Euro-Wirkung je MWh", euro(localMwhValue), "Beispielwert für 1 MWh: lokaler Erzeugungswert plus geschätzter kommunaler Budget-/Konzessionseffekt.")}
-            ${renderMetric("Budgeteffekt pro Jahr", euro(budgetValue), "Geschätzter jährlicher Effekt für den kommunalen Haushalt, zum Beispiel aus Konzessionslogik und Annahmen des Szenarios.")}
-            ${renderMetric("Jahreshebel im Ort", euro(generationValue + budgetValue), "Geschätzter Gesamtwert pro Jahr: wirtschaftlicher Wert der lokalen Anlagen plus kommunaler Budgeteffekt.")}
+            ${renderMetric("Leitzahl: Haushaltswirkung pro Jahr", euroRange(budgetValue), "Geschätzte Spanne für den kommunalen Haushalt. Diese Zahl gehört zuerst in die Prüfung durch Kämmerei und Rat.", "lead-metric")}
+            ${renderMetric("Betreiberwert pro Jahr", euroRange(generationValue), "Marktwert lokaler Anlagen. Das ist kein Geldzufluss an die Kommune, sondern der wirtschaftliche Wert der Erzeugung.")}
+            ${renderMetric("1 MWh lokal statt importiert", `${roundedEuro(localMwhValue)} vs. ${roundedEuro(concessionProxy)}`, "Didaktischer Vergleich: lokal kann zusätzlich Betreiberwert im Ort entstehen; bei Import bleibt dieser Wert außerhalb.")}
+            ${renderMetric("Evidenzlage", `${(data.sourceRows || []).length} sichtbar / ${(data.missingEvidence || []).length} offen`, "Quellen und offene Punkte werden bewusst vorne gezeigt, damit die Schätzung prüfbar bleibt.")}
           </div>
+
+          ${renderSources(data)}
 
           ${renderMayorBrief(data, generationValue, generationKwh, budgetValue)}
 
@@ -1216,8 +1295,8 @@
             <section class="panel">
               <div class="panel-head">
                 <div>
-                  <h2>Welche Erzeugung bringt wirtschaftlichen Gegenwert?</h2>
-                  <p>${escapeHtml(data.municipality || "Die Kommune")} zeigt ${escapeHtml(genRows.length)} Erzeugungszeilen im Szenario ${escapeHtml(data.scenario || "baseline")}.</p>
+                  <h2>Welche Erzeugung erzeugt Betreiberwert?</h2>
+                  <p>${escapeHtml(data.municipality || "Die Kommune")} zeigt ${escapeHtml(genRows.length)} echte Erzeugungstypen im Szenario ${escapeHtml(data.scenario || "baseline")}. Der Wert ist jährlich und nicht als Haushaltseinnahme zu lesen.</p>
                 </div>
               </div>
               <div class="chart-wrap"><canvas id="valueChart"></canvas></div>
@@ -1227,10 +1306,10 @@
               <div class="panel-head">
                 <div>
                   <h2>Was kann den kommunalen Nutzen bremsen?</h2>
-                  <p>Höchster Risikoscore: ${escapeHtml(maxRisk)}. Verzögerung, Datenlücken oder Anschlussengpässe werden als wirtschaftliches Risiko lesbar.</p>
+                  <p>Höchster Risikoscore: ${escapeHtml(maxRisk)}. Die Ampelliste übersetzt Netz- und Prozessrisiken in kommunale Entscheidungssprache.</p>
                 </div>
               </div>
-              <div class="chart-wrap"><canvas id="riskChart"></canvas></div>
+              <div class="risk-list">${riskRows.map(renderRisk).join("")}</div>
             </section>
           </div>
 
@@ -1243,20 +1322,21 @@
                 <p>Die Zeilen zeigen nicht nur Technik, sondern kommunale Wirkung: Verzögerungen, Datenlücken und Anschlussrisiken können Investitionen und Einnahmen verschieben.</p>
               </div>
             </div>
-            <div class="risk-list">${riskRows.map(renderRisk).join("")}</div>
+            <div class="decision-sentence">
+              <strong>Beschlussvorschlag:</strong>
+              Für die wichtigsten Projekte wird je Fläche ein Netzanschluss- und Fristencheck eingeholt, bevor Ertragserwartungen politisch kommuniziert werden.
+            </div>
           </section>
 
           <section class="table-panel">
             <div class="panel-head">
               <div>
                 <h2>Haushalt: Konzession und Szenarioeffekt</h2>
-                <p>Konzessionsabgabe und Budgeteffekte bleiben bewusst als Annahmen gekennzeichnet, damit Politik und Kämmerei sie prüfen können.</p>
+                <p>Konzessionsabgabe und Budgeteffekte werden als gerundete Jahresspannen gezeigt, nicht als Schlussrechnung. Exakte Einzelbeträge würden eine Genauigkeit vortäuschen, die das Szenario noch nicht hat.</p>
               </div>
             </div>
             ${renderBudgetTable(budgetRows)}
           </section>
-
-          ${renderSources(data)}
         `;
         drawCharts(data);
       }
