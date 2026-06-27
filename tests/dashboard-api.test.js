@@ -10343,6 +10343,41 @@ describe('dashboard-api.service', () => {
       expect(result.ags).toBe('08221000');
     });
 
+    it('Leimen resolves to the Baden-Württemberg city, not the smaller Rheinland-Pfalz municipality', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Leimen',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(result.municipality).toBe('Leimen');
+      expect(result.ags).toBe('08226041');
+      expect(result.state).toBe('Baden-Württemberg');
+      expect(result.population).toBeGreaterThan(25000);
+      expect(result.kavCategory).toBe('Gemeinde über 25.000 bis 100.000 Einwohner');
+
+      const summary = result.derivedLoadProfileRows.find((r) => r.rowKey === 'derived_load_summary');
+      const h0 = result.derivedLoadProfileRows.find((r) => r.rowKey === 'h0_haushalt');
+      const totalBudget = result.budgetImpactRows.find((r) => r.rowKey === 'konzessionsabgabe_total_estimate');
+      const importKpi = result.euroKpiRows.find((r) => r.rowKey === 'euro_kpi_import_exposure');
+
+      expect(summary.totalAnnualKwh).toBeGreaterThan(40000000);
+      expect(h0.basis).toContain('12485 Haushalte');
+      expect(totalBudget.estimatedEurPerYear).toBeGreaterThan(300000);
+      expect(importKpi.valueEur).toBeGreaterThan(2000000);
+    });
+
+    it('PLZ 69181 resolves to Leimen in Baden-Württemberg', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: '69181',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      expect(result.municipality).toBe('Leimen');
+      expect(result.ags).toBe('08226041');
+      expect(result.population).toBeGreaterThan(25000);
+    });
+
     it('genuinely unknown input returns HTTP 200 with lagebild_municipality_unresolved', async () => {
       const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
         municipality: 'Unbekannthausen',

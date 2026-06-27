@@ -1432,7 +1432,7 @@
       }
 
       function localMwhBridgeText(price, concessionProxy) {
-        return `${euroPerMwh(price)} Erzeugungswert plus rund ${euroPerMwh(concessionProxy)} KAV-Proxy ergeben den kommunalen Vergleichswert von rund ${euroPerMwh(price + concessionProxy)}.`;
+        return `${euroPerMwh(price)} Erzeugungswert plus rund ${euroPerMwh(concessionProxy)} KAV-Proxy ergeben den kommunalen Vergleichswert von rund ${euroPerMwh(price + concessionProxy)}`;
       }
 
       function scenarioLabel(value) {
@@ -1633,7 +1633,7 @@
             <div class="trust-sentence">
               <strong>Vertrauenssatz:</strong>
               Die Werte sind eine gerundete Erstschätzung für eine Entscheidungsvorlage, keine Schlussrechnung.
-              ${escapeHtml(localMwhBridgeText(price, concessionProxy))} Haushaltsanker aus KAV-Sätzen und Verbrauchsannahmen.
+              ${escapeHtml(localMwhBridgeText(price, concessionProxy))}. Haushaltsanker aus KAV-Sätzen und Verbrauchsannahmen.
             </div>
           </section>
         `;
@@ -1681,8 +1681,8 @@
             <div class="decision-sentence">
               <strong>Beschlusslogik:</strong>
               Eine lokal erzeugte MWh steht hier mit ${escapeHtml(euroPerMwh(localMwhPublic))} als kommunaler Vergleichswert
-              gegen ${escapeHtml(euroPerMwh(importedMwhPublic))} beim Import. Herkunft: ${escapeHtml(localMwhBridgeText(price, concessionProxy))},
-              nicht als direkte Haushaltseinnahme zu lesen.
+              gegen ${escapeHtml(euroPerMwh(importedMwhPublic))} beim Import. Herkunft: ${escapeHtml(localMwhBridgeText(price, concessionProxy))}.
+              Dieser Wert ist nicht als direkte Haushaltseinnahme zu lesen.
             </div>
           </section>
         `;
@@ -1758,7 +1758,7 @@
               <article class="money-card">
                 <span>1 MWh lokal gegenüber Import</span>
                 <strong>${escapeHtml(euroPerMwh(localMwhPublic))} vs. ${escapeHtml(euroPerMwh(importedMwhPublic))}</strong>
-                <p>Eine lokal erzeugte und zugleich lokal verbrauchte MWh kann zusätzlich Erzeugungswert im Ort halten. Herkunft: gerundete Marktpreisannahme plus KAV-Proxy; ${escapeHtml(localMwhBridgeText(price, concessionProxy))}</p>
+                <p>Eine lokal erzeugte und zugleich lokal verbrauchte MWh kann zusätzlich Erzeugungswert im Ort halten. Herkunft: gerundete Marktpreisannahme plus KAV-Proxy; ${escapeHtml(localMwhBridgeText(price, concessionProxy))}.</p>
               </article>
             </div>
             <div class="narrative-grid">
@@ -2363,7 +2363,7 @@
                 <section class="panel">
                   <div class="panel-head">
                     <div>
-                      <h2>Welche Erzeugung erzeugt Erzeugungswert?</h2>
+                      <h2>Welche Erzeugung bringt den größten lokalen Wert?</h2>
                       <p>${escapeHtml(data.municipality || "Die Kommune")} zeigt ${escapeHtml(genRows.length)} echte Erzeugungstypen im ${escapeHtml(scenarioLabel(data.scenario))}. Das Diagramm zeigt den Erzeugungswert als Mittelpunkt derselben Marktwertlogik, nicht eine zusätzliche Haushaltseinnahme.</p>
                     </div>
                   </div>

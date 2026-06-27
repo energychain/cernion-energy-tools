@@ -85,14 +85,30 @@ function estimateEnergyFromPopulation(pop, overlay) {
 
 // ── Build Layer 1 indexes (Destatis, by AGS and by normalized name) ───────────
 
-const l1ByAgs = new Map();   // '05162028' → entry
-const l1ByName = new Map();  // 'rommerskirchen' → entry  (first match per normalized name)
+const l1ByAgs = new Map();      // '05162028' → entry
+const l1ByName = new Map();     // 'rommerskirchen' → entry  (largest match per normalized name)
+const l1ByNameAll = new Map();  // 'leimen' → [entry Rheinland-Pfalz, entry Baden-Württemberg]
 
 for (const entry of gemeindenData) {
   if (!entry.ags) continue;
   l1ByAgs.set(entry.ags, entry);
   const key = entry.name.toLowerCase().trim();
-  if (!l1ByName.has(key)) l1ByName.set(key, entry);
+  if (!l1ByNameAll.has(key)) l1ByNameAll.set(key, []);
+  l1ByNameAll.get(key).push(entry);
+  const previous = l1ByName.get(key);
+  if (!previous || (Number(entry.ewz) || 0) > (Number(previous.ewz) || 0)) {
+    l1ByName.set(key, entry);
+  }
+}
+
+function selectLayer1ByName(key, stateHint) {
+  const matches = l1ByNameAll.get(key) || [];
+  if (!matches.length) return null;
+  if (stateHint) {
+    const byState = matches.find((entry) => entry.state === stateHint);
+    if (byState) return byState;
+  }
+  return [...matches].sort((a, b) => (Number(b.ewz) || 0) - (Number(a.ewz) || 0))[0];
 }
 
 // ── Build Layer 2 indexes (PLZ → name+state, name → PLZ) ─────────────────────
@@ -177,7 +193,7 @@ function resolveMunicipalityProfile({ municipality, ags } = {}) {
     const plzOrt = l2PlzToOrt.get(raw);
     if (plzOrt) {
       const key = plzOrt.name.toLowerCase().trim();
-      l1Entry = l1ByName.get(key) || null;
+      l1Entry = selectLayer1ByName(key, plzOrt.state) || null;
       if (!l1Entry) l2Result = plzOrt;
     }
   }
@@ -185,11 +201,15 @@ function resolveMunicipalityProfile({ municipality, ags } = {}) {
   // ─ 3. Name input ──────────────────────────────────────────────────────────
   else if (raw) {
     const key = raw.toLowerCase().replace(/\s*\(.*?\)\s*/g, '').trim();
-    l1Entry = l1ByName.get(key) || null;
+    l1Entry = selectLayer1ByName(key) || null;
 
     if (!l1Entry) {
-      for (const [k, v] of l1ByName) {
-        if (k.startsWith(key) || key.startsWith(k)) { l1Entry = v; break; }
+      const candidates = [];
+      for (const [k, entries] of l1ByNameAll) {
+        if (k.startsWith(key) || key.startsWith(k)) candidates.push(...entries);
+      }
+      if (candidates.length) {
+        l1Entry = candidates.sort((a, b) => (Number(b.ewz) || 0) - (Number(a.ewz) || 0))[0];
       }
     }
 
