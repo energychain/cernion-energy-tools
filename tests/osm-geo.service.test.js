@@ -455,6 +455,24 @@ describe('OSM Geo Service', () => {
       expect(result.degradedReason).toBe('OVERPASS_TIMEOUT');
     });
 
+    it('substationFinder: hanging MCP call returns timeout degraded response', async () => {
+      const previousTimeout = process.env.OSM_GEO_MCP_TIMEOUT_MS;
+      process.env.OSM_GEO_MCP_TIMEOUT_MS = '100';
+      callWithNewSession.mockImplementationOnce(() => new Promise(() => {}));
+      try {
+        const result = await broker.call('osm-geo.substationFinder', {
+          location: 'Meckesheim',
+          postalCode: '74909',
+        });
+        expect(result.success).toBe(false);
+        expect(result.degradedReason).toBe('OVERPASS_TIMEOUT');
+        expect(result.degradedReasonDetail).toMatch(/OSM_GEO_MCP_TIMEOUT/);
+      } finally {
+        if (previousTimeout === undefined) delete process.env.OSM_GEO_MCP_TIMEOUT_MS;
+        else process.env.OSM_GEO_MCP_TIMEOUT_MS = previousTimeout;
+      }
+    });
+
     it('substationFinder: MCP success:false enriched with degradedReason', async () => {
       callWithNewSession.mockResolvedValueOnce({
         success: false,

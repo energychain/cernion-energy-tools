@@ -14,6 +14,16 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 
+const DEFAULT_MCP_TIMEOUT_MS = 15000;
+
+function _mcpTimeoutMs() {
+  const configured = Number(process.env.OSM_GEO_MCP_TIMEOUT_MS);
+  if (Number.isFinite(configured) && configured >= 100 && configured <= 60000) {
+    return configured;
+  }
+  return DEFAULT_MCP_TIMEOUT_MS;
+}
+
 /**
  * Maps MCP error codes / exception messages to stable degraded-reason tokens.
  * Consumers (Sidecar) can use these to surface evidence gaps without blocking.
@@ -46,6 +56,24 @@ function _wrapMcpResult(result, location) {
     return { ...result, degradedReason: reason, queriedLocation: location };
   }
   return result;
+}
+
+async function _callMcpWithTimeout(toolName, params, token) {
+  let timer;
+  const timeoutMs = _mcpTimeoutMs();
+  try {
+    return await Promise.race([
+      CernionMCPClient.callWithNewSession(toolName, params, token),
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`OSM_GEO_MCP_TIMEOUT after ${timeoutMs}ms for ${toolName}`)),
+          timeoutMs
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 module.exports = {
@@ -237,7 +265,7 @@ Detects both **DEFINITIVE_MISASSIGNMENT** (L1 mismatch, authoritative) and **LIK
           throw new Error('Either mastrNummer or both latitude and longitude must be provided.');
         }
         try {
-          const result = await CernionMCPClient.callWithNewSession(
+          const result = await _callMcpWithTimeout(
             'osm_geo_validate',
             ctx.params,
             ctx.meta.cernionToken
@@ -447,7 +475,7 @@ Use \`constrainToBbox\` (directly from a \`vnbdigital_lookup\` bbox field) to re
         }
         const queriedLocation = location || mastrNummer || `${latitude},${longitude}`;
         try {
-          const result = await CernionMCPClient.callWithNewSession(
+          const result = await _callMcpWithTimeout(
             'osm_infrastructure_nearby',
             ctx.params,
             ctx.meta.cernionToken
@@ -663,7 +691,7 @@ Returns both a detail list and **aggregated statistics**:
         }
         const queriedLocation = params.location || gridOperator || 'bbox';
         try {
-          const result = await CernionMCPClient.callWithNewSession(
+          const result = await _callMcpWithTimeout(
             'osm_substation_finder',
             params,
             ctx.meta.cernionToken
@@ -870,7 +898,7 @@ Returns both a detail list and **aggregated statistics**:
         }
         const queriedLocation = params.location || gridOperator || 'bbox';
         try {
-          const result = await CernionMCPClient.callWithNewSession(
+          const result = await _callMcpWithTimeout(
             'osm_grid_topology',
             params,
             ctx.meta.cernionToken
