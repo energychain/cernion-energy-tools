@@ -5,6 +5,20 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.67.5] — 2026-06-27
+
+### Added
+- **Zeitreihen-EUR-Korrelationsschicht und No-Autarky-Guardrails** (`services/dashboard-api.service.js#buildMunicipalEnergyValueAnalysisStatus`, #330): Der Endpunkt `GET /api/dashboard/municipal-energy-value-analysis` gibt jetzt zwei neue Zeilengruppen zurück und verhindert öffentliche Autarkie-/Haushaltsäquivalent-Aussagen:
+  - **`timeSeriesValueRows[]`**: Zeitreihen-Korrelationszeilen je Technologie (`ts_pv_annual`, `ts_biomass_annual`, `ts_wind_annual`) mit `marketValueEur`, `localCorrelationValueEur` (null — Lastprofil fehlt), `unmatchedGenerationValueEur`, `importExposureEur` (null), `confidence`, `evidenceStatus` und `sourceLabel`. Wind-heavy-Fixture (Heidelberg) wird explizit als `missing-evidence` für lokale Korrelation gekennzeichnet.
+  - **`euroKpiRows[]`**: Vier EUR-KPI-Zeilen (`euro_kpi_gross_market_value`, `euro_kpi_local_value_capture`, `euro_kpi_municipal_budget_effect`, `euro_kpi_import_exposure`) für öffentliche Bürgermeister-/Politiker-Kommunikation. MW/MWh sind Zwischengrößen; EUR ist der primäre KPI.
+  - **`noAutarkyGuardrails[]`**: Explizite Liste verbotener Aussagen (`keine_autarkie_aussage_ohne_zeitreihen`, `keine_haushaltsaequivalente_aus_mwh`, `kein_windpark_versorgt_x_haushalte` u. a.).
+  - **`local_value_capture_indicator`** ersetzt `local_retention_indicator` in `valueRows` — keine Prozentzahl, kein bilanzieller Deckungsanspruch; `localValueCaptureEur: null` (missing-evidence, Lastprofil fehlt).
+  - **`missingEvidence[]`** um `local_load_profile`, `generation_time_series`, `operator_locality` und `local_tax_assumptions` erweitert.
+  - **`assumptionRows`**: `local_retention_bilanziell` durch `local_value_capture_basis` (Evidenzstatus: missing-evidence) ersetzt.
+
+### Tests
+- 6 neue Fälle: `timeSeriesValueRows` Pflichtfelder + keine Autarkie-Korrelation, `euroKpiRows` EUR-Felder + missing-evidence für lokale Werterfassung, `noAutarkyGuardrails` vollständig, `missingEvidence` neue Gaps, Wind-heavy-Fixture (Heidelberg) `unmatchedGenerationValueEur` > 0 bei null `localCorrelationValueEur`, `valueRows`-Textfelder enthalten keine Prozent-Deckungsaussagen.
+
 ## [0.67.4] — 2026-06-27
 
 ### Added

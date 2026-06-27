@@ -9366,9 +9366,10 @@ describe('dashboard-api.service', () => {
       expect(typeof pvRow.grossMarketValueEurPerYear).toBe('number');
       expect(pvRow.evidenceStatus).toBe('assumption-backed');
 
-      const retentionRow = result.valueRows.find((r) => r.rowKey === 'local_retention_indicator');
-      expect(retentionRow).toBeDefined();
-      expect(retentionRow.evidenceStatus).toBe('scenario-based');
+      const captureRow = result.valueRows.find((r) => r.rowKey === 'local_value_capture_indicator');
+      expect(captureRow).toBeDefined();
+      expect(captureRow.evidenceStatus).toBe('missing-evidence');
+      expect(captureRow.localValueCaptureEur).toBeNull();
     });
 
     it('returns scalar/display-safe riskRows with required fields including EWK and iMSys proxy risks', async () => {
@@ -9591,6 +9592,128 @@ describe('dashboard-api.service', () => {
       expect(totalRow).toBeDefined();
       expect(typeof totalRow.estimatedEurPerYear).toBe('number');
       expect(totalRow.estimatedEurPerYear).toBeGreaterThan(0);
+    });
+
+    // ── Issue #330: time-series EUR correlation and no-autarky guardrails ──
+
+    it('returns timeSeriesValueRows with required scalar fields and no autarky claim', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Mauer',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(Array.isArray(result.timeSeriesValueRows)).toBe(true);
+      expect(result.timeSeriesValueRows.length).toBeGreaterThan(0);
+      expectScalarTableRows(result.timeSeriesValueRows);
+
+      for (const row of result.timeSeriesValueRows) {
+        expect(typeof row.rowKey).toBe('string');
+        expect(typeof row.technology).toBe('string');
+        expect(typeof row.timeWindow).toBe('string');
+        expect(row.localCorrelationValueEur).toBeNull();
+        expect(row.importExposureEur).toBeNull();
+        expect(row.evidenceStatus).toBe('missing-evidence');
+      }
+      const pvTs = result.timeSeriesValueRows.find((r) => r.rowKey === 'ts_pv_annual');
+      expect(pvTs).toBeDefined();
+      expect(typeof pvTs.marketValueEur).toBe('number');
+      expect(pvTs.marketValueEur).toBeGreaterThan(0);
+    });
+
+    it('returns euroKpiRows with scalar EUR fields and missing-evidence for local capture', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Mauer',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(Array.isArray(result.euroKpiRows)).toBe(true);
+      expect(result.euroKpiRows.length).toBeGreaterThan(0);
+      expectScalarTableRows(result.euroKpiRows);
+
+      const grossKpi = result.euroKpiRows.find((r) => r.rowKey === 'euro_kpi_gross_market_value');
+      expect(grossKpi).toBeDefined();
+      expect(typeof grossKpi.valueEur).toBe('number');
+      expect(grossKpi.valueEur).toBeGreaterThan(0);
+      expect(grossKpi.evidenceStatus).toBe('assumption-backed');
+
+      const captureKpi = result.euroKpiRows.find((r) => r.rowKey === 'euro_kpi_local_value_capture');
+      expect(captureKpi).toBeDefined();
+      expect(captureKpi.valueEur).toBeNull();
+      expect(captureKpi.evidenceStatus).toBe('missing-evidence');
+
+      const budgetKpi = result.euroKpiRows.find((r) => r.rowKey === 'euro_kpi_municipal_budget_effect');
+      expect(budgetKpi).toBeDefined();
+      expect(typeof budgetKpi.valueEur).toBe('number');
+      expect(budgetKpi.valueEur).toBeGreaterThan(0);
+    });
+
+    it('exposes noAutarkyGuardrails forbidding household-equivalent claims', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Mauer',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(Array.isArray(result.noAutarkyGuardrails)).toBe(true);
+      expect(result.noAutarkyGuardrails).toEqual(
+        expect.arrayContaining([
+          'keine_autarkie_aussage_ohne_zeitreihen',
+          'keine_haushaltsaequivalente_aus_mwh',
+          'keine_lokale_versorgungsbehauptung_ohne_lastprofil',
+          'kein_windpark_versorgt_x_haushalte',
+        ])
+      );
+    });
+
+    it('missingEvidence includes local_load_profile and generation_time_series', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Mauer',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      const gapKeys = result.missingEvidence.map((g) => g.missingDataPoint);
+      expect(gapKeys).toContain('local_load_profile');
+      expect(gapKeys).toContain('generation_time_series');
+      expect(gapKeys).toContain('operator_locality');
+      expect(gapKeys).toContain('local_tax_assumptions');
+    });
+
+    it('wind-heavy fixture (Heidelberg) shows high unmatchedGenerationValueEur with missing local correlation', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Heidelberg',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expectScalarTableRows(result.timeSeriesValueRows);
+      const windTs = result.timeSeriesValueRows.find((r) => r.rowKey === 'ts_wind_annual');
+      expect(windTs).toBeDefined();
+      expect(typeof windTs.unmatchedGenerationValueEur).toBe('number');
+      expect(windTs.unmatchedGenerationValueEur).toBeGreaterThan(0);
+      expect(windTs.localCorrelationValueEur).toBeNull();
+      expect(windTs.evidenceStatus).toBe('missing-evidence');
+      expect(windTs.sourceLabel).toContain('wind-heavy');
+    });
+
+    it('valueRows do not expose percentage autarky claims in any field value', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Mauer',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      for (const row of result.valueRows) {
+        for (const [key, value] of Object.entries(row)) {
+          if (typeof value === 'string') {
+            expect(value).not.toMatch(/\d+%\s*(bilanziell|autark|Deckung)/i);
+            expect(value.toLowerCase()).not.toContain('versorgt');
+            expect(value.toLowerCase()).not.toContain('haushaltsaequivalent');
+          }
+        }
+      }
     });
   });
 });

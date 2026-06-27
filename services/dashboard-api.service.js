@@ -29155,31 +29155,24 @@ module.exports = {
           (sum, r) => sum + (r.estimatedGenerationKwhPerYear || 0),
           0
         );
-        const totalHouseholds = Math.round(
-          profile.einwohner * profile.avgHouseholdsPerEinwohner
+        const totalGrossMarketValueEur = valueRows.reduce(
+          (sum, r) => sum + (r.grossMarketValueEurPerYear || 0),
+          0
         );
-        const totalLocalConsumptionKwh =
-          totalHouseholds * profile.avgHouseholdConsumptionKwh;
-        const localRetentionPercent =
-          totalLocalConsumptionKwh > 0
-            ? Math.min(100, Math.round((totalGenKwh / totalLocalConsumptionKwh) * 100))
-            : null;
         valueRows.push({
-          rowKey: 'local_retention_indicator',
-          rowLabel: 'Lokale Deckungsquote (bilanziell/Szenario)',
+          rowKey: 'local_value_capture_indicator',
+          rowLabel: 'Lokale Werterfassung (EUR-Szenario)',
           technology: 'aggregated',
           installedCapacityKw: null,
           assumedFullLoadHours: null,
           estimatedGenerationKwhPerYear: totalGenKwh,
           assumedMarketPriceEurPerMwh: null,
-          grossMarketValueEurPerYear: null,
-          localRetentionIndicator: localRetentionPercent !== null
-            ? `${localRetentionPercent}% bilanziell (Szenario ${scenario})`
-            : 'keine Berechnung moeglich',
-          evidenceStatus: 'scenario-based',
+          grossMarketValueEurPerYear: totalGrossMarketValueEur,
+          localValueCaptureEur: null,
+          evidenceStatus: 'missing-evidence',
           assumptionLabel:
-            'Bilanzieller Wert; kein physischer Nachweis lokaler Elektronennutzung',
-          sourceLabel: 'interne Berechnung',
+            'Lokales Lastprofil und Zeitreihen-Korrelation fehlen; keine bilanziellen Deckungsaussagen ohne Zeitreihenbasis.',
+          sourceLabel: 'Zeitreihen-Korrelation erforderlich',
         });
       } else {
         valueRows.push({
@@ -29191,7 +29184,7 @@ module.exports = {
           estimatedGenerationKwhPerYear: null,
           assumedMarketPriceEurPerMwh: null,
           grossMarketValueEurPerYear: null,
-          localRetentionIndicator: 'keine Daten',
+          localValueCaptureEur: null,
           evidenceStatus: 'missing-evidence',
           assumptionLabel: 'Gemeinde nicht im lokalen Profil; MaStR-Abfrage erforderlich',
           sourceLabel: 'keine Quelle verfuegbar',
@@ -29352,13 +29345,13 @@ module.exports = {
           evidenceStatus: 'assumption-backed',
         },
         {
-          assumptionKey: 'local_retention_bilanziell',
-          assumptionLabel: 'Lokale Verbrauchsdeckung (bilanziell)',
-          assumptionValue: 'szenario-basiert',
-          assumptionUnit: '%',
+          assumptionKey: 'local_value_capture_basis',
+          assumptionLabel: 'Lokale Werterfassung -- Datenbasis',
+          assumptionValue: 'Lastprofil fehlt; Zeitreihen-Korrelation nicht moeglich',
+          assumptionUnit: 'Evidenzstatus',
           category: 'versorgung',
-          source: 'interne Berechnung',
-          evidenceStatus: 'scenario-based',
+          source: 'Zeitreihen-Korrelation erforderlich',
+          evidenceStatus: 'missing-evidence',
         },
         {
           assumptionKey: 'kav_category',
@@ -29419,6 +29412,107 @@ module.exports = {
         },
       ];
 
+      const totalGrossMarketValueEur = valueRows.reduce(
+        (sum, r) => sum + (r.grossMarketValueEurPerYear || 0),
+        0
+      );
+
+      const timeSeriesValueRows = profile
+        ? [
+            ...(profile.pvCapacityKw > 0 ? [{
+              rowKey: 'ts_pv_annual',
+              technology: 'pv',
+              timeWindow: `annual_${year}`,
+              marketValueEur: Math.round(profile.pvCapacityKw * pvFullLoadHours / 1000 * assumedMarketPriceEurPerMwh),
+              localCorrelationValueEur: null,
+              unmatchedGenerationValueEur: Math.round(profile.pvCapacityKw * pvFullLoadHours / 1000 * assumedMarketPriceEurPerMwh),
+              importExposureEur: null,
+              confidence: 'low',
+              evidenceStatus: 'missing-evidence',
+              sourceLabel: 'Kein lokales Lastprofil; Zeitkorrelation nicht moeglich',
+            }] : []),
+            ...(profile.biomassCapacityKw > 0 ? [{
+              rowKey: 'ts_biomass_annual',
+              technology: 'biomass',
+              timeWindow: `annual_${year}`,
+              marketValueEur: Math.round(profile.biomassCapacityKw * biomassFullLoadHours / 1000 * assumedMarketPriceEurPerMwh),
+              localCorrelationValueEur: null,
+              unmatchedGenerationValueEur: Math.round(profile.biomassCapacityKw * biomassFullLoadHours / 1000 * assumedMarketPriceEurPerMwh),
+              importExposureEur: null,
+              confidence: 'low',
+              evidenceStatus: 'missing-evidence',
+              sourceLabel: 'Kein lokales Lastprofil; Zeitkorrelation nicht moeglich',
+            }] : []),
+            ...(profile.windCapacityKw > 0 ? [{
+              rowKey: 'ts_wind_annual',
+              technology: 'wind',
+              timeWindow: `annual_${year}`,
+              marketValueEur: Math.round(profile.windCapacityKw * windFullLoadHours / 1000 * assumedMarketPriceEurPerMwh),
+              localCorrelationValueEur: null,
+              unmatchedGenerationValueEur: Math.round(profile.windCapacityKw * windFullLoadHours / 1000 * assumedMarketPriceEurPerMwh),
+              importExposureEur: null,
+              confidence: 'low',
+              evidenceStatus: 'missing-evidence',
+              sourceLabel: 'Kein lokales Lastprofil; Zeitkorrelation nicht moeglich; wind-heavy Erzeugung ohne Lastprofil nicht lokal zuordenbar',
+            }] : []),
+          ]
+        : [{
+            rowKey: 'ts_no_data',
+            technology: 'unknown',
+            timeWindow: `annual_${year}`,
+            marketValueEur: null,
+            localCorrelationValueEur: null,
+            unmatchedGenerationValueEur: null,
+            importExposureEur: null,
+            confidence: 'none',
+            evidenceStatus: 'missing-evidence',
+            sourceLabel: 'Gemeindeprofil nicht aufgeloest',
+          }];
+
+      const budgetTotalEur = budgetImpactRows.reduce(
+        (sum, r) => sum + (r.estimatedEurPerYear || 0),
+        0
+      );
+      const euroKpiRows = [
+        {
+          rowKey: 'euro_kpi_gross_market_value',
+          label: 'Brutto-Marktwert lokaler Erzeugung',
+          valueEur: totalGrossMarketValueEur || null,
+          description: `Marktpreis-gewichteter Jahreswert aller lokalen Erzeugungstechnologien; Szenario ${scenario}; keine physische Lieferzusage.`,
+          evidenceStatus: totalGrossMarketValueEur > 0 ? 'assumption-backed' : 'missing-evidence',
+        },
+        {
+          rowKey: 'euro_kpi_local_value_capture',
+          label: 'Lokale Werterfassung (Zeitreihen-Korrelation)',
+          valueEur: null,
+          description: 'Erfordert Zeitreihen-Korrelation von Erzeugung und lokalem Verbrauch. Ohne Lastprofil keine belastbare Aussage zur lokalen Wertbindung.',
+          evidenceStatus: 'missing-evidence',
+        },
+        {
+          rowKey: 'euro_kpi_municipal_budget_effect',
+          label: 'Kommunaler Haushaltseffekt (Szenario)',
+          valueEur: budgetTotalEur > 0 ? budgetTotalEur : null,
+          description: 'Konzessionsabgabe und Szenario-Budgeteffekte; keine rechtliche Abrechnung oder Finalitaet.',
+          evidenceStatus: budgetTotalEur > 0 ? 'assumption-backed' : 'missing-evidence',
+        },
+        {
+          rowKey: 'euro_kpi_import_exposure',
+          label: 'Importenergie-Kostenexponierung',
+          valueEur: null,
+          description: 'Erfordert lokales Lastprofil und Zeitreihen-Korrelation. Ohne diese Daten keine Aussage zur Importexponierung.',
+          evidenceStatus: 'missing-evidence',
+        },
+      ];
+
+      const noAutarkyGuardrails = [
+        'keine_autarkie_aussage_ohne_zeitreihen',
+        'keine_haushaltsaequivalente_aus_mwh',
+        'keine_lokale_versorgungsbehauptung_ohne_lastprofil',
+        'keine_physische_lieferzusage',
+        'kein_windpark_versorgt_x_haushalte',
+        'lokale_deckung_nur_als_evidenzbasiertes_szenario',
+      ];
+
       const missingEvidence = [];
       const addGap = (missingDataPoint, enablesDossierAddition) => {
         missingEvidence.push({ missingDataPoint, enablesDossierAddition });
@@ -29426,10 +29520,14 @@ module.exports = {
 
       if (!isKnown) addGap('municipality_profile', 'Gemeindeprofil (AGS, Einwohnerzahl, Flaeche) ermoeoflicht Grundlagebild.');
       if (!resolvedAgs) addGap('ags_code', 'AGS-Code ermoeoflicht MaStR-Abfrage und KAV-Kategorisierung.');
+      addGap('local_load_profile', 'Lokales Lastprofil (Stundenaufloesung) ermoeoflicht Zeitreihen-Korrelation und belastbare lokale Werterfassung in EUR.');
+      addGap('generation_time_series', 'Erzeugungszeitreihe je Technologie ermoeoflicht Zeitkorrelation; ohne sie bleiben localCorrelationValueEur und importExposureEur null.');
       addGap('vnb_bnr', 'BNr des zustaendigen Netzbetreibers ermoeoflicht EWK-Anschlussdauer und Digitalisierungsindex.');
       addGap('mastr_live_data', 'Live-MaStR-Abfrage ermoeoflicht belastbare Erzeugungskapazitaeten statt Annahmen.');
       addGap('netzkapazitaetsnachweis', 'Netzkapazitaetsnachweis ermoeoflicht Kapazitaetsengpass-Risikobewertung.');
       addGap('imsys_rollout_quote', 'Lokale iMSys/SMGW-Rollout-Quote vom Netzbetreiber ermoeoflicht SMGW-Risikozeile.');
+      addGap('operator_locality', 'Belege zur Lokalitaet des Netzbetreibers ermoeoflicht kommunale Steuer-/Umsatzeffekt-Abschaetzung.');
+      addGap('local_tax_assumptions', 'Lokale Gewerbesteuer-/Einkommensteuerannahmen ermoeoflicht kommunalen Steuereffekt-Szenario.');
 
       const positiveFollowUps = missingEvidence.map((gap) => ({
         ...gap,
@@ -29468,6 +29566,8 @@ module.exports = {
         scenario,
         analysisRunId,
         valueRows,
+        timeSeriesValueRows,
+        euroKpiRows,
         riskRows,
         budgetImpactRows,
         assumptionRows,
@@ -29475,6 +29575,7 @@ module.exports = {
         missingEvidence,
         positiveFollowUps,
         noCallGuards,
+        noAutarkyGuardrails,
         _errors: [],
       };
     },
