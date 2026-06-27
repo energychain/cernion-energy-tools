@@ -131,6 +131,42 @@ describe('Cookbook Service', () => {
       expect(Array.isArray(result.data.process)).toBe(true);
     });
 
+    it('exposes the regulatory risk revenue scenario briefing recipe contract', async () => {
+      const result = await broker.call('cookbook.get', {
+        id: 'regulatory-risk-revenue-scenario-briefing',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data.domain).toBe('regulatory-revenue');
+      expect(result.data.tags).toEqual(
+        expect.arrayContaining(['regulatorikrisiko', 'erloessteuerung', 'management-gate'])
+      );
+
+      const actions = result.data.process.map((step) => step.action);
+      expect(actions).toEqual(
+        expect.arrayContaining([
+          'cya.generate',
+          'regulatorische-entgeltlogik.getActive',
+          'eog-calculator.inputStatus',
+          'eog-calculator.calculate',
+          'eog-calculator.scenario',
+          'finance-agent.analyze',
+          'decision-frame.create',
+          'datapoint.createSnapshot',
+        ])
+      );
+
+      const scenarioStep = result.data.process.find(
+        (step) => step.action === 'eog-calculator.scenario'
+      );
+      expect(scenarioStep.params).toEqual(
+        expect.objectContaining({
+          persist: false,
+          transientOverrides: null,
+        })
+      );
+    });
+
     it('returns relatedRecipes array on get result', async () => {
       const result = await broker.call('cookbook.get', { id: 'vnb-assets-from-name' });
       expect(Array.isArray(result.data.relatedRecipes)).toBe(true);
@@ -252,6 +288,17 @@ describe('Cookbook Service', () => {
       });
       expect(result.data.length).toBeGreaterThan(0);
       expect(result.data[0].id).toBe('redispatch-settlement-audit');
+    });
+
+    it('keyword fallback discovers the regulatory risk revenue scenario recipe', async () => {
+      const result = await broker.call('cookbook.search', {
+        query: 'Regulatorikrisiko Erloeswirkung Risikospanne Szenariosteuerung Management-Gate',
+        includeBroken: true,
+        limit: 5,
+      });
+
+      expect(result.data.length).toBeGreaterThan(0);
+      expect(result.data[0].id).toBe('regulatory-risk-revenue-scenario-briefing');
     });
 
     it('score is a finite number rounded to 4 decimal places', async () => {

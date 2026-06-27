@@ -1,5 +1,6 @@
 const { ServiceBroker } = require('moleculer');
 const CapabilityBrokerService = require('../services/capability-broker.service');
+const { CURATED_CAPABILITIES } = require('../src/capability-catalog');
 
 describe('Capability Broker Service', () => {
   let broker;
@@ -251,6 +252,49 @@ describe('Capability Broker Service', () => {
       /Risk Assessment|Kreditausschuss|Due Diligence/i
     );
     expect(result.recommendedCapabilities[0].capability).not.toBe('interface_placeholder');
+  });
+
+  it('routes regulatory risk revenue scenario prompts to the cookbook briefing path', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte Regulatorikrisiko, Erlöswirkung, Risikospanne, Gegenmaßnahme und Management-Gate als regulatory revenue scenario für den VNB vorbereiten.',
+      knownContext: {
+        gridOperatorId: 'SNB328',
+        referenceDate: '2026-06-27',
+        period: '2026',
+      },
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'regulatory_risk_revenue_scenario'
+    );
+    expect(result.intent).toBe('cookbook.regulatoryRiskRevenueScenarioBriefing');
+
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toEqual(
+      expect.arrayContaining([
+        'cookbook.get',
+        'cookbook.search',
+        'regulatorische-entgeltlogik.getActive',
+        'eog-calculator.inputStatus',
+        'eog-calculator.scenario',
+        'finance-agent.analyze',
+        'decision-frame.create',
+      ])
+    );
+    expect(actionNames).not.toContain('query.ask');
+    expect(actionNames).not.toContain('query.askLearned');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('hitl.create');
+    const catalogCapability = CURATED_CAPABILITIES.find(
+      (capability) => capability.capability === 'regulatory_risk_revenue_scenario'
+    );
+    expect(catalogCapability.risksAndNotes).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('Hydration Registry remains unchanged'),
+        expect.stringContaining('No legal opinion'),
+      ])
+    );
   });
 
   it('routes role-boundary governance prompts to VDMI governance capability (not pure VNB identity)', async () => {

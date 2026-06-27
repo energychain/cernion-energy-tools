@@ -139,6 +139,7 @@ const CAPABILITY_DOMAIN_MAP = {
   // tax/regulatory data handover
   tax_finance_data_handover: 'regulatory',
   regulatory_readiness: 'regulatory',
+  regulatory_revenue: 'regulatory',
   re4de_grid_fees: 'regulatory',
   water_pricing_governance: 'regulatory',
   grid_connection_commercial_gate: 'grid-planning',
@@ -313,6 +314,8 @@ const RECIPE_TAG_DOMAIN_HINTS = {
   oep: 'market-data',
   'vnb-monitor': 'grid-ops',
   ewk: 'regulatory',
+  regulatorikrisiko: 'regulatory',
+  erloessteuerung: 'regulatory',
   'nbp-monitor': 'grid-ops',
   dashboard: 'platform',
   lastgang: 'inhouse-data',

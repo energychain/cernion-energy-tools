@@ -168,9 +168,10 @@ recipes:
   residual-load-co2-price-window "A Stadtwerk needs time-window guidance for flexible loads based…"
 resolve: GET /api/_agent/operations?domain=market-data
 
-### regulatory (19 capabilities · 2 recipes · 38 operations)
-capabilities: cls_digital_twin_compliance_gate, eeg_clawback_ewk_monitoring, energy_tax_information_package, gas_capacity_booking_review_gate, gas_capacity_order_revision_gate, gas_decommissioning_roadmap_status, gas_grid_transformation_asset_cockpit, gas_infrastructure_risk_governance, gas_network_decision_chain, gasnetz_waermeplanung, gasnetz_waermeplanung_assessment, heat_asset_tariff_steering, heat_transformation_line_asset_model, mastr_quality_oemetadata, re4de_variable_grid_fee_layer3, regulatorische_entgeltlogik, regulatory_change_simulator_readiness, special_grid_usage_impact_map, water_pricing_net_investment_alignment_gate
+### regulatory (20 capabilities · 3 recipes · 38 operations)
+capabilities: cls_digital_twin_compliance_gate, eeg_clawback_ewk_monitoring, energy_tax_information_package, gas_capacity_booking_review_gate, gas_capacity_order_revision_gate, gas_decommissioning_roadmap_status, gas_grid_transformation_asset_cockpit, gas_infrastructure_risk_governance, gas_network_decision_chain, gasnetz_waermeplanung, gasnetz_waermeplanung_assessment, heat_asset_tariff_steering, heat_transformation_line_asset_model, mastr_quality_oemetadata, re4de_variable_grid_fee_layer3, regulatorische_entgeltlogik, regulatory_change_simulator_readiness, regulatory_risk_revenue_scenario, special_grid_usage_impact_map, water_pricing_net_investment_alignment_gate
 recipes:
+  regulatory-risk-revenue-scenario-briefing "A VNB or Stadtwerk needs to turn an emerging regulatory signal…"
   section14a-compliance-autopilot "A grid operator needs a recurring process to detect…"
   utility-report-ewk "A grid operator needs a structured EWK…"
 resolve: GET /api/_agent/operations?domain=regulatory
@@ -248,8 +249,8 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - CHANGELOG.md: 871609685bee9a7121272557375bb5f546db567c5cfd5cecb94dacd6ae570bc5
 - README.md: 149317e9eea460588ca9ff477c91a9009d275c51fd4bd4f88e9ff1785746836b
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
-- src/cookbook-recipes.js: 5190fa2814db597464408cb11f08dfa7bd7798df74e650adbebb6fab71b7f5d4
-- src/capability-catalog.js: 2f83c1f74e7d9cb492f5672ac0b0d2039c7b44c0a75d21a381d1fe3d1e6865e1
+- src/cookbook-recipes.js: 616645b5ea62c2f41a1bb4ff6261498b3fc74888fc1805379f0377b181b45cae
+- src/capability-catalog.js: a5450c1a7cd4ac0b2b35a649d46d622da68c58fd99a835050f5a2825570e5be2
 - openapi-export.json: 714755c704483aa75a85875fe71bab5cceaf979e1261e5f43e16f8b003330ced
 
 ## OpenAPI Surface (full contract, not embedded)
@@ -258,4 +259,4 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: a87826abcb89e5c542245c9bb5ba20f171eb356e20be853ad065a4a67c6e13e0
+- llm_txt_sha256: 0301e132b56f9cc828f725df30bbc131d38378047ad675c8320137553c04428a

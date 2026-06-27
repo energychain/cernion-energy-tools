@@ -1695,6 +1695,149 @@ const COOKBOOK_RECIPES = [
     prerequisites: ['Grid operator identifier', 'Customer portal integration path'],
   },
   {
+    id: 'regulatory-risk-revenue-scenario-briefing',
+    title: 'Regulatory risk revenue scenario briefing',
+    domain: 'regulatory-revenue',
+    tags: [
+      'regulatorikrisiko',
+      'erloessteuerung',
+      'szenario',
+      'eog',
+      'management-gate',
+      'evidence',
+    ],
+    problem:
+      'A VNB or Stadtwerk needs to turn an emerging regulatory signal into an evidence-bound revenue-risk briefing before a final decision or tariff action exists.',
+    process: [
+      {
+        step: 1,
+        service: 'cya',
+        action: 'cya.generate',
+        restPath: 'POST /api/cya/generate',
+        params: {
+          query: null,
+          target_audience: 'management',
+          includeTrace: true,
+        },
+        description:
+          'Classify the regulatory signal and collect deterministic CYA signal context, severity and evidence gaps.',
+        expectedOutput:
+          'Regulatory signal context with source references, severity and confidence boundaries.',
+      },
+      {
+        step: 2,
+        service: 'regulatorische-entgeltlogik',
+        action: 'regulatorische-entgeltlogik.getActive',
+        params: {
+          gridOperatorId: null,
+          ruleType: null,
+          referenceDate: null,
+        },
+        description:
+          'Resolve the active regulatory rule set or mark missing rule-window evidence.',
+        expectedOutput: 'Active rule-set reference, legal basis and effective window.',
+      },
+      {
+        step: 3,
+        service: 'eog-calculator',
+        action: 'eog-calculator.inputStatus',
+        restPath: 'POST /api/eog-calculator/input-status',
+        params: {
+          tenantId: null,
+          gridOperatorId: null,
+          period: null,
+        },
+        description:
+          'Check which EOG and datapoint inputs are available, missing or assumption-only.',
+        expectedOutput:
+          'Input status for baseline revenue-cap calculation and explicit blocker list.',
+      },
+      {
+        step: 4,
+        service: 'eog-calculator',
+        action: 'eog-calculator.calculate',
+        restPath: 'POST /api/eog-calculator/calculate',
+        params: {
+          tenantId: null,
+          gridOperatorId: null,
+          period: null,
+        },
+        description: 'Calculate the baseline revenue-cap result when input status allows it.',
+        expectedOutput: 'Baseline EOG / revenue-cap value with input references.',
+      },
+      {
+        step: 5,
+        service: 'eog-calculator',
+        action: 'eog-calculator.scenario',
+        restPath: 'POST /api/eog-calculator/scenario',
+        params: {
+          tenantId: null,
+          gridOperatorId: null,
+          period: null,
+          transientOverrides: null,
+          persist: false,
+        },
+        description:
+          'Run downside/upside scenario assumptions as transient overrides, never as actual values.',
+        expectedOutput:
+          'Scenario range with explicit calculationMode=scenario and persisted=false semantics.',
+      },
+      {
+        step: 6,
+        service: 'finance-agent',
+        action: 'finance-agent.analyze',
+        restPath: 'POST /api/finance-agent/analyze',
+        params: {
+          query: null,
+          decisionFrameId: null,
+          datapointContext: null,
+          allowHypotheticals: true,
+          includeTrace: true,
+          persistDatapoints: false,
+        },
+        description:
+          'Summarize revenue impact, assumptions, confidence and countermeasures evidence-bound.',
+        expectedOutput:
+          'Answer-ready briefing rows for affected processes, risk range, countermeasures and evidence refs.',
+      },
+      {
+        step: 7,
+        service: 'decision-frame',
+        action: 'decision-frame.create',
+        params: {
+          domain: 'regulatory',
+          status: 'draft',
+          owner: null,
+          dueDate: null,
+          threshold: null,
+        },
+        description:
+          'Represent the management gate as a decision-frame contract or draft handover, not as an approval.',
+        expectedOutput:
+          'Owner, deadline, threshold and recommended review status for management handover.',
+      },
+      {
+        step: 8,
+        service: 'datapoint',
+        action: 'datapoint.createSnapshot',
+        params: {
+          refs: null,
+          purpose: 'regulatory_risk_revenue_scenario_evidence',
+        },
+        description:
+          'Optionally freeze baseline assumptions, rule-set IDs and evidence references for auditability.',
+        expectedOutput: 'Datapoint snapshot reference without duplicating raw evidence.',
+      },
+    ],
+    expectedResult:
+      'A read-only briefing contract with signal, affected processes, data requirements, transient baseline/downside/upside scenario, risk range, countermeasures, management gate and evidence references.',
+    prerequisites: [
+      'Regulatory signal or draft change',
+      'Grid operator identifier',
+      'Reference period',
+    ],
+  },
+  {
     id: 'prosumer-nap-wallet-onboarding',
     title: 'Prosumer NAP Wallet Onboarding & Energy Sharing Check',
     domain: 'prosumer_onboarding',
