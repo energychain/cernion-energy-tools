@@ -552,6 +552,59 @@
         height: 320px;
       }
 
+      .load-profile-visual {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(260px, 0.95fr);
+        gap: 14px;
+        align-items: stretch;
+        margin-top: 14px;
+      }
+
+      .load-profile-chart {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdfb;
+        padding: 14px;
+      }
+
+      .load-profile-chart .chart-wrap {
+        min-height: 240px;
+        height: 270px;
+      }
+
+      .load-profile-notes {
+        display: grid;
+        gap: 10px;
+      }
+
+      .load-profile-note {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        padding: 13px;
+      }
+
+      .load-profile-note span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.76rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        margin-bottom: 7px;
+      }
+
+      .load-profile-note strong {
+        display: block;
+        margin-bottom: 5px;
+      }
+
+      .load-profile-note p {
+        color: var(--muted);
+        margin: 0;
+        line-height: 1.4;
+        font-size: 0.92rem;
+      }
+
       .risk-list {
         display: grid;
         gap: 10px;
@@ -693,6 +746,7 @@
         .summary,
         .insight-band,
         .story-card,
+        .load-profile-visual,
         .money-grid,
         .narrative-grid {
           grid-template-columns: 1fr;
@@ -897,6 +951,11 @@
         if (Math.abs(value) >= 1000000) return `${number(value / 1000000, " GWh/Jahr")}`;
         if (Math.abs(value) >= 1000) return `${number(value / 1000, " MWh/Jahr")}`;
         return `${number(value, " kWh/Jahr")}`;
+      }
+
+      function annualGwh(kwh) {
+        if (kwh == null || Number.isNaN(Number(kwh))) return 0;
+        return Number(kwh) / 1000000;
       }
 
       function percentValue(value) {
@@ -1256,17 +1315,41 @@
         const strongestText = strongest
           ? `${technologyLabel(strongest.technology)} hat in dieser Erstschätzung den höchsten zeitgleichen Euro-Beitrag: ${euroRange(strongest.localCorrelationValueEur, 0.9, 1.1)} pro Jahr.`
           : "Für die lokalen Anlagen liegt noch kein belastbarer zeitgleicher Euro-Beitrag vor.";
+        const strongestProfileText = strongest
+          ? `${technologyLabel(strongest.technology)} passt rechnerisch am besten zum lokalen Verbrauchsprofil.`
+          : "Die Zeitgleichkeit lokaler Erzeugung kann erst mit weiteren Daten belastbarer eingeordnet werden.";
+        const loadProfileChart = buckets.length
+          ? `
+            <div class="load-profile-visual">
+              <div class="load-profile-chart">
+                <div class="chart-wrap"><canvas id="loadProfileChart"></canvas></div>
+              </div>
+              <div class="load-profile-notes">
+                <article class="load-profile-note">
+                  <span>Verbrauchsprofil</span>
+                  <strong>${escapeHtml(energyAmount(summary?.totalAnnualKwh))}</strong>
+                  <p>Die Balken zeigen die abgeleiteten Jahresanteile der wichtigsten Verbrauchsgruppen, nicht gemessene Zählergänge.</p>
+                </article>
+                <article class="load-profile-note">
+                  <span>Zeitgleichkeit</span>
+                  <strong>${escapeHtml(strongestProfileText)}</strong>
+                  <p>Der Vergleich darunter trennt lokalen zeitgleichen Wert von Erzeugung, die rechnerisch nicht zum Verbrauchsfenster passt.</p>
+                </article>
+              </div>
+            </div>
+          `
+          : "";
 
         return `
           <section class="panel">
             <div class="panel-head">
               <div>
-                <h2>Was die neue Lastprofil-Auswertung zeigt</h2>
+                <h2>Wie Verbrauch und lokale Erzeugung zusammenpassen</h2>
                 <p>
-                  Der örtliche Verbrauch wird nicht mehr pauschal als offen behandelt.
                   Cernion leitet aus Einwohnern, Haushalten und Standardprofilen ein kommunales
-                  Lastprofil ab und vergleicht es mit der lokalen Erzeugung. Das ist kein Messwert,
-                  aber eine bessere kaufmännische Erstschätzung als reine Jahresmengen.
+                  Verbrauchsprofil ab und vergleicht es mit der lokalen Erzeugung. Das ist kein
+                  Messwert, aber eine kaufmännisch brauchbare Erstschätzung: Welche Energie entsteht
+                  im Ort, welcher Teil passt zeitlich zum Verbrauch und was bleibt importabhängig?
                 </p>
               </div>
             </div>
@@ -1287,6 +1370,7 @@
                 <p>Größenordnung des Strombezugs, der nach der abgeleiteten lokalen Erzeugungswirkung weiterhin von außen abhängt.</p>
               </article>
             </div>
+            ${loadProfileChart}
             <div class="narrative-grid">
               ${buckets.slice(0, 3).map((row) => `
                 <article class="narrative-card">
@@ -1433,35 +1517,74 @@
         destroyCharts();
         const valueRows = data.valueRows || [];
         const genRows = generationRows(valueRows);
+        const loadProfileRows = (data.derivedLoadProfileRows || []).filter((row) => row.rowKey !== "derived_load_summary");
 
         const valueCtx = document.getElementById("valueChart");
 
-        charts.value = new Chart(valueCtx, {
-          type: "bar",
-          data: {
-            labels: genRows.map((row) => row.technologyLabel || technologyLabel(row.technology) || row.rowKey),
-            datasets: [
-              {
-                label: "Betreiberwert EUR/Jahr",
-                data: genRows.map((row) => Number(row.grossMarketValueEurPerYear) || 0),
-                backgroundColor: ["#157f53", "#2f6fa7", "#a76116", "#6f7f15"],
-                borderRadius: 4,
+        if (valueCtx) {
+          charts.value = new Chart(valueCtx, {
+            type: "bar",
+            data: {
+              labels: genRows.map((row) => row.technologyLabel || technologyLabel(row.technology) || row.rowKey),
+              datasets: [
+                {
+                  label: "Betreiberwert EUR/Jahr",
+                  data: genRows.map((row) => Number(row.grossMarketValueEurPerYear) || 0),
+                  backgroundColor: ["#157f53", "#2f6fa7", "#a76116", "#6f7f15"],
+                  borderRadius: 4,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: (ctx) => euro(ctx.raw) } },
               },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: { callbacks: { label: (ctx) => euro(ctx.raw) } },
+              scales: {
+                y: { ticks: { callback: (value) => euro(value) } },
+              },
             },
-            scales: {
-              y: { ticks: { callback: (value) => euro(value) } },
-            },
-          },
-        });
+          });
+        }
 
+        const loadProfileCtx = document.getElementById("loadProfileChart");
+        if (loadProfileCtx && loadProfileRows.length) {
+          charts.loadProfile = new Chart(loadProfileCtx, {
+            type: "bar",
+            data: {
+              labels: loadProfileRows.map((row) => row.rowLabel || row.rowKey),
+              datasets: [
+                {
+                  label: "Abgeleiteter Verbrauch GWh/Jahr",
+                  data: loadProfileRows.map((row) => annualGwh(row.totalAnnualKwh)),
+                  backgroundColor: ["#157f53", "#2f6fa7", "#a76116"],
+                  borderRadius: 4,
+                },
+              ],
+            },
+            options: {
+              indexAxis: "y",
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) => `${number(ctx.raw, " GWh/Jahr")} abgeleiteter Verbrauch`,
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  beginAtZero: true,
+                  ticks: { callback: (value) => number(value, " GWh") },
+                },
+              },
+            },
+          });
+        }
       }
 
       function render(data) {
