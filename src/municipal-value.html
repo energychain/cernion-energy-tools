@@ -731,8 +731,8 @@
         <div class="intro">
           <h1>Was bleibt von Energie in Ihrer Kommune?</h1>
           <p class="lead">
-            Dieses Lagebild uebersetzt Strom in kommunale Euro-Fragen: Welche Wertschoepfung
-            entsteht im Ort, was fliesst bei importierter Energie ab, welche Einnahmen beruehren
+            Dieses Lagebild übersetzt Strom in kommunale Euro-Fragen: Welche Wertschöpfung
+            entsteht im Ort, was fließt bei importierter Energie ab, welche Einnahmen berühren
             den Haushalt und welche Erzeugungsart sollte politisch zuerst vorbereitet werden?
           </p>
 
@@ -761,11 +761,11 @@
               </div>
             </form>
             <div class="consulting-cta">
-              <strong>Aus dem Link wird ein Beratungsgespraech.</strong>
+              <strong>Aus dem Link wird ein Beratungsgespräch.</strong>
               <p>
                 Die Auswertung zeigt in wenigen Minuten, welche Fragen eine Kommune sofort
                 stellen sollte: Was bleibt lokal, was fehlt als Evidenz und welches Netzrisiko
-                blockiert den naechsten politischen Schritt?
+                blockiert den nächsten politischen Schritt?
               </p>
             </div>
           </div>
@@ -773,11 +773,11 @@
           <div class="story-card">
             <div class="story-item">
               <b>Haushaltsfrage</b>
-              <p>Wie wird aus einer MWh Strom ein Euro-Effekt fuer Kaemmerei und Rat?</p>
+              <p>Wie wird aus einer MWh Strom ein Euro-Effekt für Kämmerei und Rat?</p>
             </div>
             <div class="story-item">
               <b>Standortpolitik</b>
-              <p>Welche Anlagen binden Wert im Ort, statt nur Strom von aussen zu bezahlen?</p>
+              <p>Welche Anlagen binden Wert im Ort, statt nur Strom von außen zu bezahlen?</p>
             </div>
             <div class="story-item">
               <b>Handlungsauftrag</b>
@@ -796,8 +796,8 @@
             <h2>Vom Stromthema zur lokalen Bilanz</h2>
             <p>
               Eine lokal erzeugte und lokal verbrauchte MWh ist nicht nur Technik. Sie ist
-              Marktwert, Flaechen- oder Betreiberchance, Konzessionslogik und Standortpolitik.
-              Die Seite macht diese Wirkung verstaendlich, ohne eine Abrechnung zu behaupten.
+              Marktwert, Flächen- oder Betreiberchance, Konzessionslogik und Standortpolitik.
+              Die Seite macht diese Wirkung verständlich, ohne eine Abrechnung zu behaupten.
             </p>
           </div>
         </aside>
@@ -805,14 +805,14 @@
 
       <section id="results" class="results" aria-live="polite">
         <div class="empty">
-          Ein Ort ist vorausgewaehlt. Starten Sie das Lagebild und pruefen Sie, welche
+          Ein Ort ist vorausgewählt. Starten Sie das Lagebild und prüfen Sie, welche
           kommunalen Energie-Werte bereits sichtbar werden.
         </div>
       </section>
     </main>
 
     <footer class="shell">
-      Cernion liefert ein kommunales Lagebild, keine Abrechnung und keine Netzkapazitaetszusage.
+      Cernion liefert ein kommunales Lagebild, keine Abrechnung und keine Netzkapazitätszusage.
       Fehlende Evidenz wird sichtbar ausgewiesen.
     </footer>
 
@@ -863,7 +863,7 @@
 
       function statusText(data) {
         if (data.status === "lagebild_municipality_unresolved") {
-          return "Ort nicht eindeutig aufgeloest";
+          return "Ort nicht eindeutig aufgelöst";
         }
         if ((data.missingEvidence || []).length > 0) {
           return "Lagebild mit offenen Evidenzpunkten";
@@ -920,12 +920,12 @@
         const importedMwh = concessionProxy;
         const topTech = strongestTechnology(rows);
         const topTechText = topTech
-          ? `${technologyLabel(topTech.technology)} traegt im aktuellen Szenario den groessten sichtbaren Erzeugungswert.`
-          : "Die lokale Erzeugungsbasis ist noch nicht belastbar genug, um eine Fuehrungstechnologie zu benennen.";
+          ? `${technologyLabel(topTech.technology)} trägt im aktuellen Szenario den größten sichtbaren Erzeugungswert.`
+          : "Die lokale Erzeugungsbasis ist noch nicht belastbar genug, um eine Führungstechnologie zu benennen.";
 
         return `
           <section class="mayor-brief">
-            <h2>Einordnung fuer Buergermeister und Gemeinderat</h2>
+            <h2>Einordnung für Bürgermeister und Gemeinderat</h2>
             <p>
               Die zentrale Frage ist nicht, ob Strom technisch sauber erzeugt wird. Die politische
               Frage lautet: Bleibt aus jeder MWh ein wirtschaftlicher Gegenwert im Ort, oder bezahlt
@@ -941,26 +941,26 @@
               <article class="money-card">
                 <span>1 MWh importiert</span>
                 <strong>${escapeHtml(euro(importedMwh))}</strong>
-                <p>Bei reinem Bezug entsteht der Erzeugungswert ausserhalb des Ortes. Lokal bleibt in dieser Sicht vor allem der geschaetzte Budget-/Konzessionseffekt.</p>
+                <p>Bei reinem Bezug entsteht der Erzeugungswert außerhalb des Ortes. Lokal bleibt in dieser Sicht vor allem der geschätzte Budget-/Konzessionseffekt.</p>
               </article>
               <article class="money-card">
                 <span>Jahreshebel im Ort</span>
                 <strong>${escapeHtml(euro(generationValue + budgetValue))}</strong>
-                <p>Geschaetzter Jahreswert aus lokal sichtbarem Erzeugungswert und kommunalem Budgeteffekt. Das ist eine erste Lagebild-Rechnung.</p>
+                <p>Geschätzter Jahreswert aus lokal sichtbarem Erzeugungswert und kommunalem Budgeteffekt. Das ist eine erste Lagebild-Rechnung.</p>
               </article>
             </div>
             <div class="narrative-grid">
               <article class="narrative-card">
-                <h3>Warum das fuer den Haushalt zaehlt</h3>
-                <p>Konzessionsabgaben wirken direkt kommunal. Erzeugungswert wirkt indirekt ueber lokale Betreiber, Flaechen, Gewerbe, Pachten und Stadtwerk-Strategie.</p>
+                <h3>Warum das für den Haushalt zählt</h3>
+                <p>Konzessionsabgaben wirken direkt kommunal. Erzeugungswert wirkt indirekt über lokale Betreiber, Flächen, Gewerbe, Pachten und Stadtwerk-Strategie.</p>
               </article>
               <article class="narrative-card">
-                <h3>Warum das fuer Standortpolitik zaehlt</h3>
-                <p>Lokale Erzeugung macht Energiepolitik greifbar: Dachflaechen, Gewerbegebiete, Bioenergie und Flaechenplanung werden zu wirtschaftlichen Optionen.</p>
+                <h3>Warum das für Standortpolitik zählt</h3>
+                <p>Lokale Erzeugung macht Energiepolitik greifbar: Dachflächen, Gewerbegebiete, Bioenergie und Flächenplanung werden zu wirtschaftlichen Optionen.</p>
               </article>
               <article class="narrative-card">
                 <h3>Was dieser Ort jetzt lernen kann</h3>
-                <p>${escapeHtml(topTechText)} Danach sollte geklaert werden, welcher Ausbau politisch, netzseitig und kaufmaennisch am besten traegt.</p>
+                <p>${escapeHtml(topTechText)} Danach sollte geklärt werden, welcher Ausbau politisch, netzseitig und kaufmännisch am besten trägt.</p>
               </article>
             </div>
           </section>
@@ -973,24 +973,24 @@
         if (tech.includes("pv")) {
           return {
             label: "Photovoltaik priorisieren",
-            detail: `PV liefert hier ${value} sichtbaren Jahreswert. Politisch passt dazu ein Dachflaechen-, Gewerbedach- und kommunales Liegenschaftsprogramm.`,
+            detail: `PV liefert hier ${value} sichtbaren Jahreswert. Politisch passt dazu ein Dachflächen-, Gewerbedach- und kommunales Liegenschaftsprogramm.`,
           };
         }
         if (tech.includes("biomass")) {
           return {
-            label: "Biomasse kaufmaennisch pruefen",
-            detail: `Biomasse liefert hier ${value} sichtbaren Jahreswert. Der Hebel entsteht durch viele Betriebsstunden; wichtig sind Brennstoffpfad, Waermenutzung und Betreiberstruktur.`,
+            label: "Biomasse kaufmännisch prüfen",
+            detail: `Biomasse liefert hier ${value} sichtbaren Jahreswert. Der Hebel entsteht durch viele Betriebsstunden; wichtig sind Brennstoffpfad, Wärmenutzung und Betreiberstruktur.`,
           };
         }
         if (tech.includes("wind")) {
           return {
-            label: "Windkraft als Flaechenfrage klaeren",
-            detail: `Windkraft liefert hier ${value} sichtbaren Jahreswert. Der naechste Schritt ist keine Haushaltszahl in MWh, sondern Flaechen-, Akzeptanz-, Steuer- und Netzanschlusspruefung.`,
+            label: "Windkraft als Flächenfrage klären",
+            detail: `Windkraft liefert hier ${value} sichtbaren Jahreswert. Der nächste Schritt ist keine Haushaltszahl in MWh, sondern Flächen-, Akzeptanz-, Steuer- und Netzanschlussprüfung.`,
           };
         }
         return {
           label: `${technologyLabel(row.technology)} einordnen`,
-          detail: `${technologyLabel(row.technology)} liefert hier ${value} sichtbaren Jahreswert. Die lokale Betreiber- und Flaechenwirkung sollte in einer Beratung geklaert werden.`,
+          detail: `${technologyLabel(row.technology)} liefert hier ${value} sichtbaren Jahreswert. Die lokale Betreiber- und Flächenwirkung sollte in einer Beratung geklärt werden.`,
         };
       }
 
@@ -1002,23 +1002,23 @@
         if (!hasPv) {
           items.push({
             label: "Photovoltaik-Potenzial sichtbar machen",
-            detail: "Wenn keine PV-Zeile auftaucht, sollte zuerst das Dach- und Freiflaechenpotenzial gehoben werden. PV ist meist der schnellste kommunal erklaerbare Einstieg.",
+            detail: "Wenn keine PV-Zeile auftaucht, sollte zuerst das Dach- und Freiflächenpotenzial gehoben werden. PV ist meist der schnellste kommunal erklärbare Einstieg.",
           });
         }
         if (!hasWind) {
           items.push({
-            label: "Windkraft nicht vorschnell ausschliessen",
-            detail: "Fehlt Windkraft, ist das noch keine Absage. Es bedeutet: Regionalplanung, Flaechenkulisse, Akzeptanz und Netzanschluss muessen als eigener Pruefpfad sichtbar werden.",
+            label: "Windkraft nicht vorschnell ausschließen",
+            detail: "Fehlt Windkraft, ist das noch keine Absage. Es bedeutet: Regionalplanung, Flächenkulisse, Akzeptanz und Netzanschluss müssen als eigener Prüfpfad sichtbar werden.",
           });
         }
 
         return `
           <section class="recommendation-panel">
-            <h2>Welche Erzeugung sollte die Kommune foerdern?</h2>
+            <h2>Welche Erzeugung sollte die Kommune fördern?</h2>
             <p>
               Die Empfehlung folgt keiner Ideologie, sondern der lokalen Euro-Logik: Was erzeugt
               viel Jahreswert, was bindet Wert im Ort, was ist politisch umsetzbar und welches Netzrisiko
-              muss vorher geklaert werden?
+              muss vorher geklärt werden?
             </p>
             <div class="recommendation-list">
               ${items
@@ -1056,7 +1056,7 @@
           <div class="risk-row">
             <div>
               <h3>${escapeHtml(row.riskLabel || row.riskKey || "Risiko")}</h3>
-              <p>${escapeHtml(row.nextGateLabel || row.assumptionLabel || row.sourceLabel || "Naechster Evidenzschritt offen")}</p>
+              <p>${escapeHtml(row.nextGateLabel || row.assumptionLabel || row.sourceLabel || "Nächster Evidenzschritt offen")}</p>
             </div>
             <span class="pill ${escapeHtml(severity)}">${escapeHtml(row.severity || "medium")} ${escapeHtml(row.severityScore ?? "")}</span>
           </div>
@@ -1064,7 +1064,7 @@
       }
 
       function renderBudgetTable(rows) {
-        if (!rows.length) return "<p class=\"empty\">Keine Budgetzeilen verfuegbar.</p>";
+        if (!rows.length) return "<p class=\"empty\">Keine Budgetzeilen verfügbar.</p>";
         return `
           <div class="table-wrap">
             <table>
@@ -1102,15 +1102,15 @@
           <div class="insight-band">
             <div class="insight">
               <h3>Datenstand</h3>
-              <p>${escapeHtml(data.analysisRunId || "laufendes Szenario")} fuer ${escapeHtml(data.year || "aktuelles Jahr")} mit Status ${escapeHtml(data.status || "offen")}.</p>
+              <p>${escapeHtml(data.analysisRunId || "laufendes Szenario")} für ${escapeHtml(data.year || "aktuelles Jahr")} mit Status ${escapeHtml(data.status || "offen")}.</p>
             </div>
             <div class="insight">
               <h3>Quellenlage</h3>
-              <p>${sources.length} Quellen-/Annahmezeilen sind sichtbar. ${missing.length} Evidenzpunkte bleiben offen und koennen in einer Beratung geklaert werden.</p>
+              <p>${sources.length} Quellen-/Annahmezeilen sind sichtbar. ${missing.length} Evidenzpunkte bleiben offen und können in einer Beratung geklärt werden.</p>
             </div>
             <div class="insight">
-              <h3>Naechster Schritt</h3>
-              <p>Ein Beratungsgespraech vertieft Erzeugung, Verbrauchsannahmen, Konzessionsabgabe und Netzrisiken mit Cernion.</p>
+              <h3>Nächster Schritt</h3>
+              <p>Ein Beratungsgespräch vertieft Erzeugung, Verbrauchsannahmen, Konzessionsabgabe und Netzrisiken mit Cernion.</p>
             </div>
           </div>
         `;
@@ -1193,10 +1193,10 @@
         dataStatus.textContent = `${data.municipality || "Kommune"}: ${statusText(data)}`;
         results.innerHTML = `
           <div class="summary">
-            ${renderMetric("Lokaler Marktwert pro Jahr", euro(generationValue), "Geschaetzter Jahreswert der Stromerzeugung im Ort, bevor Betreiberstruktur, Pachten und Steuern einzeln bewertet werden.")}
-            ${renderMetric("Euro-Wirkung je MWh", euro(localMwhValue), "Beispielwert fuer 1 MWh: lokaler Erzeugungswert plus geschaetzter kommunaler Budget-/Konzessionseffekt.")}
-            ${renderMetric("Budgeteffekt pro Jahr", euro(budgetValue), "Geschaetzter jaehrlicher Effekt fuer den kommunalen Haushalt, zum Beispiel aus Konzessionslogik und Annahmen des Szenarios.")}
-            ${renderMetric("Jahreshebel im Ort", euro(generationValue + budgetValue), "Geschaetzter Gesamtwert pro Jahr: wirtschaftlicher Wert der lokalen Anlagen plus kommunaler Budgeteffekt.")}
+            ${renderMetric("Lokaler Marktwert pro Jahr", euro(generationValue), "Geschätzter Jahreswert der Stromerzeugung im Ort, bevor Betreiberstruktur, Pachten und Steuern einzeln bewertet werden.")}
+            ${renderMetric("Euro-Wirkung je MWh", euro(localMwhValue), "Beispielwert für 1 MWh: lokaler Erzeugungswert plus geschätzter kommunaler Budget-/Konzessionseffekt.")}
+            ${renderMetric("Budgeteffekt pro Jahr", euro(budgetValue), "Geschätzter jährlicher Effekt für den kommunalen Haushalt, zum Beispiel aus Konzessionslogik und Annahmen des Szenarios.")}
+            ${renderMetric("Jahreshebel im Ort", euro(generationValue + budgetValue), "Geschätzter Gesamtwert pro Jahr: wirtschaftlicher Wert der lokalen Anlagen plus kommunaler Budgeteffekt.")}
           </div>
 
           ${renderMayorBrief(data, generationValue, generationKwh, budgetValue)}
@@ -1216,7 +1216,7 @@
               <div class="panel-head">
                 <div>
                   <h2>Was kann den kommunalen Nutzen bremsen?</h2>
-                  <p>Hoechster Risikoscore: ${escapeHtml(maxRisk)}. Verzogerung, Datenluecken oder Anschlussengpaesse werden als wirtschaftliches Risiko lesbar.</p>
+                  <p>Höchster Risikoscore: ${escapeHtml(maxRisk)}. Verzögerung, Datenlücken oder Anschlussengpässe werden als wirtschaftliches Risiko lesbar.</p>
                 </div>
               </div>
               <div class="chart-wrap"><canvas id="riskChart"></canvas></div>
@@ -1228,8 +1228,8 @@
           <section class="panel">
             <div class="panel-head">
               <div>
-                <h2>Blocker fuer lokale Wertschoepfung</h2>
-                <p>Die Zeilen zeigen nicht nur Technik, sondern kommunale Wirkung: Verzogerungen, Datenluecken und Anschlussrisiken koennen Investitionen und Einnahmen verschieben.</p>
+                <h2>Blocker für lokale Wertschöpfung</h2>
+                <p>Die Zeilen zeigen nicht nur Technik, sondern kommunale Wirkung: Verzögerungen, Datenlücken und Anschlussrisiken können Investitionen und Einnahmen verschieben.</p>
               </div>
             </div>
             <div class="risk-list">${riskRows.map(renderRisk).join("")}</div>
@@ -1239,7 +1239,7 @@
             <div class="panel-head">
               <div>
                 <h2>Haushalt: Konzession und Szenarioeffekt</h2>
-                <p>Konzessionsabgabe und Budgeteffekte bleiben bewusst als Annahmen gekennzeichnet, damit Politik und Kaemmerei sie pruefen koennen.</p>
+                <p>Konzessionsabgabe und Budgeteffekte bleiben bewusst als Annahmen gekennzeichnet, damit Politik und Kämmerei sie prüfen können.</p>
               </div>
             </div>
             ${renderBudgetTable(budgetRows)}

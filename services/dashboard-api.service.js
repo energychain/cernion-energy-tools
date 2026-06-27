@@ -29016,7 +29016,7 @@ module.exports = {
           flaecheKm2: 46.1,
           gridOperatorLabel: 'Stadtwerke Wiesloch GmbH',
           gridOperatorBdewHint: 'local-bw-vnb',
-          konzessionsabgabeKategorie: 'Gemeinde ueber 25.000 bis 100.000 Einwohner',
+          konzessionsabgabeKategorie: 'Gemeinde über 25.000 bis 100.000 Einwohner',
           kavRateNsCtPerKwh: 1.59,
           pvCapacityKw: 7200,
           biomassCapacityKw: 800,
@@ -29177,7 +29177,7 @@ module.exports = {
       } else {
         valueRows.push({
           rowKey: 'generation_value_missing',
-          rowLabel: 'Erzeugungsdaten nicht verfuegbar',
+          rowLabel: 'Erzeugungsdaten nicht verfügbar',
           technology: 'unknown',
           installedCapacityKw: null,
           assumedFullLoadHours: null,
@@ -29187,7 +29187,7 @@ module.exports = {
           localValueCaptureEur: null,
           evidenceStatus: 'missing-evidence',
           assumptionLabel: 'Gemeinde nicht im lokalen Profil; MaStR-Abfrage erforderlich',
-          sourceLabel: 'keine Quelle verfuegbar',
+          sourceLabel: 'keine Quelle verfügbar',
         });
       }
 
@@ -29204,8 +29204,8 @@ module.exports = {
             ? 'assumption-backed'
             : 'missing-evidence',
           sourceLabel: 'EWK-Monitoring (BNr erforderlich)',
-          assumptionLabel: 'Proxy-Risiko; BNr fuer belastbare EWK-Aufloesung erforderlich',
-          nextGateLabel: 'VNB/BNr auflosen; EWK-Anschlussdauer-Snapshot abrufen',
+          assumptionLabel: 'Proxy-Risiko; BNr für belastbare EWK-Auflösung erforderlich',
+          nextGateLabel: 'VNB/BNr auflösen; EWK-Anschlussdauer-Snapshot abrufen',
         },
         {
           riskKey: 'digitalization_index_risk',
@@ -29218,7 +29218,7 @@ module.exports = {
           evidenceStatus: 'missing-evidence',
           sourceLabel: 'vnb-digital / VNB-Monitor (BNr erforderlich)',
           assumptionLabel: 'Proxy-Risiko; kein belastbarer Digitalisierungsindex ohne BNr',
-          nextGateLabel: 'Netzbetreiber BDEW-Code/BNr bestaetigen; VNB-Monitor-Snapshot starten',
+          nextGateLabel: 'Netzbetreiber BDEW-Code/BNr bestätigen; VNB-Monitor-Snapshot starten',
         },
         {
           riskKey: 'imsys_smgw_rollout_readiness_risk',
@@ -29230,21 +29230,21 @@ module.exports = {
           delayRiskDays: null,
           evidenceStatus: 'assumption-backed',
           sourceLabel: 'BNetzA / TAF-Monitoring (lokale Daten fehlen)',
-          assumptionLabel: 'Proxy-Annahme: branchenweiter Rollout-Rueckstand ~30%; keine lokale Anschlussanfrage vorgelegt',
-          nextGateLabel: 'SMGW-Rollout-Quote beim Netzbetreiber abfragen; VDMI-Zeile pruefen',
+          assumptionLabel: 'Proxy-Annahme: branchenweiter Rollout-Rückstand ~30%; keine lokale Anschlussanfrage vorgelegt',
+          nextGateLabel: 'SMGW-Rollout-Quote beim Netzbetreiber abfragen; VDMI-Zeile prüfen',
         },
         {
           riskKey: 'grid_capacity_constraint_risk',
-          riskLabel: 'Kapazitaetsengpass / Netzanschluss-Restriktionen',
+          riskLabel: 'Kapazitätsengpass / Netzanschluss-Restriktionen',
           severity: isKnown ? 'low' : 'medium',
           severityScore: isKnown ? 20 : 50,
           valueAtRiskEurPerYear: null,
           economicImpactEurPerYear: null,
           delayRiskDays: null,
           evidenceStatus: 'missing-evidence',
-          sourceLabel: 'Netzkapazitaetsanzeige / Anschlussanfrage (fehlt)',
-          assumptionLabel: 'Kein konkreter Engpass bekannt; ohne Netzkapazitaetsquelle nicht ausschliessbar',
-          nextGateLabel: 'Netzkapazitaetsanzeige Netzbetreiber pruefen; konkrete Anschlussanfrage vorlegen',
+          sourceLabel: 'Netzkapazitätsanzeige / Anschlussanfrage (fehlt)',
+          assumptionLabel: 'Kein konkreter Engpass bekannt; ohne Netzkapazitätsquelle nicht ausschließbar',
+          nextGateLabel: 'Netzkapazitätsanzeige Netzbetreiber prüfen; konkrete Anschlussanfrage vorlegen',
         },
       ];
 
@@ -29283,7 +29283,7 @@ module.exports = {
             calculationStatus: 'assumption-scenario',
             assumptionStatus: '25% Aufschlag auf HH-Annahme; Gewerbestruktur unbekannt',
             evidenceStatus: 'assumption-backed',
-            assumptionLabel: 'Gewerbeanteil geschaetzt; keine lokale Gewerbestatistik vorgelegt',
+            assumptionLabel: 'Gewerbeanteil geschätzt; keine lokale Gewerbestatistik vorgelegt',
             sourceLabel: 'interne Annahme / Branchenproxy',
           },
           {
@@ -29293,7 +29293,7 @@ module.exports = {
             segment: 'NS-gesamt',
             estimatedEurPerYear: kavNsEurPerYear + kavGewerbeEurPerYear,
             calculationStatus: 'assumption-scenario',
-            assumptionStatus: 'Szenario-Summe; keine rechtliche/buchhalterische Finalitaet',
+            assumptionStatus: 'Szenario-Summe; keine rechtliche/buchhalterische Finalität',
             evidenceStatus: 'scenario-based',
             assumptionLabel:
               'Konzessionsabgabe ist eine kommunale Einnahme des Konzessionsgebers; ' +
@@ -29309,10 +29309,10 @@ module.exports = {
           segment: 'unbekannt',
           estimatedEurPerYear: null,
           calculationStatus: 'missing-data',
-          assumptionStatus: 'Gemeindeprofil nicht aufgeloest',
+          assumptionStatus: 'Gemeindeprofil nicht aufgelöst',
           evidenceStatus: 'missing-evidence',
           assumptionLabel: 'Gemeinde nicht im lokalen Profil; Einwohnerzahl und KAV-Kategorie erforderlich',
-          sourceLabel: 'keine Quelle verfuegbar',
+          sourceLabel: 'keine Quelle verfügbar',
         });
       }
 
@@ -29332,7 +29332,7 @@ module.exports = {
           assumptionValue: String(pvFullLoadHours),
           assumptionUnit: 'h/a',
           category: 'erzeugung',
-          source: 'DWD / Branchenwert Sueddeutschland',
+          source: 'DWD / Branchenwert Süddeutschland',
           evidenceStatus: 'assumption-backed',
         },
         {
@@ -29347,7 +29347,7 @@ module.exports = {
         {
           assumptionKey: 'local_value_capture_basis',
           assumptionLabel: 'Lokale Werterfassung -- Datenbasis',
-          assumptionValue: 'Lastprofil fehlt; Zeitreihen-Korrelation nicht moeglich',
+          assumptionValue: 'Lastprofil fehlt; Zeitreihen-Korrelation nicht möglich',
           assumptionUnit: 'Evidenzstatus',
           category: 'versorgung',
           source: 'Zeitreihen-Korrelation erforderlich',
@@ -29429,7 +29429,7 @@ module.exports = {
               importExposureEur: null,
               confidence: 'low',
               evidenceStatus: 'missing-evidence',
-              sourceLabel: 'Kein lokales Lastprofil; Zeitkorrelation nicht moeglich',
+              sourceLabel: 'Kein lokales Lastprofil; Zeitkorrelation nicht möglich',
             }] : []),
             ...(profile.biomassCapacityKw > 0 ? [{
               rowKey: 'ts_biomass_annual',
@@ -29441,7 +29441,7 @@ module.exports = {
               importExposureEur: null,
               confidence: 'low',
               evidenceStatus: 'missing-evidence',
-              sourceLabel: 'Kein lokales Lastprofil; Zeitkorrelation nicht moeglich',
+              sourceLabel: 'Kein lokales Lastprofil; Zeitkorrelation nicht möglich',
             }] : []),
             ...(profile.windCapacityKw > 0 ? [{
               rowKey: 'ts_wind_annual',
@@ -29453,7 +29453,7 @@ module.exports = {
               importExposureEur: null,
               confidence: 'low',
               evidenceStatus: 'missing-evidence',
-              sourceLabel: 'Kein lokales Lastprofil; Zeitkorrelation nicht moeglich; wind-heavy Erzeugung ohne Lastprofil nicht lokal zuordenbar',
+              sourceLabel: 'Kein lokales Lastprofil; Zeitkorrelation nicht möglich; wind-heavy Erzeugung ohne Lastprofil nicht lokal zuordenbar',
             }] : []),
           ]
         : [{
@@ -29466,7 +29466,7 @@ module.exports = {
             importExposureEur: null,
             confidence: 'none',
             evidenceStatus: 'missing-evidence',
-            sourceLabel: 'Gemeindeprofil nicht aufgeloest',
+            sourceLabel: 'Gemeindeprofil nicht aufgelöst',
           }];
 
       const budgetTotalEur = budgetImpactRows.reduce(
@@ -29492,7 +29492,7 @@ module.exports = {
           rowKey: 'euro_kpi_municipal_budget_effect',
           label: 'Kommunaler Haushaltseffekt (Szenario)',
           valueEur: budgetTotalEur > 0 ? budgetTotalEur : null,
-          description: 'Konzessionsabgabe und Szenario-Budgeteffekte; keine rechtliche Abrechnung oder Finalitaet.',
+          description: 'Konzessionsabgabe und Szenario-Budgeteffekte; keine rechtliche Abrechnung oder Finalität.',
           evidenceStatus: budgetTotalEur > 0 ? 'assumption-backed' : 'missing-evidence',
         },
         {
@@ -29518,16 +29518,16 @@ module.exports = {
         missingEvidence.push({ missingDataPoint, enablesDossierAddition });
       };
 
-      if (!isKnown) addGap('municipality_profile', 'Gemeindeprofil (AGS, Einwohnerzahl, Flaeche) ermoeoflicht Grundlagebild.');
-      if (!resolvedAgs) addGap('ags_code', 'AGS-Code ermoeoflicht MaStR-Abfrage und KAV-Kategorisierung.');
-      addGap('local_load_profile', 'Lokales Lastprofil (Stundenaufloesung) ermoeoflicht Zeitreihen-Korrelation und belastbare lokale Werterfassung in EUR.');
-      addGap('generation_time_series', 'Erzeugungszeitreihe je Technologie ermoeoflicht Zeitkorrelation; ohne sie bleiben localCorrelationValueEur und importExposureEur null.');
-      addGap('vnb_bnr', 'BNr des zustaendigen Netzbetreibers ermoeoflicht EWK-Anschlussdauer und Digitalisierungsindex.');
-      addGap('mastr_live_data', 'Live-MaStR-Abfrage ermoeoflicht belastbare Erzeugungskapazitaeten statt Annahmen.');
-      addGap('netzkapazitaetsnachweis', 'Netzkapazitaetsnachweis ermoeoflicht Kapazitaetsengpass-Risikobewertung.');
-      addGap('imsys_rollout_quote', 'Lokale iMSys/SMGW-Rollout-Quote vom Netzbetreiber ermoeoflicht SMGW-Risikozeile.');
-      addGap('operator_locality', 'Belege zur Lokalitaet des Netzbetreibers ermoeoflicht kommunale Steuer-/Umsatzeffekt-Abschaetzung.');
-      addGap('local_tax_assumptions', 'Lokale Gewerbesteuer-/Einkommensteuerannahmen ermoeoflicht kommunalen Steuereffekt-Szenario.');
+      if (!isKnown) addGap('municipality_profile', 'Gemeindeprofil (AGS, Einwohnerzahl, Fläche) ermöglicht das Grundlagenbild.');
+      if (!resolvedAgs) addGap('ags_code', 'AGS-Code ermöglicht MaStR-Abfrage und KAV-Kategorisierung.');
+      addGap('local_load_profile', 'Lokales Lastprofil (Stundenauflösung) ermöglicht Zeitreihen-Korrelation und belastbare lokale Werterfassung in EUR.');
+      addGap('generation_time_series', 'Erzeugungszeitreihe je Technologie ermöglicht Zeitkorrelation; ohne sie bleiben localCorrelationValueEur und importExposureEur null.');
+      addGap('vnb_bnr', 'BNr des zuständigen Netzbetreibers ermöglicht EWK-Anschlussdauer und Digitalisierungsindex.');
+      addGap('mastr_live_data', 'Live-MaStR-Abfrage ermöglicht belastbare Erzeugungskapazitäten statt Annahmen.');
+      addGap('netzkapazitaetsnachweis', 'Netzkapazitätsnachweis ermöglicht Kapazitätsengpass-Risikobewertung.');
+      addGap('imsys_rollout_quote', 'Lokale iMSys/SMGW-Rollout-Quote vom Netzbetreiber ermöglicht SMGW-Risikozeile.');
+      addGap('operator_locality', 'Belege zur Lokalität des Netzbetreibers ermöglichen kommunale Steuer-/Umsatzeffekt-Abschätzung.');
+      addGap('local_tax_assumptions', 'Lokale Gewerbesteuer-/Einkommensteuerannahmen ermöglichen kommunales Steuereffekt-Szenario.');
 
       const positiveFollowUps = missingEvidence.map((gap) => ({
         ...gap,
