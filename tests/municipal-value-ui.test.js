@@ -98,6 +98,10 @@ describe('municipal-value public UI decision framing', () => {
     expect(html).toContain('Siedlungsstruktur:');
     expect(html).toContain('n =');
     expect(html).toContain('Die Vergleichsorte bleiben im Standard anonymisiert');
+    expect(html).toContain('function comparisonAxis(row)');
+    expect(html).toContain('function comparisonBandStyle(row)');
+    expect(html).toContain('comparison-peer-band');
+    expect(html).toContain('data-label="${escapeHtml(data.municipality || "Ort")}"');
 
     const renderStart = html.indexOf('results.innerHTML = `');
     const renderBlock = html.slice(renderStart);

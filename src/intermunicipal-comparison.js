@@ -53,13 +53,36 @@ function settlementDensityClass(pop, areaSqKm) {
   return 'RURAL';
 }
 
-// ── Peer-generation proxy (same method as target) ────────────────────────────
+// ── Peer-generation proxy (same method family as target) ─────────────────────
 
-function _estimatePeerGenKwh(ewz) {
-  const pvKw  = Math.round(ewz * PV_KW_PER_EW);
-  const bioKw = ewz < 10000
-    ? Math.round(ewz * BIO_KW_PER_EW_SM)
-    : Math.round(ewz * BIO_KW_PER_EW_LG);
+function _clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function _densityAdjustedPvKwPerEw(ewz, areaSqKm) {
+  if (!ewz || !areaSqKm || areaSqKm <= 0) return PV_KW_PER_EW;
+  const density = ewz / areaSqKm;
+  const areaPer1000Ew = areaSqKm / (ewz / 1000);
+  const densityFactor = _clamp(1.18 - density / 2400, 0.58, 1.28);
+  const areaFactor = _clamp(0.84 + areaPer1000Ew / 95, 0.82, 1.22);
+  return _clamp(PV_KW_PER_EW * densityFactor * areaFactor, 0.34, 0.78);
+}
+
+function _densityAdjustedBioKwPerEw(ewz, areaSqKm) {
+  const base = ewz < 10000 ? BIO_KW_PER_EW_SM : BIO_KW_PER_EW_LG;
+  if (!ewz || !areaSqKm || areaSqKm <= 0) return base;
+  const density = ewz / areaSqKm;
+  const areaPer1000Ew = areaSqKm / (ewz / 1000);
+  const ruralFeedstockFactor = _clamp(0.62 + areaPer1000Ew / 45, 0.55, 1.35);
+  const densityFactor = _clamp(1.12 - density / 3200, 0.55, 1.18);
+  return _clamp(base * ruralFeedstockFactor * densityFactor, base * 0.45, base * 1.45);
+}
+
+function _estimatePeerGenKwh(peer) {
+  const ewz = peer.ewz || 0;
+  const areaSqKm = peer.kfl || 0;
+  const pvKw  = Math.round(ewz * _densityAdjustedPvKwPerEw(ewz, areaSqKm));
+  const bioKw = Math.round(ewz * _densityAdjustedBioKwPerEw(ewz, areaSqKm));
   return pvKw * PV_FLH + bioKw * BIOMASS_FLH;
 }
 
@@ -137,6 +160,16 @@ function _percentiles(values) {
       ? (sorted[mid - 1] + sorted[mid]) / 2
       : sorted[mid];
   return { min: sorted[0], median, max: sorted[sorted.length - 1] };
+}
+
+function _positionFraming(targetValue, minValue, maxValue, unit, municipality, highText, lowText, inBandText) {
+  if (targetValue > maxValue) {
+    return `${municipality} liegt bei ${targetValue} ${unit} und damit oberhalb dieses Korridors; ${highText}.`;
+  }
+  if (targetValue < minValue) {
+    return `${municipality} liegt bei ${targetValue} ${unit} und damit unterhalb des Korridors; ${lowText}.`;
+  }
+  return `${municipality} liegt bei ${targetValue} ${unit}; ${inBandText}.`;
 }
 
 // ── Main builder ─────────────────────────────────────────────────────────────
@@ -336,7 +369,7 @@ function buildIntermunicipalComparison({
   for (const peer of peers) {
     const ewz = peer.ewz || 0;
     if (!ewz) continue;
-    const genKwh     = _estimatePeerGenKwh(ewz);
+    const genKwh     = _estimatePeerGenKwh(peer);
     const grossEur   = Math.round((genKwh / 1000) * mktPrice);
     const loadKwh    = ewz * LOAD_KWH_PER_EW;
     peerCoverageValues.push(loadKwh > 0 ? Math.min(1.0, genKwh / loadKwh) : 0);
@@ -366,8 +399,17 @@ function buildIntermunicipalComparison({
         : 'keine Daten',
       framingText:
         `Vergleichbare Kommunen in ${profile.state} binden lokal zwischen ` +
-        `${coverageP.min} und ${coverageP.max} % ihres Erzeugungswerts. ` +
-        `${profile.name} liegt bei ${targetCoveragePct} % — der Korridor zeigt den erschließbaren Spielraum.`,
+        `${coverageP.min} und ${coverageP.max} % bezogen auf den abgeleiteten Verbrauch. ` +
+        _positionFraming(
+          targetCoveragePct,
+          coverageP.min,
+          coverageP.max,
+          '%',
+          profile.name,
+          'das ist eine starke lokale Ausgangslage',
+          'der Korridor zeigt den erschließbaren Spielraum',
+          'der Korridor verortet die lokale Ausgangslage'
+        ),
       evidenceStatus: 'scenario-based',
     },
     {
@@ -384,7 +426,16 @@ function buildIntermunicipalComparison({
       framingText:
         `Vergleichbare Kommunen erwirtschaften zwischen ` +
         `${genValueP.min} und ${genValueP.max} EUR/EW/Jahr aus lokaler Erzeugung. ` +
-        `${profile.name} liegt bei ${targetGenerationValueEurPerCapita} EUR/EW/Jahr.`,
+        _positionFraming(
+          targetGenerationValueEurPerCapita,
+          genValueP.min,
+          genValueP.max,
+          'EUR/EW/Jahr',
+          profile.name,
+          'das ist eine starke lokale Ausgangslage',
+          'der Korridor zeigt den erschließbaren Spielraum',
+          'der Korridor verortet die lokale Ausgangslage'
+        ),
       evidenceStatus: 'scenario-based',
     },
   ];

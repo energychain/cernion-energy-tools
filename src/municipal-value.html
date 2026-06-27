@@ -488,6 +488,15 @@
         position: relative;
       }
 
+      .comparison-peer-band {
+        background: rgba(47, 111, 167, 0.28);
+        border-radius: 999px;
+        height: 100%;
+        left: var(--peer-left, 0%);
+        position: absolute;
+        width: var(--peer-width, 100%);
+      }
+
       .comparison-marker {
         background: var(--green);
         border: 2px solid #fff;
@@ -499,6 +508,18 @@
         top: 50%;
         transform: translate(-50%, -50%);
         width: 20px;
+      }
+
+      .comparison-marker::after {
+        color: var(--green);
+        content: attr(data-label);
+        font-size: 0.74rem;
+        font-weight: 900;
+        left: 50%;
+        position: absolute;
+        top: 18px;
+        transform: translateX(-50%);
+        white-space: nowrap;
       }
 
       .comparison-range {
@@ -2253,12 +2274,44 @@
       }
 
       function comparisonMarkerPosition(row) {
+        const axis = comparisonAxis(row);
+        if (!axis) return 50;
+        return axis.targetPosition;
+      }
+
+      function comparisonAxis(row) {
         const min = Number(row.minValue);
         const max = Number(row.maxValue);
         const target = Number(row.targetValue);
-        if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(target)) return 50;
-        if (max <= min) return 50;
-        return Math.max(0, Math.min(100, ((target - min) / (max - min)) * 100));
+        if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(target)) return null;
+        const rawAxisMin = Math.min(min, target);
+        const rawAxisMax = Math.max(max, target);
+        const span = rawAxisMax - rawAxisMin;
+        const pad = span > 0 ? span * 0.08 : Math.max(Math.abs(rawAxisMax) * 0.08, 1);
+        const axisMin = rawAxisMin - pad;
+        const axisMax = rawAxisMax + pad;
+        const axisSpan = axisMax - axisMin;
+        if (axisSpan <= 0) return null;
+        const position = (value) => Math.max(0, Math.min(100, ((value - axisMin) / axisSpan) * 100));
+        const peerLeft = position(min);
+        const peerRight = position(max);
+        return {
+          axisMin,
+          axisMax,
+          targetPosition: position(target),
+          peerLeft,
+          peerWidth: Math.max(2, peerRight - peerLeft),
+        };
+      }
+
+      function comparisonBandStyle(row) {
+        const axis = comparisonAxis(row);
+        if (!axis) return "--marker-position: 50%; --peer-left: 0%; --peer-width: 100%;";
+        return [
+          `--marker-position: ${axis.targetPosition}%`,
+          `--peer-left: ${axis.peerLeft}%`,
+          `--peer-width: ${axis.peerWidth}%`,
+        ].join("; ");
       }
 
       function renderIntermunicipalComparison(data) {
@@ -2319,8 +2372,9 @@
                     <h3>${escapeHtml(row.metricLabel || row.metricKey)}</h3>
                     <span>${escapeHtml(row.targetValue != null ? `${row.targetValue} ${row.unit || ""}` : "offen")}</span>
                   </div>
-                  <div class="comparison-band" aria-label="${escapeHtml(row.metricLabel || row.metricKey)} Korridor">
-                    <span class="comparison-marker" style="--marker-position: ${comparisonMarkerPosition(row)}%"></span>
+                  <div class="comparison-band" style="${comparisonBandStyle(row)}" aria-label="${escapeHtml(row.metricLabel || row.metricKey)} Korridor">
+                    <span class="comparison-peer-band"></span>
+                    <span class="comparison-marker" data-label="${escapeHtml(data.municipality || "Ort")}"></span>
                   </div>
                   <div class="comparison-range">
                     <span>${escapeHtml(row.minValue != null ? `${row.minValue} ${row.unit || ""}` : "min offen")}</span>

@@ -10629,5 +10629,34 @@ describe('dashboard-api.service', () => {
         expect(row.evidenceStatus).toBe('scenario-based');
       }
     });
+
+    it('peer corridor is non-degenerate so target can be verortet against comparable municipalities', () => {
+      const result = buildIntermunicipalComparison({
+        profile: {
+          ..._baseProfile,
+          ags: '08226041',
+          name: 'Leimen',
+          population: 27142,
+          areaSqKm: 20.64,
+          pvCapacityKw: 14928,
+          biomassCapacityKw: 1086,
+          postalCode: '69181',
+        },
+        annualLoad: {
+          totalAnnualKwh: Math.round(27142 * 1534),
+          householdKwh: 27142 * 0.46 * 2300,
+          households: Math.round(27142 * 0.46),
+        },
+        totalGrossMarketValueEur: 3150000,
+        year: 2025,
+        scenario: 'baseline',
+        marketPriceEurPerMwh: 70,
+      });
+      expect(result.status).toBe('available');
+      for (const row of result.corridorRows) {
+        expect(row.maxValue).toBeGreaterThan(row.minValue);
+        expect(row.framingText).toMatch(/oberhalb|unterhalb|verortet/);
+      }
+    });
   });
 });
