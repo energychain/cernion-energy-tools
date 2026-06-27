@@ -773,7 +773,7 @@
           <div class="story-card">
             <div class="story-item">
               <b>Haushaltsfrage</b>
-              <p>Wie wird aus einer MWh Strom ein lokaler Euro-Effekt fuer Kaemmerei und Rat?</p>
+              <p>Wie wird aus einer MWh Strom ein Euro-Effekt fuer Kaemmerei und Rat?</p>
             </div>
             <div class="story-item">
               <b>Standortpolitik</b>
@@ -970,28 +970,27 @@
       function recommendationFor(row) {
         const tech = String(row.technology || row.rowKey || "").toLowerCase();
         const value = euro(row.grossMarketValueEurPerYear);
-        const mwh = number((Number(row.estimatedGenerationKwhPerYear) || 0) / 1000, " MWh/a");
         if (tech.includes("pv")) {
           return {
             label: "Photovoltaik priorisieren",
-            detail: `PV liefert hier ${mwh} und ${value} sichtbaren Marktwert. Politisch passt dazu ein Dachflaechen-, Gewerbedach- und kommunales Liegenschaftsprogramm.`,
+            detail: `PV liefert hier ${value} sichtbaren Jahreswert. Politisch passt dazu ein Dachflaechen-, Gewerbedach- und kommunales Liegenschaftsprogramm.`,
           };
         }
         if (tech.includes("biomass")) {
           return {
             label: "Biomasse kaufmaennisch pruefen",
-            detail: `Biomasse liefert hier ${mwh} und ${value}. Der Hebel entsteht durch viele Betriebsstunden; wichtig sind Brennstoffpfad, Waermenutzung und Betreiberstruktur.`,
+            detail: `Biomasse liefert hier ${value} sichtbaren Jahreswert. Der Hebel entsteht durch viele Betriebsstunden; wichtig sind Brennstoffpfad, Waermenutzung und Betreiberstruktur.`,
           };
         }
         if (tech.includes("wind")) {
           return {
             label: "Windkraft als Flaechenfrage klaeren",
-            detail: `Windkraft liefert hier ${mwh} und ${value}. Der naechste Schritt ist eine Flaechen-, Akzeptanz- und Netzanschlusspruefung.`,
+            detail: `Windkraft liefert hier ${value} sichtbaren Jahreswert. Der naechste Schritt ist keine Haushaltszahl in MWh, sondern Flaechen-, Akzeptanz-, Steuer- und Netzanschlusspruefung.`,
           };
         }
         return {
           label: `${technologyLabel(row.technology)} einordnen`,
-          detail: `${technologyLabel(row.technology)} liefert hier ${mwh} und ${value}. Die lokale Betreiber- und Flaechenwirkung sollte in einer Beratung geklaert werden.`,
+          detail: `${technologyLabel(row.technology)} liefert hier ${value} sichtbaren Jahreswert. Die lokale Betreiber- und Flaechenwirkung sollte in einer Beratung geklaert werden.`,
         };
       }
 
@@ -1018,7 +1017,7 @@
             <h2>Welche Erzeugung sollte die Kommune foerdern?</h2>
             <p>
               Die Empfehlung folgt keiner Ideologie, sondern der lokalen Euro-Logik: Was erzeugt
-              viele MWh, was bindet Wert im Ort, was ist politisch umsetzbar und welches Netzrisiko
+              viel Jahreswert, was bindet Wert im Ort, was ist politisch umsetzbar und welches Netzrisiko
               muss vorher geklaert werden?
             </p>
             <div class="recommendation-list">
@@ -1186,20 +1185,18 @@
         const generationValue = sum(genRows, "grossMarketValueEurPerYear");
         const generationKwh = sum(genRows, "estimatedGenerationKwhPerYear");
         const budgetValue = budgetTotal(budgetRows);
-        const retentionRow = first(valueRows, (row) => row.rowKey === "local_retention_indicator");
-        const retention =
-          retentionRow.retentionShare != null
-            ? `${Math.round(Number(retentionRow.retentionShare) * 100)} %`
-            : retentionRow.localRetentionIndicator || "offen";
         const maxRisk = riskRows.reduce((max, row) => Math.max(max, Number(row.severityScore) || 0), 0);
+        const price = marketPrice(data, genRows);
+        const concessionProxy = budgetPerMwh(budgetRows, generationKwh);
+        const localMwhValue = price + concessionProxy;
 
         dataStatus.textContent = `${data.municipality || "Kommune"}: ${statusText(data)}`;
         results.innerHTML = `
           <div class="summary">
             ${renderMetric("Lokaler Marktwert", euro(generationValue), "Sichtbarer Gegenwert der lokalen Anlagen vor Steuern, Pacht und Betreiberstruktur.")}
-            ${renderMetric("Jahreserzeugung", number(generationKwh / 1000, " MWh"), "MWh, die als lokale Wirtschaftsoption diskutiert werden koennen.")}
-            ${renderMetric("Lokale Deckung", retention, "Bilanzieller Hinweis: lokale Nutzung bindet Wert besser als reiner Import.")}
+            ${renderMetric("Euro-Wirkung pro Einheit", euro(localMwhValue), "Bezugsbasis ist eine lokale MWh; dies ist eine Euro-Rechnung, keine Selbstversorgungsbehauptung.")}
             ${renderMetric("Budgetwirkung", euro(budgetValue), "Konzessions-/Budgethebel als Szenario, keine rechtliche Abrechnung.")}
+            ${renderMetric("Jahreshebel im Ort", euro(generationValue + budgetValue), "Kaufmaennische Sicht auf lokale Wertbindung, nicht auf Leistung oder Haushaltsaequivalente.")}
           </div>
 
           ${renderMayorBrief(data, generationValue, generationKwh, budgetValue)}
