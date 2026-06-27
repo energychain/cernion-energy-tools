@@ -870,6 +870,15 @@
         return euro(rounded);
       }
 
+      function euroPerMwh(value) {
+        if (value == null || Number.isNaN(Number(value)) || Number(value) <= 0) return "offen";
+        return new Intl.NumberFormat("de-DE", {
+          style: "currency",
+          currency: "EUR",
+          maximumFractionDigits: 0,
+        }).format(Number(value));
+      }
+
       function euroRange(value, lowFactor = 0.8, highFactor = 1.05) {
         if (value == null || Number.isNaN(Number(value)) || Number(value) <= 0) return "offen";
         const low = Number(value) * lowFactor;
@@ -1045,7 +1054,7 @@
               </article>
               <article class="money-card">
                 <span>1 MWh lokal gegenüber Import</span>
-                <strong>${escapeHtml(roundedEuro(localMwhPublic))} vs. ${escapeHtml(roundedEuro(importedMwhPublic))}</strong>
+                <strong>${escapeHtml(euroPerMwh(localMwhPublic))} vs. ${escapeHtml(euroPerMwh(importedMwhPublic))}</strong>
                 <p>Eine lokal erzeugte und zugleich lokal verbrauchte MWh kann zusätzlich Betreiberwert im Ort halten. Bei Importstrom entsteht dieser Erzeugungswert außerhalb.</p>
               </article>
             </div>
@@ -1283,7 +1292,7 @@
           <div class="summary">
             ${renderMetric("Leitzahl: Haushaltswirkung pro Jahr", euroRange(budgetValue), "Geschätzte Spanne für den kommunalen Haushalt. Diese Zahl gehört zuerst in die Prüfung durch Kämmerei und Rat.", "lead-metric")}
             ${renderMetric("Betreiberwert pro Jahr", euroRange(generationValue), "Marktwert lokaler Anlagen. Das ist kein Geldzufluss an die Kommune, sondern der wirtschaftliche Wert der Erzeugung.")}
-            ${renderMetric("1 MWh lokal statt importiert", `${roundedEuro(localMwhValue)} vs. ${roundedEuro(concessionProxy)}`, "Didaktischer Vergleich: lokal kann zusätzlich Betreiberwert im Ort entstehen; bei Import bleibt dieser Wert außerhalb.")}
+            ${renderMetric("1 MWh lokal statt importiert", `${euroPerMwh(localMwhValue)} vs. ${euroPerMwh(concessionProxy)}`, "Didaktischer Vergleich: lokal kann zusätzlich Betreiberwert im Ort entstehen; bei Import bleibt dieser Wert außerhalb.")}
             ${renderMetric("Evidenzlage", `${(data.sourceRows || []).length} sichtbar / ${(data.missingEvidence || []).length} offen`, "Quellen und offene Punkte werden bewusst vorne gezeigt, damit die Schätzung prüfbar bleibt.")}
           </div>
 
