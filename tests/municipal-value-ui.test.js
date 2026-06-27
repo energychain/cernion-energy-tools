@@ -73,6 +73,9 @@ describe('municipal-value public UI decision framing', () => {
     expect(html).toContain('Erzeugungswert plus rund');
     expect(html).toContain('Höchster Risikoscore: ${escapeHtml(maxRisk)}/100, aktuell ${escapeHtml(riskLevelText(maxRisk))}');
     expect(html).toContain('if (value >= 70) return "hohes Gesamtrisiko"');
+    expect(html).toContain('Handlungsoption statt Ohnmacht');
+    expect(html).toContain('STROMDAO GmbH als Übersetzer zum Netzbetreiber');
+    expect(html).toContain('function renderGridOperatorBridge(data, riskRows)');
     expect(html).toContain('@media print');
     expect(html).toContain('break-inside: avoid');
     expect(html).toContain('.visual-panel');

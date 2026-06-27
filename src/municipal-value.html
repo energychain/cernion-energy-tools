@@ -1677,20 +1677,20 @@
         const operatorPrefix = operatorName ? `${operatorName}: ` : "";
         if (key.includes("ewk") || key.includes("anschlussdauer")) {
           return {
-            label: "Wie schnell schließt der Netzbetreiber neue Anlagen an?",
-            explanation: `${operatorPrefix}Lange Bearbeitungszeiten können Investitionen verzögern und erwartete lokale Wertschöpfung in spätere Jahre verschieben.`,
+            label: "Wo braucht das Projekt Übersetzung zum Netzbetreiber?",
+            explanation: `${operatorPrefix}Das Risiko beschreibt keine Schuldzuweisung, sondern ein Prozessnadelöhr. Anschlussfristen, Unterlagen und Zuständigkeiten müssen so vorbereitet werden, dass Projekte beim Netzbetreiber entscheidungsfähig ankommen.`,
             nextStep: operatorName
-              ? `Anschlussdauer und Fristen bei ${operatorName} mit aktuellen Fällen belegen.`
-              : "Anschlussdauer des zuständigen Netzbetreibers mit aktuellen Fällen belegen.",
+              ? `STROMDAO GmbH als Übersetzer zum Netzbetreiber beauftragen: Anschlussfälle, Fristen und Unterlagen mit ${operatorName} strukturiert klären.`
+              : "STROMDAO GmbH als Übersetzer zum Netzbetreiber beauftragen: Anschlussfälle, Fristen und Unterlagen mit dem zuständigen Netzbetreiber strukturiert klären.",
           };
         }
         if (key.includes("digitalization")) {
           return {
-            label: "Wie digital und verbindlich laufen Netzprozesse?",
-            explanation: `${operatorPrefix}Fehlen digitale Prozessdaten, bleiben Anschlussstatus, Fristen und Zuständigkeiten schwer steuerbar.`,
+            label: "Wie wird aus Prozessrisiko ein steuerbarer Arbeitsauftrag?",
+            explanation: `${operatorPrefix}Fehlende Prozessdaten bedeuten nicht, dass die Kommune ausgeliefert ist. Sie zeigen, welche Kommunikations- und Evidenzstrecke zwischen Verwaltung, Projektträgern und Netzbetreiber aufgebaut werden muss.`,
             nextStep: operatorName
-              ? `Digitale Prozesswege und Ansprechpartner bei ${operatorName} prüfen.`
-              : "Prozessdaten des Netzbetreibers und erreichbare Ansprechpartner prüfen.",
+              ? `STROMDAO GmbH bündelt Ansprechpartner, Prozesswege und Nachweisstand für Gespräche mit ${operatorName}.`
+              : "STROMDAO GmbH bündelt Ansprechpartner, Prozesswege und Nachweisstand für Gespräche mit dem Netzbetreiber.",
           };
         }
         if (key.includes("imsys") || key.includes("smgw")) {
@@ -1729,8 +1729,8 @@
       function prioritizedEvidenceItems(data) {
         const labels = {
           vnb_bnr: {
-            title: "Netzbetreiber-Fristen belegen",
-            action: "Anschlussdauer und zuständige Prozesswege beim Netzbetreiber abfragen.",
+            title: "Netzbetreiber-Gespräch vorbereiten",
+            action: "STROMDAO GmbH als Übersetzer zum Netzbetreiber beauftragen: Anschlussfälle, Fristen, Unterlagen und Ansprechpartner netzbetreiberfähig bündeln.",
           },
           mastr_live_data: {
             title: "Anlagenbestand aktualisieren",
@@ -2471,6 +2471,24 @@
         `;
       }
 
+      function renderGridOperatorBridge(data, riskRows) {
+        const operatorName = data.gridOperatorName || riskRows.find((row) => row.gridOperatorName)?.gridOperatorName || "";
+        const hasGridRisk = riskRows.some((row) => {
+          const key = String(row.riskKey || "").toLowerCase();
+          return key.includes("ewk") || key.includes("anschlussdauer") || key.includes("digitalization");
+        });
+        if (!hasGridRisk) return "";
+        const operatorText = operatorName ? `mit ${operatorName}` : "mit dem zuständigen Netzbetreiber";
+        return `
+          <div class="decision-sentence grid-bridge">
+            <strong>Handlungsoption statt Ohnmacht:</strong>
+            Der hohe Netzprozess-Score ist kein Schuldhinweis. Er markiert die Stelle, an der die Verwaltung eine Übersetzerrolle beauftragen kann:
+            STROMDAO GmbH bereitet Anschlussfälle, Unterlagen, Fristen und Ansprechpartner ${escapeHtml(operatorText)} so auf,
+            dass der Gemeinderat nicht auf ungeklärte Netzprozesse wartet, sondern einen steuerbaren Gesprächs- und Nachweisauftrag auslöst.
+          </div>
+        `;
+      }
+
       function renderBudgetTable(rows) {
         if (!rows.length) return "<p class=\"empty\">Keine Budgetzeilen verfügbar.</p>";
         return `
@@ -2696,6 +2714,7 @@
                     </div>
                   </div>
                   <div class="risk-list">${riskRows.map(renderRisk).join("")}</div>
+                  ${renderGridOperatorBridge(data, riskRows)}
                 </section>
               </div>
 
