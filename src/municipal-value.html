@@ -872,7 +872,18 @@
       }
 
       function generationRows(rows) {
-        return rows.filter((row) => Number(row.grossMarketValueEurPerYear) > 0);
+        const nonTechnologyRows = new Set([
+          "aggregated",
+          "unknown",
+        ]);
+        return rows.filter((row) => {
+          const technology = String(row.technology || "").toLowerCase();
+          const rowKey = String(row.rowKey || "").toLowerCase();
+          if (nonTechnologyRows.has(technology)) return false;
+          if (rowKey.includes("local_value_capture")) return false;
+          if (rowKey.includes("missing")) return false;
+          return Number(row.grossMarketValueEurPerYear) > 0;
+        });
       }
 
       function technologyLabel(value) {
