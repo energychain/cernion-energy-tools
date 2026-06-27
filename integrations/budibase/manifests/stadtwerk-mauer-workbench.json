@@ -979,6 +979,192 @@
       }
     },
     {
+      "name": "getStadtwerkMauerGridPlanningSelectedItemDetail",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&queueItemId={{queueItemId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "queueItemId",
+          "default": "grid-planning:missing-nap-clarification"
+        }
+      ],
+      "schema": {
+        "status": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "caseId": { "type": "string" },
+        "queueItemId": { "type": "string" },
+        "itemSummaryRows": { "type": "array" },
+        "contextRows": { "type": "array" },
+        "evidenceGapRows": { "type": "array" },
+        "nextGateRows": { "type": "array" },
+        "safeFollowUpRows": { "type": "array" },
+        "noCallGuardRows": { "type": "array" },
+        "summary": { "type": "object" },
+        "timestamp": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerGridPlanningSelectedItemSummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&queueItemId={{queueItemId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "queueItemId",
+          "default": "grid-planning:missing-nap-clarification"
+        }
+      ],
+      "transformer": "return data.itemSummaryRows || []",
+      "schema": {
+        "queueItemId": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "itemStatus": { "type": "string" },
+        "caseId": { "type": "string" },
+        "roleKey": { "type": "string" },
+        "blueprintRoleKey": { "type": "string" },
+        "nextGate": { "type": "string" },
+        "allowedActionClass": { "type": "string" },
+        "advisoryBoundary": { "type": "string" },
+        "detailLabel": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerGridPlanningSelectedItemContextRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&queueItemId={{queueItemId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "queueItemId",
+          "default": "grid-planning:missing-nap-clarification"
+        }
+      ],
+      "transformer": "return data.contextRows || []",
+      "schema": {
+        "contextKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "sourceClass": { "type": "string" },
+        "evidenceStatus": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerGridPlanningSelectedItemEvidenceGapRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&queueItemId={{queueItemId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "queueItemId",
+          "default": "grid-planning:missing-nap-clarification"
+        }
+      ],
+      "transformer": "return data.evidenceGapRows || []",
+      "schema": {
+        "evidenceId": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "present": { "type": "boolean" },
+        "required": { "type": "boolean" },
+        "dataClass": { "type": "string" },
+        "sourceClass": { "type": "string" },
+        "nextGate": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerGridPlanningSelectedItemNextGateRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&queueItemId={{queueItemId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "queueItemId",
+          "default": "grid-planning:missing-nap-clarification"
+        }
+      ],
+      "transformer": "return data.nextGateRows || []",
+      "schema": {
+        "gateId": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "ownerRole": { "type": "string" },
+        "allowedActionClass": { "type": "string" },
+        "capacityCommitment": { "type": "string" },
+        "productionApproval": { "type": "string" }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerGridPlanningSelectedItemSafeFollowUpRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&queueItemId={{queueItemId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "queueItemId",
+          "default": "grid-planning:missing-nap-clarification"
+        }
+      ],
+      "transformer": "return data.safeFollowUpRows || []",
+      "schema": {
+        "missingDataPoint": { "type": "string" },
+        "category": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "state": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" }
+      }
+    },
+    {
       "name": "getStadtwerkMauerSalesWorkbenchBriefing",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-sales-workbench-briefing",
@@ -1385,6 +1571,36 @@
       "tableTitle": "Zielnetzplanung Evidence Handover"
     },
     {
+      "id": "grid_planning_selected_item_summary",
+      "title": "Selected Grid-Planning Item",
+      "queryName": "getStadtwerkMauerGridPlanningSelectedItemSummaryRows",
+      "tableTitle": "Selected Item Summary"
+    },
+    {
+      "id": "grid_planning_selected_item_context",
+      "title": "Selected Item Context",
+      "queryName": "getStadtwerkMauerGridPlanningSelectedItemContextRows",
+      "tableTitle": "Context and Source Hints"
+    },
+    {
+      "id": "grid_planning_selected_item_gaps",
+      "title": "Selected Item Evidence Gaps",
+      "queryName": "getStadtwerkMauerGridPlanningSelectedItemEvidenceGapRows",
+      "tableTitle": "Evidence Gaps"
+    },
+    {
+      "id": "grid_planning_selected_item_next_gate",
+      "title": "Selected Item Next Gate",
+      "queryName": "getStadtwerkMauerGridPlanningSelectedItemNextGateRows",
+      "tableTitle": "Next Gate Context"
+    },
+    {
+      "id": "grid_planning_selected_item_followups",
+      "title": "Selected Item Safe Follow-ups",
+      "queryName": "getStadtwerkMauerGridPlanningSelectedItemSafeFollowUpRows",
+      "tableTitle": "Safe Follow-ups"
+    },
+    {
       "id": "sales_briefing",
       "title": "Vertrieb Briefing",
       "queryName": "getStadtwerkMauerSalesBriefingRows",
@@ -1438,6 +1654,7 @@
     "Demo Process Panel rows show safe verify actions, disabled operational actions, last known results and Cernion/Rundeck boundaries without executing jobs.",
     "Role Workbench Catalog binds to scalar role/open-target rows for Administrator, Zielnetzplanung, Vertrieb, Key Account and VDMI governance views.",
     "Zielnetzplanung Role Queue binds to scalar queue and evidence-handover rows for the generated grid-planning target.",
+    "Selected Zielnetzplanung Item binds to scalar summary, context, evidence-gap, next-gate and safe-follow-up rows; it is advisory evidence context, not a grid-capacity approval.",
     "Vertrieb Briefing binds to scalar evidence-backed claim, evidence, gap and internal follow-up rows; unsupported claims stay not-yet-claimable.",
     "Controlled Action runStadtwerkMauerE2ESmoke remains scope-protected by Cernion.",
     "Budibase renders the workbench; Cernion remains the system of record and command gate."

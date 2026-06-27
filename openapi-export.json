@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.67.3",
+    "version": "0.67.4",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "servers": [
@@ -17204,6 +17204,47 @@
           },
           {
             "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/stadtwerk-mauer-grid-planning-selected-item-detail": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerGridPlanningSelectedItemDetailStatus",
+        "summary": "Stadtwerk Mauer grid-planning selected item detail -- read-only next-gate context",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer selected grid-planning item detail projection"
+          }
+        },
+        "description": "Returns scalar Budibase-renderable detail, context, evidence gap, next-gate and safe follow-up rows for one generated Zielnetzplanung role-queue item. The endpoint is advisory/read-only and does not approve grid capacity, mutate public context, write Budibase tables, run planning engines, call external connectors or execute operational actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "queueItemId",
             "in": "query",
             "required": false,
             "schema": {
@@ -60097,6 +60138,47 @@
         ]
       }
     },
+    "/api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerGridPlanningSelectedItemDetailStatus",
+        "summary": "Stadtwerk Mauer grid-planning selected item detail -- read-only next-gate context",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer selected grid-planning item detail projection"
+          }
+        },
+        "description": "Returns scalar Budibase-renderable detail, context, evidence gap, next-gate and safe follow-up rows for one generated Zielnetzplanung role-queue item. The endpoint is advisory/read-only and does not approve grid capacity, mutate public context, write Budibase tables, run planning engines, call external connectors or execute operational actions.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "queueItemId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard/stadtwerk-mauer-sales-workbench-briefing": {
       "get": {
         "operationId": "dashboard-api_stadtwerkMauerSalesWorkbenchBriefingStatus",
@@ -70124,5 +70206,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.67.3"
+  "x-version": "0.67.4"
 }

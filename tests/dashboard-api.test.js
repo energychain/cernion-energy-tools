@@ -8487,6 +8487,166 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- stadtwerkMauerGridPlanningSelectedItemDetailStatus ---------------
+  describe('stadtwerkMauerGridPlanningSelectedItemDetailStatus', () => {
+    it('returns scalar selected-item detail, evidence gaps and next-gate rows', async () => {
+      handlers.stadtwerkMauerE2eProcessDemoStatus = () => ({
+        capabilityKey: 'stadtwerk_mauer_e2e_process_demo',
+        safety: 'sandbox_only_non_consequential_e2e_demo_with_read_only_status',
+        tenantId: 'stadtwerk-mauer',
+        requiredTenantId: 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: true,
+        status: 'e2e_demo_trace_needs_evidence',
+        demoPath: 'pv_registration_electrician_missing_nap',
+        caseId: 'smm-budibase-workbench',
+        traceCount: 1,
+        artifactCount: 3,
+        recentTraces: [{ traceId: 'smm-e2e-trace:test', status: 'demo_trace_needs_evidence' }],
+        evidenceQuality: 'incomplete_demo_evidence',
+        missingEvidence: [
+          { missingDataPoint: 'napReference' },
+          { missingDataPoint: 'maloId' },
+          { missingDataPoint: 'meloId' },
+        ],
+        positiveFollowUps: [{ missingDataPoint: 'napReference' }],
+        sourceActions: {
+          inspected: ['stadtwerk-mauer-e2e-process-demo.getStatus'],
+          referenced: ['object-store.query'],
+          notCalled: ['mako.dispatch', 'external.connector.call', 'personal-agent.execute'],
+        },
+      });
+
+      const result = await broker.call(
+        'dashboard-api.stadtwerkMauerGridPlanningSelectedItemDetailStatus',
+        {
+          tenantId: 'stadtwerk-mauer',
+          caseId: 'smm-budibase-workbench',
+          queueItemId: 'grid-planning:missing-nap-clarification',
+        }
+      );
+
+      expect(result.capabilityKey).toBe('stadtwerk_mauer_grid_planning_selected_item_detail');
+      expect(result.safety).toBe('read_only');
+      expect(result.found).toBe(true);
+      expect(result.status).toBe('grid_planning_selected_item_needs_evidence');
+      expect(result.itemSummaryRows).toHaveLength(1);
+      expect(result.itemSummaryRows[0]).toMatchObject({
+        queueItemId: 'grid-planning:missing-nap-clarification',
+        status: 'grid_planning_selected_item_needs_evidence',
+        itemStatus: 'needs_nap_clarification',
+        nextGate: 'resolve_missing_nap_reference',
+        advisoryBoundary: 'read_only_advisory_context_no_capacity_approval',
+      });
+      expect(result.contextRows.map((row) => row.contextKey)).toEqual(
+        expect.arrayContaining(['controlCase', 'publicContextHint', 'syntheticTenantSeed'])
+      );
+      expect(result.evidenceGapRows.map((row) => row.evidenceId)).toEqual(
+        expect.arrayContaining(['napReference', 'maloId', 'meloId'])
+      );
+      expect(result.nextGateRows[0]).toMatchObject({
+        gateId: 'resolve_missing_nap_reference',
+        ownerRole: 'grid-planning',
+        capacityCommitment: 'not_binding',
+        productionApproval: 'not_granted',
+      });
+      expect(result.safeFollowUpRows.map((row) => row.missingDataPoint)).toContain('napReference');
+      expectScalarTableRows(result.itemSummaryRows);
+      expectScalarTableRows(result.contextRows);
+      expectScalarTableRows(result.evidenceGapRows);
+      expectScalarTableRows(result.nextGateRows);
+      expectScalarTableRows(result.safeFollowUpRows);
+      expect(result.capabilityBroker.exposed).toBe(false);
+      expect(result.hydrationRegistry.exposed).toBe(false);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'budibase.table.write',
+          'budibase.selected_row.write',
+          'grid-planning.approve-capacity',
+          'grid-planning.commit-plan',
+          'grid-capacity.calculate',
+          'public-context.mutate',
+          'device-control.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns safe empty selected-item rows for unknown queue items', async () => {
+      const result = await broker.call(
+        'dashboard-api.stadtwerkMauerGridPlanningSelectedItemDetailStatus',
+        {
+          tenantId: 'stadtwerk-mauer',
+          caseId: 'smm-budibase-workbench',
+          queueItemId: 'unknown-item',
+        }
+      );
+
+      expect(result.found).toBe(false);
+      expect(result.status).toBe('grid_planning_selected_item_not_found');
+      expect(result.itemSummaryRows).toEqual([]);
+      expect(result.contextRows).toEqual([]);
+      expect(result.nextGateRows[0]).toMatchObject({
+        gateId: 'select_valid_grid_planning_item',
+        allowedActionClass: 'read_only_selection_only',
+      });
+      expectScalarTableRows(result.evidenceGapRows);
+    });
+
+    it('returns safe empty selected-item rows outside the sandbox tenant', async () => {
+      const result = await broker.call(
+        'dashboard-api.stadtwerkMauerGridPlanningSelectedItemDetailStatus',
+        {
+          tenantId: 'other-tenant',
+          caseId: 'smm-budibase-workbench',
+          queueItemId: 'grid-planning:missing-nap-clarification',
+        }
+      );
+
+      expect(result.found).toBe(false);
+      expect(result.status).toBe('grid_planning_selected_item_blocked_outside_sandbox_tenant');
+      expect(result.itemSummaryRows).toEqual([]);
+      expect(result.contextRows).toEqual([]);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['budibase.table.write', 'budibase.selected_row.write'])
+      );
+    });
+
+    it('binds the Budibase manifest to selected-item scalar detail rows', () => {
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.map((query) => query.name)).toEqual(
+        expect.arrayContaining([
+          'getStadtwerkMauerGridPlanningSelectedItemDetail',
+          'getStadtwerkMauerGridPlanningSelectedItemSummaryRows',
+          'getStadtwerkMauerGridPlanningSelectedItemContextRows',
+          'getStadtwerkMauerGridPlanningSelectedItemEvidenceGapRows',
+          'getStadtwerkMauerGridPlanningSelectedItemNextGateRows',
+          'getStadtwerkMauerGridPlanningSelectedItemSafeFollowUpRows',
+        ])
+      );
+      expect(
+        STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+          (query) => query.name === 'getStadtwerkMauerGridPlanningSelectedItemSummaryRows'
+        )
+      ).toMatchObject({
+        method: 'GET',
+        path: '/api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail',
+        transformer: 'return data.itemSummaryRows || []',
+      });
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.sections.map((section) => section.id)).toEqual(
+        expect.arrayContaining([
+          'grid_planning_selected_item_summary',
+          'grid_planning_selected_item_context',
+          'grid_planning_selected_item_gaps',
+          'grid_planning_selected_item_next_gate',
+          'grid_planning_selected_item_followups',
+        ])
+      );
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
+        'Selected Zielnetzplanung Item binds to scalar summary'
+      );
+    });
+  });
+
   // -- stadtwerkMauerSalesWorkbenchBriefingStatus ----------------------
   describe('stadtwerkMauerSalesWorkbenchBriefingStatus', () => {
     it('returns read-only Vertrieb briefing rows with safe claims and open gaps separated', async () => {

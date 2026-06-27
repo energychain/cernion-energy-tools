@@ -118,6 +118,7 @@ module.exports = {
       stadtwerkMauerCaseActionsStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerRoleWorkbenchCatalogStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerGridPlanningRoleQueueStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerGridPlanningSelectedItemDetailStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerSalesWorkbenchBriefingStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerWorkbenchLandingStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerWorkbenchSelectedTargetStatus: 5 * 60 * 1000, // 5 min
@@ -6301,6 +6302,70 @@ module.exports = {
               }),
               timestamp: new Date().toISOString(),
               _errors: errors,
+            };
+          }
+        );
+      },
+    },
+
+    // -- stadtwerkMauerGridPlanningSelectedItemDetailStatus -------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail
+     *
+     * Read-only selected-item detail projection for the Stadtwerk Mauer
+     * Zielnetzplanung role queue. Budibase renders scalar detail/next-gate
+     * rows; Cernion keeps tenant scope and command boundaries.
+     */
+    stadtwerkMauerGridPlanningSelectedItemDetailStatus: {
+      rest: 'GET /stadtwerk-mauer-grid-planning-selected-item-detail',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+        queueItemId: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer grid-planning selected item detail -- read-only next-gate context',
+        description:
+          'Returns scalar Budibase-renderable detail, context, evidence gap, next-gate and safe ' +
+          'follow-up rows for one generated Zielnetzplanung role-queue item. The endpoint is ' +
+          'advisory/read-only and does not approve grid capacity, mutate public context, write ' +
+          'Budibase tables, run planning engines, call external connectors or execute operational actions.',
+        parameters: [
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'queueItemId', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Stadtwerk Mauer selected grid-planning item detail projection',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const caseId = params.caseId || 'smm-budibase-workbench';
+        const queueItemId = params.queueItemId || 'grid-planning:missing-nap-clarification';
+        const cacheKey = `stadtwerk-mauer-grid-planning-selected-item-detail:${tenantId}:${caseId}:${queueItemId}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.stadtwerkMauerGridPlanningSelectedItemDetailStatus,
+          async () => {
+            const queueStatus = await ctx.call('dashboard-api.stadtwerkMauerGridPlanningRoleQueueStatus', {
+              tenantId,
+              caseId,
+            });
+
+            return {
+              ...this.buildStadtwerkMauerGridPlanningSelectedItemDetailStatus({
+                tenantId,
+                caseId,
+                queueItemId,
+                queueStatus,
+              }),
+              timestamp: new Date().toISOString(),
             };
           }
         );
@@ -24976,6 +25041,206 @@ module.exports = {
         nextGate: item.nextGate,
         enablesDossierAddition: item.enablesDossierAddition,
       }));
+    },
+
+    buildStadtwerkMauerGridPlanningSelectedItemDetailStatus({
+      tenantId = 'stadtwerk-mauer',
+      caseId = 'smm-budibase-workbench',
+      queueItemId = 'grid-planning:missing-nap-clarification',
+      queueStatus = null,
+    } = {}) {
+      const queueRows = queueStatus?.queueRows || [];
+      const selectedItem =
+        queueRows.find((row) => row.queueItemId === queueItemId) ||
+        (queueItemId === 'first' ? queueRows[0] : null);
+      const found = queueStatus?.found === true && Boolean(selectedItem);
+      const status = !queueStatus?.sandboxBoundaryAllowed
+        ? 'grid_planning_selected_item_blocked_outside_sandbox_tenant'
+        : !queueStatus?.found
+          ? 'grid_planning_selected_item_queue_not_found'
+          : !selectedItem
+            ? 'grid_planning_selected_item_not_found'
+            : selectedItem.status === 'ready_for_grid_planning_review'
+              ? 'grid_planning_selected_item_ready'
+              : 'grid_planning_selected_item_needs_evidence';
+      const evidenceGaps = (queueStatus?.evidenceHandoverRows || []).filter(
+        (row) => row.present !== true || row.status !== 'present'
+      );
+      const noCallGuards = Array.from(
+        new Set([
+          ...(queueStatus?.noCallGuards || []),
+          'budibase.selected_row.write',
+          'grid-planning.approve-capacity',
+          'grid-planning.commit-plan',
+        ])
+      );
+      const itemSummaryRows = found
+        ? [
+            {
+              queueItemId: selectedItem.queueItemId,
+              label: selectedItem.label,
+              status,
+              itemStatus: selectedItem.status,
+              caseId,
+              roleKey: selectedItem.roleKey,
+              blueprintRoleKey: selectedItem.blueprintRoleKey,
+              nextGate: selectedItem.nextGate,
+              allowedActionClass: selectedItem.allowedActionClass,
+              advisoryBoundary: 'read_only_advisory_context_no_capacity_approval',
+              detailLabel: selectedItem.detailLabel,
+            },
+          ]
+        : [];
+      const contextRows = found
+        ? [
+            {
+              contextKey: 'controlCase',
+              label: 'Control Case',
+              value: selectedItem.controlCase || queueStatus?.controlCase || '',
+              sourceClass: selectedItem.sourceClass || 'syntheticTenantSeed',
+              evidenceStatus: 'context',
+            },
+            {
+              contextKey: 'publicContextHint',
+              label: 'Public Context Hint',
+              value:
+                queueStatus?.dataClasses?.publicContextLayer ||
+                'Public-context data may inform the case but does not create a capacity commitment.',
+              sourceClass: 'publicContextLayer',
+              evidenceStatus: 'advisory_context',
+            },
+            {
+              contextKey: 'syntheticTenantSeed',
+              label: 'Synthetic Tenant Seed',
+              value: queueStatus?.summary?.syntheticIdDisclaimer || '',
+              sourceClass: 'syntheticTenantSeed',
+              evidenceStatus: 'demo_seed',
+            },
+          ]
+        : [];
+      const evidenceGapRows = evidenceGaps.map((row) => ({
+        evidenceId: row.evidenceId,
+        label: row.label,
+        status: row.status,
+        present: row.present === true,
+        required: row.required === true,
+        dataClass: row.dataClass,
+        sourceClass: row.sourceClass,
+        nextGate: row.nextGate,
+        enablesDossierAddition: row.enablesDossierAddition,
+      }));
+      const nextGateRows = [
+        {
+          gateId: found
+            ? selectedItem.nextGate
+            : queueStatus?.found
+              ? 'select_valid_grid_planning_item'
+              : queueStatus?.nextGate?.id || 'select_valid_grid_planning_item',
+          label: found
+            ? this.humanizeWorkbenchLabel(selectedItem.nextGate)
+            : queueStatus?.found
+              ? 'Select a valid grid-planning queue item'
+              : queueStatus?.nextGate?.label || 'Select a valid grid-planning queue item',
+          status,
+          ownerRole: 'grid-planning',
+          allowedActionClass: found ? selectedItem.allowedActionClass : 'read_only_selection_only',
+          capacityCommitment: 'not_binding',
+          productionApproval: 'not_granted',
+        },
+      ];
+      const safeFollowUpRows = (queueStatus?.positiveFollowUps || []).map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        category: item.category || 'stadtwerk_mauer_grid_planning_selected_item_detail',
+        dataClass: item.dataClass || 'syntheticTenantSeed',
+        state: item.state || 'clarification',
+        enablesDossierAddition: item.enablesDossierAddition,
+      }));
+      const noCallGuardRows = noCallGuards.map((guard) => ({
+        guard,
+        status: 'not_called',
+        boundary: 'read_only_budibase_render_shell',
+      }));
+      const dossierFacts = [
+        `Selected Grid Planning Item Status: ${status}`,
+        `Tenant: ${tenantId}`,
+        `Case: ${caseId}`,
+        `Queue Item: ${queueItemId}`,
+        `Evidence gaps: ${evidenceGapRows.length}`,
+      ];
+
+      return {
+        capabilityKey: 'stadtwerk_mauer_grid_planning_selected_item_detail',
+        safety: 'read_only',
+        found,
+        status,
+        tenantId,
+        requiredTenantId: queueStatus?.requiredTenantId || 'stadtwerk-mauer',
+        sandboxBoundaryAllowed: queueStatus?.sandboxBoundaryAllowed === true,
+        caseId,
+        requiredCaseId: queueStatus?.requiredCaseId || 'smm-budibase-workbench',
+        queueItemId,
+        title: 'Stadtwerk Mauer Zielnetzplanung Selected Item Detail',
+        summary: {
+          selectedItemFound: found,
+          itemSummaryRowCount: itemSummaryRows.length,
+          contextRowCount: contextRows.length,
+          evidenceGapRowCount: evidenceGapRows.length,
+          safeFollowUpRowCount: safeFollowUpRows.length,
+          allowedActionClass: found ? selectedItem.allowedActionClass : 'read_only_selection_only',
+          advisoryBoundary:
+            'Selected-item detail is advisory evidence context; it is not a binding grid-capacity statement.',
+          budibaseBoundary:
+            'Budibase renders scalar selected-item and next-gate rows only; Cernion remains the system of record and command gate.',
+        },
+        itemSummaryRows,
+        contextRows,
+        evidenceGapRows,
+        nextGateRows,
+        safeFollowUpRows,
+        noCallGuardRows,
+        missingEvidence: queueStatus?.missingEvidence || [],
+        positiveFollowUps: queueStatus?.positiveFollowUps || [],
+        capabilityBroker: {
+          exposed: false,
+          reason:
+            'Selected-item detail is a Workbench-specific projection; no broad Personal-Agent capability route is added.',
+        },
+        hydrationRegistry: {
+          exposed: false,
+          reason:
+            'No dossier hydration rule is added for this Workbench-only selected-item detail slice.',
+        },
+        sourceActions: {
+          inspected: ['dashboard-api.stadtwerkMauerGridPlanningSelectedItemDetailStatus'],
+          referenced: [
+            'dashboard-api.stadtwerkMauerGridPlanningRoleQueueStatus',
+            'integrations/budibase/manifests/stadtwerk-mauer-workbench.json',
+          ],
+          notCalled: noCallGuards,
+        },
+        noCallGuards,
+        dossierFacts,
+        dossierEvidence: {
+          status,
+          tenantId,
+          caseId,
+          queueItemId,
+          itemSummaryRows,
+          contextRows,
+          evidenceGapRows,
+          nextGateRows,
+          safeFollowUpRows,
+          noCallGuards,
+          dossierFacts,
+        },
+        meta: {
+          inspected: [
+            'dashboard-api.stadtwerkMauerGridPlanningSelectedItemDetailStatus',
+            'dashboard-api.stadtwerkMauerGridPlanningRoleQueueStatus',
+            'budibase-stadtwerk-mauer-workbench-manifest',
+          ],
+        },
+      };
     },
 
     buildStadtwerkMauerSalesWorkbenchBriefingStatus({

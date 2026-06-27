@@ -30,6 +30,7 @@ The workbench renders:
 - selected-case action rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - demo process-panel rows, last-result rows, required evidence rows and runbook-boundary rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - role workbench catalog/open-target rows from `GET /api/dashboard/stadtwerk-mauer-role-workbench-catalog?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
+- selected Zielnetzplanung item detail, context, evidence-gap, next-gate and safe-follow-up rows from `GET /api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&queueItemId=grid-planning:missing-nap-clarification`
 - Vertrieb/Key Account briefing rows from `GET /api/dashboard/stadtwerk-mauer-sales-workbench-briefing?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&audience=vertrieb`
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
@@ -59,6 +60,10 @@ The role workbench catalog query is read-only: it returns scalar role/open-targe
 Administrator, Zielnetzplanung, Vertrieb, Key Account and VDMI governance/reviewer targets.
 It does not implement role-specific calculations, authorization changes, role assignments or
 Budibase-owned workflow state.
+The selected Zielnetzplanung item detail query is read-only: it decomposes one generated role
+queue item into scalar summary, context, evidence-gap, next-gate and safe-follow-up rows.
+It is advisory planning evidence only; it does not approve grid capacity, mutate public context,
+persist Budibase selection state or execute planning/operations actions.
 The Vertrieb briefing query is read-only: it returns scalar briefing, claim, evidence, gap and
 follow-up rows for a presenter-safe sales or Key Account view. Claims are deterministic from
 Cernion evidence and explicitly marked evidence-backed, assumption-backed or not-yet-claimable;
