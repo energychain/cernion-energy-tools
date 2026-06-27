@@ -91,15 +91,25 @@ describe('municipal-value public UI decision framing', () => {
     expect(html).not.toContain('Welche Erzeugung erzeugt Erzeugungswert?');
   });
 
-  it('surfaces generation integrity warnings wherever derived euro values are prominent', () => {
+  it('keeps generation integrity warning consolidated instead of repeating defensive copy', () => {
     expect(html).toContain('function generationIntegrityWarning(data)');
     expect(html).toContain('function renderGenerationIntegrityNotice(data, compact = false)');
     expect(html).toContain('Erzeugungswerte vor politischer Nutzung prüfen');
-    expect(html).toContain('methodische Prüfwerte');
+    expect(html).toContain('Die erzeugungsabhängigen Euro-Spannen bleiben sichtbar');
     expect(html).toContain('key.includes("integrity") || key.includes("review")');
-    expect(html).toContain('methodischer Erzeugungswert');
-    expect(html).toContain('methodischer Prüfwert');
-    expect(html).toContain('ca. ${roundedEuro(low)} – ${roundedEuro(high)}');
+    expect(html).toContain('Gegenprüfung offen');
+    expect(html).not.toContain('methodischer Erzeugungswert');
+    expect(html).not.toContain('methodischer Prüfwert');
+    expect(html).not.toContain('methodische Prüfwerte');
+    expect(html).toContain('ca. ${euro(low)} bis ${euro(high)}');
+    expect(html).toContain('function budgetRangeFromRows(rows, row)');
+  });
+
+  it('shows the sector split as a single OSM/MaStR backend evidence path', () => {
+    expect(html).toContain('const sectorEvidence = (data.sectorEvidenceRows || []).find');
+    expect(html).toContain('Sektor-Split:</strong>');
+    expect(html).toContain('kein OSM-/MaStR-verifizierter Ortsmix');
+    expect(html).toContain('Nächster Backend-Nachweis');
   });
 
   it('uses print-stable disclosure cards and compact budget rows for PDF export', () => {

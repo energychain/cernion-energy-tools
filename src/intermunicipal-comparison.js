@@ -21,6 +21,7 @@
  */
 
 const { gemeindenData } = require('./municipality-resolver');
+const { sectorFractionsForProfile } = require('./municipal-load-estimator');
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -41,8 +42,8 @@ const PV_KW_PER_EW      = 0.55;
 const BIO_KW_PER_EW_SM  = 0.09;  // < 10 000 EW
 const BIO_KW_PER_EW_LG  = 0.04;  // ≥ 10 000 EW
 
-// Proxy total load per capita (H0 + 40 % G0 + 5 % public) used consistently for target AND peers
-const LOAD_KWH_PER_EW = 1563;
+const AVG_HOUSEHOLDS_PER_EW = 0.46;
+const AVG_HOUSEHOLD_KWH = 2300;
 
 // ── Settlement density class (proxy) ────────────────────────────────────────
 
@@ -93,6 +94,17 @@ function _estimatePeerGenKwh(peer) {
   return pvKw * PV_FLH + bioKw * BIOMASS_FLH;
 }
 
+function _estimatePeerLoadKwh(peer) {
+  const ewz = peer.ewz || peer.population || 0;
+  if (!ewz) return 0;
+  const sector = sectorFractionsForProfile({
+    population: ewz,
+    areaSqKm: peer.kfl || peer.areaSqKm,
+  });
+  const householdKwh = Math.round(ewz * AVG_HOUSEHOLDS_PER_EW) * AVG_HOUSEHOLD_KWH;
+  return Math.round(householdKwh * (1 + sector.commercialFraction + sector.publicFraction));
+}
+
 // ── Peer candidate selection ─────────────────────────────────────────────────
 
 function findPeerCandidates({ ags, state, population, areaSqKm }) {
@@ -103,6 +115,7 @@ function findPeerCandidates({ ags, state, population, areaSqKm }) {
       extended: false,
       densityClass: 'UNCLASSIFIED',
       populationBandLabel: 'n/a',
+      scopeState: state || 'offen',
     };
   }
 
@@ -129,6 +142,7 @@ function findPeerCandidates({ ags, state, population, areaSqKm }) {
       extended: false,
       densityClass,
       populationBandLabel: `${_formatIntDe(bandLow)} bis ${_formatIntDe(bandHigh)} EW`,
+      scopeState: state,
     };
   }
 
@@ -144,6 +158,41 @@ function findPeerCandidates({ ags, state, population, areaSqKm }) {
       g.kfl > 0
   );
 
+  if (wide.length >= MIN_PEER_COUNT) {
+    return {
+      peers: wide,
+      criteriaLabel:
+        `Bundesland ${state}, Einwohnerkorridor erweitert ±${Math.round(PEER_BAND_WIDE * 100)} % ` +
+        `(${_formatIntDe(wideLow)} bis ${_formatIntDe(wideHigh)} EW); Dichteklasse-Filter entfernt — unter ${MIN_PEER_COUNT} ` +
+        `Peers bei engem Korridor mit Klasse ${densityClass}`,
+      extended: true,
+      densityClass,
+      populationBandLabel: `${_formatIntDe(wideLow)} bis ${_formatIntDe(wideHigh)} EW`,
+      scopeState: state,
+    };
+  }
+
+  if (population >= 500000) {
+    const metro = gemeindenData.filter(
+      (g) =>
+        g.ags !== ags &&
+        (g.ewz || 0) >= 500000 &&
+        g.kfl > 0
+    );
+    const metroSameDensity = metro.filter((g) => settlementDensityClass(g.ewz, g.kfl) === densityClass);
+    const selected = metroSameDensity.length >= MIN_PEER_COUNT ? metroSameDensity : metro;
+    return {
+      peers: selected,
+      criteriaLabel:
+        `Metropolenvergleich deutschlandweit (> 500.000 EW); Bundesland ${state} lieferte nur ` +
+        `${wide.length} valide Peers im erweiterten Korridor.`,
+      extended: true,
+      densityClass: selected === metroSameDensity ? densityClass : 'METRO',
+      populationBandLabel: '> 500.000 EW deutschlandweit',
+      scopeState: 'Deutschland',
+    };
+  }
+
   return {
     peers: wide,
     criteriaLabel:
@@ -153,6 +202,7 @@ function findPeerCandidates({ ags, state, population, areaSqKm }) {
     extended: true,
     densityClass,
     populationBandLabel: `${_formatIntDe(wideLow)} bis ${_formatIntDe(wideHigh)} EW`,
+    scopeState: state,
   };
 }
 
@@ -322,7 +372,7 @@ function buildIntermunicipalComparison({
   }
 
   // ── Peer selection ────────────────────────────────────────────────────
-  const { peers, criteriaLabel, extended, densityClass, populationBandLabel } =
+  const { peers, criteriaLabel, extended, densityClass, populationBandLabel, scopeState } =
     findPeerCandidates({
       ags: profile.ags,
       state: profile.state,
@@ -342,7 +392,7 @@ function buildIntermunicipalComparison({
       dataStatus: 'missing-evidence',
       target: null,
       peerGroup: {
-        state: profile.state,
+        state: scopeState || profile.state,
         populationBandLabel,
         settlementStructureCriterion: densityClass,
         validPeerCount: peers.length,
@@ -373,7 +423,7 @@ function buildIntermunicipalComparison({
     (profile.pvCapacityKw      || 0) * PV_FLH +
     (profile.biomassCapacityKw || 0) * BIOMASS_FLH +
     (profile.windCapacityKw    || 0) * WIND_FLH;
-  const targetLoadKwh             = totalKwh || (pop * LOAD_KWH_PER_EW);
+  const targetLoadKwh             = totalKwh || _estimatePeerLoadKwh({ ewz: pop, kfl: profile.areaSqKm });
   const targetLocalCoverageShare  = targetLoadKwh > 0
     ? Math.min(1.0, targetGenKwh / targetLoadKwh)
     : 0;
@@ -390,12 +440,13 @@ function buildIntermunicipalComparison({
     if (!ewz) continue;
     const genKwh     = _estimatePeerGenKwh(peer);
     const grossEur   = Math.round((genKwh / 1000) * mktPrice);
-    const loadKwh    = ewz * LOAD_KWH_PER_EW;
+    const loadKwh    = _estimatePeerLoadKwh(peer);
     peerCoverageValues.push(loadKwh > 0 ? Math.min(1.0, genKwh / loadKwh) : 0);
     peerGenValuePerEwArr.push(ewz > 0 ? Math.round(grossEur / ewz) : 0);
   }
 
   const toPct = (v) => Math.round(v * 1000) / 10;  // 0.1234 → 12.3 (one decimal)
+  const peerScopeLabel = scopeState || profile.state;
 
   const coveragePctValues = peerCoverageValues.map(toPct);
   const coverageP         = _percentiles(coveragePctValues);
@@ -417,7 +468,7 @@ function buildIntermunicipalComparison({
         ? `${coverageP.min}–${coverageP.max} %`
         : 'keine Daten',
       framingText:
-        `Vergleichbare Kommunen in ${profile.state} binden lokal zwischen ` +
+        `Vergleichbare Kommunen in ${peerScopeLabel} binden lokal zwischen ` +
         `${coverageP.min} und ${coverageP.max} % bezogen auf den abgeleiteten Verbrauch. ` +
         _positionFraming(
           targetCoveragePct,
@@ -475,7 +526,7 @@ function buildIntermunicipalComparison({
       dataStatus: 'blocked-by-integrity-check',
       target: null,
       peerGroup: {
-        state: profile.state,
+        state: scopeState || profile.state,
         populationBandLabel,
         settlementStructureCriterion: densityClass,
         validPeerCount: peers.length,
@@ -487,7 +538,7 @@ function buildIntermunicipalComparison({
       blockedFallback: {
         headline: 'Interkommunaler Vergleich noch nicht belastbar',
         text:
-          'Der abgeleitete Wert der Zielkommune liegt deutlich außerhalb des Vergleichskorridors. ' +
+          `${methodOutlier.metricLabel} liegt deutlich außerhalb des Vergleichskorridors. ` +
           'Das wird als Methodik-Warnsignal behandelt, nicht als Erfolgssignal.',
         nextGateLabel: 'Erzeugungsdaten der Zielkommune und Peer-Ableitung vor politischer Nutzung prüfen.',
       },
@@ -520,7 +571,7 @@ function buildIntermunicipalComparison({
       },
     },
     peerGroup: {
-      state:                     profile.state,
+      state:                     scopeState || profile.state,
       populationBandLabel,
       settlementStructureCriterion: densityClass,
       validPeerCount:            peers.length,

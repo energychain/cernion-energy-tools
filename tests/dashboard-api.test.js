@@ -10167,6 +10167,37 @@ describe('dashboard-api.service', () => {
       expect(typeof summaryRow.commercialKwh).toBe('number');
       expect(summaryRow.evidenceStatus).toBe('derived-from-assets');
       expect(summaryRow.confidence).toBe('low');
+      expect(summaryRow.sectorEvidenceStatus).toBe('heuristic-fallback');
+      expect(summaryRow.sectorEvidenceLabel).toContain('OSM-/MaStR-Sektorevidenz offen');
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toContain('osm_mastr_sector_split');
+      expect(result.sectorEvidenceRows).toEqual([
+        expect.objectContaining({
+          rowKey: 'sector_split_evidence',
+          evidenceStatus: 'heuristic-fallback',
+          methodKey: 'population_density_sector_proxy',
+        }),
+      ]);
+    });
+
+    it('does not reuse the same commercial/public sector split for Leimen and Stuttgart', async () => {
+      const leimen = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Leimen',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      const stuttgart = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Stuttgart',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      const leimenSummary = leimen.derivedLoadProfileRows.find((r) => r.rowKey === 'derived_load_summary');
+      const stuttgartSummary = stuttgart.derivedLoadProfileRows.find((r) => r.rowKey === 'derived_load_summary');
+
+      expect(leimenSummary.sectorModelLabel).toContain('Mittelstadt');
+      expect(stuttgartSummary.sectorModelLabel).toContain('Metropolen');
+      expect(leimenSummary.commercialFraction).toBeLessThan(stuttgartSummary.commercialFraction);
+      expect(leimenSummary.publicFraction).toBeLessThan(stuttgartSummary.publicFraction);
     });
 
     it('Wiesloch derived load profile regression: non-null localCorrelationValueEur for PV and biomass (#332)', async () => {

@@ -1425,13 +1425,24 @@
         }).format(Number(value));
       }
 
-      function roundedEuro(value) {
-        if (value == null || Number.isNaN(Number(value))) return "offen";
+      function roundedEuroNumber(value) {
+        if (value == null || Number.isNaN(Number(value))) return null;
         const absolute = Math.abs(Number(value));
-        const rounded = absolute >= 100000
+        return absolute >= 100000
           ? Math.round(Number(value) / 10000) * 10000
           : Math.round(Number(value) / 1000) * 1000;
+      }
+
+      function roundedEuro(value) {
+        const rounded = roundedEuroNumber(value);
+        if (rounded == null) return "offen";
         return euro(rounded);
+      }
+
+      function euroRangeDisplay(low, high) {
+        if (low == null || high == null || Number.isNaN(Number(low)) || Number.isNaN(Number(high))) return "offen";
+        if (Number(high) < Number(low)) return "offen";
+        return `ca. ${euro(low)} bis ${euro(high)}`;
       }
 
       function euroPerMwh(value) {
@@ -1447,7 +1458,7 @@
         if (value == null || Number.isNaN(Number(value)) || Number(value) <= 0) return "offen";
         const low = Number(value) * lowFactor;
         const high = Number(value) * highFactor;
-        return `ca. ${roundedEuro(low)} – ${roundedEuro(high)}`;
+        return euroRangeDisplay(roundedEuroNumber(low), roundedEuroNumber(high));
       }
 
       function number(value, suffix = "") {
@@ -1569,18 +1580,53 @@
         return budgetRows.find((row) => String(row.rowKey || "").includes("total")) || {};
       }
 
-      function euroRangeFromRow(row, fallbackValue) {
+      function isBudgetTotalRow(row) {
+        return String(row?.rowKey || "").includes("total");
+      }
+
+      function rowDisplayBounds(row, fallbackValue) {
         const low = Number(row?.estimatedLowEurPerYear);
         const high = Number(row?.estimatedHighEurPerYear);
         if (low > 0 && high > 0 && high >= low) {
-          return `ca. ${roundedEuro(low)} – ${roundedEuro(high)}`;
+          return {
+            low: roundedEuroNumber(low),
+            high: roundedEuroNumber(high),
+          };
         }
-        return euroRange(fallbackValue);
+        const fallback = Number(fallbackValue);
+        if (!(fallback > 0)) return null;
+        return {
+          low: roundedEuroNumber(fallback * 0.8),
+          high: roundedEuroNumber(fallback * 1.05),
+        };
+      }
+
+      function budgetSegmentRows(rows) {
+        return (rows || []).filter((row) => !isBudgetTotalRow(row) && rowDisplayBounds(row, row.estimatedEurPerYear));
+      }
+
+      function budgetRangeFromRows(rows, row) {
+        if (isBudgetTotalRow(row)) {
+          const segments = budgetSegmentRows(rows);
+          if (segments.length >= 2) {
+            const bounds = segments.map((segment) => rowDisplayBounds(segment, segment.estimatedEurPerYear));
+            const low = bounds.reduce((total, bound) => total + (Number(bound?.low) || 0), 0);
+            const high = bounds.reduce((total, bound) => total + (Number(bound?.high) || 0), 0);
+            if (low > 0 && high >= low) return euroRangeDisplay(low, high);
+          }
+        }
+        const bounds = rowDisplayBounds(row, row?.estimatedEurPerYear);
+        return bounds ? euroRangeDisplay(bounds.low, bounds.high) : "offen";
+      }
+
+      function euroRangeFromRow(row, fallbackValue) {
+        const bounds = rowDisplayBounds(row, fallbackValue);
+        return bounds ? euroRangeDisplay(bounds.low, bounds.high) : "offen";
       }
 
       function budgetDisplayRange(budgetRows) {
         const row = budgetTotalRow(budgetRows);
-        return euroRangeFromRow(row, budgetTotal(budgetRows));
+        return budgetRangeFromRows(budgetRows, row);
       }
 
       function localMwhBridgeText(price, concessionProxy) {
@@ -1635,7 +1681,7 @@
 
       function publicEvidenceLabel(value) {
         const key = String(value || "").toLowerCase();
-        if (key.includes("integrity") || key.includes("review")) return "Prüfwert";
+        if (key.includes("integrity") || key.includes("review")) return "Gegenprüfung offen";
         if (key.includes("missing")) return "offen";
         if (key.includes("scenario")) return "Szenario";
         if (key.includes("assumption")) return "Schätzung";
@@ -1656,19 +1702,19 @@
       function renderGenerationIntegrityNotice(data, compact = false) {
         const warning = generationIntegrityWarning(data);
         if (!warning) return "";
-        const text = warning.message || "Die abgeleitete lokale Erzeugung braucht vor politischer Nutzung eine Gegenprüfung.";
+        const text = warning.message || "Die lokale Erzeugung liegt außerhalb des Peer-Self-Checks. Vor politischer Nutzung sollten Anlagenliste, Volllaststunden und Betreiberlokalität gegengeprüft werden.";
         const nextGate = warning.nextGateLabel || "Anlagenbestand und Methodik prüfen.";
         return `
           <div class="decision-sentence integrity-warning">
             <strong>${escapeHtml(warning.headline || "Erzeugungswerte vor politischer Nutzung prüfen")}:</strong>
-            ${escapeHtml(compact ? "Die erzeugungsabhängigen Euro-Spannen sind bis zur Gegenprüfung methodische Prüfwerte." : text)}
+            ${escapeHtml(compact ? "Die erzeugungsabhängigen Euro-Spannen bleiben sichtbar, bekommen aber vor Beschluss einen Anlagen- und Methodikabgleich." : text)}
             Nächster Prüfpunkt: ${escapeHtml(nextGate)}
           </div>
         `;
       }
 
       function integrityValueLabel(data, baseLabel = "Prüfwert") {
-        return hasGenerationIntegrityWarning(data) ? `methodischer ${baseLabel}` : baseLabel;
+        return baseLabel;
       }
 
       function riskLevelText(score) {
@@ -1843,8 +1889,6 @@
         const localKpi = (data.euroKpiRows || []).find((row) => row.rowKey === "euro_kpi_local_value_capture");
         const importKpi = (data.euroKpiRows || []).find((row) => row.rowKey === "euro_kpi_import_exposure");
         const sharing = topEnergySharingScenario(data);
-        const valueLabel = integrityValueLabel(data);
-
         return `
           <section class="panel">
             <div class="panel-head">
@@ -1857,22 +1901,21 @@
                 </p>
               </div>
             </div>
-            ${renderGenerationIntegrityNotice(data)}
             <div class="story-lanes">
               <article class="story-lane">
                 <span>Heute importabhängig</span>
                 <strong>${escapeHtml(euroRange(importKpi?.valueEur, 0.9, 1.1))}</strong>
-                <p>Größenordnung des externen Strombezugs nach der ersten lokalen Deckungsschätzung${hasGenerationIntegrityWarning(data) ? "; bis zur Erzeugungsprüfung als methodischer Prüfwert" : ""}.</p>
+                <p>Größenordnung des externen Strombezugs nach der ersten lokalen Deckungsschätzung.</p>
               </article>
               <article class="story-lane">
                 <span>Bereits lokal passend</span>
                 <strong>${escapeHtml(euroRange(localKpi?.valueEur, 0.9, 1.1))}</strong>
-                <p>Teil des lokalen Erzeugungswerts, der zeitlich am besten zum Verbrauch passt${hasGenerationIntegrityWarning(data) ? "; " + valueLabel : ""}.</p>
+                <p>Teil des lokalen Erzeugungswerts, der zeitlich am besten zum Verbrauch passt.</p>
               </article>
               <article class="story-lane">
                 <span>§42c-Hebel</span>
                 <strong>${escapeHtml(euroRange(sharing?.potentialLocalCirculationEurPerYear, 0.9, 1.1))}</strong>
-                <p>${escapeHtml(valueLabel)} für Energy Sharing zwischen kommunalen, privaten und gewerblichen Teilnehmern. Kein Erlösversprechen.</p>
+                <p>Prüfwert für Energy Sharing zwischen kommunalen, privaten und gewerblichen Teilnehmern. Kein Erlösversprechen.</p>
               </article>
             </div>
             <div class="decision-sentence">
@@ -1954,7 +1997,7 @@
               <article class="money-card">
                 <span>Wert bei Anlagenbetreibern pro Jahr</span>
                 <strong>${escapeHtml(euroRange(generationValue))}</strong>
-                <p>Erzeugungswert, kein kommunaler Geldzufluss. ${hasGenerationIntegrityWarning(data) ? "Bis zur Anlagenprüfung ist diese Spanne ein methodischer Prüfwert. " : ""}Politisch relevant wird dieser Wert, wenn Betreiber lokal sind, kommunale Flächen verpachtet werden oder lokale Aufträge entstehen.</p>
+                <p>Erzeugungswert, kein kommunaler Geldzufluss. Politisch relevant wird dieser Wert, wenn Betreiber lokal sind, kommunale Flächen verpachtet werden oder lokale Aufträge entstehen.</p>
               </article>
               <article class="money-card">
                 <span>1 MWh lokal gegenüber Import</span>
@@ -1980,7 +2023,6 @@
               <strong>Szenarioeinordnung:</strong>
               ${escapeHtml(scenarioText(data))}
             </div>
-            ${renderGenerationIntegrityNotice(data, true)}
           </section>
         `;
       }
@@ -1988,7 +2030,7 @@
       function recommendationFor(row, data) {
         const tech = String(row.technology || row.rowKey || "").toLowerCase();
         const valueRange = euroRange(row.grossMarketValueEurPerYear, 0.9, 1.1);
-        const valueLabel = hasGenerationIntegrityWarning(data) ? "methodischer Erzeugungswert" : "Erzeugungswert";
+        const valueLabel = "Erzeugungswert";
         if (tech.includes("pv")) {
           return {
             label: "Photovoltaik priorisieren",
@@ -2040,7 +2082,6 @@
               viel Jahreswert, was bindet Wert im Ort, was ist politisch umsetzbar und welches Netzrisiko
               muss vorher geklärt werden?
             </p>
-            ${renderGenerationIntegrityNotice(data, true)}
             <div class="recommendation-list">
               ${items
                 .slice(0, 4)
@@ -2075,6 +2116,7 @@
       function renderTimeSeriesInsight(data) {
         const summary = (data.derivedLoadProfileRows || []).find((row) => row.rowKey === "derived_load_summary");
         const buckets = (data.derivedLoadProfileRows || []).filter((row) => row.rowKey !== "derived_load_summary");
+        const sectorEvidence = (data.sectorEvidenceRows || []).find((row) => row.rowKey === "sector_split_evidence");
         const tsRows = data.timeSeriesValueRows || [];
         const localKpi = (data.euroKpiRows || []).find((row) => row.rowKey === "euro_kpi_local_value_capture");
         const importKpi = (data.euroKpiRows || []).find((row) => row.rowKey === "euro_kpi_import_exposure");
@@ -2131,7 +2173,6 @@
                 </p>
               </div>
             </div>
-            ${renderGenerationIntegrityNotice(data, true)}
             <div class="money-grid">
               <article class="money-card">
                 <span>Abgeleiteter Stromverbrauch</span>
@@ -2141,12 +2182,12 @@
               <article class="money-card">
                 <span>Zeitgleicher lokaler Euro-Beitrag</span>
                 <strong>${escapeHtml(euroRange(localKpi?.valueEur, 0.9, 1.1))}</strong>
-                <p>Teil des Erzeugungswerts, der rechnerisch besser zum lokalen Verbrauchsprofil passt. Keine Autarkie-Aussage.${hasGenerationIntegrityWarning(data) ? " Methodischer Prüfwert bis zur Erzeugungsprüfung." : ""}</p>
+                <p>Teil des Erzeugungswerts, der rechnerisch besser zum lokalen Verbrauchsprofil passt. Keine Autarkie-Aussage.</p>
               </article>
               <article class="money-card">
                 <span>Importkosten-Exponierung</span>
                 <strong>${escapeHtml(euroRange(importKpi?.valueEur, 0.9, 1.1))}</strong>
-                <p>Größenordnung des Strombezugs, der nach der abgeleiteten lokalen Erzeugungswirkung weiterhin von außen abhängt.${hasGenerationIntegrityWarning(data) ? " Methodischer Prüfwert bis zur Erzeugungsprüfung." : ""}</p>
+                <p>Größenordnung des Strombezugs, der nach der abgeleiteten lokalen Erzeugungswirkung weiterhin von außen abhängt.</p>
               </article>
             </div>
             ${loadProfileChart}
@@ -2158,6 +2199,13 @@
                 </article>
               `).join("")}
             </div>
+            ${sectorEvidence?.evidenceStatus === "heuristic-fallback" ? `
+              <div class="decision-sentence">
+                <strong>Sektor-Split:</strong>
+                Gewerbe und kommunale Gebäude sind derzeit ein Strukturproxy, kein OSM-/MaStR-verifizierter Ortsmix.
+                Nächster Backend-Nachweis: ${escapeHtml(sectorEvidence.nextGateLabel || "OSM-Gebäudenutzung und MaStR-Anlagenstandorte verbinden.")}.
+              </div>
+            ` : ""}
             <div class="scenario-list">
               ${tsRows.map((row) => `
                 <article class="scenario-card">
@@ -2266,7 +2314,6 @@
                 </p>
               </div>
             </div>
-            ${renderGenerationIntegrityNotice(data, true)}
             <div class="sharing-flow" aria-label="Energy-Sharing-Wirklogik">
               <article class="sharing-node">
                 <span>Erzeugung</span>
@@ -2295,7 +2342,7 @@
               <article class="money-card">
                 <span>Adressierbarer Prüfwert</span>
                 <strong>${escapeHtml(euroRange(context.referenceUnmatchedValueEur, 0.9, 1.1))}</strong>
-                <p>Nicht zeitgleicher oder noch nicht vertraglich lokal nutzbarer Erzeugungswert. Kein Erlösversprechen.${hasGenerationIntegrityWarning(data) ? " Bis zur Anlagenprüfung: methodischer Prüfwert." : ""}</p>
+                <p>Nicht zeitgleicher oder noch nicht vertraglich lokal nutzbarer Erzeugungswert. Kein Erlösversprechen.</p>
               </article>
               <article class="money-card">
                 <span>Stärkstes Szenario</span>
@@ -2514,7 +2561,7 @@
                     (row) => `
                     <tr class="budget-main-row">
                       <td>${escapeHtml(row.budgetLabel || row.budgetCategory || row.rowKey)}</td>
-                      <td>${escapeHtml(euroRangeFromRow(row, row.estimatedEurPerYear))}</td>
+                      <td>${escapeHtml(budgetRangeFromRows(rows, row))}</td>
                       <td>${escapeHtml(publicEvidenceLabel(row.evidenceStatus || row.calculationStatus || "offen"))}</td>
                     </tr>
                     <tr class="budget-assumption-row">

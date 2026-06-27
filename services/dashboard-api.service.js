@@ -30608,7 +30608,9 @@ module.exports = {
         const kavNsEurPerYear = Math.round(
           (residentialConsumptionKwh * kavRateNsCtPerKwh) / 100
         );
-        const commercialConsumptionKwh = Math.round(residentialConsumptionKwh * 0.35);
+        const commercialConsumptionKwh = annualLoad?.commercialKwh != null
+          ? Math.round(Number(annualLoad.commercialKwh) || 0)
+          : Math.round(residentialConsumptionKwh * 0.35);
         const kavGewerbeEurPerYear = Math.round(
           (commercialConsumptionKwh * kavSonderkundenCtPerKwh) / 100
         );
@@ -30652,8 +30654,10 @@ module.exports = {
             calculationStatus: 'assumption-scenario',
             assumptionStatus: `${kavSonderkundenCtPerKwh} ct/kWh Sonderkunden-Proxy; Gewerbestruktur unbekannt`,
             evidenceStatus: 'assumption-backed',
-            assumptionLabel: 'Gewerbeverbrauch als 35% des Haushaltsverbrauchs geschätzt; niedrigerer Sonderkunden-Satz statt pauschalem Aufschlag.',
-            sourceLabel: 'KAV / interne Annahme / Branchenproxy',
+            assumptionLabel: annualLoad?.sectorModelLabel
+              ? `${annualLoad.sectorModelLabel}; niedrigerer Sonderkunden-Satz statt pauschalem Aufschlag.`
+              : 'Gewerbeverbrauch als Strukturproxy des Haushaltsverbrauchs geschätzt; niedrigerer Sonderkunden-Satz statt pauschalem Aufschlag.',
+            sourceLabel: 'KAV / interne Annahme / Sektor-Strukturproxy',
           },
           {
             rowKey: 'konzessionsabgabe_total_estimate',
@@ -31103,6 +31107,12 @@ module.exports = {
       addGap('energy_sharing_vnb_bilanzierungsgebiet', 'Bilanzierungsgebiet und angrenzende VNB-Gebiete bestimmen, welche Liegenschaften und Teilnehmer ab 2026/2028 gemeinsam nutzbar sind.');
       addGap('operator_locality', 'Belege zur Lokalität des Netzbetreibers ermöglichen kommunale Steuer-/Umsatzeffekt-Abschätzung.');
       addGap('local_tax_assumptions', 'Lokale Gewerbesteuer-/Einkommensteuerannahmen ermöglichen kommunales Steuereffekt-Szenario.');
+      if (annualLoad?.sectorEvidenceStatus === 'heuristic-fallback') {
+        addGap(
+          'osm_mastr_sector_split',
+          'OSM-Gebäudenutzung, MaStR-Anlagenstandorte und kommunale Liegenschaften ersetzen den Strukturproxy durch einen lokalen Sektor-Split.'
+        );
+      }
 
       const noCallGuards = [
         'billing.settlement',
@@ -31142,6 +31152,13 @@ module.exports = {
               commercialKwh: annualLoad.commercialKwh,
               publicBuildingKwh: annualLoad.publicBuildingKwh,
               households: annualLoad.households,
+              commercialFraction: annualLoad.commercialFraction,
+              publicFraction: annualLoad.publicFraction,
+              sectorModelLabel: annualLoad.sectorModelLabel,
+              sectorEvidenceStatus: annualLoad.sectorEvidenceStatus,
+              sectorEvidenceKey: annualLoad.sectorEvidenceKey,
+              sectorEvidenceLabel: annualLoad.sectorEvidenceLabel,
+              sectorNextGateLabel: annualLoad.sectorNextGateLabel,
               confidence: annualLoad.confidence,
               evidenceStatus: annualLoad.evidenceStatus,
               sourceLabel: annualLoad.sourceLabel,
@@ -31155,6 +31172,23 @@ module.exports = {
               evidenceStatus: b.evidenceStatus,
               confidence: b.confidence,
             })),
+          ]
+        : [];
+
+      const sectorEvidenceRows = annualLoad
+        ? [
+            {
+              rowKey: 'sector_split_evidence',
+              rowLabel: 'Sektor-Split Gewerbe/Kommune',
+              methodKey: annualLoad.sectorEvidenceKey || 'unknown',
+              methodLabel: annualLoad.sectorModelLabel || 'Sektorproxy',
+              commercialFraction: annualLoad.commercialFraction,
+              publicFraction: annualLoad.publicFraction,
+              evidenceStatus: annualLoad.sectorEvidenceStatus || 'unknown',
+              evidenceLabel: annualLoad.sectorEvidenceLabel || annualLoad.sourceLabel || null,
+              nextGateLabel: annualLoad.sectorNextGateLabel || null,
+              sourceLabel: 'REST-API: kommunales Lastmodell; OSM-/MaStR-Sektorevidenz als nächster Backend-Nachweis',
+            },
           ]
         : [];
 
@@ -31175,7 +31209,7 @@ module.exports = {
             warningKey: 'target_peer_method_outlier',
             headline: 'Erzeugungswerte vor politischer Nutzung prüfen',
             message:
-              'Die abgeleitete lokale Erzeugung liegt außerhalb des Peer-Korridors. Erzeugungswert, Zeitgleichkeitswert und §42c-Prüfwerte sind deshalb methodische Prüfwerte, bis Anlagenbestand und Peer-Methodik gegengeprüft sind.',
+              'Die abgeleitete lokale Erzeugung liegt außerhalb des Peer-Korridors. Vor Beschluss sollten Anlagenbestand, Volllaststunden und Peer-Methodik gegengeprüft werden.',
             affectedMetrics: [
               'gross_market_value',
               'local_value_capture',
@@ -31190,10 +31224,8 @@ module.exports = {
       if (generationIntegrityWarning) {
         addGap(
           'generation_peer_outlier_review',
-          'Ausreißerprüfung für lokale Erzeugung ermöglicht belastbare Ratszahlen statt methodischer Prüfwerte.'
+          'Ausreißerprüfung für lokale Erzeugung ermöglicht belastbare Ratszahlen.'
         );
-        const warningSuffix =
-          ' Datenintegritäts-Hinweis: Zielkommune liegt im Peer-Self-Check außerhalb des Korridors; vor politischer Nutzung als Prüfwert behandeln.';
         for (const row of valueRows) {
           const rowKey = String(row.rowKey || '');
           if (
@@ -31202,14 +31234,12 @@ module.exports = {
           ) {
             row.evidenceStatus = 'integrity-review-required';
             row.integrityWarningKey = generationIntegrityWarning.warningKey;
-            row.assumptionLabel = `${row.assumptionLabel || ''}${warningSuffix}`.trim();
           }
         }
         for (const row of timeSeriesValueRows) {
           if (Number(row.marketValueEur) > 0 || Number(row.localCorrelationValueEur) > 0) {
             row.evidenceStatus = 'integrity-review-required';
             row.integrityWarningKey = generationIntegrityWarning.warningKey;
-            row.sourceLabel = `${row.sourceLabel || ''}${warningSuffix}`.trim();
           }
         }
         for (const row of euroKpiRows) {
@@ -31222,7 +31252,6 @@ module.exports = {
           ) {
             row.evidenceStatus = 'integrity-review-required';
             row.integrityWarningKey = generationIntegrityWarning.warningKey;
-            row.description = `${row.description || ''}${warningSuffix}`.trim();
           }
         }
         for (const row of energySharingCommunityRows) {
@@ -31232,7 +31261,6 @@ module.exports = {
           ) {
             row.evidenceStatus = 'integrity-review-required';
             row.integrityWarningKey = generationIntegrityWarning.warningKey;
-            row.assumptionLabel = `${row.assumptionLabel || ''}${warningSuffix}`.trim();
           }
         }
       }
@@ -31260,6 +31288,7 @@ module.exports = {
         valueRows,
         timeSeriesValueRows,
         derivedLoadProfileRows,
+        sectorEvidenceRows,
         flexibilityScenarioRows,
         energySharingCommunityRows,
         euroKpiRows,

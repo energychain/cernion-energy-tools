@@ -5,13 +5,13 @@
  *
  * Derives a synthetic annual municipal load profile from:
  *   - Destatis EWZ (population) via municipality-resolver
- *   - BDEW SLP H0/G0 proxy fractions for household/commercial split
+ *   - BDEW SLP H0/G0 proxy families plus a population/density structure proxy
  *   - MaStR-near generation capacities from municipality-resolver ENERGY_OVERLAY
  *
  * No measured smart-meter or EDM data is used. All outputs carry
  * evidenceStatus: 'derived-from-assets' or 'estimated'. No autarky claims.
  *
- * Technology coincidence factors (annual H0+G0 mix, 65% H0 / 35% G0):
+ * Technology coincidence factors (annual H0+G0 mix proxy):
  *   PV:       0.25 — daytime generation vs morning/evening demand peaks → low overlap
  *   Biomass:  0.62 — baseload generation vs H0/G0 demand → moderate overlap
  *   Wind:     0.46 — seasonal pattern vs H0/G0 demand → moderate overlap
@@ -28,9 +28,67 @@ const COINCIDENCE_FACTORS = {
   wind:    0.46,  // slightly winter-heavy wind vs winter H0 demand → moderate
 };
 
-// Commercial/public fractions of household load for a typical German Gemeinde
-const COMMERCIAL_FRACTION = 0.40;  // G0-like commercial relative to H0 household
-const PUBLIC_FRACTION     = 0.05;  // municipal/public buildings relative to H0
+function _density(profile, population) {
+  const area = Number(profile?.areaSqKm || profile?.area_sq_km || profile?.kfl);
+  if (!population || !area || area <= 0) return null;
+  return population / area;
+}
+
+function _percent(value) {
+  return `${Math.round(value * 100)} %`;
+}
+
+function sectorFractionsForProfile(profile) {
+  const population = Number(profile?.population) || 0;
+  const density = _density(profile, population);
+  const fallbackEvidence = {
+    evidenceStatus: 'heuristic-fallback',
+    evidenceKey: 'population_density_sector_proxy',
+    evidenceLabel:
+      'Fallback-Strukturproxy nach Einwohnerzahl und Dichte; OSM-/MaStR-Sektorevidenz offen',
+    nextGateLabel:
+      'OSM-Gebäudenutzung, MaStR-Anlagenstandorte und kommunale Liegenschaften für lokalen Lastsplit verbinden.',
+  };
+
+  if (population >= 500000) {
+    return {
+      commercialFraction: 0.75,
+      publicFraction: 0.07,
+      modelLabel: 'Metropolen-Strukturproxy nach Einwohnerzahl/Dichte',
+      ...fallbackEvidence,
+    };
+  }
+  if (population >= 100000) {
+    return {
+      commercialFraction: 0.55,
+      publicFraction: 0.06,
+      modelLabel: 'Großstadt-Strukturproxy nach Einwohnerzahl/Dichte',
+      ...fallbackEvidence,
+    };
+  }
+  if (population >= 25000) {
+    return {
+      commercialFraction: density && density > 900 ? 0.34 : 0.30,
+      publicFraction: 0.055,
+      modelLabel: 'Mittelstadt-Strukturproxy nach Einwohnerzahl/Dichte',
+      ...fallbackEvidence,
+    };
+  }
+  if (population >= 10000) {
+    return {
+      commercialFraction: density && density > 700 ? 0.32 : 0.28,
+      publicFraction: 0.05,
+      modelLabel: 'Kleinstadt-Strukturproxy nach Einwohnerzahl/Dichte',
+      ...fallbackEvidence,
+    };
+  }
+  return {
+    commercialFraction: density && density > 400 ? 0.28 : 0.24,
+    publicFraction: 0.045,
+    modelLabel: 'Gemeinde-Strukturproxy nach Einwohnerzahl/Dichte',
+    ...fallbackEvidence,
+  };
+}
 
 /**
  * Estimate annual municipal load from a resolved municipality profile.
@@ -43,11 +101,12 @@ function estimateMunicipalAnnualLoad(profile) {
   const pop = profile.population;
   const hsPerEinwohner = profile.avgHouseholdsPerEinwohner || 0.44;
   const avgKwhPerHousehold = profile.avgHouseholdConsumptionKwh || 2450;
+  const sector = sectorFractionsForProfile(profile);
 
   const households = Math.round(pop * hsPerEinwohner);
   const householdKwh = households * avgKwhPerHousehold;
-  const commercialKwh = Math.round(householdKwh * COMMERCIAL_FRACTION);
-  const publicBuildingKwh = Math.round(householdKwh * PUBLIC_FRACTION);
+  const commercialKwh = Math.round(householdKwh * sector.commercialFraction);
+  const publicBuildingKwh = Math.round(householdKwh * sector.publicFraction);
   const totalAnnualKwh = householdKwh + commercialKwh + publicBuildingKwh;
 
   return {
@@ -58,7 +117,14 @@ function estimateMunicipalAnnualLoad(profile) {
     households,
     confidence: 'low',
     evidenceStatus: 'derived-from-assets',
-    sourceLabel: 'Bevölkerungsbasierte Schätzung (Destatis EWZ 2022); H0/G0-SLP-Proxy (BDEW 2024); kein Messzähler, kein EDM-Abgleich',
+    sourceLabel: `Bevölkerungsbasierte Schätzung (Destatis EWZ 2022); ${sector.evidenceLabel}; H0/G0-SLP-Proxy (BDEW 2024); kein Messzähler, kein EDM-Abgleich`,
+    commercialFraction: sector.commercialFraction,
+    publicFraction: sector.publicFraction,
+    sectorModelLabel: sector.modelLabel,
+    sectorEvidenceStatus: sector.evidenceStatus,
+    sectorEvidenceKey: sector.evidenceKey,
+    sectorEvidenceLabel: sector.evidenceLabel,
+    sectorNextGateLabel: sector.nextGateLabel,
     derivedLoadBuckets: [
       {
         bucketKey: 'h0_haushalt',
@@ -71,19 +137,19 @@ function estimateMunicipalAnnualLoad(profile) {
       },
       {
         bucketKey: 'g0_gewerbe',
-        bucketLabel: 'G0-Gewerbelast (SLP-Proxy, 40 % von H0)',
+        bucketLabel: `G0-Gewerbelast (SLP-Strukturproxy, ${_percent(sector.commercialFraction)} von H0)`,
         annualKwh: commercialKwh,
         slpProfileId: 'G0',
-        basis: 'Strukturanteil Gewerbe/KMU auf Basis BDEW-Sektorsplit 2024',
+        basis: `${sector.modelLabel}; Branchenmix vor Beschluss gegen lokale Verbrauchsdaten prüfen`,
         evidenceStatus: 'estimated',
         confidence: 'low',
       },
       {
         bucketKey: 'kommunal_gebaeude',
-        bucketLabel: 'Kommunale Gebäude (Schätzung, 5 % von H0)',
+        bucketLabel: `Kommunale Gebäude (Strukturproxy, ${_percent(sector.publicFraction)} von H0)`,
         annualKwh: publicBuildingKwh,
         slpProfileId: 'G0',
-        basis: 'Pauschalansatz öffentliche Gebäude/Straßenbeleuchtung',
+        basis: `${sector.modelLabel}; kommunale Liegenschaften und Straßenbeleuchtung gegen Ist-Verbrauch prüfen`,
         evidenceStatus: 'estimated',
         confidence: 'low',
       },
@@ -145,4 +211,8 @@ function deriveTechnologyCorrelation({ annualLoad, valueRows, assumedMarketPrice
   };
 }
 
-module.exports = { estimateMunicipalAnnualLoad, deriveTechnologyCorrelation };
+module.exports = {
+  estimateMunicipalAnnualLoad,
+  deriveTechnologyCorrelation,
+  sectorFractionsForProfile,
+};
