@@ -80,6 +80,18 @@ function parseSetCookie(headerValue) {
     .join('; ');
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function retryDelayMs(response, attempt) {
+  const retryAfter = Number(response.headers.get('retry-after'));
+  if (Number.isFinite(retryAfter) && retryAfter > 0) {
+    return Math.min(retryAfter * 1000, 10000);
+  }
+  return Math.min(1000 * 2 ** attempt, 10000);
+}
+
 class BudibaseClient {
   constructor({ baseUrl, cookie }) {
     this.baseUrl = normalizeBaseUrl(baseUrl);
@@ -109,16 +121,25 @@ class BudibaseClient {
     };
     if (appId) headers['x-budibase-app-id'] = appId;
     if (body !== undefined) headers['content-type'] = 'application/json';
-    const response = await fetch(`${this.baseUrl}${urlPath}`, {
-      method,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    const text = await response.text();
-    if (!response.ok) {
-      throw new Error(`${method} ${urlPath} failed (${response.status}): ${text}`);
+    const serializedBody = body === undefined ? undefined : JSON.stringify(body);
+    let lastText = '';
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const response = await fetch(`${this.baseUrl}${urlPath}`, {
+        method,
+        headers,
+        body: serializedBody,
+      });
+      const text = await response.text();
+      if (response.ok) {
+        return text ? JSON.parse(text) : null;
+      }
+      lastText = text;
+      if (response.status !== 429 || attempt === 4) {
+        throw new Error(`${method} ${urlPath} failed (${response.status}): ${text}`);
+      }
+      await sleep(retryDelayMs(response, attempt));
     }
-    return text ? JSON.parse(text) : null;
+    throw new Error(`${method} ${urlPath} failed after retry: ${lastText}`);
   }
 }
 
