@@ -934,19 +934,19 @@
             </p>
             <div class="money-grid">
               <article class="money-card">
-                <span>1 MWh lokal erzeugt und lokal verbraucht</span>
+                <span>1 MWh mit lokalem Erzeugungswert</span>
                 <strong>${escapeHtml(euro(localMwh))}</strong>
-                <p>Davon ${escapeHtml(euro(price))} Marktwert der Erzeugung plus etwa ${escapeHtml(euro(concessionProxy))} kommunaler Budget-/Konzessionshebel im Szenario.</p>
+                <p>Beispielrechnung pro MWh: etwa ${escapeHtml(euro(price))} Erzeugungswert plus rund ${escapeHtml(euro(concessionProxy))} kommunaler Budget-/Konzessionseffekt.</p>
               </article>
               <article class="money-card">
                 <span>1 MWh importiert</span>
                 <strong>${escapeHtml(euro(importedMwh))}</strong>
-                <p>Die Versorgung ist da, aber der Erzeugungswert entsteht ausserhalb. Lokal bleibt vor allem der angenommene Konzessions-/Netzbezug sichtbar.</p>
+                <p>Bei reinem Bezug entsteht der Erzeugungswert ausserhalb des Ortes. Lokal bleibt in dieser Sicht vor allem der geschaetzte Budget-/Konzessionseffekt.</p>
               </article>
               <article class="money-card">
                 <span>Jahreshebel im Ort</span>
                 <strong>${escapeHtml(euro(generationValue + budgetValue))}</strong>
-                <p>Summe aus lokal sichtbarem Erzeugungswert und Szenario-Budgetwirkung. Das ist Beratungslogik, keine Buchhaltung.</p>
+                <p>Geschaetzter Jahreswert aus lokal sichtbarem Erzeugungswert und kommunalem Budgeteffekt. Das ist eine erste Lagebild-Rechnung.</p>
               </article>
             </div>
             <div class="narrative-grid">
@@ -1193,10 +1193,10 @@
         dataStatus.textContent = `${data.municipality || "Kommune"}: ${statusText(data)}`;
         results.innerHTML = `
           <div class="summary">
-            ${renderMetric("Lokaler Marktwert", euro(generationValue), "Sichtbarer Gegenwert der lokalen Anlagen vor Steuern, Pacht und Betreiberstruktur.")}
-            ${renderMetric("Euro-Wirkung pro Einheit", euro(localMwhValue), "Bezugsbasis ist eine lokale MWh; dies ist eine Euro-Rechnung, keine Selbstversorgungsbehauptung.")}
-            ${renderMetric("Budgetwirkung", euro(budgetValue), "Konzessions-/Budgethebel als Szenario, keine rechtliche Abrechnung.")}
-            ${renderMetric("Jahreshebel im Ort", euro(generationValue + budgetValue), "Kaufmaennische Sicht auf lokale Wertbindung, nicht auf Leistung oder Haushaltsaequivalente.")}
+            ${renderMetric("Lokaler Marktwert pro Jahr", euro(generationValue), "Geschaetzter Jahreswert der Stromerzeugung im Ort, bevor Betreiberstruktur, Pachten und Steuern einzeln bewertet werden.")}
+            ${renderMetric("Euro-Wirkung je MWh", euro(localMwhValue), "Beispielwert fuer 1 MWh: lokaler Erzeugungswert plus geschaetzter kommunaler Budget-/Konzessionseffekt.")}
+            ${renderMetric("Budgeteffekt pro Jahr", euro(budgetValue), "Geschaetzter jaehrlicher Effekt fuer den kommunalen Haushalt, zum Beispiel aus Konzessionslogik und Annahmen des Szenarios.")}
+            ${renderMetric("Jahreshebel im Ort", euro(generationValue + budgetValue), "Geschaetzter Gesamtwert pro Jahr: wirtschaftlicher Wert der lokalen Anlagen plus kommunaler Budgeteffekt.")}
           </div>
 
           ${renderMayorBrief(data, generationValue, generationKwh, budgetValue)}
