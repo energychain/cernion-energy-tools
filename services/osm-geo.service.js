@@ -14,6 +14,40 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 
+/**
+ * Maps MCP error codes / exception messages to stable degraded-reason tokens.
+ * Consumers (Sidecar) can use these to surface evidence gaps without blocking.
+ *
+ * Reason codes (per issue #273):
+ *   NO_OBJECTS_FOUND     — query succeeded but OSM returned zero usable objects
+ *   GEOCODING_FAILED     — named-place or PLZ bbox resolution failed
+ *   OVERPASS_TIMEOUT     — Overpass upstream timed out
+ *   AREA_TOO_BROAD       — query deliberately refused (area too large)
+ *   RESPONSE_SIZE_LIMIT  — result truncated / withheld due to geometry/size limits
+ *   SERVICE_ABORT        — generic Cernion service error or unexpected exception
+ */
+function _classifyDegradedReason(errCodeOrMessage) {
+  const s = String(errCodeOrMessage || '').toUpperCase();
+  if (s.includes('GEOCOD') || s.includes('BBOX') || s.includes('PLACE_NOT_FOUND') || s.includes('NOT_FOUND')) return 'GEOCODING_FAILED';
+  if (s.includes('TIMEOUT') || s.includes('OVERPASS_TIMEOUT')) return 'OVERPASS_TIMEOUT';
+  if (s.includes('TOO_LARGE') || s.includes('TOO_BROAD') || s.includes('AREA_TOO')) return 'AREA_TOO_BROAD';
+  if (s.includes('SIZE_LIMIT') || s.includes('RESPONSE_SIZE') || s.includes('TRUNCATED')) return 'RESPONSE_SIZE_LIMIT';
+  return 'SERVICE_ABORT';
+}
+
+function _degraded(reason, detail) {
+  return { success: false, degradedReason: reason, degradedReasonDetail: detail || null };
+}
+
+function _wrapMcpResult(result, location) {
+  if (result && result.success === false) {
+    const code = result.error && (result.error.code || result.error.message);
+    const reason = code ? _classifyDegradedReason(code) : 'SERVICE_ABORT';
+    return { ...result, degradedReason: reason, queriedLocation: location };
+  }
+  return result;
+}
+
 module.exports = {
   name: 'osm-geo',
 
@@ -202,11 +236,16 @@ Detects both **DEFINITIVE_MISASSIGNMENT** (L1 mismatch, authoritative) and **LIK
         if (!mastrNummer && (latitude === undefined || longitude === undefined)) {
           throw new Error('Either mastrNummer or both latitude and longitude must be provided.');
         }
-        return await CernionMCPClient.callWithNewSession(
-          'osm_geo_validate',
-          ctx.params,
-          ctx.meta.cernionToken
-        );
+        try {
+          const result = await CernionMCPClient.callWithNewSession(
+            'osm_geo_validate',
+            ctx.params,
+            ctx.meta.cernionToken
+          );
+          return _wrapMcpResult(result, mastrNummer || `${latitude},${longitude}`);
+        } catch (err) {
+          return _degraded(_classifyDegradedReason(err.message), err.message);
+        }
       },
     },
 
@@ -406,11 +445,17 @@ Use \`constrainToBbox\` (directly from a \`vnbdigital_lookup\` bbox field) to re
             'At least one coordinate source must be provided: location, mastrNummer, or latitude + longitude.'
           );
         }
-        return await CernionMCPClient.callWithNewSession(
-          'osm_infrastructure_nearby',
-          ctx.params,
-          ctx.meta.cernionToken
-        );
+        const queriedLocation = location || mastrNummer || `${latitude},${longitude}`;
+        try {
+          const result = await CernionMCPClient.callWithNewSession(
+            'osm_infrastructure_nearby',
+            ctx.params,
+            ctx.meta.cernionToken
+          );
+          return _wrapMcpResult(result, queriedLocation);
+        } catch (err) {
+          return _degraded(_classifyDegradedReason(err.message), err.message);
+        }
       },
     },
 
@@ -424,6 +469,7 @@ Use \`constrainToBbox\` (directly from a \`vnbdigital_lookup\` bbox field) to re
       rest: 'POST /substation-finder',
       params: {
         location: { type: 'string', optional: true },
+        postalCode: { type: 'string', optional: true },
         boundingBox: { type: 'object', optional: true },
         gridOperator: { type: 'string', optional: true },
         gridOperatorId: { type: 'string', optional: true },
@@ -464,6 +510,11 @@ Returns both a detail list and **aggregated statistics**:
                     type: 'string',
                     description: 'Area name (Gemeinde, Stadt, Landkreis) for OSM area query.',
                     example: 'Ludwigshafen am Rhein',
+                  },
+                  postalCode: {
+                    type: 'string',
+                    description: 'German PLZ (postal code). Combined with location when both are provided (e.g. "74909 Meckesheim"). Can be used alone for PLZ-scoped queries.',
+                    example: '74909',
                   },
                   boundingBox: {
                     type: 'object',
@@ -536,6 +587,13 @@ Returns both a detail list and **aggregated statistics**:
                     maxResults: 500,
                   },
                 },
+                narrowLocality: {
+                  summary: 'Narrow locality query with PLZ (Meckesheim)',
+                  value: {
+                    location: 'Meckesheim',
+                    postalCode: '74909',
+                  },
+                },
               },
             },
           },
@@ -591,17 +649,29 @@ Returns both a detail list and **aggregated statistics**:
         },
       },
       async handler(ctx) {
-        const { location, boundingBox, gridOperator } = ctx.params;
-        if (!location && !boundingBox && !gridOperator) {
+        const { location, postalCode, boundingBox, gridOperator } = ctx.params;
+        if (!location && !postalCode && !boundingBox && !gridOperator) {
           throw new Error(
-            'At least one scope parameter must be provided: location, boundingBox, or gridOperator.'
+            'At least one scope parameter must be provided: location, postalCode, boundingBox, or gridOperator.'
           );
         }
-        return await CernionMCPClient.callWithNewSession(
-          'osm_substation_finder',
-          ctx.params,
-          ctx.meta.cernionToken
-        );
+        const params = { ...ctx.params };
+        if (postalCode && location) {
+          params.location = `${postalCode} ${location}`;
+        } else if (postalCode && !location) {
+          params.location = postalCode;
+        }
+        const queriedLocation = params.location || gridOperator || 'bbox';
+        try {
+          const result = await CernionMCPClient.callWithNewSession(
+            'osm_substation_finder',
+            params,
+            ctx.meta.cernionToken
+          );
+          return _wrapMcpResult(result, queriedLocation);
+        } catch (err) {
+          return _degraded(_classifyDegradedReason(err.message), err.message);
+        }
       },
     },
 
@@ -615,6 +685,7 @@ Returns both a detail list and **aggregated statistics**:
       rest: 'POST /grid-topology',
       params: {
         location: { type: 'string', optional: true },
+        postalCode: { type: 'string', optional: true },
         boundingBox: { type: 'object', optional: true },
         gridOperator: { type: 'string', optional: true },
         voltageLevel: {
@@ -656,6 +727,11 @@ Returns both a detail list and **aggregated statistics**:
                     type: 'string',
                     description: 'Area name (Gemeinde, Stadt, Landkreis).',
                     example: 'Ludwigshafen am Rhein',
+                  },
+                  postalCode: {
+                    type: 'string',
+                    description: 'German PLZ (postal code). Combined with location when both are provided (e.g. "74909 Meckesheim"). Can be used alone for PLZ-scoped queries.',
+                    example: '74909',
                   },
                   boundingBox: {
                     type: 'object',
@@ -726,6 +802,15 @@ Returns both a detail list and **aggregated statistics**:
                     includeGraphData: true,
                   },
                 },
+                narrowLocality: {
+                  summary: 'Narrow locality topology (Meckesheim / 74909)',
+                  value: {
+                    location: 'Meckesheim',
+                    postalCode: '74909',
+                    includePathAnalysis: false,
+                    includeGraphData: false,
+                  },
+                },
               },
             },
           },
@@ -771,17 +856,29 @@ Returns both a detail list and **aggregated statistics**:
         },
       },
       async handler(ctx) {
-        const { location, boundingBox, gridOperator } = ctx.params;
-        if (!location && !boundingBox && !gridOperator) {
+        const { location, postalCode, boundingBox, gridOperator } = ctx.params;
+        if (!location && !postalCode && !boundingBox && !gridOperator) {
           throw new Error(
-            'At least one scope parameter must be provided: location, boundingBox, or gridOperator.'
+            'At least one scope parameter must be provided: location, postalCode, boundingBox, or gridOperator.'
           );
         }
-        return await CernionMCPClient.callWithNewSession(
-          'osm_grid_topology',
-          ctx.params,
-          ctx.meta.cernionToken
-        );
+        const params = { ...ctx.params };
+        if (postalCode && location) {
+          params.location = `${postalCode} ${location}`;
+        } else if (postalCode && !location) {
+          params.location = postalCode;
+        }
+        const queriedLocation = params.location || gridOperator || 'bbox';
+        try {
+          const result = await CernionMCPClient.callWithNewSession(
+            'osm_grid_topology',
+            params,
+            ctx.meta.cernionToken
+          );
+          return _wrapMcpResult(result, queriedLocation);
+        } catch (err) {
+          return _degraded(_classifyDegradedReason(err.message), err.message);
+        }
       },
     },
   },

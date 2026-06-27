@@ -410,6 +410,99 @@ describe('OSM Geo Service', () => {
     });
   });
 
+  // ─── Meckesheim / 74909 regression (issue #273) ─────────────────────────────
+
+  describe('Meckesheim narrow-locality regression (issue #273)', () => {
+    it('substationFinder: postalCode + location combined into location string sent to MCP', async () => {
+      await broker.call('osm-geo.substationFinder', {
+        location: 'Meckesheim',
+        postalCode: '74909',
+      });
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'osm_substation_finder',
+        expect.objectContaining({ location: '74909 Meckesheim' }),
+        undefined
+      );
+    });
+
+    it('substationFinder: postalCode alone used as location when no location provided', async () => {
+      await broker.call('osm-geo.substationFinder', { postalCode: '74909' });
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'osm_substation_finder',
+        expect.objectContaining({ location: '74909' }),
+        undefined
+      );
+    });
+
+    it('substationFinder: MCP exception returns structured degraded response', async () => {
+      callWithNewSession.mockRejectedValueOnce(new Error('server-side abort'));
+      const result = await broker.call('osm-geo.substationFinder', {
+        location: 'Meckesheim',
+        postalCode: '74909',
+      });
+      expect(result.success).toBe(false);
+      expect(result.degradedReason).toBe('SERVICE_ABORT');
+      expect(result.degradedReasonDetail).toMatch(/abort/i);
+    });
+
+    it('substationFinder: Overpass timeout error classified correctly', async () => {
+      callWithNewSession.mockRejectedValueOnce(new Error('OVERPASS_TIMEOUT: query exceeded limit'));
+      const result = await broker.call('osm-geo.substationFinder', {
+        location: 'Meckesheim',
+        postalCode: '74909',
+      });
+      expect(result.success).toBe(false);
+      expect(result.degradedReason).toBe('OVERPASS_TIMEOUT');
+    });
+
+    it('substationFinder: MCP success:false enriched with degradedReason', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: false,
+        error: { code: 'GEOCODING_FAILED', message: 'Place not found: 74909 Meckesheim' },
+      });
+      const result = await broker.call('osm-geo.substationFinder', {
+        location: 'Meckesheim',
+        postalCode: '74909',
+      });
+      expect(result.success).toBe(false);
+      expect(result.degradedReason).toBe('GEOCODING_FAILED');
+    });
+
+    it('gridTopology: postalCode + location combined into location string sent to MCP', async () => {
+      await broker.call('osm-geo.gridTopology', {
+        location: 'Meckesheim',
+        postalCode: '74909',
+        includePathAnalysis: false,
+        includeGraphData: false,
+      });
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'osm_grid_topology',
+        expect.objectContaining({ location: '74909 Meckesheim' }),
+        undefined
+      );
+    });
+
+    it('gridTopology: MCP exception returns structured degraded response', async () => {
+      callWithNewSession.mockRejectedValueOnce(new Error('OVERPASS_TIMEOUT: narrow query stalled'));
+      const result = await broker.call('osm-geo.gridTopology', {
+        location: 'Meckesheim',
+        postalCode: '74909',
+      });
+      expect(result.success).toBe(false);
+      expect(result.degradedReason).toBe('OVERPASS_TIMEOUT');
+    });
+
+    it('substationFinder: accepts postalCode as sole scope (no location, boundingBox, or gridOperator)', async () => {
+      const result = await broker.call('osm-geo.substationFinder', { postalCode: '74909' });
+      expect(result.success).toBe(true);
+    });
+
+    it('gridTopology: accepts postalCode as sole scope', async () => {
+      const result = await broker.call('osm-geo.gridTopology', { postalCode: '74909' });
+      expect(result.success).toBe(true);
+    });
+  });
+
   // ─── OpenAPI metadata ────────────────────────────────────────────────────────
 
   describe('OpenAPI metadata', () => {
