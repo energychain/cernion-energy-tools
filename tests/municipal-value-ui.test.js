@@ -46,6 +46,8 @@ describe('municipal-value public UI decision framing', () => {
     expect(html).toContain('Warum PV trotz Biomasse-Signal priorisiert wird');
     expect(html).toContain('PV wird priorisiert, weil absoluter Wert, Dachflächenlogik und politische Umsetzbarkeit am höchsten sind');
     expect(html).toContain('Biomasse passt zeitlich besser zum Verbrauch');
+    expect(html).toContain('mit derselben Marktwertannahme wie Tabelle und Diagramm');
+    expect(html).toContain('Erzeugungswert EUR/Jahr');
   });
 
   it('keeps storage/flex as proof paths instead of speculative euro scenario tables', () => {
@@ -58,7 +60,19 @@ describe('municipal-value public UI decision framing', () => {
   it('keeps timing and rounded-number source notes attached to repeated claims', () => {
     expect(html).toContain('Seit 01.06.2026 im VNB-Gebiet möglich');
     expect(html).toContain('Herkunft: gerundete Marktpreisannahme plus KAV-Proxy');
+    expect(html).toContain('Erzeugungswert plus rund');
+    expect(html).toContain('Höchster Risikoscore: ${escapeHtml(maxRisk)}/100');
     expect(html).toContain('@media print');
     expect(html).toContain('break-inside: avoid');
+    expect(html).toContain('.visual-panel');
+  });
+
+  it('uses print-stable disclosure cards and compact budget rows for PDF export', () => {
+    expect(html).toContain('<span>§42c-Szenario</span>');
+    expect(html).toContain('scenario-meta');
+    expect(html).toContain('budget-main-row');
+    expect(html).toContain('budget-assumption-row');
+    expect(html).not.toContain('<th>Kommunaler Use Case</th>');
+    expect(html).not.toContain('<th>Annahme</th>');
   });
 });

@@ -30632,7 +30632,7 @@ module.exports = {
             assumedKavCtPerKwh: kavRateNsCtPerKwh,
             assumedConsumptionMwhPerYear: Math.round(residentialConsumptionKwh / 1000),
             calculationStatus: 'assumption-scenario',
-            assumptionStatus: `Konzessionsabgabenverordnung: ${profile.konzessionsabgabeKategorie}; ${kavRateNsCtPerKwh} ct/kWh`,
+            assumptionStatus: `KAV-Kategorie: ${profile.konzessionsabgabeKategorie}; ${kavRateNsCtPerKwh} ct/kWh`,
             evidenceStatus: 'assumption-backed',
             assumptionLabel: `Einwohner ${profile.population}; ${totalHouseholds} Haushalte; ${profile.avgHouseholdConsumptionKwh} kWh/HH angenommen`,
             sourceLabel: 'KAV 1992 / interne Annahme; Schätzung, keine Schlussrechnung',
@@ -31010,7 +31010,7 @@ module.exports = {
               'Gemischte Community',
               'mixed_public_private_community',
               0.4,
-              'Private und gewerbliche EE-Betreiber plus kommunale Liegenschaften; KMU-/Teilnehmerfähigkeit prüfen.',
+              'Private und gewerbliche EE-Betreiber plus kommunale Liegenschaften; KMU-Fähigkeit und Teilnehmerkreis prüfen.',
               'Kommunale Nachfrage wird Ankerabnehmer, private und gewerbliche Anlagen bringen zusätzliche lokale Erzeugung ein.',
               'Teilnehmerkreis, Betreiberform, Liefer-/Nutzungsverträge und Abrechnungspartner rechtlich und energiewirtschaftlich prüfen.'
             ),

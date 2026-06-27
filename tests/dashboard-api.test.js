@@ -10224,6 +10224,7 @@ describe('dashboard-api.service', () => {
       const mixed = result.energySharingCommunityRows.find((r) => r.rowKey === 'energy_sharing_mixed_community');
       expect(mixed).toBeDefined();
       expect(mixed.communityModel).toContain('Private und gewerbliche');
+      expect(mixed.communityModel).toContain('KMU-Fähigkeit');
 
       const storage = result.energySharingCommunityRows.find((r) => r.rowKey === 'energy_sharing_storage_enabled');
       expect(storage).toBeDefined();
@@ -10238,6 +10239,19 @@ describe('dashboard-api.service', () => {
           'energy_sharing_vnb_bilanzierungsgebiet',
         ])
       );
+    });
+
+    it('keeps concession assumptions PDF-friendly and abbreviated', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Wiesloch',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      const household = result.budgetImpactRows.find((r) => r.rowKey === 'konzessionsabgabe_ns_haushalt');
+      expect(household).toBeDefined();
+      expect(household.assumptionStatus).toContain('KAV-Kategorie');
+      expect(household.assumptionStatus).not.toContain('Konzessionsabgabenverordnung');
     });
 
     // ── Issue #331 — real PLZ/name/AGS resolver ────────────────────────────

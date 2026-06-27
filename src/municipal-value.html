@@ -850,6 +850,19 @@
         line-height: 1.35;
       }
 
+      .scenario-meta {
+        display: grid;
+        gap: 6px;
+      }
+
+      .scenario-meta p {
+        margin: 0;
+      }
+
+      .scenario-meta b {
+        color: var(--ink);
+      }
+
       .risk-list {
         display: grid;
         gap: 10px;
@@ -938,6 +951,18 @@
 
       td {
         font-size: 0.93rem;
+      }
+
+      .budget-main-row td {
+        border-bottom: 0;
+        font-weight: 700;
+      }
+
+      .budget-assumption-row td {
+        color: var(--muted);
+        font-size: 0.86rem;
+        line-height: 1.35;
+        padding-top: 0;
       }
 
       .insight-band {
@@ -1056,6 +1081,10 @@
           background: #fff;
         }
 
+        main {
+          padding: 12px 0 28px;
+        }
+
         header,
         .input-panel,
         footer {
@@ -1069,6 +1098,47 @@
 
         .table-wrap {
           overflow: visible;
+        }
+
+        .hero-grid {
+          display: block;
+        }
+
+        .intro {
+          padding: 0;
+        }
+
+        h1 {
+          font-size: 2.15rem;
+          margin-bottom: 8px;
+        }
+
+        .lead {
+          font-size: 0.98rem;
+          margin-bottom: 10px;
+          max-width: none;
+        }
+
+        .visual-panel,
+        .story-card {
+          display: none;
+        }
+
+        .results {
+          margin-top: 14px;
+        }
+
+        .executive-box {
+          padding: 16px;
+        }
+
+        .executive-box h2 {
+          font-size: 1.55rem;
+        }
+
+        .executive-box > p,
+        .trust-sentence {
+          font-size: 0.92rem;
         }
 
         table {
@@ -1361,6 +1431,10 @@
         return euroRangeFromRow(row, budgetTotal(budgetRows));
       }
 
+      function localMwhBridgeText(price, concessionProxy) {
+        return `${euroPerMwh(price)} Erzeugungswert plus rund ${euroPerMwh(concessionProxy)} KAV-Proxy ergeben den kommunalen Vergleichswert von rund ${euroPerMwh(price + concessionProxy)}.`;
+      }
+
       function scenarioLabel(value) {
         const key = String(value || "baseline").toLowerCase();
         if (key === "high-price") return "Hochpreisszenario";
@@ -1371,10 +1445,10 @@
       function scenarioText(data) {
         const key = String(data.scenario || "baseline").toLowerCase();
         if (key === "high-price") {
-          return "Das Hochpreisszenario zeigt die obere Bandbreite für Betreiberwerte. Im Basisszenario lägen marktpreisabhängige Betreiberwerte rechnerisch rund ein Drittel niedriger; die Konzessionsabgabe wird davon nicht automatisch größer.";
+          return "Das Hochpreisszenario zeigt die obere Bandbreite für Erzeugungswerte. Im Basisszenario lägen marktpreisabhängige Erzeugungswerte rechnerisch rund ein Drittel niedriger; die Konzessionsabgabe wird davon nicht automatisch größer.";
         }
         if (key === "low-price") {
-          return "Das Niedrigpreisszenario zeigt eine vorsichtige Unterkante für Betreiberwerte. Für politische Beschlüsse sollte es mit dem Basisszenario verglichen werden.";
+          return "Das Niedrigpreisszenario zeigt eine vorsichtige Unterkante für Erzeugungswerte. Für politische Beschlüsse sollte es mit dem Basisszenario verglichen werden.";
         }
         return "Das Basisszenario ist der erste Vergleichsfall. Für Beschlüsse sollten zusätzlich eine niedrige und eine hohe Marktpreisvariante geprüft werden.";
       }
@@ -1512,6 +1586,7 @@
       function renderExecutiveDecision(data, generationValue, generationKwh, budgetRows) {
         const rows = generationRows(data.valueRows || []);
         const price = marketPrice(data, rows);
+        const concessionProxy = budgetPerMwh(budgetRows, generationKwh);
         const topTech = strongestTechnology(rows);
         const budget = budgetDisplayRange(budgetRows);
         const totalBudgetRow = budgetTotalRow(budgetRows);
@@ -1558,7 +1633,7 @@
             <div class="trust-sentence">
               <strong>Vertrauenssatz:</strong>
               Die Werte sind eine gerundete Erstschätzung für eine Entscheidungsvorlage, keine Schlussrechnung.
-              Marktwertannahme: ${escapeHtml(euroPerMwh(price))}; Haushaltsanker aus KAV-Sätzen und Verbrauchsannahmen.
+              ${escapeHtml(localMwhBridgeText(price, concessionProxy))} Haushaltsanker aus KAV-Sätzen und Verbrauchsannahmen.
             </div>
           </section>
         `;
@@ -1581,7 +1656,7 @@
                 <h2>Die Geschichte: Importkosten senken, lokalen Wert halten</h2>
                 <p>
                   Der Kern ist einfach: Importierter Strom bezahlt Erzeugung außerhalb der Kommune.
-                  Lokal erzeugter und lokal genutzter Strom kann Betreiberwert, Pacht, Aufträge
+                  Lokal erzeugter und lokal genutzter Strom kann Erzeugungswert, Pacht, Aufträge
                   und politische Steuerbarkeit im Ort halten.
                 </p>
               </div>
@@ -1606,7 +1681,7 @@
             <div class="decision-sentence">
               <strong>Beschlusslogik:</strong>
               Eine lokal erzeugte MWh steht hier mit ${escapeHtml(euroPerMwh(localMwhPublic))} als kommunaler Vergleichswert
-              gegen ${escapeHtml(euroPerMwh(importedMwhPublic))} beim Import. Herkunft: gerundete Marktpreisannahme plus KAV-Proxy,
+              gegen ${escapeHtml(euroPerMwh(importedMwhPublic))} beim Import. Herkunft: ${escapeHtml(localMwhBridgeText(price, concessionProxy))},
               nicht als direkte Haushaltseinnahme zu lesen.
             </div>
           </section>
@@ -1657,7 +1732,7 @@
         const totalBudgetRow = budgetTotalRow(budgetRows);
         const topTech = strongestTechnology(rows);
         const topTechText = topTech
-          ? `${technologyLabel(topTech.technology)} trägt im aktuellen Szenario den größten sichtbaren Betreiberwert.`
+          ? `${technologyLabel(topTech.technology)} trägt im aktuellen Szenario den größten sichtbaren Erzeugungswert.`
           : "Die lokale Erzeugungsbasis ist noch nicht belastbar genug, um eine Führungstechnologie zu benennen.";
 
         return `
@@ -1678,12 +1753,12 @@
               <article class="money-card">
                 <span>Wert bei Anlagenbetreibern pro Jahr</span>
                 <strong>${escapeHtml(euroRange(generationValue))}</strong>
-                <p>Kein kommunaler Geldzufluss. Politisch relevant wird dieser Wert, wenn Betreiber lokal sind, kommunale Flächen verpachtet werden oder lokale Aufträge entstehen.</p>
+                <p>Erzeugungswert, kein kommunaler Geldzufluss. Politisch relevant wird dieser Wert, wenn Betreiber lokal sind, kommunale Flächen verpachtet werden oder lokale Aufträge entstehen.</p>
               </article>
               <article class="money-card">
                 <span>1 MWh lokal gegenüber Import</span>
                 <strong>${escapeHtml(euroPerMwh(localMwhPublic))} vs. ${escapeHtml(euroPerMwh(importedMwhPublic))}</strong>
-                <p>Eine lokal erzeugte und zugleich lokal verbrauchte MWh kann zusätzlich Betreiberwert im Ort halten. Herkunft: gerundete Marktpreisannahme plus KAV-Proxy.</p>
+                <p>Eine lokal erzeugte und zugleich lokal verbrauchte MWh kann zusätzlich Erzeugungswert im Ort halten. Herkunft: gerundete Marktpreisannahme plus KAV-Proxy; ${escapeHtml(localMwhBridgeText(price, concessionProxy))}</p>
               </article>
             </div>
             <div class="narrative-grid">
@@ -1693,7 +1768,7 @@
               </article>
               <article class="narrative-card">
                 <h3>Warum das für Standortpolitik zählt</h3>
-                <p>Betreiberlokalität, Pacht kommunaler Flächen, Gewerbesteuer und lokale Aufträge entscheiden, ob Betreiberwert auch im Rathaus spürbar wird.</p>
+                <p>Betreiberlokalität, Pacht kommunaler Flächen, Gewerbesteuer und lokale Aufträge entscheiden, ob Erzeugungswert auch im Rathaus spürbar wird.</p>
               </article>
               <article class="narrative-card">
                 <h3>Vergleichsmaßstab</h3>
@@ -1710,28 +1785,28 @@
 
       function recommendationFor(row) {
         const tech = String(row.technology || row.rowKey || "").toLowerCase();
-        const value = euro(row.grossMarketValueEurPerYear);
+        const valueRange = euroRange(row.grossMarketValueEurPerYear, 0.9, 1.1);
         if (tech.includes("pv")) {
           return {
             label: "Photovoltaik priorisieren",
-            detail: `PV liefert hier ${euroRange(row.grossMarketValueEurPerYear)} Betreiberwert pro Jahr. Relevant für die Kommune wird das über kommunale Dächer, Pachtmodelle, lokale Betreiber und Aufträge an örtliche Betriebe.`,
+            detail: `PV liefert hier ${valueRange} Erzeugungswert pro Jahr, mit derselben Marktwertannahme wie Tabelle und Diagramm. Relevant für die Kommune wird das über kommunale Dächer, Pachtmodelle, lokale Betreiber und Aufträge an örtliche Betriebe.`,
           };
         }
         if (tech.includes("biomass")) {
           return {
             label: "Biomasse kaufmännisch prüfen",
-            detail: `Biomasse liefert hier ${euroRange(row.grossMarketValueEurPerYear)} Betreiberwert pro Jahr. Der kommunale Hebel entsteht über Wärmenutzung, Betreiberstruktur, Brennstoffpfad und Gewerbesteuerlokalität.`,
+            detail: `Biomasse liefert hier ${valueRange} Erzeugungswert pro Jahr. Der kommunale Hebel entsteht über Wärmenutzung, Betreiberstruktur, Brennstoffpfad und Gewerbesteuerlokalität.`,
           };
         }
         if (tech.includes("wind")) {
           return {
             label: "Windkraft als Flächenfrage klären",
-            detail: `Windkraft liefert hier ${euroRange(row.grossMarketValueEurPerYear)} Betreiberwert pro Jahr. Entscheidend sind kommunale Flächenanteile, Beteiligungsmodell, Steuerwirkung und Netzanschlussdauer.`,
+            detail: `Windkraft liefert hier ${valueRange} Erzeugungswert pro Jahr. Entscheidend sind kommunale Flächenanteile, Beteiligungsmodell, Steuerwirkung und Netzanschlussdauer.`,
           };
         }
         return {
           label: `${technologyLabel(row.technology)} einordnen`,
-          detail: `${technologyLabel(row.technology)} liefert hier ${euroRange(row.grossMarketValueEurPerYear)} Betreiberwert pro Jahr. Die lokale Betreiber-, Steuer- und Flächenwirkung sollte gezielt geklärt werden.`,
+          detail: `${technologyLabel(row.technology)} liefert hier ${valueRange} Erzeugungswert pro Jahr. Die lokale Betreiber-, Steuer- und Flächenwirkung sollte gezielt geklärt werden.`,
         };
       }
 
@@ -1861,7 +1936,7 @@
               <article class="money-card">
                 <span>Zeitgleicher lokaler Euro-Beitrag</span>
                 <strong>${escapeHtml(euroRange(localKpi?.valueEur, 0.9, 1.1))}</strong>
-                <p>Teil des Betreiberwerts, der rechnerisch besser zum lokalen Verbrauchsprofil passt. Keine Autarkie-Aussage.</p>
+                <p>Teil des Erzeugungswerts, der rechnerisch besser zum lokalen Verbrauchsprofil passt. Keine Autarkie-Aussage.</p>
               </article>
               <article class="money-card">
                 <span>Importkosten-Exponierung</span>
@@ -2029,29 +2104,21 @@
                 <p>Prüfgröße für lokale Wertbindung durch Community, Speicher und flexible Lasten.</p>
               </article>
             </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Szenario</th>
-                    <th>Prüfwert/Jahr</th>
-                    <th>Modell</th>
-                    <th>Kommunaler Use Case</th>
-                    <th>Nächster Prüfpunkt</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${scenarios.map((row) => `
-                    <tr>
-                      <td>${escapeHtml(row.rowLabel)}</td>
-                      <td>${escapeHtml(euroRange(row.potentialLocalCirculationEurPerYear, 0.9, 1.1))}</td>
-                      <td>${escapeHtml(row.communityModel)}</td>
-                      <td>${escapeHtml(row.municipalUseCase)}</td>
-                      <td>${escapeHtml(row.rowKey === "energy_sharing_municipal_estates" ? "Liegenschaften und Strombedarf priorisieren." : row.rowKey === "energy_sharing_mixed_community" ? "Teilnehmerkreis und Betreiberform politisch vorbereiten." : "Speicher nur mit belegter Herkunft und Netzverträglichkeit einbeziehen.")}</td>
-                    </tr>
-                  `).join("")}
-                </tbody>
-              </table>
+            <div class="scenario-list">
+              ${scenarios.map((row) => `
+                <article class="scenario-card">
+                  <div>
+                    <span>§42c-Szenario</span>
+                    <strong>${escapeHtml(row.rowLabel)}</strong>
+                    <small>${escapeHtml(euroRange(row.potentialLocalCirculationEurPerYear, 0.9, 1.1))} Prüfwert/Jahr</small>
+                  </div>
+                  <div class="scenario-meta">
+                    <p><b>Modell:</b> ${escapeHtml(row.communityModel)}</p>
+                    <p><b>Kommunaler Nutzen:</b> ${escapeHtml(row.municipalUseCase)}</p>
+                    <p><b>Nächster Prüfpunkt:</b> ${escapeHtml(row.rowKey === "energy_sharing_municipal_estates" ? "Liegenschaften und Strombedarf priorisieren." : row.rowKey === "energy_sharing_mixed_community" ? "Teilnehmerkreis und Betreiberform politisch vorbereiten." : "Speicher nur mit belegter Herkunft und Netzverträglichkeit einbeziehen.")}</p>
+                  </div>
+                </article>
+              `).join("")}
             </div>
             <div class="decision-sentence">
               <strong>Was ein Gemeinderat daraus machen kann:</strong>
@@ -2096,7 +2163,6 @@
               <thead>
                 <tr>
                   <th>Budgetwirkung</th>
-                  <th>Annahme</th>
                   <th>EUR/Jahr</th>
                   <th>Status</th>
                 </tr>
@@ -2105,11 +2171,15 @@
                 ${rows
                   .map(
                     (row) => `
-                    <tr>
+                    <tr class="budget-main-row">
                       <td>${escapeHtml(row.budgetLabel || row.budgetCategory || row.rowKey)}</td>
-                      <td>${escapeHtml(row.assumptionStatus || row.assumptionLabel || row.sourceLabel || "Szenario")}</td>
                       <td>${escapeHtml(euroRangeFromRow(row, row.estimatedEurPerYear))}</td>
                       <td>${escapeHtml(publicEvidenceLabel(row.evidenceStatus || row.calculationStatus || "offen"))}</td>
+                    </tr>
+                    <tr class="budget-assumption-row">
+                      <td colspan="3">
+                        Annahme: ${escapeHtml(row.assumptionStatus || row.assumptionLabel || row.sourceLabel || "Szenario")}
+                      </td>
                     </tr>
                   `
                   )
@@ -2180,7 +2250,7 @@
               labels: genRows.map((row) => row.technologyLabel || technologyLabel(row.technology) || row.rowKey),
               datasets: [
                 {
-                  label: "Betreiberwert EUR/Jahr",
+                  label: "Erzeugungswert EUR/Jahr",
                   data: genRows.map((row) => Number(row.grossMarketValueEurPerYear) || 0),
                   backgroundColor: ["#157f53", "#2f6fa7", "#a76116", "#6f7f15"],
                   borderRadius: 4,
@@ -2293,8 +2363,8 @@
                 <section class="panel">
                   <div class="panel-head">
                     <div>
-                      <h2>Welche Erzeugung erzeugt Betreiberwert?</h2>
-                      <p>${escapeHtml(data.municipality || "Die Kommune")} zeigt ${escapeHtml(genRows.length)} echte Erzeugungstypen im ${escapeHtml(scenarioLabel(data.scenario))}. Der Wert ist jährlich und nicht als Haushaltseinnahme zu lesen.</p>
+                      <h2>Welche Erzeugung erzeugt Erzeugungswert?</h2>
+                      <p>${escapeHtml(data.municipality || "Die Kommune")} zeigt ${escapeHtml(genRows.length)} echte Erzeugungstypen im ${escapeHtml(scenarioLabel(data.scenario))}. Das Diagramm zeigt den Erzeugungswert als Mittelpunkt derselben Marktwertlogik, nicht eine zusätzliche Haushaltseinnahme.</p>
                     </div>
                   </div>
                   <div class="chart-wrap"><canvas id="valueChart"></canvas></div>
@@ -2304,7 +2374,7 @@
                   <div class="panel-head">
                     <div>
                       <h2>Was kann den kommunalen Nutzen bremsen?</h2>
-                      <p>Höchster Risikoscore: ${escapeHtml(maxRisk)}. Die Ampelliste übersetzt Netz- und Prozessrisiken in kommunale Entscheidungssprache.</p>
+                      <p>Höchster Risikoscore: ${escapeHtml(maxRisk)}/100, aktuell mittleres Gesamtrisiko. Die Ampelliste übersetzt Netz- und Prozessrisiken in kommunale Entscheidungssprache.</p>
                     </div>
                   </div>
                   <div class="risk-list">${riskRows.map(renderRisk).join("")}</div>
