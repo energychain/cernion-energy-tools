@@ -10210,8 +10210,8 @@ describe('dashboard-api.service', () => {
       const context = result.energySharingCommunityRows.find((r) => r.rowKey === 'energy_sharing_42c_context');
       expect(context).toBeDefined();
       expect(context.legalBasis).toBe('EnWG §42c');
-      expect(context.eligibilityWindow).toContain('2026-06-01');
-      expect(context.eligibilityWindow).toContain('2028-06-01');
+      expect(context.eligibilityWindow).toContain('seit 01.06.2026');
+      expect(context.eligibilityWindow).toContain('ab 01.06.2028');
       expect(context.communityModel).toContain('Reststrom');
 
       const municipal = result.energySharingCommunityRows.find((r) => r.rowKey === 'energy_sharing_municipal_estates');

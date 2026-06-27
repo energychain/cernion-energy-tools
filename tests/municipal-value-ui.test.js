@@ -38,4 +38,27 @@ describe('municipal-value public UI decision framing', () => {
     expect(html).toContain('Sinkende Nachweiszahl');
     expect(html).not.toContain('${(data.sourceRows || []).length} Quellen / ${(data.missingEvidence || []).length} offene Punkte');
   });
+
+  it('keeps the executive layer clear and resolves the PV/biomass priority tension', () => {
+    expect(html).toContain('Lokale Strom-Teilung prüfen');
+    expect(html).toContain('Energy Sharing (§42c)');
+    expect(html).not.toContain('§42c-Liegenschaftspilot');
+    expect(html).toContain('Warum PV trotz Biomasse-Signal priorisiert wird');
+    expect(html).toContain('PV wird priorisiert, weil absoluter Wert, Dachflächenlogik und politische Umsetzbarkeit am höchsten sind');
+    expect(html).toContain('Biomasse passt zeitlich besser zum Verbrauch');
+  });
+
+  it('keeps storage/flex as proof paths instead of speculative euro scenario tables', () => {
+    expect(html).toContain('keine Euro-Szenarien');
+    expect(html).toContain('Solange der Speicherbestand nicht belegt ist');
+    expect(html).toContain('scenario-card');
+    expect(html).not.toContain('des nicht zeitgleichen Werts</td>');
+  });
+
+  it('keeps timing and rounded-number source notes attached to repeated claims', () => {
+    expect(html).toContain('Seit 01.06.2026 im VNB-Gebiet möglich');
+    expect(html).toContain('Herkunft: gerundete Marktpreisannahme plus KAV-Proxy');
+    expect(html).toContain('@media print');
+    expect(html).toContain('break-inside: avoid');
+  });
 });

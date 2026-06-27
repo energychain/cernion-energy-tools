@@ -808,6 +808,48 @@
         min-width: 24px;
       }
 
+      .scenario-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .scenario-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdfb;
+        display: grid;
+        grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr);
+        gap: 10px 16px;
+        padding: 14px;
+      }
+
+      .scenario-card span {
+        color: var(--muted);
+        display: block;
+        font-size: 0.76rem;
+        font-weight: 900;
+        margin-bottom: 7px;
+        text-transform: uppercase;
+      }
+
+      .scenario-card strong {
+        display: block;
+      }
+
+      .scenario-card p {
+        color: var(--muted);
+        line-height: 1.42;
+        margin: 0 0 8px;
+      }
+
+      .scenario-card small {
+        color: #315244;
+        display: block;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
       .risk-list {
         display: grid;
         gap: 10px;
@@ -968,7 +1010,8 @@
           grid-template-columns: 1fr;
         }
 
-        .evidence-item {
+        .evidence-item,
+        .scenario-card {
           grid-template-columns: 1fr;
         }
 
@@ -1005,6 +1048,53 @@
         .primary,
         .secondary {
           width: 100%;
+        }
+      }
+
+      @media print {
+        body {
+          background: #fff;
+        }
+
+        header,
+        .input-panel,
+        footer {
+          display: none;
+        }
+
+        main,
+        .shell {
+          width: 100%;
+        }
+
+        .table-wrap {
+          overflow: visible;
+        }
+
+        table {
+          min-width: 0;
+          table-layout: fixed;
+        }
+
+        tr,
+        .panel,
+        .table-panel,
+        .executive-box,
+        .story-lane,
+        .scenario-card,
+        .appendix-panel {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+
+        th,
+        td {
+          overflow-wrap: anywhere;
+          word-break: normal;
+        }
+
+        .appendix-panel {
+          box-shadow: none;
         }
       }
     </style>
@@ -1429,8 +1519,8 @@
         const headlinePlace = data.municipality || "die Kommune";
         const topTechLabel = topTech ? technologyLabel(topTech.technology) : "lokale Erzeugung";
         const sharingText = sharing
-          ? `§42c-Pilot als stärksten lokalen Nutzungshebel prüfen (${euroRange(sharing.potentialLocalCirculationEurPerYear, 0.9, 1.1)} Prüfwert/Jahr).`
-          : "§42c-Pilot als lokalen Nutzungshebel prüfen, sobald Liegenschaften und Messpunkte vorliegen.";
+          ? `Energy Sharing (§42c) als stärksten lokalen Nutzungshebel prüfen (${euroRange(sharing.potentialLocalCirculationEurPerYear, 0.9, 1.1)} Prüfwert/Jahr).`
+          : "Energy Sharing (§42c) als lokalen Nutzungshebel prüfen, sobald Liegenschaften und Messpunkte vorliegen.";
 
         return `
           <section class="executive-box">
@@ -1450,7 +1540,7 @@
               <div class="action-strip">
                 <article class="action-item">
                   <span>Prüfen</span>
-                  <strong>§42c-Liegenschaftspilot</strong>
+                  <strong>Lokale Strom-Teilung prüfen</strong>
                   <p>${escapeHtml(sharingText)}</p>
                 </article>
                 <article class="action-item">
@@ -1593,7 +1683,7 @@
               <article class="money-card">
                 <span>1 MWh lokal gegenüber Import</span>
                 <strong>${escapeHtml(euroPerMwh(localMwhPublic))} vs. ${escapeHtml(euroPerMwh(importedMwhPublic))}</strong>
-                <p>Eine lokal erzeugte und zugleich lokal verbrauchte MWh kann zusätzlich Betreiberwert im Ort halten. Bei Importstrom entsteht dieser Erzeugungswert außerhalb.</p>
+                <p>Eine lokal erzeugte und zugleich lokal verbrauchte MWh kann zusätzlich Betreiberwert im Ort halten. Herkunft: gerundete Marktpreisannahme plus KAV-Proxy.</p>
               </article>
             </div>
             <div class="narrative-grid">
@@ -1613,10 +1703,6 @@
             <div class="decision-sentence">
               <strong>Szenarioeinordnung:</strong>
               ${escapeHtml(scenarioText(data))}
-            </div>
-            <div class="decision-sentence">
-              <strong>Möglicher nächster Schritt:</strong>
-              ${escapeHtml(publicReferenceAction())} Danach werden Betreiberstruktur, Flächenwirkung und Netzanschlussrisiken priorisiert.
             </div>
           </section>
         `;
@@ -1653,6 +1739,7 @@
         const rows = generationRows(data.valueRows || []);
         const items = rows.map(recommendationFor);
         const hasPv = rows.some((row) => String(row.technology || "").toLowerCase().includes("pv"));
+        const hasBiomass = rows.some((row) => String(row.technology || "").toLowerCase().includes("biomass"));
         const hasWind = rows.some((row) => String(row.technology || "").toLowerCase().includes("wind"));
         if (!hasPv) {
           items.push({
@@ -1691,8 +1778,15 @@
                 )
                 .join("")}
             </div>
+            ${hasPv && hasBiomass ? `
+              <div class="decision-sentence">
+                <strong>Warum PV trotz Biomasse-Signal priorisiert wird:</strong>
+                PV wird priorisiert, weil absoluter Wert, Dachflächenlogik und politische Umsetzbarkeit am höchsten sind.
+                Biomasse passt zeitlich besser zum Verbrauch, ist aber an Brennstoffpfad, Wärmenutzung und Betreiberstruktur gebunden.
+              </div>
+            ` : ""}
             <div class="decision-sentence">
-              <strong>Möglicher nächster Schritt:</strong>
+              <strong>Beschlussfähiger Auftrag:</strong>
               Die Verwaltung erstellt eine priorisierte Projektliste: kommunale Dächer, Gewerbedächer, geeignete Flächen und Betreiberoptionen, jeweils mit erwarteter Euro-Wirkung pro Jahr.
             </div>
           </section>
@@ -1821,9 +1915,7 @@
         if (!rows.length) return "";
         const inventory = rows.find((row) => row.rowKey === "existing_storage_context") || {};
         const scenarios = rows.filter((row) => row.scenarioType === "storage_flex_fnav");
-        const bestScenario = [...scenarios]
-          .filter((row) => Number(row.potentialLocalRetentionEurPerYear) > 0)
-          .sort((a, b) => (Number(b.potentialLocalRetentionEurPerYear) || 0) - (Number(a.potentialLocalRetentionEurPerYear) || 0))[0];
+        const hasStorageInventory = Number(inventory.existingStoragePowerKw) > 0;
 
         return `
           <section class="panel">
@@ -1845,39 +1937,29 @@
                 <p>${escapeHtml(inventory.nextGateLabel || "Speicherbestand per MaStR und Netzbetreiber prüfen.")}</p>
               </article>
               <article class="money-card">
-                <span>Nicht zeitgleicher Wert</span>
+                <span>Rechenwert</span>
                 <strong>${escapeHtml(euroRange(inventory.referenceUnmatchedValueEur, 0.9, 1.1))}</strong>
-                <p>Das ist der rechnerische Suchraum für Speicher, Lastverschiebung und fNAV-Fahrweise. Kein Erlösversprechen.</p>
+                <p>Nur Suchraum aus nicht zeitgleichem Erzeugungswert. Ohne belegten Speicherbestand wird daraus kein Szenario-Erlös.</p>
               </article>
               <article class="money-card">
-                <span>Ambitioniertes Flex-Szenario</span>
-                <strong>${escapeHtml(euroRange(bestScenario?.potentialLocalRetentionEurPerYear, 0.9, 1.1))}</strong>
-                <p>Nur als Prüfgröße: Welcher Wert könnte stärker im kommunalen Wirtschaftskreislauf bleiben?</p>
+                <span>Darstellung im Anhang</span>
+                <strong>${escapeHtml(hasStorageInventory ? "Bestand prüfen" : "keine Euro-Szenarien")}</strong>
+                <p>${escapeHtml(hasStorageInventory ? "Bei belegtem Speicherbestand können Fahrweise und Netzfenster als eigener Prüfpfad bewertet werden." : "Solange der Speicherbestand nicht belegt ist, zeigt Cernion nur Prüfpfade statt spekulativer Beträge.")}</p>
               </article>
             </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Szenario</th>
-                    <th>Lokale Wertbindung</th>
-                    <th>Annahme</th>
-                    <th>Kommunaler Hebel</th>
-                    <th>Nächster Prüfpunkt</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${scenarios.map((row) => `
-                    <tr>
-                      <td>${escapeHtml(row.rowLabel)}</td>
-                      <td>${escapeHtml(euroRange(row.potentialLocalRetentionEurPerYear, 0.9, 1.1))}</td>
-                      <td>${escapeHtml(percentValue(row.captureShare))} des nicht zeitgleichen Werts</td>
-                      <td>${escapeHtml(row.planningLever)}</td>
-                      <td>${escapeHtml(row.nextGateLabel)}</td>
-                    </tr>
-                  `).join("")}
-                </tbody>
-              </table>
+            <div class="scenario-list">
+              ${scenarios.map((row) => `
+                <article class="scenario-card">
+                  <div>
+                    <span>Prüfpfad</span>
+                    <strong>${escapeHtml(row.rowLabel)}</strong>
+                  </div>
+                  <div>
+                    <p>${escapeHtml(row.planningLever)}</p>
+                    <small>Nächster Nachweis: ${escapeHtml(row.nextGateLabel)}</small>
+                  </div>
+                </article>
+              `).join("")}
             </div>
             <div class="decision-sentence">
               <strong>Was ein Gemeinderat daraus machen kann:</strong>
@@ -1934,7 +2016,7 @@
               <article class="money-card">
                 <span>Rechtlicher Startpunkt</span>
                 <strong>§42c EnWG</strong>
-                <p>${escapeHtml(context.eligibilityWindow || "Start im VNB-Gebiet ab 2026; Erweiterung ab 2028 prüfen.")}</p>
+                <p>${escapeHtml(context.eligibilityWindow || "Seit 01.06.2026 im VNB-Gebiet möglich; Erweiterung ab 01.06.2028 prüfen.")}</p>
               </article>
               <article class="money-card">
                 <span>Adressierbarer Prüfwert</span>
@@ -2237,7 +2319,7 @@
                   </div>
                 </div>
                 <div class="decision-sentence">
-                  <strong>Möglicher nächster Schritt:</strong>
+                  <strong>Referenzhinweis:</strong>
                   Für die wichtigsten Projekte wird je Fläche ein Netzanschluss- und Fristencheck eingeholt, bevor Ertragserwartungen politisch kommuniziert werden.
                 </div>
               </section>
