@@ -1454,6 +1454,8 @@ module.exports = {
             'dashboard-api.controllabilityAssetHandoverStatus',
           'GET /dashboard/steering-artifact-acceptance-gate':
             'dashboard-api.steeringArtifactAcceptanceGateStatus',
+          'GET /dashboard/communication-break-process-risk':
+            'dashboard-api.communicationBreakProcessRiskStatus',
           'GET /dashboard/anschlusskapazitaet-evidence-queue':
             'dashboard-api.anschlusskapazitaetEvidenceQueueStatus',
           'GET /dashboard/layer0-audit-drilldown':

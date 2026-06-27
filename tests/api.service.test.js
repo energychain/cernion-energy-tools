@@ -504,6 +504,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/steering-artifact-acceptance-gate']).toBe(
         'dashboard-api.steeringArtifactAcceptanceGateStatus'
       );
+      expect(aliases['GET /dashboard/communication-break-process-risk']).toBe(
+        'dashboard-api.communicationBreakProcessRiskStatus'
+      );
       expect(aliases['GET /dashboard/anschlusskapazitaet-evidence-queue']).toBe(
         'dashboard-api.anschlusskapazitaetEvidenceQueueStatus'
       );

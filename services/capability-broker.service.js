@@ -1504,6 +1504,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasCommunicationBreakProcessRiskSignal =
+    /(kommunikationsbruch|kommunikationsbrueche|kommunikationsbrüche|communication.?break|process.?risk|prozessrisiko|rueckfragefenster|rückfragefenster)/i.test(haystack) &&
+    /(informationspflicht|fachliche begleitung|protokollstandard|protokoll.?status|blockierte entscheidung|blocked decision|naechster evidenzpunkt|nächster evidenzpunkt|question.?response.?window|information duty)/i.test(haystack) &&
+    !/(hr.?score|person.?score|sentiment|email ingest|calendar ingest|chat ingest|budibase table write|workflow execute|hitl\.create|external connector|billing|settlement|mako|device-control|produktion)/i.test(haystack);
+
+  if (hasCommunicationBreakProcessRiskSignal || haystack.includes('communication_break_process_risk')) {
+    const communicationBreakCapability = findCapabilityByName('communication_break_process_risk');
+    if (communicationBreakCapability) {
+      return { capability: communicationBreakCapability, score: 124, usedFallback: false };
+    }
+  }
+
   if (
     vdmiAssetValidationSignals.some((signal) => haystack.includes(signal)) ||
     hasVdmiAssetValidationCombo

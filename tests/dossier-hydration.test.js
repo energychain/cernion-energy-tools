@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 95 static rules', () => {
+    it('loads all 96 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(95);
+      expect(rules.length).toBe(96);
     });
 
-    it('compiles all 95 static rules without error', () => {
+    it('compiles all 96 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(95);
+      expect(rules.length).toBe(96);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -509,6 +509,47 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Artifact: Grid Planning Next Gate');
       expect(formatted).toContain('Target Role: Netzplanung');
       expect(formatted).toContain('Leading Gap: owner');
+    });
+
+    it('dashboard-api.communicationBreakProcessRiskStatus is dossier-safe and formats process-risk facts', () => {
+      const rule = getRule('dashboard-api.communicationBreakProcessRiskStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Kommunikationsbruch prozess=netzplanung entscheidung=zielnetz owner=lead blockiert=gate2 laden'
+        )
+      ).toEqual({
+        processDomain: 'netzplanung',
+        affectedDecision: 'zielnetz',
+        owner: 'lead',
+        blockedDecision: 'gate2',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'blocked_decision_needs_evidence',
+        riskLevel: 'high',
+        process: {
+          affectedDecision: 'Zielnetz-Freigabe',
+          blockedDecision: 'Gate 2',
+        },
+        ownerContext: { owner: 'Netzplanung Lead' },
+        missingEvidence: [{ missingDataPoint: 'next_evidence_point' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add the next concrete evidence point for unblock',
+          },
+        ],
+        sourceActions: { notCalled: ['hr.personScore'] },
+        timestamp: '2026-06-27T03:20:00.000Z',
+      });
+
+      expect(formatted).toContain('Communication Risk Status: blocked_decision_needs_evidence');
+      expect(formatted).toContain('Risk Level: high');
+      expect(formatted).toContain('Affected Decision: Zielnetz-Freigabe');
+      expect(formatted).toContain('Blocked Decision: Gate 2');
+      expect(formatted).toContain('Leading Gap: next_evidence_point');
     });
 
     it('dashboard-api.anschlusskapazitaetEvidenceQueueStatus is dossier-safe and formats queue facts', () => {

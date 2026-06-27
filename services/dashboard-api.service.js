@@ -56,6 +56,7 @@ module.exports = {
       e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
       steeringArtifactAcceptanceGateStatus: 5 * 60 * 1000, // 5 min
+      communicationBreakProcessRiskStatus: 5 * 60 * 1000, // 5 min
       anschlusskapazitaetEvidenceQueueStatus: 5 * 60 * 1000, // 5 min
       layer0AuditDrilldownNoteStatus: 5 * 60 * 1000, // 5 min
       legalClarificationOperatingModelStatus: 5 * 60 * 1000, // 5 min
@@ -1751,6 +1752,103 @@ module.exports = {
           this.settings.cacheTtlMs.steeringArtifactAcceptanceGateStatus,
           async () => ({
             ...this.buildSteeringArtifactAcceptanceGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── communicationBreakProcessRiskStatus ────────────────────────────────
+    /**
+     * GET /api/dashboard/communication-break-process-risk?processDomain=...
+     *
+     * Read-only dossier-safe process-risk gate for communication breaks.
+     * It classifies handover and decision evidence without scoring people,
+     * ingesting communications, creating workflows or mutating operations.
+     */
+    communicationBreakProcessRiskStatus: {
+      rest: 'GET /communication-break-process-risk',
+      params: {
+        processDomain: { type: 'string', optional: true, min: 1 },
+        affectedDecision: { type: 'string', optional: true, min: 1 },
+        presentationStatus: { type: 'string', optional: true, min: 1 },
+        protocolStatus: { type: 'string', optional: true, min: 1 },
+        questionResponseWindow: { type: 'string', optional: true, min: 1 },
+        informationDuty: { type: 'string', optional: true, min: 1 },
+        fachlicheBegleitung: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        deputy: { type: 'string', optional: true, min: 1 },
+        blockedDecision: { type: 'string', optional: true, min: 1 },
+        nextEvidencePoint: { type: 'string', optional: true, min: 1 },
+        dueDate: { type: 'string', optional: true, min: 1 },
+        escalationCriterion: { type: 'string', optional: true, min: 1 },
+        proofLabel: { type: 'string', optional: true, min: 1 },
+        proofLink: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Communication-break process-risk gate - read-only dossier-safe status',
+        description:
+          'Builds a deterministic advisory process-risk gate for communication breaks around ' +
+          'handover or management decisions. It covers process/domain, affected or blocked ' +
+          'decision, presentation and protocol evidence, question-response window, information ' +
+          'duty, fachliche Begleitung, owner/deputy, next evidence point, due date and escalation ' +
+          'criterion. The endpoint is read-only and does not score people, ingest email/calendar ' +
+          'or chat data, create workflows/HITL items, write Budibase data, call external ' +
+          'connectors or mutate MaKo, billing, settlement, tariff or device-control state.',
+        parameters: [
+          { name: 'processDomain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'affectedDecision', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'presentationStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'protocolStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'questionResponseWindow', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'informationDuty', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'fachlicheBegleitung', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'deputy', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'blockedDecision', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextEvidencePoint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dueDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'escalationCriterion', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'proofLabel', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'proofLink', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only communication-break process-risk status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    riskLevel: { type: 'string' },
+                    process: { type: 'object' },
+                    scalarRows: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `communication-break-process-risk:${params.processDomain || 'no-domain'}:${params.affectedDecision || 'no-decision'}:${params.presentationStatus || 'no-presentation'}:${params.protocolStatus || 'no-protocol'}:${params.questionResponseWindow || 'no-window'}:${params.informationDuty || 'no-duty'}:${params.fachlicheBegleitung || 'no-support'}:${params.owner || 'no-owner'}:${params.deputy || 'no-deputy'}:${params.blockedDecision || 'no-blocked'}:${params.nextEvidencePoint || 'no-next-evidence'}:${params.dueDate || 'no-due'}:${params.escalationCriterion || 'no-escalation'}:${params.proofLabel || 'no-proof-label'}:${params.proofLink || 'no-proof-link'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.communicationBreakProcessRiskStatus,
+          async () => ({
+            ...this.buildCommunicationBreakProcessRiskStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -10739,6 +10837,256 @@ module.exports = {
           owner: params.owner || null,
           deputyOwner: params.deputyOwner || null,
           rolloutDecision: params.rolloutDecision || null,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildCommunicationBreakProcessRiskStatus(params = {}) {
+      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const evidenceSpecs = [
+        {
+          id: 'process_domain',
+          label: 'Process/domain',
+          value: params.processDomain,
+          sourceClass: 'process_scope',
+          enablesDossierAddition: 'add process/domain scope for the communication-risk case',
+        },
+        {
+          id: 'affected_decision',
+          label: 'Affected decision',
+          value: params.affectedDecision,
+          sourceClass: 'decision_context',
+          enablesDossierAddition: 'add the decision that depends on clearer communication evidence',
+        },
+        {
+          id: 'presentation_status',
+          label: 'Presentation status',
+          value: params.presentationStatus,
+          sourceClass: 'presentation_evidence',
+          enablesDossierAddition: 'add source-backed presentation or meeting context',
+        },
+        {
+          id: 'protocol_status',
+          label: 'Protocol status',
+          value: params.protocolStatus,
+          sourceClass: 'protocol_evidence',
+          enablesDossierAddition: 'add protocol/minutes evidence for the decision basis',
+        },
+        {
+          id: 'question_response_window',
+          label: 'Question-response window',
+          value: params.questionResponseWindow,
+          sourceClass: 'governance_timing',
+          enablesDossierAddition: 'add response-window timing clarity',
+        },
+        {
+          id: 'information_duty',
+          label: 'Information duty',
+          value: params.informationDuty,
+          sourceClass: 'information_obligation',
+          enablesDossierAddition: 'add who must proactively share which information',
+        },
+        {
+          id: 'fachliche_begleitung',
+          label: 'Fachliche Begleitung',
+          value: params.fachlicheBegleitung,
+          sourceClass: 'support_boundary',
+          enablesDossierAddition: 'add fachliche Begleitung and support boundary evidence',
+        },
+        {
+          id: 'owner',
+          label: 'Owner',
+          value: params.owner,
+          sourceClass: 'accountability',
+          enablesDossierAddition: 'add accountable owner evidence',
+        },
+        {
+          id: 'deputy',
+          label: 'Deputy',
+          value: params.deputy,
+          sourceClass: 'operational_continuity',
+          enablesDossierAddition: 'add deputy/continuity evidence',
+        },
+        {
+          id: 'blocked_decision',
+          label: 'Blocked decision',
+          value: params.blockedDecision,
+          sourceClass: 'blocked_decision',
+          enablesDossierAddition: 'add the management/process gate currently blocked',
+        },
+        {
+          id: 'next_evidence_point',
+          label: 'Next evidence point',
+          value: params.nextEvidencePoint,
+          sourceClass: 'next_evidence_point',
+          enablesDossierAddition: 'add the next concrete evidence point for unblock',
+        },
+        {
+          id: 'due_date',
+          label: 'Due date',
+          value: params.dueDate,
+          sourceClass: 'review_timing',
+          enablesDossierAddition: 'add review due date evidence',
+        },
+        {
+          id: 'escalation_criterion',
+          label: 'Escalation or retirement criterion',
+          value: params.escalationCriterion,
+          sourceClass: 'escalation_criterion',
+          enablesDossierAddition: 'add escalation or retirement criterion evidence',
+        },
+      ];
+      if (isProvided(params.proofLabel) || isProvided(params.proofLink)) {
+        evidenceSpecs.push({
+          id: 'proof_reference',
+          label: 'Proof reference',
+          value: [params.proofLabel, params.proofLink].filter(isProvided).join(' - '),
+          sourceClass: 'proof_reference',
+          enablesDossierAddition: 'add source/proof reference for communication-risk evidence',
+        });
+      }
+
+      const scalarRows = evidenceSpecs.map((spec) => ({
+        id: spec.id,
+        label: spec.label,
+        value: isProvided(spec.value) ? spec.value : null,
+        sourceClass: spec.sourceClass,
+        evidenceStatus: isProvided(spec.value) ? 'provided' : 'missing',
+      }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !isProvided(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const missingIds = new Set(missingEvidence.map((item) => item.missingDataPoint));
+      const criticalIds = [
+        'affected_decision',
+        'protocol_status',
+        'question_response_window',
+        'information_duty',
+        'owner',
+        'blocked_decision',
+        'next_evidence_point',
+        'due_date',
+      ];
+      const criticalMissingCount = criticalIds.filter((id) => missingIds.has(id)).length;
+      let status = 'process_risk_ready_for_next_gate';
+      let riskLevel = 'low';
+      if (missingIds.has('process_domain') || missingIds.has('affected_decision')) {
+        status = 'missing_process_context';
+        riskLevel = 'high';
+      } else if (missingIds.has('blocked_decision') || missingIds.has('next_evidence_point')) {
+        status = 'blocked_decision_needs_evidence';
+        riskLevel = 'high';
+      } else if (missingIds.has('owner') || missingIds.has('due_date') || missingIds.has('escalation_criterion')) {
+        status = 'needs_owner_due_date';
+        riskLevel = 'medium';
+      } else if (criticalMissingCount > 0 || missingEvidence.length > 0) {
+        status = 'communication_break_risk_open';
+        riskLevel = criticalMissingCount >= 3 ? 'high' : 'medium';
+      }
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'communication_break_process_risk',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.communicationBreakProcessRiskStatus'],
+        referenced: [
+          'vdmi.dossier',
+          'evidence-registry.findings',
+          'dashboard-api.ownerDeadlineEvidenceGateStatus',
+          'dashboard-api.steeringArtifactAcceptanceGateStatus',
+        ],
+        notCalled: [
+          'hr.personScore',
+          'sentiment.analyze',
+          'email.ingest',
+          'calendar.ingest',
+          'chat.ingest',
+          'budibase.table.write',
+          'workflow.execute',
+          'hitl.create',
+          'mail.send',
+          'webhook.emit',
+          'external.connector.call',
+          'mako.dispatch',
+          'settlement.prepareBilling',
+          'billing.release',
+          'tariff.mutate',
+          'device-control.execute',
+          'personal-agent.execute',
+        ],
+      };
+      const validationFindings = missingEvidence.map((item) => ({
+        code: `CBPR_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: criticalIds.includes(item.missingDataPoint) ? 'high' : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `Communication Risk Status: ${status}`,
+        `Risk Level: ${riskLevel}`,
+        `Provided process-risk evidence: ${scalarRows.filter((row) => row.evidenceStatus === 'provided').length}/${scalarRows.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.processDomain) dossierFacts.push(`Process Domain: ${params.processDomain}`);
+      if (params.affectedDecision) dossierFacts.push(`Affected Decision: ${params.affectedDecision}`);
+      if (params.blockedDecision) dossierFacts.push(`Blocked Decision: ${params.blockedDecision}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+
+      return {
+        gateId: `cbpr:${Buffer.from(`${params.processDomain || ''}:${params.affectedDecision || ''}:${params.owner || ''}:${params.dueDate || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'communication_break_process_risk',
+        safety: 'read_only',
+        status,
+        riskLevel,
+        process: {
+          processDomain: params.processDomain || null,
+          affectedDecision: params.affectedDecision || null,
+          blockedDecision: params.blockedDecision || null,
+          nextEvidencePoint: params.nextEvidencePoint || null,
+        },
+        governanceContext: {
+          presentationStatus: params.presentationStatus || null,
+          protocolStatus: params.protocolStatus || null,
+          questionResponseWindow: params.questionResponseWindow || null,
+          informationDuty: params.informationDuty || null,
+          fachlicheBegleitung: params.fachlicheBegleitung || null,
+          dueDate: params.dueDate || null,
+          escalationCriterion: params.escalationCriterion || null,
+        },
+        ownerContext: {
+          owner: params.owner || null,
+          deputy: params.deputy || null,
+        },
+        proofReference: {
+          proofLabel: params.proofLabel || null,
+          proofLink: params.proofLink || null,
+        },
+        scalarRows,
+        missingEvidence,
+        positiveFollowUps,
+        sourceActions,
+        validationFindings,
+        dossierEvidence: {
+          status,
+          riskLevel,
+          scalarRows,
+          missingEvidence,
+          positiveFollowUps,
+          processDomain: params.processDomain || null,
+          affectedDecision: params.affectedDecision || null,
+          blockedDecision: params.blockedDecision || null,
+          owner: params.owner || null,
+          dueDate: params.dueDate || null,
           sourceActions: {
             notCalled: sourceActions.notCalled,
           },

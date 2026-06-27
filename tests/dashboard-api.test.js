@@ -2245,6 +2245,70 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── communicationBreakProcessRiskStatus ────────────────────────────────
+
+  describe('communicationBreakProcessRiskStatus', () => {
+    it('reports process-risk gaps without creating downstream actions', async () => {
+      const result = await broker.call('dashboard-api.communicationBreakProcessRiskStatus', {
+        processDomain: 'Netzplanung',
+        affectedDecision: 'Freigabe Zielnetz-Variante',
+        presentationStatus: 'slides-presented',
+        protocolStatus: 'missing',
+        owner: 'Netzplanung Lead',
+      });
+
+      expect(result.status).toBe('blocked_decision_needs_evidence');
+      expect(result.riskLevel).toBe('high');
+      expect(result.capabilityKey).toBe('communication_break_process_risk');
+      expect(result.scalarRows.map((row) => row.id)).toEqual(
+        expect.arrayContaining(['process_domain', 'affected_decision', 'protocol_status'])
+      );
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'question_response_window',
+          'information_duty',
+          'fachliche_begleitung',
+          'deputy',
+          'blocked_decision',
+          'next_evidence_point',
+          'due_date',
+          'escalation_criterion',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('communication_break_process_risk');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['hr.personScore', 'email.ingest', 'workflow.execute', 'hitl.create'])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns next-gate-ready status when all process-risk facts are supplied', async () => {
+      const result = await broker.call('dashboard-api.communicationBreakProcessRiskStatus', {
+        processDomain: 'Netzplanung',
+        affectedDecision: 'Freigabe Zielnetz-Variante',
+        presentationStatus: 'management-round-presented',
+        protocolStatus: 'protocol-linked',
+        questionResponseWindow: '5 working days',
+        informationDuty: 'grid planning shares NAP assumptions before board review',
+        fachlicheBegleitung: 'asset management accompanies technical questions',
+        owner: 'Netzplanung Lead',
+        deputy: 'Assetmanagement Deputy',
+        blockedDecision: 'investment-gate-2',
+        nextEvidencePoint: 'NAP assumption protocol appendix',
+        dueDate: '2026-07-15',
+        escalationCriterion: 'escalate if no response after two cycles',
+        proofLabel: 'Protocol 2026-06-27',
+      });
+
+      expect(result.status).toBe('process_risk_ready_for_next_gate');
+      expect(result.riskLevel).toBe('low');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided process-risk evidence: 14/14');
+      expect(result.sourceActions.notCalled).toContain('personal-agent.execute');
+      expect(result.sourceActions.notCalled).toContain('device-control.execute');
+    });
+  });
+
   // ── anschlusskapazitaetEvidenceQueueStatus ────────────────────────────
 
   describe('anschlusskapazitaetEvidenceQueueStatus', () => {

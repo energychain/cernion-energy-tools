@@ -110,6 +110,7 @@ const CAPABILITY_DOMAIN_MAP = {
   heat_transformation: 'regulatory',
   heat_steering: 'regulatory', // Fernwaerme tariff steering, post-2030 recognition risk
   // pure decision/process governance, no single business vertical
+  process_governance: 'governance',
   governance_decision_closure: 'governance',
   governance_management: 'governance',
   management_steering: 'governance',

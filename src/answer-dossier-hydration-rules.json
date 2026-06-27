@@ -316,6 +316,73 @@
     "sourceIssue": 173
   },
   {
+    "id": "dashboard-api.communicationBreakProcessRiskStatus",
+    "action": "dashboard-api.communicationBreakProcessRiskStatus",
+    "label": "Communication-Break Process Risk",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "processDomain": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:processDomain|prozess|domaene|domäne)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "affectedDecision": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:affectedDecision|entscheidung)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner|verantwortlich)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "blockedDecision": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:blockedDecision|blockiert)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Communication Risk Status", "maxLen": 100 },
+        { "paths": ["riskLevel", "dossierEvidence.riskLevel"], "label": "Risk Level", "maxLen": 40 },
+        { "paths": ["process.affectedDecision", "dossierEvidence.affectedDecision"], "label": "Affected Decision", "maxLen": 120 },
+        { "paths": ["process.blockedDecision", "dossierEvidence.blockedDecision"], "label": "Blocked Decision", "maxLen": 120 },
+        { "paths": ["ownerContext.owner", "dossierEvidence.owner"], "label": "Owner", "maxLen": 100 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 326
+  },
+  {
     "id": "dashboard-api.steeringArtifactAcceptanceGateStatus",
     "action": "dashboard-api.steeringArtifactAcceptanceGateStatus",
     "label": "Steering Artifact Acceptance Gate",
