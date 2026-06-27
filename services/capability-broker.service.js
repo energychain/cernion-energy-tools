@@ -393,6 +393,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasVnbDeltaSignalClassifierSpecificSignal =
+    /(vnb.?delta.?signal|delta.?signal.?classifier|delta.?klassifikation|evu.?fuehrungssignal|evu.?führungssignal|entscheidungssignal|entscheidungsqueue|vnb_delta_signal_classifier)/i.test(haystack) &&
+    /(owner|frist|deadline|anschluss|kapazitaet|kapazität|regulierung|messstellen|flexibilitaet|flexibilität|assetthemen|blockierte entscheidung|naechster evidenzpunkt|nächster evidenzpunkt)/i.test(haystack) &&
+    !/(mail.?ingest|mail.?scrap|outlook read|teams read|calendar read|task read|connector ausfuehren|connector ausführen|external connector|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|notification dispatch|benachrichtigung senden|ticket create|hitl create|task create|aufgabe erstellen|personal-agent execute|persistiere rohinhalt|raw private content)/i.test(haystack);
+
+  if (hasVnbDeltaSignalClassifierSpecificSignal) {
+    const vnbDeltaClassifierCapability = findCapabilityByName('vnb_delta_signal_classifier');
+    if (vnbDeltaClassifierCapability) {
+      return { capability: vnbDeltaClassifierCapability, score: 144, usedFallback: false };
+    }
+  }
+
   const hasCrossChannelVnbSignalQueueSpecificSignal =
     /(cross.?channel|cross_channel_vnb_signal_queue|signal queue|signal.?queue|mail hinweis|chat hinweis|portal hinweis|fachsystem signal)/i.test(haystack) &&
     /(owner.?frist|owner|frist|deadline|evidenzstatus|evidence status|netzanschluss blocker|redispatch hinweis|zielnetzplanung signal|it freigabe|berechtigung|schulung|vertragsklaerung|vertragsklärung|naechster datenpunkt|nächster datenpunkt)/i.test(haystack) &&

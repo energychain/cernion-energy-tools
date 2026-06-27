@@ -3630,6 +3630,83 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  describe('vnbDeltaSignalClassifierStatus', () => {
+    it('classifies a supplied VNB signal without connector reads or side effects', async () => {
+      const result = await broker.call('dashboard-api.vnbDeltaSignalClassifierStatus', {
+        signalId: 'delta-336',
+        sourceType: 'mail_excerpt',
+        receivedAt: '2026-06-27T12:00:00Z',
+        subject: 'Anschluss Kapazitaet Frist fuer Gewerbegebiet',
+        bodyExcerpt: 'Neue Kapazitaetsannahme blockiert Entscheidung bis 2026-07-01.',
+        knownContextAnchors: ['Gewerbegebiet Anschluss'],
+        processHint: 'grid_connection_capacity',
+        ownerHint: 'Netzplanung',
+        dueDateHint: '2026-07-01',
+        blockedDecisionHint: 'Kapazitaetsfreigabe',
+        nextEvidenceHint: 'NAP und freie Kapazitaet bestaetigen',
+      });
+
+      expect(result.capabilityKey).toBe('vnb_delta_signal_classifier');
+      expect(result.safety).toBe('read_only_advisory_classification');
+      expect(result.status).toBe('decision_queue_attention');
+      expect(result.classifications[0]).toMatchObject({
+        signalId: 'delta-336',
+        decisionRelevance: 'high',
+        affectedProcess: 'grid_connection_capacity',
+        ownerSuggestion: 'Netzplanung',
+        blockedDecision: 'Kapazitaetsfreigabe',
+        nextEvidencePoint: 'NAP und freie Kapazitaet bestaetigen',
+        contentPolicy: 'caller_supplied_sanitized_excerpt_only_no_private_content_persistence',
+      });
+      expect(result.sourceBoundary).toMatchObject({
+        suppliedInputOnly: true,
+        connectorRead: false,
+        persistsRawPrivateContent: false,
+        createsExternalAction: false,
+      });
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'mail.connector.ingest',
+          'outlook.connector.read',
+          'teams.connector.read',
+          'calendar.connector.read',
+          'task.connector.read',
+          'ticket.create',
+          'notification.dispatchInternal',
+          'hitl.create',
+          'workflow.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('surfaces missing evidence as positive follow-ups for a sparse signal', async () => {
+      const result = await broker.call('dashboard-api.vnbDeltaSignalClassifierStatus', {
+        subject: 'Messstellen Eskalation',
+        bodyExcerpt: 'MSB Abstimmung offen.',
+      });
+
+      expect(result.status).toBe('classification_with_evidence_gaps');
+      expect(result.classifications[0]).toMatchObject({
+        affectedProcess: 'metering',
+        noveltyLevel: 'unknown_baseline',
+      });
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'source_type',
+          'received_at',
+          'known_context_anchors',
+          'owner_hint',
+          'due_date',
+          'blocked_decision',
+          'next_evidence_point',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('vnb_delta_signal_classifier');
+    });
+  });
+
   describe('leadershipDeltaCockpitStatus', () => {
     it('reports missing leadership delta evidence without executing mutations', async () => {
       const result = await broker.call('dashboard-api.leadershipDeltaCockpitStatus', {

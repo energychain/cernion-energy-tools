@@ -7177,6 +7177,108 @@
     "sourceIssue": 222
   },
   {
+    "id": "vnb_delta_signal_classifier",
+    "description": "Read-only VNB/EVU delta signal classifier over caller-supplied sanitized input",
+    "routeLabel": "vnb_delta_signal_classifier",
+    "capability": "vnb_delta_signal_classifier",
+    "action": "dashboard-api.vnbDeltaSignalClassifierStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "mail.connector.ingest",
+        "outlook.connector.read",
+        "teams.connector.read",
+        "calendar.connector.read",
+        "task.connector.read",
+        "ticket.create",
+        "notification.dispatchInternal",
+        "hitl.create",
+        "workflow.execute",
+        "external.connector.call",
+        "personal-agent.execute",
+        "mako.dispatch",
+        "billing.release",
+        "settlement.prepareBilling",
+        "tariff.mutate",
+        "device-control.execute"
+      ]
+    },
+    "triggers": [
+      "vnb delta signal",
+      "delta signal classifier",
+      "delta klassifikation",
+      "evu fuehrungssignal",
+      "evu führungssignal",
+      "entscheidungssignal",
+      "owner frist",
+      "blockierte entscheidung",
+      "naechster evidenzpunkt",
+      "nächster evidenzpunkt",
+      "vnb_delta_signal_classifier"
+    ],
+    "paramTemplate": {
+      "subject": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:subject|betreff)[:= ]+([A-Za-z0-9 äöüÄÖÜß:_.,/-]{3,160})",
+          "group": 1
+        }
+      },
+      "processHint": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:processHint|prozess|prozesshinweis)[:= ]+([A-Za-z0-9 äöüÄÖÜß:_/-]{3,80})",
+          "group": 1
+        }
+      },
+      "ownerHint": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:ownerHint|owner|rolle)[:= ]+([A-Za-z0-9 äöüÄÖÜß:_/-]{3,80})",
+          "group": 1
+        }
+      },
+      "dueDateHint": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:dueDateHint|frist|deadline)[:= ]+([0-9]{4}-[0-9]{2}-[0-9]{2})",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 120 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Status", "maxLen": 120 },
+        { "paths": ["classifications.0.noveltyLevel", "dossierEvidence.topClassification.noveltyLevel"], "label": "Novelty", "maxLen": 120 },
+        { "paths": ["classifications.0.decisionRelevance", "dossierEvidence.topClassification.decisionRelevance"], "label": "Relevance", "maxLen": 120 },
+        { "paths": ["classifications.0.affectedProcess", "dossierEvidence.topClassification.affectedProcess"], "label": "Process", "maxLen": 120 },
+        { "paths": ["classifications.0.ownerSuggestion", "dossierEvidence.topClassification.ownerSuggestion"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["classifications.0.deadlineUrgency", "dossierEvidence.topClassification.deadlineUrgency"], "label": "Urgency", "maxLen": 120 },
+        { "paths": ["classifications.0.blockedDecision", "dossierEvidence.topClassification.blockedDecision"], "label": "Blocked Decision", "maxLen": 160 },
+        { "paths": ["classifications.0.nextEvidencePoint", "dossierEvidence.topClassification.nextEvidencePoint"], "label": "Next Evidence", "maxLen": 180 },
+        { "paths": ["classifications.0.confidence", "dossierEvidence.topClassification.confidence"], "label": "Confidence", "maxLen": 40 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Positive Follow-up", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.6"], "label": "Boundary", "maxLen": 180 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 336
+  },
+  {
     "id": "layer0_audit_drilldown_note",
     "description": "Read-only Layer-0 audit drilldown validation note",
     "routeLabel": "layer0_audit_drilldown_note",

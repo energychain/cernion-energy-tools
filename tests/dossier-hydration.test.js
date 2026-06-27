@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 97 static rules', () => {
+    it('loads all 98 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(97);
+      expect(rules.length).toBe(98);
     });
 
-    it('compiles all 97 static rules without error', () => {
+    it('compiles all 98 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(97);
+      expect(rules.length).toBe(98);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -95,7 +95,7 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule.timeoutMs).toBe(14000);
     });
 
-    it('all 15 actions are retrievable by getRule()', () => {
+    it('all 16 actions are retrievable by getRule()', () => {
       const expected = [
         'energy-market.co2Intensity',
         'gas-storage.countryStorage',
@@ -112,6 +112,7 @@ describe('dossier-hydration-registry (unit)', () => {
         'knowledge-continuity-governance-gate.getStatus',
         'investment-maturity-off-balance-gate.getStatus',
         'gas-capacity-order-revision-gate.getStatus',
+        'dashboard-api.vnbDeltaSignalClassifierStatus',
       ];
       for (const action of expected) {
         expect(getRule(action)).not.toBeNull();
@@ -1510,6 +1511,62 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Signals: 1');
       expect(formatted).toContain('Leading Gap: evidence_status');
       expect(formatted).toContain('Side-Effect Guard: mail.connector.ingest');
+    });
+
+    it('dashboard-api.vnbDeltaSignalClassifierStatus is dossier-safe and formats classifier facts', () => {
+      const rule = getRule('dashboard-api.vnbDeltaSignalClassifierStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte VNB Delta Signal\nsubject=Anschluss_Frist\nprocessHint=grid_connection_capacity\nowner=Netzplanung\nfrist=2026-07-01'
+        )
+      ).toEqual({
+        subject: 'Anschluss_Frist',
+        processHint: 'grid_connection_capacity',
+        ownerHint: 'Netzplanung',
+        dueDateHint: '2026-07-01',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'vnb_delta_signal_classifier',
+        status: 'decision_queue_attention',
+        classifications: [
+          {
+            noveltyLevel: 'new_signal',
+            decisionRelevance: 'high',
+            affectedProcess: 'grid_connection_capacity',
+            ownerSuggestion: 'Netzplanung',
+            deadlineUrgency: 'urgent_48h',
+            blockedDecision: 'Kapazitaetsfreigabe',
+            nextEvidencePoint: 'NAP bestaetigen',
+            confidence: 0.9,
+          },
+        ],
+        positiveFollowUps: [{ enablesDossierAddition: 'add known context anchors' }],
+        sourceActions: {
+          notCalled: ['mail.connector.ingest'],
+        },
+        dossierEvidence: {
+          dossierFacts: [
+            'VNB Delta Signal Status: decision_queue_attention',
+            'Classified Signals: 1',
+            'Top Process: grid_connection_capacity',
+            'Top Relevance: high',
+            'Owner Suggestion: Netzplanung',
+            'Deadline Urgency: urgent_48h',
+            'Boundary: supplied input only; no connector read; no persistence/action side effects',
+          ],
+        },
+      });
+
+      expect(formatted).toContain('Capability: vnb_delta_signal_classifier');
+      expect(formatted).toContain('Status: decision_queue_attention');
+      expect(formatted).toContain('Relevance: high');
+      expect(formatted).toContain('Process: grid_connection_capacity');
+      expect(formatted).toContain('Side-Effect Guard: mail.connector.ingest');
+      expect(formatted).toContain('Boundary: Boundary: supplied input only');
     });
 
     it('dashboard-api.assetValuationTransformationGateStatus is dossier-safe and formats gate facts', () => {

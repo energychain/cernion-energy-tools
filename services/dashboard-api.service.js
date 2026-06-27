@@ -138,6 +138,7 @@ module.exports = {
       transformationFinancingScenarioViewStatus: 5 * 60 * 1000, // 5 min
       gasGridTransformationAssetCockpitStatus: 5 * 60 * 1000, // 5 min
       leadershipDeltaCockpitStatus: 5 * 60 * 1000, // 5 min
+      vnbDeltaSignalClassifierStatus: 5 * 60 * 1000, // 5 min
       liveUpdateStreamContractStatus: 5 * 60 * 1000, // 5 min
       smgwConnectorReadinessStatus: 5 * 60 * 1000, // 5 min
       municipalEnergyValueAnalysisStatus: 5 * 60 * 1000, // 5 min
@@ -8366,6 +8367,82 @@ module.exports = {
           this.settings.cacheTtlMs.leadershipDeltaCockpitStatus,
           async () => ({
             ...this.buildLeadershipDeltaCockpitStatus(params),
+            timestamp: new Date().toISOString(),
+          })
+        );
+      },
+    },
+
+    // -- vnbDeltaSignalClassifierStatus -------------------------------------
+    /**
+     * POST /api/dashboard/vnb-delta-signal-classifier/classify
+     *
+     * Read-only advisory classifier for caller-supplied VNB/EVU leadership
+     * signal snippets. The endpoint does not read inboxes, connectors,
+     * calendars or task systems and does not persist private content.
+     */
+    vnbDeltaSignalClassifierStatus: {
+      rest: 'POST /vnb-delta-signal-classifier/classify',
+      params: {
+        signalId: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+        sourceType: { type: 'string', optional: true, min: 1 },
+        receivedAt: { type: 'string', optional: true, min: 1 },
+        subject: { type: 'string', optional: true, min: 1, max: 500 },
+        bodyExcerpt: { type: 'string', optional: true, min: 1, max: 4000 },
+        knownContextAnchors: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        processHint: { type: 'string', optional: true, min: 1 },
+        ownerHint: { type: 'string', optional: true, min: 1 },
+        dueDateHint: { type: 'string', optional: true, min: 1 },
+        blockedDecisionHint: { type: 'string', optional: true, min: 1 },
+        nextEvidenceHint: { type: 'string', optional: true, min: 1 },
+        signals: { type: 'array', optional: true, max: 10 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'VNB delta signal classifier -- read-only advisory evidence',
+        description:
+          'Classifies caller-supplied synthetic or sanitized VNB/EVU leadership signals into deterministic dossier-safe rows for novelty, decision relevance, process, owner, deadline, blocked decision, next evidence point, confidence and missing evidence. It does not read mail, Teams, calendars, task systems or private inboxes; does not persist message bodies; and does not create tickets, notifications, HITL tasks, billing, settlement, MaKo, tariff or device-control side effects.',
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: { type: 'object' },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Read-only VNB delta signal classification',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    safety: { type: 'string' },
+                    status: { type: 'string' },
+                    classifications: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `vnb-delta-signal-classifier:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.vnbDeltaSignalClassifierStatus,
+          async () => ({
+            ...this.buildVnbDeltaSignalClassifierStatus(params),
             timestamp: new Date().toISOString(),
           })
         );
@@ -28087,6 +28164,241 @@ module.exports = {
           sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,
         },
+      };
+    },
+
+    buildVnbDeltaSignalClassifierStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter((item) => item !== undefined && item !== null && item !== '');
+        if (value && typeof value === 'string') {
+          const trimmed = value.trim();
+          if (!trimmed) return [];
+          if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            try {
+              const parsed = JSON.parse(trimmed);
+              return Array.isArray(parsed) ? parsed : [parsed];
+            } catch (_err) {
+              return [trimmed];
+            }
+          }
+          return trimmed.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+        return value && typeof value === 'object' ? [value] : [];
+      };
+      const normalize = (value) => String(value || '').trim();
+      const normalizeKey = (value) => normalize(value).toLowerCase();
+      const hasAny = (text, needles) => needles.some((needle) => text.includes(needle));
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+      const dueUrgency = (dueDateHint) => {
+        if (!dueDateHint) return 'missing';
+        const ts = Date.parse(dueDateHint);
+        if (!Number.isFinite(ts)) return 'provided_unparsed';
+        const days = Math.ceil((ts - Date.now()) / (24 * 60 * 60 * 1000));
+        if (days < 0) return 'overdue';
+        if (days <= 2) return 'urgent_48h';
+        if (days <= 14) return 'near_term';
+        return 'scheduled';
+      };
+      const classifyProcess = (text, hint) => {
+        if (hint) return hint;
+        if (hasAny(text, ['anschluss', 'netzanschluss', 'kapazitaet', 'kapazität'])) return 'grid_connection_capacity';
+        if (hasAny(text, ['redispatch', 'fahrplan', 'abruf'])) return 'redispatch_flexibility';
+        if (hasAny(text, ['messstelle', 'imsys', 'msb', 'zaehler', 'zähler'])) return 'metering';
+        if (hasAny(text, ['regulierung', 'enwg', 'nzentg', 'bnetza'])) return 'regulatory';
+        if (hasAny(text, ['asset', 'anlage', 'trafo', 'betriebsmittel'])) return 'asset_management';
+        if (hasAny(text, ['flex', 'speicher', 'steuerbar', '14a'])) return 'flexibility';
+        return 'unclassified_vnb_signal';
+      };
+      const classifyOwner = (process, ownerHint) => {
+        if (ownerHint) return ownerHint;
+        const owners = {
+          grid_connection_capacity: 'Netzplanung / Anschlusswesen',
+          redispatch_flexibility: 'Redispatch / Flexibilitaetsmanagement',
+          metering: 'Messstellenbetrieb / Metering',
+          regulatory: 'Regulierungsmanagement',
+          asset_management: 'Asset Management',
+          flexibility: 'Flexibilitaetskoordination',
+        };
+        return owners[process] || 'Management Office / Fachbereich zu klaeren';
+      };
+      const classifyRelevance = (text, urgency, blockedDecision) => {
+        let score = 0;
+        if (blockedDecision) score += 2;
+        if (hasAny(text, ['frist', 'deadline', 'entscheidung', 'blockiert', 'freigabe', 'eskalation'])) score += 2;
+        if (hasAny(text, ['kapazitaet', 'kapazität', 'anschluss', 'redispatch', 'regulierung', 'messstellen', 'asset', 'flex'])) score += 1;
+        if (['overdue', 'urgent_48h'].includes(urgency)) score += 2;
+        if (urgency === 'near_term') score += 1;
+        if (score >= 5) return 'high';
+        if (score >= 3) return 'medium';
+        return 'low';
+      };
+      const classifyNovelty = (text, anchors) => {
+        if (!anchors.length) return 'unknown_baseline';
+        const anchorHits = anchors.filter((anchor) => text.includes(normalizeKey(anchor))).length;
+        if (anchorHits === 0) return 'new_signal';
+        if (anchorHits < anchors.length) return 'partial_delta';
+        return 'known_context_update';
+      };
+      const rawSignals = Array.isArray(params.signals) && params.signals.length > 0
+        ? params.signals.slice(0, 10)
+        : [{
+            signalId: params.signalId,
+            caseId: params.caseId,
+            sourceType: params.sourceType,
+            receivedAt: params.receivedAt,
+            subject: params.subject,
+            bodyExcerpt: params.bodyExcerpt,
+            knownContextAnchors: params.knownContextAnchors,
+            processHint: params.processHint,
+            ownerHint: params.ownerHint,
+            dueDateHint: params.dueDateHint,
+            blockedDecisionHint: params.blockedDecisionHint,
+            nextEvidenceHint: params.nextEvidenceHint,
+          }];
+
+      const missingMap = {
+        source_type: 'add supplied source type such as mail, teams, task, portal or meeting-note label',
+        received_at: 'add received-at timestamp for freshness and SLA interpretation',
+        subject_or_excerpt: 'add sanitized subject or body excerpt for deterministic classification',
+        known_context_anchors: 'add known context anchors to distinguish fresh deltas from known noise',
+        owner_hint: 'add owner or role hint to make routing accountable',
+        due_date: 'add deadline hint to classify urgency',
+        blocked_decision: 'add explicit blocked decision if management action is required',
+        next_evidence_point: 'add the next evidence point needed to close the decision loop',
+      };
+      const allMissing = [];
+      const classifications = rawSignals.map((signal, index) => {
+        const anchors = toList(signal.knownContextAnchors);
+        const subject = normalize(signal.subject);
+        const excerpt = normalize(signal.bodyExcerpt);
+        const text = normalizeKey(`${subject} ${excerpt} ${anchors.join(' ')} ${signal.processHint || ''}`);
+        const missing = [];
+        if (!signal.sourceType) missing.push('source_type');
+        if (!signal.receivedAt) missing.push('received_at');
+        if (!subject && !excerpt) missing.push('subject_or_excerpt');
+        if (anchors.length === 0) missing.push('known_context_anchors');
+        if (!signal.ownerHint) missing.push('owner_hint');
+        if (!signal.dueDateHint) missing.push('due_date');
+        if (!signal.blockedDecisionHint) missing.push('blocked_decision');
+        if (!signal.nextEvidenceHint) missing.push('next_evidence_point');
+
+        const affectedProcess = classifyProcess(text, signal.processHint);
+        const ownerSuggestion = classifyOwner(affectedProcess, signal.ownerHint);
+        const deadlineUrgency = dueUrgency(signal.dueDateHint);
+        const blockedDecision =
+          signal.blockedDecisionHint ||
+          (hasAny(text, ['blockiert', 'blocked', 'entscheidung', 'freigabe'])
+            ? 'management_decision_required'
+            : 'not_explicit');
+        const decisionRelevance = classifyRelevance(text, deadlineUrgency, signal.blockedDecisionHint);
+        const noveltyLevel = classifyNovelty(text, anchors);
+        const confidence = clamp(0.9 - missing.length * 0.08 + (affectedProcess === 'unclassified_vnb_signal' ? -0.1 : 0), 0.35, 0.95);
+        const nextEvidencePoint =
+          signal.nextEvidenceHint ||
+          missingMap[missing.find((item) => item !== 'blocked_decision') || 'next_evidence_point'];
+
+        const row = {
+          signalId: signal.signalId || `vnb-delta-signal:${index + 1}`,
+          caseId: signal.caseId || null,
+          sourceType: signal.sourceType || 'caller_supplied_unspecified',
+          receivedAt: signal.receivedAt || null,
+          noveltyLevel,
+          decisionRelevance,
+          affectedProcess,
+          ownerSuggestion,
+          deadlineUrgency,
+          blockedDecision,
+          nextEvidencePoint,
+          confidence: Number(confidence.toFixed(2)),
+          missingEvidence: missing,
+          contentPolicy: 'caller_supplied_sanitized_excerpt_only_no_private_content_persistence',
+        };
+        missing.forEach((missingDataPoint) => {
+          allMissing.push({
+            signalId: row.signalId,
+            missingDataPoint,
+            affectedProcess,
+            enablesDossierAddition: missingMap[missingDataPoint],
+          });
+        });
+        return row;
+      });
+
+      const highPriorityCount = classifications.filter((row) => row.decisionRelevance === 'high').length;
+      const status = highPriorityCount > 0
+        ? 'decision_queue_attention'
+        : allMissing.length > 0
+          ? 'classification_with_evidence_gaps'
+          : 'classified';
+      const sourceActions = {
+        inspected: ['dashboard-api.vnbDeltaSignalClassifierStatus'],
+        referenced: ['vdmi.dossier', 'evidence-planner.plan', 'dashboard-api.leadershipDeltaCockpitStatus'],
+        notCalled: [
+          'mail.connector.ingest',
+          'outlook.connector.read',
+          'teams.connector.read',
+          'calendar.connector.read',
+          'task.connector.read',
+          'ticket.create',
+          'notification.dispatchInternal',
+          'hitl.create',
+          'workflow.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'device-control.execute',
+        ],
+      };
+      const positiveFollowUps = allMissing.map((gap) => ({
+        ...gap,
+        category: 'vnb_delta_signal_classifier',
+      }));
+      const first = classifications[0] || {};
+      const dossierFacts = [
+        `VNB Delta Signal Status: ${status}`,
+        `Classified Signals: ${classifications.length}`,
+        `Top Process: ${first.affectedProcess || 'none'}`,
+        `Top Relevance: ${first.decisionRelevance || 'none'}`,
+        `Owner Suggestion: ${first.ownerSuggestion || 'missing'}`,
+        `Deadline Urgency: ${first.deadlineUrgency || 'missing'}`,
+        `Boundary: supplied input only; no connector read; no persistence/action side effects`,
+      ];
+      return {
+        capabilityKey: 'vnb_delta_signal_classifier',
+        safety: 'read_only_advisory_classification',
+        status,
+        signalCount: classifications.length,
+        highPriorityCount,
+        classifications,
+        missingEvidence: allMissing,
+        positiveFollowUps,
+        sourceBoundary: {
+          suppliedInputOnly: true,
+          connectorRead: false,
+          persistsRawPrivateContent: false,
+          createsExternalAction: false,
+        },
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'vnb_delta_signal_classifier',
+          status,
+          signalCount: classifications.length,
+          topClassification: classifications[0] || null,
+          missingEvidence: allMissing,
+          positiveFollowUps,
+          sourceBoundary: {
+            suppliedInputOnly: true,
+            connectorRead: false,
+            persistsRawPrivateContent: false,
+            createsExternalAction: false,
+          },
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+        _errors: [],
       };
     },
 

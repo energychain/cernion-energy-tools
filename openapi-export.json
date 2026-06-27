@@ -19955,6 +19955,68 @@
         ]
       }
     },
+    "/api/dashboard-api/vnb-delta-signal-classifier/classify": {
+      "post": {
+        "operationId": "dashboard-api_vnbDeltaSignalClassifierStatus",
+        "summary": "VNB delta signal classifier -- read-only advisory evidence",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only VNB delta signal classification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "classifications": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Classifies caller-supplied synthetic or sanitized VNB/EVU leadership signals into deterministic dossier-safe rows for novelty, decision relevance, process, owner, deadline, blocked decision, next evidence point, confidence and missing evidence. It does not read mail, Teams, calendars, task systems or private inboxes; does not persist message bodies; and does not create tickets, notifications, HITL tasks, billing, settlement, MaKo, tariff or device-control side effects.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/dashboard-api/municipal-energy-value-analysis": {
       "get": {
         "operationId": "dashboard-api_municipalEnergyValueAnalysisStatus",
@@ -63167,6 +63229,68 @@
             }
           }
         ]
+      }
+    },
+    "/api/dashboard/vnb-delta-signal-classifier/classify": {
+      "post": {
+        "operationId": "dashboard-api_vnbDeltaSignalClassifierStatus",
+        "summary": "VNB delta signal classifier -- read-only advisory evidence",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only VNB delta signal classification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "classifications": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Classifies caller-supplied synthetic or sanitized VNB/EVU leadership signals into deterministic dossier-safe rows for novelty, decision relevance, process, owner, deadline, blocked decision, next evidence point, confidence and missing evidence. It does not read mail, Teams, calendars, task systems or private inboxes; does not persist message bodies; and does not create tickets, notifications, HITL tasks, billing, settlement, MaKo, tariff or device-control side effects.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
       }
     },
     "/api/dashboard/live-update-stream-contract": {

@@ -1097,6 +1097,29 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes VNB delta signal classifier prompts to the read-only advisory classifier', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe VNB Delta Signal Classifier fuer EVU Fuehrungssignal, Entscheidungssignal, Frist, Owner, Anschluss, Kapazitaet, Regulierung, Messstellen, Flexibilitaet, Assetthemen, blockierte Entscheidung und naechster Evidenzpunkt.',
+    });
+
+    expect(result.capability).toBe('vnb_delta_signal_classifier');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'vnb_delta_signal_classifier'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.vnbDeltaSignalClassifierStatus');
+    expect(actionNames).not.toContain('mail.connector.ingest');
+    expect(actionNames).not.toContain('outlook.connector.read');
+    expect(actionNames).not.toContain('teams.connector.read');
+    expect(actionNames).not.toContain('calendar.connector.read');
+    expect(actionNames).not.toContain('task.connector.read');
+    expect(actionNames).not.toContain('ticket.create');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('workflow.execute');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes asset valuation transformation gate prompts to the read-only evidence projection', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Asset Valuation Transformation Gate fuer Buchwert, Restwert, Assetzustand, Stilllegung, Umwidmung, H2 Option, Waermebezug, Vertragsrisiko, regulatorische Unsicherheit und Datenqualitaet.',
