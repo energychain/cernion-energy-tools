@@ -29104,7 +29104,7 @@ module.exports = {
           const genKwh = profile.pvCapacityKw * pvFullLoadHours;
           valueRows.push({
             rowKey: 'pv_generation_value',
-            rowLabel: 'Photovoltaik -- Erzeugungswert',
+            rowLabel: 'Photovoltaik: Erzeugungswert',
             technology: 'pv',
             installedCapacityKw: profile.pvCapacityKw,
             assumedFullLoadHours: pvFullLoadHours,
@@ -29121,7 +29121,7 @@ module.exports = {
           const genKwh = profile.biomassCapacityKw * biomassFullLoadHours;
           valueRows.push({
             rowKey: 'biomass_generation_value',
-            rowLabel: 'Biomasse -- Erzeugungswert',
+            rowLabel: 'Biomasse: Erzeugungswert',
             technology: 'biomass',
             installedCapacityKw: profile.biomassCapacityKw,
             assumedFullLoadHours: biomassFullLoadHours,
@@ -29138,7 +29138,7 @@ module.exports = {
           const genKwh = profile.windCapacityKw * windFullLoadHours;
           valueRows.push({
             rowKey: 'wind_generation_value',
-            rowLabel: 'Windenergie -- Erzeugungswert',
+            rowLabel: 'Windenergie: Erzeugungswert',
             technology: 'wind',
             installedCapacityKw: profile.windCapacityKw,
             assumedFullLoadHours: windFullLoadHours,
@@ -29272,7 +29272,7 @@ module.exports = {
             assumptionStatus: `KAV § 2 Abs. 2 Kategorie: ${profile.konzessionsabgabeKategorie}; ${kavRateNsCtPerKwh} ct/kWh`,
             evidenceStatus: 'assumption-backed',
             assumptionLabel: `Einwohner ${profile.einwohner}; ${totalHouseholds} Haushalte; ${profile.avgHouseholdConsumptionKwh} kWh/HH angenommen`,
-            sourceLabel: 'KAV 1992 / interne Annahme; keine rechtliche Abrechnung',
+            sourceLabel: 'KAV 1992 / interne Annahme; Schätzung, keine Schlussrechnung',
           },
           {
             rowKey: 'konzessionsabgabe_ns_gewerbe',
@@ -29293,11 +29293,11 @@ module.exports = {
             segment: 'NS-gesamt',
             estimatedEurPerYear: kavNsEurPerYear + kavGewerbeEurPerYear,
             calculationStatus: 'assumption-scenario',
-            assumptionStatus: 'Szenario-Summe; keine rechtliche/buchhalterische Finalität',
+            assumptionStatus: 'Szenario-Summe; noch nicht haushalterisch geprüft',
             evidenceStatus: 'scenario-based',
             assumptionLabel:
               'Konzessionsabgabe ist eine kommunale Einnahme des Konzessionsgebers; ' +
-              'diese Zeile ist Szenario-Darstellung, keine rechtliche Abrechnung.',
+              'diese Zeile ist eine Schätzung, keine Schlussrechnung für den Haushalt.',
             sourceLabel: 'KAV / interne Szenario-Berechnung',
           }
         );
@@ -29492,7 +29492,7 @@ module.exports = {
           rowKey: 'euro_kpi_municipal_budget_effect',
           label: 'Kommunaler Haushaltseffekt (Szenario)',
           valueEur: budgetTotalEur > 0 ? budgetTotalEur : null,
-          description: 'Konzessionsabgabe und Szenario-Budgeteffekte; keine rechtliche Abrechnung oder Finalität.',
+          description: 'Konzessionsabgabe und Szenario-Budgeteffekte als Schätzung; noch nicht haushalterisch geprüft.',
           evidenceStatus: budgetTotalEur > 0 ? 'assumption-backed' : 'missing-evidence',
         },
         {
