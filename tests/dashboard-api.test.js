@@ -9673,6 +9673,7 @@ describe('dashboard-api.service', () => {
       expect(Array.isArray(result.riskRows)).toBe(true);
       expect(Array.isArray(result.budgetImpactRows)).toBe(true);
       expect(Array.isArray(result.flexibilityScenarioRows)).toBe(true);
+      expect(Array.isArray(result.energySharingCommunityRows)).toBe(true);
       expect(Array.isArray(result.assumptionRows)).toBe(true);
       expect(Array.isArray(result.sourceRows)).toBe(true);
       expect(Array.isArray(result.missingEvidence)).toBe(true);
@@ -9860,6 +9861,9 @@ describe('dashboard-api.service', () => {
           'smgw.control',
           'building-permit.approve',
           'subsidy.grant',
+          'energy-sharing.allocate',
+          'energy-sharing.contract.sign',
+          'energy-sharing.billing.execute',
           'external.data.export.unrestricted',
         ])
       );
@@ -10188,6 +10192,50 @@ describe('dashboard-api.service', () => {
           'storage_mastr_inventory',
           'fnav_capacity_window',
           'building_permit_fast_track_policy',
+        ])
+      );
+    });
+
+    it('Wiesloch exposes §42c Energy Sharing Community scenarios for municipal and mixed estates', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Wiesloch',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(Array.isArray(result.energySharingCommunityRows)).toBe(true);
+      expect(result.energySharingCommunityRows.length).toBeGreaterThanOrEqual(4);
+      expectScalarTableRows(result.energySharingCommunityRows);
+
+      const context = result.energySharingCommunityRows.find((r) => r.rowKey === 'energy_sharing_42c_context');
+      expect(context).toBeDefined();
+      expect(context.legalBasis).toBe('EnWG §42c');
+      expect(context.eligibilityWindow).toContain('2026-06-01');
+      expect(context.eligibilityWindow).toContain('2028-06-01');
+      expect(context.communityModel).toContain('Reststrom');
+
+      const municipal = result.energySharingCommunityRows.find((r) => r.rowKey === 'energy_sharing_municipal_estates');
+      expect(municipal).toBeDefined();
+      expect(municipal.scenarioType).toBe('municipal_estate_community');
+      expect(municipal.municipalUseCase).toContain('Schule');
+      expect(municipal.potentialLocalCirculationEurPerYear).toBeGreaterThan(0);
+      expect(municipal.evidenceStatus).toBe('scenario-based');
+
+      const mixed = result.energySharingCommunityRows.find((r) => r.rowKey === 'energy_sharing_mixed_community');
+      expect(mixed).toBeDefined();
+      expect(mixed.communityModel).toContain('Private und gewerbliche');
+
+      const storage = result.energySharingCommunityRows.find((r) => r.rowKey === 'energy_sharing_storage_enabled');
+      expect(storage).toBeDefined();
+      expect(storage.municipalUseCase).toContain('Speicher');
+
+      expect(result.sourceRows.map((r) => r.sourceKey)).toContain('enwg_42c_energy_sharing');
+      expect(result.missingEvidence.map((g) => g.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'energy_sharing_malo_metering',
+          'energy_sharing_participant_contracts',
+          'energy_sharing_reststrom_supplier',
+          'energy_sharing_vnb_bilanzierungsgebiet',
         ])
       );
     });

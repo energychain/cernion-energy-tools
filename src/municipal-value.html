@@ -605,6 +605,53 @@
         font-size: 0.92rem;
       }
 
+      .sharing-flow {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) auto minmax(0, 1.1fr) auto minmax(0, 0.9fr);
+        gap: 10px;
+        align-items: stretch;
+        margin-top: 14px;
+      }
+
+      .sharing-node {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdfb;
+        padding: 14px;
+        min-height: 126px;
+      }
+
+      .sharing-node span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.76rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+
+      .sharing-node strong {
+        display: block;
+        font-size: 1.05rem;
+        margin-bottom: 7px;
+      }
+
+      .sharing-node p {
+        color: var(--muted);
+        margin: 0;
+        line-height: 1.4;
+        font-size: 0.92rem;
+      }
+
+      .sharing-arrow {
+        display: grid;
+        place-items: center;
+        color: var(--green);
+        font-weight: 900;
+        font-size: 1.45rem;
+        min-width: 24px;
+      }
+
       .risk-list {
         display: grid;
         gap: 10px;
@@ -747,9 +794,15 @@
         .insight-band,
         .story-card,
         .load-profile-visual,
+        .sharing-flow,
         .money-grid,
         .narrative-grid {
           grid-template-columns: 1fr;
+        }
+
+        .sharing-arrow {
+          min-height: 18px;
+          transform: rotate(90deg);
         }
 
         .recommendation-row {
@@ -1487,6 +1540,99 @@
         `;
       }
 
+      function renderEnergySharingCommunities(data) {
+        const rows = data.energySharingCommunityRows || [];
+        if (!rows.length) return "";
+        const context = rows.find((row) => row.rowKey === "energy_sharing_42c_context") || {};
+        const scenarios = rows.filter((row) => row.scenarioType && row.scenarioType !== "legal_context");
+        const bestScenario = [...scenarios]
+          .filter((row) => Number(row.potentialLocalCirculationEurPerYear) > 0)
+          .sort((a, b) => (Number(b.potentialLocalCirculationEurPerYear) || 0) - (Number(a.potentialLocalCirculationEurPerYear) || 0))[0];
+
+        return `
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Energy Sharing Communities: lokale Nutzung über mehrere Orte</h2>
+                <p>
+                  §42c EnWG macht Energy Sharing als Teilversorgung möglich: erneuerbarer Strom
+                  kann über das öffentliche Verteilnetz gemeinsam genutzt werden, wenn Vertrag,
+                  Aufteilungsschlüssel, Messung und Reststrombezug sauber geregelt sind. Für Kommunen
+                  ist das besonders relevant, weil Erzeugung und Verbrauch oft nicht auf derselben
+                  Liegenschaft liegen.
+                </p>
+              </div>
+            </div>
+            <div class="sharing-flow" aria-label="Energy-Sharing-Wirklogik">
+              <article class="sharing-node">
+                <span>Erzeugung</span>
+                <strong>PV, Wind, Biomasse oder EE-Speicher</strong>
+                <p>Bauhof, Kläranlage, kommunales Dach, Gewerbedach oder private Anlage liefern den lokalen Strom.</p>
+              </article>
+              <div class="sharing-arrow" aria-hidden="true">›</div>
+              <article class="sharing-node">
+                <span>§42c-Modell</span>
+                <strong>Vertrag, Messung, Aufteilung</strong>
+                <p>Gemeinsame Nutzung braucht Liefervertrag, Nutzungsvertrag, 15-Minuten-Messung/RLM und Reststromregelung.</p>
+              </article>
+              <div class="sharing-arrow" aria-hidden="true">›</div>
+              <article class="sharing-node">
+                <span>Verbrauch</span>
+                <strong>Schule, Rathaus, Sporthalle, KMU</strong>
+                <p>Die Community kann kommunale, private und gewerbliche Teilnehmer verbinden, sofern der Rechtsrahmen passt.</p>
+              </article>
+            </div>
+            <div class="money-grid">
+              <article class="money-card">
+                <span>Rechtlicher Startpunkt</span>
+                <strong>§42c EnWG</strong>
+                <p>${escapeHtml(context.eligibilityWindow || "Start im VNB-Gebiet ab 2026; Erweiterung ab 2028 prüfen.")}</p>
+              </article>
+              <article class="money-card">
+                <span>Adressierbarer Prüfwert</span>
+                <strong>${escapeHtml(euroRange(context.referenceUnmatchedValueEur, 0.9, 1.1))}</strong>
+                <p>Nicht zeitgleicher oder noch nicht vertraglich lokal nutzbarer Erzeugungswert. Kein Erlösversprechen.</p>
+              </article>
+              <article class="money-card">
+                <span>Stärkstes Szenario</span>
+                <strong>${escapeHtml(euroRange(bestScenario?.potentialLocalCirculationEurPerYear, 0.9, 1.1))}</strong>
+                <p>Prüfgröße für lokale Wertbindung durch Community, Speicher und flexible Lasten.</p>
+              </article>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Szenario</th>
+                    <th>Prüfwert/Jahr</th>
+                    <th>Modell</th>
+                    <th>Kommunaler Use Case</th>
+                    <th>Nächster Prüfpunkt</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${scenarios.map((row) => `
+                    <tr>
+                      <td>${escapeHtml(row.rowLabel)}</td>
+                      <td>${escapeHtml(euroRange(row.potentialLocalCirculationEurPerYear, 0.9, 1.1))}</td>
+                      <td>${escapeHtml(row.communityModel)}</td>
+                      <td>${escapeHtml(row.municipalUseCase)}</td>
+                      <td>${escapeHtml(row.nextGateLabel)}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+            <div class="decision-sentence">
+              <strong>Was ein Gemeinderat daraus machen kann:</strong>
+              Einen §42c-Pilotauftrag beschließen: kommunale Liegenschaften priorisieren,
+              gemischte Teilnehmerkreise prüfen, Mess- und Vertragsmodell vorbereiten und Speicher
+              nur dort einbeziehen, wo Herkunft, Steuerbarkeit und Netzanschluss belastbar sind.
+            </div>
+          </section>
+        `;
+      }
+
       function renderMetric(label, value, note, className = "") {
         return `
           <article class="metric ${escapeHtml(className)}">
@@ -1704,6 +1850,8 @@
           ${renderMayorBrief(data, generationValue, generationKwh, budgetValue)}
 
           ${renderTimeSeriesInsight(data)}
+
+          ${renderEnergySharingCommunities(data)}
 
           ${renderFlexibilityScenarios(data)}
 

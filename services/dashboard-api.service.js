@@ -30792,6 +30792,15 @@ module.exports = {
           lastUpdated: '2026-06-19',
           evidenceStatus: 'available',
         },
+        {
+          sourceKey: 'enwg_42c_energy_sharing',
+          sourceLabel: 'EnWG §42c: gemeinsame Nutzung elektrischer Energie aus EE-Anlagen',
+          sourceType: 'legal',
+          availability: 'public',
+          coverage: 'deutschland-weit',
+          lastUpdated: '2026-06-01',
+          evidenceStatus: 'available',
+        },
       ];
 
       const totalGrossMarketValueEur = valueRows.reduce(
@@ -30931,6 +30940,92 @@ module.exports = {
           ]
         : [];
 
+      const totalLocalCorrelationValueEur = timeSeriesValueRows.reduce(
+        (sum, row) => sum + (Number(row.localCorrelationValueEur) || 0),
+        0
+      );
+      const energySharingAddressableValueEur = unmatchedGenerationValueEur > 0
+        ? unmatchedGenerationValueEur
+        : totalGrossMarketValueEur;
+      const buildEnergySharingScenario = (
+        rowKey,
+        rowLabel,
+        scenarioType,
+        captureShare,
+        communityModel,
+        municipalUseCase,
+        nextGateLabel
+      ) => ({
+        rowKey,
+        rowLabel,
+        scenarioType,
+        legalBasis: 'EnWG §42c',
+        eligibilityWindow: 'ab 2026-06-01 im VNB-Bilanzierungsgebiet; ab 2028-06-01 auch direkt angrenzende VNB-Bilanzierungsgebiete derselben Regelzone',
+        communityModel,
+        municipalUseCase,
+        referenceUnmatchedValueEur: energySharingAddressableValueEur || null,
+        currentLocalCorrelationValueEur: totalLocalCorrelationValueEur || null,
+        captureShare,
+        potentialLocalCirculationEurPerYear: energySharingAddressableValueEur > 0
+          ? Math.round(energySharingAddressableValueEur * captureShare)
+          : null,
+        evidenceStatus: energySharingAddressableValueEur > 0 ? 'scenario-based' : 'missing-evidence',
+        assumptionLabel:
+          'Szenario: Energy Sharing kann zeitgleich erzeugten oder aus EE zwischengespeicherten Strom zwischen getrennten Verbrauchsstellen vertraglich nutzbar machen; kein Liefer-, Tarif- oder Abrechnungsnachweis.',
+        sourceLabel:
+          'EnWG §42c; abgeleitete Cernion-Zeitgleichkeitswerte; kommunale Liegenschafts- und Teilnehmerdaten noch zu belegen.',
+        nextGateLabel,
+      });
+      const energySharingCommunityRows = profile.found
+        ? [
+            {
+              rowKey: 'energy_sharing_42c_context',
+              rowLabel: 'Was Energy Sharing nach §42c bedeutet',
+              scenarioType: 'legal_context',
+              legalBasis: 'EnWG §42c',
+              eligibilityWindow: 'ab 2026-06-01 im VNB-Bilanzierungsgebiet; ab 2028-06-01 auch direkt angrenzende VNB-Bilanzierungsgebiete derselben Regelzone',
+              communityModel: 'Betreiber und Abnehmer teilen EE-Strom über das öffentliche Verteilnetz; Reststrom bleibt separat zu beschaffen.',
+              municipalUseCase: 'PV am Bauhof, Schule, Rathaus und weitere Liegenschaften können in einem gemeinsamen Nutzungsmodell geprüft werden.',
+              referenceUnmatchedValueEur: energySharingAddressableValueEur || null,
+              currentLocalCorrelationValueEur: totalLocalCorrelationValueEur || null,
+              captureShare: null,
+              potentialLocalCirculationEurPerYear: null,
+              evidenceStatus: 'available',
+              assumptionLabel:
+                'Aufklärungszeile: gemeinsame Nutzung braucht Liefervertrag, Vertrag zur gemeinsamen Nutzung, Aufteilungsschlüssel, 15-Minuten-Messung/RLM und Reststromregelung.',
+              sourceLabel: 'Gesetze im Internet: EnWG §42c',
+              nextGateLabel: 'Liegenschaften, Betreiber, Messkonzept, Reststromlieferant und Bilanzierungsgebiet zu einem Pilot-Setup verdichten.',
+            },
+            buildEnergySharingScenario(
+              'energy_sharing_municipal_estates',
+              'Kommunale Liegenschaften zuerst',
+              'municipal_estate_community',
+              0.25,
+              'Kommunale oder kommunal getragene Betreiberstruktur; Abnehmer sind kommunale Liegenschaften.',
+              'PV am Bauhof oder auf der Kläranlage wird rechnerisch mit Schule, Rathaus, Sporthalle oder Wasserwerk gekoppelt.',
+              'Liegenschaftsliste mit MaLo/Messkonzept, Lastprofil und Reststromvertrag vorbereiten.'
+            ),
+            buildEnergySharingScenario(
+              'energy_sharing_mixed_community',
+              'Gemischte Community',
+              'mixed_public_private_community',
+              0.4,
+              'Private und gewerbliche EE-Betreiber plus kommunale Liegenschaften; KMU-/Teilnehmerfähigkeit prüfen.',
+              'Kommunale Nachfrage wird Ankerabnehmer, private und gewerbliche Anlagen bringen zusätzliche lokale Erzeugung ein.',
+              'Teilnehmerkreis, Betreiberform, Liefer-/Nutzungsverträge und Abrechnungspartner rechtlich und energiewirtschaftlich prüfen.'
+            ),
+            buildEnergySharingScenario(
+              'energy_sharing_storage_enabled',
+              'Energy Sharing mit Speicher und Flexibilität',
+              'storage_enabled_community',
+              0.55,
+              'Community nutzt Speicher und steuerbare Lasten nur, wenn gespeicherte Energie aus erneuerbaren Energien stammt und §42c-/EEG-Anforderungen erfüllt sind.',
+              'Speicher verschiebt PV-Mittagsspitzen in Verbrauchsfenster kommunaler Gebäude und stabilisiert die lokale Wertbindung.',
+              'Speicherherkunft, Messung, Steuerbarkeit, fNAV/FCA-Fenster und Abrechnungslogik gemeinsam nachweisen.'
+            ),
+          ]
+        : [];
+
       const totalBudgetRow = budgetImpactRows.find((r) =>
         String(r.rowKey || '').includes('total')
       );
@@ -31000,6 +31095,10 @@ module.exports = {
       addGap('storage_mastr_inventory', 'Belegter Speicherbestand ermöglicht Bestandsszenarien statt reiner Speicher-/Flex-Hypothesen.');
       addGap('fnav_capacity_window', 'fNAV-/FCA-Leistungsfenster des Netzbetreibers ermöglicht statische oder dynamische Flex-Szenarien.');
       addGap('building_permit_fast_track_policy', 'Kommunale Genehmigungs- und Förderleitplanken ermöglichen eine belastbare Beschlussvorlage für Speicher/Flex-Projekte.');
+      addGap('energy_sharing_malo_metering', 'MaLo-/Messkonzept je Liegenschaft ermöglicht §42c-Allokation mit 15-Minuten-Messung oder RLM.');
+      addGap('energy_sharing_participant_contracts', 'Teilnehmer-, Liefer- und gemeinsame Nutzungsverträge ermöglichen ein belastbares Energy-Sharing-Pilotmodell.');
+      addGap('energy_sharing_reststrom_supplier', 'Reststromlieferant und Informationspflichten ermöglichen rechtskonforme Teilversorgung statt Vollversorgungsbehauptung.');
+      addGap('energy_sharing_vnb_bilanzierungsgebiet', 'Bilanzierungsgebiet und angrenzende VNB-Gebiete bestimmen, welche Liegenschaften und Teilnehmer ab 2026/2028 gemeinsam nutzbar sind.');
       addGap('operator_locality', 'Belege zur Lokalität des Netzbetreibers ermöglichen kommunale Steuer-/Umsatzeffekt-Abschätzung.');
       addGap('local_tax_assumptions', 'Lokale Gewerbesteuer-/Einkommensteuerannahmen ermöglichen kommunales Steuereffekt-Szenario.');
 
@@ -31022,6 +31121,9 @@ module.exports = {
         'grid-connection.reserve',
         'building-permit.approve',
         'subsidy.grant',
+        'energy-sharing.allocate',
+        'energy-sharing.contract.sign',
+        'energy-sharing.billing.execute',
         'tenant.provision',
         'tenant.reset',
         'external.data.export.unrestricted',
@@ -31076,6 +31178,7 @@ module.exports = {
         timeSeriesValueRows,
         derivedLoadProfileRows,
         flexibilityScenarioRows,
+        energySharingCommunityRows,
         euroKpiRows,
         riskRows,
         budgetImpactRows,
