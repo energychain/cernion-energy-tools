@@ -778,8 +778,8 @@
                   <label for="scenarioInput">Szenario</label>
                   <select id="scenarioInput" name="scenario">
                     <option value="baseline">Baseline</option>
-                    <option value="high-price">Hoher Marktpreis</option>
-                    <option value="low-price">Niedriger Marktpreis</option>
+                    <option value="high-price">Hoher Marktpreis (obere Bandbreite)</option>
+                    <option value="low-price">Niedriger Marktpreis (untere Bandbreite)</option>
                   </select>
                 </div>
               </div>
@@ -788,7 +788,7 @@
               </div>
             </form>
             <div class="consulting-cta">
-              <strong>Aus dem Link wird ein Beratungsgespräch.</strong>
+              <strong>Aus dem Link wird eine Prüfliste.</strong>
               <p>
                 Die Auswertung zeigt in wenigen Minuten, welche Fragen eine Kommune sofort
                 stellen sollte: Was bleibt lokal, welche Datengrundlagen fehlen und welches Netzrisiko
@@ -969,6 +969,66 @@
         return sum(budgetRows, "estimatedEurPerYear");
       }
 
+      function budgetTotalRow(budgetRows) {
+        return budgetRows.find((row) => String(row.rowKey || "").includes("total")) || {};
+      }
+
+      function euroRangeFromRow(row, fallbackValue) {
+        const low = Number(row?.estimatedLowEurPerYear);
+        const high = Number(row?.estimatedHighEurPerYear);
+        if (low > 0 && high > 0 && high >= low) {
+          return `ca. ${roundedEuro(low)}–${roundedEuro(high)}`;
+        }
+        return euroRange(fallbackValue);
+      }
+
+      function budgetDisplayRange(budgetRows) {
+        const row = budgetTotalRow(budgetRows);
+        return euroRangeFromRow(row, budgetTotal(budgetRows));
+      }
+
+      function scenarioLabel(value) {
+        const key = String(value || "baseline").toLowerCase();
+        if (key === "high-price") return "Hochpreisszenario";
+        if (key === "low-price") return "Niedrigpreisszenario";
+        return "Basisszenario";
+      }
+
+      function scenarioText(data) {
+        const key = String(data.scenario || "baseline").toLowerCase();
+        if (key === "high-price") {
+          return "Das Hochpreisszenario zeigt die obere Bandbreite für Betreiberwerte. Im Basisszenario lägen marktpreisabhängige Betreiberwerte rechnerisch rund ein Drittel niedriger; die Konzessionsabgabe wird davon nicht automatisch größer.";
+        }
+        if (key === "low-price") {
+          return "Das Niedrigpreisszenario zeigt eine vorsichtige Unterkante für Betreiberwerte. Für politische Beschlüsse sollte es mit dem Basisszenario verglichen werden.";
+        }
+        return "Das Basisszenario ist der erste Vergleichsfall. Für Beschlüsse sollten zusätzlich eine niedrige und eine hohe Marktpreisvariante geprüft werden.";
+      }
+
+      function referenceText(data) {
+        const parts = [];
+        if (data.municipality) parts.push(data.municipality);
+        if (data.ags) parts.push(`AGS ${data.ags}`);
+        if (data.year) parts.push(`Basisjahr ${data.year}`);
+        parts.push(scenarioLabel(data.scenario));
+        return parts.join(" · ");
+      }
+
+      function budgetAnchorText(data, budgetRows) {
+        const budget = budgetTotal(budgetRows);
+        const population = Number(data.population) || 0;
+        if (!budget || !population) {
+          return "Als Vergleichsmaßstab sollte die Kämmerei die Spanne gegen den letzten Haushaltsplan und die Ist-Konzessionsabgabe stellen.";
+        }
+        const referenceBudget = population * 3500;
+        const percent = (budget / referenceBudget) * 100;
+        return `Als grober Maßstab: Gegen einen kommunalen Haushaltsproxy von 3.500 € je Einwohner entspricht die Spanne etwa ${number(percent, " %")} des Jahreshaushalts. Die Kämmerei sollte diese Relation am echten Haushaltsplan verifizieren.`;
+      }
+
+      function publicReferenceAction() {
+        return "Die Verwaltung kann zunächst drei Werte selbst abfragen: Ist-Konzessionsabgabe des letzten Jahres, Stromabgabe nach Tarif- und Sonderkunden sowie durchschnittliche Netzanschlussdauer für neue Anlagen.";
+      }
+
       function publicEvidenceLabel(value) {
         const key = String(value || "").toLowerCase();
         if (key.includes("missing")) return "offen";
@@ -984,7 +1044,7 @@
           return {
             label: "Wie schnell schließt der Netzbetreiber neue Anlagen an?",
             explanation: "Lange Bearbeitungszeiten können Investitionen verzögern und erwartete lokale Wertschöpfung in spätere Jahre verschieben.",
-            nextStep: "Netzbetreiber identifizieren und Anschlussdauer mit aktuellen Fällen belegen.",
+            nextStep: "Anschlussdauer des zuständigen Netzbetreibers mit aktuellen Fällen belegen.",
           };
         }
         if (key.includes("digitalization")) {
@@ -1027,6 +1087,8 @@
         const concessionProxy = budgetPerMwh(data.budgetImpactRows || [], generationKwh);
         const localMwhPublic = price + concessionProxy;
         const importedMwhPublic = concessionProxy;
+        const budgetRows = data.budgetImpactRows || [];
+        const totalBudgetRow = budgetTotalRow(budgetRows);
         const topTech = strongestTechnology(rows);
         const topTechText = topTech
           ? `${technologyLabel(topTech.technology)} trägt im aktuellen Szenario den größten sichtbaren Betreiberwert.`
@@ -1044,13 +1106,13 @@
             <div class="money-grid">
               <article class="money-card">
                 <span>Direkt haushaltsrelevant pro Jahr</span>
-                <strong>${escapeHtml(euroRange(budgetValue))}</strong>
-                <p>Schätzung der Konzessions-/Budgetwirkung. Dieser Betrag zeigt, welche Größenordnung für den kommunalen Haushalt relevant werden kann.</p>
+                <strong>${escapeHtml(budgetDisplayRange(budgetRows))}</strong>
+                <p>KAV-plausibilisierte Schätzung. Annahme: ${escapeHtml(totalBudgetRow.assumptionStatus || "Tarif- und Sonderkunden werden getrennt geprüft.")}</p>
               </article>
               <article class="money-card">
                 <span>Wert bei Anlagenbetreibern pro Jahr</span>
                 <strong>${escapeHtml(euroRange(generationValue))}</strong>
-                <p>Marktwert der lokalen Erzeugung. Dieser Betrag ist kein kommunaler Geldzufluss, kann aber über Betreiber, Flächen, Pachten und Gewerbe indirekt lokal wirken.</p>
+                <p>Kein kommunaler Geldzufluss. Politisch relevant wird dieser Wert, wenn Betreiber lokal sind, kommunale Flächen verpachtet werden oder lokale Aufträge entstehen.</p>
               </article>
               <article class="money-card">
                 <span>1 MWh lokal gegenüber Import</span>
@@ -1061,20 +1123,24 @@
             <div class="narrative-grid">
               <article class="narrative-card">
                 <h3>Warum das für den Haushalt zählt</h3>
-                <p>Konzessionsabgaben und vergleichbare Budgeteffekte gehören in die Haushaltsprüfung. Der Marktwert lokaler Anlagen gehört zunächst nicht dorthin.</p>
+                <p>Konzessionsabgaben gehören in die Haushaltsprüfung. Der Marktwert lokaler Anlagen gehört zunächst nicht dorthin und darf nicht addiert werden.</p>
               </article>
               <article class="narrative-card">
                 <h3>Warum das für Standortpolitik zählt</h3>
-                <p>Lokale Erzeugung macht Dachflächen, Gewerbegebiete, Bioenergie und Flächenplanung zu wirtschaftspolitischen Optionen.</p>
+                <p>Betreiberlokalität, Pacht kommunaler Flächen, Gewerbesteuer und lokale Aufträge entscheiden, ob Betreiberwert auch im Rathaus spürbar wird.</p>
               </article>
               <article class="narrative-card">
-                <h3>Was dieser Ort jetzt lernen kann</h3>
-                <p>${escapeHtml(topTechText)} Danach sollte geklärt werden, welcher Ausbau politisch, netzseitig und kaufmännisch am besten trägt.</p>
+                <h3>Vergleichsmaßstab</h3>
+                <p>${escapeHtml(budgetAnchorText(data, budgetRows))}</p>
               </article>
             </div>
             <div class="decision-sentence">
+              <strong>Szenarioeinordnung:</strong>
+              ${escapeHtml(scenarioText(data))}
+            </div>
+            <div class="decision-sentence">
               <strong>Möglicher nächster Schritt:</strong>
-              Verwaltung und Kämmerei prüfen die Haushaltswirkung als Spanne und klären anschließend Betreiberstruktur, Flächenwirkung und Netzanschlussrisiken.
+              ${escapeHtml(publicReferenceAction())} Danach werden Betreiberstruktur, Flächenwirkung und Netzanschlussrisiken priorisiert.
             </div>
           </section>
         `;
@@ -1086,24 +1152,24 @@
         if (tech.includes("pv")) {
           return {
             label: "Photovoltaik priorisieren",
-            detail: `PV liefert hier ${euroRange(row.grossMarketValueEurPerYear)} Betreiberwert pro Jahr. Politisch passt dazu ein Dachflächen-, Gewerbedach- und kommunales Liegenschaftsprogramm.`,
+            detail: `PV liefert hier ${euroRange(row.grossMarketValueEurPerYear)} Betreiberwert pro Jahr. Relevant für die Kommune wird das über kommunale Dächer, Pachtmodelle, lokale Betreiber und Aufträge an örtliche Betriebe.`,
           };
         }
         if (tech.includes("biomass")) {
           return {
             label: "Biomasse kaufmännisch prüfen",
-            detail: `Biomasse liefert hier ${euroRange(row.grossMarketValueEurPerYear)} Betreiberwert pro Jahr. Der Hebel entsteht durch planbare Betriebsstunden; wichtig sind Brennstoffpfad, Wärmenutzung und Betreiberstruktur.`,
+            detail: `Biomasse liefert hier ${euroRange(row.grossMarketValueEurPerYear)} Betreiberwert pro Jahr. Der kommunale Hebel entsteht über Wärmenutzung, Betreiberstruktur, Brennstoffpfad und Gewerbesteuerlokalität.`,
           };
         }
         if (tech.includes("wind")) {
           return {
             label: "Windkraft als Flächenfrage klären",
-            detail: `Windkraft liefert hier ${euroRange(row.grossMarketValueEurPerYear)} Betreiberwert pro Jahr. Der nächste Schritt ist keine Versorgungsbehauptung, sondern Flächen-, Akzeptanz-, Steuer- und Netzanschlussprüfung.`,
+            detail: `Windkraft liefert hier ${euroRange(row.grossMarketValueEurPerYear)} Betreiberwert pro Jahr. Entscheidend sind kommunale Flächenanteile, Beteiligungsmodell, Steuerwirkung und Netzanschlussdauer.`,
           };
         }
         return {
           label: `${technologyLabel(row.technology)} einordnen`,
-          detail: `${technologyLabel(row.technology)} liefert hier ${euroRange(row.grossMarketValueEurPerYear)} Betreiberwert pro Jahr. Die lokale Betreiber- und Flächenwirkung sollte in einer Beratung geklärt werden.`,
+          detail: `${technologyLabel(row.technology)} liefert hier ${euroRange(row.grossMarketValueEurPerYear)} Betreiberwert pro Jahr. Die lokale Betreiber-, Steuer- und Flächenwirkung sollte gezielt geklärt werden.`,
         };
       }
 
@@ -1201,8 +1267,8 @@
                     (row) => `
                     <tr>
                       <td>${escapeHtml(row.budgetLabel || row.budgetCategory || row.rowKey)}</td>
-                      <td>${escapeHtml(row.assumptionLabel || row.sourceLabel || "Szenario")}</td>
-                      <td>${escapeHtml(euroRange(row.estimatedEurPerYear))}</td>
+                      <td>${escapeHtml(row.assumptionStatus || row.assumptionLabel || row.sourceLabel || "Szenario")}</td>
+                      <td>${escapeHtml(euroRangeFromRow(row, row.estimatedEurPerYear))}</td>
                       <td>${escapeHtml(publicEvidenceLabel(row.evidenceStatus || row.calculationStatus || "offen"))}</td>
                     </tr>
                   `
@@ -1221,17 +1287,37 @@
           <div class="insight-band">
             <div class="insight">
               <h3>Datenstand</h3>
-              <p>${escapeHtml(data.analysisRunId || "laufendes Szenario")} für ${escapeHtml(data.year || "aktuelles Jahr")} mit Status ${escapeHtml(data.status || "offen")}.</p>
+              <p>${escapeHtml(referenceText(data))}. Die Werte nutzen das Bezugsjahr als Basisjahr, nicht als aktuelle Schlussrechnung.</p>
             </div>
             <div class="insight">
               <h3>Quellenlage</h3>
               <p>${sources.length} Quellen und Annahmen liegen vor. ${missing.length} Punkte sollten vor einer Beschlussvorlage vertieft werden.</p>
             </div>
             <div class="insight">
-              <h3>Nächster Schritt</h3>
-              <p>Ein Beratungsgespräch vertieft Erzeugung, Verbrauchsannahmen, Konzessionsabgabe und Netzrisiken mit Cernion.</p>
+              <h3>Eigenprüfung</h3>
+              <p>${escapeHtml(publicReferenceAction())}</p>
             </div>
           </div>
+        `;
+      }
+
+      function renderClosingRecommendation(data) {
+        return `
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Empfehlung für die nächste Sitzung</h2>
+                <p>
+                  PV-Liegenschaftsprogramm vorbereiten, Netzanschlussdauer beim Netzbetreiber belegen lassen,
+                  Konzessions-Spanne durch die Kämmerei verifizieren.
+                </p>
+              </div>
+            </div>
+            <div class="decision-sentence">
+              <strong>Danach lohnt die Vertiefung:</strong>
+              Wenn diese drei Prüfpunkte vorliegen, kann aus dem Lagebild eine belastbare Beschlussvorlage für ${escapeHtml(data.municipality || "die Kommune")} werden.
+            </div>
+          </section>
         `;
       }
 
@@ -1290,8 +1376,8 @@
         dataStatus.textContent = `${data.municipality || "Kommune"}: ${statusText(data)}`;
         results.innerHTML = `
           <div class="summary">
-            ${renderMetric("Haushaltswirkung pro Jahr", euroRange(budgetValue), "Geschätzte Spanne für den kommunalen Haushalt. Sie zeigt, welche Größenordnung zuerst fachlich geprüft werden sollte.", "lead-metric")}
-            ${renderMetric("Betreiberwert pro Jahr", euroRange(generationValue), "Marktwert lokaler Anlagen. Das ist kein Geldzufluss an die Kommune, sondern der wirtschaftliche Wert der Erzeugung.")}
+            ${renderMetric("Haushaltswirkung pro Jahr", budgetDisplayRange(budgetRows), "KAV-plausibilisierte Spanne für den kommunalen Haushalt. Die Sätze und Verbrauchsannahmen stehen in der Konzessionstabelle.", "lead-metric")}
+            ${renderMetric("Betreiberwert pro Jahr", euroRange(generationValue), "Marktwert lokaler Anlagen. Kein Geldzufluss an die Kommune; relevant über Betreiberlokalität, Flächen, Pacht, Gewerbesteuer und Aufträge.")}
             ${renderMetric("1 MWh lokal statt importiert", `${euroPerMwh(localMwhValue)} vs. ${euroPerMwh(concessionProxy)}`, "Bei lokaler Erzeugung kann zusätzlich Betreiberwert im Ort entstehen. Bei Importstrom entsteht dieser Wert außerhalb der Kommune.")}
             ${renderMetric("Datengrundlage", `${(data.sourceRows || []).length} Quellen / ${(data.missingEvidence || []).length} offene Punkte`, "Die Auswertung zeigt, welche Quellen bereits vorliegen und welche Punkte vor einer Entscheidung vertieft werden sollten.")}
           </div>
@@ -1305,7 +1391,7 @@
               <div class="panel-head">
                 <div>
                   <h2>Welche Erzeugung erzeugt Betreiberwert?</h2>
-                  <p>${escapeHtml(data.municipality || "Die Kommune")} zeigt ${escapeHtml(genRows.length)} echte Erzeugungstypen im Szenario ${escapeHtml(data.scenario || "baseline")}. Der Wert ist jährlich und nicht als Haushaltseinnahme zu lesen.</p>
+                  <p>${escapeHtml(data.municipality || "Die Kommune")} zeigt ${escapeHtml(genRows.length)} echte Erzeugungstypen im ${escapeHtml(scenarioLabel(data.scenario))}. Der Wert ist jährlich und nicht als Haushaltseinnahme zu lesen.</p>
                 </div>
               </div>
               <div class="chart-wrap"><canvas id="valueChart"></canvas></div>
@@ -1341,11 +1427,13 @@
             <div class="panel-head">
               <div>
                 <h2>Haushalt: Konzession und Szenarioeffekt</h2>
-                <p>Konzessionsabgabe und Budgeteffekte werden als gerundete Jahresspannen gezeigt, nicht als Schlussrechnung. Exakte Einzelbeträge würden eine Genauigkeit vortäuschen, die das Szenario noch nicht hat.</p>
+                <p>Konzessionsabgabe und Budgeteffekte werden als gerundete Jahresspannen gezeigt, nicht als Schlussrechnung. Die Spanne nennt die verwendeten ct/kWh-Sätze und muss gegen Ist-Zahlungen und Konzessionsvertrag geprüft werden.</p>
               </div>
             </div>
             ${renderBudgetTable(budgetRows)}
           </section>
+
+          ${renderClosingRecommendation(data)}
         `;
         drawCharts(data);
       }

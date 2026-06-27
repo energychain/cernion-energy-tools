@@ -41,15 +41,16 @@ const gemeindenData = require('./data/gemeinden-2022.json');
 
 function kavRateForPopulation(population) {
   if (!population) return null;
-  if (population > 100000) return 1.99;  // KAV § 2 Abs. 2 Nr. 3
-  if (population > 25000) return 1.59;   // KAV § 2 Abs. 2 Nr. 2
-  return 1.32;                            // KAV § 2 Abs. 2 Nr. 1
+  if (population > 500000) return 1.99;
+  if (population > 100000) return 1.59;
+  return 1.32;
 }
 
 function kavKategorieForPopulation(population) {
   if (!population) return 'unbekannt';
+  if (population > 500000) return 'Großstadt über 500.000 Einwohner';
   if (population > 100000) return 'Stadt mehr als 100.000 Einwohner';
-  if (population > 25000) return 'Gemeinde ueber 25.000 bis 100.000 Einwohner';
+  if (population > 25000) return 'Gemeinde über 25.000 bis 100.000 Einwohner';
   return 'Gemeinde bis 25.000 Einwohner';
 }
 
