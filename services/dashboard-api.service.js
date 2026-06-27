@@ -30303,10 +30303,11 @@ module.exports = {
       }
 
       const errors = [];
+      const searchTerm = analysis.postalCode || analysis.municipality;
       const search = await this.safeCall(
         ctx,
         'grid-operations.vnbdigitalSearch',
-        { searchTerm: analysis.municipality },
+        { searchTerm },
         null,
         errors,
         'grid-operations.vnbdigitalSearch'

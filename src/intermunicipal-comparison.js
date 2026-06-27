@@ -34,6 +34,7 @@ const CONSUMPTION_PER_CAPITA_MAX = 2600;  // kWh/EW/Jahr — Gesamtverbrauch upp
 const MIN_PEER_COUNT  = 5;
 const PEER_BAND       = 0.25;   // ±25 % for narrow pass
 const PEER_BAND_WIDE  = 0.35;   // ±35 % extended fallback
+const TARGET_OUTLIER_FACTOR = 1.5; // values beyond this need method validation, not praise
 
 // BSW-Solar/DBFZ proxy: ewz × factor (same formula as municipality-resolver estimateEnergyFromPopulation)
 const PV_KW_PER_EW      = 0.55;
@@ -57,6 +58,12 @@ function settlementDensityClass(pop, areaSqKm) {
 
 function _clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+function _formatIntDe(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value ?? '');
+  return Math.round(n).toLocaleString('de-DE');
 }
 
 function _densityAdjustedPvKwPerEw(ewz, areaSqKm) {
@@ -118,10 +125,10 @@ function findPeerCandidates({ ags, state, population, areaSqKm }) {
       peers: narrow,
       criteriaLabel:
         `Bundesland ${state}, Einwohnerkorridor ±${Math.round(PEER_BAND * 100)} % ` +
-        `(${bandLow}–${bandHigh} EW), Siedlungsdichteklasse ${densityClass} (Proxy: EW/km²)`,
+        `(${_formatIntDe(bandLow)} bis ${_formatIntDe(bandHigh)} EW), Siedlungsdichteklasse ${densityClass} (Proxy: EW/km²)`,
       extended: false,
       densityClass,
-      populationBandLabel: `${bandLow}–${bandHigh} EW`,
+      populationBandLabel: `${_formatIntDe(bandLow)} bis ${_formatIntDe(bandHigh)} EW`,
     };
   }
 
@@ -141,11 +148,11 @@ function findPeerCandidates({ ags, state, population, areaSqKm }) {
     peers: wide,
     criteriaLabel:
       `Bundesland ${state}, Einwohnerkorridor erweitert ±${Math.round(PEER_BAND_WIDE * 100)} % ` +
-      `(${wideLow}–${wideHigh} EW); Dichteklasse-Filter entfernt — unter ${MIN_PEER_COUNT} ` +
+      `(${_formatIntDe(wideLow)} bis ${_formatIntDe(wideHigh)} EW); Dichteklasse-Filter entfernt — unter ${MIN_PEER_COUNT} ` +
       `Peers bei engem Korridor mit Klasse ${densityClass}`,
     extended: true,
     densityClass,
-    populationBandLabel: `${wideLow}–${wideHigh} EW`,
+    populationBandLabel: `${_formatIntDe(wideLow)} bis ${_formatIntDe(wideHigh)} EW`,
   };
 }
 
@@ -170,6 +177,18 @@ function _positionFraming(targetValue, minValue, maxValue, unit, municipality, h
     return `${municipality} liegt bei ${targetValue} ${unit} und damit unterhalb des Korridors; ${lowText}.`;
   }
   return `${municipality} liegt bei ${targetValue} ${unit}; ${inBandText}.`;
+}
+
+function _findMethodOutlier(rows) {
+  return rows.find((row) => {
+    const target = Number(row.targetValue);
+    const min = Number(row.minValue);
+    const max = Number(row.maxValue);
+    if (!Number.isFinite(target) || !Number.isFinite(min) || !Number.isFinite(max)) return false;
+    if (max > 0 && target > max * TARGET_OUTLIER_FACTOR) return true;
+    if (min > 0 && target < min / TARGET_OUTLIER_FACTOR) return true;
+    return false;
+  }) || null;
 }
 
 // ── Main builder ─────────────────────────────────────────────────────────────
@@ -406,7 +425,7 @@ function buildIntermunicipalComparison({
           coverageP.max,
           '%',
           profile.name,
-          'das ist eine starke lokale Ausgangslage',
+          'der Wert sollte vor politischer Nutzung methodisch gegengeprüft werden',
           'der Korridor zeigt den erschließbaren Spielraum',
           'der Korridor verortet die lokale Ausgangslage'
         ),
@@ -432,13 +451,54 @@ function buildIntermunicipalComparison({
           genValueP.max,
           'EUR/EW/Jahr',
           profile.name,
-          'das ist eine starke lokale Ausgangslage',
+          'der Wert sollte vor politischer Nutzung methodisch gegengeprüft werden',
           'der Korridor zeigt den erschließbaren Spielraum',
           'der Korridor verortet die lokale Ausgangslage'
         ),
       evidenceStatus: 'scenario-based',
     },
   ];
+
+  const methodOutlier = _findMethodOutlier(corridorRows);
+  if (methodOutlier) {
+    guardrailRows.push({
+      guardrailKey: 'target_peer_method_outlier',
+      status: 'blocked',
+      message:
+        `${methodOutlier.metricLabel} der Zielkommune liegt mehr als Faktor ` +
+        `${String(TARGET_OUTLIER_FACTOR).replace('.', ',')} außerhalb des Peer-Korridors; vor Vergleichsnutzung ` +
+        'müssen Erzeugungsdaten und Peer-Methodik geprüft werden.',
+    });
+    return {
+      status: 'blocked',
+      statusReason: 'Zielwert liegt deutlich außerhalb des Peer-Korridors; Methodenkonsistenz braucht Prüfung.',
+      dataStatus: 'blocked-by-integrity-check',
+      target: null,
+      peerGroup: {
+        state: profile.state,
+        populationBandLabel,
+        settlementStructureCriterion: densityClass,
+        validPeerCount: peers.length,
+        anonymized: true,
+        criteriaLabel,
+      },
+      corridorRows: [],
+      guardrailRows,
+      blockedFallback: {
+        headline: 'Interkommunaler Vergleich noch nicht belastbar',
+        text:
+          'Der abgeleitete Wert der Zielkommune liegt deutlich außerhalb des Vergleichskorridors. ' +
+          'Das wird als Methodik-Warnsignal behandelt, nicht als Erfolgssignal.',
+        nextGateLabel: 'Erzeugungsdaten der Zielkommune und Peer-Ableitung vor politischer Nutzung prüfen.',
+      },
+    };
+  }
+
+  guardrailRows.push({
+    guardrailKey: 'target_peer_method_outlier',
+    status: 'passed',
+    message: `Zielwerte liegen innerhalb des Faktor-${String(TARGET_OUTLIER_FACTOR).replace('.', ',')}-Methodikkorridors.`,
+  });
 
   return {
     status: 'available',
@@ -482,4 +542,5 @@ module.exports = {
   MIN_PEER_COUNT,
   PEER_BAND,
   PEER_BAND_WIDE,
+  TARGET_OUTLIER_FACTOR,
 };

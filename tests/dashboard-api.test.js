@@ -10632,6 +10632,22 @@ describe('dashboard-api.service', () => {
 
     it('peer corridor is non-degenerate so target can be verortet against comparable municipalities', () => {
       const result = buildIntermunicipalComparison({
+        profile: _baseProfile,
+        annualLoad: _baseLoad,
+        totalGrossMarketValueEur: 420000,
+        year: 2025,
+        scenario: 'baseline',
+        marketPriceEurPerMwh: 70,
+      });
+      expect(result.status).toBe('available');
+      for (const row of result.corridorRows) {
+        expect(row.maxValue).toBeGreaterThan(row.minValue);
+        expect(row.framingText).toMatch(/oberhalb|unterhalb|verortet/);
+      }
+    });
+
+    it('extremer Zielort-Ausreißer → blocked statt Erfolgssignal', () => {
+      const result = buildIntermunicipalComparison({
         profile: {
           ..._baseProfile,
           ags: '08226041',
@@ -10652,11 +10668,39 @@ describe('dashboard-api.service', () => {
         scenario: 'baseline',
         marketPriceEurPerMwh: 70,
       });
-      expect(result.status).toBe('available');
-      for (const row of result.corridorRows) {
-        expect(row.maxValue).toBeGreaterThan(row.minValue);
-        expect(row.framingText).toMatch(/oberhalb|unterhalb|verortet/);
-      }
+      expect(result.status).toBe('blocked');
+      expect(result.corridorRows).toEqual([]);
+      const g = result.guardrailRows.find((r) => r.guardrailKey === 'target_peer_method_outlier');
+      expect(g).toBeDefined();
+      expect(g.status).toBe('blocked');
+      expect(result.blockedFallback.text).toContain('Methodik-Warnsignal');
+    });
+
+    it('formatiert Einwohnerkorridor mit Tausendertrennzeichen', () => {
+      const result = buildIntermunicipalComparison({
+        profile: {
+          ..._baseProfile,
+          ags: '08226041',
+          name: 'Leimen',
+          population: 27142,
+          areaSqKm: 20.64,
+          pvCapacityKw: 14928,
+          biomassCapacityKw: 1086,
+          postalCode: '69181',
+        },
+        annualLoad: {
+          totalAnnualKwh: Math.round(27142 * 1534),
+          householdKwh: 27142 * 0.46 * 2300,
+          households: Math.round(27142 * 0.46),
+        },
+        totalGrossMarketValueEur: 3150000,
+        year: 2025,
+        scenario: 'baseline',
+        marketPriceEurPerMwh: 70,
+      });
+      expect(result.peerGroup.populationBandLabel).toContain('20.357');
+      expect(result.peerGroup.populationBandLabel).toContain('33.928');
+      expect(result.peerGroup.populationBandLabel).not.toContain('2035733928');
     });
   });
 });
