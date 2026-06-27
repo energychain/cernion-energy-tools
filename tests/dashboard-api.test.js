@@ -2309,6 +2309,69 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── noRegretMeasureProofGateStatus ────────────────────────────────────
+
+  describe('noRegretMeasureProofGateStatus', () => {
+    it('reports No-Regret proof gaps without approving investment or reserving budget', async () => {
+      const result = await broker.call('dashboard-api.noRegretMeasureProofGateStatus', {
+        measureName: 'Trafostationsreserve Nord',
+        targetDomain: 'Netzplanung',
+        costRange: '120-180k EUR',
+        decisionOwner: 'Assetmanagement Lead',
+      });
+
+      expect(result.status).toBe('needs_scenario_budget_evidence');
+      expect(result.riskLevel).toBe('high');
+      expect(result.capabilityKey).toBe('no_regret_measure_proof_gate');
+      expect(result.scalarRows.map((row) => row.id)).toEqual(
+        expect.arrayContaining(['measure_identity', 'target_domain', 'scenario_coverage', 'budget_anchor'])
+      );
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'scenario_coverage',
+          'budget_anchor',
+          'expected_benefit_range',
+          'regulatory_fit',
+          'objection_window',
+          'evidence_source',
+          'next_management_gate',
+          'due_date',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('no_regret_measure_proof_gate');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['budget.reserve', 'investment.approve', 'workflow.execute', 'hitl.create'])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns management-prioritization-ready status when proof evidence is supplied', async () => {
+      const result = await broker.call('dashboard-api.noRegretMeasureProofGateStatus', {
+        measureName: 'Trafostationsreserve Nord',
+        measureType: 'capacity-buffer',
+        targetDomain: 'Netzplanung',
+        scenarioCoverage: 'baseline, heat-pump growth, PV peak backfeed',
+        budgetAnchor: 'CAPEX pool 2026 preliminary range',
+        costRange: '120-180k EUR',
+        expectedBenefitRange: 'risk reduction 220-310k EUR avoided delay exposure',
+        regulatoryFit: 'compatible with grid-development and §14a evidence flags',
+        decisionOwner: 'Assetmanagement Lead',
+        objectionWindow: '10 working days',
+        evidenceSource: 'scenario pack 2026-06-27',
+        nextManagementGate: 'investment-prioritization-board',
+        dueDate: '2026-07-20',
+        proofLabel: 'Scenario Pack 2026-06',
+      });
+
+      expect(result.status).toBe('measure_ready_for_management_prioritization_review');
+      expect(result.riskLevel).toBe('low');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided proof evidence: 13/13');
+      expect(result.sourceActions.notCalled).toContain('personal-agent.execute');
+      expect(result.sourceActions.notCalled).toContain('tariff.mutate');
+    });
+  });
+
   // ── anschlusskapazitaetEvidenceQueueStatus ────────────────────────────
 
   describe('anschlusskapazitaetEvidenceQueueStatus', () => {

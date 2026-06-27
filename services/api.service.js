@@ -1456,6 +1456,8 @@ module.exports = {
             'dashboard-api.steeringArtifactAcceptanceGateStatus',
           'GET /dashboard/communication-break-process-risk':
             'dashboard-api.communicationBreakProcessRiskStatus',
+          'GET /dashboard/no-regret-measure-proof-gate':
+            'dashboard-api.noRegretMeasureProofGateStatus',
           'GET /dashboard/anschlusskapazitaet-evidence-queue':
             'dashboard-api.anschlusskapazitaetEvidenceQueueStatus',
           'GET /dashboard/layer0-audit-drilldown':

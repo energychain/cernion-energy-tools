@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 96 static rules', () => {
+    it('loads all 97 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(96);
+      expect(rules.length).toBe(97);
     });
 
-    it('compiles all 96 static rules without error', () => {
+    it('compiles all 97 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(96);
+      expect(rules.length).toBe(97);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -550,6 +550,51 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Affected Decision: Zielnetz-Freigabe');
       expect(formatted).toContain('Blocked Decision: Gate 2');
       expect(formatted).toContain('Leading Gap: next_evidence_point');
+    });
+
+    it('dashboard-api.noRegretMeasureProofGateStatus is dossier-safe and formats proof facts', () => {
+      const rule = getRule('dashboard-api.noRegretMeasureProofGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'No-Regret massnahme=traforeserve domain=netzplanung owner=lead gate=priorisierung laden'
+        )
+      ).toEqual({
+        measureName: 'traforeserve',
+        targetDomain: 'netzplanung',
+        decisionOwner: 'lead',
+        nextManagementGate: 'priorisierung',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_scenario_budget_evidence',
+        riskLevel: 'high',
+        measure: {
+          measureName: 'Trafostationsreserve Nord',
+          targetDomain: 'Netzplanung',
+        },
+        proofContext: {
+          budgetAnchor: null,
+          nextManagementGate: 'Priorisierungsboard',
+        },
+        ownerContext: { decisionOwner: 'Assetmanagement Lead' },
+        missingEvidence: [{ missingDataPoint: 'budget_anchor' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add budget anchor without reserving or approving funds',
+          },
+        ],
+        sourceActions: { notCalled: ['budget.reserve'] },
+        timestamp: '2026-06-27T04:40:00.000Z',
+      });
+
+      expect(formatted).toContain('No-Regret Proof Status: needs_scenario_budget_evidence');
+      expect(formatted).toContain('Risk Level: high');
+      expect(formatted).toContain('Measure: Trafostationsreserve Nord');
+      expect(formatted).toContain('Target Domain: Netzplanung');
+      expect(formatted).toContain('Leading Gap: budget_anchor');
     });
 
     it('dashboard-api.anschlusskapazitaetEvidenceQueueStatus is dossier-safe and formats queue facts', () => {

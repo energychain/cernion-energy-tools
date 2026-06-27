@@ -849,6 +849,22 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes No-Regret measure proof prompts to the read-only proof gate view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe No-Regret Massnahme mit Szenario-Beweis, Budgetanker, regulatorischer Anschlussfaehigkeit, Einspruchsfenster, Management-Gate und Decision Owner fuer die Transformationsmassnahme.',
+    });
+
+    expect(result.capability).toBe('no_regret_measure_proof_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'no_regret_measure_proof_gate'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.noRegretMeasureProofGateStatus');
+    expect(actionNames).not.toContain('budget.reserve');
+    expect(actionNames).not.toContain('investment.approve');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Anschlusskapazitaet evidence queue prompts to the read-only review view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Erstelle Anschlusskapazitaet Evidenzqueue fuer Netzverknuepfungspunkt NVP-West mit Kapazitaetsannahme, Netzrestriktion, fNAV Evidenz und Anschlussentscheidung Readiness.',

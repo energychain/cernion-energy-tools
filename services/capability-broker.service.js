@@ -1516,6 +1516,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasNoRegretMeasureProofGateSignal =
+    /(no.?regret|no regret|szenario.?beweis|budgetanker|einspruchsfenster|objection.?window|transformationsmassnahme|transformationsmaßnahme)/i.test(haystack) &&
+    /(budget|szenario|scenario|regulatorische anschlussfaehigkeit|regulatorische anschlussfähigkeit|management.?gate|priorisierung|prioritization|decision owner|entscheidungsrechte)/i.test(haystack) &&
+    !/(budget\.reserve|investment\.approve|investition freigeben|budget reservieren|finance\.book|workflow execute|hitl\.create|external connector|billing|settlement|tariff|device-control|produktion)/i.test(haystack);
+
+  if (hasNoRegretMeasureProofGateSignal || haystack.includes('no_regret_measure_proof_gate')) {
+    const noRegretCapability = findCapabilityByName('no_regret_measure_proof_gate');
+    if (noRegretCapability) {
+      return { capability: noRegretCapability, score: 124, usedFallback: false };
+    }
+  }
+
   if (
     vdmiAssetValidationSignals.some((signal) => haystack.includes(signal)) ||
     hasVdmiAssetValidationCombo

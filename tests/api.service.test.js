@@ -302,6 +302,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/load-profile-stream-monitor']).toBeDefined();
       expect(schema.paths['/api/dashboard/controllability-asset-handover']).toBeDefined();
       expect(schema.paths['/api/dashboard/steering-artifact-acceptance-gate']).toBeDefined();
+      expect(schema.paths['/api/dashboard/no-regret-measure-proof-gate']).toBeDefined();
       expect(schema.paths['/api/dashboard/legal-clarification-operating-model']).toBeDefined();
       expect(schema.paths['/api/dashboard/regulatory-change-readiness']).toBeDefined();
       expect(schema.paths['/api/dashboard/nova-decision-lifecycle-readiness']).toBeDefined();
@@ -317,6 +318,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/load-profile-stream-monitor'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/controllability-asset-handover'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/steering-artifact-acceptance-gate'].get).toBeDefined();
+      expect(schema.paths['/api/dashboard/no-regret-measure-proof-gate'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/legal-clarification-operating-model'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/regulatory-change-readiness'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/nova-decision-lifecycle-readiness'].get).toBeDefined();
@@ -338,6 +340,9 @@ describe('API Gateway Service', () => {
         'Dashboard API'
       );
       expect(schema.paths['/api/dashboard/steering-artifact-acceptance-gate'].get.tags).toContain(
+        'Dashboard API'
+      );
+      expect(schema.paths['/api/dashboard/no-regret-measure-proof-gate'].get.tags).toContain(
         'Dashboard API'
       );
       expect(schema.paths['/api/dashboard/legal-clarification-operating-model'].get.tags).toContain(
@@ -506,6 +511,9 @@ describe('API Gateway Service', () => {
       );
       expect(aliases['GET /dashboard/communication-break-process-risk']).toBe(
         'dashboard-api.communicationBreakProcessRiskStatus'
+      );
+      expect(aliases['GET /dashboard/no-regret-measure-proof-gate']).toBe(
+        'dashboard-api.noRegretMeasureProofGateStatus'
       );
       expect(aliases['GET /dashboard/anschlusskapazitaet-evidence-queue']).toBe(
         'dashboard-api.anschlusskapazitaetEvidenceQueueStatus'

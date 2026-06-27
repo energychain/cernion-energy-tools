@@ -383,6 +383,75 @@
     "sourceIssue": 326
   },
   {
+    "id": "dashboard-api.noRegretMeasureProofGateStatus",
+    "action": "dashboard-api.noRegretMeasureProofGateStatus",
+    "label": "No-Regret Measure Proof Gate",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "measureName": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:measureName|massnahme|maßnahme|measure)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "targetDomain": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:targetDomain|domaene|domäne|domain)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "decisionOwner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:decisionOwner|owner|verantwortlich)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "nextManagementGate": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:nextManagementGate|managementGate|gate)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "No-Regret Proof Status", "maxLen": 100 },
+        { "paths": ["riskLevel", "dossierEvidence.riskLevel"], "label": "Risk Level", "maxLen": 40 },
+        { "paths": ["measure.measureName", "dossierEvidence.measureName"], "label": "Measure", "maxLen": 120 },
+        { "paths": ["measure.targetDomain", "dossierEvidence.targetDomain"], "label": "Target Domain", "maxLen": 120 },
+        { "paths": ["proofContext.budgetAnchor", "dossierEvidence.budgetAnchor"], "label": "Budget Anchor", "maxLen": 120 },
+        { "paths": ["proofContext.nextManagementGate", "dossierEvidence.nextManagementGate"], "label": "Next Gate", "maxLen": 120 },
+        { "paths": ["ownerContext.decisionOwner", "dossierEvidence.decisionOwner"], "label": "Decision Owner", "maxLen": 100 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 327
+  },
+  {
     "id": "dashboard-api.steeringArtifactAcceptanceGateStatus",
     "action": "dashboard-api.steeringArtifactAcceptanceGateStatus",
     "label": "Steering Artifact Acceptance Gate",

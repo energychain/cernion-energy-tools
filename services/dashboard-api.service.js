@@ -57,6 +57,7 @@ module.exports = {
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
       steeringArtifactAcceptanceGateStatus: 5 * 60 * 1000, // 5 min
       communicationBreakProcessRiskStatus: 5 * 60 * 1000, // 5 min
+      noRegretMeasureProofGateStatus: 5 * 60 * 1000, // 5 min
       anschlusskapazitaetEvidenceQueueStatus: 5 * 60 * 1000, // 5 min
       layer0AuditDrilldownNoteStatus: 5 * 60 * 1000, // 5 min
       legalClarificationOperatingModelStatus: 5 * 60 * 1000, // 5 min
@@ -1849,6 +1850,102 @@ module.exports = {
           this.settings.cacheTtlMs.communicationBreakProcessRiskStatus,
           async () => ({
             ...this.buildCommunicationBreakProcessRiskStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── noRegretMeasureProofGateStatus ────────────────────────────────────
+    /**
+     * GET /api/dashboard/no-regret-measure-proof-gate?measureName=...
+     *
+     * Read-only dossier-safe proof gate for No-Regret measure claims.
+     * It checks scenario, budget, regulatory-fit and management-gate evidence
+     * without approving investment, reserving budget or executing workflows.
+     */
+    noRegretMeasureProofGateStatus: {
+      rest: 'GET /no-regret-measure-proof-gate',
+      params: {
+        measureName: { type: 'string', optional: true, min: 1 },
+        measureType: { type: 'string', optional: true, min: 1 },
+        targetDomain: { type: 'string', optional: true, min: 1 },
+        scenarioCoverage: { type: 'string', optional: true, min: 1 },
+        budgetAnchor: { type: 'string', optional: true, min: 1 },
+        costRange: { type: 'string', optional: true, min: 1 },
+        expectedBenefitRange: { type: 'string', optional: true, min: 1 },
+        regulatoryFit: { type: 'string', optional: true, min: 1 },
+        decisionOwner: { type: 'string', optional: true, min: 1 },
+        objectionWindow: { type: 'string', optional: true, min: 1 },
+        evidenceSource: { type: 'string', optional: true, min: 1 },
+        nextManagementGate: { type: 'string', optional: true, min: 1 },
+        dueDate: { type: 'string', optional: true, min: 1 },
+        proofLabel: { type: 'string', optional: true, min: 1 },
+        proofLink: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'No-Regret measure proof gate - read-only dossier-safe status',
+        description:
+          'Builds a deterministic advisory proof gate for No-Regret measure claims. It covers ' +
+          'measure identity, target domain, scenario coverage, budget anchor, cost and benefit ' +
+          'ranges, regulatory fit, decision owner, objection window, evidence source, next ' +
+          'management gate and due date. The endpoint is read-only and does not approve ' +
+          'investment, reserve budget, book finance, create workflows/HITL items, call external ' +
+          'connectors or mutate billing, settlement, tariff or device-control state.',
+        parameters: [
+          { name: 'measureName', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'measureType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'targetDomain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'scenarioCoverage', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'budgetAnchor', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'costRange', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'expectedBenefitRange', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryFit', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionOwner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'objectionWindow', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceSource', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextManagementGate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dueDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'proofLabel', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'proofLink', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only No-Regret measure proof-gate status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    riskLevel: { type: 'string' },
+                    measure: { type: 'object' },
+                    scalarRows: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `no-regret-measure-proof-gate:${params.measureName || 'no-name'}:${params.measureType || 'no-type'}:${params.targetDomain || 'no-domain'}:${params.scenarioCoverage || 'no-scenario'}:${params.budgetAnchor || 'no-budget'}:${params.costRange || 'no-cost'}:${params.expectedBenefitRange || 'no-benefit'}:${params.regulatoryFit || 'no-regulatory'}:${params.decisionOwner || 'no-owner'}:${params.objectionWindow || 'no-objection'}:${params.evidenceSource || 'no-source'}:${params.nextManagementGate || 'no-gate'}:${params.dueDate || 'no-due'}:${params.proofLabel || 'no-proof-label'}:${params.proofLink || 'no-proof-link'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.noRegretMeasureProofGateStatus,
+          async () => ({
+            ...this.buildNoRegretMeasureProofGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -11087,6 +11184,256 @@ module.exports = {
           blockedDecision: params.blockedDecision || null,
           owner: params.owner || null,
           dueDate: params.dueDate || null,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildNoRegretMeasureProofGateStatus(params = {}) {
+      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const evidenceSpecs = [
+        {
+          id: 'measure_identity',
+          label: 'Measure identity',
+          value: params.measureName || params.measureType,
+          sourceClass: 'measure_scope',
+          enablesDossierAddition: 'add measure name or type for the No-Regret proof gate',
+        },
+        {
+          id: 'target_domain',
+          label: 'Target domain',
+          value: params.targetDomain,
+          sourceClass: 'domain_scope',
+          enablesDossierAddition: 'add target domain for operational and budget context',
+        },
+        {
+          id: 'scenario_coverage',
+          label: 'Scenario coverage',
+          value: params.scenarioCoverage,
+          sourceClass: 'scenario_evidence',
+          enablesDossierAddition: 'add scenario coverage showing when the measure remains useful',
+        },
+        {
+          id: 'budget_anchor',
+          label: 'Budget anchor',
+          value: params.budgetAnchor,
+          sourceClass: 'budget_evidence',
+          enablesDossierAddition: 'add budget anchor without reserving or approving funds',
+        },
+        {
+          id: 'cost_range',
+          label: 'Cost range',
+          value: params.costRange,
+          sourceClass: 'cost_evidence',
+          enablesDossierAddition: 'add bounded cost range for prioritization review',
+        },
+        {
+          id: 'expected_benefit_range',
+          label: 'Expected benefit/value range',
+          value: params.expectedBenefitRange,
+          sourceClass: 'value_evidence',
+          enablesDossierAddition: 'add expected benefit or value range as scenario evidence',
+        },
+        {
+          id: 'regulatory_fit',
+          label: 'Regulatory fit',
+          value: params.regulatoryFit,
+          sourceClass: 'regulatory_fit',
+          enablesDossierAddition: 'add evidence flags for regulatory Anschlussfaehigkeit',
+        },
+        {
+          id: 'decision_owner',
+          label: 'Decision owner',
+          value: params.decisionOwner,
+          sourceClass: 'decision_rights',
+          enablesDossierAddition: 'add decision owner and decision-rights evidence',
+        },
+        {
+          id: 'objection_window',
+          label: 'Objection/appeal window',
+          value: params.objectionWindow,
+          sourceClass: 'objection_window',
+          enablesDossierAddition: 'add objection or appeal window before prioritization',
+        },
+        {
+          id: 'evidence_source',
+          label: 'Evidence source',
+          value: params.evidenceSource,
+          sourceClass: 'proof_source',
+          enablesDossierAddition: 'add source reference for the proof basis',
+        },
+        {
+          id: 'next_management_gate',
+          label: 'Next management gate',
+          value: params.nextManagementGate,
+          sourceClass: 'management_gate',
+          enablesDossierAddition: 'add next management gate for review readiness',
+        },
+        {
+          id: 'due_date',
+          label: 'Due date',
+          value: params.dueDate,
+          sourceClass: 'review_timing',
+          enablesDossierAddition: 'add due date for the next gate review',
+        },
+      ];
+      if (isProvided(params.proofLabel) || isProvided(params.proofLink)) {
+        evidenceSpecs.push({
+          id: 'proof_reference',
+          label: 'Proof reference',
+          value: [params.proofLabel, params.proofLink].filter(isProvided).join(' - '),
+          sourceClass: 'proof_reference',
+          enablesDossierAddition: 'add source/proof reference for the No-Regret claim',
+        });
+      }
+
+      const scalarRows = evidenceSpecs.map((spec) => ({
+        id: spec.id,
+        label: spec.label,
+        value: isProvided(spec.value) ? spec.value : null,
+        sourceClass: spec.sourceClass,
+        evidenceStatus: isProvided(spec.value) ? 'provided' : 'missing',
+      }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !isProvided(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const missingIds = new Set(missingEvidence.map((item) => item.missingDataPoint));
+      const criticalIds = [
+        'measure_identity',
+        'scenario_coverage',
+        'budget_anchor',
+        'cost_range',
+        'expected_benefit_range',
+        'regulatory_fit',
+        'decision_owner',
+        'objection_window',
+        'next_management_gate',
+      ];
+      const criticalMissingCount = criticalIds.filter((id) => missingIds.has(id)).length;
+      let status = 'measure_ready_for_management_prioritization_review';
+      let riskLevel = 'low';
+      if (missingIds.has('measure_identity') || missingIds.has('target_domain')) {
+        status = 'missing_measure_context';
+        riskLevel = 'high';
+      } else if (missingIds.has('scenario_coverage') || missingIds.has('budget_anchor')) {
+        status = 'needs_scenario_budget_evidence';
+        riskLevel = 'high';
+      } else if (missingIds.has('cost_range') || missingIds.has('expected_benefit_range')) {
+        status = 'needs_cost_benefit_range';
+        riskLevel = 'medium';
+      } else if (missingIds.has('regulatory_fit') || missingIds.has('decision_owner')) {
+        status = 'needs_regulatory_or_decision_rights_evidence';
+        riskLevel = 'medium';
+      } else if (missingIds.has('objection_window') || missingIds.has('next_management_gate') || missingIds.has('due_date')) {
+        status = 'needs_management_gate_evidence';
+        riskLevel = 'medium';
+      } else if (criticalMissingCount > 0 || missingEvidence.length > 0) {
+        status = 'no_regret_proof_gaps_open';
+        riskLevel = criticalMissingCount >= 3 ? 'high' : 'medium';
+      }
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'no_regret_measure_proof_gate',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.noRegretMeasureProofGateStatus'],
+        referenced: [
+          'vdmi.dossier',
+          'evidence-registry.findings',
+          'dashboard-api.steeringArtifactAcceptanceGateStatus',
+          'dashboard-api.investmentOwnerDeadlineBudgetGateStatus',
+        ],
+        notCalled: [
+          'budget.reserve',
+          'investment.approve',
+          'finance.book',
+          'legal.interpret',
+          'budibase.table.write',
+          'workflow.execute',
+          'hitl.create',
+          'mail.send',
+          'webhook.emit',
+          'external.connector.call',
+          'mako.dispatch',
+          'settlement.prepareBilling',
+          'billing.release',
+          'tariff.mutate',
+          'device-control.execute',
+          'personal-agent.execute',
+        ],
+      };
+      const validationFindings = missingEvidence.map((item) => ({
+        code: `NRMPG_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: criticalIds.includes(item.missingDataPoint) ? 'high' : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `No-Regret Proof Status: ${status}`,
+        `Risk Level: ${riskLevel}`,
+        `Provided proof evidence: ${scalarRows.filter((row) => row.evidenceStatus === 'provided').length}/${scalarRows.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.measureName || params.measureType) dossierFacts.push(`Measure: ${params.measureName || params.measureType}`);
+      if (params.targetDomain) dossierFacts.push(`Target Domain: ${params.targetDomain}`);
+      if (params.budgetAnchor) dossierFacts.push(`Budget Anchor: ${params.budgetAnchor}`);
+      if (params.nextManagementGate) dossierFacts.push(`Next Management Gate: ${params.nextManagementGate}`);
+      if (params.decisionOwner) dossierFacts.push(`Decision Owner: ${params.decisionOwner}`);
+
+      return {
+        gateId: `nrmpg:${Buffer.from(`${params.measureName || params.measureType || ''}:${params.targetDomain || ''}:${params.decisionOwner || ''}:${params.nextManagementGate || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'no_regret_measure_proof_gate',
+        safety: 'read_only',
+        status,
+        riskLevel,
+        measure: {
+          measureName: params.measureName || null,
+          measureType: params.measureType || null,
+          targetDomain: params.targetDomain || null,
+        },
+        proofContext: {
+          scenarioCoverage: params.scenarioCoverage || null,
+          budgetAnchor: params.budgetAnchor || null,
+          costRange: params.costRange || null,
+          expectedBenefitRange: params.expectedBenefitRange || null,
+          regulatoryFit: params.regulatoryFit || null,
+          objectionWindow: params.objectionWindow || null,
+          evidenceSource: params.evidenceSource || null,
+          nextManagementGate: params.nextManagementGate || null,
+          dueDate: params.dueDate || null,
+        },
+        ownerContext: {
+          decisionOwner: params.decisionOwner || null,
+        },
+        proofReference: {
+          proofLabel: params.proofLabel || null,
+          proofLink: params.proofLink || null,
+        },
+        scalarRows,
+        missingEvidence,
+        positiveFollowUps,
+        sourceActions,
+        validationFindings,
+        dossierEvidence: {
+          status,
+          riskLevel,
+          scalarRows,
+          missingEvidence,
+          positiveFollowUps,
+          measureName: params.measureName || null,
+          targetDomain: params.targetDomain || null,
+          budgetAnchor: params.budgetAnchor || null,
+          nextManagementGate: params.nextManagementGate || null,
+          decisionOwner: params.decisionOwner || null,
           sourceActions: {
             notCalled: sourceActions.notCalled,
           },
