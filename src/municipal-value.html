@@ -766,7 +766,7 @@
           <div class="input-panel">
             <div class="input-title">
               <h2>Ort oder Postleitzahl auswerten</h2>
-              <span>Read-only Szenarioanalyse</span>
+              <span>Unverbindliches Lagebild</span>
             </div>
             <form id="searchForm">
               <div class="form-grid">
@@ -791,7 +791,7 @@
               <strong>Aus dem Link wird ein Beratungsgespräch.</strong>
               <p>
                 Die Auswertung zeigt in wenigen Minuten, welche Fragen eine Kommune sofort
-                stellen sollte: Was bleibt lokal, was fehlt als Evidenz und welches Netzrisiko
+                stellen sollte: Was bleibt lokal, welche Datengrundlagen fehlen und welches Netzrisiko
                 blockiert den nächsten politischen Schritt?
               </p>
             </div>
@@ -800,7 +800,7 @@
           <div class="story-card">
             <div class="story-item">
               <b>Haushaltsfrage</b>
-              <p>Wie wird aus einer MWh Strom ein Euro-Effekt für Kämmerei und Rat?</p>
+              <p>Wie wird aus einer MWh Strom ein Euro-Effekt für Haushalt und Standortpolitik?</p>
             </div>
             <div class="story-item">
               <b>Standortpolitik</b>
@@ -840,7 +840,7 @@
 
     <footer class="shell">
       Cernion liefert ein kommunales Lagebild, keine Abrechnung und keine Netzkapazitätszusage.
-      Fehlende Evidenz wird sichtbar ausgewiesen.
+      Offene Datengrundlagen werden sichtbar ausgewiesen.
     </footer>
 
     <script>
@@ -1045,7 +1045,7 @@
               <article class="money-card">
                 <span>Direkt haushaltsrelevant pro Jahr</span>
                 <strong>${escapeHtml(euroRange(budgetValue))}</strong>
-                <p>Schätzung der Konzessions-/Budgetwirkung. Das ist die Zahl, die Kämmerei und Rat als erstes prüfen sollten.</p>
+                <p>Schätzung der Konzessions-/Budgetwirkung. Dieser Betrag zeigt, welche Größenordnung für den kommunalen Haushalt relevant werden kann.</p>
               </article>
               <article class="money-card">
                 <span>Wert bei Anlagenbetreibern pro Jahr</span>
@@ -1073,8 +1073,8 @@
               </article>
             </div>
             <div class="decision-sentence">
-              <strong>Beschlussvorschlag:</strong>
-              Verwaltung und Kämmerei prüfen zuerst die Haushaltswirkung als Spanne und lassen danach Betreiberstruktur, Flächenwirkung und Netzanschlussrisiken belegen.
+              <strong>Möglicher nächster Schritt:</strong>
+              Verwaltung und Kämmerei prüfen die Haushaltswirkung als Spanne und klären anschließend Betreiberstruktur, Flächenwirkung und Netzanschlussrisiken.
             </div>
           </section>
         `;
@@ -1150,7 +1150,7 @@
                 .join("")}
             </div>
             <div class="decision-sentence">
-              <strong>Beschlussvorschlag:</strong>
+              <strong>Möglicher nächster Schritt:</strong>
               Die Verwaltung erstellt eine priorisierte Projektliste: kommunale Dächer, Gewerbedächer, geeignete Flächen und Betreiberoptionen, jeweils mit erwarteter Euro-Wirkung pro Jahr.
             </div>
           </section>
@@ -1225,7 +1225,7 @@
             </div>
             <div class="insight">
               <h3>Quellenlage</h3>
-              <p>${sources.length} Quellen und Annahmen sind sichtbar. ${missing.length} Punkte bleiben offen. Gerade das macht die Schätzung prüfbar statt verkäuferisch.</p>
+              <p>${sources.length} Quellen und Annahmen liegen vor. ${missing.length} Punkte sollten vor einer Beschlussvorlage vertieft werden.</p>
             </div>
             <div class="insight">
               <h3>Nächster Schritt</h3>
@@ -1290,10 +1290,10 @@
         dataStatus.textContent = `${data.municipality || "Kommune"}: ${statusText(data)}`;
         results.innerHTML = `
           <div class="summary">
-            ${renderMetric("Leitzahl: Haushaltswirkung pro Jahr", euroRange(budgetValue), "Geschätzte Spanne für den kommunalen Haushalt. Diese Zahl gehört zuerst in die Prüfung durch Kämmerei und Rat.", "lead-metric")}
+            ${renderMetric("Haushaltswirkung pro Jahr", euroRange(budgetValue), "Geschätzte Spanne für den kommunalen Haushalt. Sie zeigt, welche Größenordnung zuerst fachlich geprüft werden sollte.", "lead-metric")}
             ${renderMetric("Betreiberwert pro Jahr", euroRange(generationValue), "Marktwert lokaler Anlagen. Das ist kein Geldzufluss an die Kommune, sondern der wirtschaftliche Wert der Erzeugung.")}
-            ${renderMetric("1 MWh lokal statt importiert", `${euroPerMwh(localMwhValue)} vs. ${euroPerMwh(concessionProxy)}`, "Didaktischer Vergleich: lokal kann zusätzlich Betreiberwert im Ort entstehen; bei Import bleibt dieser Wert außerhalb.")}
-            ${renderMetric("Evidenzlage", `${(data.sourceRows || []).length} sichtbar / ${(data.missingEvidence || []).length} offen`, "Quellen und offene Punkte werden bewusst vorne gezeigt, damit die Schätzung prüfbar bleibt.")}
+            ${renderMetric("1 MWh lokal statt importiert", `${euroPerMwh(localMwhValue)} vs. ${euroPerMwh(concessionProxy)}`, "Bei lokaler Erzeugung kann zusätzlich Betreiberwert im Ort entstehen. Bei Importstrom entsteht dieser Wert außerhalb der Kommune.")}
+            ${renderMetric("Datengrundlage", `${(data.sourceRows || []).length} Quellen / ${(data.missingEvidence || []).length} offene Punkte`, "Die Auswertung zeigt, welche Quellen bereits vorliegen und welche Punkte vor einer Entscheidung vertieft werden sollten.")}
           </div>
 
           ${renderSources(data)}
@@ -1332,7 +1332,7 @@
               </div>
             </div>
             <div class="decision-sentence">
-              <strong>Beschlussvorschlag:</strong>
+              <strong>Möglicher nächster Schritt:</strong>
               Für die wichtigsten Projekte wird je Fläche ein Netzanschluss- und Fristencheck eingeholt, bevor Ertragserwartungen politisch kommuniziert werden.
             </div>
           </section>
