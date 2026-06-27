@@ -8233,10 +8233,14 @@ module.exports = {
         return this.cacheGetOrFetch(
           cacheKey,
           this.settings.cacheTtlMs.municipalEnergyValueAnalysisStatus,
-          async () => ({
-            ...this.buildMunicipalEnergyValueAnalysisStatus({ municipality: municipalityRaw, ags, year, scenario }),
-            timestamp: new Date().toISOString(),
-          })
+          async () => {
+            const base = this.buildMunicipalEnergyValueAnalysisStatus({ municipality: municipalityRaw, ags, year, scenario });
+            const operator = await this.resolveMunicipalVnbdigitalOperator(ctx, base);
+            return {
+              ...this.attachMunicipalGridOperator(base, operator),
+              timestamp: new Date().toISOString(),
+            };
+          }
         );
       },
     },
@@ -29294,6 +29298,186 @@ module.exports = {
           dossierFacts,
         },
         _errors: [],
+      };
+    },
+
+    unwrapVnbdigitalSearchResults(response) {
+      const root = response?.data && typeof response.data === 'object' ? response.data : response;
+      return Array.isArray(root?.results) ? root.results : [];
+    },
+
+    unwrapVnbdigitalLookupVnbs(response) {
+      const root = response?.data && typeof response.data === 'object' ? response.data : response;
+      return Array.isArray(root?.result?.vnbs) ? root.result.vnbs : [];
+    },
+
+    pickMunicipalVnbdigitalSearchResult(results = []) {
+      const normalized = Array.isArray(results) ? results : [];
+      return (
+        normalized.find((item) => String(item?.entityType || item?.type || '').toLowerCase() === 'community') ||
+        normalized.find((item) => String(item?.entityType || item?.type || '').toLowerCase() === 'postcode') ||
+        normalized.find((item) => String(item?.entityType || item?.type || '').toLowerCase() === 'location') ||
+        null
+      );
+    },
+
+    vnbdigitalLookupParamsForSearchResult(searchResult) {
+      const type = String(searchResult?.entityType || searchResult?.type || '').toLowerCase();
+      const entityId = searchResult?.entityId || searchResult?._id || searchResult?.id || null;
+      if (!entityId) return null;
+      if (type === 'community') {
+        return {
+          searchType: 'community',
+          communityId: entityId,
+          filter: { onlyNap: true, voltageTypes: ['Niederspannung'], withRegions: false },
+        };
+      }
+      if (type === 'postcode') {
+        return {
+          searchType: 'postcode',
+          postcodeId: entityId,
+          filter: { onlyNap: true, voltageTypes: ['Niederspannung'], withRegions: false },
+        };
+      }
+      const url = String(searchResult?.url || '');
+      const coordinates = url.match(/coordinates=([^&]+)/)?.[1];
+      if (type === 'location' && coordinates) {
+        return {
+          searchType: 'coordinates',
+          coordinates: decodeURIComponent(coordinates),
+          filter: { onlyNap: true, voltageTypes: ['Niederspannung'], withRegions: false },
+        };
+      }
+      return null;
+    },
+
+    pickMunicipalVnb(vnbs = []) {
+      const normalized = Array.isArray(vnbs) ? vnbs : [];
+      return (
+        normalized.find((vnb) =>
+          Array.isArray(vnb?.voltageTypes)
+            ? vnb.voltageTypes.some((type) => /niederspannung/i.test(String(type)))
+            : true
+        ) ||
+        normalized[0] ||
+        null
+      );
+    },
+
+    async resolveMunicipalVnbdigitalOperator(ctx, analysis = {}) {
+      if (!analysis?.ags || !analysis?.municipality || analysis.status === 'lagebild_municipality_unresolved') {
+        return {
+          gridOperatorName: null,
+          evidenceStatus: 'missing-evidence',
+          sourceLabel: 'Gemeinde nicht aufgelöst; VNBdigital-Lookup nicht ausgeführt',
+          _errors: [],
+        };
+      }
+
+      const errors = [];
+      const search = await this.safeCall(
+        ctx,
+        'grid-operations.vnbdigitalSearch',
+        { searchTerm: analysis.municipality },
+        null,
+        errors,
+        'grid-operations.vnbdigitalSearch'
+      );
+      const searchResult = this.pickMunicipalVnbdigitalSearchResult(
+        this.unwrapVnbdigitalSearchResults(search)
+      );
+      const lookupParams = this.vnbdigitalLookupParamsForSearchResult(searchResult);
+      if (!lookupParams) {
+        return {
+          gridOperatorName: null,
+          evidenceStatus: 'missing-evidence',
+          sourceLabel: 'VNBdigital-Suche ohne nutzbaren Gemeinde-/PLZ-Treffer',
+          _errors: errors,
+        };
+      }
+
+      const lookup = await this.safeCall(
+        ctx,
+        'grid-operations.vnbdigitalLookup',
+        lookupParams,
+        null,
+        errors,
+        'grid-operations.vnbdigitalLookup'
+      );
+      const vnb = this.pickMunicipalVnb(this.unwrapVnbdigitalLookupVnbs(lookup));
+      if (!vnb?.name) {
+        return {
+          gridOperatorName: null,
+          evidenceStatus: 'missing-evidence',
+          sourceLabel: 'VNBdigital-Lookup ohne eindeutigen Netzbetreiber',
+          _errors: errors,
+        };
+      }
+
+      return {
+        gridOperatorName: String(vnb.name),
+        gridOperatorVnbdigitalId: vnb.vnbdigitalId || vnb.entityId || vnb._id || vnb.id || null,
+        gridOperatorProfileUrl: vnb.profileUrl || null,
+        gridOperatorBdewCode: vnb.canonicalCodes?.bdewCode || vnb.bdewCode || null,
+        gridOperatorBnr: vnb.canonicalCodes?.bnr || vnb.bnr || null,
+        gridOperatorMastrId: vnb.canonicalCodes?.mastrId || vnb.mastrId || null,
+        gridOperatorVoltageTypes: Array.isArray(vnb.voltageTypes) ? vnb.voltageTypes.join(', ') : null,
+        evidenceStatus: 'available',
+        sourceLabel: 'VNBdigital Gemeinde-/PLZ-Lookup',
+        _errors: errors,
+      };
+    },
+
+    attachMunicipalGridOperator(analysis = {}, operator = {}) {
+      const gridOperatorName = operator?.gridOperatorName || null;
+      const sourceLabel = gridOperatorName
+        ? `Zuständiger Netzbetreiber laut ${operator.sourceLabel || 'VNBdigital'}: ${gridOperatorName}`
+        : operator?.sourceLabel || 'VNBdigital-Lookup nicht verfügbar';
+      const riskRows = (analysis.riskRows || []).map((row) => {
+        if (!['ewk_anschlussdauer_risk', 'digitalization_index_risk'].includes(row.riskKey)) {
+          return row;
+        }
+        return {
+          ...row,
+          gridOperatorName,
+          gridOperatorVnbdigitalId: operator?.gridOperatorVnbdigitalId || null,
+          sourceLabel: gridOperatorName
+            ? `${sourceLabel}; Benchmarkwerte für Anschlussdauer/Digitalisierung noch erforderlich`
+            : row.sourceLabel,
+          assumptionLabel: gridOperatorName
+            ? 'Netzbetreiber ist aufgelöst; offen bleiben belastbare Benchmark- und Falldaten zu Anschlussdauer und Prozessreife.'
+            : row.assumptionLabel,
+          nextGateLabel: gridOperatorName
+            ? `Anschlussdauer und Prozessreife bei ${gridOperatorName} mit aktuellen Fällen belegen.`
+            : row.nextGateLabel,
+        };
+      });
+      const sourceRows = [
+        ...(analysis.sourceRows || []),
+        {
+          sourceKey: 'vnbdigital_operator_identity',
+          sourceLabel,
+          sourceType: 'registry',
+          availability: gridOperatorName ? 'public' : 'conditional',
+          coverage: 'Gemeinde/PLZ',
+          lastUpdated: null,
+          evidenceStatus: gridOperatorName ? 'available' : 'missing-evidence',
+        },
+      ];
+      const errors = [...(analysis._errors || []), ...(operator?._errors || [])];
+      return {
+        ...analysis,
+        gridOperatorName,
+        gridOperatorVnbdigitalId: operator?.gridOperatorVnbdigitalId || null,
+        gridOperatorProfileUrl: operator?.gridOperatorProfileUrl || null,
+        gridOperatorBdewCode: operator?.gridOperatorBdewCode || null,
+        gridOperatorBnr: operator?.gridOperatorBnr || null,
+        gridOperatorMastrId: operator?.gridOperatorMastrId || null,
+        gridOperatorVoltageTypes: operator?.gridOperatorVoltageTypes || null,
+        gridOperatorEvidenceStatus: operator?.evidenceStatus || 'missing-evidence',
+        riskRows,
+        sourceRows,
+        _errors: [...new Set(errors)],
       };
     },
 

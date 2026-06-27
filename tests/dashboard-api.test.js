@@ -71,6 +71,40 @@ const MOCK_VNB_MONITOR = {
   alertSummary: { total: 1, critical: 0, warning: 1, info: 0, ewkRelevant: 0 },
 };
 
+const MOCK_VNBDIGITAL_SEARCH = {
+  data: {
+    searchTerm: 'Mauer',
+    results: [
+      {
+        _id: 'community-mauer',
+        title: 'Mauer',
+        type: 'COMMUNITY',
+        entityType: 'community',
+        entityId: 'community-mauer',
+        lookupHint: 'vnbdigital_lookup:community',
+      },
+    ],
+    total: 1,
+  },
+};
+
+const MOCK_VNBDIGITAL_LOOKUP = {
+  data: {
+    searchType: 'community',
+    communityId: 'community-mauer',
+    result: {
+      vnbs: [
+        {
+          _id: '7214',
+          name: 'Netze BW GmbH',
+          profileUrl: 'https://www.vnbdigital.de/vnb/7214',
+          voltageTypes: ['Hochspannung', 'Mittelspannung', 'Niederspannung'],
+        },
+      ],
+    },
+  },
+};
+
 const MOCK_HEALTH = {
   overview: { healthy: 5, stale: 1, errored: 0 },
 };
@@ -383,6 +417,8 @@ describe('dashboard-api.service', () => {
       name: 'grid-operations',
       actions: {
         vnbLookupCodes: makeHandler('vnbLookupCodes', MOCK_VNB_IDENTITY),
+        vnbdigitalSearch: makeHandler('vnbdigitalSearch', MOCK_VNBDIGITAL_SEARCH),
+        vnbdigitalLookup: makeHandler('vnbdigitalLookup', MOCK_VNBDIGITAL_LOOKUP),
       },
     });
 
@@ -9481,6 +9517,30 @@ describe('dashboard-api.service', () => {
           'grid_capacity_constraint_risk',
         ])
       );
+    });
+
+    it('mirrors the responsible VNBdigital grid operator and keeps benchmark evidence separate', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Wiesloch',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(result.gridOperatorName).toBe('Netze BW GmbH');
+      expect(result.gridOperatorVnbdigitalId).toBe('7214');
+      expect(result.gridOperatorEvidenceStatus).toBe('available');
+      expect(result.missingEvidence.map((g) => g.missingDataPoint)).toContain('vnb_bnr');
+
+      const risk = result.riskRows.find((r) => r.riskKey === 'ewk_anschlussdauer_risk');
+      expect(risk.gridOperatorName).toBe('Netze BW GmbH');
+      expect(risk.sourceLabel).toContain('Netze BW GmbH');
+      expect(risk.nextGateLabel).toContain('Netze BW GmbH');
+      expect(risk.assumptionLabel).toContain('Benchmark');
+
+      const source = result.sourceRows.find((r) => r.sourceKey === 'vnbdigital_operator_identity');
+      expect(source).toBeDefined();
+      expect(source.evidenceStatus).toBe('available');
+      expect(source.sourceLabel).toContain('Netze BW GmbH');
     });
 
     it('returns scalar/display-safe budgetImpactRows with Konzessionsabgabe for Mauer', async () => {
