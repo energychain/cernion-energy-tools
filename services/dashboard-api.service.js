@@ -30612,13 +30612,13 @@ module.exports = {
         const kavGewerbeEurPerYear = Math.round(
           (commercialConsumptionKwh * kavSonderkundenCtPerKwh) / 100
         );
+        const kavNsLowEurPerYear = Math.round(kavNsEurPerYear * 0.95);
+        const kavNsHighEurPerYear = kavNsEurPerYear;
+        const kavGewerbeLowEurPerYear = Math.round(kavGewerbeEurPerYear * 0.5);
+        const kavGewerbeHighEurPerYear = Math.round(kavGewerbeEurPerYear * 2);
         const kavTotalEurPerYear = kavNsEurPerYear + kavGewerbeEurPerYear;
-        const kavTotalLowEurPerYear = Math.round(
-          kavNsEurPerYear * 0.9 + kavGewerbeEurPerYear * 0.5
-        );
-        const kavTotalHighEurPerYear = Math.round(
-          kavNsEurPerYear + kavGewerbeEurPerYear * 2
-        );
+        const kavTotalLowEurPerYear = kavNsLowEurPerYear + kavGewerbeLowEurPerYear;
+        const kavTotalHighEurPerYear = kavNsHighEurPerYear + kavGewerbeHighEurPerYear;
         const kavReferenceMwhPerYear = Math.round(
           (residentialConsumptionKwh + commercialConsumptionKwh) / 1000
         );
@@ -30629,8 +30629,8 @@ module.exports = {
             budgetCategory: 'konzessionsabgabe',
             segment: 'NS-Haushalt',
             estimatedEurPerYear: kavNsEurPerYear,
-            estimatedLowEurPerYear: Math.round(kavNsEurPerYear * 0.95),
-            estimatedHighEurPerYear: kavNsEurPerYear,
+            estimatedLowEurPerYear: kavNsLowEurPerYear,
+            estimatedHighEurPerYear: kavNsHighEurPerYear,
             assumedKavCtPerKwh: kavRateNsCtPerKwh,
             assumedConsumptionMwhPerYear: Math.round(residentialConsumptionKwh / 1000),
             calculationStatus: 'assumption-scenario',
@@ -30645,8 +30645,8 @@ module.exports = {
             budgetCategory: 'konzessionsabgabe',
             segment: 'NS-Gewerbe',
             estimatedEurPerYear: kavGewerbeEurPerYear,
-            estimatedLowEurPerYear: Math.round(kavGewerbeEurPerYear * 0.5),
-            estimatedHighEurPerYear: Math.round(kavGewerbeEurPerYear * 2),
+            estimatedLowEurPerYear: kavGewerbeLowEurPerYear,
+            estimatedHighEurPerYear: kavGewerbeHighEurPerYear,
             assumedKavCtPerKwh: kavSonderkundenCtPerKwh,
             assumedConsumptionMwhPerYear: Math.round(commercialConsumptionKwh / 1000),
             calculationStatus: 'assumption-scenario',

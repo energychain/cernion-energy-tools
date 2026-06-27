@@ -42,8 +42,9 @@ const gemeindenData = require('./data/gemeinden-2022.json');
 
 function kavRateForPopulation(population) {
   if (!population) return null;
-  if (population > 500000) return 1.99;
-  if (population > 100000) return 1.59;
+  if (population > 500000) return 2.39;
+  if (population > 100000) return 1.99;
+  if (population > 25000) return 1.59;
   return 1.32;
 }
 

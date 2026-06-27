@@ -69,12 +69,14 @@ describe('municipal-value public UI decision framing', () => {
 
   it('keeps timing and rounded-number source notes attached to repeated claims', () => {
     expect(html).toContain('Seit 01.06.2026 im VNB-Gebiet möglich');
-    expect(html).toContain('Herkunft: gerundete Marktpreisannahme plus KAV-Proxy');
+    expect(html).toContain('Herkunft: gerundete Marktpreisannahme plus KAV-Mischwert');
     expect(html).toContain('Erzeugungswert plus rund');
     expect(html).toContain('Höchster Risikoscore: ${escapeHtml(maxRisk)}/100, aktuell ${escapeHtml(riskLevelText(maxRisk))}');
     expect(html).toContain('if (value >= 70) return "hohes Gesamtrisiko"');
     expect(html).toContain('Handlungsoption statt Ohnmacht');
-    expect(html).toContain('STROMDAO GmbH als Übersetzer zum Netzbetreiber');
+    expect(html).toContain('Übersetzerrolle zum Netzbetreiber');
+    expect(html).toContain('Eine fachliche Prozessbegleitung bereitet Anschlussfälle');
+    expect(html).not.toContain('STROMDAO GmbH als Übersetzer zum Netzbetreiber');
     expect(html).toContain('function renderGridOperatorBridge(data, riskRows)');
     expect(html).toContain('@media print');
     expect(html).toContain('break-inside: avoid');
@@ -102,11 +104,14 @@ describe('municipal-value public UI decision framing', () => {
 
   it('uses print-stable disclosure cards and compact budget rows for PDF export', () => {
     expect(html).toContain('<span>§42c-Szenario</span>');
+    expect(html).toContain('<span>Erzeugung</span>');
+    expect(html).toContain('<b>Zeitgleicher Beitrag:</b>');
     expect(html).toContain('scenario-meta');
     expect(html).toContain('budget-main-row');
     expect(html).toContain('budget-assumption-row');
     expect(html).not.toContain('<th>Kommunaler Use Case</th>');
     expect(html).not.toContain('<th>Annahme</th>');
+    expect(html).not.toContain('<th>Zeitgleicher Euro-Beitrag</th>');
   });
 
   it('renders intermunicipal comparison once in the reference layer with guardrail fallback', () => {

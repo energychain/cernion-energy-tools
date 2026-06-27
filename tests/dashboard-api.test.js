@@ -9951,8 +9951,8 @@ describe('dashboard-api.service', () => {
       expect(hhRow).toBeDefined();
       expect(typeof hhRow.estimatedEurPerYear).toBe('number');
       expect(hhRow.estimatedEurPerYear).toBeGreaterThan(0);
-      expect(hhRow.assumptionStatus).toContain('1.32');
-      expect(hhRow.assumedKavCtPerKwh).toBe(1.32);
+      expect(hhRow.assumptionStatus).toContain('1.59');
+      expect(hhRow.assumedKavCtPerKwh).toBe(1.59);
 
       const commercialRow = result.budgetImpactRows.find((r) => r.rowKey === 'konzessionsabgabe_ns_gewerbe');
       expect(commercialRow).toBeDefined();
@@ -9963,9 +9963,36 @@ describe('dashboard-api.service', () => {
       expect(totalRow).toBeDefined();
       expect(typeof totalRow.estimatedEurPerYear).toBe('number');
       expect(totalRow.estimatedEurPerYear).toBeGreaterThan(0);
-      expect(totalRow.estimatedEurPerYear).toBeLessThan(450000);
-      expect(totalRow.estimatedKavEurPerMwh).toBeLessThanOrEqual(13.2);
+      expect(totalRow.estimatedEurPerYear).toBeLessThan(500000);
+      expect(totalRow.estimatedKavEurPerMwh).toBeLessThanOrEqual(15.9);
       expect(totalRow.assumptionStatus).toContain('KAV-Sätze');
+    });
+
+    it('Stuttgart uses the >500k KAV tariff and an internally consistent total concession range', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Stuttgart',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(result.municipality).toBe('Stuttgart');
+      expect(result.population).toBeGreaterThan(500000);
+      expect(result.kavCategory).toBe('Großstadt über 500.000 Einwohner');
+      expect(result.kavRateNsCtPerKwh).toBe(2.39);
+
+      const household = result.budgetImpactRows.find((r) => r.rowKey === 'konzessionsabgabe_ns_haushalt');
+      const commercial = result.budgetImpactRows.find((r) => r.rowKey === 'konzessionsabgabe_ns_gewerbe');
+      const total = result.budgetImpactRows.find((r) => r.rowKey === 'konzessionsabgabe_total_estimate');
+
+      expect(household.assumedKavCtPerKwh).toBe(2.39);
+      expect(commercial.assumedKavCtPerKwh).toBe(0.11);
+      expect(total.estimatedLowEurPerYear).toBe(
+        household.estimatedLowEurPerYear + commercial.estimatedLowEurPerYear
+      );
+      expect(total.estimatedHighEurPerYear).toBe(
+        household.estimatedHighEurPerYear + commercial.estimatedHighEurPerYear
+      );
+      expect(total.estimatedKavEurPerMwh).toBeLessThan(23.9);
     });
 
     // ── Issue #330: time-series EUR correlation and no-autarky guardrails ──

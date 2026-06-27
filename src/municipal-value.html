@@ -1549,11 +1549,14 @@
         return Number(assumption?.assumptionValue) || 0;
       }
 
-      function budgetPerMwh(budgetRows, generationKwh) {
+      function budgetPerMwh(budgetRows) {
+        const totalRow = budgetTotalRow(budgetRows);
+        const mixed = Number(totalRow.estimatedKavEurPerMwh);
+        if (mixed > 0) return mixed;
         const budgetValue = budgetTotal(budgetRows);
-        const mwh = Number(generationKwh) / 1000;
-        if (!budgetValue || !mwh) return 0;
-        return budgetValue / mwh;
+        const referenceMwh = Number(totalRow.assumedConsumptionMwhPerYear);
+        if (!budgetValue || !referenceMwh) return 0;
+        return budgetValue / referenceMwh;
       }
 
       function budgetTotal(budgetRows) {
@@ -1581,7 +1584,7 @@
       }
 
       function localMwhBridgeText(price, concessionProxy) {
-        return `${euroPerMwh(price)} Erzeugungswert plus rund ${euroPerMwh(concessionProxy)} KAV-Proxy ergeben den kommunalen Vergleichswert von rund ${euroPerMwh(price + concessionProxy)}`;
+        return `${euroPerMwh(price)} Erzeugungswert plus rund ${euroPerMwh(concessionProxy)} KAV-Mischwert aus Tarif- und Sonderkunden ergeben den kommunalen Vergleichswert von rund ${euroPerMwh(price + concessionProxy)}`;
       }
 
       function householdTranslationText() {
@@ -1684,8 +1687,8 @@
             label: "Wo braucht das Projekt Übersetzung zum Netzbetreiber?",
             explanation: `${operatorPrefix}Das Risiko beschreibt keine Schuldzuweisung, sondern ein Prozessnadelöhr. Anschlussfristen, Unterlagen und Zuständigkeiten müssen so vorbereitet werden, dass Projekte beim Netzbetreiber entscheidungsfähig ankommen.`,
             nextStep: operatorName
-              ? `STROMDAO GmbH als Übersetzer zum Netzbetreiber beauftragen: Anschlussfälle, Fristen und Unterlagen mit ${operatorName} strukturiert klären.`
-              : "STROMDAO GmbH als Übersetzer zum Netzbetreiber beauftragen: Anschlussfälle, Fristen und Unterlagen mit dem zuständigen Netzbetreiber strukturiert klären.",
+              ? `Übersetzerrolle zum Netzbetreiber beauftragen: Anschlussfälle, Fristen und Unterlagen mit ${operatorName} strukturiert klären.`
+              : "Übersetzerrolle zum Netzbetreiber beauftragen: Anschlussfälle, Fristen und Unterlagen mit dem zuständigen Netzbetreiber strukturiert klären.",
           };
         }
         if (key.includes("digitalization")) {
@@ -1693,8 +1696,8 @@
             label: "Wie wird aus Prozessrisiko ein steuerbarer Arbeitsauftrag?",
             explanation: `${operatorPrefix}Fehlende Prozessdaten bedeuten nicht, dass die Kommune ausgeliefert ist. Sie zeigen, welche Kommunikations- und Evidenzstrecke zwischen Verwaltung, Projektträgern und Netzbetreiber aufgebaut werden muss.`,
             nextStep: operatorName
-              ? `STROMDAO GmbH bündelt Ansprechpartner, Prozesswege und Nachweisstand für Gespräche mit ${operatorName}.`
-              : "STROMDAO GmbH bündelt Ansprechpartner, Prozesswege und Nachweisstand für Gespräche mit dem Netzbetreiber.",
+              ? `Ansprechpartner, Prozesswege und Nachweisstand für Gespräche mit ${operatorName} bündeln.`
+              : "Ansprechpartner, Prozesswege und Nachweisstand für Gespräche mit dem Netzbetreiber bündeln.",
           };
         }
         if (key.includes("imsys") || key.includes("smgw")) {
@@ -1734,7 +1737,7 @@
         const labels = {
           vnb_bnr: {
             title: "Netzbetreiber-Gespräch vorbereiten",
-            action: "STROMDAO GmbH als Übersetzer zum Netzbetreiber beauftragen: Anschlussfälle, Fristen, Unterlagen und Ansprechpartner netzbetreiberfähig bündeln.",
+            action: "Übersetzerrolle zum Netzbetreiber beauftragen: Anschlussfälle, Fristen, Unterlagen und Ansprechpartner netzbetreiberfähig bündeln.",
           },
           mastr_live_data: {
             title: "Anlagenbestand aktualisieren",
@@ -1775,7 +1778,7 @@
       function renderExecutiveDecision(data, generationValue, generationKwh, budgetRows) {
         const rows = generationRows(data.valueRows || []);
         const price = marketPrice(data, rows);
-        const concessionProxy = budgetPerMwh(budgetRows, generationKwh);
+        const concessionProxy = budgetPerMwh(budgetRows);
         const topTech = strongestTechnology(rows);
         const budget = budgetDisplayRange(budgetRows);
         const totalBudgetRow = budgetTotalRow(budgetRows);
@@ -1834,7 +1837,7 @@
       function renderLocalValueStory(data, generationValue, generationKwh, budgetRows) {
         const rows = generationRows(data.valueRows || []);
         const price = marketPrice(data, rows);
-        const concessionProxy = budgetPerMwh(budgetRows, generationKwh);
+        const concessionProxy = budgetPerMwh(budgetRows);
         const localMwhPublic = price + concessionProxy;
         const importedMwhPublic = concessionProxy;
         const localKpi = (data.euroKpiRows || []).find((row) => row.rowKey === "euro_kpi_local_value_capture");
@@ -1923,7 +1926,7 @@
       function renderMayorBrief(data, generationValue, generationKwh, budgetValue) {
         const rows = generationRows(data.valueRows || []);
         const price = marketPrice(data, rows);
-        const concessionProxy = budgetPerMwh(data.budgetImpactRows || [], generationKwh);
+        const concessionProxy = budgetPerMwh(data.budgetImpactRows || []);
         const localMwhPublic = price + concessionProxy;
         const importedMwhPublic = concessionProxy;
         const budgetRows = data.budgetImpactRows || [];
@@ -1956,7 +1959,7 @@
               <article class="money-card">
                 <span>1 MWh lokal gegenüber Import</span>
                 <strong>${escapeHtml(euroPerMwh(localMwhPublic))} vs. ${escapeHtml(euroPerMwh(importedMwhPublic))}</strong>
-                <p>Eine lokal erzeugte und zugleich lokal verbrauchte MWh kann zusätzlich Erzeugungswert im Ort halten. Herkunft: gerundete Marktpreisannahme plus KAV-Proxy; ${escapeHtml(localMwhBridgeText(price, concessionProxy))}.</p>
+                <p>Eine lokal erzeugte und zugleich lokal verbrauchte MWh kann zusätzlich Erzeugungswert im Ort halten. Herkunft: gerundete Marktpreisannahme plus KAV-Mischwert aus Tarif- und Sonderkunden; ${escapeHtml(localMwhBridgeText(price, concessionProxy))}.</p>
               </article>
             </div>
             <div class="narrative-grid">
@@ -2155,29 +2158,21 @@
                 </article>
               `).join("")}
             </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Erzeugung</th>
-                    <th>Marktwert</th>
-                    <th>Zeitgleicher Euro-Beitrag</th>
-                    <th>Nicht zeitgleich</th>
-                    <th>Profilnähe</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${tsRows.map((row) => `
-                    <tr>
-                      <td>${escapeHtml(technologyLabel(row.technology))}</td>
-                      <td>${escapeHtml(euroRange(row.marketValueEur, 0.9, 1.1))}</td>
-                      <td>${escapeHtml(euroRange(row.localCorrelationValueEur, 0.9, 1.1))}</td>
-                      <td>${escapeHtml(euroRange(row.unmatchedGenerationValueEur, 0.9, 1.1))}</td>
-                      <td>${escapeHtml(percentValue(row.coincidenceFactor))}</td>
-                    </tr>
-                  `).join("")}
-                </tbody>
-              </table>
+            <div class="scenario-list">
+              ${tsRows.map((row) => `
+                <article class="scenario-card">
+                  <div>
+                    <span>Erzeugung</span>
+                    <strong>${escapeHtml(technologyLabel(row.technology))}</strong>
+                    <small>Profilnähe: ${escapeHtml(percentValue(row.coincidenceFactor))}</small>
+                  </div>
+                  <div class="scenario-meta">
+                    <p><b>Marktwert:</b> ${escapeHtml(euroRange(row.marketValueEur, 0.9, 1.1))}</p>
+                    <p><b>Zeitgleicher Beitrag:</b> ${escapeHtml(euroRange(row.localCorrelationValueEur, 0.9, 1.1))}</p>
+                    <p><b>Nicht zeitgleich:</b> ${escapeHtml(euroRange(row.unmatchedGenerationValueEur, 0.9, 1.1))}</p>
+                  </div>
+                </article>
+              `).join("")}
             </div>
             <div class="decision-sentence">
               <strong>Einordnung:</strong>
@@ -2495,7 +2490,7 @@
           <div class="decision-sentence grid-bridge">
             <strong>Handlungsoption statt Ohnmacht:</strong>
             Der hohe Netzprozess-Score ist kein Schuldhinweis. Er markiert die Stelle, an der die Verwaltung eine Übersetzerrolle beauftragen kann:
-            STROMDAO GmbH bereitet Anschlussfälle, Unterlagen, Fristen und Ansprechpartner ${escapeHtml(operatorText)} so auf,
+            Eine fachliche Prozessbegleitung bereitet Anschlussfälle, Unterlagen, Fristen und Ansprechpartner ${escapeHtml(operatorText)} so auf,
             dass der Gemeinderat nicht auf ungeklärte Netzprozesse wartet, sondern einen steuerbaren Gesprächs- und Nachweisauftrag auslöst.
           </div>
         `;
