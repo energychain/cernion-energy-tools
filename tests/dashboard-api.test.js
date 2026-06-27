@@ -9331,11 +9331,11 @@ describe('dashboard-api.service', () => {
       expect(result.capabilityKey).toBe('municipal_energy_value_analysis');
       expect(result.status).toBe('lagebild_partial');
       expect(result.municipality).toBe('Mauer');
-      expect(result.ags).toBe('08226074');
+      expect(result.ags).toBe('08226048');
       expect(result.year).toBe(2025);
       expect(result.scenario).toBe('baseline');
       expect(typeof result.analysisRunId).toBe('string');
-      expect(result.analysisRunId).toContain('08226074');
+      expect(result.analysisRunId).toContain('08226048');
       expect(Array.isArray(result.valueRows)).toBe(true);
       expect(Array.isArray(result.riskRows)).toBe(true);
       expect(Array.isArray(result.budgetImpactRows)).toBe(true);
@@ -9444,13 +9444,13 @@ describe('dashboard-api.service', () => {
 
     it('resolves municipality by AGS when municipality name is not supplied', async () => {
       const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
-        ags: '08226074',
+        ags: '08226048',
         year: 2025,
         scenario: 'baseline',
       });
 
       expect(result.municipality).toBe('Mauer');
-      expect(result.ags).toBe('08226074');
+      expect(result.ags).toBe('08226048');
     });
 
     it('returns stable 200 for unknown municipality with missing-evidence markers (no crash)', async () => {
@@ -9523,7 +9523,7 @@ describe('dashboard-api.service', () => {
 
       expect(result.status).toBe('lagebild_partial');
       expect(result.municipality).toBe('Wiesloch');
-      expect(result.ags).toBe('08226087');
+      expect(result.ags).toBe('08226098');
       expect(result.valueRows.length).toBeGreaterThan(0);
       expect(result.riskRows.length).toBeGreaterThan(0);
       expect(result.budgetImpactRows.length).toBeGreaterThan(0);
@@ -9547,7 +9547,7 @@ describe('dashboard-api.service', () => {
       });
 
       expect(result.municipality).toBe('Wiesloch');
-      expect(result.ags).toBe('08226087');
+      expect(result.ags).toBe('08226098');
       expect(result.status).toBe('lagebild_partial');
       expect(result.valueRows.length).toBeGreaterThan(0);
       expectScalarTableRows(result.valueRows);
@@ -9561,7 +9561,7 @@ describe('dashboard-api.service', () => {
       });
 
       expect(result.municipality).toBe('Mauer');
-      expect(result.ags).toBe('08226074');
+      expect(result.ags).toBe('08226048');
     });
 
     it('resolves Heidelberg by PLZ 69115 (regression)', async () => {
@@ -9726,7 +9726,7 @@ describe('dashboard-api.service', () => {
       });
       expect(result.status).toBe('lagebild_partial');
       expect(result.municipality).toBe('Rommerskirchen');
-      expect(result.ags).toBe('05162036');
+      expect(result.ags).toBe('05162028');
       expect(result._errors).toEqual([]);
     });
 
@@ -9737,7 +9737,7 @@ describe('dashboard-api.service', () => {
         scenario: 'baseline',
       });
       expect(result.municipality).toBe('Rommerskirchen');
-      expect(result.ags).toBe('05162036');
+      expect(result.ags).toBe('05162028');
       expect(result.status).toBe('lagebild_partial');
     });
 
@@ -9752,7 +9752,7 @@ describe('dashboard-api.service', () => {
       expectScalarTableRows(result.riskRows);
     });
 
-    it('Rommerskirchen budgetImpactRows use KAV 1.59 ct/kWh (25k-100k bracket)', async () => {
+    it('Rommerskirchen budgetImpactRows use KAV 1.32 ct/kWh (< 25k Einwohner bracket, EWZ 13.580)', async () => {
       const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
         municipality: 'Rommerskirchen',
         year: 2025,
@@ -9760,7 +9760,7 @@ describe('dashboard-api.service', () => {
       });
       const nsRow = result.budgetImpactRows.find((r) => r.rowKey === 'konzessionsabgabe_ns_haushalt');
       expect(nsRow).toBeDefined();
-      expect(nsRow.assumptionStatus).toContain('1.59');
+      expect(nsRow.assumptionStatus).toContain('1.32');
       expect(nsRow.estimatedEurPerYear).toBeGreaterThan(0);
     });
 
@@ -9771,7 +9771,7 @@ describe('dashboard-api.service', () => {
         scenario: 'baseline',
       });
       expect(result.municipality).toBe('Wiesloch');
-      expect(result.ags).toBe('08226087');
+      expect(result.ags).toBe('08226098');
       expect(result.status).toBe('lagebild_partial');
     });
 
@@ -9782,7 +9782,7 @@ describe('dashboard-api.service', () => {
         scenario: 'baseline',
       });
       expect(result.municipality).toBe('Wiesloch');
-      expect(result.ags).toBe('08226087');
+      expect(result.ags).toBe('08226098');
     });
 
     it('Mauer PLZ 69256 still resolves (regression #324)', async () => {
@@ -9792,7 +9792,7 @@ describe('dashboard-api.service', () => {
         scenario: 'baseline',
       });
       expect(result.municipality).toBe('Mauer');
-      expect(result.ags).toBe('08226074');
+      expect(result.ags).toBe('08226048');
     });
 
     it('Heidelberg PLZ 69115 still resolves (regression #324)', async () => {
@@ -9821,7 +9821,7 @@ describe('dashboard-api.service', () => {
       const { resolveMunicipalityProfile } = require('../src/municipality-resolver');
       const byName = resolveMunicipalityProfile({ municipality: 'Rommerskirchen' });
       expect(byName.found).toBe(true);
-      expect(byName.ags).toBe('05162036');
+      expect(byName.ags).toBe('05162028');
       const byPlz = resolveMunicipalityProfile({ municipality: '41569' });
       expect(byPlz.found).toBe(true);
       expect(byPlz.name).toBe('Rommerskirchen');

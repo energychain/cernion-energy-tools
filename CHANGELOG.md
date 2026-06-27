@@ -5,6 +5,17 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.67.7] — 2026-06-27
+
+### Changed
+- **Vollständige Gemeindedaten** (`src/municipality-resolver.js`, `src/data/gemeinden-2022.json`, #331 Nachbesserung): Der Resolver basiert jetzt auf dem Destatis Gemeindeverzeichnis 2022 mit Einwohnerzahl (GV100, ArcGIS Hub Item 60eb682c95f44ba7b10fee66d871859d) — **10.990 Gemeinden** mit AGS, Einwohnerzahl (EWZ) und Fläche (KFL km²), nicht mehr auf einer manuell gepflegten Teilliste.
+  - `src/data/gemeinden-2022.json` (1,1 MB): generiertes Read-only-Fixture aus dem Destatis-Download; enthält alle deutschen Gemeinden.
+  - Drei-Schichten-Design: Layer 1 = Destatis GV100 (AGS + EWZ + Fläche für 10.990 Gemeinden), Layer 2 = `german-zip-codes` npm-Paket (PLZ→Ortsname für 19.670 PLZ), Layer 3 = `ENERGY_OVERLAY` (MaStR-nahe Erzeugungskapazitäten für ausgewählte Gemeinden, gelistet per AGS).
+  - Bevölkerungsbasierte Energieschätzung (BSW-Solar/DBFZ 2024) greift nur, wenn `ewz` bekannt ist; andernfalls `population: null` + `sourceStatus: 'plz-lookup-only'`.
+  - KAV-Raten nach echten § 2 Abs. 2-Klassen: > 100.000 EW → 1,99 ct/kWh; 25.001–100.000 → 1,59 ct/kWh; ≤ 25.000 → 1,32 ct/kWh.
+  - AGS-Korrekturen: Mauer `08226048`, Wiesloch `08226098`, Walldorf `08226095`, Sandhausen `08226076`, Rommerskirchen `05162028` (alle aus Destatis 2022 statt manueller Schätzung).
+  - Rommerskirchen: EWZ 13.580 (< 25.000 Einwohner-Bracket) → KAV 1,32 ct/kWh.
+
 ## [0.67.6] — 2026-06-27
 
 ### Added

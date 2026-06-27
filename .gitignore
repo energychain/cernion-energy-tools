@@ -146,6 +146,7 @@ vite.config.ts.timestamp-*
 # Runtime data — all PouchDB databases, jobs, sessions and reports live here.
 # Each service creates its own sub-directory on first start.
 data/
+!src/data/
 uploads/
 src/oemetadata/
 tmp/
