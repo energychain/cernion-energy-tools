@@ -243,22 +243,6 @@
         cursor: wait;
       }
 
-      .examples {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 14px;
-      }
-
-      .example {
-        border: 1px solid var(--line);
-        background: var(--panel-soft);
-        color: #2b4034;
-        border-radius: 8px;
-        padding: 7px 10px;
-        font-size: 0.9rem;
-      }
-
       .consulting-cta {
         margin-top: 16px;
         border: 1px solid rgba(21, 127, 83, 0.22);
@@ -304,6 +288,108 @@
         font-size: 0.92rem;
         line-height: 1.38;
         margin: 0;
+      }
+
+      .mayor-brief,
+      .recommendation-panel {
+        background: #fff;
+        border: 1px solid rgba(24, 35, 29, 0.12);
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: none;
+      }
+
+      .mayor-brief h2,
+      .recommendation-panel h2 {
+        margin: 0 0 10px;
+        font-size: 1.18rem;
+      }
+
+      .mayor-brief p,
+      .recommendation-panel p {
+        color: var(--muted);
+        line-height: 1.52;
+        margin: 0;
+      }
+
+      .money-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .money-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 15px;
+        background: #fbfdfb;
+      }
+
+      .money-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+
+      .money-card strong {
+        display: block;
+        font-size: clamp(1.25rem, 2vw, 1.7rem);
+        margin-bottom: 8px;
+      }
+
+      .money-card p {
+        font-size: 0.92rem;
+        line-height: 1.42;
+      }
+
+      .narrative-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+      }
+
+      .narrative-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 15px;
+        background: rgba(238, 244, 238, 0.62);
+      }
+
+      .narrative-card h3 {
+        margin: 0 0 8px;
+        font-size: 1rem;
+      }
+
+      .recommendation-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .recommendation-row {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 13px;
+        background: #fff;
+        display: grid;
+        grid-template-columns: minmax(150px, 0.35fr) minmax(0, 1fr);
+        gap: 10px 16px;
+      }
+
+      .recommendation-row strong {
+        display: block;
+      }
+
+      .recommendation-row span {
+        color: var(--muted);
+        display: block;
+        font-size: 0.9rem;
+        margin-top: 4px;
       }
 
       .visual-panel {
@@ -579,7 +665,13 @@
         .analysis-grid,
         .summary,
         .insight-band,
-        .story-card {
+        .story-card,
+        .money-grid,
+        .narrative-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .recommendation-row {
           grid-template-columns: 1fr;
         }
 
@@ -639,9 +731,9 @@
         <div class="intro">
           <h1>Was bleibt von Energie in Ihrer Kommune?</h1>
           <p class="lead">
-            Dieses Lagebild zeigt, welchen wirtschaftlichen Wert lokale Stromerzeugung sichtbar
-            macht, welche Haushaltswirkung ueber Konzessionsabgaben angenommen werden kann und wo
-            Netzbetreiber-Risiken die kommunale Wertschoepfung bremsen.
+            Dieses Lagebild uebersetzt Strom in kommunale Euro-Fragen: Welche Wertschoepfung
+            entsteht im Ort, was fliesst bei importierter Energie ab, welche Einnahmen beruehren
+            den Haushalt und welche Erzeugungsart sollte politisch zuerst vorbereitet werden?
           </p>
 
           <div class="input-panel">
@@ -680,16 +772,16 @@
 
           <div class="story-card">
             <div class="story-item">
-              <b>Kommunaler Haushalt</b>
-              <p>Konzessionsabgabe und Budgetwirkung als transparente Annahmen statt Blackbox.</p>
+              <b>Haushaltsfrage</b>
+              <p>Wie wird aus einer MWh Strom ein lokaler Euro-Effekt fuer Kaemmerei und Rat?</p>
             </div>
             <div class="story-item">
-              <b>Lokale Wirtschaft</b>
-              <p>Erzeugung, Marktwert und bilanzieller lokaler Nutzen in einem Lagebild.</p>
+              <b>Standortpolitik</b>
+              <p>Welche Anlagen binden Wert im Ort, statt nur Strom von aussen zu bezahlen?</p>
             </div>
             <div class="story-item">
-              <b>Netzrisiko</b>
-              <p>EWK, Smart-Meter-Rollout und Kapazitaetsengpaesse als sichtbare Risikozeilen.</p>
+              <b>Handlungsauftrag</b>
+              <p>Welche Entscheidung kann der Gemeinderat mit Zahlen besser vorbereiten?</p>
             </div>
           </div>
         </div>
@@ -701,11 +793,11 @@
             <span class="map-point c"></span>
           </div>
           <div class="visual-copy">
-            <h2>Vom Datenbestand zur politischen Frage</h2>
+            <h2>Vom Stromthema zur lokalen Bilanz</h2>
             <p>
-              Die Darstellung verbindet MaStR-nahe Erzeugungsdaten, Preisannahmen,
-              Netzbetreiber-Indikatoren und kommunale Budgetwirkung. Jede Zahl bleibt mit
-              Annahmen und fehlender Evidenz nachvollziehbar.
+              Eine lokal erzeugte und lokal verbrauchte MWh ist nicht nur Technik. Sie ist
+              Marktwert, Flaechen- oder Betreiberchance, Konzessionslogik und Standortpolitik.
+              Die Seite macht diese Wirkung verstaendlich, ohne eine Abrechnung zu behaupten.
             </p>
           </div>
         </aside>
@@ -725,21 +817,6 @@
     </footer>
 
     <script>
-      const KNOWN_PLZ = {
-        69256: { municipality: "Mauer" },
-        69115: { municipality: "Heidelberg" },
-        69117: { municipality: "Heidelberg" },
-        69118: { municipality: "Heidelberg" },
-        69120: { municipality: "Heidelberg" },
-        69121: { municipality: "Heidelberg" },
-        69123: { municipality: "Heidelberg" },
-        69124: { municipality: "Heidelberg" },
-        69126: { municipality: "Heidelberg" },
-        69168: { municipality: "Wiesloch" },
-        69190: { municipality: "Walldorf" },
-        69207: { municipality: "Sandhausen" },
-      };
-
       const form = document.getElementById("searchForm");
       const placeInput = document.getElementById("placeInput");
       const scenarioInput = document.getElementById("scenarioInput");
@@ -773,9 +850,6 @@
 
       function resolveInput(raw) {
         const value = String(raw || "").trim();
-        if (/^\d{5}$/.test(value) && KNOWN_PLZ[value]) {
-          return { municipality: KNOWN_PLZ[value].municipality, queryLabel: value };
-        }
         return { municipality: value || "Mauer", queryLabel: value || "Mauer" };
       }
 
@@ -795,6 +869,176 @@
           return "Lagebild mit offenen Evidenzpunkten";
         }
         return "Lagebild mit belastbarer Datenbasis";
+      }
+
+      function generationRows(rows) {
+        return rows.filter((row) => Number(row.grossMarketValueEurPerYear) > 0);
+      }
+
+      function technologyLabel(value) {
+        const key = String(value || "").toLowerCase();
+        if (key === "pv" || key.includes("solar")) return "Photovoltaik";
+        if (key === "biomass" || key.includes("biomasse")) return "Biomasse";
+        if (key === "wind" || key.includes("wind")) return "Windkraft";
+        if (key === "hydro" || key.includes("wasser")) return "Wasserkraft";
+        return value ? String(value) : "Erzeugung";
+      }
+
+      function marketPrice(data, rows) {
+        const fromRows = rows.find((row) => row.assumedMarketPriceEurPerMwh != null);
+        if (fromRows) return Number(fromRows.assumedMarketPriceEurPerMwh);
+        const assumption = (data.assumptionRows || []).find((row) =>
+          String(row.assumptionKey || "").includes("market_price")
+        );
+        return Number(assumption?.assumptionValue) || 0;
+      }
+
+      function budgetPerMwh(budgetRows, generationKwh) {
+        const budgetValue = budgetTotal(budgetRows);
+        const mwh = Number(generationKwh) / 1000;
+        if (!budgetValue || !mwh) return 0;
+        return budgetValue / mwh;
+      }
+
+      function budgetTotal(budgetRows) {
+        const totalRow = budgetRows.find((row) => String(row.rowKey || "").includes("total"));
+        if (totalRow?.estimatedEurPerYear != null) return Number(totalRow.estimatedEurPerYear) || 0;
+        return sum(budgetRows, "estimatedEurPerYear");
+      }
+
+      function strongestTechnology(rows) {
+        return [...rows].sort(
+          (a, b) => (Number(b.grossMarketValueEurPerYear) || 0) - (Number(a.grossMarketValueEurPerYear) || 0)
+        )[0];
+      }
+
+      function renderMayorBrief(data, generationValue, generationKwh, budgetValue) {
+        const rows = generationRows(data.valueRows || []);
+        const price = marketPrice(data, rows);
+        const concessionProxy = budgetPerMwh(data.budgetImpactRows || [], generationKwh);
+        const localMwh = price + concessionProxy;
+        const importedMwh = concessionProxy;
+        const topTech = strongestTechnology(rows);
+        const topTechText = topTech
+          ? `${technologyLabel(topTech.technology)} traegt im aktuellen Szenario den groessten sichtbaren Erzeugungswert.`
+          : "Die lokale Erzeugungsbasis ist noch nicht belastbar genug, um eine Fuehrungstechnologie zu benennen.";
+
+        return `
+          <section class="mayor-brief">
+            <h2>Einordnung fuer Buergermeister und Gemeinderat</h2>
+            <p>
+              Die zentrale Frage ist nicht, ob Strom technisch sauber erzeugt wird. Die politische
+              Frage lautet: Bleibt aus jeder MWh ein wirtschaftlicher Gegenwert im Ort, oder bezahlt
+              die Kommune Energie, deren Erzeugungswert anderswo entsteht? ${escapeHtml(data.municipality || "Die Kommune")}
+              sieht hier eine erste, nachvollziehbare Szenario-Rechnung.
+            </p>
+            <div class="money-grid">
+              <article class="money-card">
+                <span>1 MWh lokal erzeugt und lokal verbraucht</span>
+                <strong>${escapeHtml(euro(localMwh))}</strong>
+                <p>Davon ${escapeHtml(euro(price))} Marktwert der Erzeugung plus etwa ${escapeHtml(euro(concessionProxy))} kommunaler Budget-/Konzessionshebel im Szenario.</p>
+              </article>
+              <article class="money-card">
+                <span>1 MWh importiert</span>
+                <strong>${escapeHtml(euro(importedMwh))}</strong>
+                <p>Die Versorgung ist da, aber der Erzeugungswert entsteht ausserhalb. Lokal bleibt vor allem der angenommene Konzessions-/Netzbezug sichtbar.</p>
+              </article>
+              <article class="money-card">
+                <span>Jahreshebel im Ort</span>
+                <strong>${escapeHtml(euro(generationValue + budgetValue))}</strong>
+                <p>Summe aus lokal sichtbarem Erzeugungswert und Szenario-Budgetwirkung. Das ist Beratungslogik, keine Buchhaltung.</p>
+              </article>
+            </div>
+            <div class="narrative-grid">
+              <article class="narrative-card">
+                <h3>Warum das fuer den Haushalt zaehlt</h3>
+                <p>Konzessionsabgaben wirken direkt kommunal. Erzeugungswert wirkt indirekt ueber lokale Betreiber, Flaechen, Gewerbe, Pachten und Stadtwerk-Strategie.</p>
+              </article>
+              <article class="narrative-card">
+                <h3>Warum das fuer Standortpolitik zaehlt</h3>
+                <p>Lokale Erzeugung macht Energiepolitik greifbar: Dachflaechen, Gewerbegebiete, Bioenergie und Flaechenplanung werden zu wirtschaftlichen Optionen.</p>
+              </article>
+              <article class="narrative-card">
+                <h3>Was dieser Ort jetzt lernen kann</h3>
+                <p>${escapeHtml(topTechText)} Danach sollte geklaert werden, welcher Ausbau politisch, netzseitig und kaufmaennisch am besten traegt.</p>
+              </article>
+            </div>
+          </section>
+        `;
+      }
+
+      function recommendationFor(row) {
+        const tech = String(row.technology || row.rowKey || "").toLowerCase();
+        const value = euro(row.grossMarketValueEurPerYear);
+        const mwh = number((Number(row.estimatedGenerationKwhPerYear) || 0) / 1000, " MWh/a");
+        if (tech.includes("pv")) {
+          return {
+            label: "Photovoltaik priorisieren",
+            detail: `PV liefert hier ${mwh} und ${value} sichtbaren Marktwert. Politisch passt dazu ein Dachflaechen-, Gewerbedach- und kommunales Liegenschaftsprogramm.`,
+          };
+        }
+        if (tech.includes("biomass")) {
+          return {
+            label: "Biomasse kaufmaennisch pruefen",
+            detail: `Biomasse liefert hier ${mwh} und ${value}. Der Hebel entsteht durch viele Betriebsstunden; wichtig sind Brennstoffpfad, Waermenutzung und Betreiberstruktur.`,
+          };
+        }
+        if (tech.includes("wind")) {
+          return {
+            label: "Windkraft als Flaechenfrage klaeren",
+            detail: `Windkraft liefert hier ${mwh} und ${value}. Der naechste Schritt ist eine Flaechen-, Akzeptanz- und Netzanschlusspruefung.`,
+          };
+        }
+        return {
+          label: `${technologyLabel(row.technology)} einordnen`,
+          detail: `${technologyLabel(row.technology)} liefert hier ${mwh} und ${value}. Die lokale Betreiber- und Flaechenwirkung sollte in einer Beratung geklaert werden.`,
+        };
+      }
+
+      function renderTechnologyGuidance(data) {
+        const rows = generationRows(data.valueRows || []);
+        const items = rows.map(recommendationFor);
+        const hasPv = rows.some((row) => String(row.technology || "").toLowerCase().includes("pv"));
+        const hasWind = rows.some((row) => String(row.technology || "").toLowerCase().includes("wind"));
+        if (!hasPv) {
+          items.push({
+            label: "Photovoltaik-Potenzial sichtbar machen",
+            detail: "Wenn keine PV-Zeile auftaucht, sollte zuerst das Dach- und Freiflaechenpotenzial gehoben werden. PV ist meist der schnellste kommunal erklaerbare Einstieg.",
+          });
+        }
+        if (!hasWind) {
+          items.push({
+            label: "Windkraft nicht vorschnell ausschliessen",
+            detail: "Fehlt Windkraft, ist das noch keine Absage. Es bedeutet: Regionalplanung, Flaechenkulisse, Akzeptanz und Netzanschluss muessen als eigener Pruefpfad sichtbar werden.",
+          });
+        }
+
+        return `
+          <section class="recommendation-panel">
+            <h2>Welche Erzeugung sollte die Kommune foerdern?</h2>
+            <p>
+              Die Empfehlung folgt keiner Ideologie, sondern der lokalen Euro-Logik: Was erzeugt
+              viele MWh, was bindet Wert im Ort, was ist politisch umsetzbar und welches Netzrisiko
+              muss vorher geklaert werden?
+            </p>
+            <div class="recommendation-list">
+              ${items
+                .slice(0, 4)
+                .map(
+                  (item) => `
+                    <div class="recommendation-row">
+                      <div>
+                        <strong>${escapeHtml(item.label)}</strong>
+                        <span>Kommunaler Handlungshebel</span>
+                      </div>
+                      <p>${escapeHtml(item.detail)}</p>
+                    </div>
+                  `
+                )
+                .join("")}
+            </div>
+          </section>
+        `;
       }
 
       function renderMetric(label, value, note) {
@@ -880,7 +1124,7 @@
       function drawCharts(data) {
         destroyCharts();
         const valueRows = data.valueRows || [];
-        const generationRows = valueRows.filter((row) => row.grossMarketValueEurPerYear);
+        const genRows = generationRows(valueRows);
         const riskRows = data.riskRows || [];
 
         const valueCtx = document.getElementById("valueChart");
@@ -889,11 +1133,11 @@
         charts.value = new Chart(valueCtx, {
           type: "bar",
           data: {
-            labels: generationRows.map((row) => row.technologyLabel || row.technology || row.rowKey),
+            labels: genRows.map((row) => row.technologyLabel || technologyLabel(row.technology) || row.rowKey),
             datasets: [
               {
                 label: "Brutto-Marktwert EUR/Jahr",
-                data: generationRows.map((row) => Number(row.grossMarketValueEurPerYear) || 0),
+                data: genRows.map((row) => Number(row.grossMarketValueEurPerYear) || 0),
                 backgroundColor: ["#157f53", "#2f6fa7", "#a76116", "#6f7f15"],
                 borderRadius: 4,
               },
@@ -938,28 +1182,34 @@
         const valueRows = data.valueRows || [];
         const budgetRows = data.budgetImpactRows || [];
         const riskRows = data.riskRows || [];
-        const generationValue = sum(valueRows, "grossMarketValueEurPerYear");
-        const generationKwh = sum(valueRows, "estimatedGenerationKwhPerYear");
-        const budgetValue = sum(budgetRows, "estimatedEurPerYear");
+        const genRows = generationRows(valueRows);
+        const generationValue = sum(genRows, "grossMarketValueEurPerYear");
+        const generationKwh = sum(genRows, "estimatedGenerationKwhPerYear");
+        const budgetValue = budgetTotal(budgetRows);
         const retentionRow = first(valueRows, (row) => row.rowKey === "local_retention_indicator");
-        const retention = retentionRow.retentionShare != null ? `${Math.round(Number(retentionRow.retentionShare) * 100)} %` : "offen";
+        const retention =
+          retentionRow.retentionShare != null
+            ? `${Math.round(Number(retentionRow.retentionShare) * 100)} %`
+            : retentionRow.localRetentionIndicator || "offen";
         const maxRisk = riskRows.reduce((max, row) => Math.max(max, Number(row.severityScore) || 0), 0);
 
         dataStatus.textContent = `${data.municipality || "Kommune"}: ${statusText(data)}`;
         results.innerHTML = `
           <div class="summary">
-            ${renderMetric("Lokaler Marktwert", euro(generationValue), "Proxy aus Leistung, Volllaststunden und Marktpreisannahme.")}
-            ${renderMetric("Jahreserzeugung", number(generationKwh / 1000, " MWh"), "Bilanzieller Erzeugungsindikator, kein physischer Liefernachweis.")}
-            ${renderMetric("Lokale Deckung", retention, "Szenarioanteil lokaler Erzeugung am geschaetzten Verbrauch.")}
-            ${renderMetric("Budgetwirkung", euro(budgetValue), "Konzessionsabgabe als Annahmenschicht, keine Abrechnung.")}
+            ${renderMetric("Lokaler Marktwert", euro(generationValue), "Sichtbarer Gegenwert der lokalen Anlagen vor Steuern, Pacht und Betreiberstruktur.")}
+            ${renderMetric("Jahreserzeugung", number(generationKwh / 1000, " MWh"), "MWh, die als lokale Wirtschaftsoption diskutiert werden koennen.")}
+            ${renderMetric("Lokale Deckung", retention, "Bilanzieller Hinweis: lokale Nutzung bindet Wert besser als reiner Import.")}
+            ${renderMetric("Budgetwirkung", euro(budgetValue), "Konzessions-/Budgethebel als Szenario, keine rechtliche Abrechnung.")}
           </div>
+
+          ${renderMayorBrief(data, generationValue, generationKwh, budgetValue)}
 
           <div class="analysis-grid">
             <section class="panel">
               <div class="panel-head">
                 <div>
-                  <h2>Wirtschaftlicher Wert lokaler Erzeugung</h2>
-                  <p>${escapeHtml(data.municipality || "Die Kommune")} zeigt ${escapeHtml(valueRows.length)} Wertzeilen im Szenario ${escapeHtml(data.scenario || "baseline")}.</p>
+                  <h2>Welche Erzeugung bringt wirtschaftlichen Gegenwert?</h2>
+                  <p>${escapeHtml(data.municipality || "Die Kommune")} zeigt ${escapeHtml(genRows.length)} Erzeugungszeilen im Szenario ${escapeHtml(data.scenario || "baseline")}.</p>
                 </div>
               </div>
               <div class="chart-wrap"><canvas id="valueChart"></canvas></div>
@@ -968,19 +1218,21 @@
             <section class="panel">
               <div class="panel-head">
                 <div>
-                  <h2>Netzbetreiber- und Umsetzungsrisiken</h2>
-                  <p>Hoechster Risikoscore: ${escapeHtml(maxRisk)}. Fehlende Evidenz wird als Beratungsbedarf sichtbar.</p>
+                  <h2>Was kann den kommunalen Nutzen bremsen?</h2>
+                  <p>Hoechster Risikoscore: ${escapeHtml(maxRisk)}. Verzogerung, Datenluecken oder Anschlussengpaesse werden als wirtschaftliches Risiko lesbar.</p>
                 </div>
               </div>
               <div class="chart-wrap"><canvas id="riskChart"></canvas></div>
             </section>
           </div>
 
+          ${renderTechnologyGuidance(data)}
+
           <section class="panel">
             <div class="panel-head">
               <div>
-                <h2>Risiken, die lokale Wertschoepfung bremsen koennen</h2>
-                <p>Die Zeilen zeigen nicht nur Technik, sondern kommunale Wirkung: Verzogerungen, Datenluecken und Anschlussrisiken.</p>
+                <h2>Blocker fuer lokale Wertschoepfung</h2>
+                <p>Die Zeilen zeigen nicht nur Technik, sondern kommunale Wirkung: Verzogerungen, Datenluecken und Anschlussrisiken koennen Investitionen und Einnahmen verschieben.</p>
               </div>
             </div>
             <div class="risk-list">${riskRows.map(renderRisk).join("")}</div>
@@ -989,8 +1241,8 @@
           <section class="table-panel">
             <div class="panel-head">
               <div>
-                <h2>Kommunale Haushaltswirkung</h2>
-                <p>Konzessionsabgabe und Budgeteffekte bleiben als Szenario gekennzeichnet.</p>
+                <h2>Haushalt: Konzession und Szenarioeffekt</h2>
+                <p>Konzessionsabgabe und Budgeteffekte bleiben bewusst als Annahmen gekennzeichnet, damit Politik und Kaemmerei sie pruefen koennen.</p>
               </div>
             </div>
             ${renderBudgetTable(budgetRows)}
