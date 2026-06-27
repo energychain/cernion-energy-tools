@@ -31104,11 +31104,6 @@ module.exports = {
       addGap('operator_locality', 'Belege zur Lokalität des Netzbetreibers ermöglichen kommunale Steuer-/Umsatzeffekt-Abschätzung.');
       addGap('local_tax_assumptions', 'Lokale Gewerbesteuer-/Einkommensteuerannahmen ermöglichen kommunales Steuereffekt-Szenario.');
 
-      const positiveFollowUps = missingEvidence.map((gap) => ({
-        ...gap,
-        category: 'municipal_energy_value_analysis',
-      }));
-
       const noCallGuards = [
         'billing.settlement',
         'tariff.mutate',
@@ -31171,6 +31166,81 @@ module.exports = {
         scenario,
         marketPriceEurPerMwh: assumedMarketPriceEurPerMwh,
       });
+      const generationOutlierGuardrail = (intermunicipalComparison.guardrailRows || []).find(
+        (row) => row.guardrailKey === 'target_peer_method_outlier' && row.status === 'blocked'
+      );
+      const generationIntegrityWarning = generationOutlierGuardrail
+        ? {
+            status: 'review-required',
+            warningKey: 'target_peer_method_outlier',
+            headline: 'Erzeugungswerte vor politischer Nutzung prüfen',
+            message:
+              'Die abgeleitete lokale Erzeugung liegt außerhalb des Peer-Korridors. Erzeugungswert, Zeitgleichkeitswert und §42c-Prüfwerte sind deshalb methodische Prüfwerte, bis Anlagenbestand und Peer-Methodik gegengeprüft sind.',
+            affectedMetrics: [
+              'gross_market_value',
+              'local_value_capture',
+              'import_exposure',
+              'energy_sharing_potential',
+            ],
+            nextGateLabel:
+              'MaStR-/Anlagenbestand der Zielkommune, Volllaststunden und Peer-Ableitung gegen reale Projekte prüfen.',
+          }
+        : null;
+
+      if (generationIntegrityWarning) {
+        addGap(
+          'generation_peer_outlier_review',
+          'Ausreißerprüfung für lokale Erzeugung ermöglicht belastbare Ratszahlen statt methodischer Prüfwerte.'
+        );
+        const warningSuffix =
+          ' Datenintegritäts-Hinweis: Zielkommune liegt im Peer-Self-Check außerhalb des Korridors; vor politischer Nutzung als Prüfwert behandeln.';
+        for (const row of valueRows) {
+          const rowKey = String(row.rowKey || '');
+          if (
+            rowKey.includes('generation_value') ||
+            rowKey === 'local_value_capture_indicator'
+          ) {
+            row.evidenceStatus = 'integrity-review-required';
+            row.integrityWarningKey = generationIntegrityWarning.warningKey;
+            row.assumptionLabel = `${row.assumptionLabel || ''}${warningSuffix}`.trim();
+          }
+        }
+        for (const row of timeSeriesValueRows) {
+          if (Number(row.marketValueEur) > 0 || Number(row.localCorrelationValueEur) > 0) {
+            row.evidenceStatus = 'integrity-review-required';
+            row.integrityWarningKey = generationIntegrityWarning.warningKey;
+            row.sourceLabel = `${row.sourceLabel || ''}${warningSuffix}`.trim();
+          }
+        }
+        for (const row of euroKpiRows) {
+          if (
+            [
+              'euro_kpi_gross_market_value',
+              'euro_kpi_local_value_capture',
+              'euro_kpi_import_exposure',
+            ].includes(row.rowKey)
+          ) {
+            row.evidenceStatus = 'integrity-review-required';
+            row.integrityWarningKey = generationIntegrityWarning.warningKey;
+            row.description = `${row.description || ''}${warningSuffix}`.trim();
+          }
+        }
+        for (const row of energySharingCommunityRows) {
+          if (
+            Number(row.referenceUnmatchedValueEur) > 0 ||
+            Number(row.potentialLocalCirculationEurPerYear) > 0
+          ) {
+            row.evidenceStatus = 'integrity-review-required';
+            row.integrityWarningKey = generationIntegrityWarning.warningKey;
+            row.assumptionLabel = `${row.assumptionLabel || ''}${warningSuffix}`.trim();
+          }
+        }
+      }
+
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'municipal_energy_value_analysis',
+      }));
 
       return {
         capabilityKey: 'municipal_energy_value_analysis',
@@ -31202,6 +31272,7 @@ module.exports = {
         noCallGuards,
         noAutarkyGuardrails,
         intermunicipalComparison,
+        generationIntegrityWarning,
         _errors: [],
       };
     },

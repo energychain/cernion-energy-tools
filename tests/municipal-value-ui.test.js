@@ -40,6 +40,7 @@ describe('municipal-value public UI decision framing', () => {
     expect(html).toContain('Was die Verwaltung jetzt beauftragen kann');
     expect(html).toContain('Diese Liste ist kein Defizitbericht');
     expect(html).toContain('Sinkende Nachweiszahl');
+    expect(html).toContain('beauftragbare Nachweise sind noch offen');
     expect(html).not.toContain('${(data.sourceRows || []).length} Quellen / ${(data.missingEvidence || []).length} offene Punkte');
   });
 
@@ -70,7 +71,8 @@ describe('municipal-value public UI decision framing', () => {
     expect(html).toContain('Seit 01.06.2026 im VNB-Gebiet möglich');
     expect(html).toContain('Herkunft: gerundete Marktpreisannahme plus KAV-Proxy');
     expect(html).toContain('Erzeugungswert plus rund');
-    expect(html).toContain('Höchster Risikoscore: ${escapeHtml(maxRisk)}/100');
+    expect(html).toContain('Höchster Risikoscore: ${escapeHtml(maxRisk)}/100, aktuell ${escapeHtml(riskLevelText(maxRisk))}');
+    expect(html).toContain('if (value >= 70) return "hohes Gesamtrisiko"');
     expect(html).toContain('@media print');
     expect(html).toContain('break-inside: avoid');
     expect(html).toContain('.visual-panel');
@@ -78,6 +80,17 @@ describe('municipal-value public UI decision framing', () => {
     expect(html).not.toContain('€,\\n              nicht als direkte Haushaltseinnahme');
     expect(html).toContain('Welche Erzeugung bringt den größten lokalen Wert?');
     expect(html).not.toContain('Welche Erzeugung erzeugt Erzeugungswert?');
+  });
+
+  it('surfaces generation integrity warnings wherever derived euro values are prominent', () => {
+    expect(html).toContain('function generationIntegrityWarning(data)');
+    expect(html).toContain('function renderGenerationIntegrityNotice(data, compact = false)');
+    expect(html).toContain('Erzeugungswerte vor politischer Nutzung prüfen');
+    expect(html).toContain('methodische Prüfwerte');
+    expect(html).toContain('key.includes("integrity") || key.includes("review")');
+    expect(html).toContain('methodischer Erzeugungswert');
+    expect(html).toContain('methodischer Prüfwert');
+    expect(html).toContain('ca. ${roundedEuro(low)} – ${roundedEuro(high)}');
   });
 
   it('uses print-stable disclosure cards and compact budget rows for PDF export', () => {

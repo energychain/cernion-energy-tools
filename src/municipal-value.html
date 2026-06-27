@@ -806,6 +806,12 @@
         margin-bottom: 3px;
       }
 
+      .integrity-warning {
+        border-left-color: #a76116;
+        background: #fff7ea;
+        color: #5a3510;
+      }
+
       .analysis-grid {
         display: grid;
         grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
@@ -1441,7 +1447,7 @@
         if (value == null || Number.isNaN(Number(value)) || Number(value) <= 0) return "offen";
         const low = Number(value) * lowFactor;
         const high = Number(value) * highFactor;
-        return `ca. ${roundedEuro(low)}–${roundedEuro(high)}`;
+        return `ca. ${roundedEuro(low)} – ${roundedEuro(high)}`;
       }
 
       function number(value, suffix = "") {
@@ -1564,7 +1570,7 @@
         const low = Number(row?.estimatedLowEurPerYear);
         const high = Number(row?.estimatedHighEurPerYear);
         if (low > 0 && high > 0 && high >= low) {
-          return `ca. ${roundedEuro(low)}–${roundedEuro(high)}`;
+          return `ca. ${roundedEuro(low)} – ${roundedEuro(high)}`;
         }
         return euroRange(fallbackValue);
       }
@@ -1622,11 +1628,47 @@
 
       function publicEvidenceLabel(value) {
         const key = String(value || "").toLowerCase();
+        if (key.includes("integrity") || key.includes("review")) return "Prüfwert";
         if (key.includes("missing")) return "offen";
         if (key.includes("scenario")) return "Szenario";
         if (key.includes("assumption")) return "Schätzung";
         if (key.includes("available")) return "belegt";
         return value || "offen";
+      }
+
+      function generationIntegrityWarning(data) {
+        const warning = data?.generationIntegrityWarning;
+        if (!warning || warning.status !== "review-required") return null;
+        return warning;
+      }
+
+      function hasGenerationIntegrityWarning(data) {
+        return generationIntegrityWarning(data) != null;
+      }
+
+      function renderGenerationIntegrityNotice(data, compact = false) {
+        const warning = generationIntegrityWarning(data);
+        if (!warning) return "";
+        const text = warning.message || "Die abgeleitete lokale Erzeugung braucht vor politischer Nutzung eine Gegenprüfung.";
+        const nextGate = warning.nextGateLabel || "Anlagenbestand und Methodik prüfen.";
+        return `
+          <div class="decision-sentence integrity-warning">
+            <strong>${escapeHtml(warning.headline || "Erzeugungswerte vor politischer Nutzung prüfen")}:</strong>
+            ${escapeHtml(compact ? "Die erzeugungsabhängigen Euro-Spannen sind bis zur Gegenprüfung methodische Prüfwerte." : text)}
+            Nächster Prüfpunkt: ${escapeHtml(nextGate)}
+          </div>
+        `;
+      }
+
+      function integrityValueLabel(data, baseLabel = "Prüfwert") {
+        return hasGenerationIntegrityWarning(data) ? `methodischer ${baseLabel}` : baseLabel;
+      }
+
+      function riskLevelText(score) {
+        const value = Number(score) || 0;
+        if (value >= 70) return "hohes Gesamtrisiko";
+        if (value >= 40) return "mittleres Gesamtrisiko";
+        return "niedriges Gesamtrisiko";
       }
 
       function publicRisk(row) {
@@ -1736,8 +1778,9 @@
         const sharing = topEnergySharingScenario(data);
         const headlinePlace = data.municipality || "die Kommune";
         const topTechLabel = topTech ? technologyLabel(topTech.technology) : "lokale Erzeugung";
+        const sharingLabel = integrityValueLabel(data);
         const sharingText = sharing
-          ? `Energy Sharing (§42c) als stärksten lokalen Nutzungshebel prüfen (${euroRange(sharing.potentialLocalCirculationEurPerYear, 0.9, 1.1)} Prüfwert/Jahr).`
+          ? `Energy Sharing (§42c) als lokalen Nutzungshebel prüfen (${euroRange(sharing.potentialLocalCirculationEurPerYear, 0.9, 1.1)} ${sharingLabel}/Jahr).`
           : "Energy Sharing (§42c) als lokalen Nutzungshebel prüfen, sobald Liegenschaften und Messpunkte vorliegen.";
 
         return `
@@ -1750,6 +1793,7 @@
               die Verwaltung bis zur Beschlussvorlage beschafft.
             </p>
             ${renderLocationIdentity(data)}
+            ${renderGenerationIntegrityNotice(data, true)}
             <div class="executive-main">
               <article class="executive-number">
                 <span>Haushaltsanker</span>
@@ -1792,6 +1836,7 @@
         const localKpi = (data.euroKpiRows || []).find((row) => row.rowKey === "euro_kpi_local_value_capture");
         const importKpi = (data.euroKpiRows || []).find((row) => row.rowKey === "euro_kpi_import_exposure");
         const sharing = topEnergySharingScenario(data);
+        const valueLabel = integrityValueLabel(data);
 
         return `
           <section class="panel">
@@ -1805,21 +1850,22 @@
                 </p>
               </div>
             </div>
+            ${renderGenerationIntegrityNotice(data)}
             <div class="story-lanes">
               <article class="story-lane">
                 <span>Heute importabhängig</span>
                 <strong>${escapeHtml(euroRange(importKpi?.valueEur, 0.9, 1.1))}</strong>
-                <p>Größenordnung des externen Strombezugs nach der ersten lokalen Deckungsschätzung.</p>
+                <p>Größenordnung des externen Strombezugs nach der ersten lokalen Deckungsschätzung${hasGenerationIntegrityWarning(data) ? "; bis zur Erzeugungsprüfung als methodischer Prüfwert" : ""}.</p>
               </article>
               <article class="story-lane">
                 <span>Bereits lokal passend</span>
                 <strong>${escapeHtml(euroRange(localKpi?.valueEur, 0.9, 1.1))}</strong>
-                <p>Teil des lokalen Erzeugungswerts, der zeitlich am besten zum Verbrauch passt.</p>
+                <p>Teil des lokalen Erzeugungswerts, der zeitlich am besten zum Verbrauch passt${hasGenerationIntegrityWarning(data) ? "; " + valueLabel : ""}.</p>
               </article>
               <article class="story-lane">
                 <span>§42c-Hebel</span>
                 <strong>${escapeHtml(euroRange(sharing?.potentialLocalCirculationEurPerYear, 0.9, 1.1))}</strong>
-                <p>Prüfwert für Energy Sharing zwischen kommunalen, privaten und gewerblichen Teilnehmern.</p>
+                <p>${escapeHtml(valueLabel)} für Energy Sharing zwischen kommunalen, privaten und gewerblichen Teilnehmern.</p>
               </article>
             </div>
             <div class="decision-sentence">
@@ -1897,7 +1943,7 @@
               <article class="money-card">
                 <span>Wert bei Anlagenbetreibern pro Jahr</span>
                 <strong>${escapeHtml(euroRange(generationValue))}</strong>
-                <p>Erzeugungswert, kein kommunaler Geldzufluss. Politisch relevant wird dieser Wert, wenn Betreiber lokal sind, kommunale Flächen verpachtet werden oder lokale Aufträge entstehen.</p>
+                <p>Erzeugungswert, kein kommunaler Geldzufluss. ${hasGenerationIntegrityWarning(data) ? "Bis zur Anlagenprüfung ist diese Spanne ein methodischer Prüfwert. " : ""}Politisch relevant wird dieser Wert, wenn Betreiber lokal sind, kommunale Flächen verpachtet werden oder lokale Aufträge entstehen.</p>
               </article>
               <article class="money-card">
                 <span>1 MWh lokal gegenüber Import</span>
@@ -1923,40 +1969,42 @@
               <strong>Szenarioeinordnung:</strong>
               ${escapeHtml(scenarioText(data))}
             </div>
+            ${renderGenerationIntegrityNotice(data, true)}
           </section>
         `;
       }
 
-      function recommendationFor(row) {
+      function recommendationFor(row, data) {
         const tech = String(row.technology || row.rowKey || "").toLowerCase();
         const valueRange = euroRange(row.grossMarketValueEurPerYear, 0.9, 1.1);
+        const valueLabel = hasGenerationIntegrityWarning(data) ? "methodischer Erzeugungswert" : "Erzeugungswert";
         if (tech.includes("pv")) {
           return {
             label: "Photovoltaik priorisieren",
-            detail: `PV liefert hier ${valueRange} Erzeugungswert pro Jahr, mit derselben Marktwertannahme wie Tabelle und Diagramm. Relevant für die Kommune wird das über kommunale Dächer, Pachtmodelle, lokale Betreiber und Aufträge an örtliche Betriebe.`,
+            detail: `PV liefert hier ${valueRange} ${valueLabel} pro Jahr, mit derselben Marktwertannahme wie Tabelle und Diagramm. Relevant für die Kommune wird das über kommunale Dächer, Pachtmodelle, lokale Betreiber und Aufträge an örtliche Betriebe.`,
           };
         }
         if (tech.includes("biomass")) {
           return {
             label: "Biomasse kaufmännisch prüfen",
-            detail: `Biomasse liefert hier ${valueRange} Erzeugungswert pro Jahr. Der kommunale Hebel entsteht über Wärmenutzung, Betreiberstruktur, Brennstoffpfad und Gewerbesteuerlokalität.`,
+            detail: `Biomasse liefert hier ${valueRange} ${valueLabel} pro Jahr. Der kommunale Hebel entsteht über Wärmenutzung, Betreiberstruktur, Brennstoffpfad und Gewerbesteuerlokalität.`,
           };
         }
         if (tech.includes("wind")) {
           return {
             label: "Windkraft als Flächenfrage klären",
-            detail: `Windkraft liefert hier ${valueRange} Erzeugungswert pro Jahr. Entscheidend sind kommunale Flächenanteile, Beteiligungsmodell, Steuerwirkung und Netzanschlussdauer.`,
+            detail: `Windkraft liefert hier ${valueRange} ${valueLabel} pro Jahr. Entscheidend sind kommunale Flächenanteile, Beteiligungsmodell, Steuerwirkung und Netzanschlussdauer.`,
           };
         }
         return {
           label: `${technologyLabel(row.technology)} einordnen`,
-          detail: `${technologyLabel(row.technology)} liefert hier ${valueRange} Erzeugungswert pro Jahr. Die lokale Betreiber-, Steuer- und Flächenwirkung sollte gezielt geklärt werden.`,
+          detail: `${technologyLabel(row.technology)} liefert hier ${valueRange} ${valueLabel} pro Jahr. Die lokale Betreiber-, Steuer- und Flächenwirkung sollte gezielt geklärt werden.`,
         };
       }
 
       function renderTechnologyGuidance(data) {
         const rows = generationRows(data.valueRows || []);
-        const items = rows.map(recommendationFor);
+        const items = rows.map((row) => recommendationFor(row, data));
         const hasPv = rows.some((row) => String(row.technology || "").toLowerCase().includes("pv"));
         const hasBiomass = rows.some((row) => String(row.technology || "").toLowerCase().includes("biomass"));
         const hasWind = rows.some((row) => String(row.technology || "").toLowerCase().includes("wind"));
@@ -1981,6 +2029,7 @@
               viel Jahreswert, was bindet Wert im Ort, was ist politisch umsetzbar und welches Netzrisiko
               muss vorher geklärt werden?
             </p>
+            ${renderGenerationIntegrityNotice(data, true)}
             <div class="recommendation-list">
               ${items
                 .slice(0, 4)
@@ -2071,6 +2120,7 @@
                 </p>
               </div>
             </div>
+            ${renderGenerationIntegrityNotice(data, true)}
             <div class="money-grid">
               <article class="money-card">
                 <span>Abgeleiteter Stromverbrauch</span>
@@ -2080,12 +2130,12 @@
               <article class="money-card">
                 <span>Zeitgleicher lokaler Euro-Beitrag</span>
                 <strong>${escapeHtml(euroRange(localKpi?.valueEur, 0.9, 1.1))}</strong>
-                <p>Teil des Erzeugungswerts, der rechnerisch besser zum lokalen Verbrauchsprofil passt. Keine Autarkie-Aussage.</p>
+                <p>Teil des Erzeugungswerts, der rechnerisch besser zum lokalen Verbrauchsprofil passt. Keine Autarkie-Aussage.${hasGenerationIntegrityWarning(data) ? " Methodischer Prüfwert bis zur Erzeugungsprüfung." : ""}</p>
               </article>
               <article class="money-card">
                 <span>Importkosten-Exponierung</span>
                 <strong>${escapeHtml(euroRange(importKpi?.valueEur, 0.9, 1.1))}</strong>
-                <p>Größenordnung des Strombezugs, der nach der abgeleiteten lokalen Erzeugungswirkung weiterhin von außen abhängt.</p>
+                <p>Größenordnung des Strombezugs, der nach der abgeleiteten lokalen Erzeugungswirkung weiterhin von außen abhängt.${hasGenerationIntegrityWarning(data) ? " Methodischer Prüfwert bis zur Erzeugungsprüfung." : ""}</p>
               </article>
             </div>
             ${loadProfileChart}
@@ -2198,6 +2248,7 @@
         const bestScenario = [...scenarios]
           .filter((row) => Number(row.potentialLocalCirculationEurPerYear) > 0)
           .sort((a, b) => (Number(b.potentialLocalCirculationEurPerYear) || 0) - (Number(a.potentialLocalCirculationEurPerYear) || 0))[0];
+        const valueLabel = integrityValueLabel(data);
 
         return `
           <section class="panel">
@@ -2212,6 +2263,7 @@
                 </p>
               </div>
             </div>
+            ${renderGenerationIntegrityNotice(data, true)}
             <div class="sharing-flow" aria-label="Energy-Sharing-Wirklogik">
               <article class="sharing-node">
                 <span>Erzeugung</span>
@@ -2240,12 +2292,12 @@
               <article class="money-card">
                 <span>Adressierbarer Prüfwert</span>
                 <strong>${escapeHtml(euroRange(context.referenceUnmatchedValueEur, 0.9, 1.1))}</strong>
-                <p>Nicht zeitgleicher oder noch nicht vertraglich lokal nutzbarer Erzeugungswert. Kein Erlösversprechen.</p>
+                <p>Nicht zeitgleicher oder noch nicht vertraglich lokal nutzbarer Erzeugungswert. Kein Erlösversprechen.${hasGenerationIntegrityWarning(data) ? " Bis zur Anlagenprüfung: methodischer Prüfwert." : ""}</p>
               </article>
               <article class="money-card">
                 <span>Stärkstes Szenario</span>
                 <strong>${escapeHtml(euroRange(bestScenario?.potentialLocalCirculationEurPerYear, 0.9, 1.1))}</strong>
-                <p>Prüfgröße für lokale Wertbindung durch Community, Speicher und flexible Lasten.</p>
+                <p>${escapeHtml(valueLabel)} für lokale Wertbindung durch Community, Speicher und flexible Lasten.</p>
               </article>
             </div>
             <div class="scenario-list">
@@ -2254,7 +2306,7 @@
                   <div>
                     <span>§42c-Szenario</span>
                     <strong>${escapeHtml(row.rowLabel)}</strong>
-                    <small>${escapeHtml(euroRange(row.potentialLocalCirculationEurPerYear, 0.9, 1.1))} Prüfwert/Jahr</small>
+                    <small>${escapeHtml(euroRange(row.potentialLocalCirculationEurPerYear, 0.9, 1.1))} ${escapeHtml(valueLabel)}/Jahr</small>
                   </div>
                   <div class="scenario-meta">
                     <p><b>Modell:</b> ${escapeHtml(row.communityModel)}</p>
@@ -2465,7 +2517,7 @@
             </div>
             <div class="insight">
               <h3>Nachweisstand</h3>
-              <p>${sources.length} Quellen und Annahmen liegen vor. Die beauftragbaren Nachweise im Hauptteil zeigen, was die nächste Version belastbarer macht.</p>
+              <p>${sources.length} Quellen und Annahmen liegen vor; ${missing.length} beauftragbare Nachweise sind noch offen. Diese Zahl ist das Fortschrittssignal: sinkt sie, wird die nächste Version belastbarer.</p>
             </div>
             <div class="insight">
               <h3>Eigenprüfung</h3>
@@ -2640,7 +2692,7 @@
                   <div class="panel-head">
                     <div>
                       <h2>Was kann den kommunalen Nutzen bremsen?</h2>
-                      <p>Höchster Risikoscore: ${escapeHtml(maxRisk)}/100, aktuell mittleres Gesamtrisiko. Die Ampelliste übersetzt Netz- und Prozessrisiken in kommunale Entscheidungssprache.</p>
+                      <p>Höchster Risikoscore: ${escapeHtml(maxRisk)}/100, aktuell ${escapeHtml(riskLevelText(maxRisk))}. Die Ampelliste übersetzt Netz- und Prozessrisiken in kommunale Entscheidungssprache.</p>
                     </div>
                   </div>
                   <div class="risk-list">${riskRows.map(renderRisk).join("")}</div>

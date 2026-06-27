@@ -9683,9 +9683,9 @@ describe('dashboard-api.service', () => {
       expect(typeof result.timestamp).toBe('string');
     });
 
-    it('returns scalar/display-safe valueRows for Mauer with no nested objects', async () => {
+    it('returns scalar/display-safe valueRows for Wiesloch with no nested objects', async () => {
       const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
-        municipality: 'Mauer',
+        municipality: 'Wiesloch',
         year: 2025,
         scenario: 'baseline',
       });
@@ -9703,7 +9703,7 @@ describe('dashboard-api.service', () => {
 
       const captureRow = result.valueRows.find((r) => r.rowKey === 'local_value_capture_indicator');
       expect(captureRow).toBeDefined();
-      // Mauer has population → derived load profile → correlation available (#332)
+      // Wiesloch has population → derived load profile → correlation available (#332)
       expect(captureRow.evidenceStatus).toBe('derived-from-assets');
       expect(typeof captureRow.localValueCaptureEur).toBe('number');
     });
@@ -9972,7 +9972,7 @@ describe('dashboard-api.service', () => {
 
     it('returns timeSeriesValueRows with required scalar fields and derived correlation values (#332)', async () => {
       const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
-        municipality: 'Mauer',
+        municipality: 'Wiesloch',
         year: 2025,
         scenario: 'baseline',
       });
@@ -9992,7 +9992,7 @@ describe('dashboard-api.service', () => {
       expect(pvTs).toBeDefined();
       expect(typeof pvTs.marketValueEur).toBe('number');
       expect(pvTs.marketValueEur).toBeGreaterThan(0);
-      // Mauer has population → derived load profile available (#332)
+      // Wiesloch has population → derived load profile available (#332)
       expect(pvTs.evidenceStatus).toBe('derived-from-assets');
       expect(typeof pvTs.localCorrelationValueEur).toBe('number');
       expect(pvTs.localCorrelationValueEur).toBeGreaterThan(0);
@@ -10000,7 +10000,7 @@ describe('dashboard-api.service', () => {
 
     it('returns euroKpiRows with scalar EUR fields and derived-from-assets local capture (#332)', async () => {
       const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
-        municipality: 'Mauer',
+        municipality: 'Wiesloch',
         year: 2025,
         scenario: 'baseline',
       });
@@ -10015,7 +10015,7 @@ describe('dashboard-api.service', () => {
       expect(grossKpi.valueEur).toBeGreaterThan(0);
       expect(grossKpi.evidenceStatus).toBe('assumption-backed');
 
-      // Mauer has population → derived load profile → correlation available (#332)
+      // Wiesloch has population → derived load profile → correlation available (#332)
       const captureKpi = result.euroKpiRows.find((r) => r.rowKey === 'euro_kpi_local_value_capture');
       expect(captureKpi).toBeDefined();
       expect(typeof captureKpi.valueEur).toBe('number');
@@ -10421,10 +10421,10 @@ describe('dashboard-api.service', () => {
       expect(result.intermunicipalComparison.blockedFallback !== undefined).toBe(true);
     });
 
-    it('saubere Daten → Vergleich verfuegbar: Mauer (BW) hat ausreichend Peers (issue #334)', async () => {
+    it('saubere Daten → Vergleich verfuegbar: Wiesloch (BW) hat ausreichend Peers (issue #334)', async () => {
       const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
-        municipality: 'Mauer',
-        ags: '08226048',
+        municipality: 'Wiesloch',
+        ags: '08226098',
         year: 2025,
         scenario: 'baseline',
       });
@@ -10432,7 +10432,7 @@ describe('dashboard-api.service', () => {
       expect(ic.status).toBe('available');
       expect(ic.dataStatus).toBe('scenario-based');
       expect(ic.target).not.toBeNull();
-      expect(ic.target.ags).toBe('08226048');
+      expect(ic.target.ags).toBe('08226098');
       expect(ic.target.state).toBe('Baden-Württemberg');
       expect(ic.peerGroup).not.toBeNull();
       expect(ic.peerGroup.validPeerCount).toBeGreaterThanOrEqual(5);
@@ -10503,6 +10503,42 @@ describe('dashboard-api.service', () => {
       const agsGuardrail = ic.guardrailRows.find((r) => r.guardrailKey === 'ags_resolution');
       expect(agsGuardrail).toBeDefined();
       expect(agsGuardrail.status).toBe('blocked');
+    });
+
+    it('extremer Zielort-Ausreißer sperrt Vergleich und markiert erzeugungsabhängige Euro-Zeilen als Prüfwerte', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Leimen',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      const ic = result.intermunicipalComparison;
+      expect(ic.status).toBe('blocked');
+      const outlierGuardrail = ic.guardrailRows.find((r) => r.guardrailKey === 'target_peer_method_outlier');
+      expect(outlierGuardrail).toBeDefined();
+      expect(outlierGuardrail.status).toBe('blocked');
+      expect(result.generationIntegrityWarning).toMatchObject({
+        status: 'review-required',
+        warningKey: 'target_peer_method_outlier',
+      });
+      expect(result.missingEvidence.map((row) => row.missingDataPoint)).toContain(
+        'generation_peer_outlier_review'
+      );
+
+      const grossKpi = result.euroKpiRows.find((r) => r.rowKey === 'euro_kpi_gross_market_value');
+      const localKpi = result.euroKpiRows.find((r) => r.rowKey === 'euro_kpi_local_value_capture');
+      const importKpi = result.euroKpiRows.find((r) => r.rowKey === 'euro_kpi_import_exposure');
+      expect(grossKpi.evidenceStatus).toBe('integrity-review-required');
+      expect(localKpi.evidenceStatus).toBe('integrity-review-required');
+      expect(importKpi.evidenceStatus).toBe('integrity-review-required');
+
+      const sharingScenarios = result.energySharingCommunityRows.filter((row) =>
+        Number(row.potentialLocalCirculationEurPerYear) > 0
+      );
+      expect(sharingScenarios.length).toBeGreaterThan(0);
+      expect(sharingScenarios.every((row) => row.evidenceStatus === 'integrity-review-required')).toBe(true);
+      expect(result.positiveFollowUps.map((row) => row.missingDataPoint)).toContain(
+        'generation_peer_outlier_review'
+      );
     });
   });
 
