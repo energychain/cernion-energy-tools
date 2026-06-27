@@ -10767,7 +10767,8 @@ describe('dashboard-api.service', () => {
       const g = result.guardrailRows.find((r) => r.guardrailKey === 'target_peer_method_outlier');
       expect(g).toBeDefined();
       expect(g.status).toBe('blocked');
-      expect(result.blockedFallback.text).toContain('Methodik-Warnsignal');
+      expect(result.blockedFallback.headline).toContain('nicht freigegeben');
+      expect(result.blockedFallback.text).toContain('keinen Peer-Vergleich');
     });
 
     it('formatiert Einwohnerkorridor mit Tausendertrennzeichen', () => {

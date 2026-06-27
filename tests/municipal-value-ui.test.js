@@ -103,6 +103,9 @@ describe('municipal-value public UI decision framing', () => {
     expect(html).not.toContain('methodische Prüfwerte');
     expect(html).toContain('ca. ${euro(low)} bis ${euro(high)}');
     expect(html).toContain('function budgetRangeFromRows(rows, row)');
+    expect(html).toContain('function generationRangeFromRows(rows)');
+    expect(html).toContain('<strong>${escapeHtml(generationRangeFromRows(rows))}</strong>');
+    expect(html).toContain('locale: "de-DE"');
   });
 
   it('shows the sector split as a single OSM/MaStR backend evidence path', () => {

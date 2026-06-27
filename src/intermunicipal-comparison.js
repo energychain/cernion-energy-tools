@@ -536,11 +536,11 @@ function buildIntermunicipalComparison({
       corridorRows: [],
       guardrailRows,
       blockedFallback: {
-        headline: 'Interkommunaler Vergleich noch nicht belastbar',
+        headline: 'Interkommunaler Vergleich noch nicht freigegeben',
         text:
-          `${methodOutlier.metricLabel} liegt deutlich außerhalb des Vergleichskorridors. ` +
-          'Das wird als Methodik-Warnsignal behandelt, nicht als Erfolgssignal.',
-        nextGateLabel: 'Erzeugungsdaten der Zielkommune und Peer-Ableitung vor politischer Nutzung prüfen.',
+          `${methodOutlier.metricLabel} liegt deutlich außerhalb des vorläufigen Vergleichskorridors. ` +
+          'Cernion zeigt deshalb keinen Peer-Vergleich, bis Zielkommune und Vergleichsgruppe mit derselben lokalen Evidenzlogik gegengeprüft sind.',
+        nextGateLabel: 'MaStR-Anlagenbestand, OSM-/Sektorlogik und Peer-Ableitung gemeinsam verifizieren.',
       },
     };
   }
