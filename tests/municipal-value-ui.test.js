@@ -23,12 +23,15 @@ describe('municipal-value public UI decision framing', () => {
     const appendix = renderBlock.indexOf('Analyse und Referenz öffnen');
     const loadProfile = renderBlock.indexOf('renderTimeSeriesInsight(data)');
     const flex = renderBlock.indexOf('renderFlexibilityScenarios(data)');
+    const intermunicipal = renderBlock.indexOf('renderIntermunicipalComparison(data)');
 
     expect(executive).toBeGreaterThan(-1);
     expect(story).toBeGreaterThan(executive);
     expect(energySharing).toBeGreaterThan(story);
     expect(actionOffer).toBeGreaterThan(energySharing);
     expect(appendix).toBeGreaterThan(actionOffer);
+    expect(intermunicipal).toBeGreaterThan(appendix);
+    expect(intermunicipal).toBeLessThan(loadProfile);
     expect(loadProfile).toBeGreaterThan(appendix);
     expect(flex).toBeGreaterThan(appendix);
   });
@@ -84,5 +87,25 @@ describe('municipal-value public UI decision framing', () => {
     expect(html).toContain('budget-assumption-row');
     expect(html).not.toContain('<th>Kommunaler Use Case</th>');
     expect(html).not.toContain('<th>Annahme</th>');
+  });
+
+  it('renders intermunicipal comparison once in the reference layer with guardrail fallback', () => {
+    expect(html).toContain('function renderIntermunicipalComparison(data)');
+    expect(html).toContain('data-section="intermunicipal-comparison"');
+    expect(html).toContain('comparison.status !== "available"');
+    expect(html).toContain('Der Vergleich wird erst gezeigt, wenn AGS, Einwohner, Haushalte');
+    expect(html).toContain('Einwohnerkorridor:');
+    expect(html).toContain('Siedlungsstruktur:');
+    expect(html).toContain('n =');
+    expect(html).toContain('Die Vergleichsorte bleiben im Standard anonymisiert');
+
+    const renderStart = html.indexOf('results.innerHTML = `');
+    const renderBlock = html.slice(renderStart);
+    const calls = renderBlock.match(/renderIntermunicipalComparison\(data\)/g) || [];
+    expect(calls).toHaveLength(1);
+
+    const executive = renderBlock.indexOf('renderExecutiveDecision(data');
+    const intermunicipal = renderBlock.indexOf('renderIntermunicipalComparison(data)');
+    expect(intermunicipal).toBeGreaterThan(executive);
   });
 });

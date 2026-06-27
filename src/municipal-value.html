@@ -429,6 +429,91 @@
         padding: 15px;
       }
 
+      .comparison-panel {
+        border-color: rgba(47, 111, 167, 0.24);
+      }
+
+      .comparison-meta {
+        border: 1px solid rgba(47, 111, 167, 0.18);
+        border-radius: 8px;
+        background: #f5f9fc;
+        color: #27445b;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        margin: 12px 0 0;
+        padding: 10px 12px;
+      }
+
+      .comparison-meta span {
+        font-size: 0.88rem;
+        font-weight: 800;
+      }
+
+      .comparison-list {
+        display: grid;
+        gap: 12px;
+        margin-top: 14px;
+      }
+
+      .comparison-row {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        padding: 14px;
+      }
+
+      .comparison-row-head {
+        align-items: baseline;
+        display: flex;
+        gap: 10px;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+
+      .comparison-row-head h3 {
+        margin: 0;
+      }
+
+      .comparison-row-head span {
+        color: var(--green);
+        font-weight: 900;
+      }
+
+      .comparison-band {
+        background: #e6edf3;
+        border-radius: 999px;
+        height: 12px;
+        margin: 12px 0 8px;
+        position: relative;
+      }
+
+      .comparison-marker {
+        background: var(--green);
+        border: 2px solid #fff;
+        border-radius: 999px;
+        box-shadow: 0 2px 8px rgba(24, 35, 29, 0.18);
+        height: 20px;
+        left: var(--marker-position, 50%);
+        position: absolute;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 20px;
+      }
+
+      .comparison-range {
+        color: var(--muted);
+        display: flex;
+        font-size: 0.82rem;
+        justify-content: space-between;
+      }
+
+      .comparison-row p {
+        color: var(--muted);
+        line-height: 1.45;
+        margin: 10px 0 0;
+      }
+
       .evidence-list {
         display: grid;
         gap: 10px;
@@ -2167,6 +2252,93 @@
         `;
       }
 
+      function comparisonMarkerPosition(row) {
+        const min = Number(row.minValue);
+        const max = Number(row.maxValue);
+        const target = Number(row.targetValue);
+        if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(target)) return 50;
+        if (max <= min) return 50;
+        return Math.max(0, Math.min(100, ((target - min) / (max - min)) * 100));
+      }
+
+      function renderIntermunicipalComparison(data) {
+        const comparison = data.intermunicipalComparison;
+        if (!comparison) return "";
+
+        const peerGroup = comparison.peerGroup || {};
+        const fallback = comparison.blockedFallback || {};
+        const blocked = comparison.status !== "available";
+        const dataStatus = publicEvidenceLabel(comparison.dataStatus || "scenario-based");
+
+        if (blocked) {
+          return `
+            <section class="panel comparison-panel" data-section="intermunicipal-comparison">
+              <div class="panel-head">
+                <div>
+                  <h2>Interkommunale Einordnung</h2>
+                  <p>
+                    Der Vergleich wird erst gezeigt, wenn AGS, Einwohner, Haushalte,
+                    Verbrauchsableitung und Vergleichsgruppe plausibel geprüft sind.
+                  </p>
+                </div>
+              </div>
+              <div class="decision-sentence">
+                <strong>${escapeHtml(fallback.headline || "Vergleich derzeit nicht verfügbar")}:</strong>
+                ${escapeHtml(fallback.text || comparison.statusReason || "Die Datenbasis braucht noch einen Plausibilitätsnachweis.")}
+                ${fallback.nextGateLabel ? ` Nächster Prüfpunkt: ${escapeHtml(fallback.nextGateLabel)}` : ""}
+              </div>
+            </section>
+          `;
+        }
+
+        const rows = comparison.corridorRows || [];
+        const criteria = peerGroup.criteriaLabel || "Vergleichsgruppe aus Bundesland, Einwohnerkorridor und Siedlungsstruktur";
+        return `
+          <section class="panel comparison-panel" data-section="intermunicipal-comparison">
+            <div class="panel-head">
+              <div>
+                <h2>Interkommunale Einordnung</h2>
+                <p>
+                  Die Kachel ordnet ${escapeHtml(data.municipality || "die Kommune")} in einen anonymisierten
+                  Korridor vergleichbarer Kommunen ein. Sie zeigt erschließbaren Spielraum, keine
+                  Bloßstellung einzelner Orte.
+                </p>
+              </div>
+            </div>
+            <div class="comparison-meta">
+              <span>Bundesland: ${escapeHtml(peerGroup.state || data.state || "offen")}</span>
+              <span>Einwohnerkorridor: ${escapeHtml(peerGroup.populationBandLabel || "offen")}</span>
+              <span>Siedlungsstruktur: ${escapeHtml(peerGroup.settlementStructureCriterion || "offen")}</span>
+              <span>n = ${escapeHtml(peerGroup.validPeerCount ?? "offen")}</span>
+              <span>Status: ${escapeHtml(dataStatus)}</span>
+            </div>
+            <div class="comparison-list">
+              ${rows.map((row) => `
+                <article class="comparison-row">
+                  <div class="comparison-row-head">
+                    <h3>${escapeHtml(row.metricLabel || row.metricKey)}</h3>
+                    <span>${escapeHtml(row.targetValue != null ? `${row.targetValue} ${row.unit || ""}` : "offen")}</span>
+                  </div>
+                  <div class="comparison-band" aria-label="${escapeHtml(row.metricLabel || row.metricKey)} Korridor">
+                    <span class="comparison-marker" style="--marker-position: ${comparisonMarkerPosition(row)}%"></span>
+                  </div>
+                  <div class="comparison-range">
+                    <span>${escapeHtml(row.minValue != null ? `${row.minValue} ${row.unit || ""}` : "min offen")}</span>
+                    <span>Median ${escapeHtml(row.medianValue != null ? `${row.medianValue} ${row.unit || ""}` : "offen")}</span>
+                    <span>${escapeHtml(row.maxValue != null ? `${row.maxValue} ${row.unit || ""}` : "max offen")}</span>
+                  </div>
+                  <p>${escapeHtml(row.framingText || row.roundedRangeLabel || "Korridorwert aus Vergleichsgruppe.")}</p>
+                </article>
+              `).join("")}
+            </div>
+            <div class="decision-sentence">
+              <strong>Auswahlkriterium:</strong>
+              ${escapeHtml(criteria)}. Die Vergleichsorte bleiben im Standard anonymisiert; gezeigt wird nur der aggregierte Korridor.
+            </div>
+          </section>
+        `;
+      }
+
       function renderMetric(label, value, note, className = "") {
         return `
           <article class="metric ${escapeHtml(className)}">
@@ -2391,6 +2563,8 @@
               ${renderSources(data)}
 
               ${renderMayorBrief(data, generationValue, generationKwh, budgetTotal(budgetRows))}
+
+              ${renderIntermunicipalComparison(data)}
 
               ${renderTimeSeriesInsight(data)}
 
