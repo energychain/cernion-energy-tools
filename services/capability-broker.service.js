@@ -1492,6 +1492,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasSteeringArtifactAcceptanceGateSignal =
+    /(akzeptanz.?gate|pflege.?gate|steering artifact acceptance|maintenance gate|steuerungsartefakt)/i.test(haystack) &&
+    /(rollout|nutzungsnachweis|nutzenbeweis|pflegeowner|pflege.?owner|stellvertretung|eskalationskriterium|abbruchkriterium|retirement|pflegeaufwand)/i.test(haystack) &&
+    !/(budibase table write|workflow execute|hitl\.create|external connector|billing|settlement|mako|device-control|produktion)/i.test(haystack);
+
+  if (hasSteeringArtifactAcceptanceGateSignal || haystack.includes('steering_artifact_acceptance_gate')) {
+    const steeringArtifactCapability = findCapabilityByName('steering_artifact_acceptance_gate');
+    if (steeringArtifactCapability) {
+      return { capability: steeringArtifactCapability, score: 123, usedFallback: false };
+    }
+  }
+
   if (
     vdmiAssetValidationSignals.some((signal) => haystack.includes(signal)) ||
     hasVdmiAssetValidationCombo

@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 94 static rules', () => {
+    it('loads all 95 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(94);
+      expect(rules.length).toBe(95);
     });
 
-    it('compiles all 94 static rules without error', () => {
+    it('compiles all 95 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(94);
+      expect(rules.length).toBe(95);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -472,6 +472,43 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Asset: asset-194');
       expect(formatted).toContain('Owner: assetmanagement');
       expect(formatted).toContain('Leading Gap: feedback_capability');
+    });
+
+    it('dashboard-api.steeringArtifactAcceptanceGateStatus is dossier-safe and formats acceptance facts', () => {
+      const rule = getRule('dashboard-api.steeringArtifactAcceptanceGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Akzeptanz-Gate artefakt=grid-card rolle=netzplanung owner=lead laden'
+        )
+      ).toEqual({
+        artifactName: 'grid-card',
+        targetRole: 'netzplanung',
+        owner: 'lead',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_maintenance_owner',
+        artifact: {
+          artifactName: 'Grid Planning Next Gate',
+          targetRole: 'Netzplanung',
+        },
+        ownerContext: { owner: null },
+        missingEvidence: [{ missingDataPoint: 'owner' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add accountable owner assignment',
+          },
+        ],
+        timestamp: '2026-06-27T01:50:00.000Z',
+      });
+
+      expect(formatted).toContain('Acceptance Gate Status: needs_maintenance_owner');
+      expect(formatted).toContain('Artifact: Grid Planning Next Gate');
+      expect(formatted).toContain('Target Role: Netzplanung');
+      expect(formatted).toContain('Leading Gap: owner');
     });
 
     it('dashboard-api.anschlusskapazitaetEvidenceQueueStatus is dossier-safe and formats queue facts', () => {

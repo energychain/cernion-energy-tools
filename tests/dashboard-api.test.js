@@ -2129,6 +2129,86 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── steeringArtifactAcceptanceGateStatus ────────────────────────────────
+
+  describe('steeringArtifactAcceptanceGateStatus', () => {
+    it('reports explicit acceptance and maintenance gaps without creating downstream actions', async () => {
+      const result = await broker.call('dashboard-api.steeringArtifactAcceptanceGateStatus', {
+        artifactType: 'fuehrungskarte',
+        artifactName: 'Redispatch Steuerungskarte',
+        targetRole: 'Netzbetrieb',
+        useCase: 'weekly redispatch risk review',
+        itemCount: 12,
+      });
+
+      expect(result.status).toBe('needs_maintenance_owner');
+      expect(result.capabilityKey).toBe('steering_artifact_acceptance_gate');
+      expect(result.scalarRows.map((row) => row.id)).toEqual(
+        expect.arrayContaining(['artifact_identity', 'target_role', 'bounded_item_count'])
+      );
+      expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'maintenance_effort',
+          'update_cadence',
+          'owner',
+          'deputy_owner',
+          'usage_evidence',
+          'escalation_criterion',
+          'rollout_decision',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('steering_artifact_acceptance_gate');
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['budibase.table.write', 'workflow.execute', 'hitl.create'])
+      );
+      expect(result.safety).toBe('read_only');
+    });
+
+    it('returns ready_for_limited_rollout when all acceptance facts are supplied', async () => {
+      const result = await broker.call('dashboard-api.steeringArtifactAcceptanceGateStatus', {
+        artifactType: 'workbench-card',
+        artifactName: 'Grid Planning Next Gate',
+        targetRole: 'Netzplanung',
+        useCase: 'daily role queue review',
+        itemCount: 8,
+        maintenanceMinutesPerWeek: 45,
+        updateCadence: 'weekly',
+        owner: 'Netzplanung Lead',
+        deputyOwner: 'Assetmanagement Deputy',
+        usageEvidence: 'used in weekly planning round',
+        escalationCriterion: 'retire if unused for two cycles',
+        rolloutDecision: 'limited-rollout-approved',
+      });
+
+      expect(result.status).toBe('ready_for_limited_rollout');
+      expect(result.missingEvidence).toEqual([]);
+      expect(result.operationalRisks).toEqual([]);
+      expect(result.dossierEvidence.dossierFacts).toContain('Provided gate evidence: 11/11');
+      expect(result.sourceActions.notCalled).toContain('personal-agent.execute');
+    });
+
+    it('recommends retire or rework for oversized or explicitly retired artifacts', async () => {
+      const result = await broker.call('dashboard-api.steeringArtifactAcceptanceGateStatus', {
+        artifactType: 'cockpit',
+        artifactName: 'Alle Transformationskarten',
+        targetRole: 'Geschaeftsfuehrung',
+        useCase: 'monthly review',
+        itemCount: 60,
+        maintenanceMinutesPerWeek: 180,
+        owner: 'PMO',
+        rolloutDecision: 'rework before rollout',
+      });
+
+      expect(result.status).toBe('should_retire_or_rework');
+      expect(result.operationalRisks.map((risk) => risk.code)).toEqual(
+        expect.arrayContaining(['artifact_scope_too_large', 'maintenance_effort_too_high'])
+      );
+      expect(result.validationFindings.map((finding) => finding.code)).toContain(
+        'SAAG_ARTIFACT_SCOPE_TOO_LARGE'
+      );
+    });
+  });
+
   // ── anschlusskapazitaetEvidenceQueueStatus ────────────────────────────
 
   describe('anschlusskapazitaetEvidenceQueueStatus', () => {

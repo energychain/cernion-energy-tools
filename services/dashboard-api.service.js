@@ -55,6 +55,7 @@ module.exports = {
       marketCommunicationEvidenceChainStatus: 5 * 60 * 1000, // 5 min
       e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
+      steeringArtifactAcceptanceGateStatus: 5 * 60 * 1000, // 5 min
       anschlusskapazitaetEvidenceQueueStatus: 5 * 60 * 1000, // 5 min
       layer0AuditDrilldownNoteStatus: 5 * 60 * 1000, // 5 min
       legalClarificationOperatingModelStatus: 5 * 60 * 1000, // 5 min
@@ -1660,6 +1661,96 @@ module.exports = {
           this.settings.cacheTtlMs.controllabilityAssetHandoverStatus,
           async () => ({
             ...this.buildControllabilityAssetHandoverStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── steeringArtifactAcceptanceGateStatus ───────────────────────────────
+    /**
+     * GET /api/dashboard/steering-artifact-acceptance-gate?artifactType=...
+     *
+     * Read-only dossier-safe acceptance and maintenance gate for proposed
+     * Steuerungsartefakte. It classifies maintainability evidence without
+     * creating workflows, Budibase rows, HITL items or operational mutations.
+     */
+    steeringArtifactAcceptanceGateStatus: {
+      rest: 'GET /steering-artifact-acceptance-gate',
+      params: {
+        artifactType: { type: 'string', optional: true, min: 1 },
+        artifactName: { type: 'string', optional: true, min: 1 },
+        targetRole: { type: 'string', optional: true, min: 1 },
+        useCase: { type: 'string', optional: true, min: 1 },
+        itemCount: { type: 'number', optional: true, convert: true },
+        maintenanceMinutesPerWeek: { type: 'number', optional: true, convert: true },
+        updateCadence: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        deputyOwner: { type: 'string', optional: true, min: 1 },
+        usageEvidence: { type: 'string', optional: true, min: 1 },
+        escalationCriterion: { type: 'string', optional: true, min: 1 },
+        rolloutDecision: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Steering artifact acceptance gate — read-only dossier-safe status',
+        description:
+          'Builds a deterministic advisory acceptance and maintenance gate for proposed Cernion ' +
+          'steering artifacts. It covers target role, use case, bounded item/card count, expected ' +
+          'maintenance effort, update cadence, owner/deputy, usage evidence, escalation/retirement ' +
+          'criterion and rollout decision. The endpoint is read-only and does not persist artifacts, ' +
+          'write Budibase data, create workflows/HITL items, call external connectors or mutate ' +
+          'billing, settlement, MaKo, tariff or device-control state.',
+        parameters: [
+          { name: 'artifactType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'artifactName', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'targetRole', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'useCase', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'itemCount', in: 'query', required: false, schema: { type: 'number' } },
+          { name: 'maintenanceMinutesPerWeek', in: 'query', required: false, schema: { type: 'number' } },
+          { name: 'updateCadence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'deputyOwner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'usageEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'escalationCriterion', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'rolloutDecision', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only steering artifact acceptance and maintenance gate status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    artifact: { type: 'object' },
+                    scalarRows: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    operationalRisks: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `steering-artifact-acceptance-gate:${params.artifactType || 'no-type'}:${params.artifactName || 'no-name'}:${params.targetRole || 'no-role'}:${params.useCase || 'no-use'}:${params.itemCount ?? 'no-count'}:${params.maintenanceMinutesPerWeek ?? 'no-maintenance'}:${params.updateCadence || 'no-cadence'}:${params.owner || 'no-owner'}:${params.deputyOwner || 'no-deputy'}:${params.usageEvidence || 'no-usage'}:${params.escalationCriterion || 'no-escalation'}:${params.rolloutDecision || 'no-decision'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.steeringArtifactAcceptanceGateStatus,
+          async () => ({
+            ...this.buildSteeringArtifactAcceptanceGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -10411,6 +10502,242 @@ module.exports = {
           nextReportingCycle: params.nextReportingCycle || null,
           nonExecutionReason: params.nonExecutionReason || null,
           blockingFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildSteeringArtifactAcceptanceGateStatus(params = {}) {
+      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const numberOrNull = (value) => {
+        if (value === undefined || value === null || value === '') return null;
+        const n = Number(value);
+        return Number.isFinite(n) ? n : null;
+      };
+      const itemCount = numberOrNull(params.itemCount);
+      const maintenanceMinutesPerWeek = numberOrNull(params.maintenanceMinutesPerWeek);
+      const evidenceSpecs = [
+        {
+          id: 'artifact_identity',
+          label: 'Artifact identity',
+          value: params.artifactType || params.artifactName,
+          sourceClass: 'steering_artifact_scope',
+          enablesDossierAddition: 'add artifact name/type and scope evidence',
+        },
+        {
+          id: 'target_role',
+          label: 'Target role',
+          value: params.targetRole,
+          sourceClass: 'role_readiness',
+          enablesDossierAddition: 'add accountable target-role evidence',
+        },
+        {
+          id: 'use_case',
+          label: 'Use case',
+          value: params.useCase,
+          sourceClass: 'operational_use_case',
+          enablesDossierAddition: 'add operational use-case evidence',
+        },
+        {
+          id: 'bounded_item_count',
+          label: 'Bounded item/card count',
+          value: itemCount !== null ? itemCount : null,
+          sourceClass: 'artifact_scope',
+          enablesDossierAddition: 'add scoped pilot card/item count',
+        },
+        {
+          id: 'maintenance_effort',
+          label: 'Maintenance effort',
+          value: maintenanceMinutesPerWeek !== null ? maintenanceMinutesPerWeek : null,
+          sourceClass: 'maintenance_cost',
+          enablesDossierAddition: 'add weekly maintenance effort evidence',
+        },
+        {
+          id: 'update_cadence',
+          label: 'Update cadence',
+          value: params.updateCadence,
+          sourceClass: 'maintenance_cadence',
+          enablesDossierAddition: 'add update cadence evidence',
+        },
+        {
+          id: 'owner',
+          label: 'Owner',
+          value: params.owner,
+          sourceClass: 'accountable_owner',
+          enablesDossierAddition: 'add accountable owner assignment',
+        },
+        {
+          id: 'deputy_owner',
+          label: 'Deputy owner',
+          value: params.deputyOwner,
+          sourceClass: 'operational_backup_owner',
+          enablesDossierAddition: 'add deputy-owner assignment',
+        },
+        {
+          id: 'usage_evidence',
+          label: 'Usage evidence',
+          value: params.usageEvidence,
+          sourceClass: 'benefit_proof',
+          enablesDossierAddition: 'add Nutzenbeweis / usage indicator evidence',
+        },
+        {
+          id: 'escalation_criterion',
+          label: 'Escalation or retirement criterion',
+          value: params.escalationCriterion,
+          sourceClass: 'governance_exit_criterion',
+          enablesDossierAddition: 'add escalation or retirement criterion evidence',
+        },
+        {
+          id: 'rollout_decision',
+          label: 'Rollout decision',
+          value: params.rolloutDecision,
+          sourceClass: 'limited_rollout_decision',
+          enablesDossierAddition: 'add explicit limited-rollout/rework/retirement decision',
+        },
+      ];
+      const scalarRows = evidenceSpecs.map((spec) => ({
+        id: spec.id,
+        label: spec.label,
+        value: isProvided(spec.value) ? spec.value : null,
+        sourceClass: spec.sourceClass,
+        evidenceStatus: isProvided(spec.value) ? 'provided' : 'missing',
+      }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !isProvided(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const operationalRisks = [];
+      if (itemCount !== null && itemCount > 30) {
+        operationalRisks.push({
+          code: 'artifact_scope_too_large',
+          severity: 'high',
+          message: 'Artifact has too many cards/items for a bounded first rollout.',
+          enablesDossierAddition: 'add scoping evidence for a smaller pilot artifact',
+        });
+      }
+      if (maintenanceMinutesPerWeek !== null && maintenanceMinutesPerWeek > 120) {
+        operationalRisks.push({
+          code: 'maintenance_effort_too_high',
+          severity: 'high',
+          message: 'Expected maintenance effort exceeds a lightweight steering artifact.',
+          enablesDossierAddition: 'add maintenance-cost reduction or staffing evidence',
+        });
+      }
+      const rolloutDecision = String(params.rolloutDecision || '').toLowerCase();
+      const retireOrRework = /(retire|retirement|abbruch|abschalten|stilllegen|rework|ueberarbeiten|überarbeiten|stop|nicht)/.test(rolloutDecision);
+      const hasCoreEvidence = ['artifact_identity', 'target_role', 'use_case'].every((id) =>
+        scalarRows.find((row) => row.id === id)?.evidenceStatus === 'provided'
+      );
+      const hasMaintenanceEvidence = ['maintenance_effort', 'update_cadence', 'owner', 'deputy_owner'].every((id) =>
+        scalarRows.find((row) => row.id === id)?.evidenceStatus === 'provided'
+      );
+      let status = 'missing_acceptance_evidence';
+      if (retireOrRework || operationalRisks.length > 0) status = 'should_retire_or_rework';
+      else if (hasCoreEvidence && !params.owner) status = 'needs_maintenance_owner';
+      else if (hasCoreEvidence && !hasMaintenanceEvidence) status = 'needs_maintenance_owner';
+      else if (missingEvidence.length === 0) status = 'ready_for_limited_rollout';
+      else if (hasCoreEvidence) status = 'missing_acceptance_evidence';
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'steering_artifact_acceptance_gate',
+      }));
+      const riskFollowUps = operationalRisks.map((risk) => ({
+        missingDataPoint: risk.code,
+        enablesDossierAddition: risk.enablesDossierAddition,
+        category: 'steering_artifact_acceptance_gate',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.steeringArtifactAcceptanceGateStatus'],
+        referenced: [
+          'vdmi.dossier',
+          'evidence-registry.findings',
+          'dashboard-api.ownerDeadlineEvidenceGateStatus',
+          'dashboard-api.rolePermissionAccessReadinessGateStatus',
+        ],
+        notCalled: [
+          'budibase.table.write',
+          'workflow.execute',
+          'hitl.create',
+          'mail.send',
+          'webhook.emit',
+          'external.connector.call',
+          'mako.dispatch',
+          'settlement.prepareBilling',
+          'billing.release',
+          'tariff.mutate',
+          'device-control.execute',
+          'personal-agent.execute',
+        ],
+      };
+      const validationFindings = [
+        ...missingEvidence.map((item) => ({
+          code: `SAAG_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+          severity: ['owner', 'deputy_owner', 'usage_evidence', 'escalation_criterion'].includes(item.missingDataPoint)
+            ? 'high'
+            : 'medium',
+          message: item.enablesDossierAddition,
+        })),
+        ...operationalRisks.map((risk) => ({
+          code: `SAAG_${String(risk.code).toUpperCase()}`,
+          severity: risk.severity,
+          message: risk.message,
+        })),
+      ];
+      const dossierFacts = [
+        `Acceptance Gate Status: ${status}`,
+        `Provided gate evidence: ${scalarRows.filter((row) => row.evidenceStatus === 'provided').length}/${scalarRows.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.artifactName || params.artifactType) dossierFacts.push(`Artifact: ${params.artifactName || params.artifactType}`);
+      if (params.targetRole) dossierFacts.push(`Target Role: ${params.targetRole}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (params.rolloutDecision) dossierFacts.push(`Rollout Decision: ${params.rolloutDecision}`);
+
+      return {
+        gateId: `saag:${Buffer.from(`${params.artifactType || ''}:${params.artifactName || ''}:${params.targetRole || ''}:${params.owner || ''}`).toString('base64url').slice(0, 24)}`,
+        capabilityKey: 'steering_artifact_acceptance_gate',
+        safety: 'read_only',
+        status,
+        artifact: {
+          artifactType: params.artifactType || null,
+          artifactName: params.artifactName || null,
+          targetRole: params.targetRole || null,
+          useCase: params.useCase || null,
+          itemCount,
+          maintenanceMinutesPerWeek,
+          updateCadence: params.updateCadence || null,
+        },
+        ownerContext: {
+          owner: params.owner || null,
+          deputyOwner: params.deputyOwner || null,
+        },
+        rolloutDecision: params.rolloutDecision || null,
+        usageEvidence: params.usageEvidence || null,
+        escalationCriterion: params.escalationCriterion || null,
+        scalarRows,
+        missingEvidence,
+        operationalRisks,
+        positiveFollowUps: [...positiveFollowUps, ...riskFollowUps],
+        sourceActions,
+        validationFindings,
+        dossierEvidence: {
+          status,
+          scalarRows,
+          missingEvidence,
+          operationalRisks,
+          positiveFollowUps: [...positiveFollowUps, ...riskFollowUps],
+          owner: params.owner || null,
+          deputyOwner: params.deputyOwner || null,
+          rolloutDecision: params.rolloutDecision || null,
+          sourceActions: {
+            notCalled: sourceActions.notCalled,
+          },
           dossierFacts,
         },
       };

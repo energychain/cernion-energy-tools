@@ -2,8 +2,8 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.67.4
-- changelog_latest_release: 0.67.4
+- version: 0.67.8
+- changelog_latest_release: 0.67.8
 
 ## Purpose
 This file is a navigation manifest for LLM/agent consumers. It lists cluster
@@ -175,13 +175,13 @@ recipes:
   utility-report-ewk "A grid operator needs a structured EWK…"
 resolve: GET /api/_agent/operations?domain=regulatory
 
-### governance (37 capabilities · 1 recipes · 86 operations)
-capabilities: automation_requirements_decision_value, automation_risk_gate, crisis_decision_routine, cya_assessment_briefing, e2e_controllability_check_governance, financier_due_diligence_assessment, flexibility_conductor_role_model, grossspeicher_anschluss_readiness_gate, interface_placeholder, jour_fixe_decision_closure_tracker, ki_floorwalker_governance, knowledge_continuity_governance_gate, layer0_audit_drilldown_note, leadership_delta_cockpit, legal_clarification_operating_model, liquidity_planning_governance_module, netzkoppelvertrag_workflow, netzprozess_readiness_gate, nkp_reporting, nova_decision_lifecycle_readiness, off_balancing_metering_pruefmatrix, owner_deadline_evidence_gate, process_sensitization_readiness_map, reporting_governance, role_permission_access_readiness_gate, scqa_decision_framing, smart_meter_off_balancing_purpose_lock, stadtwerk_mauer_capability_projection, stadtwerk_mauer_event_replay_preview, stadtwerk_mauer_vdmi_profile, vdmi_asset_validation_governance, vdmi_governance_templates, vdmi_grid_connection_decision_governance, vdmi_portfolio_gatekeeping, vdmi_role_boundary_governance, vnb_kpi_benchmark_comparison, zaehlpark_finanzierung_szenario_cockpit
+### governance (38 capabilities · 1 recipes · 86 operations)
+capabilities: automation_requirements_decision_value, automation_risk_gate, crisis_decision_routine, cya_assessment_briefing, e2e_controllability_check_governance, financier_due_diligence_assessment, flexibility_conductor_role_model, grossspeicher_anschluss_readiness_gate, interface_placeholder, jour_fixe_decision_closure_tracker, ki_floorwalker_governance, knowledge_continuity_governance_gate, layer0_audit_drilldown_note, leadership_delta_cockpit, legal_clarification_operating_model, liquidity_planning_governance_module, netzkoppelvertrag_workflow, netzprozess_readiness_gate, nkp_reporting, nova_decision_lifecycle_readiness, off_balancing_metering_pruefmatrix, owner_deadline_evidence_gate, process_sensitization_readiness_map, reporting_governance, role_permission_access_readiness_gate, scqa_decision_framing, smart_meter_off_balancing_purpose_lock, stadtwerk_mauer_capability_projection, stadtwerk_mauer_event_replay_preview, stadtwerk_mauer_vdmi_profile, steering_artifact_acceptance_gate, vdmi_asset_validation_governance, vdmi_governance_templates, vdmi_grid_connection_decision_governance, vdmi_portfolio_gatekeeping, vdmi_role_boundary_governance, vnb_kpi_benchmark_comparison, zaehlpark_finanzierung_szenario_cockpit
 recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (12 capabilities · 9 recipes · 369 operations)
+### platform (12 capabilities · 9 recipes · 370 operations)
 capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, evidence_grounding_confidence_audit, evu_api_migration_diagnostics, file_ingest_monitor, hitl_role_based_evidence_request, live_update_stream_contract_status, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted…"
@@ -245,17 +245,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: 2e990b666f3ac84527283137fe03b6ceeb0c560c9910c6f9ee2dffa4420fbe30
+- CHANGELOG.md: 871609685bee9a7121272557375bb5f546db567c5cfd5cecb94dacd6ae570bc5
 - README.md: 149317e9eea460588ca9ff477c91a9009d275c51fd4bd4f88e9ff1785746836b
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 5190fa2814db597464408cb11f08dfa7bd7798df74e650adbebb6fab71b7f5d4
-- src/capability-catalog.js: 31fbef920699d783823095e7b91751b9660477f45333d5bdf98b6f47e3e20071
-- openapi-export.json: 3138728704227da8b4b45488aebcb88a99b89e35ed2ed6ffadff60cf0e742968
+- src/capability-catalog.js: afeeac70da66a3a4e96d0d0387eacd2eeeacad7885cdc466bed9fce40904c2a6
+- openapi-export.json: 42bbb7c21239fc5b70643c9cc98f7e027a1bddea61cc10cd654a15113be0766b
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 920
-- operation_count: 1029
+- path_count: 922
+- operation_count: 1031
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 2013c7940ba384027159eb854ca8e48df28b42a05a05ee16285b15bd66c64ddc
+- llm_txt_sha256: dbe43504370df93de166f8631f2deeed056b8b8217e1633e99baaf4ddbea808a
