@@ -9368,8 +9368,9 @@ describe('dashboard-api.service', () => {
 
       const captureRow = result.valueRows.find((r) => r.rowKey === 'local_value_capture_indicator');
       expect(captureRow).toBeDefined();
-      expect(captureRow.evidenceStatus).toBe('missing-evidence');
-      expect(captureRow.localValueCaptureEur).toBeNull();
+      // Mauer has population → derived load profile → correlation available (#332)
+      expect(captureRow.evidenceStatus).toBe('derived-from-assets');
+      expect(typeof captureRow.localValueCaptureEur).toBe('number');
     });
 
     it('returns scalar/display-safe riskRows with required fields including EWK and iMSys proxy risks', async () => {
@@ -9575,7 +9576,7 @@ describe('dashboard-api.service', () => {
       expect(result.ags).toBe('08221000');
     });
 
-    it('Wiesloch budgetImpactRows use 1.59 ct/kWh KAV rate', async () => {
+    it('Wiesloch budgetImpactRows use KAV-capped tariff and lower special-customer proxy rates', async () => {
       const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
         municipality: 'Wiesloch',
         year: 2025,
@@ -9586,17 +9587,26 @@ describe('dashboard-api.service', () => {
       expect(hhRow).toBeDefined();
       expect(typeof hhRow.estimatedEurPerYear).toBe('number');
       expect(hhRow.estimatedEurPerYear).toBeGreaterThan(0);
-      expect(hhRow.assumptionStatus).toContain('1.59');
+      expect(hhRow.assumptionStatus).toContain('1.32');
+      expect(hhRow.assumedKavCtPerKwh).toBe(1.32);
+
+      const commercialRow = result.budgetImpactRows.find((r) => r.rowKey === 'konzessionsabgabe_ns_gewerbe');
+      expect(commercialRow).toBeDefined();
+      expect(commercialRow.assumptionStatus).toContain('0.11');
+      expect(commercialRow.estimatedEurPerYear).toBeLessThan(hhRow.estimatedEurPerYear);
 
       const totalRow = result.budgetImpactRows.find((r) => r.rowKey === 'konzessionsabgabe_total_estimate');
       expect(totalRow).toBeDefined();
       expect(typeof totalRow.estimatedEurPerYear).toBe('number');
       expect(totalRow.estimatedEurPerYear).toBeGreaterThan(0);
+      expect(totalRow.estimatedEurPerYear).toBeLessThan(450000);
+      expect(totalRow.estimatedKavEurPerMwh).toBeLessThanOrEqual(13.2);
+      expect(totalRow.assumptionStatus).toContain('KAV-Sätze');
     });
 
     // ── Issue #330: time-series EUR correlation and no-autarky guardrails ──
 
-    it('returns timeSeriesValueRows with required scalar fields and no autarky claim', async () => {
+    it('returns timeSeriesValueRows with required scalar fields and derived correlation values (#332)', async () => {
       const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
         municipality: 'Mauer',
         year: 2025,
@@ -9611,17 +9621,20 @@ describe('dashboard-api.service', () => {
         expect(typeof row.rowKey).toBe('string');
         expect(typeof row.technology).toBe('string');
         expect(typeof row.timeWindow).toBe('string');
-        expect(row.localCorrelationValueEur).toBeNull();
+        // importExposureEur is null per-tech row; aggregate is in euroKpiRows (#332)
         expect(row.importExposureEur).toBeNull();
-        expect(row.evidenceStatus).toBe('missing-evidence');
       }
       const pvTs = result.timeSeriesValueRows.find((r) => r.rowKey === 'ts_pv_annual');
       expect(pvTs).toBeDefined();
       expect(typeof pvTs.marketValueEur).toBe('number');
       expect(pvTs.marketValueEur).toBeGreaterThan(0);
+      // Mauer has population → derived load profile available (#332)
+      expect(pvTs.evidenceStatus).toBe('derived-from-assets');
+      expect(typeof pvTs.localCorrelationValueEur).toBe('number');
+      expect(pvTs.localCorrelationValueEur).toBeGreaterThan(0);
     });
 
-    it('returns euroKpiRows with scalar EUR fields and missing-evidence for local capture', async () => {
+    it('returns euroKpiRows with scalar EUR fields and derived-from-assets local capture (#332)', async () => {
       const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
         municipality: 'Mauer',
         year: 2025,
@@ -9638,10 +9651,18 @@ describe('dashboard-api.service', () => {
       expect(grossKpi.valueEur).toBeGreaterThan(0);
       expect(grossKpi.evidenceStatus).toBe('assumption-backed');
 
+      // Mauer has population → derived load profile → correlation available (#332)
       const captureKpi = result.euroKpiRows.find((r) => r.rowKey === 'euro_kpi_local_value_capture');
       expect(captureKpi).toBeDefined();
-      expect(captureKpi.valueEur).toBeNull();
-      expect(captureKpi.evidenceStatus).toBe('missing-evidence');
+      expect(typeof captureKpi.valueEur).toBe('number');
+      expect(captureKpi.valueEur).toBeGreaterThan(0);
+      expect(captureKpi.evidenceStatus).toBe('derived-from-assets');
+
+      // Import exposure derived from remaining demand (#332)
+      const importKpi = result.euroKpiRows.find((r) => r.rowKey === 'euro_kpi_import_exposure');
+      expect(importKpi).toBeDefined();
+      expect(typeof importKpi.valueEur).toBe('number');
+      expect(importKpi.evidenceStatus).toBe('derived-from-assets');
 
       const budgetKpi = result.euroKpiRows.find((r) => r.rowKey === 'euro_kpi_municipal_budget_effect');
       expect(budgetKpi).toBeDefined();
@@ -9667,7 +9688,7 @@ describe('dashboard-api.service', () => {
       );
     });
 
-    it('missingEvidence includes local_load_profile and generation_time_series', async () => {
+    it('missingEvidence omits local_load_profile when derived profile available (#332)', async () => {
       const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
         municipality: 'Mauer',
         year: 2025,
@@ -9675,13 +9696,27 @@ describe('dashboard-api.service', () => {
       });
 
       const gapKeys = result.missingEvidence.map((g) => g.missingDataPoint);
-      expect(gapKeys).toContain('local_load_profile');
-      expect(gapKeys).toContain('generation_time_series');
+      // local_load_profile and generation_time_series are replaced by derived profile (#332)
+      expect(gapKeys).not.toContain('local_load_profile');
+      expect(gapKeys).not.toContain('generation_time_series');
+      // structural and data-quality gaps remain
       expect(gapKeys).toContain('operator_locality');
       expect(gapKeys).toContain('local_tax_assumptions');
     });
 
-    it('wind-heavy fixture (Heidelberg) shows high unmatchedGenerationValueEur with missing local correlation', async () => {
+    it('missingEvidence includes local_load_profile for unknown municipality (no derived profile)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Unbekannthausen',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      const gapKeys = result.missingEvidence.map((g) => g.missingDataPoint);
+      expect(gapKeys).toContain('local_load_profile');
+      expect(gapKeys).toContain('generation_time_series');
+    });
+
+    it('wind fixture (Heidelberg) shows derived correlation and unmatched generation (#332)', async () => {
       const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
         municipality: 'Heidelberg',
         year: 2025,
@@ -9691,11 +9726,15 @@ describe('dashboard-api.service', () => {
       expectScalarTableRows(result.timeSeriesValueRows);
       const windTs = result.timeSeriesValueRows.find((r) => r.rowKey === 'ts_wind_annual');
       expect(windTs).toBeDefined();
+      // Heidelberg has population → derived profile → wind correlation available (#332)
+      expect(windTs.evidenceStatus).toBe('derived-from-assets');
+      expect(typeof windTs.localCorrelationValueEur).toBe('number');
+      expect(windTs.localCorrelationValueEur).toBeGreaterThan(0);
+      // substantial unmatched wind generation (low coincidence factor 0.46)
       expect(typeof windTs.unmatchedGenerationValueEur).toBe('number');
-      expect(windTs.unmatchedGenerationValueEur).toBeGreaterThan(0);
-      expect(windTs.localCorrelationValueEur).toBeNull();
-      expect(windTs.evidenceStatus).toBe('missing-evidence');
-      expect(windTs.sourceLabel).toContain('wind-heavy');
+      expect(windTs.unmatchedGenerationValueEur).toBeGreaterThan(windTs.localCorrelationValueEur);
+      // importExposureEur per-row stays null; aggregate in euroKpiRows
+      expect(windTs.importExposureEur).toBeNull();
     });
 
     it('valueRows do not expose percentage autarky claims in any field value', async () => {
@@ -9714,6 +9753,47 @@ describe('dashboard-api.service', () => {
           }
         }
       }
+    });
+
+    // ── Issue #332 — derived load profile rows ────────────────────────────
+
+    it('Sandhausen returns derived load profile summary row with scalar fields (#332)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Sandhausen',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(Array.isArray(result.derivedLoadProfileRows)).toBe(true);
+      expect(result.derivedLoadProfileRows.length).toBeGreaterThan(0);
+      expectScalarTableRows(result.derivedLoadProfileRows);
+
+      const summaryRow = result.derivedLoadProfileRows.find((r) => r.rowKey === 'derived_load_summary');
+      expect(summaryRow).toBeDefined();
+      expect(typeof summaryRow.totalAnnualKwh).toBe('number');
+      expect(summaryRow.totalAnnualKwh).toBeGreaterThan(0);
+      expect(typeof summaryRow.householdKwh).toBe('number');
+      expect(typeof summaryRow.commercialKwh).toBe('number');
+      expect(summaryRow.evidenceStatus).toBe('derived-from-assets');
+      expect(summaryRow.confidence).toBe('low');
+    });
+
+    it('Wiesloch derived load profile regression: non-null localCorrelationValueEur for PV and biomass (#332)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Wiesloch',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      const pvTs = result.timeSeriesValueRows.find((r) => r.rowKey === 'ts_pv_annual');
+      const bioTs = result.timeSeriesValueRows.find((r) => r.rowKey === 'ts_biomass_annual');
+      expect(pvTs).toBeDefined();
+      expect(bioTs).toBeDefined();
+      // biomass has higher coincidence factor (0.62) than PV (0.25)
+      expect(bioTs.localCorrelationValueEur).toBeGreaterThan(pvTs.localCorrelationValueEur);
+      const captureKpi = result.euroKpiRows.find((r) => r.rowKey === 'euro_kpi_local_value_capture');
+      expect(typeof captureKpi.valueEur).toBe('number');
+      expect(captureKpi.valueEur).toBeGreaterThan(0);
     });
 
     // ── Issue #331 — real PLZ/name/AGS resolver ────────────────────────────

@@ -24,6 +24,7 @@
 
 const { FINDING_CODE_METADATA } = require('../src/validation-findings');
 const { resolveMunicipalityProfile } = require('../src/municipality-resolver');
+const { estimateMunicipalAnnualLoad, deriveTechnologyCorrelation } = require('../src/municipal-load-estimator');
 const {
   evaluatePresentationGrounding,
 } = require('../src/receipt-grounded-presentation-contract');
@@ -28989,6 +28990,10 @@ module.exports = {
       const biomassFullLoadHours = 7000;
       const windFullLoadHours = 1800;
 
+      let annualLoad = null;
+      let correlationResult = null;
+      let totalLocalCorrelationEur = null;
+
       const valueRows = [];
       if (profile.found) {
         if (profile.pvCapacityKw > 0) {
@@ -29050,6 +29055,14 @@ module.exports = {
           (sum, r) => sum + (r.grossMarketValueEurPerYear || 0),
           0
         );
+        annualLoad = estimateMunicipalAnnualLoad(profile);
+        correlationResult = annualLoad
+          ? deriveTechnologyCorrelation({ annualLoad, valueRows, assumedMarketPriceEurPerMwh })
+          : null;
+        totalLocalCorrelationEur = correlationResult
+          ? correlationResult.techResults.reduce((sum, r) => sum + r.localCorrelationValueEur, 0)
+          : null;
+
         valueRows.push({
           rowKey: 'local_value_capture_indicator',
           rowLabel: 'Lokale Werterfassung (EUR-Szenario)',
@@ -29059,11 +29072,14 @@ module.exports = {
           estimatedGenerationKwhPerYear: totalGenKwh,
           assumedMarketPriceEurPerMwh: null,
           grossMarketValueEurPerYear: totalGrossMarketValueEur,
-          localValueCaptureEur: null,
-          evidenceStatus: 'missing-evidence',
-          assumptionLabel:
-            'Lokales Lastprofil und Zeitreihen-Korrelation fehlen; keine bilanziellen Deckungsaussagen ohne Zeitreihenbasis.',
-          sourceLabel: 'Zeitreihen-Korrelation erforderlich',
+          localValueCaptureEur: totalLocalCorrelationEur,
+          evidenceStatus: correlationResult ? 'derived-from-assets' : 'missing-evidence',
+          assumptionLabel: correlationResult
+            ? `Abgeleitete lokale Werterfassung: ${totalLocalCorrelationEur} EUR/a (H0/G0-SLP-Proxy; kein Messwert; nicht autarkie-relevant).`
+            : 'Lokales Lastprofil und Zeitreihen-Korrelation fehlen; keine bilanziellen Deckungsaussagen ohne Zeitreihenbasis.',
+          sourceLabel: correlationResult
+            ? correlationResult.sourceLabel
+            : 'Zeitreihen-Korrelation erforderlich',
         });
       } else {
         valueRows.push({
@@ -29094,9 +29110,9 @@ module.exports = {
           evidenceStatus: isKnown && profile.gridOperatorBdewHint !== 'missing-evidence'
             ? 'assumption-backed'
             : 'missing-evidence',
-          sourceLabel: 'Netzbetreiber-Monitoring; eindeutige Betreiberkennung erforderlich',
-          assumptionLabel: 'Schätzung: ohne bestätigten Netzbetreiber bleibt die tatsächliche Anschlussdauer offen.',
-          nextGateLabel: 'Zuständigen Netzbetreiber bestätigen und Anschlussdauer mit aktuellen Fällen belegen.',
+          sourceLabel: 'Netzbetreiber-Monitoring; BNr oder MaStR-Netzbetreiber-ID für Benchmark-Abgleich erforderlich',
+          assumptionLabel: 'Schätzung: ohne Benchmark-Kennung bleibt die tatsächliche Anschlussdauer im EWK-Monitoring offen.',
+          nextGateLabel: 'Anschlussdauer des zuständigen Netzbetreibers mit aktuellen Fällen belegen.',
         },
         {
           riskKey: 'digitalization_index_risk',
@@ -29140,7 +29156,7 @@ module.exports = {
       ];
 
       const budgetImpactRows = [];
-      if (profile.found) {
+      if (profile.found && profile.population) {
         const totalHouseholds = Math.round(
           profile.population * profile.avgHouseholdsPerEinwohner
         );
@@ -29148,10 +29164,24 @@ module.exports = {
         const kavRateNsCtPerKwh = profile.kavRateNsCtPerKwh != null
           ? profile.kavRateNsCtPerKwh
           : profile.konzessionsabgabeKategorie.includes('100.000') ? 1.99 : 1.32;
+        const kavSonderkundenCtPerKwh = 0.11;
         const kavNsEurPerYear = Math.round(
           (residentialConsumptionKwh * kavRateNsCtPerKwh) / 100
         );
-        const kavGewerbeEurPerYear = Math.round(kavNsEurPerYear * 0.25);
+        const commercialConsumptionKwh = Math.round(residentialConsumptionKwh * 0.35);
+        const kavGewerbeEurPerYear = Math.round(
+          (commercialConsumptionKwh * kavSonderkundenCtPerKwh) / 100
+        );
+        const kavTotalEurPerYear = kavNsEurPerYear + kavGewerbeEurPerYear;
+        const kavTotalLowEurPerYear = Math.round(
+          kavNsEurPerYear * 0.9 + kavGewerbeEurPerYear * 0.5
+        );
+        const kavTotalHighEurPerYear = Math.round(
+          kavNsEurPerYear + kavGewerbeEurPerYear * 2
+        );
+        const kavReferenceMwhPerYear = Math.round(
+          (residentialConsumptionKwh + commercialConsumptionKwh) / 1000
+        );
         budgetImpactRows.push(
           {
             rowKey: 'konzessionsabgabe_ns_haushalt',
@@ -29159,6 +29189,10 @@ module.exports = {
             budgetCategory: 'konzessionsabgabe',
             segment: 'NS-Haushalt',
             estimatedEurPerYear: kavNsEurPerYear,
+            estimatedLowEurPerYear: Math.round(kavNsEurPerYear * 0.95),
+            estimatedHighEurPerYear: kavNsEurPerYear,
+            assumedKavCtPerKwh: kavRateNsCtPerKwh,
+            assumedConsumptionMwhPerYear: Math.round(residentialConsumptionKwh / 1000),
             calculationStatus: 'assumption-scenario',
             assumptionStatus: `Konzessionsabgabenverordnung: ${profile.konzessionsabgabeKategorie}; ${kavRateNsCtPerKwh} ct/kWh`,
             evidenceStatus: 'assumption-backed',
@@ -29171,24 +29205,34 @@ module.exports = {
             budgetCategory: 'konzessionsabgabe',
             segment: 'NS-Gewerbe',
             estimatedEurPerYear: kavGewerbeEurPerYear,
+            estimatedLowEurPerYear: Math.round(kavGewerbeEurPerYear * 0.5),
+            estimatedHighEurPerYear: Math.round(kavGewerbeEurPerYear * 2),
+            assumedKavCtPerKwh: kavSonderkundenCtPerKwh,
+            assumedConsumptionMwhPerYear: Math.round(commercialConsumptionKwh / 1000),
             calculationStatus: 'assumption-scenario',
-            assumptionStatus: '25% Aufschlag auf Haushaltsannahme; Gewerbestruktur unbekannt',
+            assumptionStatus: `${kavSonderkundenCtPerKwh} ct/kWh Sonderkunden-Proxy; Gewerbestruktur unbekannt`,
             evidenceStatus: 'assumption-backed',
-            assumptionLabel: 'Gewerbeanteil geschätzt; keine lokale Gewerbestatistik vorgelegt',
-            sourceLabel: 'interne Annahme / Branchenproxy',
+            assumptionLabel: 'Gewerbeverbrauch als 35% des Haushaltsverbrauchs geschätzt; niedrigerer Sonderkunden-Satz statt pauschalem Aufschlag.',
+            sourceLabel: 'KAV / interne Annahme / Branchenproxy',
           },
           {
             rowKey: 'konzessionsabgabe_total_estimate',
             rowLabel: 'Konzessionsabgabe gesamt (Jahresspanne)',
             budgetCategory: 'konzessionsabgabe',
             segment: 'NS-gesamt',
-            estimatedEurPerYear: kavNsEurPerYear + kavGewerbeEurPerYear,
+            estimatedEurPerYear: kavTotalEurPerYear,
+            estimatedLowEurPerYear: kavTotalLowEurPerYear,
+            estimatedHighEurPerYear: kavTotalHighEurPerYear,
+            assumedKavCtPerKwh: kavRateNsCtPerKwh,
+            assumedSpecialCustomerKavCtPerKwh: kavSonderkundenCtPerKwh,
+            assumedConsumptionMwhPerYear: kavReferenceMwhPerYear,
+            estimatedKavEurPerMwh: Number((kavTotalEurPerYear / kavReferenceMwhPerYear).toFixed(2)),
             calculationStatus: 'assumption-scenario',
-            assumptionStatus: 'Szenario-Spanne; noch nicht durch Kämmerei geprüft',
+            assumptionStatus: `Plausibilisiert gegen KAV-Sätze: ${kavRateNsCtPerKwh} ct/kWh Tarifkunden, ${kavSonderkundenCtPerKwh} ct/kWh Sonderkunden-Proxy`,
             evidenceStatus: 'scenario-based',
             assumptionLabel:
               'Konzessionsabgabe ist eine kommunale Einnahme des Konzessionsgebers; ' +
-              'diese Zeile ist eine Schätzung, keine Schlussrechnung für den Haushalt.',
+              'diese Zeile ist eine KAV-gedeckelte Schätzung, keine Schlussrechnung für den Haushalt.',
             sourceLabel: 'KAV / interne Szenario-Berechnung',
           }
         );
@@ -29308,44 +29352,45 @@ module.exports = {
         0
       );
 
+      const buildTsRow = (tech, rowKey, capacityKw, fullLoadHours, techLabel) => {
+        const marketValueEur = Math.round(capacityKw * fullLoadHours / 1000 * assumedMarketPriceEurPerMwh);
+        const corrTech = correlationResult
+          ? correlationResult.techResults.find((r) => r.technology === tech)
+          : null;
+        if (corrTech) {
+          return {
+            rowKey,
+            technology: tech,
+            timeWindow: `annual_${year}`,
+            marketValueEur,
+            localCorrelationValueEur: corrTech.localCorrelationValueEur,
+            unmatchedGenerationValueEur: corrTech.unmatchedGenerationValueEur,
+            importExposureEur: null,
+            coincidenceFactor: corrTech.coincidenceFactor,
+            confidence: 'low',
+            evidenceStatus: 'derived-from-assets',
+            sourceLabel: `${techLabel}: abgeleitete Zeitkorrelation via H0/G0-SLP-Proxy; kein Messwert`,
+          };
+        }
+        return {
+          rowKey,
+          technology: tech,
+          timeWindow: `annual_${year}`,
+          marketValueEur,
+          localCorrelationValueEur: null,
+          unmatchedGenerationValueEur: marketValueEur,
+          importExposureEur: null,
+          confidence: 'low',
+          evidenceStatus: 'missing-evidence',
+          sourceLabel: 'Kein lokales Lastprofil; Zeitkorrelation nicht möglich',
+        };
+      };
+
       const timeSeriesValueRows = profile.found
         ? [
-            ...(profile.pvCapacityKw > 0 ? [{
-              rowKey: 'ts_pv_annual',
-              technology: 'pv',
-              timeWindow: `annual_${year}`,
-              marketValueEur: Math.round(profile.pvCapacityKw * pvFullLoadHours / 1000 * assumedMarketPriceEurPerMwh),
-              localCorrelationValueEur: null,
-              unmatchedGenerationValueEur: Math.round(profile.pvCapacityKw * pvFullLoadHours / 1000 * assumedMarketPriceEurPerMwh),
-              importExposureEur: null,
-              confidence: 'low',
-              evidenceStatus: 'missing-evidence',
-              sourceLabel: 'Kein lokales Lastprofil; Zeitkorrelation nicht möglich',
-            }] : []),
-            ...(profile.biomassCapacityKw > 0 ? [{
-              rowKey: 'ts_biomass_annual',
-              technology: 'biomass',
-              timeWindow: `annual_${year}`,
-              marketValueEur: Math.round(profile.biomassCapacityKw * biomassFullLoadHours / 1000 * assumedMarketPriceEurPerMwh),
-              localCorrelationValueEur: null,
-              unmatchedGenerationValueEur: Math.round(profile.biomassCapacityKw * biomassFullLoadHours / 1000 * assumedMarketPriceEurPerMwh),
-              importExposureEur: null,
-              confidence: 'low',
-              evidenceStatus: 'missing-evidence',
-              sourceLabel: 'Kein lokales Lastprofil; Zeitkorrelation nicht möglich',
-            }] : []),
-            ...(profile.windCapacityKw > 0 ? [{
-              rowKey: 'ts_wind_annual',
-              technology: 'wind',
-              timeWindow: `annual_${year}`,
-              marketValueEur: Math.round(profile.windCapacityKw * windFullLoadHours / 1000 * assumedMarketPriceEurPerMwh),
-              localCorrelationValueEur: null,
-              unmatchedGenerationValueEur: Math.round(profile.windCapacityKw * windFullLoadHours / 1000 * assumedMarketPriceEurPerMwh),
-              importExposureEur: null,
-              confidence: 'low',
-              evidenceStatus: 'missing-evidence',
-              sourceLabel: 'Kein lokales Lastprofil; Zeitkorrelation nicht möglich; wind-heavy Erzeugung ohne Lastprofil nicht lokal zuordenbar',
-            }] : []),
+            ...(profile.pvCapacityKw > 0 ? [buildTsRow('pv', 'ts_pv_annual', profile.pvCapacityKw, pvFullLoadHours, 'PV')] : []),
+            ...(profile.biomassCapacityKw > 0 ? [buildTsRow('biomass', 'ts_biomass_annual', profile.biomassCapacityKw, biomassFullLoadHours, 'Biomasse')] : []),
+            ...(profile.windCapacityKw > 0 ? [buildTsRow('wind', 'ts_wind_annual', profile.windCapacityKw, windFullLoadHours, 'Wind')] : []),
           ]
         : [{
             rowKey: 'ts_no_data',
@@ -29360,10 +29405,12 @@ module.exports = {
             sourceLabel: 'Gemeindeprofil nicht aufgelöst',
           }];
 
-      const budgetTotalEur = budgetImpactRows.reduce(
-        (sum, r) => sum + (r.estimatedEurPerYear || 0),
-        0
+      const totalBudgetRow = budgetImpactRows.find((r) =>
+        String(r.rowKey || '').includes('total')
       );
+      const budgetTotalEur = totalBudgetRow?.estimatedEurPerYear != null
+        ? Number(totalBudgetRow.estimatedEurPerYear) || 0
+        : budgetImpactRows.reduce((sum, r) => sum + (r.estimatedEurPerYear || 0), 0);
       const euroKpiRows = [
         {
           rowKey: 'euro_kpi_gross_market_value',
@@ -29375,9 +29422,11 @@ module.exports = {
         {
           rowKey: 'euro_kpi_local_value_capture',
           label: 'Lokale Werterfassung (Zeitreihen-Korrelation)',
-          valueEur: null,
-          description: 'Erfordert Zeitreihen-Korrelation von Erzeugung und lokalem Verbrauch. Ohne Lastprofil keine belastbare Aussage zur lokalen Wertbindung.',
-          evidenceStatus: 'missing-evidence',
+          valueEur: totalLocalCorrelationEur,
+          description: correlationResult
+            ? `Abgeleitete lokale Werterfassung auf Basis H0/G0-SLP-Proxy (Koinzidenzfaktor je Technologie); kein Messwert; ${correlationResult.evidenceStatus}. Keine Autarkie-Aussage.`
+            : 'Erfordert Zeitreihen-Korrelation von Erzeugung und lokalem Verbrauch. Ohne Lastprofil keine belastbare Aussage zur lokalen Wertbindung.',
+          evidenceStatus: correlationResult ? 'derived-from-assets' : 'missing-evidence',
         },
         {
           rowKey: 'euro_kpi_municipal_budget_effect',
@@ -29389,9 +29438,11 @@ module.exports = {
         {
           rowKey: 'euro_kpi_import_exposure',
           label: 'Importenergie-Kostenexponierung',
-          valueEur: null,
-          description: 'Erfordert lokales Lastprofil und Zeitreihen-Korrelation. Ohne diese Daten keine Aussage zur Importexponierung.',
-          evidenceStatus: 'missing-evidence',
+          valueEur: correlationResult ? correlationResult.importExposureEur : null,
+          description: correlationResult
+            ? `Abgeleitete Importexponierung: ${correlationResult.importDemandKwh} kWh/a Restbedarf nach lokaler Deckungsschätzung (kein Messwert; H0/G0-SLP-Proxy).`
+            : 'Erfordert lokales Lastprofil und Zeitreihen-Korrelation. Ohne diese Daten keine Aussage zur Importexponierung.',
+          evidenceStatus: correlationResult ? 'derived-from-assets' : 'missing-evidence',
         },
       ];
 
@@ -29402,6 +29453,7 @@ module.exports = {
         'keine_physische_lieferzusage',
         'kein_windpark_versorgt_x_haushalte',
         'lokale_deckung_nur_als_evidenzbasiertes_szenario',
+        'kein_messwert_slp_proxy_nicht_abrechnungsrelevant',
       ];
 
       const missingEvidence = [];
@@ -29411,9 +29463,11 @@ module.exports = {
 
       if (!isKnown) addGap('municipality_profile', 'Gemeindeprofil (AGS, Einwohnerzahl, Fläche) ermöglicht das Grundlagenbild.');
       if (!resolvedAgs) addGap('ags_code', 'AGS-Code ermöglicht MaStR-Abfrage und KAV-Kategorisierung.');
-      addGap('local_load_profile', 'Lokales Lastprofil (Stundenauflösung) ermöglicht Zeitreihen-Korrelation und belastbare lokale Werterfassung in EUR.');
-      addGap('generation_time_series', 'Erzeugungszeitreihe je Technologie ermöglicht Zeitkorrelation; ohne sie bleiben localCorrelationValueEur und importExposureEur null.');
-      addGap('vnb_bnr', 'BNr des zuständigen Netzbetreibers ermöglicht EWK-Anschlussdauer und Digitalisierungsindex.');
+      if (!correlationResult) {
+        addGap('local_load_profile', 'Lokales Lastprofil (Stundenauflösung) ermöglicht Zeitreihen-Korrelation und belastbare lokale Werterfassung in EUR.');
+        addGap('generation_time_series', 'Erzeugungszeitreihe je Technologie ermöglicht Zeitkorrelation; ohne sie bleiben localCorrelationValueEur und importExposureEur null.');
+      }
+      addGap('vnb_bnr', 'BNr oder MaStR-Netzbetreiber-ID ermöglicht EWK-Anschlussdauer und Digitalisierungsindex.');
       addGap('mastr_live_data', 'Live-MaStR-Abfrage ermöglicht belastbare Erzeugungskapazitäten statt Annahmen.');
       addGap('netzkapazitaetsnachweis', 'Netzkapazitätsnachweis ermöglicht Kapazitätsengpass-Risikobewertung.');
       addGap('imsys_rollout_quote', 'Lokale iMSys/SMGW-Rollout-Quote vom Netzbetreiber ermöglicht SMGW-Risikozeile.');
@@ -29448,16 +29502,48 @@ module.exports = {
           : 'lagebild_available')
         : 'lagebild_municipality_unresolved';
 
+      const derivedLoadProfileRows = annualLoad
+        ? [
+            {
+              rowKey: 'derived_load_summary',
+              rowLabel: 'Abgeleitetes kommunales Jahres-Lastprofil',
+              totalAnnualKwh: annualLoad.totalAnnualKwh,
+              householdKwh: annualLoad.householdKwh,
+              commercialKwh: annualLoad.commercialKwh,
+              publicBuildingKwh: annualLoad.publicBuildingKwh,
+              households: annualLoad.households,
+              confidence: annualLoad.confidence,
+              evidenceStatus: annualLoad.evidenceStatus,
+              sourceLabel: annualLoad.sourceLabel,
+            },
+            ...annualLoad.derivedLoadBuckets.map((b) => ({
+              rowKey: b.bucketKey,
+              rowLabel: b.bucketLabel,
+              totalAnnualKwh: b.annualKwh,
+              slpProfileId: b.slpProfileId,
+              basis: b.basis,
+              evidenceStatus: b.evidenceStatus,
+              confidence: b.confidence,
+            })),
+          ]
+        : [];
+
       return {
         capabilityKey: 'municipal_energy_value_analysis',
         status,
         municipality: resolvedName,
         ags: resolvedAgs || null,
+        population: profile.population || null,
+        state: profile.state || null,
+        district: profile.district || null,
+        kavCategory: profile.konzessionsabgabeKategorie || null,
+        kavRateNsCtPerKwh: profile.kavRateNsCtPerKwh || null,
         year,
         scenario,
         analysisRunId,
         valueRows,
         timeSeriesValueRows,
+        derivedLoadProfileRows,
         euroKpiRows,
         riskRows,
         budgetImpactRows,

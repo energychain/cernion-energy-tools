@@ -5,6 +5,19 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.67.8] — 2026-06-27
+
+### Added
+- **Abgeleitetes kommunales Lastprofil** (`src/municipal-load-estimator.js`, `services/dashboard-api.service.js`, #332): Replaces blanket `missingEvidence: local_load_profile` with a drei-Ebenen Evidenzmodell:
+  - Wenn Bevölkerung (EWZ) bekannt: Bevölkerungsbasierte Jahres-Lastkurve (H0-Haushalt + G0-Gewerbe + kommunale Gebäude) wird automatisch abgeleitet.
+  - `derivedLoadProfileRows` im Response: Aufschlüsselung der Lastbuckets (H0, G0, Gebäude) mit Jahres-kWh, SLP-Profil-ID und Konfidenz.
+  - `localCorrelationValueEur` in `timeSeriesValueRows` und `euroKpiRows` befüllt (abgeleitet; H0/G0-SLP-Proxy; kein Messwert).
+  - `euro_kpi_import_exposure` mit Restbedarfs-Schätzung befüllt.
+  - Koinzidenzfaktoren: PV 0,25; Biomasse 0,62; Wind 0,46 (Fraunhofer ISE 2023; BDEW SLP 2024).
+  - `local_load_profile` und `generation_time_series` entfallen aus `missingEvidence` wenn abgeleitetes Profil verfügbar.
+  - Fallback auf `missingEvidence: local_load_profile` wenn keine EWZ (unbekannte Gemeinde, PLZ-only).
+  - Neues Guardrail: `kein_messwert_slp_proxy_nicht_abrechnungsrelevant`.
+
 ## [0.67.7] — 2026-06-27
 
 ### Changed
