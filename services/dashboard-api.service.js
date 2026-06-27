@@ -28704,7 +28704,8 @@ module.exports = {
     },
 
     buildMunicipalEnergyValueAnalysisStatus(params = {}) {
-      const municipalityKey = String(params.municipality || '').trim().toLowerCase();
+      const municipalityRaw = String(params.municipality || '').trim();
+      const municipalityKey = municipalityRaw.toLowerCase();
       const agsParam = String(params.ags || '').trim();
       const year = Number(params.year) || 2025;
       const scenario = String(params.scenario || 'baseline').trim().toLowerCase();
@@ -28719,6 +28720,7 @@ module.exports = {
           gridOperatorLabel: 'Stadtwerk Mauer GmbH',
           gridOperatorBdewHint: 'local-bw-vnb',
           konzessionsabgabeKategorie: 'Gemeinde bis 25.000 Einwohner',
+          kavRateNsCtPerKwh: 1.32,
           pvCapacityKw: 2650,
           biomassCapacityKw: 500,
           windCapacityKw: 0,
@@ -28734,27 +28736,93 @@ module.exports = {
           gridOperatorLabel: 'Stadtwerke Heidelberg Netze GmbH',
           gridOperatorBdewHint: 'missing-evidence',
           konzessionsabgabeKategorie: 'Stadt mehr als 100.000 Einwohner',
+          kavRateNsCtPerKwh: 1.99,
           pvCapacityKw: 48000,
           biomassCapacityKw: 8000,
           windCapacityKw: 2000,
           avgHouseholdConsumptionKwh: 2200,
           avgHouseholdsPerEinwohner: 0.5,
         },
+        wiesloch: {
+          displayName: 'Wiesloch',
+          ags: '08226087',
+          bundesland: 'Baden-Württemberg',
+          einwohner: 27000,
+          flaecheKm2: 46.1,
+          gridOperatorLabel: 'Stadtwerke Wiesloch GmbH',
+          gridOperatorBdewHint: 'local-bw-vnb',
+          konzessionsabgabeKategorie: 'Gemeinde ueber 25.000 bis 100.000 Einwohner',
+          kavRateNsCtPerKwh: 1.59,
+          pvCapacityKw: 7200,
+          biomassCapacityKw: 800,
+          windCapacityKw: 0,
+          avgHouseholdConsumptionKwh: 2400,
+          avgHouseholdsPerEinwohner: 0.46,
+        },
+        walldorf: {
+          displayName: 'Walldorf',
+          ags: '08226088',
+          bundesland: 'Baden-Württemberg',
+          einwohner: 15800,
+          flaecheKm2: 13.7,
+          gridOperatorLabel: 'Stadtwerke Walldorf',
+          gridOperatorBdewHint: 'missing-evidence',
+          konzessionsabgabeKategorie: 'Gemeinde bis 25.000 Einwohner',
+          kavRateNsCtPerKwh: 1.32,
+          pvCapacityKw: 5800,
+          biomassCapacityKw: 200,
+          windCapacityKw: 0,
+          avgHouseholdConsumptionKwh: 2300,
+          avgHouseholdsPerEinwohner: 0.47,
+        },
+        sandhausen: {
+          displayName: 'Sandhausen',
+          ags: '08226085',
+          bundesland: 'Baden-Württemberg',
+          einwohner: 14200,
+          flaecheKm2: 14.8,
+          gridOperatorLabel: 'Gemeindewerke Sandhausen',
+          gridOperatorBdewHint: 'missing-evidence',
+          konzessionsabgabeKategorie: 'Gemeinde bis 25.000 Einwohner',
+          kavRateNsCtPerKwh: 1.32,
+          pvCapacityKw: 3900,
+          biomassCapacityKw: 0,
+          windCapacityKw: 0,
+          avgHouseholdConsumptionKwh: 2450,
+          avgHouseholdsPerEinwohner: 0.44,
+        },
       };
 
+      const PLZ_TO_KEY = {
+        69256: 'mauer',
+        69115: 'heidelberg',
+        69117: 'heidelberg',
+        69118: 'heidelberg',
+        69120: 'heidelberg',
+        69121: 'heidelberg',
+        69123: 'heidelberg',
+        69124: 'heidelberg',
+        69126: 'heidelberg',
+        69168: 'wiesloch',
+        69190: 'walldorf',
+        69207: 'sandhausen',
+      };
+
+      const resolvedByPlz = /^\d{5}$/.test(municipalityKey)
+        ? PLZ_TO_KEY[municipalityKey] || null
+        : null;
       const resolvedByAgs = agsParam
         ? Object.values(KNOWN).find((m) => m.ags === agsParam)
         : null;
       const profile =
+        KNOWN[resolvedByPlz] ||
         KNOWN[municipalityKey] ||
         resolvedByAgs ||
         null;
 
       const resolvedName = profile
         ? profile.displayName
-        : params.municipality
-          ? String(params.municipality).trim()
-          : 'Unbekannte Gemeinde';
+        : municipalityRaw || 'Unbekannte Gemeinde';
       const resolvedAgs = profile ? profile.ags : agsParam || null;
       const isKnown = profile !== null;
 
@@ -28928,7 +28996,9 @@ module.exports = {
           profile.einwohner * profile.avgHouseholdsPerEinwohner
         );
         const residentialConsumptionKwh = totalHouseholds * profile.avgHouseholdConsumptionKwh;
-        const kavRateNsCtPerKwh = profile.konzessionsabgabeKategorie.includes('100.000') ? 1.99 : 1.32;
+        const kavRateNsCtPerKwh = profile.kavRateNsCtPerKwh != null
+          ? profile.kavRateNsCtPerKwh
+          : profile.konzessionsabgabeKategorie.includes('100.000') ? 1.99 : 1.32;
         const kavNsEurPerYear = Math.round(
           (residentialConsumptionKwh * kavRateNsCtPerKwh) / 100
         );

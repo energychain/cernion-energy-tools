@@ -9352,5 +9352,85 @@ describe('dashboard-api.service', () => {
 
       expect(result._errors).toEqual([]);
     });
+
+    it('resolves Wiesloch by municipality name with non-null AGS and non-empty scalar rows', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Wiesloch',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(result.status).toBe('lagebild_partial');
+      expect(result.municipality).toBe('Wiesloch');
+      expect(result.ags).toBe('08226087');
+      expect(result.valueRows.length).toBeGreaterThan(0);
+      expect(result.riskRows.length).toBeGreaterThan(0);
+      expect(result.budgetImpactRows.length).toBeGreaterThan(0);
+      expect(result.assumptionRows.length).toBeGreaterThan(0);
+      expect(result.sourceRows.length).toBeGreaterThan(0);
+      expectScalarTableRows(result.valueRows);
+      expectScalarTableRows(result.riskRows);
+      expectScalarTableRows(result.budgetImpactRows);
+
+      const pvRow = result.valueRows.find((r) => r.rowKey === 'pv_generation_value');
+      expect(pvRow).toBeDefined();
+      expect(pvRow.installedCapacityKw).toBe(7200);
+      expect(pvRow.evidenceStatus).toBe('assumption-backed');
+    });
+
+    it('resolves Wiesloch by PLZ 69168', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: '69168',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(result.municipality).toBe('Wiesloch');
+      expect(result.ags).toBe('08226087');
+      expect(result.status).toBe('lagebild_partial');
+      expect(result.valueRows.length).toBeGreaterThan(0);
+      expectScalarTableRows(result.valueRows);
+    });
+
+    it('resolves Mauer by PLZ 69256 (regression)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: '69256',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(result.municipality).toBe('Mauer');
+      expect(result.ags).toBe('08226074');
+    });
+
+    it('resolves Heidelberg by PLZ 69115 (regression)', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: '69115',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      expect(result.municipality).toBe('Heidelberg');
+      expect(result.ags).toBe('08221000');
+    });
+
+    it('Wiesloch budgetImpactRows use 1.59 ct/kWh KAV rate', async () => {
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Wiesloch',
+        year: 2025,
+        scenario: 'baseline',
+      });
+
+      const hhRow = result.budgetImpactRows.find((r) => r.rowKey === 'konzessionsabgabe_ns_haushalt');
+      expect(hhRow).toBeDefined();
+      expect(typeof hhRow.estimatedEurPerYear).toBe('number');
+      expect(hhRow.estimatedEurPerYear).toBeGreaterThan(0);
+      expect(hhRow.assumptionStatus).toContain('1.59');
+
+      const totalRow = result.budgetImpactRows.find((r) => r.rowKey === 'konzessionsabgabe_total_estimate');
+      expect(totalRow).toBeDefined();
+      expect(typeof totalRow.estimatedEurPerYear).toBe('number');
+      expect(totalRow.estimatedEurPerYear).toBeGreaterThan(0);
+    });
   });
 });

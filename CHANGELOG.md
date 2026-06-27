@@ -5,6 +5,20 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.67.4] — 2026-06-27
+
+### Added
+- **Generischer PLZ/Ortsname-Resolver für das kommunale Energie-Lagebild** (`services/dashboard-api.service.js#buildMunicipalEnergyValueAnalysisStatus`, #329): Der Endpunkt `GET /api/dashboard/municipal-energy-value-analysis` löst jetzt Gemeinden über Ortsnamen **und** Postleitzahlen auf — nicht mehr nur Mauer und Heidelberg. Neu:
+  - **Wiesloch** (AGS 08226087, PLZ 69168, 27.000 Einwohner, KAV-Rate 1,59 ct/kWh NS-Haushalt)
+  - **Walldorf** (AGS 08226088, PLZ 69190)
+  - **Sandhausen** (AGS 08226085, PLZ 69207)
+  - Interner `PLZ_TO_KEY`-Resolver: 5-stellige PLZ-Eingabe (`municipality=69168`) wird vor der Namenssuche geprüft und determinisitsch zur ersten bekannten Gemeinde aufgelöst. Unbekannte PLZ fallen weiterhin auf `lagebild_municipality_unresolved` zurück (stabile 200-Antwort).
+  - KAV-Rate je Gemeindeprofil (`kavRateNsCtPerKwh`) statt Ableitung aus Kategorie-Label — korrekte Staffelung nach KAV § 2 Abs. 2 für alle Kategorien.
+- **Öffentliche HTML-Anwendung bereinigt** (`src/municipal-value.html`, #329): Beispiel-Buttons für Heidelberg und Mauer PLZ sowie der `.examples`-Chip-Bereich entfernt. Nur noch ein Freitexteingabefeld (Ort oder PLZ) und der Szenario-Selektor. `KNOWN_PLZ`-Karte um Wiesloch (69168), Walldorf (69190) und Sandhausen (69207) erweitert. Verwaister `data-example`-Event-Listener entfernt.
+
+### Tests
+- 5 neue Fälle in `tests/dashboard-api.test.js`: Wiesloch nach Ortsname (AGS, scalar rows, PV-Kapazität), Wiesloch nach PLZ 69168, Mauer nach PLZ 69256 (Regression), Heidelberg nach PLZ 69115 (Regression), Wiesloch KAV-Rate 1,59 ct/kWh in budgetImpactRows.
+
 ## [0.67.3] — 2026-06-26
 
 ### Added

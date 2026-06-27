@@ -666,17 +666,8 @@
               </div>
               <div class="button-row">
                 <button id="submitButton" class="primary" type="submit">Lagebild anzeigen</button>
-                <button class="secondary" type="button" data-example="Heidelberg">
-                  Heidelberg
-                </button>
-                <button class="secondary" type="button" data-example="69256">Mauer PLZ</button>
               </div>
             </form>
-            <div class="examples">
-              <span class="example">Mauer</span>
-              <span class="example">Heidelberg</span>
-              <span class="example">PLZ 69256</span>
-            </div>
             <div class="consulting-cta">
               <strong>Aus dem Link wird ein Beratungsgespraech.</strong>
               <p>
@@ -744,6 +735,9 @@
         69123: { municipality: "Heidelberg" },
         69124: { municipality: "Heidelberg" },
         69126: { municipality: "Heidelberg" },
+        69168: { municipality: "Wiesloch" },
+        69190: { municipality: "Walldorf" },
+        69207: { municipality: "Sandhausen" },
       };
 
       const form = document.getElementById("searchForm");
@@ -1041,13 +1035,6 @@
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         loadLagebild();
-      });
-
-      document.querySelectorAll("[data-example]").forEach((button) => {
-        button.addEventListener("click", () => {
-          placeInput.value = button.dataset.example;
-          loadLagebild();
-        });
       });
 
       const bootParams = new URLSearchParams(window.location.search);
