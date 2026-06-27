@@ -891,6 +891,19 @@
         return `${new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 }).format(Number(value))}${suffix}`;
       }
 
+      function energyAmount(kwh) {
+        if (kwh == null || Number.isNaN(Number(kwh))) return "offen";
+        const value = Number(kwh);
+        if (Math.abs(value) >= 1000000) return `${number(value / 1000000, " GWh/Jahr")}`;
+        if (Math.abs(value) >= 1000) return `${number(value / 1000, " MWh/Jahr")}`;
+        return `${number(value, " kWh/Jahr")}`;
+      }
+
+      function percentValue(value) {
+        if (value == null || Number.isNaN(Number(value))) return "offen";
+        return `${new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 }).format(Number(value) * 100)} %`;
+      }
+
       function escapeHtml(value) {
         return String(value ?? "")
           .replace(/&/g, "&amp;")
@@ -1229,6 +1242,91 @@
         `;
       }
 
+      function renderTimeSeriesInsight(data) {
+        const summary = (data.derivedLoadProfileRows || []).find((row) => row.rowKey === "derived_load_summary");
+        const buckets = (data.derivedLoadProfileRows || []).filter((row) => row.rowKey !== "derived_load_summary");
+        const tsRows = data.timeSeriesValueRows || [];
+        const localKpi = (data.euroKpiRows || []).find((row) => row.rowKey === "euro_kpi_local_value_capture");
+        const importKpi = (data.euroKpiRows || []).find((row) => row.rowKey === "euro_kpi_import_exposure");
+        if (!summary && !tsRows.length && !localKpi && !importKpi) return "";
+
+        const strongest = [...tsRows]
+          .filter((row) => Number(row.localCorrelationValueEur) > 0)
+          .sort((a, b) => (Number(b.localCorrelationValueEur) || 0) - (Number(a.localCorrelationValueEur) || 0))[0];
+        const strongestText = strongest
+          ? `${technologyLabel(strongest.technology)} hat in dieser Erstschätzung den höchsten zeitgleichen Euro-Beitrag: ${euroRange(strongest.localCorrelationValueEur, 0.9, 1.1)} pro Jahr.`
+          : "Für die lokalen Anlagen liegt noch kein belastbarer zeitgleicher Euro-Beitrag vor.";
+
+        return `
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Was die neue Lastprofil-Auswertung zeigt</h2>
+                <p>
+                  Seit #332 wird der örtliche Verbrauch nicht mehr pauschal als offen behandelt.
+                  Cernion leitet aus Einwohnern, Haushalten und Standardprofilen ein kommunales
+                  Lastprofil ab und vergleicht es mit der lokalen Erzeugung. Das ist kein Messwert,
+                  aber eine bessere kaufmännische Erstschätzung als reine Jahresmengen.
+                </p>
+              </div>
+            </div>
+            <div class="money-grid">
+              <article class="money-card">
+                <span>Abgeleiteter Stromverbrauch</span>
+                <strong>${escapeHtml(energyAmount(summary?.totalAnnualKwh))}</strong>
+                <p>${escapeHtml(summary?.sourceLabel || "Aus kommunalen Profilannahmen abgeleitet; kein Messwert.")}</p>
+              </article>
+              <article class="money-card">
+                <span>Zeitgleicher lokaler Euro-Beitrag</span>
+                <strong>${escapeHtml(euroRange(localKpi?.valueEur, 0.9, 1.1))}</strong>
+                <p>Teil des Betreiberwerts, der rechnerisch besser zum lokalen Verbrauchsprofil passt. Keine Autarkie-Aussage.</p>
+              </article>
+              <article class="money-card">
+                <span>Importkosten-Exponierung</span>
+                <strong>${escapeHtml(euroRange(importKpi?.valueEur, 0.9, 1.1))}</strong>
+                <p>Größenordnung des Strombezugs, der nach der abgeleiteten lokalen Erzeugungswirkung weiterhin von außen abhängt.</p>
+              </article>
+            </div>
+            <div class="narrative-grid">
+              ${buckets.slice(0, 3).map((row) => `
+                <article class="narrative-card">
+                  <h3>${escapeHtml(row.rowLabel || row.rowKey)}</h3>
+                  <p>${escapeHtml(energyAmount(row.totalAnnualKwh))}. Grundlage: ${escapeHtml(row.basis || row.slpProfileId || "Profilannahme")}.</p>
+                </article>
+              `).join("")}
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Erzeugung</th>
+                    <th>Marktwert</th>
+                    <th>Zeitgleicher Euro-Beitrag</th>
+                    <th>Nicht zeitgleich</th>
+                    <th>Profilnähe</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tsRows.map((row) => `
+                    <tr>
+                      <td>${escapeHtml(technologyLabel(row.technology))}</td>
+                      <td>${escapeHtml(euroRange(row.marketValueEur, 0.9, 1.1))}</td>
+                      <td>${escapeHtml(euroRange(row.localCorrelationValueEur, 0.9, 1.1))}</td>
+                      <td>${escapeHtml(euroRange(row.unmatchedGenerationValueEur, 0.9, 1.1))}</td>
+                      <td>${escapeHtml(percentValue(row.coincidenceFactor))}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+            <div class="decision-sentence">
+              <strong>Einordnung:</strong>
+              ${escapeHtml(strongestText)} Für eine Beschlussvorlage sollte diese Ableitung mit echten Lastgängen oder Netzbetreiber-/Lieferantendaten gegengeprüft werden.
+            </div>
+          </section>
+        `;
+      }
+
       function renderMetric(label, value, note, className = "") {
         return `
           <article class="metric ${escapeHtml(className)}">
@@ -1392,6 +1490,8 @@
           ${renderSources(data)}
 
           ${renderMayorBrief(data, generationValue, generationKwh, budgetValue)}
+
+          ${renderTimeSeriesInsight(data)}
 
           <div class="analysis-grid">
             <section class="panel">
