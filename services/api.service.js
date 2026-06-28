@@ -1488,6 +1488,8 @@ module.exports = {
             'dashboard-api.stadtwerkMauerMastrDataOverlayStatus',
           'GET /dashboard/stadtwerk-mauer-case-detail':
             'dashboard-api.stadtwerkMauerCaseDetailStatus',
+          'POST /dashboard/stadtwerk-mauer-case-annotations':
+            'dashboard-api.stadtwerkMauerCaseAnnotationCommand',
           'GET /dashboard/stadtwerk-mauer-workbench-hub':
             'dashboard-api.stadtwerkMauerWorkbenchHubStatus',
           'GET /dashboard/stadtwerk-mauer-administrator-inventory':

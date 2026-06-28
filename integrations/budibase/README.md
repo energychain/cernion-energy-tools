@@ -27,6 +27,7 @@ The workbench renders:
 - MaStR overlay status from `GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay`
 - E2E demo status from `GET /api/dashboard/stadtwerk-mauer-e2e-process-demo`
 - selectable case detail from `GET /api/dashboard/stadtwerk-mauer-case-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
+- sandbox annotation command/readback rows from `POST /api/dashboard/stadtwerk-mauer-case-annotations` and `GET /api/dashboard/stadtwerk-mauer-case-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - selected-case action rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - demo process-panel rows, last-result rows, required evidence rows and runbook-boundary rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - role workbench catalog/open-target rows from `GET /api/dashboard/stadtwerk-mauer-role-workbench-catalog?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
@@ -41,7 +42,13 @@ The workbench renders:
 The action query is intentionally still guarded by Cernion scopes. A Budibase button may be
 wired to it later, but the successful UI rendering path does not bypass Cernion authorization.
 The case-detail query is read-only and returns evidence, trace, artifact, Blueprint, role and
-next-gate summaries; it does not write Budibase tables or execute Rundeck jobs.
+next-gate summaries plus scalar sandbox annotation/audit readback rows; it does not write
+Budibase tables or execute Rundeck jobs.
+The sandbox annotation command is the only write-like Workbench binding in this slice. It calls a
+curated Cernion command for the synthetic `stadtwerk-mauer` case only, records a bounded
+`sandbox_runtime_artifact` with audit metadata and idempotency, and rejects unsupported tenants,
+cases, statuses, overlong notes or missing audit metadata safely. Budibase must not use arbitrary
+table writes or own case state.
 The Hub query is also read-only: it lists generated launcher targets and readiness metadata for
 Administrator Workbench (#307), selected case detail (#304), selected-case actions (#305),
 Zielnetzplanung, Vertrieb/Key Account and role-workbench catalog (#308). It is a navigation and

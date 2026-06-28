@@ -420,4 +420,53 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
   });
+
+  it('binds sandbox annotation command and flattens annotation readback rows', () => {
+    const commandQuery = manifest.queries.find((query) => query.name === 'recordStadtwerkMauerCaseAnnotation');
+    expect(commandQuery).toMatchObject({
+      method: 'POST',
+      path: '/api/dashboard/stadtwerk-mauer-case-annotations',
+    });
+    expect(commandQuery.body).toMatchObject({
+      tenantId: 'stadtwerk-mauer',
+      caseId: 'smm-budibase-workbench',
+      commandType: 'add_operator_note_sandbox',
+    });
+
+    const fixture = {
+      annotationRows: [
+        {
+          annotationId: 'smm-case-annotation:test',
+          caseId: 'smm-budibase-workbench',
+          commandType: 'add_operator_note_sandbox',
+          currentStatus: 'needs_evidence',
+          priorStatus: 'needs_evidence',
+          actorLabel: 'budibase:operator',
+          sourceLabel: 'Cernion Stadtwerk Mauer Workbench',
+          noteLabel: 'Budibase sandbox handover note',
+          reasonLabel: 'visible-demo annotation command',
+          dataClass: 'sandbox_runtime_artifact',
+          createdAt: '2026-06-28T17:00:00.000Z',
+        },
+      ],
+      annotationAuditRows: [
+        {
+          auditId: 'smm-case-annotation:test',
+          caseId: 'smm-budibase-workbench',
+          actorLabel: 'budibase:operator',
+          sourceLabel: 'Cernion Stadtwerk Mauer Workbench',
+          transitionLabel: 'needs_evidence -> needs_evidence',
+          commandType: 'add_operator_note_sandbox',
+          idempotencyKey: 'budibase-smm-workbench-case-annotation',
+          createdAt: '2026-06-28T17:00:00.000Z',
+        },
+      ],
+    };
+
+    expectScalarRows(runTransformer('getStadtwerkMauerCaseAnnotationRows', fixture));
+    expectScalarRows(runTransformer('getStadtwerkMauerCaseAnnotationAuditRows', fixture));
+    expect(manifest.sections.map((section) => section.id)).toEqual(
+      expect.arrayContaining(['case_annotation_command', 'case_annotation_rows', 'case_annotation_audit'])
+    );
+  });
 });

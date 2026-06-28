@@ -17543,6 +17543,21 @@
         ]
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-case-annotations": {
+      "post": {
+        "operationId": "dashboard-api_stadtwerkMauerCaseAnnotationCommand",
+        "summary": "Stadtwerk Mauer case annotation -- sandbox command",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Structured sandbox annotation command result"
+          }
+        },
+        "description": "Records a bounded audited sandbox annotation/status for the selected synthetic Stadtwerk Mauer case. This is not a generic editor and does not write Budibase tables, mutate public context, trigger runbooks, MaKo, billing, settlement or device-control."
+      }
+    },
     "/api/dashboard-api/stadtwerk-mauer-workbench-hub": {
       "get": {
         "operationId": "dashboard-api_stadtwerkMauerWorkbenchHubStatus",
@@ -48960,6 +48975,46 @@
         }
       }
     },
+    "/api/stadtwerk-mauer-sandbox-runtime/case-annotations": {
+      "post": {
+        "operationId": "stadtwerk-mauer-sandbox-runtime_recordCaseAnnotation",
+        "summary": "stadtwerk-mauer-sandbox-runtime.recordCaseAnnotation",
+        "tags": [
+          "stadtwerk-mauer-sandbox-runtime"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "stadtwerk-mauer-sandbox-runtime_listCaseAnnotations",
+        "summary": "stadtwerk-mauer-sandbox-runtime.listCaseAnnotations",
+        "tags": [
+          "stadtwerk-mauer-sandbox-runtime"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stadtwerk-mauer-sandbox-runtime/status": {
       "get": {
         "operationId": "stadtwerk-mauer-sandbox-runtime_status",
@@ -61116,6 +61171,21 @@
             }
           }
         ]
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-case-annotations": {
+      "post": {
+        "operationId": "dashboard-api_stadtwerkMauerCaseAnnotationCommand",
+        "summary": "Stadtwerk Mauer case annotation -- sandbox command",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Structured sandbox annotation command result"
+          }
+        },
+        "description": "Records a bounded audited sandbox annotation/status for the selected synthetic Stadtwerk Mauer case. This is not a generic editor and does not write Budibase tables, mutate public context, trigger runbooks, MaKo, billing, settlement or device-control."
       }
     },
     "/api/dashboard/stadtwerk-mauer-workbench-hub": {

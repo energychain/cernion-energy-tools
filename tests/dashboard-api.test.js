@@ -608,6 +608,7 @@ describe('dashboard-api.service', () => {
             stub_transcript_placeholder: 0,
             outbox_queue_placeholder: 0,
             audit_artifact: 0,
+            case_annotation: 0,
           },
           resetDeleteReadiness: {
             canReset: true,
@@ -648,6 +649,65 @@ describe('dashboard-api.service', () => {
             ],
             dossierFacts: ['Status: empty_sandbox_ready_for_seed', 'Sandbox events: 0'],
           },
+        }),
+        listCaseAnnotations: makeHandler('stadtwerkMauerListCaseAnnotations', {
+          capabilityKey: 'stadtwerk_mauer_case_annotations',
+          safety: 'read_only_sandbox_annotation_readback',
+          tenantId: 'stadtwerk-mauer',
+          requiredTenantId: 'stadtwerk-mauer',
+          caseId: 'smm-budibase-workbench',
+          requiredCaseId: 'smm-budibase-workbench',
+          sandboxBoundaryAllowed: true,
+          selectedCaseAllowed: true,
+          found: true,
+          status: 'case_annotations_empty',
+          currentDemoStatus: 'needs_evidence',
+          annotationCount: 0,
+          annotationRows: [],
+          auditRows: [],
+        }),
+        recordCaseAnnotation: makeHandler('stadtwerkMauerRecordCaseAnnotation', {
+          accepted: true,
+          rejected: false,
+          duplicate: false,
+          tenantId: 'stadtwerk-mauer',
+          caseId: 'smm-budibase-workbench',
+          commandId: 'smm-case-annotation:test',
+          commandType: 'add_operator_note_sandbox',
+          priorStatus: 'needs_evidence',
+          nextStatus: 'needs_evidence',
+          currentDemoStatus: 'needs_evidence',
+          actorLabel: 'budibase:operator',
+          sourceLabel: 'Cernion Stadtwerk Mauer Workbench',
+          timestamp: '2026-06-28T17:00:00.000Z',
+          dataClass: 'sandbox_runtime_artifact',
+          annotationRows: [
+            {
+              annotationId: 'smm-case-annotation:test',
+              caseId: 'smm-budibase-workbench',
+              commandType: 'add_operator_note_sandbox',
+              currentStatus: 'needs_evidence',
+              priorStatus: 'needs_evidence',
+              actorLabel: 'budibase:operator',
+              sourceLabel: 'Cernion Stadtwerk Mauer Workbench',
+              noteLabel: 'Budibase sandbox handover note',
+              reasonLabel: 'visible-demo annotation command',
+              dataClass: 'sandbox_runtime_artifact',
+              createdAt: '2026-06-28T17:00:00.000Z',
+            },
+          ],
+          auditRows: [
+            {
+              auditId: 'smm-case-annotation:test',
+              caseId: 'smm-budibase-workbench',
+              actorLabel: 'budibase:operator',
+              sourceLabel: 'Cernion Stadtwerk Mauer Workbench',
+              transitionLabel: 'needs_evidence -> needs_evidence',
+              commandType: 'add_operator_note_sandbox',
+              idempotencyKey: 'budibase-smm-workbench-case-annotation',
+              createdAt: '2026-06-28T17:00:00.000Z',
+            },
+          ],
         }),
       },
     });
@@ -7986,6 +8046,9 @@ describe('dashboard-api.service', () => {
           'getStadtwerkMauerCaseDetail',
           'getStadtwerkMauerCaseEvidenceRows',
           'getStadtwerkMauerCaseNextGateRows',
+          'getStadtwerkMauerCaseAnnotationRows',
+          'getStadtwerkMauerCaseAnnotationAuditRows',
+          'recordStadtwerkMauerCaseAnnotation',
         ])
       );
       expect(
@@ -8007,11 +8070,91 @@ describe('dashboard-api.service', () => {
         transformer: 'return data.evidenceRows || []',
       });
       expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.sections.map((section) => section.id)).toEqual(
-        expect.arrayContaining(['hub', 'case_detail', 'case_next_gates'])
+        expect.arrayContaining([
+          'hub',
+          'case_detail',
+          'case_next_gates',
+          'case_annotation_command',
+          'case_annotation_rows',
+          'case_annotation_audit',
+        ])
       );
       expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
         'scalar display rows'
       );
+    });
+
+    it('records sandbox case annotations through Cernion and exposes scalar case-detail readback', async () => {
+      handlers.stadtwerkMauerListCaseAnnotations = () => ({
+        capabilityKey: 'stadtwerk_mauer_case_annotations',
+        safety: 'read_only_sandbox_annotation_readback',
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+        found: true,
+        status: 'case_annotations_ready',
+        currentDemoStatus: 'needs_evidence',
+        annotationCount: 1,
+        annotationRows: [
+          {
+            annotationId: 'smm-case-annotation:test',
+            caseId: 'smm-budibase-workbench',
+            commandType: 'add_operator_note_sandbox',
+            currentStatus: 'needs_evidence',
+            priorStatus: 'needs_evidence',
+            actorLabel: 'budibase:operator',
+            sourceLabel: 'Cernion Stadtwerk Mauer Workbench',
+            noteLabel: 'Budibase sandbox handover note',
+            reasonLabel: 'visible-demo annotation command',
+            dataClass: 'sandbox_runtime_artifact',
+            createdAt: '2026-06-28T17:00:00.000Z',
+          },
+        ],
+        auditRows: [
+          {
+            auditId: 'smm-case-annotation:test',
+            caseId: 'smm-budibase-workbench',
+            actorLabel: 'budibase:operator',
+            sourceLabel: 'Cernion Stadtwerk Mauer Workbench',
+            transitionLabel: 'needs_evidence -> needs_evidence',
+            commandType: 'add_operator_note_sandbox',
+            idempotencyKey: 'budibase-smm-workbench-case-annotation',
+            createdAt: '2026-06-28T17:00:00.000Z',
+          },
+        ],
+      });
+
+      const command = await broker.call('dashboard-api.stadtwerkMauerCaseAnnotationCommand', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+        commandType: 'add_operator_note_sandbox',
+        note: 'Budibase sandbox handover note',
+        actorLabel: 'budibase:operator',
+        idempotencyKey: 'budibase-smm-workbench-case-annotation',
+      });
+
+      expect(command.accepted).toBe(true);
+      expect(command.safety).toBe('non_consequential_sandbox_command');
+      expect(command.noCallGuards).toEqual(
+        expect.arrayContaining(['budibase.table.write', 'public-context.mutate', 'personal-agent.execute'])
+      );
+
+      const detail = await broker.call('dashboard-api.stadtwerkMauerCaseDetailStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+      });
+
+      expect(detail.annotationRows[0]).toMatchObject({
+        annotationId: 'smm-case-annotation:test',
+        commandType: 'add_operator_note_sandbox',
+        currentStatus: 'needs_evidence',
+        dataClass: 'sandbox_runtime_artifact',
+      });
+      expect(detail.annotationAuditRows[0]).toMatchObject({
+        auditId: 'smm-case-annotation:test',
+        transitionLabel: 'needs_evidence -> needs_evidence',
+      });
+      expectScalarTableRows(detail.annotationRows);
+      expectScalarTableRows(detail.annotationAuditRows);
     });
   });
 
@@ -8494,6 +8637,61 @@ describe('dashboard-api.service', () => {
       expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
         'Tenant Databrowser binds to bounded scalar category'
       );
+    });
+
+    it('includes sandbox annotation rows as bounded Tenant Databrowser items', async () => {
+      handlers.stadtwerkMauerListCaseAnnotations = () => ({
+        capabilityKey: 'stadtwerk_mauer_case_annotations',
+        safety: 'read_only_sandbox_annotation_readback',
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+        found: true,
+        status: 'case_annotations_ready',
+        currentDemoStatus: 'reviewed',
+        annotationCount: 1,
+        annotationRows: [
+          {
+            annotationId: 'smm-case-annotation:reviewed',
+            caseId: 'smm-budibase-workbench',
+            commandType: 'mark_reviewed_sandbox',
+            currentStatus: 'reviewed',
+            priorStatus: 'needs_evidence',
+            actorLabel: 'budibase:operator',
+            sourceLabel: 'Cernion Stadtwerk Mauer Workbench',
+            noteLabel: 'Reviewed during demo',
+            reasonLabel: 'handover proof',
+            dataClass: 'sandbox_runtime_artifact',
+            createdAt: '2026-06-28T17:10:00.000Z',
+          },
+        ],
+        auditRows: [
+          {
+            auditId: 'smm-case-annotation:reviewed',
+            caseId: 'smm-budibase-workbench',
+            actorLabel: 'budibase:operator',
+            sourceLabel: 'Cernion Stadtwerk Mauer Workbench',
+            transitionLabel: 'needs_evidence -> reviewed',
+            commandType: 'mark_reviewed_sandbox',
+            idempotencyKey: 'reviewed-key',
+            createdAt: '2026-06-28T17:10:00.000Z',
+          },
+        ],
+      });
+
+      const result = await broker.call('dashboard-api.stadtwerkMauerTenantDatabrowserStatus', {
+        tenantId: 'stadtwerk-mauer',
+        caseId: 'smm-budibase-workbench',
+        categoryId: 'case_annotation',
+      });
+
+      expect(result.status).toBe('tenant_databrowser_ready');
+      expect(result.itemRows[0]).toMatchObject({
+        categoryId: 'case_annotation',
+        itemId: 'smm-case-annotation:reviewed',
+        readinessStatus: 'reviewed',
+      });
+      expect(result.sourceRows.map((row) => row.sourceId)).toContain('case_annotations');
+      expectScalarTableRows(result.itemRows);
     });
   });
 

@@ -5940,18 +5940,108 @@ module.exports = {
               errors,
               'stadtwerk-mauer-e2e-process-demo.getStatus'
             );
+            const annotationStatus = await this.safeCall(
+              ctx,
+              'stadtwerk-mauer-sandbox-runtime.listCaseAnnotations',
+              { tenantId, caseId, limit: 25 },
+              this.buildMissingStadtwerkMauerCaseAnnotationStatus(tenantId, caseId),
+              errors,
+              'stadtwerk-mauer-sandbox-runtime.listCaseAnnotations'
+            );
 
             return {
               ...this.buildStadtwerkMauerCaseDetailStatus({
                 tenantId,
                 caseId,
                 e2eStatus,
+                annotationStatus,
               }),
               timestamp: new Date().toISOString(),
               _errors: errors,
             };
           }
         );
+      },
+    },
+
+    // -- stadtwerkMauerCaseAnnotationCommand -----------------------------
+    /**
+     * POST /api/dashboard/stadtwerk-mauer-case-annotations
+     *
+     * Curated sandbox-only command boundary for a selected synthetic
+     * Stadtwerk Mauer case. Budibase may call this command, but Cernion keeps
+     * the audit state and rejects unsupported tenants/cases/statuses safely.
+     */
+    stadtwerkMauerCaseAnnotationCommand: {
+      rest: 'POST /stadtwerk-mauer-case-annotations',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+        commandType: { type: 'string', optional: true, min: 1 },
+        status: { type: 'string', optional: true },
+        note: { type: 'string', optional: true },
+        reason: { type: 'string', optional: true },
+        actorLabel: { type: 'string', optional: true },
+        sourceLabel: { type: 'string', optional: true },
+        idempotencyKey: { type: 'string', optional: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer case annotation -- sandbox command',
+        description:
+          'Records a bounded audited sandbox annotation/status for the selected synthetic ' +
+          'Stadtwerk Mauer case. This is not a generic editor and does not write Budibase tables, ' +
+          'mutate public context, trigger runbooks, MaKo, billing, settlement or device-control.',
+        responses: {
+          200: {
+            description: 'Structured sandbox annotation command result',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const caseId = params.caseId || 'smm-budibase-workbench';
+        const result = await ctx.call('stadtwerk-mauer-sandbox-runtime.recordCaseAnnotation', {
+          ...params,
+          tenantId,
+          caseId,
+        });
+
+        for (const key of Array.from(this.cache.keys())) {
+          if (
+            key.startsWith(`stadtwerk-mauer-case-detail:${tenantId}:${caseId}`) ||
+            key.startsWith(`stadtwerk-mauer-tenant-databrowser:${tenantId}:${caseId}`)
+          ) {
+            this.cache.delete(key);
+          }
+        }
+
+        return {
+          ...result,
+          safety: 'non_consequential_sandbox_command',
+          capabilityBroker: {
+            exposed: false,
+            reason: 'Curated Workbench command only; no broad broker route is added.',
+          },
+          hydrationRegistry: {
+            exposed: false,
+            reason: 'Dossier hydration remains read-only and must not invoke this POST command.',
+          },
+          noCallGuards: [
+            'budibase.table.write',
+            'budibase.system_of_record',
+            'public-context.mutate',
+            'production.mutate',
+            'mako.dispatch',
+            'billing.release',
+            'settlement.prepareBilling',
+            'tariff.mutate',
+            'device-control.execute',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        };
       },
     },
 
@@ -6028,10 +6118,19 @@ module.exports = {
               errors,
               'stadtwerk-mauer-mastr-data-overlay.getStatus'
             );
+            const annotationStatus = await this.safeCall(
+              ctx,
+              'stadtwerk-mauer-sandbox-runtime.listCaseAnnotations',
+              { tenantId, caseId, limit: 25 },
+              this.buildMissingStadtwerkMauerCaseAnnotationStatus(tenantId, caseId),
+              errors,
+              'stadtwerk-mauer-sandbox-runtime.listCaseAnnotations'
+            );
             const caseDetailStatus = this.buildStadtwerkMauerCaseDetailStatus({
               tenantId,
               caseId,
               e2eStatus,
+              annotationStatus,
             });
 
             return {
@@ -6130,10 +6229,19 @@ module.exports = {
               errors,
               'stadtwerk-mauer-mastr-data-overlay.getStatus'
             );
+            const annotationStatus = await this.safeCall(
+              ctx,
+              'stadtwerk-mauer-sandbox-runtime.listCaseAnnotations',
+              { tenantId, caseId, limit: 25 },
+              this.buildMissingStadtwerkMauerCaseAnnotationStatus(tenantId, caseId),
+              errors,
+              'stadtwerk-mauer-sandbox-runtime.listCaseAnnotations'
+            );
             const caseDetailStatus = this.buildStadtwerkMauerCaseDetailStatus({
               tenantId,
               caseId,
               e2eStatus,
+              annotationStatus,
             });
             const hubStatus = this.buildStadtwerkMauerWorkbenchHubStatus({
               tenantId,
@@ -6255,10 +6363,19 @@ module.exports = {
               errors,
               'stadtwerk-mauer-mastr-data-overlay.getStatus'
             );
+            const annotationStatus = await this.safeCall(
+              ctx,
+              'stadtwerk-mauer-sandbox-runtime.listCaseAnnotations',
+              { tenantId, caseId, limit: 25 },
+              this.buildMissingStadtwerkMauerCaseAnnotationStatus(tenantId, caseId),
+              errors,
+              'stadtwerk-mauer-sandbox-runtime.listCaseAnnotations'
+            );
             const caseDetailStatus = this.buildStadtwerkMauerCaseDetailStatus({
               tenantId,
               caseId,
               e2eStatus,
+              annotationStatus,
             });
             const hubStatus = this.buildStadtwerkMauerWorkbenchHubStatus({
               tenantId,
@@ -23465,7 +23582,12 @@ module.exports = {
       };
     },
 
-    buildStadtwerkMauerCaseDetailStatus({ tenantId = 'stadtwerk-mauer', caseId, e2eStatus = {} }) {
+    buildStadtwerkMauerCaseDetailStatus({
+      tenantId = 'stadtwerk-mauer',
+      caseId,
+      e2eStatus = {},
+      annotationStatus = null,
+    }) {
       const seed = stadtwerkMauerPvMissingNap;
       const requiredCaseId = caseId || 'smm-budibase-workbench';
       const sandboxBoundaryAllowed = tenantId === seed.demoTenant.tenantId;
@@ -23542,6 +23664,12 @@ module.exports = {
               ? 'inspect grid-operation plausibility without control execution'
               : 'inspect commercial/audit evidence gaps without billing or settlement action',
       }));
+      const annotationRows = Array.isArray(annotationStatus?.annotationRows)
+        ? annotationStatus.annotationRows
+        : [];
+      const annotationAuditRows = Array.isArray(annotationStatus?.auditRows)
+        ? annotationStatus.auditRows
+        : [];
       const noCallGuards = Array.from(
         new Set([
           ...(seed.forbiddenActions || []),
@@ -23616,6 +23744,8 @@ module.exports = {
         dataClasses,
         caseSummary: {
           status,
+          currentDemoStatus: annotationStatus?.currentDemoStatus || 'needs_evidence',
+          annotationCount: annotationRows.length,
           evidenceQuality: e2eStatus.evidenceQuality || 'no_demo_trace_yet',
           traceCount: e2eStatus.traceCount || 0,
           artifactCount: e2eStatus.artifactCount || 0,
@@ -23628,6 +23758,8 @@ module.exports = {
         positiveFollowUps,
         traceSummaries: found ? traceSummaries : [],
         artifactSummaries: found ? artifactSummaries : [],
+        annotationRows: found ? annotationRows : [],
+        annotationAuditRows: found ? annotationAuditRows : [],
         roleWorkbenchHints,
         nextGates,
         nextGateRows: this.buildStadtwerkMauerNextGateRows(nextGates),
@@ -23660,6 +23792,7 @@ module.exports = {
           inspected: ['dashboard-api.stadtwerkMauerCaseDetailStatus'],
           referenced: [
             'stadtwerk-mauer-e2e-process-demo.getStatus',
+            'stadtwerk-mauer-sandbox-runtime.listCaseAnnotations',
             'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json',
             'operations-runbook.verifyVdmiBlueprintPackSeed',
             'governance.roleWorkbenchProjection',
@@ -23678,6 +23811,8 @@ module.exports = {
           missingEvidence,
           positiveFollowUps,
           roleWorkbenchHints,
+          annotationRows: found ? annotationRows : [],
+          annotationAuditRows: found ? annotationAuditRows : [],
           traceSummaries: found ? traceSummaries : [],
           nextGates: ['verify_blueprint_seed', 'inspect_missing_nap', 'review_role_workbench_item'],
           noCallGuards,
@@ -23688,6 +23823,36 @@ module.exports = {
             'dashboard-api.stadtwerkMauerCaseDetailStatus',
             'stadtwerk-mauer-e2e-process-demo.getStatus',
             'vdmi-blueprint-pack-seeds',
+          ],
+        },
+      };
+    },
+
+    buildMissingStadtwerkMauerCaseAnnotationStatus(tenantId = 'stadtwerk-mauer', caseId = 'smm-budibase-workbench') {
+      return {
+        capabilityKey: 'stadtwerk_mauer_case_annotations',
+        safety: 'read_only_sandbox_annotation_readback',
+        tenantId,
+        requiredTenantId: 'stadtwerk-mauer',
+        caseId,
+        requiredCaseId: 'smm-budibase-workbench',
+        sandboxBoundaryAllowed: tenantId === 'stadtwerk-mauer',
+        selectedCaseAllowed: caseId === 'smm-budibase-workbench',
+        found: tenantId === 'stadtwerk-mauer' && caseId === 'smm-budibase-workbench',
+        status: 'case_annotations_unavailable',
+        currentDemoStatus: 'needs_evidence',
+        annotationCount: 0,
+        annotationRows: [],
+        auditRows: [],
+        sourceActions: {
+          inspected: ['dashboard-api.stadtwerkMauerCaseDetailStatus'],
+          referenced: ['stadtwerk-mauer-sandbox-runtime.listCaseAnnotations'],
+          notCalled: [
+            'budibase.table.write',
+            'budibase.system_of_record',
+            'public-context.mutate',
+            'production.mutate',
+            'personal-agent.execute',
           ],
         },
       };
@@ -25205,6 +25370,8 @@ module.exports = {
       const inventoryRows = administratorInventoryStatus?.inventoryRows || [];
       const evidenceRows = caseDetailStatus?.evidenceRows || [];
       const nextGateRows = caseDetailStatus?.nextGateRows || [];
+      const annotationRows = caseDetailStatus?.annotationRows || [];
+      const annotationAuditRows = caseDetailStatus?.annotationAuditRows || [];
       const traceRows = this.buildStadtwerkMauerTenantDatabrowserTraceRows(e2eStatus, 50);
       const roleTargets = hubStatus?.targetRows || [];
       const makeItem = ({
@@ -25304,6 +25471,40 @@ module.exports = {
               safeNextAction: 'Inspect process trace category',
             }),
           ],
+        },
+        {
+          categoryId: 'case_annotation',
+          label: 'Case Annotations',
+          sourceType: 'stadtwerk-mauer-sandbox-runtime.listCaseAnnotations',
+          dataClass: 'sandboxRuntimeArtifact',
+          readinessStatus: annotationRows.length > 0 ? 'case_annotations_ready' : 'case_annotations_empty',
+          evidenceHint: `${annotationRows.length} annotation rows / ${annotationAuditRows.length} audit rows`,
+          safeNextAction: 'Record or inspect bounded sandbox annotation',
+          items: annotationRows.length
+            ? annotationRows.map((row) =>
+                makeItem({
+                  categoryId: 'case_annotation',
+                  itemId: row.annotationId,
+                  displayLabel: row.noteLabel || row.commandType || row.currentStatus,
+                  sourceType: 'stadtwerk-mauer-sandbox-runtime.listCaseAnnotations',
+                  readinessStatus: row.currentStatus,
+                  evidenceHint: row.reasonLabel || row.actorLabel,
+                  artifactRef: row.annotationId,
+                  timestamp: row.createdAt,
+                  safeNextAction: 'Refresh case detail annotation readback',
+                })
+              )
+            : [
+                makeItem({
+                  categoryId: 'case_annotation',
+                  itemId: 'case-annotation-empty',
+                  displayLabel: 'No sandbox annotation recorded yet',
+                  sourceType: 'stadtwerk-mauer-sandbox-runtime.listCaseAnnotations',
+                  readinessStatus: 'case_annotations_empty',
+                  evidenceHint: 'Use the curated sandbox annotation command',
+                  safeNextAction: 'Record bounded operator note',
+                }),
+              ],
         },
         {
           categoryId: 'generated_workbench_item',
@@ -25519,6 +25720,11 @@ module.exports = {
       return [
         ['administrator_inventory', 'dashboard-api.stadtwerkMauerAdministratorInventoryStatus', administratorInventoryStatus?.status],
         ['case_detail', 'dashboard-api.stadtwerkMauerCaseDetailStatus', caseDetailStatus?.status],
+        [
+          'case_annotations',
+          'stadtwerk-mauer-sandbox-runtime.listCaseAnnotations',
+          caseDetailStatus?.annotationRows?.length ? 'case_annotations_ready' : 'case_annotations_empty',
+        ],
         ['workbench_hub', 'dashboard-api.stadtwerkMauerWorkbenchHubStatus', hubStatus?.status],
         ['e2e_trace', 'stadtwerk-mauer-e2e-process-demo.getStatus', e2eStatus?.status],
         ['mastr_overlay', 'stadtwerk-mauer-mastr-data-overlay.getStatus', mastrStatus?.status],

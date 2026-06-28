@@ -1002,6 +1002,136 @@
       }
     },
     {
+      "name": "getStadtwerkMauerCaseAnnotationRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-case-detail",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "return data.annotationRows || []",
+      "schema": {
+        "annotationId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "commandType": {
+          "type": "string"
+        },
+        "currentStatus": {
+          "type": "string"
+        },
+        "priorStatus": {
+          "type": "string"
+        },
+        "actorLabel": {
+          "type": "string"
+        },
+        "sourceLabel": {
+          "type": "string"
+        },
+        "noteLabel": {
+          "type": "string"
+        },
+        "reasonLabel": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerCaseAnnotationAuditRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-case-detail",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "return data.annotationAuditRows || []",
+      "schema": {
+        "auditId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "actorLabel": {
+          "type": "string"
+        },
+        "sourceLabel": {
+          "type": "string"
+        },
+        "transitionLabel": {
+          "type": "string"
+        },
+        "commandType": {
+          "type": "string"
+        },
+        "idempotencyKey": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "recordStadtwerkMauerCaseAnnotation",
+      "method": "POST",
+      "path": "/api/dashboard/stadtwerk-mauer-case-annotations",
+      "queryString": "",
+      "parameters": [],
+      "body": {
+        "tenantId": "stadtwerk-mauer",
+        "caseId": "smm-budibase-workbench",
+        "commandType": "add_operator_note_sandbox",
+        "status": "needs_evidence",
+        "note": "Budibase sandbox handover note",
+        "reason": "visible-demo annotation command",
+        "actorLabel": "budibase:operator",
+        "sourceLabel": "Cernion Stadtwerk Mauer Workbench",
+        "idempotencyKey": "budibase-smm-workbench-case-annotation"
+      },
+      "schema": {
+        "accepted": {
+          "type": "boolean"
+        },
+        "duplicate": {
+          "type": "boolean"
+        },
+        "currentDemoStatus": {
+          "type": "string"
+        },
+        "commandId": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        }
+      }
+    },
+    {
       "name": "getStadtwerkMauerCaseActions",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-case-actions",
@@ -3883,6 +4013,24 @@
       "tableTitle": "Selected Case Next Gates"
     },
     {
+      "id": "case_annotation_command",
+      "title": "Sandbox Case Annotation Command",
+      "queryName": "recordStadtwerkMauerCaseAnnotation",
+      "tableTitle": "Curated Sandbox Command Result"
+    },
+    {
+      "id": "case_annotation_rows",
+      "title": "Sandbox Case Annotations",
+      "queryName": "getStadtwerkMauerCaseAnnotationRows",
+      "tableTitle": "Annotation Readback"
+    },
+    {
+      "id": "case_annotation_audit",
+      "title": "Sandbox Annotation Audit",
+      "queryName": "getStadtwerkMauerCaseAnnotationAuditRows",
+      "tableTitle": "Annotation Audit Rows"
+    },
+    {
       "id": "case_actions",
       "title": "Selected Case Actions",
       "queryName": "getStadtwerkMauerCaseActionRows",
@@ -4214,6 +4362,7 @@
     "Administrator Inventory binds to scalar rows that separate public context, synthetic seed, sandbox runtime, generated workbench items and read/verify runbooks.",
     "Tenant Databrowser binds to bounded scalar category, item, trace, detail and source rows; it is not an unrestricted export or Budibase-owned data store.",
     "Selected Case Evidence and Next Gates bind to scalar rows so tables do not render nested objects.",
+    "Sandbox Case Annotation uses a curated Cernion POST command plus scalar readback/audit rows; Budibase never writes arbitrary tables or owns case state.",
     "Selected-case action rows are curated read-only/verify-only button metadata; Budibase may refresh queries but must not write arbitrary Cernion tables.",
     "Demo Process Panel rows show safe verify actions, disabled operational actions, last known results and Cernion/Rundeck boundaries without executing jobs.",
     "Role Workbench Catalog binds to scalar role/open-target rows for Administrator, Zielnetzplanung, Vertrieb, Key Account and VDMI governance views.",
