@@ -35,6 +35,7 @@ The workbench renders:
 - MaStR public-context revalidation rows, affected case, next evidence gate, safe verify actions and no-call boundaries from `GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - municipal value peer-corridor evidence rows for `Mauer`, `Sandhausen` and `Wiesloch` from `GET /api/dashboard/municipal-energy-value-analysis`
 - VDMI profile, role model, evidence-gap, capability-projection and synthetic event preview rows from the existing read-only dashboard bricks: `GET /api/dashboard/stadtwerk-mauer-vdmi-profile`, `GET /api/dashboard/stadtwerk-mauer-capability-projection` and `GET /api/dashboard/stadtwerk-mauer-event-replay-preview`
+- VNB delta signal queue rows from existing read-only dashboard bricks: `GET /api/dashboard/cross-channel-vnb-signal-queue`, `POST /api/dashboard/vnb-delta-signal-classifier/classify`, `GET /api/dashboard/owner-deadline-evidence-gate` and `GET /api/dashboard/leadership-delta-cockpit`
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
 The action query is intentionally still guarded by Cernion scopes. A Budibase button may be
@@ -96,6 +97,12 @@ queries and open existing rendered targets, but it must not inject events, persi
 schedule jobs, execute Rundeck, create HITL/NOVA/VDMI tasks, call external connectors, mutate
 public context, or imply that synthetic event IDs are real customer, meter, consent, MaKo or
 device-control data.
+The VNB Delta / Signal Queue panel is read-only: it renders scalar summary, classifier,
+owner/deadline/evidence, safe-next-action, leadership-delta and no-call/source-boundary rows
+for caller-supplied synthetic signals. Budibase may refresh these existing read models, but it
+must not read mail, Outlook/Gmail, Teams, calendar or task connectors; create notifications,
+tickets, HITL/NOVA/VDMI tasks or Rundeck jobs; persist raw private content; mutate public context;
+or perform MaKo, billing, settlement, tariff, webhook, device-control or Personal-Agent actions.
 
 ## Apply Locally
 

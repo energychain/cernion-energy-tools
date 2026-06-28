@@ -148,6 +148,142 @@ const eventFixture = {
   sourceActions: { notCalled: ['event.inject', 'workflow.execute', 'personal-agent.execute'] },
 };
 
+const vnbQueueFixture = {
+  capabilityKey: 'cross_channel_vnb_signal_queue',
+  safety: 'read_only',
+  queueStatus: 'blocked',
+  signalCount: 1,
+  normalizedSignals: [
+    {
+      signalId: 'vnb-delta-demo-anschluss',
+      riskSeverity: 'high',
+      affectedProcess: 'grid_connection_capacity',
+      ownerRole: 'ROLE_NETZPLANUNG',
+      dueAt: '2026-07-03T12:00:00.000Z',
+      evidenceStatus: 'missing',
+      nextDatapoint: 'capacity-window-evidence',
+    },
+  ],
+  nextDatapoints: ['capacity-window-evidence'],
+  overdueSignals: [],
+  needsOwnerSignals: [],
+  needsEvidenceSignals: ['vnb-delta-demo-anschluss'],
+  readyForActionSignals: [],
+  dossierEvidence: {
+    overdueCount: 0,
+    needsOwnerCount: 0,
+    needsEvidenceCount: 1,
+    readyForActionCount: 0,
+  },
+};
+
+const vnbClassifierFixture = {
+  capabilityKey: 'vnb_delta_signal_classifier',
+  safety: 'read_only_advisory_classification',
+  status: 'classification_with_evidence_gaps',
+  classifications: [
+    {
+      signalId: 'vnb-delta-demo-anschluss',
+      sourceType: 'synthetic-demo',
+      receivedAt: '2026-06-28T08:30:00.000Z',
+      noveltyLevel: 'unknown_baseline',
+      decisionRelevance: 'medium',
+      affectedProcess: 'grid_connection_capacity',
+      ownerSuggestion: 'ROLE_NETZPLANUNG',
+      deadlineUrgency: 'near_term',
+      blockedDecision: 'Freigabe Anschlusskapazitaet',
+      nextEvidencePoint: 'Kapazitaetsfenster und NAP-Bezug',
+      confidence: 0.82,
+      missingEvidence: ['known_context_anchors'],
+      contentPolicy: 'caller_supplied_sanitized_excerpt_only_no_private_content_persistence',
+    },
+  ],
+  sourceBoundary: {
+    suppliedInputOnly: true,
+    connectorRead: false,
+    persistsRawPrivateContent: false,
+    createsExternalAction: false,
+  },
+  sourceActions: {
+    notCalled: ['mail.connector.ingest', 'teams.connector.read', 'ticket.create', 'personal-agent.execute'],
+  },
+};
+
+const vnbOwnerEvidenceFixture = {
+  safety: 'read_only',
+  ownerContext: {
+    ownerRole: 'ROLE_NETZPLANUNG',
+    dueAt: '2026-07-03T12:00:00.000Z',
+  },
+  readinessSignals: [
+    {
+      code: 'owner',
+      label: 'Owner',
+      status: 'ready',
+      rawStatus: 'ready',
+      ownerRole: 'ROLE_NETZPLANUNG',
+      dueAt: '2026-07-03T12:00:00.000Z',
+      finding: null,
+      enablesDossierAddition: 'add accountable VNB owner role or contact evidence',
+      statusWhenMissing: 'needs_owner',
+    },
+    {
+      code: 'evidence_ref',
+      label: 'Evidence Reference',
+      status: 'missing',
+      rawStatus: 'missing',
+      ownerRole: 'ROLE_NETZPLANUNG',
+      dueAt: '2026-07-03T12:00:00.000Z',
+      finding: 'attach the blocking evidence proof',
+      enablesDossierAddition: 'attach the blocking evidence proof',
+      statusWhenMissing: 'needs_evidence_ref',
+    },
+  ],
+  evidenceGaps: [
+    {
+      missingDataPoint: 'evidence_ref',
+      status: 'missing',
+      enablesDossierAddition: 'attach the blocking evidence proof',
+    },
+  ],
+  nextActions: [
+    {
+      ownerRole: 'ROLE_NETZPLANUNG',
+      dueAt: '2026-07-03T12:00:00.000Z',
+      missingDataPoint: 'evidence_ref',
+      action: 'attach the blocking evidence proof',
+    },
+  ],
+};
+
+const vnbLeadershipFixture = {
+  capabilityKey: 'leadership_delta_cockpit',
+  safety: 'read_only',
+  status: 'blocked',
+  topics: [
+    {
+      topicId: 'leadership-delta:VNB Delta Signal Queue',
+      title: 'VNB Delta Signal Queue',
+      domain: 'grid_connection_capacity',
+      role: 'ROLE_MANAGEMENT',
+      status: 'blocked',
+      deltaSummary: {
+        signalCount: 1,
+        newestSignal: 'vnb-delta-demo-anschluss',
+        summary: '1 new signal(s) require leadership attention',
+      },
+      owner: { role: 'ROLE_NETZPLANUNG' },
+      dueAt: '2026-07-03T12:00:00.000Z',
+      evidenceStatus: 'missing',
+      blockedDecision: 'Freigabe Anschlusskapazitaet',
+      escalation: { state: 'needs_owner_attention', escalated: false },
+      nextLever: 'read_only_validation',
+      linkedEntities: ['smm-budibase-workbench'],
+      sourceSignals: ['vnb-demo-001'],
+    },
+  ],
+};
+
 describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   const expectedSectionIds = [
     'vdmi_profile_summary',
@@ -164,6 +300,12 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     'vdmi_event_templates',
     'vdmi_event_evidence',
     'vdmi_event_boundaries',
+    'vnb_delta_signal_queue_summary',
+    'vnb_delta_signal_queue_classifier',
+    'vnb_delta_signal_queue_owner_evidence',
+    'vnb_delta_signal_queue_safe_next_actions',
+    'vnb_delta_signal_queue_leadership',
+    'vnb_delta_signal_queue_boundaries',
   ];
 
   it('renders the VDMI profile and synthetic event preview as query-backed sections', () => {
@@ -191,6 +333,23 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         '/api/dashboard/stadtwerk-mauer-vdmi-profile',
         '/api/dashboard/stadtwerk-mauer-capability-projection',
         '/api/dashboard/stadtwerk-mauer-event-replay-preview',
+      ])
+    );
+  });
+
+  it('uses the existing read-only dashboard bricks for the VNB delta signal queue panel', () => {
+    const paths = new Set(
+      manifest.queries
+        .filter((query) => query.name.includes('VnbDeltaSignalQueue'))
+        .map((query) => query.path)
+    );
+
+    expect(paths).toEqual(
+      new Set([
+        '/api/dashboard/cross-channel-vnb-signal-queue',
+        '/api/dashboard/vnb-delta-signal-classifier/classify',
+        '/api/dashboard/owner-deadline-evidence-gate',
+        '/api/dashboard/leadership-delta-cockpit',
       ])
     );
   });
@@ -228,5 +387,37 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     expectScalarRows(runTransformer('getStadtwerkMauerEventReplayTemplateRows', eventFixture));
     expectScalarRows(runTransformer('getStadtwerkMauerEventReplayEvidenceRows', eventFixture));
     expectScalarRows(runTransformer('getStadtwerkMauerEventReplayBoundaryRows', eventFixture));
+  });
+
+  it('flattens VNB delta signal queue rows for display-safe Budibase tables', () => {
+    const summaryRows = runTransformer('getVnbDeltaSignalQueueSummaryRows', vnbQueueFixture);
+    expectScalarRows(summaryRows);
+    expect(summaryRows[0]).toMatchObject({
+      label: 'VNB Delta / Signal Queue',
+      highPriorityCount: 1,
+      needsEvidenceCount: 1,
+      sourceClass: 'synthetic_caller_supplied_queue',
+    });
+
+    const classifierRows = runTransformer('getVnbDeltaSignalQueueClassifierRows', vnbClassifierFixture);
+    expectScalarRows(classifierRows);
+    expect(classifierRows[0]).toMatchObject({
+      signalId: 'vnb-delta-demo-anschluss',
+      ownerSuggestion: 'ROLE_NETZPLANUNG',
+      sourceClass: 'synthetic_signal_classification',
+    });
+
+    expectScalarRows(runTransformer('getVnbDeltaSignalQueueOwnerEvidenceRows', vnbOwnerEvidenceFixture));
+    expectScalarRows(runTransformer('getVnbDeltaSignalQueueSafeNextActionRows', vnbOwnerEvidenceFixture));
+    expectScalarRows(runTransformer('getVnbDeltaSignalQueueLeadershipRows', vnbLeadershipFixture));
+
+    const boundaryRows = runTransformer('getVnbDeltaSignalQueueBoundaryRows', vnbClassifierFixture);
+    expectScalarRows(boundaryRows);
+    expect(boundaryRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'mail.connector.ingest', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'suppliedInputOnly', status: 'true' }),
+      ])
+    );
   });
 });

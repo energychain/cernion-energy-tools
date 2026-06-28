@@ -3450,6 +3450,345 @@
           "type": "string"
         }
       }
+    },
+    {
+      "name": "getVnbDeltaSignalQueueSummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/cross-channel-vnb-signal-queue",
+      "queryString": "tenantId={{tenantId}}&signalId=vnb-delta-demo-anschluss&channel=portal&sourceSystem=synthetic-demo&sourceRef=vnb-demo-001&affectedProcess=grid_connection_capacity&processType=grid_connection_capacity&riskType=capacity_delay&riskSeverity=high&ownerRole=ROLE_NETZPLANUNG&dueAt=2026-07-03T12%3A00%3A00.000Z&evidenceStatus=missing&nextDatapoint=capacity-window-evidence&dedupeKey=vnb-demo-001%3Acapacity-window&status=open",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const e=data.dossierEvidence||{}; return [{rowKey:'summary',label:'VNB Delta / Signal Queue',queueStatus:data.queueStatus||data.status,signalCount:data.signalCount||0,highPriorityCount:(data.normalizedSignals||[]).filter((row)=>row.riskSeverity==='high'||row.riskSeverity==='critical').length,overdueCount:e.overdueCount||(data.overdueSignals||[]).length,needsOwnerCount:e.needsOwnerCount||(data.needsOwnerSignals||[]).length,needsEvidenceCount:e.needsEvidenceCount||(data.needsEvidenceSignals||[]).length,readyForActionCount:e.readyForActionCount||(data.readyForActionSignals||[]).length,nextDatapoints:(data.nextDatapoints||e.nextDatapoints||[]).join(', '),safety:data.safety,sourceClass:'synthetic_caller_supplied_queue'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "queueStatus": {
+          "type": "string"
+        },
+        "signalCount": {
+          "type": "number"
+        },
+        "highPriorityCount": {
+          "type": "number"
+        },
+        "overdueCount": {
+          "type": "number"
+        },
+        "needsOwnerCount": {
+          "type": "number"
+        },
+        "needsEvidenceCount": {
+          "type": "number"
+        },
+        "readyForActionCount": {
+          "type": "number"
+        },
+        "nextDatapoints": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVnbDeltaSignalQueueClassifierRows",
+      "method": "POST",
+      "path": "/api/dashboard/vnb-delta-signal-classifier/classify",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "body": {
+        "tenantId": "stadtwerk-mauer",
+        "signals": [
+          {
+            "signalId": "vnb-delta-demo-anschluss",
+            "caseId": "smm-budibase-workbench",
+            "sourceType": "synthetic-demo",
+            "receivedAt": "2026-06-28T08:30:00.000Z",
+            "subject": "VNB Kapazitaetsfenster neu priorisieren",
+            "bodyExcerpt": "Synthetic demo: Anschlussfall braucht Kapazitaetsfenster und Owner bis Freitag.",
+            "knownContextAnchors": [
+              "smm-budibase-workbench",
+              "vnb-demo-001"
+            ],
+            "processHint": "grid_connection_capacity",
+            "ownerHint": "ROLE_NETZPLANUNG",
+            "dueDateHint": "2026-07-03",
+            "blockedDecisionHint": "Freigabe Anschlusskapazitaet",
+            "nextEvidenceHint": "Kapazitaetsfenster und NAP-Bezug"
+          }
+        ]
+      },
+      "transformer": "return (data.classifications||[]).map((row)=>({rowKey:row.signalId,signalId:row.signalId,sourceType:row.sourceType,receivedAt:row.receivedAt,noveltyLevel:row.noveltyLevel,decisionRelevance:row.decisionRelevance,affectedProcess:row.affectedProcess,ownerSuggestion:row.ownerSuggestion,deadlineUrgency:row.deadlineUrgency,blockedDecision:row.blockedDecision,nextEvidencePoint:row.nextEvidencePoint,confidence:row.confidence,missingEvidence:(row.missingEvidence||[]).join(', '),contentPolicy:row.contentPolicy,sourceClass:'synthetic_signal_classification'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "signalId": {
+          "type": "string"
+        },
+        "sourceType": {
+          "type": "string"
+        },
+        "receivedAt": {
+          "type": "string"
+        },
+        "noveltyLevel": {
+          "type": "string"
+        },
+        "decisionRelevance": {
+          "type": "string"
+        },
+        "affectedProcess": {
+          "type": "string"
+        },
+        "ownerSuggestion": {
+          "type": "string"
+        },
+        "deadlineUrgency": {
+          "type": "string"
+        },
+        "blockedDecision": {
+          "type": "string"
+        },
+        "nextEvidencePoint": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number"
+        },
+        "missingEvidence": {
+          "type": "string"
+        },
+        "contentPolicy": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVnbDeltaSignalQueueOwnerEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "tenantId={{tenantId}}&signalId=vnb-delta-demo-anschluss&sourceType=synthetic-demo&sourceRef=vnb-demo-001&processType=grid_connection_capacity&riskLevel=high&ownerRole=ROLE_NETZPLANUNG&dueAt=2026-07-03T12%3A00%3A00.000Z&evidenceStatus=missing&blockedDecision=Freigabe%20Anschlusskapazitaet&missingEvidence=capacity-window-evidence&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return (data.readinessSignals||[]).map((row)=>({rowKey:row.code,label:row.label,status:row.status,rawStatus:row.rawStatus,ownerRole:row.ownerRole,dueAt:row.dueAt,finding:row.finding||'',enablesDossierAddition:row.enablesDossierAddition,statusWhenMissing:row.statusWhenMissing,safety:data.safety,sourceClass:'owner_deadline_evidence_gate'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "rawStatus": {
+          "type": "string"
+        },
+        "ownerRole": {
+          "type": "string"
+        },
+        "dueAt": {
+          "type": "string"
+        },
+        "finding": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "statusWhenMissing": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVnbDeltaSignalQueueSafeNextActionRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "tenantId={{tenantId}}&signalId=vnb-delta-demo-anschluss&sourceType=synthetic-demo&sourceRef=vnb-demo-001&processType=grid_connection_capacity&riskLevel=high&ownerRole=ROLE_NETZPLANUNG&dueAt=2026-07-03T12%3A00%3A00.000Z&evidenceStatus=missing&blockedDecision=Freigabe%20Anschlusskapazitaet&missingEvidence=capacity-window-evidence&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const actions=(data.nextActions||[]).map((row,index)=>({rowKey:`next_action_${index+1}`,ownerRole:row.ownerRole,dueAt:row.dueAt,missingDataPoint:row.missingDataPoint,action:row.action,positiveFollowUp:row.action,safeNextAction:'refresh_or_attach_missing_evidence_in_later_curated_slice',sourceClass:'safe_read_only_next_action'})); const gaps=(data.positiveFollowUps||data.evidenceGaps||[]).map((row,index)=>({rowKey:`follow_up_${index+1}`,ownerRole:row.ownerRole||((data.ownerContext||{}).ownerRole),dueAt:row.dueAt||((data.ownerContext||{}).dueAt),missingDataPoint:row.missingDataPoint,action:row.enablesDossierAddition,positiveFollowUp:row.enablesDossierAddition,safeNextAction:'dossier_can_add_evidence_condition_when_supplied',sourceClass:'positive_follow_up'})); return actions.concat(gaps)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "ownerRole": {
+          "type": "string"
+        },
+        "dueAt": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "positiveFollowUp": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVnbDeltaSignalQueueLeadershipRows",
+      "method": "GET",
+      "path": "/api/dashboard/leadership-delta-cockpit",
+      "queryString": "tenantId={{tenantId}}&topic=VNB%20Delta%20Signal%20Queue&domain=grid_connection_capacity&role=ROLE_MANAGEMENT&ownerRole=ROLE_NETZPLANUNG&dueAt=2026-07-03T12%3A00%3A00.000Z&evidenceStatus=missing&blockedDecision=Freigabe%20Anschlusskapazitaet&escalationState=needs_owner_attention&nextLever=read_only_validation&newSignals=vnb-delta-demo-anschluss&linkedEntities=smm-budibase-workbench&sourceSignals=vnb-demo-001",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return (data.topics||[]).map((topic)=>({rowKey:topic.topicId,title:topic.title,domain:topic.domain,role:topic.role,status:topic.status,signalCount:((topic.deltaSummary||{}).signalCount)||0,newestSignal:(topic.deltaSummary||{}).newestSignal,summary:(topic.deltaSummary||{}).summary,ownerRole:(topic.owner||{}).role,dueAt:topic.dueAt,evidenceStatus:topic.evidenceStatus,blockedDecision:topic.blockedDecision,escalationState:(topic.escalation||{}).state,nextLever:topic.nextLever,linkedEntities:(topic.linkedEntities||[]).join(', '),sourceSignals:(topic.sourceSignals||[]).join(', '),safety:data.safety,sourceClass:'leadership_delta_read_model'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "signalCount": {
+          "type": "number"
+        },
+        "newestSignal": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "ownerRole": {
+          "type": "string"
+        },
+        "dueAt": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "blockedDecision": {
+          "type": "string"
+        },
+        "escalationState": {
+          "type": "string"
+        },
+        "nextLever": {
+          "type": "string"
+        },
+        "linkedEntities": {
+          "type": "string"
+        },
+        "sourceSignals": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVnbDeltaSignalQueueBoundaryRows",
+      "method": "POST",
+      "path": "/api/dashboard/vnb-delta-signal-classifier/classify",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "body": {
+        "tenantId": "stadtwerk-mauer",
+        "signals": [
+          {
+            "signalId": "vnb-delta-demo-anschluss",
+            "caseId": "smm-budibase-workbench",
+            "sourceType": "synthetic-demo",
+            "receivedAt": "2026-06-28T08:30:00.000Z",
+            "subject": "VNB Kapazitaetsfenster neu priorisieren",
+            "bodyExcerpt": "Synthetic demo: Anschlussfall braucht Kapazitaetsfenster und Owner bis Freitag.",
+            "knownContextAnchors": [
+              "smm-budibase-workbench",
+              "vnb-demo-001"
+            ],
+            "processHint": "grid_connection_capacity",
+            "ownerHint": "ROLE_NETZPLANUNG",
+            "dueDateHint": "2026-07-03",
+            "blockedDecisionHint": "Freigabe Anschlusskapazitaet",
+            "nextEvidenceHint": "Kapazitaetsfenster und NAP-Bezug"
+          }
+        ]
+      },
+      "transformer": "const boundary=data.sourceBoundary||{}; const boundaries=Object.entries(boundary).map(([key,value])=>({rowKey:`boundary_${key}`,boundary:key,status:String(value),safeAlternative:'caller_supplied_synthetic_signal_only',sourceClass:'source_boundary'})); const guards=((data.sourceActions||{}).notCalled||[]).map((action)=>({rowKey:action,boundary:action,status:'not_called',safeAlternative:'refresh_existing_read_model_only',sourceClass:'no_call_guard'})); return boundaries.concat(guards)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
     }
   ],
   "sections": [
@@ -3826,6 +4165,42 @@
       "tableTitle": "Replay No-Call Boundaries"
     },
     {
+      "id": "vnb_delta_signal_queue_summary",
+      "title": "VNB Delta / Signal Queue Summary",
+      "queryName": "getVnbDeltaSignalQueueSummaryRows",
+      "tableTitle": "Synthetic Signal Queue Summary"
+    },
+    {
+      "id": "vnb_delta_signal_queue_classifier",
+      "title": "VNB Delta Classifier Rows",
+      "queryName": "getVnbDeltaSignalQueueClassifierRows",
+      "tableTitle": "Novelty, Relevance and Owner Suggestion"
+    },
+    {
+      "id": "vnb_delta_signal_queue_owner_evidence",
+      "title": "Owner Deadline Evidence Gate",
+      "queryName": "getVnbDeltaSignalQueueOwnerEvidenceRows",
+      "tableTitle": "Owner, Deadline and Evidence State"
+    },
+    {
+      "id": "vnb_delta_signal_queue_safe_next_actions",
+      "title": "Safe Next Actions",
+      "queryName": "getVnbDeltaSignalQueueSafeNextActionRows",
+      "tableTitle": "Missing Evidence and Positive Follow-ups"
+    },
+    {
+      "id": "vnb_delta_signal_queue_leadership",
+      "title": "Leadership Delta Queue",
+      "queryName": "getVnbDeltaSignalQueueLeadershipRows",
+      "tableTitle": "Blocked Decisions and Decision Attention"
+    },
+    {
+      "id": "vnb_delta_signal_queue_boundaries",
+      "title": "VNB Delta Source Boundaries",
+      "queryName": "getVnbDeltaSignalQueueBoundaryRows",
+      "tableTitle": "Synthetic Source and No-Call Guards"
+    },
+    {
       "id": "e2e",
       "title": "E2E Demo Status",
       "queryName": "getStadtwerkMauerE2EProcessDemo",
@@ -3851,6 +4226,7 @@
     "No-autarky guardrails and missing evidence gates stay visible for presenters; Budibase may refresh queries but must not make public supply, household-equivalent or autarky claims.",
     "Controlled Action runStadtwerkMauerE2ESmoke remains scope-protected by Cernion.",
     "VDMI Profile and Synthetic Event Preview bind to existing dashboard read models with scalar role, capability, evidence, preview and no-call rows; Budibase refreshes queries only and never injects or executes synthetic events.",
+    "VNB Delta / Signal Queue binds to existing classifier, queue, owner/deadline/evidence and leadership delta read models with synthetic caller-supplied signals; Budibase renders scalar operator rows and no-call guards only.",
     "Budibase renders the workbench; Cernion remains the system of record and command gate."
   ]
 }
