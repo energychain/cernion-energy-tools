@@ -33,16 +33,36 @@
         }
       ],
       "schema": {
-        "status": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "caseId": { "type": "string" },
-        "landingId": { "type": "string" },
-        "title": { "type": "string" },
-        "subtitle": { "type": "string" },
-        "landingRows": { "type": "array" },
-        "sectionRows": { "type": "array" },
-        "presenterActionRows": { "type": "array" },
-        "timestamp": { "type": "string" }
+        "status": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "landingId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "landingRows": {
+          "type": "array"
+        },
+        "sectionRows": {
+          "type": "array"
+        },
+        "presenterActionRows": {
+          "type": "array"
+        },
+        "timestamp": {
+          "type": "string"
+        }
       }
     },
     {
@@ -62,16 +82,36 @@
       ],
       "transformer": "return data.landingRows || []",
       "schema": {
-        "rowKey": { "type": "string" },
-        "category": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "statusLabel": { "type": "string" },
-        "valueLabel": { "type": "string" },
-        "evidenceHint": { "type": "string" },
-        "roleTarget": { "type": "string" },
-        "safeNextAction": { "type": "string" },
-        "sourceCategory": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "statusLabel": {
+          "type": "string"
+        },
+        "valueLabel": {
+          "type": "string"
+        },
+        "evidenceHint": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceCategory": {
+          "type": "string"
+        }
       }
     },
     {
@@ -91,14 +131,30 @@
       ],
       "transformer": "return data.sectionRows || []",
       "schema": {
-        "sectionKey": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "statusLabel": { "type": "string" },
-        "evidenceHint": { "type": "string" },
-        "roleTarget": { "type": "string" },
-        "safeNextAction": { "type": "string" },
-        "followUp": { "type": "string" }
+        "sectionKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "statusLabel": {
+          "type": "string"
+        },
+        "evidenceHint": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "followUp": {
+          "type": "string"
+        }
       }
     },
     {
@@ -118,15 +174,33 @@
       ],
       "transformer": "return data.presenterActionRows || []",
       "schema": {
-        "actionId": { "type": "string" },
-        "label": { "type": "string" },
-        "riskClass": { "type": "string" },
-        "boundary": { "type": "string" },
-        "enabled": { "type": "boolean" },
-        "enabledLabel": { "type": "string" },
-        "targetSection": { "type": "string" },
-        "expectedResult": { "type": "string" },
-        "requiredEvidence": { "type": "string" }
+        "actionId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "riskClass": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "enabledLabel": {
+          "type": "string"
+        },
+        "targetSection": {
+          "type": "string"
+        },
+        "expectedResult": {
+          "type": "string"
+        },
+        "requiredEvidence": {
+          "type": "string"
+        }
       }
     },
     {
@@ -145,16 +219,36 @@
         }
       ],
       "schema": {
-        "status": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "hubId": { "type": "string" },
-        "routeKey": { "type": "string" },
-        "screenRoute": { "type": "string" },
-        "targets": { "type": "array" },
-        "targetRows": { "type": "array" },
-        "readiness": { "type": "object" },
-        "nextGate": { "type": "object" },
-        "timestamp": { "type": "string" }
+        "status": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "hubId": {
+          "type": "string"
+        },
+        "routeKey": {
+          "type": "string"
+        },
+        "screenRoute": {
+          "type": "string"
+        },
+        "targets": {
+          "type": "array"
+        },
+        "targetRows": {
+          "type": "array"
+        },
+        "readiness": {
+          "type": "object"
+        },
+        "nextGate": {
+          "type": "object"
+        },
+        "timestamp": {
+          "type": "string"
+        }
       }
     },
     {
@@ -174,13 +268,27 @@
       ],
       "transformer": "return data.targetRows || []",
       "schema": {
-        "status": { "type": "string" },
-        "routeKey": { "type": "string" },
-        "label": { "type": "string" },
-        "readinessLabel": { "type": "string" },
-        "nextGateLabel": { "type": "string" },
-        "safetyLabel": { "type": "string" },
-        "targetType": { "type": "string" }
+        "status": {
+          "type": "string"
+        },
+        "routeKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "readinessLabel": {
+          "type": "string"
+        },
+        "nextGateLabel": {
+          "type": "string"
+        },
+        "safetyLabel": {
+          "type": "string"
+        },
+        "targetType": {
+          "type": "string"
+        }
       }
     },
     {
@@ -203,19 +311,45 @@
         }
       ],
       "schema": {
-        "status": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "caseId": { "type": "string" },
-        "requestedTargetId": { "type": "string" },
-        "selectedTargetId": { "type": "string" },
-        "selectedTitle": { "type": "string" },
-        "selectedRoleKey": { "type": "string" },
-        "selectedSectionKey": { "type": "string" },
-        "selectedAnchor": { "type": "string" },
-        "selectedRows": { "type": "array" },
-        "focusRows": { "type": "array" },
-        "helperRows": { "type": "array" },
-        "timestamp": { "type": "string" }
+        "status": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "requestedTargetId": {
+          "type": "string"
+        },
+        "selectedTargetId": {
+          "type": "string"
+        },
+        "selectedTitle": {
+          "type": "string"
+        },
+        "selectedRoleKey": {
+          "type": "string"
+        },
+        "selectedSectionKey": {
+          "type": "string"
+        },
+        "selectedAnchor": {
+          "type": "string"
+        },
+        "selectedRows": {
+          "type": "array"
+        },
+        "focusRows": {
+          "type": "array"
+        },
+        "helperRows": {
+          "type": "array"
+        },
+        "timestamp": {
+          "type": "string"
+        }
       }
     },
     {
@@ -239,14 +373,30 @@
       ],
       "transformer": "return data.selectedRows || []",
       "schema": {
-        "rowKey": { "type": "string" },
-        "label": { "type": "string" },
-        "valueLabel": { "type": "string" },
-        "status": { "type": "string" },
-        "sectionKey": { "type": "string" },
-        "anchor": { "type": "string" },
-        "roleKey": { "type": "string" },
-        "safetyLabel": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "valueLabel": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sectionKey": {
+          "type": "string"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "roleKey": {
+          "type": "string"
+        },
+        "safetyLabel": {
+          "type": "string"
+        }
       }
     },
     {
@@ -270,16 +420,36 @@
       ],
       "transformer": "return data.focusRows || []",
       "schema": {
-        "focusId": { "type": "string" },
-        "targetId": { "type": "string" },
-        "title": { "type": "string" },
-        "sectionKey": { "type": "string" },
-        "anchor": { "type": "string" },
-        "focusState": { "type": "string" },
-        "status": { "type": "string" },
-        "routeKey": { "type": "string" },
-        "targetType": { "type": "string" },
-        "nextGateLabel": { "type": "string" }
+        "focusId": {
+          "type": "string"
+        },
+        "targetId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "sectionKey": {
+          "type": "string"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "focusState": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "routeKey": {
+          "type": "string"
+        },
+        "targetType": {
+          "type": "string"
+        },
+        "nextGateLabel": {
+          "type": "string"
+        }
       }
     },
     {
@@ -303,12 +473,24 @@
       ],
       "transformer": "return data.helperRows || []",
       "schema": {
-        "helperId": { "type": "string" },
-        "label": { "type": "string" },
-        "helperText": { "type": "string" },
-        "safeNextAction": { "type": "string" },
-        "requiredEvidence": { "type": "string" },
-        "followUp": { "type": "string" }
+        "helperId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "helperText": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "requiredEvidence": {
+          "type": "string"
+        },
+        "followUp": {
+          "type": "string"
+        }
       }
     },
     {
@@ -327,13 +509,27 @@
         }
       ],
       "schema": {
-        "status": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "inventoryId": { "type": "string" },
-        "categories": { "type": "array" },
-        "inventoryRows": { "type": "array" },
-        "summary": { "type": "object" },
-        "timestamp": { "type": "string" }
+        "status": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "inventoryId": {
+          "type": "string"
+        },
+        "categories": {
+          "type": "array"
+        },
+        "inventoryRows": {
+          "type": "array"
+        },
+        "summary": {
+          "type": "object"
+        },
+        "timestamp": {
+          "type": "string"
+        }
       }
     },
     {
@@ -353,17 +549,39 @@
       ],
       "transformer": "return data.inventoryRows || []",
       "schema": {
-        "categoryKey": { "type": "string" },
-        "categoryLabel": { "type": "string" },
-        "itemKey": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "dataClass": { "type": "string" },
-        "riskClass": { "type": "string" },
-        "source": { "type": "string" },
-        "provenance": { "type": "string" },
-        "routeTarget": { "type": "string" },
-        "detailLabel": { "type": "string" }
+        "categoryKey": {
+          "type": "string"
+        },
+        "categoryLabel": {
+          "type": "string"
+        },
+        "itemKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "riskClass": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "provenance": {
+          "type": "string"
+        },
+        "routeTarget": {
+          "type": "string"
+        },
+        "detailLabel": {
+          "type": "string"
+        }
       }
     },
     {
@@ -390,17 +608,39 @@
         }
       ],
       "schema": {
-        "status": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "caseId": { "type": "string" },
-        "databrowserId": { "type": "string" },
-        "categoryRows": { "type": "array" },
-        "itemRows": { "type": "array" },
-        "traceRows": { "type": "array" },
-        "detailRows": { "type": "array" },
-        "sourceRows": { "type": "array" },
-        "pagination": { "type": "object" },
-        "timestamp": { "type": "string" }
+        "status": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "databrowserId": {
+          "type": "string"
+        },
+        "categoryRows": {
+          "type": "array"
+        },
+        "itemRows": {
+          "type": "array"
+        },
+        "traceRows": {
+          "type": "array"
+        },
+        "detailRows": {
+          "type": "array"
+        },
+        "sourceRows": {
+          "type": "array"
+        },
+        "pagination": {
+          "type": "object"
+        },
+        "timestamp": {
+          "type": "string"
+        }
       }
     },
     {
@@ -420,15 +660,33 @@
       ],
       "transformer": "return data.categoryRows || []",
       "schema": {
-        "categoryId": { "type": "string" },
-        "label": { "type": "string" },
-        "sourceType": { "type": "string" },
-        "dataClass": { "type": "string" },
-        "readinessStatus": { "type": "string" },
-        "evidenceHint": { "type": "string" },
-        "safeNextAction": { "type": "string" },
-        "itemCount": { "type": "number" },
-        "bounded": { "type": "boolean" }
+        "categoryId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "sourceType": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "readinessStatus": {
+          "type": "string"
+        },
+        "evidenceHint": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "itemCount": {
+          "type": "number"
+        },
+        "bounded": {
+          "type": "boolean"
+        }
       }
     },
     {
@@ -452,17 +710,39 @@
       ],
       "transformer": "return data.itemRows || []",
       "schema": {
-        "categoryId": { "type": "string" },
-        "itemId": { "type": "string" },
-        "displayLabel": { "type": "string" },
-        "sourceType": { "type": "string" },
-        "readinessStatus": { "type": "string" },
-        "evidenceHint": { "type": "string" },
-        "traceCount": { "type": "number" },
-        "artifactRef": { "type": "string" },
-        "timestamp": { "type": "string" },
-        "safeNextAction": { "type": "string" },
-        "detailStatus": { "type": "string" }
+        "categoryId": {
+          "type": "string"
+        },
+        "itemId": {
+          "type": "string"
+        },
+        "displayLabel": {
+          "type": "string"
+        },
+        "sourceType": {
+          "type": "string"
+        },
+        "readinessStatus": {
+          "type": "string"
+        },
+        "evidenceHint": {
+          "type": "string"
+        },
+        "traceCount": {
+          "type": "number"
+        },
+        "artifactRef": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "detailStatus": {
+          "type": "string"
+        }
       }
     },
     {
@@ -482,16 +762,36 @@
       ],
       "transformer": "return data.traceRows || []",
       "schema": {
-        "traceId": { "type": "string" },
-        "stepKey": { "type": "string" },
-        "stepLabel": { "type": "string" },
-        "source": { "type": "string" },
-        "status": { "type": "string" },
-        "evidenceRef": { "type": "string" },
-        "artifactRef": { "type": "string" },
-        "order": { "type": "number" },
-        "timestamp": { "type": "string" },
-        "nextGateLabel": { "type": "string" }
+        "traceId": {
+          "type": "string"
+        },
+        "stepKey": {
+          "type": "string"
+        },
+        "stepLabel": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "evidenceRef": {
+          "type": "string"
+        },
+        "artifactRef": {
+          "type": "string"
+        },
+        "order": {
+          "type": "number"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "nextGateLabel": {
+          "type": "string"
+        }
       }
     },
     {
@@ -519,13 +819,27 @@
       ],
       "transformer": "return data.detailRows || []",
       "schema": {
-        "detailId": { "type": "string" },
-        "itemId": { "type": "string" },
-        "label": { "type": "string" },
-        "valueLabel": { "type": "string" },
-        "status": { "type": "string" },
-        "sourceType": { "type": "string" },
-        "safeNextAction": { "type": "string" }
+        "detailId": {
+          "type": "string"
+        },
+        "itemId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "valueLabel": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sourceType": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        }
       }
     },
     {
@@ -545,11 +859,21 @@
       ],
       "transformer": "return data.sourceRows || []",
       "schema": {
-        "sourceId": { "type": "string" },
-        "sourceAction": { "type": "string" },
-        "status": { "type": "string" },
-        "readOnly": { "type": "boolean" },
-        "mutationBoundary": { "type": "string" }
+        "sourceId": {
+          "type": "string"
+        },
+        "sourceAction": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "mutationBoundary": {
+          "type": "string"
+        }
       }
     },
     {
@@ -568,16 +892,36 @@
         }
       ],
       "schema": {
-        "status": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "caseId": { "type": "string" },
-        "processFamily": { "type": "string" },
-        "controlCase": { "type": "string" },
-        "evidence": { "type": "array" },
-        "evidenceRows": { "type": "array" },
-        "nextGates": { "type": "array" },
-        "nextGateRows": { "type": "array" },
-        "timestamp": { "type": "string" }
+        "status": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "controlCase": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "array"
+        },
+        "evidenceRows": {
+          "type": "array"
+        },
+        "nextGates": {
+          "type": "array"
+        },
+        "nextGateRows": {
+          "type": "array"
+        },
+        "timestamp": {
+          "type": "string"
+        }
       }
     },
     {
@@ -597,14 +941,30 @@
       ],
       "transformer": "return data.evidenceRows || []",
       "schema": {
-        "state": { "type": "string" },
-        "evidenceId": { "type": "string" },
-        "label": { "type": "string" },
-        "roleLabel": { "type": "string" },
-        "sourceClass": { "type": "string" },
-        "nextGateLabel": { "type": "string" },
-        "required": { "type": "boolean" },
-        "present": { "type": "boolean" }
+        "state": {
+          "type": "string"
+        },
+        "evidenceId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "roleLabel": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "nextGateLabel": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "present": {
+          "type": "boolean"
+        }
       }
     },
     {
@@ -624,11 +984,21 @@
       ],
       "transformer": "return data.nextGateRows || []",
       "schema": {
-        "gateId": { "type": "string" },
-        "label": { "type": "string" },
-        "allowedAction": { "type": "string" },
-        "safetyLabel": { "type": "string" },
-        "status": { "type": "string" }
+        "gateId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "allowedAction": {
+          "type": "string"
+        },
+        "safetyLabel": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
       }
     },
     {
@@ -647,18 +1017,42 @@
         }
       ],
       "schema": {
-        "status": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "caseId": { "type": "string" },
-        "availableActions": { "type": "array" },
-        "actionRows": { "type": "array" },
-        "processActionRows": { "type": "array" },
-        "lastResultRows": { "type": "array" },
-        "boundaryRows": { "type": "array" },
-        "requiredEvidenceRows": { "type": "array" },
-        "budibaseAutomationHints": { "type": "array" },
-        "noCallGuards": { "type": "array" },
-        "timestamp": { "type": "string" }
+        "status": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "availableActions": {
+          "type": "array"
+        },
+        "actionRows": {
+          "type": "array"
+        },
+        "processActionRows": {
+          "type": "array"
+        },
+        "lastResultRows": {
+          "type": "array"
+        },
+        "boundaryRows": {
+          "type": "array"
+        },
+        "requiredEvidenceRows": {
+          "type": "array"
+        },
+        "budibaseAutomationHints": {
+          "type": "array"
+        },
+        "noCallGuards": {
+          "type": "array"
+        },
+        "timestamp": {
+          "type": "string"
+        }
       }
     },
     {
@@ -678,18 +1072,42 @@
       ],
       "transformer": "return data.actionRows || []",
       "schema": {
-        "actionId": { "type": "string" },
-        "label": { "type": "string" },
-        "actionType": { "type": "string" },
-        "riskClass": { "type": "string" },
-        "method": { "type": "string" },
-        "path": { "type": "string" },
-        "requiredScope": { "type": "string" },
-        "confirmationRequired": { "type": "boolean" },
-        "enabled": { "type": "boolean" },
-        "disabledReason": { "type": "string" },
-        "nextGate": { "type": "string" },
-        "evidenceStatus": { "type": "string" }
+        "actionId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "actionType": {
+          "type": "string"
+        },
+        "riskClass": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "requiredScope": {
+          "type": "string"
+        },
+        "confirmationRequired": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "disabledReason": {
+          "type": "string"
+        },
+        "nextGate": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        }
       }
     },
     {
@@ -709,20 +1127,48 @@
       ],
       "transformer": "return data.processActionRows || []",
       "schema": {
-        "actionId": { "type": "string" },
-        "label": { "type": "string" },
-        "riskClass": { "type": "string" },
-        "boundary": { "type": "string" },
-        "executionMode": { "type": "string" },
-        "enabled": { "type": "boolean" },
-        "enabledLabel": { "type": "string" },
-        "disabledReason": { "type": "string" },
-        "lastResultStatus": { "type": "string" },
-        "lastResultAt": { "type": "string" },
-        "requiredEvidenceKey": { "type": "string" },
-        "requiredGate": { "type": "string" },
-        "nextPresenterAction": { "type": "string" },
-        "sourceLabel": { "type": "string" }
+        "actionId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "riskClass": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "executionMode": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "enabledLabel": {
+          "type": "string"
+        },
+        "disabledReason": {
+          "type": "string"
+        },
+        "lastResultStatus": {
+          "type": "string"
+        },
+        "lastResultAt": {
+          "type": "string"
+        },
+        "requiredEvidenceKey": {
+          "type": "string"
+        },
+        "requiredGate": {
+          "type": "string"
+        },
+        "nextPresenterAction": {
+          "type": "string"
+        },
+        "sourceLabel": {
+          "type": "string"
+        }
       }
     },
     {
@@ -742,14 +1188,30 @@
       ],
       "transformer": "return data.lastResultRows || []",
       "schema": {
-        "actionId": { "type": "string" },
-        "label": { "type": "string" },
-        "boundary": { "type": "string" },
-        "lastResultStatus": { "type": "string" },
-        "lastResultAt": { "type": "string" },
-        "resultSource": { "type": "string" },
-        "presenterMeaning": { "type": "string" },
-        "mutationGuard": { "type": "string" }
+        "actionId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "lastResultStatus": {
+          "type": "string"
+        },
+        "lastResultAt": {
+          "type": "string"
+        },
+        "resultSource": {
+          "type": "string"
+        },
+        "presenterMeaning": {
+          "type": "string"
+        },
+        "mutationGuard": {
+          "type": "string"
+        }
       }
     },
     {
@@ -769,13 +1231,27 @@
       ],
       "transformer": "return data.boundaryRows || []",
       "schema": {
-        "boundaryId": { "type": "string" },
-        "label": { "type": "string" },
-        "boundary": { "type": "string" },
-        "allowedOperation": { "type": "string" },
-        "blockedOperation": { "type": "string" },
-        "owner": { "type": "string" },
-        "presenterMessage": { "type": "string" }
+        "boundaryId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "allowedOperation": {
+          "type": "string"
+        },
+        "blockedOperation": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "presenterMessage": {
+          "type": "string"
+        }
       }
     },
     {
@@ -795,12 +1271,24 @@
       ],
       "transformer": "return data.requiredEvidenceRows || []",
       "schema": {
-        "evidenceKey": { "type": "string" },
-        "label": { "type": "string" },
-        "state": { "type": "string" },
-        "requiredGate": { "type": "string" },
-        "enablesAction": { "type": "string" },
-        "presenterMessage": { "type": "string" }
+        "evidenceKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "requiredGate": {
+          "type": "string"
+        },
+        "enablesAction": {
+          "type": "string"
+        },
+        "presenterMessage": {
+          "type": "string"
+        }
       }
     },
     {
@@ -819,14 +1307,30 @@
         }
       ],
       "schema": {
-        "status": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "catalogId": { "type": "string" },
-        "targets": { "type": "array" },
-        "roleRows": { "type": "array" },
-        "openTargetRows": { "type": "array" },
-        "summary": { "type": "object" },
-        "timestamp": { "type": "string" }
+        "status": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "catalogId": {
+          "type": "string"
+        },
+        "targets": {
+          "type": "array"
+        },
+        "roleRows": {
+          "type": "array"
+        },
+        "openTargetRows": {
+          "type": "array"
+        },
+        "summary": {
+          "type": "object"
+        },
+        "timestamp": {
+          "type": "string"
+        }
       }
     },
     {
@@ -846,20 +1350,48 @@
       ],
       "transformer": "return data.roleRows || []",
       "schema": {
-        "roleKey": { "type": "string" },
-        "roleCode": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "statusLabel": { "type": "string" },
-        "routeKey": { "type": "string" },
-        "routeTarget": { "type": "string" },
-        "openTarget": { "type": "string" },
-        "nextGateLabel": { "type": "string" },
-        "evidenceDomainsLabel": { "type": "string" },
-        "allowedActionClassesLabel": { "type": "string" },
-        "safetyLabel": { "type": "string" },
-        "dataClassLabel": { "type": "string" },
-        "readinessLabel": { "type": "string" }
+        "roleKey": {
+          "type": "string"
+        },
+        "roleCode": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "statusLabel": {
+          "type": "string"
+        },
+        "routeKey": {
+          "type": "string"
+        },
+        "routeTarget": {
+          "type": "string"
+        },
+        "openTarget": {
+          "type": "string"
+        },
+        "nextGateLabel": {
+          "type": "string"
+        },
+        "evidenceDomainsLabel": {
+          "type": "string"
+        },
+        "allowedActionClassesLabel": {
+          "type": "string"
+        },
+        "safetyLabel": {
+          "type": "string"
+        },
+        "dataClassLabel": {
+          "type": "string"
+        },
+        "readinessLabel": {
+          "type": "string"
+        }
       }
     },
     {
@@ -879,13 +1411,27 @@
       ],
       "transformer": "return data.openTargetRows || []",
       "schema": {
-        "openTarget": { "type": "string" },
-        "routeKey": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "targetPath": { "type": "string" },
-        "allowedActionClassesLabel": { "type": "string" },
-        "nextGateLabel": { "type": "string" }
+        "openTarget": {
+          "type": "string"
+        },
+        "routeKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "targetPath": {
+          "type": "string"
+        },
+        "allowedActionClassesLabel": {
+          "type": "string"
+        },
+        "nextGateLabel": {
+          "type": "string"
+        }
       }
     },
     {
@@ -904,15 +1450,33 @@
         }
       ],
       "schema": {
-        "status": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "caseId": { "type": "string" },
-        "roleKey": { "type": "string" },
-        "blueprintRoleKey": { "type": "string" },
-        "queueRows": { "type": "array" },
-        "evidenceHandoverRows": { "type": "array" },
-        "summary": { "type": "object" },
-        "timestamp": { "type": "string" }
+        "status": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "roleKey": {
+          "type": "string"
+        },
+        "blueprintRoleKey": {
+          "type": "string"
+        },
+        "queueRows": {
+          "type": "array"
+        },
+        "evidenceHandoverRows": {
+          "type": "array"
+        },
+        "summary": {
+          "type": "object"
+        },
+        "timestamp": {
+          "type": "string"
+        }
       }
     },
     {
@@ -932,19 +1496,45 @@
       ],
       "transformer": "return data.queueRows || []",
       "schema": {
-        "queueItemId": { "type": "string" },
-        "roleKey": { "type": "string" },
-        "blueprintRoleKey": { "type": "string" },
-        "roleRelationLabel": { "type": "string" },
-        "caseId": { "type": "string" },
-        "controlCase": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "nextGate": { "type": "string" },
-        "allowedActionClass": { "type": "string" },
-        "dataClass": { "type": "string" },
-        "sourceClass": { "type": "string" },
-        "detailLabel": { "type": "string" }
+        "queueItemId": {
+          "type": "string"
+        },
+        "roleKey": {
+          "type": "string"
+        },
+        "blueprintRoleKey": {
+          "type": "string"
+        },
+        "roleRelationLabel": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "controlCase": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "nextGate": {
+          "type": "string"
+        },
+        "allowedActionClass": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "detailLabel": {
+          "type": "string"
+        }
       }
     },
     {
@@ -964,18 +1554,42 @@
       ],
       "transformer": "return data.evidenceHandoverRows || []",
       "schema": {
-        "handoverId": { "type": "string" },
-        "evidenceId": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "present": { "type": "boolean" },
-        "required": { "type": "boolean" },
-        "roleKey": { "type": "string" },
-        "blueprintRoleKey": { "type": "string" },
-        "dataClass": { "type": "string" },
-        "sourceClass": { "type": "string" },
-        "nextGate": { "type": "string" },
-        "enablesDossierAddition": { "type": "string" }
+        "handoverId": {
+          "type": "string"
+        },
+        "evidenceId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "present": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "roleKey": {
+          "type": "string"
+        },
+        "blueprintRoleKey": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "nextGate": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        }
       }
     },
     {
@@ -998,18 +1612,42 @@
         }
       ],
       "schema": {
-        "status": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "caseId": { "type": "string" },
-        "queueItemId": { "type": "string" },
-        "itemSummaryRows": { "type": "array" },
-        "contextRows": { "type": "array" },
-        "evidenceGapRows": { "type": "array" },
-        "nextGateRows": { "type": "array" },
-        "safeFollowUpRows": { "type": "array" },
-        "noCallGuardRows": { "type": "array" },
-        "summary": { "type": "object" },
-        "timestamp": { "type": "string" }
+        "status": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "queueItemId": {
+          "type": "string"
+        },
+        "itemSummaryRows": {
+          "type": "array"
+        },
+        "contextRows": {
+          "type": "array"
+        },
+        "evidenceGapRows": {
+          "type": "array"
+        },
+        "nextGateRows": {
+          "type": "array"
+        },
+        "safeFollowUpRows": {
+          "type": "array"
+        },
+        "noCallGuardRows": {
+          "type": "array"
+        },
+        "summary": {
+          "type": "object"
+        },
+        "timestamp": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1033,17 +1671,39 @@
       ],
       "transformer": "return data.itemSummaryRows || []",
       "schema": {
-        "queueItemId": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "itemStatus": { "type": "string" },
-        "caseId": { "type": "string" },
-        "roleKey": { "type": "string" },
-        "blueprintRoleKey": { "type": "string" },
-        "nextGate": { "type": "string" },
-        "allowedActionClass": { "type": "string" },
-        "advisoryBoundary": { "type": "string" },
-        "detailLabel": { "type": "string" }
+        "queueItemId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "itemStatus": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "roleKey": {
+          "type": "string"
+        },
+        "blueprintRoleKey": {
+          "type": "string"
+        },
+        "nextGate": {
+          "type": "string"
+        },
+        "allowedActionClass": {
+          "type": "string"
+        },
+        "advisoryBoundary": {
+          "type": "string"
+        },
+        "detailLabel": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1067,11 +1727,21 @@
       ],
       "transformer": "return data.contextRows || []",
       "schema": {
-        "contextKey": { "type": "string" },
-        "label": { "type": "string" },
-        "value": { "type": "string" },
-        "sourceClass": { "type": "string" },
-        "evidenceStatus": { "type": "string" }
+        "contextKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1095,15 +1765,33 @@
       ],
       "transformer": "return data.evidenceGapRows || []",
       "schema": {
-        "evidenceId": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "present": { "type": "boolean" },
-        "required": { "type": "boolean" },
-        "dataClass": { "type": "string" },
-        "sourceClass": { "type": "string" },
-        "nextGate": { "type": "string" },
-        "enablesDossierAddition": { "type": "string" }
+        "evidenceId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "present": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "nextGate": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1127,13 +1815,27 @@
       ],
       "transformer": "return data.nextGateRows || []",
       "schema": {
-        "gateId": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "ownerRole": { "type": "string" },
-        "allowedActionClass": { "type": "string" },
-        "capacityCommitment": { "type": "string" },
-        "productionApproval": { "type": "string" }
+        "gateId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "ownerRole": {
+          "type": "string"
+        },
+        "allowedActionClass": {
+          "type": "string"
+        },
+        "capacityCommitment": {
+          "type": "string"
+        },
+        "productionApproval": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1157,11 +1859,21 @@
       ],
       "transformer": "return data.safeFollowUpRows || []",
       "schema": {
-        "missingDataPoint": { "type": "string" },
-        "category": { "type": "string" },
-        "dataClass": { "type": "string" },
-        "state": { "type": "string" },
-        "enablesDossierAddition": { "type": "string" }
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1184,17 +1896,39 @@
         }
       ],
       "schema": {
-        "status": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "caseId": { "type": "string" },
-        "audience": { "type": "string" },
-        "briefingRows": { "type": "array" },
-        "claimRows": { "type": "array" },
-        "evidenceRows": { "type": "array" },
-        "gapRows": { "type": "array" },
-        "followUpRows": { "type": "array" },
-        "summary": { "type": "object" },
-        "timestamp": { "type": "string" }
+        "status": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "audience": {
+          "type": "string"
+        },
+        "briefingRows": {
+          "type": "array"
+        },
+        "claimRows": {
+          "type": "array"
+        },
+        "evidenceRows": {
+          "type": "array"
+        },
+        "gapRows": {
+          "type": "array"
+        },
+        "followUpRows": {
+          "type": "array"
+        },
+        "summary": {
+          "type": "object"
+        },
+        "timestamp": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1218,20 +1952,48 @@
       ],
       "transformer": "return data.briefingRows || []",
       "schema": {
-        "topicKey": { "type": "string" },
-        "topicLabel": { "type": "string" },
-        "rowType": { "type": "string" },
-        "audience": { "type": "string" },
-        "audienceLabel": { "type": "string" },
-        "safeClaim": { "type": "string" },
-        "claimStatus": { "type": "string" },
-        "evidenceStatus": { "type": "string" },
-        "backingCaseId": { "type": "string" },
-        "backingWorkbenchItem": { "type": "string" },
-        "openGap": { "type": "string" },
-        "recommendedInternalFollowUp": { "type": "string" },
-        "notClaimableReason": { "type": "string" },
-        "sourceLabel": { "type": "string" }
+        "topicKey": {
+          "type": "string"
+        },
+        "topicLabel": {
+          "type": "string"
+        },
+        "rowType": {
+          "type": "string"
+        },
+        "audience": {
+          "type": "string"
+        },
+        "audienceLabel": {
+          "type": "string"
+        },
+        "safeClaim": {
+          "type": "string"
+        },
+        "claimStatus": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "backingCaseId": {
+          "type": "string"
+        },
+        "backingWorkbenchItem": {
+          "type": "string"
+        },
+        "openGap": {
+          "type": "string"
+        },
+        "recommendedInternalFollowUp": {
+          "type": "string"
+        },
+        "notClaimableReason": {
+          "type": "string"
+        },
+        "sourceLabel": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1255,15 +2017,33 @@
       ],
       "transformer": "return data.claimRows || []",
       "schema": {
-        "topicKey": { "type": "string" },
-        "topicLabel": { "type": "string" },
-        "audience": { "type": "string" },
-        "safeClaim": { "type": "string" },
-        "claimStatus": { "type": "string" },
-        "evidenceStatus": { "type": "string" },
-        "openGap": { "type": "string" },
-        "notClaimableReason": { "type": "string" },
-        "sourceLabel": { "type": "string" }
+        "topicKey": {
+          "type": "string"
+        },
+        "topicLabel": {
+          "type": "string"
+        },
+        "audience": {
+          "type": "string"
+        },
+        "safeClaim": {
+          "type": "string"
+        },
+        "claimStatus": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "openGap": {
+          "type": "string"
+        },
+        "notClaimableReason": {
+          "type": "string"
+        },
+        "sourceLabel": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1287,15 +2067,33 @@
       ],
       "transformer": "return data.evidenceRows || []",
       "schema": {
-        "evidenceId": { "type": "string" },
-        "topicKey": { "type": "string" },
-        "label": { "type": "string" },
-        "evidenceStatus": { "type": "string" },
-        "present": { "type": "boolean" },
-        "required": { "type": "boolean" },
-        "dataClass": { "type": "string" },
-        "sourceLabel": { "type": "string" },
-        "enablesSafeClaim": { "type": "string" }
+        "evidenceId": {
+          "type": "string"
+        },
+        "topicKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "present": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "sourceLabel": {
+          "type": "string"
+        },
+        "enablesSafeClaim": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1319,14 +2117,30 @@
       ],
       "transformer": "return data.gapRows || []",
       "schema": {
-        "gapKey": { "type": "string" },
-        "topicKey": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "openGap": { "type": "string" },
-        "requiredForSafeClaim": { "type": "string" },
-        "nextInternalFollowUp": { "type": "string" },
-        "sourceLabel": { "type": "string" }
+        "gapKey": {
+          "type": "string"
+        },
+        "topicKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "openGap": {
+          "type": "string"
+        },
+        "requiredForSafeClaim": {
+          "type": "string"
+        },
+        "nextInternalFollowUp": {
+          "type": "string"
+        },
+        "sourceLabel": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1350,13 +2164,27 @@
       ],
       "transformer": "return data.followUpRows || []",
       "schema": {
-        "followUpKey": { "type": "string" },
-        "topicKey": { "type": "string" },
-        "audience": { "type": "string" },
-        "claimStatus": { "type": "string" },
-        "label": { "type": "string" },
-        "nextInternalFollowUp": { "type": "string" },
-        "enablesSafeClaim": { "type": "string" }
+        "followUpKey": {
+          "type": "string"
+        },
+        "topicKey": {
+          "type": "string"
+        },
+        "audience": {
+          "type": "string"
+        },
+        "claimStatus": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "nextInternalFollowUp": {
+          "type": "string"
+        },
+        "enablesSafeClaim": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1379,21 +2207,51 @@
         }
       ],
       "schema": {
-        "status": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "municipality": { "type": "string" },
-        "postalCode": { "type": "string" },
-        "assetCount": { "type": "number" },
-        "totalCapacityKw": { "type": "number" },
-        "evidenceQuality": { "type": "string" },
-        "publicContextRows": { "type": "array" },
-        "overlayAssetRows": { "type": "array" },
-        "revalidationRows": { "type": "array" },
-        "affectedCaseRows": { "type": "array" },
-        "nextGateRows": { "type": "array" },
-        "safeActionRows": { "type": "array" },
-        "boundaryRows": { "type": "array" },
-        "timestamp": { "type": "string" }
+        "status": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "municipality": {
+          "type": "string"
+        },
+        "postalCode": {
+          "type": "string"
+        },
+        "assetCount": {
+          "type": "number"
+        },
+        "totalCapacityKw": {
+          "type": "number"
+        },
+        "evidenceQuality": {
+          "type": "string"
+        },
+        "publicContextRows": {
+          "type": "array"
+        },
+        "overlayAssetRows": {
+          "type": "array"
+        },
+        "revalidationRows": {
+          "type": "array"
+        },
+        "affectedCaseRows": {
+          "type": "array"
+        },
+        "nextGateRows": {
+          "type": "array"
+        },
+        "safeActionRows": {
+          "type": "array"
+        },
+        "boundaryRows": {
+          "type": "array"
+        },
+        "timestamp": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1402,18 +2260,39 @@
       "path": "/api/dashboard/stadtwerk-mauer-mastr-data-overlay",
       "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&limit={{limit}}",
       "parameters": [
-        { "name": "tenantId", "default": "stadtwerk-mauer" },
-        { "name": "caseId", "default": "smm-budibase-workbench" },
-        { "name": "limit", "default": "10" }
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "limit",
+          "default": "10"
+        }
       ],
       "transformer": "return data.publicContextRows || []",
       "schema": {
-        "rowKey": { "type": "string" },
-        "label": { "type": "string" },
-        "value": { "type": "string" },
-        "sourceClass": { "type": "string" },
-        "evidenceStatus": { "type": "string" },
-        "provenance": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "provenance": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1422,21 +2301,48 @@
       "path": "/api/dashboard/stadtwerk-mauer-mastr-data-overlay",
       "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&limit={{limit}}",
       "parameters": [
-        { "name": "tenantId", "default": "stadtwerk-mauer" },
-        { "name": "caseId", "default": "smm-budibase-workbench" },
-        { "name": "limit", "default": "10" }
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "limit",
+          "default": "10"
+        }
       ],
       "transformer": "return data.overlayAssetRows || []",
       "schema": {
-        "rowKey": { "type": "string" },
-        "assetId": { "type": "string" },
-        "assetType": { "type": "string" },
-        "capacityKw": { "type": "number" },
-        "originalGridOperatorName": { "type": "string" },
-        "virtualGridOperatorName": { "type": "string" },
-        "sourceClass": { "type": "string" },
-        "overlayClass": { "type": "string" },
-        "evidenceStatus": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "assetId": {
+          "type": "string"
+        },
+        "assetType": {
+          "type": "string"
+        },
+        "capacityKw": {
+          "type": "number"
+        },
+        "originalGridOperatorName": {
+          "type": "string"
+        },
+        "virtualGridOperatorName": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "overlayClass": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1445,20 +2351,45 @@
       "path": "/api/dashboard/stadtwerk-mauer-mastr-data-overlay",
       "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&limit={{limit}}",
       "parameters": [
-        { "name": "tenantId", "default": "stadtwerk-mauer" },
-        { "name": "caseId", "default": "smm-budibase-workbench" },
-        { "name": "limit", "default": "10" }
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "limit",
+          "default": "10"
+        }
       ],
       "transformer": "return data.revalidationRows || []",
       "schema": {
-        "rowKey": { "type": "string" },
-        "revalidationStatus": { "type": "string" },
-        "evidenceStatus": { "type": "string" },
-        "sourceClass": { "type": "string" },
-        "affectedCaseId": { "type": "string" },
-        "watchId": { "type": "string" },
-        "deltaCount": { "type": "number" },
-        "safeNextAction": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "revalidationStatus": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "affectedCaseId": {
+          "type": "string"
+        },
+        "watchId": {
+          "type": "string"
+        },
+        "deltaCount": {
+          "type": "number"
+        },
+        "safeNextAction": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1467,19 +2398,42 @@
       "path": "/api/dashboard/stadtwerk-mauer-mastr-data-overlay",
       "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&limit={{limit}}",
       "parameters": [
-        { "name": "tenantId", "default": "stadtwerk-mauer" },
-        { "name": "caseId", "default": "smm-budibase-workbench" },
-        { "name": "limit", "default": "10" }
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "limit",
+          "default": "10"
+        }
       ],
       "transformer": "return data.affectedCaseRows || []",
       "schema": {
-        "rowKey": { "type": "string" },
-        "caseId": { "type": "string" },
-        "workbenchItemId": { "type": "string" },
-        "sourceClass": { "type": "string" },
-        "affectedByPublicContext": { "type": "boolean" },
-        "impactStatus": { "type": "string" },
-        "evidenceHint": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "workbenchItemId": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "affectedByPublicContext": {
+          "type": "boolean"
+        },
+        "impactStatus": {
+          "type": "string"
+        },
+        "evidenceHint": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1488,18 +2442,39 @@
       "path": "/api/dashboard/stadtwerk-mauer-mastr-data-overlay",
       "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&limit={{limit}}",
       "parameters": [
-        { "name": "tenantId", "default": "stadtwerk-mauer" },
-        { "name": "caseId", "default": "smm-budibase-workbench" },
-        { "name": "limit", "default": "10" }
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "limit",
+          "default": "10"
+        }
       ],
       "transformer": "return data.nextGateRows || []",
       "schema": {
-        "rowKey": { "type": "string" },
-        "gateKey": { "type": "string" },
-        "label": { "type": "string" },
-        "sourceClass": { "type": "string" },
-        "status": { "type": "string" },
-        "requiredEvidence": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "gateKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "requiredEvidence": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1508,20 +2483,45 @@
       "path": "/api/dashboard/stadtwerk-mauer-mastr-data-overlay",
       "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&limit={{limit}}",
       "parameters": [
-        { "name": "tenantId", "default": "stadtwerk-mauer" },
-        { "name": "caseId", "default": "smm-budibase-workbench" },
-        { "name": "limit", "default": "10" }
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "limit",
+          "default": "10"
+        }
       ],
       "transformer": "return data.safeActionRows || []",
       "schema": {
-        "actionKey": { "type": "string" },
-        "label": { "type": "string" },
-        "riskClass": { "type": "string" },
-        "boundary": { "type": "string" },
-        "enabled": { "type": "boolean" },
-        "enabledLabel": { "type": "string" },
-        "targetSection": { "type": "string" },
-        "expectedResult": { "type": "string" }
+        "actionKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "riskClass": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "enabledLabel": {
+          "type": "string"
+        },
+        "targetSection": {
+          "type": "string"
+        },
+        "expectedResult": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1530,16 +2530,33 @@
       "path": "/api/dashboard/stadtwerk-mauer-mastr-data-overlay",
       "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&limit={{limit}}",
       "parameters": [
-        { "name": "tenantId", "default": "stadtwerk-mauer" },
-        { "name": "caseId", "default": "smm-budibase-workbench" },
-        { "name": "limit", "default": "10" }
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "limit",
+          "default": "10"
+        }
       ],
       "transformer": "return data.boundaryRows || []",
       "schema": {
-        "boundary": { "type": "string" },
-        "status": { "type": "string" },
-        "sourceClass": { "type": "string" },
-        "safeAlternative": { "type": "string" }
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1548,19 +2565,42 @@
       "path": "/api/dashboard/municipal-energy-value-analysis",
       "queryString": "municipality={{municipality}}&year={{year}}&scenario={{scenario}}",
       "parameters": [
-        { "name": "municipality", "default": "Mauer" },
-        { "name": "year", "default": "2025" },
-        { "name": "scenario", "default": "baseline" }
+        {
+          "name": "municipality",
+          "default": "Mauer"
+        },
+        {
+          "name": "year",
+          "default": "2025"
+        },
+        {
+          "name": "scenario",
+          "default": "baseline"
+        }
       ],
       "transformer": "const k=(key)=> (data.euroKpiRows||[]).find((row)=>row.rowKey===key)||{}; const load=(data.derivedLoadProfileRows||[]).find((row)=>row.rowKey==='derived_load_summary')||{}; const peer=data.intermunicipalComparison||{}; return [{rowKey:'municipality',municipality:data.municipality,status:data.status,label:'Gemeinde / AGS',value:`${data.municipality||'unbekannt'} (${data.ags||'ohne AGS'})`,evidenceStatus:data.ags?'available':'missing-evidence',safeNextAction:'present_peer_corridor_context'},{rowKey:'peer_corridor_status',municipality:data.municipality,status:peer.status||'unknown',label:'Peer-Korridor Status',value:peer.statusReason||peer.blockedFallback?.headline||'keine Einordnung',evidenceStatus:peer.dataStatus||peer.status||'unknown',safeNextAction:peer.status==='available'?'explain_peer_position':'show_evidence_gate_before_public_claim'},{rowKey:'municipal_budget_effect',municipality:data.municipality,status:k('euro_kpi_municipal_budget_effect').evidenceStatus||'missing-evidence',label:'Direkter Haushaltseffekt',value:k('euro_kpi_municipal_budget_effect').valueEur||null,evidenceStatus:k('euro_kpi_municipal_budget_effect').evidenceStatus||'missing-evidence',safeNextAction:'keep_separate_from_operator_value'},{rowKey:'operator_private_value',municipality:data.municipality,status:k('euro_kpi_gross_market_value').evidenceStatus||'missing-evidence',label:'Betreiber-/Privatwert',value:k('euro_kpi_gross_market_value').valueEur||null,evidenceStatus:k('euro_kpi_gross_market_value').evidenceStatus||'missing-evidence',safeNextAction:'do_not_present_as_municipal_cash_inflow'},{rowKey:'derived_load_status',municipality:data.municipality,status:load.evidenceStatus||'missing-evidence',label:'Lastprofil',value:load.rowLabel||'kein abgeleitetes Lastprofil',evidenceStatus:load.evidenceStatus||'missing-evidence',safeNextAction:'label_as_derived_not_measured'},{rowKey:'safe_next_action',municipality:data.municipality,status:'read_only',label:'Sicherer naechster Schritt',value:(data.positiveFollowUps||[])[0]?.enablesDossierAddition||'Read model aktualisieren und Evidenz-Gate klaeren.',evidenceStatus:'advisory',safeNextAction:'refresh_or_prepare_consulting_data_request'}]",
       "schema": {
-        "rowKey": { "type": "string" },
-        "municipality": { "type": "string" },
-        "status": { "type": "string" },
-        "label": { "type": "string" },
-        "value": { "type": "string" },
-        "evidenceStatus": { "type": "string" },
-        "safeNextAction": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "municipality": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1569,19 +2609,42 @@
       "path": "/api/dashboard/municipal-energy-value-analysis",
       "queryString": "municipality={{municipality}}&year={{year}}&scenario={{scenario}}",
       "parameters": [
-        { "name": "municipality", "default": "Sandhausen" },
-        { "name": "year", "default": "2025" },
-        { "name": "scenario", "default": "baseline" }
+        {
+          "name": "municipality",
+          "default": "Sandhausen"
+        },
+        {
+          "name": "year",
+          "default": "2025"
+        },
+        {
+          "name": "scenario",
+          "default": "baseline"
+        }
       ],
       "transformer": "const k=(key)=> (data.euroKpiRows||[]).find((row)=>row.rowKey===key)||{}; const load=(data.derivedLoadProfileRows||[]).find((row)=>row.rowKey==='derived_load_summary')||{}; const peer=data.intermunicipalComparison||{}; return [{rowKey:'municipality',municipality:data.municipality,status:data.status,label:'Gemeinde / AGS',value:`${data.municipality||'unbekannt'} (${data.ags||'ohne AGS'})`,evidenceStatus:data.ags?'available':'missing-evidence',safeNextAction:'present_peer_corridor_context'},{rowKey:'peer_corridor_status',municipality:data.municipality,status:peer.status||'unknown',label:'Peer-Korridor Status',value:peer.statusReason||peer.blockedFallback?.headline||'keine Einordnung',evidenceStatus:peer.dataStatus||peer.status||'unknown',safeNextAction:peer.status==='available'?'explain_peer_position':'show_evidence_gate_before_public_claim'},{rowKey:'municipal_budget_effect',municipality:data.municipality,status:k('euro_kpi_municipal_budget_effect').evidenceStatus||'missing-evidence',label:'Direkter Haushaltseffekt',value:k('euro_kpi_municipal_budget_effect').valueEur||null,evidenceStatus:k('euro_kpi_municipal_budget_effect').evidenceStatus||'missing-evidence',safeNextAction:'keep_separate_from_operator_value'},{rowKey:'operator_private_value',municipality:data.municipality,status:k('euro_kpi_gross_market_value').evidenceStatus||'missing-evidence',label:'Betreiber-/Privatwert',value:k('euro_kpi_gross_market_value').valueEur||null,evidenceStatus:k('euro_kpi_gross_market_value').evidenceStatus||'missing-evidence',safeNextAction:'do_not_present_as_municipal_cash_inflow'},{rowKey:'derived_load_status',municipality:data.municipality,status:load.evidenceStatus||'missing-evidence',label:'Lastprofil',value:load.rowLabel||'kein abgeleitetes Lastprofil',evidenceStatus:load.evidenceStatus||'missing-evidence',safeNextAction:'label_as_derived_not_measured'},{rowKey:'safe_next_action',municipality:data.municipality,status:'read_only',label:'Sicherer naechster Schritt',value:(data.positiveFollowUps||[])[0]?.enablesDossierAddition||'Read model aktualisieren und Evidenz-Gate klaeren.',evidenceStatus:'advisory',safeNextAction:'refresh_or_prepare_consulting_data_request'}]",
       "schema": {
-        "rowKey": { "type": "string" },
-        "municipality": { "type": "string" },
-        "status": { "type": "string" },
-        "label": { "type": "string" },
-        "value": { "type": "string" },
-        "evidenceStatus": { "type": "string" },
-        "safeNextAction": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "municipality": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1590,19 +2653,42 @@
       "path": "/api/dashboard/municipal-energy-value-analysis",
       "queryString": "municipality={{municipality}}&year={{year}}&scenario={{scenario}}",
       "parameters": [
-        { "name": "municipality", "default": "Wiesloch" },
-        { "name": "year", "default": "2025" },
-        { "name": "scenario", "default": "baseline" }
+        {
+          "name": "municipality",
+          "default": "Wiesloch"
+        },
+        {
+          "name": "year",
+          "default": "2025"
+        },
+        {
+          "name": "scenario",
+          "default": "baseline"
+        }
       ],
       "transformer": "const k=(key)=> (data.euroKpiRows||[]).find((row)=>row.rowKey===key)||{}; const load=(data.derivedLoadProfileRows||[]).find((row)=>row.rowKey==='derived_load_summary')||{}; const peer=data.intermunicipalComparison||{}; return [{rowKey:'municipality',municipality:data.municipality,status:data.status,label:'Gemeinde / AGS',value:`${data.municipality||'unbekannt'} (${data.ags||'ohne AGS'})`,evidenceStatus:data.ags?'available':'missing-evidence',safeNextAction:'present_peer_corridor_context'},{rowKey:'peer_corridor_status',municipality:data.municipality,status:peer.status||'unknown',label:'Peer-Korridor Status',value:peer.statusReason||peer.blockedFallback?.headline||'keine Einordnung',evidenceStatus:peer.dataStatus||peer.status||'unknown',safeNextAction:peer.status==='available'?'explain_peer_position':'show_evidence_gate_before_public_claim'},{rowKey:'municipal_budget_effect',municipality:data.municipality,status:k('euro_kpi_municipal_budget_effect').evidenceStatus||'missing-evidence',label:'Direkter Haushaltseffekt',value:k('euro_kpi_municipal_budget_effect').valueEur||null,evidenceStatus:k('euro_kpi_municipal_budget_effect').evidenceStatus||'missing-evidence',safeNextAction:'keep_separate_from_operator_value'},{rowKey:'operator_private_value',municipality:data.municipality,status:k('euro_kpi_gross_market_value').evidenceStatus||'missing-evidence',label:'Betreiber-/Privatwert',value:k('euro_kpi_gross_market_value').valueEur||null,evidenceStatus:k('euro_kpi_gross_market_value').evidenceStatus||'missing-evidence',safeNextAction:'do_not_present_as_municipal_cash_inflow'},{rowKey:'derived_load_status',municipality:data.municipality,status:load.evidenceStatus||'missing-evidence',label:'Lastprofil',value:load.rowLabel||'kein abgeleitetes Lastprofil',evidenceStatus:load.evidenceStatus||'missing-evidence',safeNextAction:'label_as_derived_not_measured'},{rowKey:'safe_next_action',municipality:data.municipality,status:'read_only',label:'Sicherer naechster Schritt',value:(data.positiveFollowUps||[])[0]?.enablesDossierAddition||'Read model aktualisieren und Evidenz-Gate klaeren.',evidenceStatus:'advisory',safeNextAction:'refresh_or_prepare_consulting_data_request'}]",
       "schema": {
-        "rowKey": { "type": "string" },
-        "municipality": { "type": "string" },
-        "status": { "type": "string" },
-        "label": { "type": "string" },
-        "value": { "type": "string" },
-        "evidenceStatus": { "type": "string" },
-        "safeNextAction": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "municipality": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1611,21 +2697,48 @@
       "path": "/api/dashboard/municipal-energy-value-analysis",
       "queryString": "municipality={{municipality}}&year={{year}}&scenario={{scenario}}",
       "parameters": [
-        { "name": "municipality", "default": "Wiesloch" },
-        { "name": "year", "default": "2025" },
-        { "name": "scenario", "default": "baseline" }
+        {
+          "name": "municipality",
+          "default": "Wiesloch"
+        },
+        {
+          "name": "year",
+          "default": "2025"
+        },
+        {
+          "name": "scenario",
+          "default": "baseline"
+        }
       ],
       "transformer": "const peer=data.intermunicipalComparison||{}; const rows=(peer.corridorRows||[]).map((row)=>({rowKey:row.metricKey,municipality:data.municipality,metricLabel:row.metricLabel,peerStatus:peer.status,targetValue:row.targetValue,peerRange:row.roundedRangeLabel,evidenceStatus:row.evidenceStatus,framingText:row.framingText,safeNextAction:'present_as_peer_corridor_not_autarky_claim'})); if(rows.length) return rows; return [{rowKey:'peer_corridor_blocked',municipality:data.municipality,metricLabel:'Peer-Korridor',peerStatus:peer.status||'blocked',targetValue:null,peerRange:null,evidenceStatus:peer.dataStatus||'blocked',framingText:peer.blockedFallback?.text||peer.statusReason||'Peer-Korridor noch nicht freigegeben.',safeNextAction:'resolve_peer_evidence_gate_before_public_claim'}]",
       "schema": {
-        "rowKey": { "type": "string" },
-        "municipality": { "type": "string" },
-        "metricLabel": { "type": "string" },
-        "peerStatus": { "type": "string" },
-        "targetValue": { "type": "number" },
-        "peerRange": { "type": "string" },
-        "evidenceStatus": { "type": "string" },
-        "framingText": { "type": "string" },
-        "safeNextAction": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "municipality": {
+          "type": "string"
+        },
+        "metricLabel": {
+          "type": "string"
+        },
+        "peerStatus": {
+          "type": "string"
+        },
+        "targetValue": {
+          "type": "number"
+        },
+        "peerRange": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "framingText": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1634,19 +2747,42 @@
       "path": "/api/dashboard/municipal-energy-value-analysis",
       "queryString": "municipality={{municipality}}&year={{year}}&scenario={{scenario}}",
       "parameters": [
-        { "name": "municipality", "default": "Wiesloch" },
-        { "name": "year", "default": "2025" },
-        { "name": "scenario", "default": "baseline" }
+        {
+          "name": "municipality",
+          "default": "Wiesloch"
+        },
+        {
+          "name": "year",
+          "default": "2025"
+        },
+        {
+          "name": "scenario",
+          "default": "baseline"
+        }
       ],
       "transformer": "return (data.noAutarkyGuardrails||[]).map((guardrail,index)=>({rowKey:guardrail,municipality:data.municipality,guardrail,position:index+1,status:'not_public_claim',presenterInstruction:'Nicht als Autarkie-, Haushalts- oder Lieferbehauptung verwenden.',safeNextAction:'show_eur_and_evidence_rows_only'}))",
       "schema": {
-        "rowKey": { "type": "string" },
-        "municipality": { "type": "string" },
-        "guardrail": { "type": "string" },
-        "position": { "type": "number" },
-        "status": { "type": "string" },
-        "presenterInstruction": { "type": "string" },
-        "safeNextAction": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "municipality": {
+          "type": "string"
+        },
+        "guardrail": {
+          "type": "string"
+        },
+        "position": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string"
+        },
+        "presenterInstruction": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1655,18 +2791,39 @@
       "path": "/api/dashboard/municipal-energy-value-analysis",
       "queryString": "municipality={{municipality}}&year={{year}}&scenario={{scenario}}",
       "parameters": [
-        { "name": "municipality", "default": "Wiesloch" },
-        { "name": "year", "default": "2025" },
-        { "name": "scenario", "default": "baseline" }
+        {
+          "name": "municipality",
+          "default": "Wiesloch"
+        },
+        {
+          "name": "year",
+          "default": "2025"
+        },
+        {
+          "name": "scenario",
+          "default": "baseline"
+        }
       ],
       "transformer": "return (data.missingEvidence||[]).slice(0,12).map((gap)=>({rowKey:gap.missingDataPoint,municipality:data.municipality,missingDataPoint:gap.missingDataPoint,enablesDossierAddition:gap.enablesDossierAddition,status:'open_evidence_gate',safeNextAction:'prepare_consulting_data_request'}))",
       "schema": {
-        "rowKey": { "type": "string" },
-        "municipality": { "type": "string" },
-        "missingDataPoint": { "type": "string" },
-        "enablesDossierAddition": { "type": "string" },
-        "status": { "type": "string" },
-        "safeNextAction": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "municipality": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1676,14 +2833,30 @@
       "queryString": "",
       "parameters": [],
       "schema": {
-        "status": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "demoPath": { "type": "string" },
-        "caseId": { "type": "string" },
-        "traceCount": { "type": "number" },
-        "artifactCount": { "type": "number" },
-        "evidenceQuality": { "type": "string" },
-        "timestamp": { "type": "string" }
+        "status": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "demoPath": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "traceCount": {
+          "type": "number"
+        },
+        "artifactCount": {
+          "type": "number"
+        },
+        "evidenceQuality": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1703,9 +2876,579 @@
         "requestedBy": "budibase:operator"
       },
       "schema": {
-        "success": { "type": "boolean" },
-        "message": { "type": "string" },
-        "riskClass": { "type": "string" }
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "riskClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerVdmiProfileSummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-vdmi-profile",
+      "queryString": "tenantId={{tenantId}}&includeRoles=true&includeEvidenceGaps=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return [{rowKey:'profile',label:'Synthetic VDMI Profile',tenantId:data.tenantId,municipality:data.municipality,postcode:data.postcode,status:data.status,safety:data.safety,valueLabel:`${data.municipality||'Mauer'} (${data.postcode||'69256'})`,evidenceHint:(data.demoQuestionAnswer||{}).summary||'Synthetic Stadtwerk Mauer profile only',sourceClass:'synthetic_demo_profile'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "municipality": {
+          "type": "string"
+        },
+        "postcode": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "valueLabel": {
+          "type": "string"
+        },
+        "evidenceHint": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerVdmiProfileSparteRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-vdmi-profile",
+      "queryString": "tenantId={{tenantId}}&includeRoles=true&includeEvidenceGaps=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return (data.sparten||[]).map((row)=>({rowKey:row.id,label:row.label,tenantId:data.tenantId,municipality:data.municipality,primaryMarketRoles:(row.primaryMarketRoles||[]).join(', '),status:data.status,safety:data.safety,sourceClass:'synthetic_demo_profile'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "municipality": {
+          "type": "string"
+        },
+        "primaryMarketRoles": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerVdmiProfileRoleRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-vdmi-profile",
+      "queryString": "tenantId={{tenantId}}&includeRoles=true&includeEvidenceGaps=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return (data.roles||[]).map((row)=>({rowKey:row.id,label:row.label,type:row.type,involvement:row.involvement,vdmiResponsibility:row.vdmiResponsibility,decisionBoundary:row.decisionBoundary,evidenceNeeds:(row.evidenceNeeds||[]).join(', '),safety:data.safety,sourceClass:'synthetic_role_model'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "involvement": {
+          "type": "string"
+        },
+        "vdmiResponsibility": {
+          "type": "string"
+        },
+        "decisionBoundary": {
+          "type": "string"
+        },
+        "evidenceNeeds": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerVdmiProfileEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-vdmi-profile",
+      "queryString": "tenantId={{tenantId}}&includeRoles=true&includeEvidenceGaps=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return (data.evidenceGaps||data.missingEvidence||[]).map((gap)=>({rowKey:gap.missingDataPoint,label:gap.label||gap.missingDataPoint,status:gap.status,category:gap.category,enablesDossierAddition:gap.enablesDossierAddition,safety:data.safety,sourceClass:'synthetic_evidence_gap'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerVdmiProfileBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-vdmi-profile",
+      "queryString": "tenantId={{tenantId}}&includeRoles=true&includeEvidenceGaps=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const boundaries=(data.decisionBoundaries||[]).map((boundary,index)=>({rowKey:`decision_boundary_${index+1}`,boundary,status:'active',safeAlternative:'read_only_profile_or_existing_workbench_target',sourceClass:'synthetic_demo_profile'})); const guards=((data.sourceActions||{}).notCalled||[]).map((action)=>({rowKey:action,boundary:action,status:'not_called',safeAlternative:'refresh_dashboard_read_model_only',sourceClass:'no_call_guard'})); return boundaries.concat(guards)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerCapabilityProjectionSummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-capability-projection",
+      "queryString": "tenantId={{tenantId}}&roles=management,grid-planning,asset-management,regulatory&includeDescriptorSources=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const s=data.classificationSummary||{}; return [{rowKey:'read_only',label:'Read-only capabilities',value:s.readOnly||0,status:data.status,safety:data.safety,sourceClass:'capability_projection'},{rowKey:'advisory',label:'Advisory capabilities',value:s.advisory||0,status:data.status,safety:data.safety,sourceClass:'capability_projection'},{rowKey:'consequential_followups',label:'Consequential follow-ups',value:s.consequentialFollowUps||0,status:'proposal_only',safety:data.safety,sourceClass:'capability_projection'},{rowKey:'executable_consequential_actions',label:'Executable consequential actions',value:s.executableConsequentialActions||0,status:(s.executableConsequentialActions||0)===0?'blocked_by_design':'unsafe',safety:data.safety,sourceClass:'no_execution_guard'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerCapabilityProjectionRoleRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-capability-projection",
+      "queryString": "tenantId={{tenantId}}&roles=management,grid-planning,asset-management,regulatory&includeDescriptorSources=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return (data.roles||[]).map((role)=>({rowKey:role.roleId,label:role.label,vdmiResponsibilities:(role.vdmiResponsibilities||[]).join(' | '),readOnlyCount:(role.readOnlyCapabilities||[]).length,advisoryCount:(role.advisoryCapabilities||[]).length,followUpCount:(role.consequentialFollowUps||[]).length,descriptorSources:(role.descriptorSources||data.descriptorSources||[]).join(', '),safety:data.safety,sourceClass:'capability_projection_role'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "vdmiResponsibilities": {
+          "type": "string"
+        },
+        "readOnlyCount": {
+          "type": "number"
+        },
+        "advisoryCount": {
+          "type": "number"
+        },
+        "followUpCount": {
+          "type": "number"
+        },
+        "descriptorSources": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerCapabilityProjectionCapabilityRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-capability-projection",
+      "queryString": "tenantId={{tenantId}}&roles=management,grid-planning,asset-management,regulatory&includeDescriptorSources=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const rows=[]; for (const role of data.roles||[]) { for (const item of role.readOnlyCapabilities||[]) rows.push({rowKey:`${role.roleId}:read:${item.capability}`,roleId:role.roleId,roleLabel:role.label,capability:item.capability,classification:item.classification,handoff:item.handoff,executable:false,safety:data.safety,sourceClass:'read_only_capability'}); for (const item of role.advisoryCapabilities||[]) rows.push({rowKey:`${role.roleId}:advisory:${item.capability}`,roleId:role.roleId,roleLabel:role.label,capability:item.capability,classification:item.classification,handoff:item.handoff,executable:false,safety:data.safety,sourceClass:'advisory_capability'}); for (const item of role.consequentialFollowUps||[]) rows.push({rowKey:`${role.roleId}:followup:${item.capability}`,roleId:role.roleId,roleLabel:role.label,capability:item.capability,classification:item.classification,handoff:item.handoff,executable:item.executable===true,safety:data.safety,sourceClass:'proposal_only_followup'}); } return rows",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "roleId": {
+          "type": "string"
+        },
+        "roleLabel": {
+          "type": "string"
+        },
+        "capability": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "handoff": {
+          "type": "string"
+        },
+        "executable": {
+          "type": "boolean"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerCapabilityProjectionEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-capability-projection",
+      "queryString": "tenantId={{tenantId}}&roles=management,grid-planning,asset-management,regulatory&includeDescriptorSources=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return (data.evidenceGaps||[]).map((gap)=>({rowKey:`${gap.roleId||'all'}:${gap.missingDataPoint}`,roleId:gap.roleId||'all',missingDataPoint:gap.missingDataPoint,status:gap.status,category:gap.category,enablesDossierAddition:gap.enablesDossierAddition,safety:data.safety,sourceClass:'capability_evidence_gap'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "roleId": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerCapabilityProjectionBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-capability-projection",
+      "queryString": "tenantId={{tenantId}}&roles=management,grid-planning,asset-management,regulatory&includeDescriptorSources=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const boundaries=(data.decisionBoundaries||[]).map((boundary,index)=>({rowKey:`capability_boundary_${index+1}`,boundary,status:'active',safeAlternative:'dossier_or_vdmi_context_only',sourceClass:'capability_projection'})); const guards=((data.sourceActions||{}).notCalled||[]).map((action)=>({rowKey:action,boundary:action,status:'not_called',safeAlternative:'refresh_dashboard_read_model_only',sourceClass:'no_call_guard'})); return boundaries.concat(guards)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerEventReplayPreviewRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-event-replay-preview",
+      "queryString": "tenantId={{tenantId}}&seed=budibase-workbench&count=5",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return (data.replayPreview||[]).map((event)=>({rowKey:event.eventId,eventId:event.eventId,occurredAt:event.occurredAt,eventType:event.eventType,sparte:event.sparte,marketRole:event.marketRole,sourceActor:event.sourceActor,summary:(event.payload||{}).summary,nextOwner:(event.expectedRouting||{}).nextOwner,vdmiRoles:((event.expectedRouting||{}).vdmiRoles||[]).join(', '),capabilities:((event.expectedRouting||{}).capabilities||[]).join(', '),dossierPath:(event.expectedRouting||{}).dossierPath,evidenceQuality:event.evidenceQuality,sideEffectPolicy:event.sideEffectPolicy,followUpClass:event.followUpClass,sourceClass:'synthetic_event_preview'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "eventId": {
+          "type": "string"
+        },
+        "occurredAt": {
+          "type": "string"
+        },
+        "eventType": {
+          "type": "string"
+        },
+        "sparte": {
+          "type": "string"
+        },
+        "marketRole": {
+          "type": "string"
+        },
+        "sourceActor": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "nextOwner": {
+          "type": "string"
+        },
+        "vdmiRoles": {
+          "type": "string"
+        },
+        "capabilities": {
+          "type": "string"
+        },
+        "dossierPath": {
+          "type": "string"
+        },
+        "evidenceQuality": {
+          "type": "string"
+        },
+        "sideEffectPolicy": {
+          "type": "string"
+        },
+        "followUpClass": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerEventReplayTemplateRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-event-replay-preview",
+      "queryString": "tenantId={{tenantId}}&seed=budibase-workbench&count=5",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return (data.eventTemplates||[]).slice(0,12).map((template)=>({rowKey:template.templateId,templateId:template.templateId,title:template.title,eventType:template.eventType,sparte:template.sparte,marketRole:template.marketRole,sourceActor:template.sourceActor,summary:(template.payload||{}).summary,nextOwner:(template.expectedRouting||{}).nextOwner,capabilities:((template.expectedRouting||{}).capabilities||[]).join(', '),dossierPath:(template.expectedRouting||{}).dossierPath,evidenceQuality:template.evidenceQuality,sideEffectPolicy:template.sideEffectPolicy,sourceClass:'synthetic_event_template'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "templateId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "eventType": {
+          "type": "string"
+        },
+        "sparte": {
+          "type": "string"
+        },
+        "marketRole": {
+          "type": "string"
+        },
+        "sourceActor": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "nextOwner": {
+          "type": "string"
+        },
+        "capabilities": {
+          "type": "string"
+        },
+        "dossierPath": {
+          "type": "string"
+        },
+        "evidenceQuality": {
+          "type": "string"
+        },
+        "sideEffectPolicy": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerEventReplayEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-event-replay-preview",
+      "queryString": "tenantId={{tenantId}}&seed=budibase-workbench&count=5",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return (data.evidenceGaps||[]).slice(0,12).map((gap)=>({rowKey:gap.missingDataPoint,missingDataPoint:gap.missingDataPoint,status:gap.status,category:gap.category,enablesDossierAddition:gap.enablesDossierAddition,safety:data.safety,sourceClass:'event_preview_evidence_gap'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerEventReplayBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-event-replay-preview",
+      "queryString": "tenantId={{tenantId}}&seed=budibase-workbench&count=5",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const boundaries=(data.decisionBoundaries||[]).map((boundary,index)=>({rowKey:`event_boundary_${index+1}`,boundary,status:'active',safeAlternative:'preview_existing_synthetic_event_only',sourceClass:'event_replay_preview'})); const guards=((data.sourceActions||{}).notCalled||[]).map((action)=>({rowKey:action,boundary:action,status:'not_called',safeAlternative:'refresh_dashboard_read_model_only',sourceClass:'no_call_guard'})); return boundaries.concat(guards)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     }
   ],
@@ -1999,6 +3742,90 @@
       "tableTitle": "Missing Evidence Gates"
     },
     {
+      "id": "vdmi_profile_summary",
+      "title": "VDMI Profile Summary",
+      "queryName": "getStadtwerkMauerVdmiProfileSummaryRows",
+      "tableTitle": "Synthetic Profile Summary"
+    },
+    {
+      "id": "vdmi_profile_sparten",
+      "title": "VDMI Profile Sparten",
+      "queryName": "getStadtwerkMauerVdmiProfileSparteRows",
+      "tableTitle": "Sparten and Market Roles"
+    },
+    {
+      "id": "vdmi_profile_roles",
+      "title": "VDMI Role Model",
+      "queryName": "getStadtwerkMauerVdmiProfileRoleRows",
+      "tableTitle": "Role Responsibilities"
+    },
+    {
+      "id": "vdmi_profile_evidence",
+      "title": "VDMI Evidence Gaps",
+      "queryName": "getStadtwerkMauerVdmiProfileEvidenceRows",
+      "tableTitle": "Evidence Gaps and Follow-ups"
+    },
+    {
+      "id": "vdmi_profile_boundaries",
+      "title": "VDMI Governance Boundaries",
+      "queryName": "getStadtwerkMauerVdmiProfileBoundaryRows",
+      "tableTitle": "Decision and No-Call Boundaries"
+    },
+    {
+      "id": "vdmi_capability_summary",
+      "title": "Capability Projection Summary",
+      "queryName": "getStadtwerkMauerCapabilityProjectionSummaryRows",
+      "tableTitle": "Classification Summary"
+    },
+    {
+      "id": "vdmi_capability_roles",
+      "title": "Capability Projection Roles",
+      "queryName": "getStadtwerkMauerCapabilityProjectionRoleRows",
+      "tableTitle": "Role Capability Totals"
+    },
+    {
+      "id": "vdmi_capability_rows",
+      "title": "Capability Projection Rows",
+      "queryName": "getStadtwerkMauerCapabilityProjectionCapabilityRows",
+      "tableTitle": "Read-only, Advisory and Follow-up Capabilities"
+    },
+    {
+      "id": "vdmi_capability_evidence",
+      "title": "Capability Evidence Gaps",
+      "queryName": "getStadtwerkMauerCapabilityProjectionEvidenceRows",
+      "tableTitle": "Capability Evidence Gaps"
+    },
+    {
+      "id": "vdmi_capability_boundaries",
+      "title": "Capability No-Call Boundaries",
+      "queryName": "getStadtwerkMauerCapabilityProjectionBoundaryRows",
+      "tableTitle": "Capability Boundaries"
+    },
+    {
+      "id": "vdmi_event_preview",
+      "title": "Synthetic Event Preview",
+      "queryName": "getStadtwerkMauerEventReplayPreviewRows",
+      "tableTitle": "Deterministic Replay Preview"
+    },
+    {
+      "id": "vdmi_event_templates",
+      "title": "Synthetic Event Templates",
+      "queryName": "getStadtwerkMauerEventReplayTemplateRows",
+      "tableTitle": "Template Catalog Preview"
+    },
+    {
+      "id": "vdmi_event_evidence",
+      "title": "Synthetic Event Evidence Gaps",
+      "queryName": "getStadtwerkMauerEventReplayEvidenceRows",
+      "tableTitle": "Event Evidence Gaps"
+    },
+    {
+      "id": "vdmi_event_boundaries",
+      "title": "Synthetic Event No-Call Boundaries",
+      "queryName": "getStadtwerkMauerEventReplayBoundaryRows",
+      "tableTitle": "Replay No-Call Boundaries"
+    },
+    {
       "id": "e2e",
       "title": "E2E Demo Status",
       "queryName": "getStadtwerkMauerE2EProcessDemo",
@@ -2023,6 +3850,7 @@
     "Municipal peer-corridor rows keep direct municipal budget effect separate from operator/private value and label derived load evidence as not measured.",
     "No-autarky guardrails and missing evidence gates stay visible for presenters; Budibase may refresh queries but must not make public supply, household-equivalent or autarky claims.",
     "Controlled Action runStadtwerkMauerE2ESmoke remains scope-protected by Cernion.",
+    "VDMI Profile and Synthetic Event Preview bind to existing dashboard read models with scalar role, capability, evidence, preview and no-call rows; Budibase refreshes queries only and never injects or executes synthetic events.",
     "Budibase renders the workbench; Cernion remains the system of record and command gate."
   ]
 }

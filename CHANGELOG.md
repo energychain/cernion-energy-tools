@@ -5,6 +5,12 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.67.9] — 2026-06-28
+
+### Added
+- **Budibase VDMI profile and synthetic event preview panel** (`integrations/budibase/manifests/stadtwerk-mauer-workbench.json`, #337): The generated `Cernion Stadtwerk Mauer Workbench` now renders the existing read-only dashboard bricks for `stadtwerk-mauer-vdmi-profile`, `stadtwerk-mauer-capability-projection` and `stadtwerk-mauer-event-replay-preview` as scalar Budibase table sections for profile summary, sparten, role model, evidence gaps, capability classifications, synthetic event templates, deterministic replay preview and no-call boundaries.
+- Focused manifest tests (`tests/budibase-workbench.test.js`) prove the new transformers keep operator-facing rows display-safe and keep consequential event/capability follow-ups non-executable.
+
 ## [0.67.8] — 2026-06-27
 
 ### Added

@@ -34,6 +34,7 @@ The workbench renders:
 - Vertrieb/Key Account briefing rows from `GET /api/dashboard/stadtwerk-mauer-sales-workbench-briefing?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&audience=vertrieb`
 - MaStR public-context revalidation rows, affected case, next evidence gate, safe verify actions and no-call boundaries from `GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - municipal value peer-corridor evidence rows for `Mauer`, `Sandhausen` and `Wiesloch` from `GET /api/dashboard/municipal-energy-value-analysis`
+- VDMI profile, role model, evidence-gap, capability-projection and synthetic event preview rows from the existing read-only dashboard bricks: `GET /api/dashboard/stadtwerk-mauer-vdmi-profile`, `GET /api/dashboard/stadtwerk-mauer-capability-projection` and `GET /api/dashboard/stadtwerk-mauer-event-replay-preview`
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
 The action query is intentionally still guarded by Cernion scopes. A Budibase button may be
@@ -88,6 +89,13 @@ operator/private value, derived-load status, peer-corridor position, no-autarky 
 missing evidence gates. Budibase may refresh these queries, but it must not write public context,
 make household-equivalent/autarky/supply claims, create legal opinions, or become the consulting
 or municipal-value system of record.
+The VDMI profile and synthetic event preview panel is read-only: it renders scalar rows over the
+existing synthetic Stadtwerk Mauer profile, role model, capability projection, event templates,
+deterministic replay preview, evidence gaps and no-call boundaries. Budibase may refresh these
+queries and open existing rendered targets, but it must not inject events, persist replay state,
+schedule jobs, execute Rundeck, create HITL/NOVA/VDMI tasks, call external connectors, mutate
+public context, or imply that synthetic event IDs are real customer, meter, consent, MaKo or
+device-control data.
 
 ## Apply Locally
 
