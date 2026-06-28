@@ -1536,6 +1536,8 @@ module.exports = {
             'dashboard-api.leadershipDeltaCockpitStatus',
           'POST /dashboard/vnb-delta-signal-classifier/classify':
             'dashboard-api.vnbDeltaSignalClassifierStatus',
+          'GET /dashboard/evidence-freshness-guard':
+            'dashboard-api.evidenceFreshnessGuardStatus',
           'GET /dashboard/live-update-stream-contract':
             'dashboard-api.liveUpdateStreamContractStatus',
           'GET /dashboard/smgw-connector-readiness':

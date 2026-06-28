@@ -63540,6 +63540,183 @@
         }
       }
     },
+    "/api/dashboard/evidence-freshness-guard": {
+      "get": {
+        "operationId": "dashboard-api_evidenceFreshnessGuardStatus",
+        "summary": "Evidence freshness guard -- read-only VNB signal metadata classification",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only evidence freshness classification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "freshnessState": {
+                      "type": "string"
+                    },
+                    "deltaState": {
+                      "type": "string"
+                    },
+                    "escalationRecommended": {
+                      "type": "boolean"
+                    },
+                    "evidenceGaps": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Classifies caller-supplied operational signal metadata into dossier-safe freshness and delta states. The endpoint returns staleness, known-anchor, new-delta, escalation recommendation, non-escalation reason, evidence gaps and positive follow-ups. It does not ingest email, Teams, calendar, monitoring or task data; does not create ACF cards, HITL tasks, tickets, workflow actions, billing/settlement/tariff/MaKo/device-control side effects; and does not add Personal-Agent shortcuts.",
+        "parameters": [
+          {
+            "name": "signalId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceKind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceTimestamp",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "receivedTimestamp",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lastSeenTimestamp",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "processArea",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dueDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "knownSnapshotId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "knownSnapshotHash",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currentSnapshotId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currentSnapshotHash",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "severityHint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "blockedDecision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "escalationThresholdDays",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard/live-update-stream-contract": {
       "get": {
         "operationId": "dashboard-api_liveUpdateStreamContractStatus",
