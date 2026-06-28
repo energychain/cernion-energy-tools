@@ -1120,6 +1120,25 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes evidence freshness guard prompts to the read-only metadata classifier', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe evidence_freshness_guard Evidence Freshness Guard fuer VNB Signal Freshness, source timestamp, current snapshot hash, known snapshot hash, stale context anchor, known anchor repeat, new delta, freshness delta und non escalation reason.',
+    });
+
+    expect(result.capability).toBe('evidence_freshness_guard');
+    expect(result.recommendedCapabilities[0].capability).toBe('evidence_freshness_guard');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.evidenceFreshnessGuardStatus');
+    expect(actionNames).not.toContain('mail.connector.ingest');
+    expect(actionNames).not.toContain('teams.connector.read');
+    expect(actionNames).not.toContain('monitoring.connector.read');
+    expect(actionNames).not.toContain('acf.card.create');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('workflow.execute');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes asset valuation transformation gate prompts to the read-only evidence projection', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Asset Valuation Transformation Gate fuer Buchwert, Restwert, Assetzustand, Stilllegung, Umwidmung, H2 Option, Waermebezug, Vertragsrisiko, regulatorische Unsicherheit und Datenqualitaet.',

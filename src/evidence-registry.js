@@ -3836,6 +3836,60 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  evidence_freshness_guard: {
+    sources: [
+      {
+        id: 'source_kind',
+        label: 'Source kind for the supplied signal metadata',
+        resolvedBy: ['dashboard-api.evidenceFreshnessGuardStatus'],
+        contextKeys: ['sourceKind', 'sourceType', 'channel'],
+        optional: false,
+      },
+      {
+        id: 'source_timestamp',
+        label: 'Source timestamp used for freshness classification',
+        resolvedBy: ['dashboard-api.evidenceFreshnessGuardStatus'],
+        contextKeys: ['sourceTimestamp', 'createdAt', 'snapshotTimestamp'],
+        optional: false,
+      },
+      {
+        id: 'last_seen_timestamp',
+        label: 'Last-seen timestamp for known context-anchor comparison',
+        resolvedBy: ['dashboard-api.evidenceFreshnessGuardStatus'],
+        contextKeys: ['lastSeenTimestamp', 'baselineTimestamp', 'knownContextTimestamp'],
+        optional: false,
+      },
+      {
+        id: 'snapshot_identity',
+        label: 'Known and current snapshot identity or hash',
+        resolvedBy: ['dashboard-api.evidenceFreshnessGuardStatus'],
+        contextKeys: ['knownSnapshotHash', 'knownSnapshotId', 'currentSnapshotHash', 'currentSnapshotId'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Accountable owner or role',
+        resolvedBy: ['dashboard-api.evidenceFreshnessGuardStatus', 'vdmi.dossier'],
+        contextKeys: ['owner', 'ownerRole'],
+        optional: false,
+      },
+      {
+        id: 'due_date',
+        label: 'Due date or deadline',
+        resolvedBy: ['dashboard-api.evidenceFreshnessGuardStatus', 'vdmi.dossier'],
+        contextKeys: ['dueDate', 'dueAt'],
+        optional: false,
+      },
+      {
+        id: 'blocked_decision',
+        label: 'Blocked decision for escalation rationale',
+        resolvedBy: ['dashboard-api.evidenceFreshnessGuardStatus', 'dashboard-api.vnbDeltaSignalClassifierStatus'],
+        contextKeys: ['blockedDecision', 'blockedDecisionHint'],
+        optional: false,
+      },
+    ],
+  },
+
   cross_channel_vnb_signal_queue: {
     sources: [
       {

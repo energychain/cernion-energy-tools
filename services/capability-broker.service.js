@@ -393,6 +393,18 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasEvidenceFreshnessGuardSpecificSignal =
+    /(evidence.?freshness.?guard|evidence_freshness_guard|freshness.?guard|vnb.?signal.?freshness|source timestamp|quellzeitpunkt|stale context|kontextanker|known anchor|snapshot.?alter|snapshot hash|known snapshot|current snapshot|new delta|neues delta|non.?escalation|nicht.?eskalation)/i.test(haystack) &&
+    /(freshness|fresh|stale|delta|snapshot|source|quelle|timestamp|anchor|anker|eskalation|escalation|blocked decision|blockierte entscheidung)/i.test(haystack) &&
+    !/(mail.?ingest|mail.?scrap|outlook read|teams read|calendar read|task read|monitoring connector|connector ausfuehren|connector ausführen|external connector|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|notification dispatch|benachrichtigung senden|ticket create|hitl create|task create|aufgabe erstellen|acf card create|personal-agent execute|persistiere rohinhalt|raw private content)/i.test(haystack);
+
+  if (hasEvidenceFreshnessGuardSpecificSignal) {
+    const evidenceFreshnessCapability = findCapabilityByName('evidence_freshness_guard');
+    if (evidenceFreshnessCapability) {
+      return { capability: evidenceFreshnessCapability, score: 145, usedFallback: false };
+    }
+  }
+
   const hasVnbDeltaSignalClassifierSpecificSignal =
     /(vnb.?delta.?signal|delta.?signal.?classifier|delta.?klassifikation|evu.?fuehrungssignal|evu.?führungssignal|entscheidungssignal|entscheidungsqueue|vnb_delta_signal_classifier)/i.test(haystack) &&
     /(owner|frist|deadline|anschluss|kapazitaet|kapazität|regulierung|messstellen|flexibilitaet|flexibilität|assetthemen|blockierte entscheidung|naechster evidenzpunkt|nächster evidenzpunkt)/i.test(haystack) &&

@@ -1450,6 +1450,23 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('evidence_freshness_guard: requires freshness, snapshot, owner and decision evidence', () => {
+    const plan = { routeKey: 'evidence_freshness_guard' };
+    const result = planEvidence(plan, {
+      sourceKind: 'monitoring_report',
+      sourceTimestamp: '2026-06-28T07:45:00Z',
+      currentSnapshotHash: 'capacity-new',
+    });
+
+    expect(result.registryKey).toBe('evidence_freshness_guard');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['source_kind', 'source_timestamp', 'snapshot_identity'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining(['last_seen_timestamp', 'owner', 'due_date', 'blocked_decision'])
+    );
+  });
+
   it('asset_valuation_transformation_gate: requires valuation, condition, transformation and decision evidence', () => {
     const plan = { routeKey: 'asset_valuation_transformation_gate' };
     const result = planEvidence(plan, {

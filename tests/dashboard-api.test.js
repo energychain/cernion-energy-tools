@@ -3767,6 +3767,88 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  describe('evidenceFreshnessGuardStatus', () => {
+    it('classifies stale known context as a non-escalating anchor', async () => {
+      const result = await broker.call('dashboard-api.evidenceFreshnessGuardStatus', {
+        signalId: 'freshness-340-stale',
+        sourceKind: 'mail_excerpt',
+        sourceTimestamp: '2026-06-01T08:00:00Z',
+        receivedTimestamp: '2026-06-28T08:00:00Z',
+        lastSeenTimestamp: '2026-06-01T08:00:00Z',
+        knownSnapshotHash: 'snapshot-a',
+        currentSnapshotHash: 'snapshot-a',
+        processArea: 'grid_connection_capacity',
+        owner: 'Netzplanung',
+        dueDate: '2026-07-10',
+        blockedDecision: 'Kapazitaetsfreigabe',
+      });
+
+      expect(result.capabilityKey).toBe('evidence_freshness_guard');
+      expect(result.safety).toBe('read_only_metadata_classification');
+      expect(result.freshnessState).toBe('stale_context');
+      expect(result.deltaState).toBe('known_anchor_repeat');
+      expect(result.isKnownAnchor).toBe(true);
+      expect(result.isNewDelta).toBe(false);
+      expect(result.escalationRecommended).toBe(false);
+      expect(result.nonEscalationReason).toContain('same snapshot');
+      expect(result.dossierEvidence.dossierFacts).toContain('Known Anchor: true');
+    });
+
+    it('classifies a fresh changed snapshot as a dossier-safe escalation candidate', async () => {
+      const result = await broker.call('dashboard-api.evidenceFreshnessGuardStatus', {
+        signalId: 'freshness-340-delta',
+        sourceKind: 'monitoring_report',
+        sourceTimestamp: '2026-06-28T07:45:00Z',
+        receivedTimestamp: '2026-06-28T08:00:00Z',
+        lastSeenTimestamp: '2026-06-27T08:00:00Z',
+        knownSnapshotHash: 'capacity-old',
+        currentSnapshotHash: 'capacity-new',
+        processArea: 'grid_connection_capacity',
+        owner: 'Netzplanung',
+        dueDate: '2026-06-29',
+        severityHint: 'high',
+        blockedDecision: 'Kapazitaetsfreigabe Gewerbegebiet',
+      });
+
+      expect(result.status).toBe('fresh_delta_escalation_candidate');
+      expect(result.freshnessState).toBe('fresh_signal');
+      expect(result.deltaState).toBe('new_delta');
+      expect(result.isNewDelta).toBe(true);
+      expect(result.escalationRecommended).toBe(true);
+      expect(result.evidenceGaps).toEqual([]);
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'mail.connector.ingest',
+          'teams.connector.read',
+          'monitoring.connector.read',
+          'acf.card.create',
+          'hitl.create',
+          'workflow.execute',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('surfaces missing metadata as evidence gaps and positive follow-ups', async () => {
+      const result = await broker.call('dashboard-api.evidenceFreshnessGuardStatus', {
+        currentSnapshotHash: 'only-current',
+      });
+
+      expect(result.status).toBe('freshness_classification_with_gaps');
+      expect(result.evidenceGaps.map((gap) => gap.missingDataPoint)).toEqual(
+        expect.arrayContaining([
+          'source_kind',
+          'source_timestamp',
+          'last_seen_timestamp',
+          'owner',
+          'due_date',
+          'blocked_decision',
+        ])
+      );
+      expect(result.positiveFollowUps[0].category).toBe('evidence_freshness_guard');
+    });
+  });
+
   describe('leadershipDeltaCockpitStatus', () => {
     it('reports missing leadership delta evidence without executing mutations', async () => {
       const result = await broker.call('dashboard-api.leadershipDeltaCockpitStatus', {

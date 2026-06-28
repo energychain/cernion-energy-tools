@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 98 static rules', () => {
+    it('loads all 99 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(98);
+      expect(rules.length).toBe(99);
     });
 
-    it('compiles all 98 static rules without error', () => {
+    it('compiles all 99 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(98);
+      expect(rules.length).toBe(99);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -113,6 +113,7 @@ describe('dossier-hydration-registry (unit)', () => {
         'investment-maturity-off-balance-gate.getStatus',
         'gas-capacity-order-revision-gate.getStatus',
         'dashboard-api.vnbDeltaSignalClassifierStatus',
+        'dashboard-api.evidenceFreshnessGuardStatus',
       ];
       for (const action of expected) {
         expect(getRule(action)).not.toBeNull();
@@ -1567,6 +1568,49 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Process: grid_connection_capacity');
       expect(formatted).toContain('Side-Effect Guard: mail.connector.ingest');
       expect(formatted).toContain('Boundary: Boundary: supplied input only');
+    });
+
+    it('dashboard-api.evidenceFreshnessGuardStatus is dossier-safe and formats freshness facts', () => {
+      const rule = getRule('dashboard-api.evidenceFreshnessGuardStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Evidence Freshness Guard quelle=monitoring_report; sourceTimestamp=2026-06-28T07:45:00Z lastSeen=2026-06-27T08:00:00Z knownHash=old currentHash=new owner=Netzplanung; frist=2026-06-29 entscheidung=Kapazitaetsfreigabe pruefen'
+        )
+      ).toEqual({
+        sourceKind: 'monitoring_report',
+        sourceTimestamp: '2026-06-28T07:45:00Z',
+        lastSeenTimestamp: '2026-06-27T08:00:00Z',
+        knownSnapshotHash: 'old',
+        currentSnapshotHash: 'new',
+        owner: 'Netzplanung',
+        dueDate: '2026-06-29',
+        blockedDecision: 'Kapazitaetsfreigabe pruefen',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'evidence_freshness_guard',
+        status: 'fresh_delta_escalation_candidate',
+        freshnessState: 'fresh_signal',
+        deltaState: 'new_delta',
+        stalenessDays: 0.1,
+        isKnownAnchor: false,
+        isNewDelta: true,
+        escalationRecommended: true,
+        owner: 'Netzplanung',
+        blockedDecision: 'Kapazitaetsfreigabe',
+        sourceActions: {
+          notCalled: ['mail.connector.ingest'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: evidence_freshness_guard');
+      expect(formatted).toContain('Freshness: fresh_signal');
+      expect(formatted).toContain('Delta: new_delta');
+      expect(formatted).toContain('Escalation: true');
+      expect(formatted).toContain('Side-Effect Guard: mail.connector.ingest');
     });
 
     it('dashboard-api.assetValuationTransformationGateStatus is dossier-safe and formats gate facts', () => {

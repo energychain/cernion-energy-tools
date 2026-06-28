@@ -139,6 +139,7 @@ module.exports = {
       gasGridTransformationAssetCockpitStatus: 5 * 60 * 1000, // 5 min
       leadershipDeltaCockpitStatus: 5 * 60 * 1000, // 5 min
       vnbDeltaSignalClassifierStatus: 5 * 60 * 1000, // 5 min
+      evidenceFreshnessGuardStatus: 5 * 60 * 1000, // 5 min
       liveUpdateStreamContractStatus: 5 * 60 * 1000, // 5 min
       smgwConnectorReadinessStatus: 5 * 60 * 1000, // 5 min
       municipalEnergyValueAnalysisStatus: 5 * 60 * 1000, // 5 min
@@ -8560,6 +8561,94 @@ module.exports = {
           this.settings.cacheTtlMs.vnbDeltaSignalClassifierStatus,
           async () => ({
             ...this.buildVnbDeltaSignalClassifierStatus(params),
+            timestamp: new Date().toISOString(),
+          })
+        );
+      },
+    },
+
+    // -- evidenceFreshnessGuardStatus ---------------------------------------
+    /**
+     * GET /api/dashboard/evidence-freshness-guard
+     *
+     * Read-only metadata classifier for VNB signal freshness. It separates
+     * stale context anchors, repeated snapshots, fresh deltas and escalation
+     * candidates without reading connectors or triggering workflow actions.
+     */
+    evidenceFreshnessGuardStatus: {
+      rest: 'GET /evidence-freshness-guard',
+      params: {
+        signalId: { type: 'string', optional: true, min: 1 },
+        sourceKind: { type: 'string', optional: true, min: 1 },
+        sourceTimestamp: { type: 'string', optional: true, min: 1 },
+        receivedTimestamp: { type: 'string', optional: true, min: 1 },
+        lastSeenTimestamp: { type: 'string', optional: true, min: 1 },
+        processArea: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        dueDate: { type: 'string', optional: true, min: 1 },
+        knownSnapshotId: { type: 'string', optional: true, min: 1 },
+        knownSnapshotHash: { type: 'string', optional: true, min: 1 },
+        currentSnapshotId: { type: 'string', optional: true, min: 1 },
+        currentSnapshotHash: { type: 'string', optional: true, min: 1 },
+        severityHint: { type: 'string', optional: true, min: 1 },
+        blockedDecision: { type: 'string', optional: true, min: 1 },
+        escalationThresholdDays: { type: 'number', optional: true, convert: true, min: 0, max: 365 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Evidence freshness guard -- read-only VNB signal metadata classification',
+        description:
+          'Classifies caller-supplied operational signal metadata into dossier-safe freshness and delta states. The endpoint returns staleness, known-anchor, new-delta, escalation recommendation, non-escalation reason, evidence gaps and positive follow-ups. It does not ingest email, Teams, calendar, monitoring or task data; does not create ACF cards, HITL tasks, tickets, workflow actions, billing/settlement/tariff/MaKo/device-control side effects; and does not add Personal-Agent shortcuts.',
+        parameters: [
+          { name: 'signalId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceKind', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceTimestamp', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'receivedTimestamp', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'lastSeenTimestamp', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'processArea', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dueDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'knownSnapshotId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'knownSnapshotHash', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'currentSnapshotId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'currentSnapshotHash', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'severityHint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'blockedDecision', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'escalationThresholdDays', in: 'query', required: false, schema: { type: 'number' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only evidence freshness classification',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    safety: { type: 'string' },
+                    freshnessState: { type: 'string' },
+                    deltaState: { type: 'string' },
+                    escalationRecommended: { type: 'boolean' },
+                    evidenceGaps: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `evidence-freshness-guard:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.evidenceFreshnessGuardStatus,
+          async () => ({
+            ...this.buildEvidenceFreshnessGuardStatus(params),
             timestamp: new Date().toISOString(),
           })
         );
@@ -28597,6 +28686,220 @@ module.exports = {
           positiveFollowUps,
           sourceBoundary: {
             suppliedInputOnly: true,
+            connectorRead: false,
+            persistsRawPrivateContent: false,
+            createsExternalAction: false,
+          },
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+        _errors: [],
+      };
+    },
+
+    buildEvidenceFreshnessGuardStatus(params = {}) {
+      const normalize = (value) => String(value || '').trim();
+      const normalizeLower = (value) => normalize(value).toLowerCase();
+      const toTimestamp = (value) => {
+        const parsed = Date.parse(value);
+        return Number.isFinite(parsed) ? parsed : null;
+      };
+      const ageDays = (newer, older) => {
+        if (!Number.isFinite(newer) || !Number.isFinite(older)) return null;
+        return Math.max(0, Number(((newer - older) / (24 * 60 * 60 * 1000)).toFixed(2)));
+      };
+      const sourceTs = toTimestamp(params.sourceTimestamp);
+      const receivedTs = toTimestamp(params.receivedTimestamp) || Date.now();
+      const lastSeenTs = toTimestamp(params.lastSeenTimestamp);
+      const stalenessDays = sourceTs == null ? null : ageDays(receivedTs, sourceTs);
+      const baselineAgeDays = sourceTs == null || lastSeenTs == null ? null : ageDays(sourceTs, lastSeenTs);
+      const knownSnapshot = params.knownSnapshotHash || params.knownSnapshotId || null;
+      const currentSnapshot = params.currentSnapshotHash || params.currentSnapshotId || null;
+      const hasKnownSnapshot = Boolean(knownSnapshot);
+      const hasCurrentSnapshot = Boolean(currentSnapshot);
+      const sameSnapshot = hasKnownSnapshot && hasCurrentSnapshot && String(knownSnapshot) === String(currentSnapshot);
+      const changedSnapshot = hasKnownSnapshot && hasCurrentSnapshot && String(knownSnapshot) !== String(currentSnapshot);
+      const threshold = Number.isFinite(Number(params.escalationThresholdDays))
+        ? Number(params.escalationThresholdDays)
+        : 7;
+      const severity = normalizeLower(params.severityHint || 'normal');
+      const severityIsHigh = /high|hoch|red|rot|critical|kritisch|eskal/.test(severity);
+      const hasBlockedDecision = Boolean(normalize(params.blockedDecision));
+      const dueTs = toTimestamp(params.dueDate);
+      const daysUntilDue = dueTs == null ? null : Number(((dueTs - receivedTs) / (24 * 60 * 60 * 1000)).toFixed(2));
+      const dueUrgent = daysUntilDue != null && daysUntilDue <= 3;
+
+      let freshnessState = 'freshness_unknown';
+      if (sourceTs != null && stalenessDays <= 1) freshnessState = 'fresh_signal';
+      else if (sourceTs != null && stalenessDays <= threshold) freshnessState = 'recent_context';
+      else if (sourceTs != null) freshnessState = 'stale_context';
+
+      let deltaState = 'delta_unknown';
+      if (sameSnapshot) deltaState = 'known_anchor_repeat';
+      else if (changedSnapshot) deltaState = 'new_delta';
+      else if (!hasKnownSnapshot && hasCurrentSnapshot) deltaState = 'new_snapshot_without_baseline';
+      else if (baselineAgeDays != null && baselineAgeDays > 0) deltaState = 'timestamp_delta_without_hash';
+
+      const isKnownAnchor = deltaState === 'known_anchor_repeat';
+      const isNewDelta = ['new_delta', 'new_snapshot_without_baseline', 'timestamp_delta_without_hash'].includes(deltaState);
+      const escalationRecommended =
+        isNewDelta && (severityIsHigh || hasBlockedDecision || dueUrgent || freshnessState === 'fresh_signal');
+      const nonEscalationReason = escalationRecommended
+        ? null
+        : isKnownAnchor
+          ? 'same snapshot as known context anchor; no new delta detected'
+          : freshnessState === 'stale_context'
+            ? 'source timestamp is stale and should refresh before escalation'
+            : !hasBlockedDecision && !severityIsHigh
+              ? 'no blocked decision or high severity evidence supplied'
+              : 'insufficient freshness or delta evidence for escalation';
+
+      const gapSpecs = [
+        {
+          id: 'source_kind',
+          ok: Boolean(params.sourceKind),
+          enablesDossierAddition: 'add source kind such as mail excerpt, task, monitoring report or meeting note',
+        },
+        {
+          id: 'source_timestamp',
+          ok: sourceTs != null,
+          enablesDossierAddition: 'add source timestamp to calculate freshness and staleness',
+        },
+        {
+          id: 'last_seen_timestamp',
+          ok: lastSeenTs != null,
+          enablesDossierAddition: 'add last-seen timestamp to separate repeated context from a true new delta',
+        },
+        {
+          id: 'snapshot_identity',
+          ok: hasKnownSnapshot || hasCurrentSnapshot,
+          enablesDossierAddition: 'add known/current snapshot id or hash for deterministic delta classification',
+        },
+        {
+          id: 'owner',
+          ok: Boolean(params.owner),
+          enablesDossierAddition: 'add accountable owner for the signal queue',
+        },
+        {
+          id: 'due_date',
+          ok: dueTs != null,
+          enablesDossierAddition: 'add due date to classify deadline urgency',
+        },
+        {
+          id: 'blocked_decision',
+          ok: hasBlockedDecision,
+          enablesDossierAddition: 'add blocked decision wording for dossier-safe escalation rationale',
+        },
+      ];
+      const evidenceGaps = gapSpecs
+        .filter((gap) => !gap.ok)
+        .map((gap) => ({
+          missingDataPoint: gap.id,
+          enablesDossierAddition: gap.enablesDossierAddition,
+          category: 'evidence_freshness_guard',
+        }));
+      const positiveFollowUps = evidenceGaps.map((gap) => ({
+        ...gap,
+        state: 'missing_evidence',
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.evidenceFreshnessGuardStatus'],
+        referenced: [
+          'dashboard-api.vnbDeltaSignalClassifierStatus',
+          'dashboard-api.crossChannelVnbSignalQueueStatus',
+          'dashboard-api.leadershipDeltaCockpitStatus',
+          'vdmi.dossier',
+          'evidence-planner.plan',
+        ],
+        notCalled: [
+          'mail.connector.ingest',
+          'outlook.connector.read',
+          'teams.connector.read',
+          'calendar.connector.read',
+          'monitoring.connector.read',
+          'task.connector.read',
+          'acf.card.create',
+          'ticket.create',
+          'notification.dispatchInternal',
+          'hitl.create',
+          'workflow.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'device-control.execute',
+        ],
+      };
+      const status = escalationRecommended
+        ? 'fresh_delta_escalation_candidate'
+        : evidenceGaps.length > 0
+          ? 'freshness_classification_with_gaps'
+          : isKnownAnchor
+            ? 'known_anchor_no_escalation'
+            : isNewDelta
+              ? 'fresh_delta_review'
+              : 'freshness_review';
+      const dossierFacts = [
+        `Evidence Freshness Status: ${status}`,
+        `Freshness State: ${freshnessState}`,
+        `Delta State: ${deltaState}`,
+        `Staleness Days: ${stalenessDays == null ? 'unknown' : stalenessDays}`,
+        `Known Anchor: ${isKnownAnchor}`,
+        `New Delta: ${isNewDelta}`,
+        `Escalation Recommended: ${escalationRecommended}`,
+      ];
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (params.blockedDecision) dossierFacts.push(`Blocked Decision: ${params.blockedDecision}`);
+      if (nonEscalationReason) dossierFacts.push(`Non-Escalation Reason: ${nonEscalationReason}`);
+
+      return {
+        capabilityKey: 'evidence_freshness_guard',
+        safety: 'read_only_metadata_classification',
+        signalId: params.signalId || null,
+        status,
+        freshnessState,
+        deltaState,
+        stalenessDays,
+        baselineAgeDays,
+        isKnownAnchor,
+        isNewDelta,
+        escalationRecommended,
+        nonEscalationReason,
+        blockedDecision: params.blockedDecision || null,
+        owner: params.owner || null,
+        dueDate: params.dueDate || null,
+        processArea: params.processArea || null,
+        sourceBoundary: {
+          suppliedMetadataOnly: true,
+          connectorRead: false,
+          persistsRawPrivateContent: false,
+          createsExternalAction: false,
+        },
+        evidenceGaps,
+        missingEvidence: evidenceGaps,
+        positiveFollowUps,
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'evidence_freshness_guard',
+          status,
+          freshnessState,
+          deltaState,
+          stalenessDays,
+          baselineAgeDays,
+          isKnownAnchor,
+          isNewDelta,
+          escalationRecommended,
+          nonEscalationReason,
+          blockedDecision: params.blockedDecision || null,
+          owner: params.owner || null,
+          dueDate: params.dueDate || null,
+          processArea: params.processArea || null,
+          evidenceGaps,
+          positiveFollowUps,
+          sourceBoundary: {
+            suppliedMetadataOnly: true,
             connectorRead: false,
             persistsRawPrivateContent: false,
             createsExternalAction: false,
