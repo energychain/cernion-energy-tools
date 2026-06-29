@@ -373,6 +373,12 @@ module.exports = {
       openapi: {
         summary: 'List gas-capacity order revisions',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'query', name: 'orderYear', schema: { type: 'number' } },
+          { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
+          { in: 'query', name: 'limit', schema: { type: 'number' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -394,6 +400,10 @@ module.exports = {
       openapi: {
         summary: 'Get a gas-capacity order revision',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'revisionId', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -430,6 +440,12 @@ module.exports = {
       openapi: {
         summary: 'Get dossier-safe gas-capacity order revision status',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'query', name: 'revisionId', schema: { type: 'string' } },
+          { in: 'query', name: 'orderYear', schema: { type: 'number' } },
+          { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);

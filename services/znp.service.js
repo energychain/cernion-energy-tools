@@ -1277,6 +1277,192 @@ module.exports = {
       },
     },
 
+    morningBriefing: {
+      rest: 'GET /projects/:projectId/morning-briefing',
+      params: {
+        projectId: { type: 'string' },
+        thresholdMW: {
+          type: 'number',
+          optional: true,
+          default: 81,
+          min: 0,
+          convert: true,
+        },
+        since: { type: 'string', optional: true, max: 80 },
+      },
+      openapi: {
+        summary: 'Build a read-only ZNP morning briefing for grid planners',
+        tags: ['Zielnetzplanung (ZNP)'],
+        description:
+          'Returns an action-oriented morning summary for the Cernion ZNP Workspace. ' +
+          'The briefing consolidates overnight planning changes, bottleneck signals ' +
+          'against the supplied MW threshold, and recommended advisory next actions. ' +
+          'It is read-only and does not mutate the ZNP graph or apply NOVA decisions.',
+        parameters: [
+          { name: 'projectId', in: 'path', required: true, schema: { type: 'string' } },
+          {
+            name: 'thresholdMW',
+            in: 'query',
+            required: false,
+            schema: { type: 'number', default: 81 },
+          },
+          { name: 'since', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Morning briefing dashboard model',
+          },
+        },
+      },
+      async handler(ctx) {
+        const { projectId } = ctx.params;
+        const tenantId = getTenantId(ctx);
+        const thresholdKW = ctx.params.thresholdMW * 1000;
+        await this.ensureProjectHydrated(projectId);
+        const project = this.getProject(projectId);
+        this.requireProjectTenant(project, tenantId, projectId);
+
+        const { graph } = project;
+        const assumptions = [];
+        const plannedAssets = [];
+        let mastrCapacityKW = 0;
+
+        graph.forEachNode((nodeKey, attrs) => {
+          if (attrs.type === 'assumption') {
+            assumptions.push({
+              id: nodeKey.replace(/^assumption:/, ''),
+              assetType: attrs.assetType || 'planning-assumption',
+              capacityKW: attrs.capacity || 0,
+              status: attrs.status || 'planned',
+              hasFlexibleNav: attrs.hasFlexibleNav === true,
+              createdAt: attrs.createdAt || null,
+              source: 'strategic_assumption',
+            });
+            return;
+          }
+
+          if (attrs.type === 'mastr_asset') {
+            const capacity = attrs.capacity || 0;
+            mastrCapacityKW += capacity;
+            if (/planung|planned/i.test(String(attrs.status || ''))) {
+              plannedAssets.push({
+                id: attrs.mastrNummer || nodeKey,
+                assetType: attrs.assetType || 'asset',
+                capacityKW: capacity,
+                status: attrs.status || 'planned',
+                commissioningDate: attrs.commissioningDate || null,
+                source: 'mastr_layer_0',
+              });
+            }
+          }
+        });
+
+        const measuredPeakKW = project.layer2MeasuredPeakLoadKw || 0;
+        const layer2BasisKW = measuredPeakKW || mastrCapacityKW;
+        const visibleDemandKW =
+          layer2BasisKW +
+          assumptions.reduce((sum, item) => {
+            const flexFactor = item.hasFlexibleNav ? 0.45 : 1.0;
+            return sum + item.capacityKW * flexFactor;
+          }, 0);
+        const utilization = thresholdKW > 0 ? visibleDemandKW / thresholdKW : 0;
+
+        const overnightChanges = [...plannedAssets, ...assumptions]
+          .sort((a, b) => (b.capacityKW || 0) - (a.capacityKW || 0))
+          .slice(0, 5)
+          .map((item) => ({
+            title: `${item.assetType} ${Math.round(item.capacityKW)} kW`,
+            detail: item.hasFlexibleNav
+              ? 'Planungsannahme mit flexiblem NAV erkannt'
+              : item.status === 'planned' || item.status === 'In Planung'
+                ? 'Neue oder geplante Anschlusslast im Planungsraum'
+                : 'Aktualisierte Planungsannahme im Workspace',
+            severity: item.hasFlexibleNav ? 'info' : item.capacityKW >= 1000 ? 'watch' : 'info',
+            source: item.source,
+          }));
+
+        if (overnightChanges.length === 0) {
+          overnightChanges.push({
+            title: 'Keine neuen Anschlussereignisse im Workspace',
+            detail: 'Layer 0/2.5 enthalten aktuell keine neuen Planungsdelta-Signale.',
+            severity: 'info',
+            source: 'znp_graph',
+          });
+        }
+
+        const bottlenecks = [
+          {
+            title: `Pfalzwerke-Schwelle ${ctx.params.thresholdMW} MW`,
+            detail: `${Math.round(visibleDemandKW / 10) / 100} MW sichtbar gegen ${ctx.params.thresholdMW} MW Schwelle`,
+            severity: utilization >= 0.95 ? 'critical' : utilization >= 0.8 ? 'watch' : 'clear',
+            utilization: Math.round(utilization * 1000) / 1000,
+            thresholdMW: ctx.params.thresholdMW,
+          },
+        ];
+
+        if (assumptions.some((item) => !item.hasFlexibleNav && item.capacityKW >= 1000)) {
+          bottlenecks.push({
+            title: 'Starre Grossanschlussannahme',
+            detail: 'Mindestens eine neue MW-Annahme bindet Kapazitaet ohne Flexibilitaetshebel.',
+            severity: 'watch',
+          });
+        }
+
+        const recommendedActions = [];
+        if (assumptions.some((item) => item.hasFlexibleNav)) {
+          recommendedActions.push({
+            title: 'Flexible NAV als Angebotslinie vorbereiten',
+            detail: 'Planungsannahme im NOVA-/Portfolio-Kontext pruefen und kaufmaennische Freigabe separat einholen.',
+            actionType: 'advisory',
+            priority: 'high',
+          });
+        }
+        if (utilization >= 0.8) {
+          recommendedActions.push({
+            title: '81-MW Engpassbezug pruefen',
+            detail: 'Anschlussdelta gegen N-1-Grenze, Gleichzeitigkeit und Layer-2-Messbasis plausibilisieren.',
+            actionType: 'review',
+            priority: utilization >= 0.95 ? 'critical' : 'high',
+          });
+        }
+        if (recommendedActions.length === 0) {
+          recommendedActions.push({
+            title: 'Morgenlage beobachten',
+            detail: 'Keine akute Schwellenverletzung; naechsten Layer-2-/Anschlussdelta-Lauf abwarten.',
+            actionType: 'monitor',
+            priority: 'normal',
+          });
+        }
+
+        return {
+          projectId,
+          tenantId: project.tenantId,
+          generatedAt: new Date().toISOString(),
+          since: ctx.params.since || null,
+          headline:
+            utilization >= 0.95
+              ? 'Kapazitaetslage kritisch'
+              : utilization >= 0.8
+                ? 'Engpassschwelle im Blick behalten'
+                : 'Morgenlage stabil',
+          metrics: {
+            visibleDemandMW: Math.round(visibleDemandKW / 10) / 100,
+            thresholdMW: ctx.params.thresholdMW,
+            utilizationPct: Math.round(utilization * 1000) / 10,
+            overnightChangeCount: overnightChanges.length,
+            recommendationCount: recommendedActions.length,
+          },
+          overnightChanges,
+          bottlenecks,
+          recommendedActions,
+          sourceActions: {
+            inspected: ['znp.project.graph', 'znp.layer0', 'znp.layer2', 'znp.assumptions'],
+            notCalled: ['nova.apply', 'nova.approveDecision', 'external.connector.call'],
+          },
+        };
+      },
+    },
+
     productionReadinessStatus: {
       rest: 'GET /projects/:projectId/production-readiness/status',
       params: {
@@ -1307,6 +1493,12 @@ module.exports = {
           { name: 'gfactorValidation', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'acceptanceReference', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'novaHandoff', in: 'query', required: false, schema: { type: 'string' } },
+                  { in: 'query', name: 'referenceDataset', schema: { type: 'string' } },
+          { in: 'query', name: 'measuredGfactor', schema: { type: 'number' } },
+          { in: 'query', name: 'modelGfactor', schema: { type: 'number' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextReview', schema: { type: 'string' } },
+          { in: 'query', name: 'source', schema: { type: 'string' } },
         ],
         responses: {
           200: {

@@ -211,6 +211,12 @@ module.exports = {
       openapi: {
         summary: 'List asset projections',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'query', name: 'mastrId', schema: { type: 'string' } },
+          { in: 'query', name: 'hasConflict', schema: { type: 'boolean' } },
+          { in: 'query', name: 'limit', schema: { type: 'number' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -250,6 +256,10 @@ module.exports = {
       openapi: {
         summary: 'Get asset projection by ID',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         try {
@@ -359,6 +369,12 @@ module.exports = {
       openapi: {
         summary: 'List asset relationships',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'query', name: 'assetId', schema: { type: 'string' } },
+          { in: 'query', name: 'relationshipType', schema: { type: 'string' } },
+          { in: 'query', name: 'limit', schema: { type: 'number' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -407,6 +423,10 @@ module.exports = {
       openapi: {
         summary: 'Get relationship by ID',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         try {

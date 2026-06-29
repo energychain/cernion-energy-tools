@@ -316,6 +316,11 @@ module.exports = {
       openapi: {
         summary: 'List knowledge-continuity governance gates',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'query', name: 'criticalProcessId', schema: { type: 'string' } },
+          { in: 'query', name: 'limit', schema: { type: 'number' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -334,6 +339,10 @@ module.exports = {
       openapi: {
         summary: 'Get a knowledge-continuity governance gate',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'governanceGateId', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -370,6 +379,12 @@ module.exports = {
       openapi: {
         summary: 'Get dossier-safe knowledge-continuity governance status',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'processId', required: true, schema: { type: 'string' } },
+          { in: 'query', name: 'criticalProcessId', schema: { type: 'string' } },
+          { in: 'query', name: 'governanceGateId', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);

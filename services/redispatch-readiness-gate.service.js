@@ -322,6 +322,11 @@ module.exports = {
       openapi: {
         summary: 'List Redispatch readiness gate runs',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'query', name: 'processId', schema: { type: 'string' } },
+          { in: 'query', name: 'limit', schema: { type: 'number' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -342,6 +347,10 @@ module.exports = {
       openapi: {
         summary: 'Get Redispatch readiness gate run',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -368,6 +377,10 @@ module.exports = {
       openapi: {
         summary: 'Get latest Redispatch readiness status',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'query', name: 'processId', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);

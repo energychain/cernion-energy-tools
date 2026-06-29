@@ -958,6 +958,9 @@ module.exports = {
           { name: 'from', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'to', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'auditId', in: 'query', required: false, schema: { type: 'string' } },
+                  { in: 'query', name: 'obis', schema: { type: 'string' } },
+          { in: 'query', name: 'profileId', schema: { type: 'string' } },
+          { in: 'query', name: 'annualConsumptionKwh', schema: { type: 'number' } },
         ],
         responses: {
           200: {
@@ -2679,6 +2682,17 @@ module.exports = {
           { name: 'ownerRaci', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'correctionWorkflow', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'approvalStatus', in: 'query', required: false, schema: { type: 'string' } },
+                  { in: 'query', name: 'sapAccountSources', schema: { type: 'string' } },
+          { in: 'query', name: 'controllingSourceIds', schema: { type: 'string' } },
+          { in: 'query', name: 'loanTmsSourceIds', schema: { type: 'string' } },
+          { in: 'query', name: 'scenarioAssumptions', schema: { type: 'string' } },
+          { in: 'query', name: 'validationRules', schema: { type: 'string' } },
+          { in: 'query', name: 'plausibilityChecks', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceHealth', schema: { type: 'string' } },
+          { in: 'query', name: 'liquidityRiskFlags', schema: { type: 'string' } },
+          { in: 'query', name: 'interestRiskFlags', schema: { type: 'string' } },
+          { in: 'query', name: 'investmentLinkRefs', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceDatapoints', schema: { type: 'string' } },
         ],
         responses: {
           200: {
@@ -3729,6 +3743,9 @@ module.exports = {
             required: false,
             schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
           },
+          { in: 'query', name: 'forbiddenAssumptions', schema: { type: 'string' } },
+          { in: 'query', name: 'budgetRef', schema: { type: 'string' } },
+          { in: 'query', name: 'riskRef', schema: { type: 'string' } },
         ],
         responses: {
           200: {
@@ -4421,6 +4438,26 @@ module.exports = {
             description: 'Read-only smart-meter off-balancing purpose-lock status',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'caseId', schema: { type: 'string' } },
+          { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
+          { in: 'query', name: 'assetScope', schema: { type: 'string' } },
+          { in: 'query', name: 'financingModel', schema: { type: 'string' } },
+          { in: 'query', name: 'offBalanceVolumeEur', schema: { type: 'string' } },
+          { in: 'query', name: 'freedLiquidityEur', schema: { type: 'string' } },
+          { in: 'query', name: 'financierCostEur', schema: { type: 'string' } },
+          { in: 'query', name: 'capexOpexTotexEffect', schema: { type: 'string' } },
+          { in: 'query', name: 'regulatoryRecognitionStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'purposeLockedMeasures', schema: { type: 'string' } },
+          { in: 'query', name: 'controlRoomInvestments', schema: { type: 'string' } },
+          { in: 'query', name: 'processInvestments', schema: { type: 'string' } },
+          { in: 'query', name: 'gridInfrastructureInvestments', schema: { type: 'string' } },
+          { in: 'query', name: 'budgetDilutionRisk', schema: { type: 'string' } },
+          { in: 'query', name: 'financeReviewStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceSnapshotRef', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -4499,6 +4536,25 @@ module.exports = {
             description: 'Read-only iMSys schedule value-chain readiness status',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'caseId', schema: { type: 'string' } },
+          { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
+          { in: 'query', name: 'meteringScope', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceDatapoints', schema: { type: 'string' } },
+          { in: 'query', name: 'dataQualityStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'forecastWindow', schema: { type: 'string' } },
+          { in: 'query', name: 'congestionSignal', schema: { type: 'string' } },
+          { in: 'query', name: 'assetScope', schema: { type: 'string' } },
+          { in: 'query', name: 'controllabilityStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'flexibilityOptions', schema: { type: 'string' } },
+          { in: 'query', name: 'netzfahrplanAssessmentRef', schema: { type: 'string' } },
+          { in: 'query', name: 'operationalDecision', schema: { type: 'string' } },
+          { in: 'query', name: 'controlReadiness', schema: { type: 'string' } },
+          { in: 'query', name: 'lineOwnerRole', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceSnapshotRef', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -4594,6 +4650,28 @@ module.exports = {
             description: 'Read-only CLS digital-twin compliance gate status',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'procurementId', schema: { type: 'string' } },
+          { in: 'query', name: 'vendorId', schema: { type: 'string' } },
+          { in: 'query', name: 'systemPurpose', schema: { type: 'string' } },
+          { in: 'query', name: 'digitalTwinScope', schema: { type: 'string' } },
+          { in: 'query', name: 'clsInterfaceScope', schema: { type: 'string' } },
+          { in: 'query', name: 'dataFlowMap', schema: { type: 'string' } },
+          { in: 'query', name: 'personalDataCategories', schema: { type: 'string' } },
+          { in: 'query', name: 'rolesAccessRights', schema: { type: 'string' } },
+          { in: 'query', name: 'rbacRefs', schema: { type: 'string' } },
+          { in: 'query', name: 'avvStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'ndaStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'worksCouncilStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'dsfaStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'billingModuleImpact', schema: { type: 'string' } },
+          { in: 'query', name: 'regulatoryEvidenceStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'securityEvidenceRefs', schema: { type: 'string' } },
+          { in: 'query', name: 'approvalStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceEvidenceRefs', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceSnapshot', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -4658,6 +4736,25 @@ module.exports = {
             description: 'Read-only legacy control technology transition status',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'assetGroupId', schema: { type: 'string' } },
+          { in: 'query', name: 'assetId', schema: { type: 'string' } },
+          { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
+          { in: 'query', name: 'powerClass', schema: { type: 'string' } },
+          { in: 'query', name: 'controlTechnology', schema: { type: 'string' } },
+          { in: 'query', name: 'feedbackCapability', schema: { type: 'string' } },
+          { in: 'query', name: 'switchingRisk', schema: { type: 'string' } },
+          { in: 'query', name: 'testFeasibility', schema: { type: 'string' } },
+          { in: 'query', name: 'testStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'nonExecutionReason', schema: { type: 'string' } },
+          { in: 'query', name: 'targetTechnology', schema: { type: 'string' } },
+          { in: 'query', name: 'migrationRoadmap', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextAction', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceEvidenceRefs', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceSnapshot', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -4762,6 +4859,23 @@ module.exports = {
             description: 'Read-only controllability submission cockpit status',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'submissionId', schema: { type: 'string' } },
+          { in: 'query', name: 'submissionDeadline', schema: { type: 'string' } },
+          { in: 'query', name: 'coordinator', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceList', schema: { type: 'string' } },
+          { in: 'query', name: 'dataReconciliationStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'reasonCatalog', schema: { type: 'string' } },
+          { in: 'query', name: 'assetGroupStatuses', schema: { type: 'string' } },
+          { in: 'query', name: 'openMeasures', schema: { type: 'string' } },
+          { in: 'query', name: 'handoverDecision', schema: { type: 'string' } },
+          { in: 'query', name: 'handoverOwner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextCycleTasks', schema: { type: 'string' } },
+          { in: 'query', name: 'deadlineRisks', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceEvidenceRefs', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceSnapshot', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -4839,6 +4953,24 @@ module.exports = {
             description: 'Read-only crisis decision routine status',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'caseId', schema: { type: 'string' } },
+          { in: 'query', name: 'topic', schema: { type: 'string' } },
+          { in: 'query', name: 'serviceImpact', schema: { type: 'string' } },
+          { in: 'query', name: 'populationImpact', schema: { type: 'string' } },
+          { in: 'query', name: 'requiredMeasures', schema: { type: 'string' } },
+          { in: 'query', name: 'financeImpact', schema: { type: 'string' } },
+          { in: 'query', name: 'knowledgeState', schema: { type: 'string' } },
+          { in: 'query', name: 'trainingNeed', schema: { type: 'string' } },
+          { in: 'query', name: 'operatingModelNeed', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextGate', schema: { type: 'string' } },
+          { in: 'query', name: 'blockedFollowUp', schema: { type: 'string' } },
+          { in: 'query', name: 'decisionDeadline', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceEvidenceRefs', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceSnapshot', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -4902,6 +5034,20 @@ module.exports = {
             description: 'Read-only investment committee steering card status',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'investmentItemId', schema: { type: 'string' } },
+          { in: 'query', name: 'projectId', schema: { type: 'string' } },
+          { in: 'query', name: 'assetId', schema: { type: 'string' } },
+          { in: 'query', name: 'reviewStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'committeeWindow', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'blockedFollowUpAction', schema: { type: 'string' } },
+          { in: 'query', name: 'capexEur', schema: { type: 'string' } },
+          { in: 'query', name: 'riskFlag', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -4961,6 +5107,21 @@ module.exports = {
             description: 'Read-only investment data review queue status',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'sourceId', schema: { type: 'string' } },
+          { in: 'query', name: 'dataPackageId', schema: { type: 'string' } },
+          { in: 'query', name: 'assetRef', schema: { type: 'string' } },
+          { in: 'query', name: 'projectRef', schema: { type: 'string' } },
+          { in: 'query', name: 'qualityStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'division', schema: { type: 'string' } },
+          { in: 'query', name: 'bottleneckRef', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'committeeWindow', schema: { type: 'string' } },
+          { in: 'query', name: 'blockedDecision', schema: { type: 'string' } },
+          { in: 'query', name: 'reviewStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -5028,6 +5189,27 @@ module.exports = {
             description: 'Read-only strategic Flex demand intake status',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'demandId', schema: { type: 'string' } },
+          { in: 'query', name: 'caseId', schema: { type: 'string' } },
+          { in: 'query', name: 'topic', schema: { type: 'string' } },
+          { in: 'query', name: 'demandTopic', schema: { type: 'string' } },
+          { in: 'query', name: 'affectedProcess', schema: { type: 'string' } },
+          { in: 'query', name: 'riskOfInaction', schema: { type: 'string' } },
+          { in: 'query', name: 'commercialQuestion', schema: { type: 'string' } },
+          { in: 'query', name: 'resourceConflict', schema: { type: 'string' } },
+          { in: 'query', name: 'stopDoingOption', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextDecisionGate', schema: { type: 'string' } },
+          { in: 'query', name: 'blockedFollowUp', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+          { in: 'query', name: 'flexContext', schema: { type: 'string' } },
+          { in: 'query', name: 'znpContext', schema: { type: 'string' } },
+          { in: 'query', name: 'novaContext', schema: { type: 'string' } },
+          { in: 'query', name: 'financeContext', schema: { type: 'string' } },
+          { in: 'query', name: 'vdmiContext', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -5093,6 +5275,25 @@ module.exports = {
             description: 'Read-only gas infrastructure risk governance status',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'caseId', schema: { type: 'string' } },
+          { in: 'query', name: 'technicalFact', schema: { type: 'string' } },
+          { in: 'query', name: 'impactArea', schema: { type: 'string' } },
+          { in: 'query', name: 'probability', schema: { type: 'string' } },
+          { in: 'query', name: 'criticality', schema: { type: 'string' } },
+          { in: 'query', name: 'existingMitigation', schema: { type: 'string' } },
+          { in: 'query', name: 'threshold', schema: { type: 'string' } },
+          { in: 'query', name: 'riskRegisterDecision', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextDecisionWindow', schema: { type: 'string' } },
+          { in: 'query', name: 'blockedFollowUp', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+          { in: 'query', name: 'vdmiContext', schema: { type: 'string' } },
+          { in: 'query', name: 'hitlContext', schema: { type: 'string' } },
+          { in: 'query', name: 'interfacePlaceholderContext', schema: { type: 'string' } },
+          { in: 'query', name: 'assetContext', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -5175,6 +5376,23 @@ module.exports = {
             description: 'Read-only metering rollout process-indicator status',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'indicatorId', schema: { type: 'string' } },
+          { in: 'query', name: 'division', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceType', schema: { type: 'string' } },
+          { in: 'query', name: 'targetCount', schema: { type: 'string' } },
+          { in: 'query', name: 'actualCount', schema: { type: 'string' } },
+          { in: 'query', name: 'backlogCount', schema: { type: 'string' } },
+          { in: 'query', name: 'dataQualityStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'contractorLoad', schema: { type: 'string' } },
+          { in: 'query', name: 'capexImpactEur', schema: { type: 'string' } },
+          { in: 'query', name: 'opexImpactEur', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextControlStep', schema: { type: 'string' } },
+          { in: 'query', name: 'blockedFollowUp', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -5246,6 +5464,21 @@ module.exports = {
             description: 'Read-only heat transformation line-asset model status',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'lineAssetId', schema: { type: 'string' } },
+          { in: 'query', name: 'geometryRef', schema: { type: 'string' } },
+          { in: 'query', name: 'connectedPointAssetIds', schema: { type: 'string' } },
+          { in: 'query', name: 'division', schema: { type: 'string' } },
+          { in: 'query', name: 'networkCalculationRef', schema: { type: 'string' } },
+          { in: 'query', name: 'dataQualityStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'transformationStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'futureOption', schema: { type: 'string' } },
+          { in: 'query', name: 'investmentNeed', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextDecision', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -5312,6 +5545,20 @@ module.exports = {
             description: 'Read-only KI Floorwalker governance status',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'useCaseId', schema: { type: 'string' } },
+          { in: 'query', name: 'processOwner', schema: { type: 'string' } },
+          { in: 'query', name: 'useCasePriority', schema: { type: 'string' } },
+          { in: 'query', name: 'allowedDataspaces', schema: { type: 'string' } },
+          { in: 'query', name: 'promptStandards', schema: { type: 'string' } },
+          { in: 'query', name: 'processBoundaries', schema: { type: 'string' } },
+          { in: 'query', name: 'rolesAndResponsibilities', schema: { type: 'string' } },
+          { in: 'query', name: 'guidedApplication', schema: { type: 'string' } },
+          { in: 'query', name: 'riskAndApprovalStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'proofOfBenefit', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -5370,6 +5617,20 @@ module.exports = {
             description: 'Read-only investment waterfall governance status',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'investmentItemId', schema: { type: 'string' } },
+          { in: 'query', name: 'targetProcess', schema: { type: 'string' } },
+          { in: 'query', name: 'budgetAmount', schema: { type: 'string' } },
+          { in: 'query', name: 'bottleneckRef', schema: { type: 'string' } },
+          { in: 'query', name: 'committeeWindow', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceReadiness', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextAction', schema: { type: 'string' } },
+          { in: 'query', name: 'mandateStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'riskIfDelayed', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -5434,6 +5695,25 @@ module.exports = {
             description: 'Read-only capacity and contract risk status',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'gridOperatorId', required: true, schema: { type: 'string' } },
+          { in: 'query', name: 'utilization', schema: { type: 'number' } },
+          { in: 'query', name: 'bottleneck', schema: { type: 'string' } },
+          { in: 'query', name: 'firmCapacityKW', schema: { type: 'number' } },
+          { in: 'query', name: 'flexibleCapacityKW', schema: { type: 'number' } },
+          { in: 'query', name: 'contractStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'legalStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'altvereinbarung', schema: { type: 'boolean' } },
+          { in: 'query', name: 'capex', schema: { type: 'number' } },
+          { in: 'query', name: 'opex', schema: { type: 'number' } },
+          { in: 'query', name: 'priority', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextAction', schema: { type: 'string' } },
+          { in: 'query', name: 'forecast', schema: { type: 'boolean' } },
+          { in: 'query', name: 'date', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -5493,6 +5773,20 @@ module.exports = {
             description: 'Read-only iMSys TAF2 compliance status',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'meteringPointId', required: true, schema: { type: 'string' } },
+          { in: 'query', name: 'taf2Obligation', schema: { type: 'boolean' } },
+          { in: 'query', name: 'targetDeadline', schema: { type: 'string' } },
+          { in: 'query', name: 'tariffModel', schema: { type: 'string' } },
+          { in: 'query', name: 'implementationStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'measuredValueAccess', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextAction', schema: { type: 'string' } },
+          { in: 'query', name: 'forecast', schema: { type: 'boolean' } },
+          { in: 'query', name: 'date', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -5598,6 +5892,25 @@ module.exports = {
             description: 'Read-only schedule management status and roadmap evidence',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'meteringPointId', schema: { type: 'string' } },
+          { in: 'query', name: 'targetState', schema: { type: 'string' } },
+          { in: 'query', name: 'capabilityMaturity', schema: { type: 'string' } },
+          { in: 'query', name: 'dataObjects', schema: { type: 'string' } },
+          { in: 'query', name: 'systemIntegrations', schema: { type: 'string' } },
+          { in: 'query', name: 'roleOwnership', schema: { type: 'string' } },
+          { in: 'query', name: 'redispatchBoundary', schema: { type: 'string' } },
+          { in: 'query', name: 'fnavReadiness', schema: { type: 'string' } },
+          { in: 'query', name: 'capacityManagementGaps', schema: { type: 'string' } },
+          { in: 'query', name: 'roadmapItems', schema: { type: 'string' } },
+          { in: 'query', name: 'decisionMeetings', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextAction', schema: { type: 'string' } },
+          { in: 'query', name: 'forecast', schema: { type: 'boolean' } },
+          { in: 'query', name: 'date', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -5701,6 +6014,22 @@ module.exports = {
             description: 'Read-only gas and heat transformation status and dependency map evidence',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'projectId', schema: { type: 'string' } },
+          { in: 'query', name: 'division', schema: { type: 'string' } },
+          { in: 'query', name: 'nodes', schema: { type: 'string' } },
+          { in: 'query', name: 'dependencies', schema: { type: 'string' } },
+          { in: 'query', name: 'dataQualityGaps', schema: { type: 'string' } },
+          { in: 'query', name: 'investmentPaths', schema: { type: 'string' } },
+          { in: 'query', name: 'decommissionRepurposePaths', schema: { type: 'string' } },
+          { in: 'query', name: 'customerGroups', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextAction', schema: { type: 'string' } },
+          { in: 'query', name: 'forecast', schema: { type: 'boolean' } },
+          { in: 'query', name: 'date', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -5757,6 +6086,18 @@ module.exports = {
             description: 'Read-only grid connection transformation status evidence',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'meteringPointId', schema: { type: 'string' } },
+          { in: 'query', name: 'division', schema: { type: 'string' } },
+          { in: 'query', name: 'transformationOption', schema: { type: 'string' } },
+          { in: 'query', name: 'dataQualityStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'investmentPath', schema: { type: 'string' } },
+          { in: 'query', name: 'decommissionPath', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextAction', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -5816,6 +6157,21 @@ module.exports = {
             description: 'Read-only district heating asset and tariff status evidence',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'heatPortfolioId', schema: { type: 'string' } },
+          { in: 'query', name: 'division', schema: { type: 'string' } },
+          { in: 'query', name: 'technicalMeasures', schema: { type: 'string' } },
+          { in: 'query', name: 'tariffImpactStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'regulatoryUncertainty', schema: { type: 'string' } },
+          { in: 'query', name: 'fundingStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'customerImpact', schema: { type: 'string' } },
+          { in: 'query', name: 'investmentPriority', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextDecisionGate', schema: { type: 'string' } },
+          { in: 'query', name: 'blockedFollowUpAction', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -5880,6 +6236,22 @@ module.exports = {
             description: 'Read-only technical and commercial offer status evidence',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'connectionRequestId', schema: { type: 'string' } },
+          { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
+          { in: 'query', name: 'znpAlignment', schema: { type: 'string' } },
+          { in: 'query', name: 'gridNode', schema: { type: 'string' } },
+          { in: 'query', name: 'technicalRestriction', schema: { type: 'string' } },
+          { in: 'query', name: 'requestedCapacityKW', schema: { type: 'string' } },
+          { in: 'query', name: 'technicalStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'capacityUtilization', schema: { type: 'string' } },
+          { in: 'query', name: 'fnavContractLogic', schema: { type: 'string' } },
+          { in: 'query', name: 'commercialAssumptions', schema: { type: 'string' } },
+          { in: 'query', name: 'legalAgreementStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'legalBoundaries', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -5950,6 +6322,20 @@ module.exports = {
             description: 'Read-only metering rollout financing scenario evidence',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
+          { in: 'query', name: 'scenarioId', schema: { type: 'string' } },
+          { in: 'query', name: 'assetScope', schema: { type: 'string' } },
+          { in: 'query', name: 'meteringScope', schema: { type: 'string' } },
+          { in: 'query', name: 'period', schema: { type: 'string' } },
+          { in: 'query', name: 'investmentVolume', schema: { type: 'string' } },
+          { in: 'query', name: 'imsysCount', schema: { type: 'string' } },
+          { in: 'query', name: 'financingModel', schema: { type: 'string' } },
+          { in: 'query', name: 'opexAnnual', schema: { type: 'string' } },
+          { in: 'query', name: 'regulatoryRelevance', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -6052,6 +6438,29 @@ module.exports = {
             description: 'Read-only process sensitization readiness evidence',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'processType', schema: { type: 'string' } },
+          { in: 'query', name: 'topic', schema: { type: 'string' } },
+          { in: 'query', name: 'roleDecision', schema: { type: 'string' } },
+          { in: 'query', name: 'roleDecisionStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'dataQualityStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'systemBreakStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'redLineStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'missingEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'roleDecisionGaps', schema: { type: 'string' } },
+          { in: 'query', name: 'dataQualityGaps', schema: { type: 'string' } },
+          { in: 'query', name: 'systemBreaks', schema: { type: 'string' } },
+          { in: 'query', name: 'nonNegotiableConstraints', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'dueDate', schema: { type: 'string' } },
+          { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
+          { in: 'query', name: 'taskId', schema: { type: 'string' } },
+          { in: 'query', name: 'matrixId', schema: { type: 'string' } },
+          { in: 'query', name: 'assetId', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -6127,6 +6536,26 @@ module.exports = {
             description: 'Read-only Netzprozess readiness evidence',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'processType', schema: { type: 'string' } },
+          { in: 'query', name: 'processId', schema: { type: 'string' } },
+          { in: 'query', name: 'processRefType', schema: { type: 'string' } },
+          { in: 'query', name: 'processRefId', schema: { type: 'string' } },
+          { in: 'query', name: 'portalAccess', schema: { type: 'string' } },
+          { in: 'query', name: 'sftpRoute', schema: { type: 'string' } },
+          { in: 'query', name: 'rolePermission', schema: { type: 'string' } },
+          { in: 'query', name: 'itSecurityUpdate', schema: { type: 'string' } },
+          { in: 'query', name: 'training', schema: { type: 'string' } },
+          { in: 'query', name: 'dataPath', schema: { type: 'string' } },
+          { in: 'query', name: 'blockedDecision', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'dueAt', schema: { type: 'string' } },
+          { in: 'query', name: 'nextDecision', schema: { type: 'string' } },
+          { in: 'query', name: 'missingEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'customSignals', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -6223,6 +6652,36 @@ module.exports = {
             description: 'Read-only Grossspeicher Anschluss readiness evidence',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
+          { in: 'query', name: 'projectId', schema: { type: 'string' } },
+          { in: 'query', name: 'storageAssetId', schema: { type: 'string' } },
+          { in: 'query', name: 'location', schema: { type: 'string' } },
+          { in: 'query', name: 'requestedCapacityKW', schema: { type: 'string' } },
+          { in: 'query', name: 'storageCapacityKWh', schema: { type: 'string' } },
+          { in: 'query', name: 'voltageLevel', schema: { type: 'string' } },
+          { in: 'query', name: 'assetContextStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'napMastrNummer', schema: { type: 'string' } },
+          { in: 'query', name: 'napEvidenceStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'connectionRequestStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'formalRequestEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'networkSignalPriority', schema: { type: 'string' } },
+          { in: 'query', name: 'gridSignalStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'fnavProfile', schema: { type: 'string' } },
+          { in: 'query', name: 'contractBoundaryStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'scheduleRequirement', schema: { type: 'string' } },
+          { in: 'query', name: 'storageDispatchAssumption', schema: { type: 'string' } },
+          { in: 'query', name: 'scheduleEvidenceStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'controllabilityStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'controlRoomHandoverStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextDecision', schema: { type: 'string' } },
+          { in: 'query', name: 'source', schema: { type: 'string' } },
+          { in: 'query', name: 'missingEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceGaps', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -6304,6 +6763,30 @@ module.exports = {
             description: 'Read-only Role-Permission / AccessManager readiness evidence',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'roleId', schema: { type: 'string' } },
+          { in: 'query', name: 'roleName', schema: { type: 'string' } },
+          { in: 'query', name: 'processType', schema: { type: 'string' } },
+          { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
+          { in: 'query', name: 'accessManagerRef', schema: { type: 'string' } },
+          { in: 'query', name: 'tenantScope', schema: { type: 'string' } },
+          { in: 'query', name: 'portalAccess', schema: { type: 'string' } },
+          { in: 'query', name: 'sftpRoute', schema: { type: 'string' } },
+          { in: 'query', name: 'rolePermission', schema: { type: 'string' } },
+          { in: 'query', name: 'securityClearance', schema: { type: 'string' } },
+          { in: 'query', name: 'trainingProof', schema: { type: 'string' } },
+          { in: 'query', name: 'reapprovalStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'sourcePath', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'dueDate', schema: { type: 'string' } },
+          { in: 'query', name: 'blockedAccess', schema: { type: 'string' } },
+          { in: 'query', name: 'caseId', schema: { type: 'string' } },
+          { in: 'query', name: 'source', schema: { type: 'string' } },
+          { in: 'query', name: 'missingEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceGaps', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -6390,6 +6873,27 @@ module.exports = {
             description: 'Read-only Owner-Frist-Evidenz readiness evidence',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'signalId', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceType', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+          { in: 'query', name: 'processType', schema: { type: 'string' } },
+          { in: 'query', name: 'riskLevel', schema: { type: 'string' } },
+          { in: 'query', name: 'ownerRole', schema: { type: 'string' } },
+          { in: 'query', name: 'ownerContact', schema: { type: 'string' } },
+          { in: 'query', name: 'dueAt', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceRef', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'blockedDecision', schema: { type: 'string' } },
+          { in: 'query', name: 'linkedEntity', schema: { type: 'string' } },
+          { in: 'query', name: 'blockedByMissingEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'overdue', schema: { type: 'string' } },
+          { in: 'query', name: 'signalContextStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'missingEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceGaps', schema: { type: 'string' } },
+          { in: 'query', name: 'caseId', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -6477,6 +6981,32 @@ module.exports = {
             description: 'Read-only automation-risk readiness evidence',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'processId', schema: { type: 'string' } },
+          { in: 'query', name: 'processName', schema: { type: 'string' } },
+          { in: 'query', name: 'processClass', schema: { type: 'string' } },
+          { in: 'query', name: 'runFrequency', schema: { type: 'string' } },
+          { in: 'query', name: 'massRunVolume', schema: { type: 'string' } },
+          { in: 'query', name: 'affectedDomains', schema: { type: 'string' } },
+          { in: 'query', name: 'customerCommunicationImpact', schema: { type: 'string' } },
+          { in: 'query', name: 'billingImpact', schema: { type: 'string' } },
+          { in: 'query', name: 'marketCommunicationImpact', schema: { type: 'string' } },
+          { in: 'query', name: 'massDataImpact', schema: { type: 'string' } },
+          { in: 'query', name: 'testCaseCoverage', schema: { type: 'string' } },
+          { in: 'query', name: 'edgeCaseCatalog', schema: { type: 'string' } },
+          { in: 'query', name: 'acceptanceMethod', schema: { type: 'string' } },
+          { in: 'query', name: 'monitoringSignals', schema: { type: 'string' } },
+          { in: 'query', name: 'stopCriteria', schema: { type: 'string' } },
+          { in: 'query', name: 'rollbackPath', schema: { type: 'string' } },
+          { in: 'query', name: 'processOwner', schema: { type: 'string' } },
+          { in: 'query', name: 'operationsOwner', schema: { type: 'string' } },
+          { in: 'query', name: 'blockedDecision', schema: { type: 'string' } },
+          { in: 'query', name: 'missingEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'riskLevel', schema: { type: 'string' } },
+          { in: 'query', name: 'source', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -6601,6 +7131,36 @@ module.exports = {
             description: 'Read-only Redispatch project-controlling KPI evidence',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'cockpitId', schema: { type: 'string' } },
+          { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
+          { in: 'query', name: 'period', schema: { type: 'string' } },
+          { in: 'query', name: 'redispatchAuditId', schema: { type: 'string' } },
+          { in: 'query', name: 'settlementRef', schema: { type: 'string' } },
+          { in: 'query', name: 'vdmiProcessId', schema: { type: 'string' } },
+          { in: 'query', name: 'taskId', schema: { type: 'string' } },
+          { in: 'query', name: 'taskStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'taskOwner', schema: { type: 'string' } },
+          { in: 'query', name: 'dueDate', schema: { type: 'string' } },
+          { in: 'query', name: 'blockedDecision', schema: { type: 'string' } },
+          { in: 'query', name: 'decisionBlocker', schema: { type: 'string' } },
+          { in: 'query', name: 'hasRedispatchAudit', schema: { type: 'string' } },
+          { in: 'query', name: 'hasAssetEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'hasMastrEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'hasLoadProfileEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'hasSettlementReadiness', schema: { type: 'string' } },
+          { in: 'query', name: 'hasKpiReference', schema: { type: 'string' } },
+          { in: 'query', name: 'datasourceHealth', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceFreshness', schema: { type: 'string' } },
+          { in: 'query', name: 'qualityStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'staleSources', schema: { type: 'string' } },
+          { in: 'query', name: 'tasks', schema: { type: 'string' } },
+          { in: 'query', name: 'kpiSignals', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceHealth', schema: { type: 'string' } },
+          { in: 'query', name: 'affectedAssets', schema: { type: 'string' } },
+          { in: 'query', name: 'missingEvidence', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -6654,6 +7214,14 @@ module.exports = {
             description: 'Read-only Stadtwerk Mauer VDMI/profile evidence',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'tenantId', schema: { type: 'string' } },
+          { in: 'query', name: 'includeRoles', schema: { type: 'string' } },
+          { in: 'query', name: 'includeEvidenceGaps', schema: { type: 'string' } },
+          { in: 'query', name: 'demoQuestion', schema: { type: 'string' } },
+          { in: 'query', name: 'focusSparte', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -6706,6 +7274,13 @@ module.exports = {
             description: 'Read-only Stadtwerk Mauer role/capability projection',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'tenantId', schema: { type: 'string' } },
+          { in: 'query', name: 'roles', schema: { type: 'string' } },
+          { in: 'query', name: 'includeConsequential', schema: { type: 'string' } },
+          { in: 'query', name: 'includeDescriptorSources', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -6756,6 +7331,16 @@ module.exports = {
             description: 'Read-only deterministic Stadtwerk Mauer event replay preview',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'tenantId', schema: { type: 'string' } },
+          { in: 'query', name: 'seed', schema: { type: 'string' } },
+          { in: 'query', name: 'count', schema: { type: 'string' } },
+          { in: 'query', name: 'eventType', schema: { type: 'string' } },
+          { in: 'query', name: 'sparte', schema: { type: 'string' } },
+          { in: 'query', name: 'marketRole', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceActor', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -8682,6 +9267,19 @@ module.exports = {
           { name: 'contractStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'legalStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'ownerContact', in: 'query', required: false, schema: { type: 'string' } },
+                  { in: 'query', name: 'requestedCapacityKW', schema: { type: 'number' } },
+          { in: 'query', name: 'firmCapacityKW', schema: { type: 'number' } },
+          { in: 'query', name: 'flexibleCapacityKW', schema: { type: 'number' } },
+          { in: 'query', name: 'curtailmentWindow', schema: { type: 'string' } },
+          { in: 'query', name: 'voltageLevel', schema: { type: 'string' } },
+          { in: 'query', name: 'scheduleObligation', schema: { type: 'string' } },
+          { in: 'query', name: 'meteringRequirements', schema: { type: 'string' } },
+          { in: 'query', name: 'marketingBoundaries', schema: { type: 'string' } },
+          { in: 'query', name: 'commercialImpact', schema: { type: 'string' } },
+          { in: 'query', name: 'breakCriteria', schema: { type: 'string' } },
+          { in: 'query', name: 'escalationOwner', schema: { type: 'string' } },
+          { in: 'query', name: 'vdmiProcessId', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
         ],
         responses: {
           200: {
@@ -8784,6 +9382,14 @@ module.exports = {
           { name: 'dueAt', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'evidenceStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nextDatapoint', in: 'query', required: false, schema: { type: 'string' } },
+                  { in: 'query', name: 'receivedAt', schema: { type: 'string' } },
+          { in: 'query', name: 'processType', schema: { type: 'string' } },
+          { in: 'query', name: 'riskSeverity', schema: { type: 'string' } },
+          { in: 'query', name: 'ownerPersonaId', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceRefs', schema: { type: 'string' } },
+          { in: 'query', name: 'dedupeKey', schema: { type: 'string' } },
+          { in: 'query', name: 'status', schema: { type: 'string' } },
+          { in: 'query', name: 'signals', schema: { type: 'string' } },
         ],
         responses: {
           200: {
@@ -8901,6 +9507,14 @@ module.exports = {
           { name: 'dataQualityStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'decisionOwner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nextDecision', in: 'query', required: false, schema: { type: 'string' } },
+                  { in: 'query', name: 'gateId', schema: { type: 'string' } },
+          { in: 'query', name: 'bookValueSource', schema: { type: 'string' } },
+          { in: 'query', name: 'assetConditionSource', schema: { type: 'string' } },
+          { in: 'query', name: 'transformationOptionBasis', schema: { type: 'string' } },
+          { in: 'query', name: 'contractRiskBasis', schema: { type: 'string' } },
+          { in: 'query', name: 'regulatoryUncertaintyBasis', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceDatapoints', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRefs', schema: { type: 'string' } },
         ],
         responses: {
           200: {
@@ -9006,6 +9620,9 @@ module.exports = {
           { name: 'vdmiOwner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'decisionFrameRef', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'commercialSignoff', in: 'query', required: false, schema: { type: 'string' } },
+                  { in: 'query', name: 'capacityAssumptionSource', schema: { type: 'string' } },
+          { in: 'query', name: 'riskScenarios', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRefs', schema: { type: 'string' } },
         ],
         responses: {
           200: {
@@ -9120,6 +9737,13 @@ module.exports = {
             schema: { type: 'string' },
           },
           { name: 'nextEvidenceStep', in: 'query', required: false, schema: { type: 'string' } },
+                  { in: 'query', name: 'capacityEvidenceRef', schema: { type: 'string' } },
+          { in: 'query', name: 'decommissioningEvidenceRef', schema: { type: 'string' } },
+          { in: 'query', name: 'eogRef', schema: { type: 'string' } },
+          { in: 'query', name: 'kanuRef', schema: { type: 'string' } },
+          { in: 'query', name: 'ownerRole', schema: { type: 'string' } },
+          { in: 'query', name: 'gateStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRefs', schema: { type: 'string' } },
         ],
         responses: {
           200: {
@@ -9243,6 +9867,12 @@ module.exports = {
           { name: 'reviewPeriod', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'targetCommitteeDate', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'alignmentDecision', in: 'query', required: false, schema: { type: 'string' } },
+                  { in: 'query', name: 'tenantId', schema: { type: 'string' } },
+          { in: 'query', name: 'infrastructureMeasureReference', schema: { type: 'string' } },
+          { in: 'query', name: 'leaseOrConcessionReference', schema: { type: 'string' } },
+          { in: 'query', name: 'tariffLogicReference', schema: { type: 'string' } },
+          { in: 'query', name: 'committeeOwner', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRefs', schema: { type: 'string' } },
         ],
         responses: {
           200: {
@@ -9375,6 +10005,14 @@ module.exports = {
           { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nextDecisionDate', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'offerDecisionStatus', in: 'query', required: false, schema: { type: 'string' } },
+                  { in: 'query', name: 'tenantId', schema: { type: 'string' } },
+          { in: 'query', name: 'capacityEvidenceReference', schema: { type: 'string' } },
+          { in: 'query', name: 'zielnetzPath', schema: { type: 'string' } },
+          { in: 'query', name: 'capexReference', schema: { type: 'string' } },
+          { in: 'query', name: 'regulatoryImpactReference', schema: { type: 'string' } },
+          { in: 'query', name: 'offerAssumptionReference', schema: { type: 'string' } },
+          { in: 'query', name: 'gateOwner', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRefs', schema: { type: 'string' } },
         ],
         responses: {
           200: {
@@ -9497,6 +10135,18 @@ module.exports = {
             schema: { type: 'string' },
           },
           { name: 'sourceDatapoints', in: 'query', required: false, schema: { type: 'string' } },
+                  { in: 'query', name: 'cashflowSourceRef', schema: { type: 'string' } },
+          { in: 'query', name: 'marginCompensationAssumption', schema: { type: 'string' } },
+          { in: 'query', name: 'capitalReallocationOption', schema: { type: 'string' } },
+          { in: 'query', name: 'gasDecommissioningPath', schema: { type: 'string' } },
+          { in: 'query', name: 'heatInvestmentMeasure', schema: { type: 'string' } },
+          { in: 'query', name: 'h2OptionMeasure', schema: { type: 'string' } },
+          { in: 'query', name: 'publicTransportShareholderBurden', schema: { type: 'string' } },
+          { in: 'query', name: 'operationalInvestmentNeed', schema: { type: 'string' } },
+          { in: 'query', name: 'regulatoryImpactAssumption', schema: { type: 'string' } },
+          { in: 'query', name: 'vdmiProcessId', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceActions', schema: { type: 'string' } },
         ],
         responses: {
           200: {
@@ -9596,6 +10246,20 @@ module.exports = {
             description: 'Read-only investment owner/deadline/budget gate evidence',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'measureId', schema: { type: 'string' } },
+          { in: 'query', name: 'measureTitle', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'deadline', schema: { type: 'string' } },
+          { in: 'query', name: 'budgetEffect', schema: { type: 'string' } },
+          { in: 'query', name: 'requiredEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'approvalStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'blockedFollowUpDecision', schema: { type: 'string' } },
+          { in: 'query', name: 'nextEscalationStep', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceDatapoints', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceActions', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -9669,6 +10333,29 @@ module.exports = {
             description: 'Read-only No-Regret measure definition evidence',
           },
         },
+      
+        parameters: [
+          { in: 'query', name: 'measureId', schema: { type: 'string' } },
+          { in: 'query', name: 'programmeId', schema: { type: 'string' } },
+          { in: 'query', name: 'measureName', schema: { type: 'string' } },
+          { in: 'query', name: 'scenarioAssumption', schema: { type: 'string' } },
+          { in: 'query', name: 'transformationEffect', schema: { type: 'string' } },
+          { in: 'query', name: 'budgetEffect', schema: { type: 'string' } },
+          { in: 'query', name: 'fundingOwner', schema: { type: 'string' } },
+          { in: 'query', name: 'regulatoryFit', schema: { type: 'string' } },
+          { in: 'query', name: 'constraintHint', schema: { type: 'string' } },
+          { in: 'query', name: 'prioritisationRule', schema: { type: 'string' } },
+          { in: 'query', name: 'nominationRight', schema: { type: 'string' } },
+          { in: 'query', name: 'dataQualityStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceSnapshot', schema: { type: 'string' } },
+          { in: 'query', name: 'communicationRule', schema: { type: 'string' } },
+          { in: 'query', name: 'stakeholderGroup', schema: { type: 'string' } },
+          { in: 'query', name: 'nextReviewGate', schema: { type: 'string' } },
+          { in: 'query', name: 'dueDate', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceDatapoints', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceActions', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const params = { ...ctx.params };
@@ -9789,6 +10476,10 @@ module.exports = {
           { name: 'decisionGate', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'sourceDatapoints', in: 'query', required: false, schema: { type: 'string' } },
+                  { in: 'query', name: 'vdmiProcessId', schema: { type: 'string' } },
+          { in: 'query', name: 'investmentPlanId', schema: { type: 'string' } },
+          { in: 'query', name: 'financeAnalysisId', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceActions', schema: { type: 'string' } },
         ],
         responses: {
           200: {
@@ -9874,6 +10565,8 @@ module.exports = {
           { name: 'fallbackPollingPath', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'heartbeatSeconds', in: 'query', required: false, schema: { type: 'number' } },
           { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
+                  { in: 'query', name: 'availability', schema: { type: 'string' } },
+          { in: 'query', name: 'includeUnsupportedSample', schema: { type: 'boolean' } },
         ],
         responses: {
           200: {
@@ -9964,6 +10657,8 @@ module.exports = {
           { name: 'tenantBoundary', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'fallbackReason', in: 'query', required: false, schema: { type: 'string' } },
+                  { in: 'query', name: 'blocker', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceHints', schema: { type: 'string' } },
         ],
         responses: {
           200: {
@@ -10068,6 +10763,15 @@ module.exports = {
           { name: 'escalationState', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nextLever', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'newSignals', in: 'query', required: false, schema: { type: 'string' } },
+                  { in: 'query', name: 'topicId', schema: { type: 'string' } },
+          { in: 'query', name: 'role', schema: { type: 'string' } },
+          { in: 'query', name: 'status', schema: { type: 'string' } },
+          { in: 'query', name: 'dueBefore', schema: { type: 'string' } },
+          { in: 'query', name: 'knownBaseline', schema: { type: 'string' } },
+          { in: 'query', name: 'linkedEntities', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceSignals', schema: { type: 'string' } },
+          { in: 'query', name: 'includeDegradedSample', schema: { type: 'boolean' } },
+          { in: 'query', name: 'limit', schema: { type: 'number' } },
         ],
         responses: {
           200: {

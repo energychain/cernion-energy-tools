@@ -160,6 +160,10 @@ module.exports = {
       openapi: {
         summary: 'List file ingest schemas',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'query', name: 'limit', schema: { type: 'number' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -197,6 +201,10 @@ module.exports = {
       openapi: {
         summary: 'Get schema by ID',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'schemaId', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         try {
@@ -332,6 +340,10 @@ module.exports = {
       openapi: {
         summary: 'List file ingest monitors',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'query', name: 'limit', schema: { type: 'number' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -369,6 +381,10 @@ module.exports = {
       openapi: {
         summary: 'Get monitor by ID',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         try {
@@ -661,6 +677,10 @@ module.exports = {
       openapi: {
         summary: 'Get latest scan status for a monitor',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         let monitor;
@@ -714,6 +734,10 @@ module.exports = {
       openapi: {
         summary: 'Get file list from last scan',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         let monitor;
@@ -756,6 +780,10 @@ module.exports = {
       openapi: {
         summary: 'Get findings from last scan',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         let monitor;
