@@ -284,6 +284,46 @@ const vnbLeadershipFixture = {
   ],
 };
 
+const evidenceFreshnessFixture = {
+  capabilityKey: 'evidence_freshness_guard',
+  safety: 'read_only_metadata_classification',
+  signalId: 'vnb-delta-demo-anschluss',
+  status: 'fresh_delta_escalation_candidate',
+  freshnessState: 'fresh_signal',
+  deltaState: 'new_delta',
+  stalenessDays: 0,
+  baselineAgeDays: 1,
+  isKnownAnchor: false,
+  isNewDelta: true,
+  escalationRecommended: true,
+  nonEscalationReason: null,
+  blockedDecision: 'Freigabe Anschlusskapazitaet',
+  owner: 'ROLE_NETZPLANUNG',
+  dueDate: '2026-07-03',
+  processArea: 'grid_connection_capacity',
+  evidenceGaps: [],
+  positiveFollowUps: [],
+  sourceBoundary: {
+    suppliedMetadataOnly: true,
+    connectorRead: false,
+    persistsRawPrivateContent: false,
+    createsExternalAction: false,
+  },
+  sourceActions: {
+    notCalled: [
+      'mail.connector.ingest',
+      'teams.connector.read',
+      'workflow.execute',
+      'personal-agent.execute',
+    ],
+  },
+  dossierEvidence: {
+    blockedDecision: 'Freigabe Anschlusskapazitaet',
+    owner: 'ROLE_NETZPLANUNG',
+    dueDate: '2026-07-03',
+  },
+};
+
 describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   const expectedSectionIds = [
     'vdmi_profile_summary',
@@ -301,6 +341,9 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     'vdmi_event_evidence',
     'vdmi_event_boundaries',
     'vnb_delta_signal_queue_summary',
+    'evidence_freshness_guard',
+    'evidence_freshness_guard_gaps',
+    'evidence_freshness_guard_boundaries',
     'vnb_delta_signal_queue_classifier',
     'vnb_delta_signal_queue_owner_evidence',
     'vnb_delta_signal_queue_safe_next_actions',
@@ -340,16 +383,46 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   it('uses the existing read-only dashboard bricks for the VNB delta signal queue panel', () => {
     const paths = new Set(
       manifest.queries
-        .filter((query) => query.name.includes('VnbDeltaSignalQueue'))
+        .filter((query) => query.name.includes('VnbDeltaSignalQueue') || query.name.includes('EvidenceFreshness'))
         .map((query) => query.path)
     );
 
     expect(paths).toEqual(
       new Set([
         '/api/dashboard/cross-channel-vnb-signal-queue',
+        '/api/dashboard/evidence-freshness-guard',
         '/api/dashboard/vnb-delta-signal-classifier/classify',
         '/api/dashboard/owner-deadline-evidence-gate',
         '/api/dashboard/leadership-delta-cockpit',
+      ])
+    );
+  });
+
+  it('flattens evidence freshness rows for the selected synthetic signal', () => {
+    const freshnessRows = runTransformer('getEvidenceFreshnessGuardRows', evidenceFreshnessFixture);
+    expectScalarRows(freshnessRows);
+    expect(freshnessRows[0]).toMatchObject({
+      signalId: 'vnb-delta-demo-anschluss',
+      freshnessState: 'fresh_signal',
+      deltaState: 'new_delta',
+      escalationRecommended: true,
+      owner: 'ROLE_NETZPLANUNG',
+      sourceClass: 'evidence_freshness_guard',
+    });
+
+    const gapRows = runTransformer('getEvidenceFreshnessGuardGapRows', evidenceFreshnessFixture);
+    expectScalarRows(gapRows);
+    expect(gapRows[0]).toMatchObject({
+      missingDataPoint: 'none',
+      sourceClass: 'freshness_positive_follow_up',
+    });
+
+    const boundaryRows = runTransformer('getEvidenceFreshnessGuardBoundaryRows', evidenceFreshnessFixture);
+    expectScalarRows(boundaryRows);
+    expect(boundaryRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'suppliedMetadataOnly', status: 'true' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
       ])
     );
   });

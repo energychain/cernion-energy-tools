@@ -3633,6 +3633,138 @@
       }
     },
     {
+      "name": "getEvidenceFreshnessGuardRows",
+      "method": "GET",
+      "path": "/api/dashboard/evidence-freshness-guard",
+      "queryString": "signalId=vnb-delta-demo-anschluss&sourceKind=synthetic-demo&sourceTimestamp=2026-06-28T08%3A30%3A00.000Z&receivedTimestamp=2026-06-28T08%3A35%3A00.000Z&lastSeenTimestamp=2026-06-27T08%3A30%3A00.000Z&processArea=grid_connection_capacity&owner=ROLE_NETZPLANUNG&dueDate=2026-07-03&knownSnapshotHash=vnb-demo-capacity-old&currentSnapshotHash=vnb-demo-capacity-new&severityHint=high&blockedDecision=Freigabe%20Anschlusskapazitaet",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.dossierEvidence||{}; return [{rowKey:'freshness_summary',label:'Evidence Freshness',signalId:data.signalId||'vnb-delta-demo-anschluss',status:data.status,freshnessState:data.freshnessState,deltaState:data.deltaState,stalenessDays:data.stalenessDays==null?'unknown':data.stalenessDays,baselineAgeDays:data.baselineAgeDays==null?'unknown':data.baselineAgeDays,isKnownAnchor:Boolean(data.isKnownAnchor),isNewDelta:Boolean(data.isNewDelta),escalationRecommended:Boolean(data.escalationRecommended),nonEscalationReason:data.nonEscalationReason||'',blockedDecision:data.blockedDecision||d.blockedDecision||'',owner:data.owner||d.owner||'',dueDate:data.dueDate||d.dueDate||'',safeNextAction:data.escalationRecommended?'review_selected_signal_before_escalation':'refresh_or_request_missing_freshness_evidence',safety:data.safety,sourceClass:'evidence_freshness_guard'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "signalId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "freshnessState": {
+          "type": "string"
+        },
+        "deltaState": {
+          "type": "string"
+        },
+        "stalenessDays": {
+          "type": "string"
+        },
+        "baselineAgeDays": {
+          "type": "string"
+        },
+        "isKnownAnchor": {
+          "type": "boolean"
+        },
+        "isNewDelta": {
+          "type": "boolean"
+        },
+        "escalationRecommended": {
+          "type": "boolean"
+        },
+        "nonEscalationReason": {
+          "type": "string"
+        },
+        "blockedDecision": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "dueDate": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getEvidenceFreshnessGuardGapRows",
+      "method": "GET",
+      "path": "/api/dashboard/evidence-freshness-guard",
+      "queryString": "signalId=vnb-delta-demo-anschluss&sourceKind=synthetic-demo&sourceTimestamp=2026-06-28T08%3A30%3A00.000Z&receivedTimestamp=2026-06-28T08%3A35%3A00.000Z&lastSeenTimestamp=2026-06-27T08%3A30%3A00.000Z&processArea=grid_connection_capacity&owner=ROLE_NETZPLANUNG&dueDate=2026-07-03&knownSnapshotHash=vnb-demo-capacity-old&currentSnapshotHash=vnb-demo-capacity-new&severityHint=high&blockedDecision=Freigabe%20Anschlusskapazitaet",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const rows=data.positiveFollowUps||data.evidenceGaps||[]; if(!rows.length){return [{rowKey:'freshness_ready',missingDataPoint:'none',category:'evidence_freshness_guard',enablesDossierAddition:'freshness, delta, owner, deadline and blocked decision evidence are display-ready',safeNextAction:data.escalationRecommended?'review_selected_signal_before_escalation':'keep_as_non_escalated_context',sourceClass:'freshness_positive_follow_up'}];} return rows.map((row,index)=>({rowKey:row.missingDataPoint||`freshness_gap_${index+1}`,missingDataPoint:row.missingDataPoint,category:row.category||'evidence_freshness_guard',enablesDossierAddition:row.enablesDossierAddition,safeNextAction:'request_missing_freshness_evidence_then_refresh_panel',sourceClass:'freshness_positive_follow_up'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getEvidenceFreshnessGuardBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/evidence-freshness-guard",
+      "queryString": "signalId=vnb-delta-demo-anschluss&sourceKind=synthetic-demo&sourceTimestamp=2026-06-28T08%3A30%3A00.000Z&receivedTimestamp=2026-06-28T08%3A35%3A00.000Z&lastSeenTimestamp=2026-06-27T08%3A30%3A00.000Z&processArea=grid_connection_capacity&owner=ROLE_NETZPLANUNG&dueDate=2026-07-03&knownSnapshotHash=vnb-demo-capacity-old&currentSnapshotHash=vnb-demo-capacity-new&severityHint=high&blockedDecision=Freigabe%20Anschlusskapazitaet",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const boundary=data.sourceBoundary||{}; const boundaries=Object.entries(boundary).map(([key,value])=>({rowKey:`freshness_boundary_${key}`,boundary:key,status:String(value),safeAlternative:'caller_supplied_synthetic_metadata_only',sourceClass:'freshness_source_boundary'})); const guards=((data.sourceActions||{}).notCalled||[]).map((action)=>({rowKey:action,boundary:action,status:'not_called',safeAlternative:'refresh_existing_cernion_read_model_only',sourceClass:'no_call_guard'})); return boundaries.concat(guards)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
       "name": "getVnbDeltaSignalQueueClassifierRows",
       "method": "POST",
       "path": "/api/dashboard/vnb-delta-signal-classifier/classify",
@@ -4319,6 +4451,24 @@
       "tableTitle": "Synthetic Signal Queue Summary"
     },
     {
+      "id": "evidence_freshness_guard",
+      "title": "Evidence Freshness",
+      "queryName": "getEvidenceFreshnessGuardRows",
+      "tableTitle": "Selected Signal Freshness"
+    },
+    {
+      "id": "evidence_freshness_guard_gaps",
+      "title": "Evidence Freshness Gaps",
+      "queryName": "getEvidenceFreshnessGuardGapRows",
+      "tableTitle": "Freshness Evidence and Follow-ups"
+    },
+    {
+      "id": "evidence_freshness_guard_boundaries",
+      "title": "Evidence Freshness Boundaries",
+      "queryName": "getEvidenceFreshnessGuardBoundaryRows",
+      "tableTitle": "Freshness Source and No-Call Guards"
+    },
+    {
       "id": "vnb_delta_signal_queue_classifier",
       "title": "VNB Delta Classifier Rows",
       "queryName": "getVnbDeltaSignalQueueClassifierRows",
@@ -4375,6 +4525,7 @@
     "No-autarky guardrails and missing evidence gates stay visible for presenters; Budibase may refresh queries but must not make public supply, household-equivalent or autarky claims.",
     "Controlled Action runStadtwerkMauerE2ESmoke remains scope-protected by Cernion.",
     "VDMI Profile and Synthetic Event Preview bind to existing dashboard read models with scalar role, capability, evidence, preview and no-call rows; Budibase refreshes queries only and never injects or executes synthetic events.",
+    "Evidence Freshness binds to the existing evidence-freshness-guard read model with synthetic Stadtwerk Mauer signal metadata; Budibase renders scalar freshness, delta, evidence-gap and no-call rows only.",
     "VNB Delta / Signal Queue binds to existing classifier, queue, owner/deadline/evidence and leadership delta read models with synthetic caller-supplied signals; Budibase renders scalar operator rows and no-call guards only.",
     "Budibase renders the workbench; Cernion remains the system of record and command gate."
   ]
