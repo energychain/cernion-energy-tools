@@ -311,6 +311,11 @@ module.exports = {
       openapi: {
         summary: 'List battery Redispatch special gates',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'query', name: 'assetId', schema: { type: 'string' } },
+          { in: 'query', name: 'limit', schema: { type: 'number' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -329,6 +334,10 @@ module.exports = {
       openapi: {
         summary: 'Get a battery Redispatch special gate',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'gateId', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -353,6 +362,10 @@ module.exports = {
       openapi: {
         summary: 'Get dossier-safe battery Redispatch special gate status',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'gateId', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);

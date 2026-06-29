@@ -347,6 +347,12 @@ module.exports = {
       openapi: {
         summary: 'List gate evaluation runs',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'query', name: 'mastrId', schema: { type: 'string' } },
+          { in: 'query', name: 'status', schema: { type: 'string' } },
+          { in: 'query', name: 'limit', schema: { type: 'number' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -386,6 +392,10 @@ module.exports = {
       openapi: {
         summary: 'Get gate run by ID',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         try {

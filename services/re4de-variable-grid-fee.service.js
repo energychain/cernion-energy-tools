@@ -411,6 +411,10 @@ module.exports = {
       openapi: {
         summary: 'Get a variable grid-fee calculation',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'calculationId', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -435,6 +439,10 @@ module.exports = {
       openapi: {
         summary: 'Get dossier-safe evidence for a variable grid-fee calculation',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'calculationId', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);

@@ -326,6 +326,11 @@ module.exports = {
       openapi: {
         summary: 'List flexibility conductor role models',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'query', name: 'processId', schema: { type: 'string' } },
+          { in: 'query', name: 'limit', schema: { type: 'number' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -344,6 +349,10 @@ module.exports = {
       openapi: {
         summary: 'Get a flexibility conductor role model',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'roleModelId', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -371,6 +380,11 @@ module.exports = {
       openapi: {
         summary: 'Get dossier-safe flexibility conductor role-model status',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'processId', required: true, schema: { type: 'string' } },
+          { in: 'query', name: 'roleModelId', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);

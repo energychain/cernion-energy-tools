@@ -181,6 +181,10 @@ module.exports = {
       openapi: {
         summary: 'Get scenario by ID',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         try {
@@ -227,6 +231,13 @@ module.exports = {
       openapi: {
         summary: 'List settlement scenarios',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
+          { in: 'query', name: 'periodStart', schema: { type: 'string' } },
+          { in: 'query', name: 'status', schema: { type: 'string' } },
+          { in: 'query', name: 'limit', schema: { type: 'number' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -381,6 +392,11 @@ module.exports = {
       openapi: {
         summary: 'Download scenario as JSON or text summary',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+          { in: 'query', name: 'format', schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         let scenario;

@@ -181,6 +181,12 @@ module.exports = {
       openapi: {
         summary: 'List governance policies',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'query', name: 'dataClass', schema: { type: 'string' } },
+          { in: 'query', name: 'processId', schema: { type: 'string' } },
+          { in: 'query', name: 'limit', schema: { type: 'number' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -220,6 +226,10 @@ module.exports = {
       openapi: {
         summary: 'Get policy by ID',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         try {
@@ -557,6 +567,13 @@ module.exports = {
       openapi: {
         summary: 'List governance evaluations',
         tags: [OPENAPI_TAG],
+      
+        parameters: [
+          { in: 'query', name: 'dataClass', schema: { type: 'string' } },
+          { in: 'query', name: 'processId', schema: { type: 'string' } },
+          { in: 'query', name: 'status', schema: { type: 'string' } },
+          { in: 'query', name: 'limit', schema: { type: 'number' } },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
