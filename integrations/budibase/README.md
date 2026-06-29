@@ -38,6 +38,7 @@ The workbench renders:
 - VDMI profile, role model, evidence-gap, capability-projection and synthetic event preview rows from the existing read-only dashboard bricks: `GET /api/dashboard/stadtwerk-mauer-vdmi-profile`, `GET /api/dashboard/stadtwerk-mauer-capability-projection` and `GET /api/dashboard/stadtwerk-mauer-event-replay-preview`
 - VNB delta signal queue rows from existing read-only dashboard bricks: `GET /api/dashboard/cross-channel-vnb-signal-queue`, `POST /api/dashboard/vnb-delta-signal-classifier/classify`, `GET /api/dashboard/owner-deadline-evidence-gate` and `GET /api/dashboard/leadership-delta-cockpit`
 - Evidence Freshness rows for the selected synthetic VNB signal from `GET /api/dashboard/evidence-freshness-guard`
+- Blueprint-Pack verify rows for `stadtwerk-mauer-pv-missing-nap-v1` from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, backed by the existing operations-runbook verify contract
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
 The action query is intentionally still guarded by Cernion scopes. A Budibase button may be
@@ -117,6 +118,12 @@ Stadtwerk Mauer signal by calling the existing `evidence-freshness-guard` read m
 does not ingest connectors, store selected-case state, mutate public context, create workflow
 items, execute Rundeck or treat synthetic signal identifiers as real customer, meter, consent,
 MaKo or device-control data.
+The Blueprint Verify panel is read-only: it renders scalar seed-validity, data-class,
+required-evidence, role-relation, warning/next-gate and forbidden-action rows from a dashboard
+facade backed by the existing operations-runbook verify contract. Budibase may refresh the verify
+query, but it must not execute Rundeck directly, run setup/reset/provisioning, import seeds, write
+public context, mutate Budibase-owned Cernion state, or treat synthetic Blueprint evidence as real
+customer, meter, consent, MaKo, billing, settlement, tariff or device-control data.
 
 ## Apply Locally
 

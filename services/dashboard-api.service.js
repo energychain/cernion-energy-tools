@@ -31,7 +31,9 @@ const {
 } = require('../src/receipt-grounded-presentation-contract');
 const {
   buildWorkbenchClarificationItems,
+  getVdmiBlueprintPackSeed,
   stadtwerkMauerPvMissingNap,
+  validateVdmiBlueprintPackSeed,
 } = require('../src/vdmi-blueprint-pack-seeds');
 
 const OPENAPI_TAG = 'Dashboard API';
@@ -128,6 +130,7 @@ module.exports = {
       stadtwerkMauerSalesWorkbenchBriefingStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerWorkbenchLandingStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerWorkbenchSelectedTargetStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerBlueprintPackVerifyStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
       assetValuationTransformationGateStatus: 5 * 60 * 1000, // 5 min
@@ -6146,6 +6149,56 @@ module.exports = {
               _errors: errors,
             };
           }
+        );
+      },
+    },
+
+    // -- stadtwerkMauerBlueprintPackVerifyStatus ------------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify
+     *
+     * Read-only Budibase-renderable projection over the existing VDMI
+     * Blueprint Pack seed validation. This is a dashboard facade for a
+     * visible Workbench panel, not a runbook execution path.
+     */
+    stadtwerkMauerBlueprintPackVerifyStatus: {
+      rest: 'GET /stadtwerk-mauer-blueprint-pack-verify',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        seedId: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer Blueprint Pack verify -- read-only Workbench projection',
+        description:
+          'Returns scalar-friendly Blueprint-Pack verification evidence for the Stadtwerk Mauer ' +
+          'Budibase Workbench. The endpoint reuses the static Blueprint seed validation contract ' +
+          'and exposes no setup/reset/provisioning, direct Rundeck execution, Budibase writes, ' +
+          'public-context mutation, MaKo, billing, settlement, tariff, device-control, external ' +
+          'connector, secret/key or Personal-Agent action.',
+        parameters: [
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'seedId', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Stadtwerk Mauer Blueprint Pack verify projection',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const seedId = params.seedId || stadtwerkMauerPvMissingNap.id;
+        const cacheKey = `stadtwerk-mauer-blueprint-pack-verify:${tenantId}:${seedId}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.stadtwerkMauerBlueprintPackVerifyStatus,
+          async () => ({
+            ...this.buildStadtwerkMauerBlueprintPackVerifyStatus({ tenantId, seedId }),
+            timestamp: new Date().toISOString(),
+          })
         );
       },
     },
@@ -23914,6 +23967,140 @@ module.exports = {
             'vdmi-blueprint-pack-seeds',
           ],
         },
+      };
+    },
+
+    buildStadtwerkMauerBlueprintPackVerifyStatus({
+      tenantId = 'stadtwerk-mauer',
+      seedId = stadtwerkMauerPvMissingNap.id,
+    } = {}) {
+      const seed = tenantId === 'stadtwerk-mauer' ? getVdmiBlueprintPackSeed(seedId) : null;
+      const validation = validateVdmiBlueprintPackSeed(seed);
+      const warnings = validation.valid ? [] : validation.errors;
+      const evidenceRequirements = Array.isArray(seed?.evidenceRequirements)
+        ? seed.evidenceRequirements
+        : [];
+      const roles = Array.isArray(seed?.roles) ? seed.roles : [];
+      const forbiddenActions = Array.isArray(seed?.forbiddenActions) ? seed.forbiddenActions : [];
+      const commandHints = Array.isArray(seed?.allowedCommandHints) ? seed.allowedCommandHints : [];
+      const clarificationItems = seed ? buildWorkbenchClarificationItems(seed) : [];
+      const dataClasses = seed?.dataClasses || {};
+      const requiredEvidence = evidenceRequirements.map((item) => item.id).filter(Boolean);
+      const missingEvidence = evidenceRequirements
+        .filter((item) => item.required !== false)
+        .map((item) => ({
+          missingDataPoint: item.id,
+          state: item.missingState || 'evidence_gap',
+          enablesDossierAddition: item.enablesDossierAddition || null,
+        }));
+      const budibaseHint = commandHints.find((hint) => String(hint.id || '').startsWith('budibase:'));
+      const runbookHint = commandHints.find((hint) => String(hint.id || '').startsWith('rundeck:'));
+      const data = {
+        seedId,
+        tenantId,
+        seedFound: Boolean(seed),
+        classification: seed?.demoTenant?.classification || null,
+        processFamily: seed?.processFamily || null,
+        controlCase: seed?.controlCase || null,
+        safetyClassification: 'read_only',
+        requiredScope: 'none_for_dashboard_read_model',
+        validation,
+        publicContextLayer: {
+          present: Boolean(dataClasses.publicContextLayer),
+          mutable: false,
+          description: dataClasses.publicContextLayer?.description || null,
+          examples: dataClasses.publicContextLayer?.examples || [],
+        },
+        syntheticTenantSeed: {
+          present: Boolean(dataClasses.syntheticTenantSeed),
+          syntheticOnly: seed?.realWorldClaim === 'synthetic_demo_only',
+          description: dataClasses.syntheticTenantSeed?.description || null,
+          examples: dataClasses.syntheticTenantSeed?.examples || [],
+        },
+        sandboxRuntimeArtifacts: {
+          present: Boolean(dataClasses.sandboxRuntimeArtifact),
+          ignoredByVerify: true,
+          resettable: true,
+          description: dataClasses.sandboxRuntimeArtifact?.description || null,
+          examples: dataClasses.sandboxRuntimeArtifact?.examples || [],
+        },
+        requiredEvidence,
+        missingEvidence,
+        roleRelations: roles.map((role) => ({
+          roleId: role.roleId,
+          relation: role.relation,
+          responsibility: role.responsibility,
+        })),
+        workbenchClarificationItems: clarificationItems,
+        workbenchProjectionHint: {
+          role: 'ROLE_NETZPLANUNG',
+          targetEndpoint: '/api/governance/role-workbench',
+          sourceSeedId: seed?.id || seedId,
+        },
+        budibaseRenderTarget: budibaseHint?.id || 'budibase:stadtwerk-mauer-workbench',
+        rundeckHint: runbookHint?.id || null,
+        forbiddenActions,
+        sourceActions: {
+          inspected: ['dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus'],
+          referenced: [
+            'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json',
+            'validateVdmiBlueprintPackSeed',
+            'operations-runbook.verifyVdmiBlueprintPackSeed',
+          ],
+          notCalled: [
+            'blueprint-pack.load',
+            'tenant.provision',
+            'seed.import',
+            'sandbox.reset',
+            'rundeck.execute',
+            'budibase.table.write',
+            'budibase.api.call',
+            'hitl.create',
+            'external.connector.call',
+            'mako.write',
+            'billing.prepare',
+            'settlement.export',
+            'tariff.mutate',
+            'device-control.execute',
+            'public-context.mutate',
+            'personal-agent.execute',
+          ],
+        },
+        brokerDossierHydration: {
+          exposed: false,
+          reason:
+            'Dashboard Workbench verify slice only; Capability Broker and Hydration Registry exposure is intentionally deferred.',
+        },
+      };
+
+      return {
+        capabilityKey: 'stadtwerk_mauer_blueprint_pack_verify',
+        safety: 'read_only_workbench_projection',
+        success: validation.valid,
+        runbookId: 'vdmi-blueprint-pack-verify',
+        status: validation.valid ? 'completed' : 'blocked',
+        riskClass: 'read_only',
+        tenantId,
+        title: 'VDMI Blueprint Pack verification',
+        summary: {
+          title: 'VDMI Blueprint Pack verification',
+          counts: {
+            seedsFound: seed ? 1 : 0,
+            validationErrors: validation.errors.length,
+            requiredEvidence: requiredEvidence.length,
+            roleRelations: roles.length,
+            forbiddenActions: forbiddenActions.length,
+            workbenchClarificationItems: clarificationItems.length,
+          },
+        },
+        data,
+        warnings,
+        nextActions: validation.valid
+          ? [
+              'Render the verify read model in Budibase',
+              'Use /api/governance/role-workbench for role-specific case projection',
+            ]
+          : ['Fix the Blueprint Pack seed contract before exposing it to Rundeck or Budibase'],
       };
     },
 

@@ -182,7 +182,7 @@ recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (12 capabilities · 9 recipes · 377 operations)
+### platform (12 capabilities · 9 recipes · 378 operations)
 capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, evidence_grounding_confidence_audit, evu_api_migration_diagnostics, file_ingest_monitor, hitl_role_based_evidence_request, live_update_stream_contract_status, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted…"
@@ -251,12 +251,12 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 616645b5ea62c2f41a1bb4ff6261498b3fc74888fc1805379f0377b181b45cae
 - src/capability-catalog.js: c3edf903a7445aaa42257f1f1ec4349d4623a1233827e79b0ce8a1711e0f4416
-- openapi-export.json: aab1a25bfb6c5cca77482c952989aee385bc1d8d30af8b83c98df0db4d6aa1f1
+- openapi-export.json: f5a3d1500dec81e8d1e1915035ee3633e739974841077c89b7253f1c28b9b427
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 933
-- operation_count: 1043
+- path_count: 935
+- operation_count: 1045
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: c262e972c213bc66e45bf7cffd86b5084934b58edce61b06afd039fd221fa0a6
+- llm_txt_sha256: e220134cd71dafbb9f826544e13b8760e07794ebd3435a7b6d5c96d595bba1e5

@@ -17591,6 +17591,39 @@
         ]
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-blueprint-pack-verify": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerBlueprintPackVerifyStatus",
+        "summary": "Stadtwerk Mauer Blueprint Pack verify -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer Blueprint Pack verify projection"
+          }
+        },
+        "description": "Returns scalar-friendly Blueprint-Pack verification evidence for the Stadtwerk Mauer Budibase Workbench. The endpoint reuses the static Blueprint seed validation contract and exposes no setup/reset/provisioning, direct Rundeck execution, Budibase writes, public-context mutation, MaKo, billing, settlement, tariff, device-control, external connector, secret/key or Personal-Agent action.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "seedId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/stadtwerk-mauer-administrator-inventory": {
       "get": {
         "operationId": "dashboard-api_stadtwerkMauerAdministratorInventoryStatus",
@@ -61754,6 +61787,39 @@
           },
           {
             "name": "targetId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerBlueprintPackVerifyStatus",
+        "summary": "Stadtwerk Mauer Blueprint Pack verify -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer Blueprint Pack verify projection"
+          }
+        },
+        "description": "Returns scalar-friendly Blueprint-Pack verification evidence for the Stadtwerk Mauer Budibase Workbench. The endpoint reuses the static Blueprint seed validation contract and exposes no setup/reset/provisioning, direct Rundeck execution, Budibase writes, public-context mutation, MaKo, billing, settlement, tariff, device-control, external connector, secret/key or Personal-Agent action.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "seedId",
             "in": "query",
             "required": false,
             "schema": {

@@ -7994,6 +7994,68 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- stadtwerkMauerBlueprintPackVerifyStatus ---------------------------
+  describe('stadtwerkMauerBlueprintPackVerifyStatus', () => {
+    it('returns a read-only Blueprint Pack verify projection for Budibase', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
+        tenantId: 'stadtwerk-mauer',
+        seedId: 'stadtwerk-mauer-pv-missing-nap-v1',
+      });
+
+      expect(result.capabilityKey).toBe('stadtwerk_mauer_blueprint_pack_verify');
+      expect(result.safety).toBe('read_only_workbench_projection');
+      expect(result.runbookId).toBe('vdmi-blueprint-pack-verify');
+      expect(result.status).toBe('completed');
+      expect(result.riskClass).toBe('read_only');
+      expect(result.summary.counts.requiredEvidence).toBe(5);
+      expect(result.summary.counts.roleRelations).toBe(3);
+      expect(result.data.validation).toEqual({ valid: true, errors: [] });
+      expect(result.data.publicContextLayer).toMatchObject({ present: true, mutable: false });
+      expect(result.data.syntheticTenantSeed).toMatchObject({ present: true, syntheticOnly: true });
+      expect(result.data.sandboxRuntimeArtifacts).toMatchObject({
+        present: true,
+        ignoredByVerify: true,
+        resettable: true,
+      });
+      expect(result.data.requiredEvidence).toEqual(
+        expect.arrayContaining(['napReference', 'maloId', 'meloId', 'meterId', 'customerConsentStatus'])
+      );
+      expect(result.data.roleRelations).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ roleId: 'ROLE_NETZPLANUNG', relation: 'verantwortlich' }),
+        ])
+      );
+      expect(result.data.budibaseRenderTarget).toBe('budibase:stadtwerk-mauer-workbench');
+      expect(result.data.brokerDossierHydration.exposed).toBe(false);
+      expect(result.data.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'tenant.provision',
+          'seed.import',
+          'rundeck.execute',
+          'budibase.table.write',
+          'public-context.mutate',
+          'personal-agent.execute',
+        ])
+      );
+    });
+
+    it('returns a blocked read-only state for unsupported seeds', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
+        tenantId: 'stadtwerk-mauer',
+        seedId: 'missing-seed',
+      });
+
+      expect(result.status).toBe('blocked');
+      expect(result.riskClass).toBe('read_only');
+      expect(result.summary.counts.seedsFound).toBe(0);
+      expect(result.warnings).toContain('seed must be an object');
+      expect(result.data.seedFound).toBe(false);
+      expect(result.data.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['tenant.provision', 'external.connector.call'])
+      );
+    });
+  });
+
   // -- stadtwerkMauerWorkbenchHubStatus ----------------------------------
   describe('stadtwerkMauerWorkbenchHubStatus', () => {
     it('returns a read-only Hub launcher with target readiness and no-call guards', async () => {

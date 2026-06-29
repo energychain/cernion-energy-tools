@@ -3765,6 +3765,287 @@
       }
     },
     {
+      "name": "getVdmiBlueprintPackVerify",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "schema": {
+        "runbookId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "riskClass": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "object"
+        },
+        "data": {
+          "type": "object"
+        },
+        "warnings": {
+          "type": "array"
+        },
+        "nextActions": {
+          "type": "array"
+        }
+      }
+    },
+    {
+      "name": "getVdmiBlueprintPackVerifySummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; return [{rowKey:'blueprint_verify_summary',label:'Blueprint Verify Summary',seedId:d.seedId||'stadtwerk-mauer-pv-missing-nap-v1',tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',status:data.status||'unknown',valid:Boolean(v.valid),riskClass:data.riskClass||'read_only',processFamily:d.processFamily||'',controlCase:d.controlCase||'',requiredEvidenceCount:counts.requiredEvidence||0,roleRelationCount:counts.roleRelations||0,forbiddenActionCount:counts.forbiddenActions||0,budibaseRenderTarget:d.budibaseRenderTarget||'',safeNextAction:(data.nextActions||[])[0]||'render_verify_read_model_in_budibase',sourceClass:'vdmi_blueprint_pack_verify'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "riskClass": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "controlCase": {
+          "type": "string"
+        },
+        "requiredEvidenceCount": {
+          "type": "number"
+        },
+        "roleRelationCount": {
+          "type": "number"
+        },
+        "forbiddenActionCount": {
+          "type": "number"
+        },
+        "budibaseRenderTarget": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVdmiBlueprintPackVerifyDataClassRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const rows=[['public_context_layer',d.publicContextLayer,'public_context','read_only_public_context'],['synthetic_tenant_seed',d.syntheticTenantSeed,'synthetic_seed','synthetic_demo_only'],['sandbox_runtime_artifacts',d.sandboxRuntimeArtifacts,'sandbox_runtime','resettable_runtime_output']]; return rows.map(([rowKey,row,dataClass,boundary])=>({rowKey,dataClass,present:Boolean(row&&row.present),mutable:Boolean(row&&row.mutable),syntheticOnly:Boolean(row&&row.syntheticOnly),resettable:Boolean(row&&row.resettable),ignoredByVerify:Boolean(row&&row.ignoredByVerify),description:(row&&row.description)||'',examples:((row&&row.examples)||[]).join(', '),boundary,sourceClass:'blueprint_verify_data_class'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "present": {
+          "type": "boolean"
+        },
+        "mutable": {
+          "type": "boolean"
+        },
+        "syntheticOnly": {
+          "type": "boolean"
+        },
+        "resettable": {
+          "type": "boolean"
+        },
+        "ignoredByVerify": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "examples": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVdmiBlueprintPackVerifyEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const missing=new Map((d.missingEvidence||[]).map((row)=>[row.missingDataPoint,row])); return (d.requiredEvidence||[]).map((id,index)=>{const row=missing.get(id)||{}; return {rowKey:id||`required_evidence_${index+1}`,evidenceId:id,required:true,state:row.state||'evidence_required',enablesDossierAddition:row.enablesDossierAddition||`complete Blueprint evidence row ${id}`,safeNextAction:'provide_required_evidence_then_refresh_verify_panel',sourceClass:'blueprint_required_evidence'};})",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "evidenceId": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVdmiBlueprintPackVerifyRoleRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; return (d.roleRelations||[]).map((row,index)=>({rowKey:row.roleId||`role_relation_${index+1}`,roleId:row.roleId||'',relation:row.relation||'',responsibility:row.responsibility||'',coverageState:row.roleId&&row.relation?'covered':'missing_relation_detail',enablesDossierAddition:row.roleId?'inspect role-specific Blueprint handover coverage':'complete missing role relation',sourceClass:'blueprint_role_relation'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "roleId": {
+          "type": "string"
+        },
+        "relation": {
+          "type": "string"
+        },
+        "responsibility": {
+          "type": "string"
+        },
+        "coverageState": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVdmiBlueprintPackVerifyWarningRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const warningRows=(data.warnings||[]).map((warning,index)=>({rowKey:`warning_${index+1}`,rowType:'warning',status:data.status||'unknown',label:String(warning),safeNextGate:'fix_blueprint_seed_before_rendering',sourceClass:'blueprint_verify_warning'})); const nextRows=(data.nextActions||[]).map((action,index)=>({rowKey:`next_gate_${index+1}`,rowType:'next_gate',status:data.status||'unknown',label:String(action),safeNextGate:String(action),sourceClass:'blueprint_verify_next_gate'})); const hydration=d.brokerDossierHydration||{}; const boundaryRow={rowKey:'broker_dossier_hydration',rowType:'boundary',status:hydration.exposed?'exposed':'not_exposed',label:hydration.reason||'Budibase render slice only; dossier exposure deferred.',safeNextGate:'keep_verify_panel_read_only',sourceClass:'blueprint_verify_boundary'}; return warningRows.concat(nextRows).concat([boundaryRow])",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "rowType": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVdmiBlueprintPackVerifyForbiddenActionRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const forbidden=(d.forbiddenActions||[]).map((action,index)=>({rowKey:`forbidden_${index+1}_${action}`,action:String(action),status:'forbidden',safeAlternative:'render_verify_result_only',sourceClass:'blueprint_forbidden_action'})); const guards=((d.sourceActions||{}).notCalled||[]).map((action)=>({rowKey:`not_called_${action}`,action:String(action),status:'not_called',safeAlternative:'curated_read_only_verify_wrapper',sourceClass:'blueprint_no_call_guard'})); return forbidden.concat(guards)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
       "name": "getVnbDeltaSignalQueueClassifierRows",
       "method": "POST",
       "path": "/api/dashboard/vnb-delta-signal-classifier/classify",
@@ -4469,6 +4750,42 @@
       "tableTitle": "Freshness Source and No-Call Guards"
     },
     {
+      "id": "blueprint_verify_summary",
+      "title": "Blueprint Verify Summary",
+      "queryName": "getVdmiBlueprintPackVerifySummaryRows",
+      "tableTitle": "Seed Validity and Counts"
+    },
+    {
+      "id": "blueprint_verify_data_classes",
+      "title": "Seed Data Classes",
+      "queryName": "getVdmiBlueprintPackVerifyDataClassRows",
+      "tableTitle": "Public, Synthetic and Runtime Separation"
+    },
+    {
+      "id": "blueprint_verify_required_evidence",
+      "title": "Required Evidence",
+      "queryName": "getVdmiBlueprintPackVerifyEvidenceRows",
+      "tableTitle": "Required Evidence and Follow-ups"
+    },
+    {
+      "id": "blueprint_verify_role_relations",
+      "title": "Role Relations",
+      "queryName": "getVdmiBlueprintPackVerifyRoleRows",
+      "tableTitle": "Role Relation Coverage"
+    },
+    {
+      "id": "blueprint_verify_warnings_next_gates",
+      "title": "Warnings / Next Gates",
+      "queryName": "getVdmiBlueprintPackVerifyWarningRows",
+      "tableTitle": "Warnings, Next Gates and Dossier Boundary"
+    },
+    {
+      "id": "blueprint_verify_forbidden_actions",
+      "title": "Forbidden Actions",
+      "queryName": "getVdmiBlueprintPackVerifyForbiddenActionRows",
+      "tableTitle": "Forbidden Actions and No-Call Guards"
+    },
+    {
       "id": "vnb_delta_signal_queue_classifier",
       "title": "VNB Delta Classifier Rows",
       "queryName": "getVnbDeltaSignalQueueClassifierRows",
@@ -4526,6 +4843,7 @@
     "Controlled Action runStadtwerkMauerE2ESmoke remains scope-protected by Cernion.",
     "VDMI Profile and Synthetic Event Preview bind to existing dashboard read models with scalar role, capability, evidence, preview and no-call rows; Budibase refreshes queries only and never injects or executes synthetic events.",
     "Evidence Freshness binds to the existing evidence-freshness-guard read model with synthetic Stadtwerk Mauer signal metadata; Budibase renders scalar freshness, delta, evidence-gap and no-call rows only.",
+    "Blueprint Verify binds to the existing operations-runbook verify wrapper and renders scalar summary, data-class, required-evidence, role-relation, next-gate and no-call rows for stadtwerk-mauer-pv-missing-nap-v1.",
     "VNB Delta / Signal Queue binds to existing classifier, queue, owner/deadline/evidence and leadership delta read models with synthetic caller-supplied signals; Budibase renders scalar operator rows and no-call guards only.",
     "Budibase renders the workbench; Cernion remains the system of record and command gate."
   ]

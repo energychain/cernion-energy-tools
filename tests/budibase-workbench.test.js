@@ -324,6 +324,86 @@ const evidenceFreshnessFixture = {
   },
 };
 
+const blueprintVerifyFixture = {
+  runbookId: 'vdmi-blueprint-pack-verify',
+  status: 'completed',
+  riskClass: 'read_only',
+  tenantId: 'stadtwerk-mauer',
+  summary: {
+    counts: {
+      requiredEvidence: 5,
+      roleRelations: 3,
+      forbiddenActions: 4,
+    },
+  },
+  warnings: [],
+  nextActions: [
+    'Render the verify read model in Budibase',
+    'Use /api/governance/role-workbench for role-specific case projection',
+  ],
+  data: {
+    seedId: 'stadtwerk-mauer-pv-missing-nap-v1',
+    tenantId: 'stadtwerk-mauer',
+    processFamily: 'pv_registration',
+    controlCase: 'electrician_missing_nap',
+    validation: { valid: true, errors: [] },
+    publicContextLayer: {
+      present: true,
+      mutable: false,
+      description: 'MaStR and OSM reference context',
+      examples: ['mastr_public_context'],
+    },
+    syntheticTenantSeed: {
+      present: true,
+      syntheticOnly: true,
+      description: 'Synthetic Stadtwerk Mauer seed',
+      examples: ['stadtwerk-mauer-pv-missing-nap-v1'],
+    },
+    sandboxRuntimeArtifacts: {
+      present: true,
+      ignoredByVerify: true,
+      resettable: true,
+      description: 'Resettable runtime evidence',
+      examples: ['sandbox_annotation'],
+    },
+    requiredEvidence: ['napReference', 'maloId', 'meloId', 'meterId', 'customerConsentStatus'],
+    missingEvidence: [
+      {
+        missingDataPoint: 'napReference',
+        state: 'evidence_gap',
+        enablesDossierAddition: 'show NAP reference evidence',
+      },
+    ],
+    roleRelations: [
+      {
+        roleId: 'ROLE_NETZPLANUNG',
+        relation: 'verantwortlich',
+        responsibility: 'NAP clarification and grid-planning evidence',
+      },
+      {
+        roleId: 'ROLE_GRID_OPERATOR',
+        relation: 'mitwirkend',
+        responsibility: 'operational boundary review',
+      },
+    ],
+    budibaseRenderTarget: 'budibase:stadtwerk-mauer-workbench',
+    forbiddenActions: ['tenant.provision', 'seed.import', 'rundeck.execute', 'public-context.mutate'],
+    sourceActions: {
+      notCalled: [
+        'blueprint-pack.load',
+        'tenant.provision',
+        'rundeck.execute',
+        'budibase.api.call',
+        'personal-agent.execute',
+      ],
+    },
+    brokerDossierHydration: {
+      exposed: false,
+      reason: 'Runbook-only verify slice; Capability Broker and Hydration Registry exposure is intentionally deferred.',
+    },
+  },
+};
+
 describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   const expectedSectionIds = [
     'vdmi_profile_summary',
@@ -344,6 +424,12 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     'evidence_freshness_guard',
     'evidence_freshness_guard_gaps',
     'evidence_freshness_guard_boundaries',
+    'blueprint_verify_summary',
+    'blueprint_verify_data_classes',
+    'blueprint_verify_required_evidence',
+    'blueprint_verify_role_relations',
+    'blueprint_verify_warnings_next_gates',
+    'blueprint_verify_forbidden_actions',
     'vnb_delta_signal_queue_classifier',
     'vnb_delta_signal_queue_owner_evidence',
     'vnb_delta_signal_queue_safe_next_actions',
@@ -364,7 +450,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     const paths = new Set(
       manifest.queries
         .filter((query) =>
-          query.name.includes('Vdmi') ||
+          (query.name.includes('Vdmi') && !query.name.includes('VdmiBlueprintPackVerify')) ||
           query.name.includes('CapabilityProjection') ||
           query.name.includes('EventReplay')
         )
@@ -398,6 +484,16 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     );
   });
 
+  it('uses the read-only dashboard facade for Blueprint Pack verify panels', () => {
+    const paths = new Set(
+      manifest.queries
+        .filter((query) => query.name.includes('VdmiBlueprintPackVerify'))
+        .map((query) => query.path)
+    );
+
+    expect(paths).toEqual(new Set(['/api/dashboard/stadtwerk-mauer-blueprint-pack-verify']));
+  });
+
   it('flattens evidence freshness rows for the selected synthetic signal', () => {
     const freshnessRows = runTransformer('getEvidenceFreshnessGuardRows', evidenceFreshnessFixture);
     expectScalarRows(freshnessRows);
@@ -423,6 +519,69 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       expect.arrayContaining([
         expect.objectContaining({ boundary: 'suppliedMetadataOnly', status: 'true' }),
         expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
+  });
+
+  it('flattens Blueprint Pack verify rows for presenter-safe Budibase tables', () => {
+    const summaryRows = runTransformer('getVdmiBlueprintPackVerifySummaryRows', blueprintVerifyFixture);
+    expectScalarRows(summaryRows);
+    expect(summaryRows[0]).toMatchObject({
+      seedId: 'stadtwerk-mauer-pv-missing-nap-v1',
+      valid: true,
+      riskClass: 'read_only',
+      requiredEvidenceCount: 5,
+      roleRelationCount: 3,
+      sourceClass: 'vdmi_blueprint_pack_verify',
+    });
+
+    const dataClassRows = runTransformer('getVdmiBlueprintPackVerifyDataClassRows', blueprintVerifyFixture);
+    expectScalarRows(dataClassRows);
+    expect(dataClassRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ dataClass: 'public_context', mutable: false }),
+        expect.objectContaining({ dataClass: 'synthetic_seed', syntheticOnly: true }),
+        expect.objectContaining({ dataClass: 'sandbox_runtime', resettable: true }),
+      ])
+    );
+
+    const evidenceRows = runTransformer('getVdmiBlueprintPackVerifyEvidenceRows', blueprintVerifyFixture);
+    expectScalarRows(evidenceRows);
+    expect(evidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          evidenceId: 'napReference',
+          enablesDossierAddition: 'show NAP reference evidence',
+        }),
+      ])
+    );
+
+    const roleRows = runTransformer('getVdmiBlueprintPackVerifyRoleRows', blueprintVerifyFixture);
+    expectScalarRows(roleRows);
+    expect(roleRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ roleId: 'ROLE_NETZPLANUNG', relation: 'verantwortlich' }),
+      ])
+    );
+
+    const warningRows = runTransformer('getVdmiBlueprintPackVerifyWarningRows', blueprintVerifyFixture);
+    expectScalarRows(warningRows);
+    expect(warningRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowType: 'next_gate', sourceClass: 'blueprint_verify_next_gate' }),
+        expect.objectContaining({ rowKey: 'broker_dossier_hydration', status: 'not_exposed' }),
+      ])
+    );
+
+    const forbiddenActionRows = runTransformer(
+      'getVdmiBlueprintPackVerifyForbiddenActionRows',
+      blueprintVerifyFixture
+    );
+    expectScalarRows(forbiddenActionRows);
+    expect(forbiddenActionRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: 'rundeck.execute', status: 'forbidden' }),
+        expect.objectContaining({ action: 'personal-agent.execute', status: 'not_called' }),
       ])
     );
   });
