@@ -17624,6 +17624,63 @@
         ]
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-transfer-readiness": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerTransferReadinessStatus",
+        "summary": "Stadtwerk Mauer transfer readiness -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer transfer-readiness projection"
+          }
+        },
+        "description": "Returns scalar Budibase-safe transfer-readiness rows for the Stadtwerk Mauer Blueprint Pack. The endpoint labels public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Workbench elements and blocked production boundaries without setup/reset/provisioning, direct Rundeck execution, Budibase writes, public-context mutation, MaKo, billing, settlement, tariff, device-control, external connector, secret/key or Personal-Agent action.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "seedId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeBlockedBoundaries",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeSafeNextSteps",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/stadtwerk-mauer-administrator-inventory": {
       "get": {
         "operationId": "dashboard-api_stadtwerkMauerAdministratorInventoryStatus",
@@ -61824,6 +61881,63 @@
             "required": false,
             "schema": {
               "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-transfer-readiness": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerTransferReadinessStatus",
+        "summary": "Stadtwerk Mauer transfer readiness -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Stadtwerk Mauer transfer-readiness projection"
+          }
+        },
+        "description": "Returns scalar Budibase-safe transfer-readiness rows for the Stadtwerk Mauer Blueprint Pack. The endpoint labels public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Workbench elements and blocked production boundaries without setup/reset/provisioning, direct Rundeck execution, Budibase writes, public-context mutation, MaKo, billing, settlement, tariff, device-control, external connector, secret/key or Personal-Agent action.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "seedId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeBlockedBoundaries",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeSafeNextSteps",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
             }
           }
         ]

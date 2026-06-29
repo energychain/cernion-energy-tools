@@ -131,6 +131,7 @@ module.exports = {
       stadtwerkMauerWorkbenchLandingStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerWorkbenchSelectedTargetStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerBlueprintPackVerifyStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerTransferReadinessStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
       assetValuationTransformationGateStatus: 5 * 60 * 1000, // 5 min
@@ -6197,6 +6198,79 @@ module.exports = {
           this.settings.cacheTtlMs.stadtwerkMauerBlueprintPackVerifyStatus,
           async () => ({
             ...this.buildStadtwerkMauerBlueprintPackVerifyStatus({ tenantId, seedId }),
+            timestamp: new Date().toISOString(),
+          })
+        );
+      },
+    },
+
+    // -- stadtwerkMauerTransferReadinessStatus --------------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-transfer-readiness
+     *
+     * Read-only Budibase facade that separates reusable Blueprint/Workbench
+     * elements from synthetic seed data, sandbox artifacts, tenant parameters
+     * and blocked production boundaries.
+     */
+    stadtwerkMauerTransferReadinessStatus: {
+      rest: 'GET /stadtwerk-mauer-transfer-readiness',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        seedId: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+        includeBlockedBoundaries: { type: 'boolean', optional: true, convert: true },
+        includeSafeNextSteps: { type: 'boolean', optional: true, convert: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer transfer readiness -- read-only Workbench projection',
+        description:
+          'Returns scalar Budibase-safe transfer-readiness rows for the Stadtwerk Mauer ' +
+          'Blueprint Pack. The endpoint labels public context, synthetic seed data, sandbox ' +
+          'runtime artifacts, tenant parameters, reusable Workbench elements and blocked ' +
+          'production boundaries without setup/reset/provisioning, direct Rundeck execution, ' +
+          'Budibase writes, public-context mutation, MaKo, billing, settlement, tariff, ' +
+          'device-control, external connector, secret/key or Personal-Agent action.',
+        parameters: [
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'seedId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'includeBlockedBoundaries', in: 'query', required: false, schema: { type: 'boolean' } },
+          { name: 'includeSafeNextSteps', in: 'query', required: false, schema: { type: 'boolean' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Stadtwerk Mauer transfer-readiness projection',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const seedId = params.seedId || stadtwerkMauerPvMissingNap.id;
+        const caseId = params.caseId || 'smm-budibase-workbench';
+        const includeBlockedBoundaries = params.includeBlockedBoundaries !== false;
+        const includeSafeNextSteps = params.includeSafeNextSteps !== false;
+        const cacheKey = [
+          'stadtwerk-mauer-transfer-readiness',
+          tenantId,
+          seedId,
+          caseId,
+          includeBlockedBoundaries ? 'with-boundaries' : 'no-boundaries',
+          includeSafeNextSteps ? 'with-next-steps' : 'no-next-steps',
+        ].join(':');
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.stadtwerkMauerTransferReadinessStatus,
+          async () => ({
+            ...this.buildStadtwerkMauerTransferReadinessStatus({
+              tenantId,
+              seedId,
+              caseId,
+              includeBlockedBoundaries,
+              includeSafeNextSteps,
+            }),
             timestamp: new Date().toISOString(),
           })
         );
@@ -24100,7 +24174,225 @@ module.exports = {
               'Render the verify read model in Budibase',
               'Use /api/governance/role-workbench for role-specific case projection',
             ]
-          : ['Fix the Blueprint Pack seed contract before exposing it to Rundeck or Budibase'],
+        : ['Fix the Blueprint Pack seed contract before exposing it to Rundeck or Budibase'],
+      };
+    },
+
+    buildStadtwerkMauerTransferReadinessStatus({
+      tenantId = 'stadtwerk-mauer',
+      seedId = stadtwerkMauerPvMissingNap.id,
+      caseId = 'smm-budibase-workbench',
+      includeBlockedBoundaries = true,
+      includeSafeNextSteps = true,
+    } = {}) {
+      const verify = this.buildStadtwerkMauerBlueprintPackVerifyStatus({ tenantId, seedId });
+      const seed = tenantId === 'stadtwerk-mauer' ? getVdmiBlueprintPackSeed(seedId) : null;
+      const dataClasses = seed?.dataClasses || {};
+      const roleRows = Array.isArray(verify.data?.roleRelations) ? verify.data.roleRelations : [];
+      const evidenceRows = Array.isArray(verify.data?.requiredEvidence)
+        ? verify.data.requiredEvidence
+        : [];
+      const forbiddenActions = Array.isArray(verify.data?.forbiddenActions)
+        ? verify.data.forbiddenActions
+        : [];
+      const disabledActionClasses = [
+        'tenant.provision',
+        'seed.import',
+        'sandbox.reset',
+        'rundeck.execute',
+        'budibase.table.write',
+        'public-context.mutate',
+        'external.connector.call',
+        'mako.write',
+        'billing.prepare',
+        'settlement.export',
+        'tariff.mutate',
+        'device-control.execute',
+      ];
+      const gridOperatorHint = 'Syna GmbH (MaStR baseline); Stadtwerk Mauer is virtual demo overlay only';
+      const transferSummaryRows = [
+        {
+          rowKey: 'transfer_readiness',
+          label: 'Transfer Readiness',
+          status: seed ? 'ready_for_onboarding_discussion' : 'seed_not_found',
+          tenantId,
+          seedId,
+          caseId,
+          municipality: 'Mauer',
+          ags: '08226048',
+          postcode: '69256',
+          gridOperatorHint,
+          safety: 'read_only_workbench_projection',
+          sourceClass: 'transfer_readiness_summary',
+        },
+      ];
+      const dataClassRows = [
+        {
+          rowKey: 'public_context_layer',
+          category: 'public_context',
+          transferState: 'reusable_read_only',
+          label: 'Public context layer',
+          description: dataClasses.publicContextLayer?.description || 'Public MaStR/municipal context can be reused as read-only baseline.',
+          examples: (dataClasses.publicContextLayer?.examples || ['MaStR baseline', 'municipality profile']).join(', '),
+          syntheticOnly: false,
+          tenantParameter: false,
+          productionBlocked: false,
+          safeNextAction: 'inspect_public_context_baseline',
+          sourceClass: 'transfer_data_class',
+        },
+        {
+          rowKey: 'synthetic_tenant_seed',
+          category: 'synthetic_seed',
+          transferState: 'replace_for_real_tenant',
+          label: 'Synthetic Stadtwerk Mauer seed',
+          description: dataClasses.syntheticTenantSeed?.description || 'Invented demo tenant and case facts only.',
+          examples: (dataClasses.syntheticTenantSeed?.examples || [tenantId, caseId, seedId]).join(', '),
+          syntheticOnly: true,
+          tenantParameter: true,
+          productionBlocked: false,
+          safeNextAction: 'replace_with_tenant_parameters_before_onboarding',
+          sourceClass: 'transfer_data_class',
+        },
+        {
+          rowKey: 'sandbox_runtime_artifacts',
+          category: 'sandbox_runtime',
+          transferState: 'do_not_transfer',
+          label: 'Sandbox runtime artifacts',
+          description: dataClasses.sandboxRuntimeArtifact?.description || 'Demo output and replay artifacts are resettable sandbox state.',
+          examples: (dataClasses.sandboxRuntimeArtifact?.examples || ['annotations', 'verify runs', 'event replay preview']).join(', '),
+          syntheticOnly: true,
+          tenantParameter: false,
+          productionBlocked: true,
+          safeNextAction: 'discard_or_regenerate_in_customer_sandbox',
+          sourceClass: 'transfer_data_class',
+        },
+        {
+          rowKey: 'reusable_workbench_blueprint',
+          category: 'blueprint_workbench',
+          transferState: 'reusable_with_parameters',
+          label: 'Blueprint and Workbench structure',
+          description: 'Role, evidence, no-call guard and Workbench read-model patterns can transfer after tenant parameters are supplied.',
+          examples: 'role catalog, evidence requirements, no-call guards, safe next-gate hints',
+          syntheticOnly: false,
+          tenantParameter: true,
+          productionBlocked: false,
+          safeNextAction: 'review_parameter_rows_and_required_evidence',
+          sourceClass: 'transfer_data_class',
+        },
+      ];
+      const tenantParameterRows = [
+        ['tenant_id', 'Tenant ID', tenantId, 'replace_with_real_tenant_id'],
+        ['tenant_name', 'Tenant name', 'Stadtwerk Mauer', 'replace_with_real_stadtwerk_name'],
+        ['municipality_profile', 'AGS/PLZ/municipality profile', '08226048 / 69256 / Mauer', 'confirm_real_municipality_profile'],
+        ['grid_operator_hint', 'Grid operator label/BDEW hint', gridOperatorHint, 'confirm_real_grid_operator_context'],
+        ['seed_case_label', 'Seed case label', `${caseId} / ${seed?.controlCase || 'electrician_missing_nap'}`, 'replace_with_real_or_customer_sandbox_case'],
+        ['role_names', 'Role names', roleRows.map((row) => row.roleId).filter(Boolean).join(', '), 'map_to_customer_roles'],
+        ['public_context_baseline_refs', 'Public context baseline refs', 'MaStR overlay, municipal profile, VDMI profile', 'refresh_or_verify_public_baseline_read_only'],
+        ['evidence_requirements', 'Evidence requirements', evidenceRows.join(', '), 'collect_customer_specific_evidence_before_production_use'],
+      ].map(([rowKey, label, currentDemoValue, replacementRule]) => ({
+        rowKey,
+        label,
+        currentDemoValue,
+        replacementRule,
+        requiredForTransfer: true,
+        syntheticDemoValue: true,
+        safeNextAction: 'collect_parameter_then_refresh_transfer_readiness',
+        sourceClass: 'tenant_parameter',
+      }));
+      const reusableElementRows = [
+        ['workbench_manifest', 'Generated Budibase Workbench manifest', 'reuse_generated_render_shell', 'integrations/budibase/manifests/stadtwerk-mauer-workbench.json'],
+        ['blueprint_seed_contract', 'VDMI Blueprint seed contract', 'reuse_with_new_seed_values', 'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json'],
+        ['dashboard_read_models', 'Cernion dashboard read models', 'reuse_read_only_facades', 'services/dashboard-api.service.js'],
+        ['apply_script', 'Controlled Budibase apply script', 'reuse_for_generated_apply_only', 'integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js'],
+      ].map(([rowKey, label, transferState, sourceRef]) => ({
+        rowKey,
+        label,
+        transferState,
+        sourceRef,
+        productionMutation: false,
+        safeNextAction: 'inspect_generated_source_before_customer_cut',
+        sourceClass: 'reusable_workbench_element',
+      }));
+      const productionBoundaryRows = disabledActionClasses.map((action) => ({
+        rowKey: action,
+        boundary: action,
+        status: 'blocked_in_transfer_readiness_slice',
+        disabled: true,
+        safeAlternative: 'read_or_verify_readiness_only',
+        sourceClass: 'blocked_production_boundary',
+      }));
+      const safeNextGateRows = [
+        ['inspect_blueprint_verify', 'Inspect Blueprint verify panel', 'safe_read_only'],
+        ['refresh_public_context_view', 'Refresh public-context view', 'safe_read_only'],
+        ['validate_transfer_parameters', 'Validate tenant parameters for onboarding discussion', 'safe_read_only'],
+        ['verify_readiness_with_cernion_runbook_wrapper', 'Verify readiness through curated Cernion wrapper', 'safe_verify_only'],
+      ].map(([rowKey, label, safety]) => ({
+        rowKey,
+        label,
+        safety,
+        allowed: true,
+        createsProductionState: false,
+        sourceClass: 'safe_next_gate',
+      }));
+
+      return {
+        capabilityKey: 'stadtwerk_mauer_transfer_readiness',
+        safety: 'read_only_workbench_projection',
+        status: seed ? 'ready_for_onboarding_discussion' : 'seed_not_found',
+        riskClass: 'read_only',
+        tenantId,
+        seedId,
+        caseId,
+        title: 'Stadtwerk Mauer transfer readiness',
+        transferSummaryRows,
+        dataClassRows,
+        tenantParameterRows,
+        reusableElementRows,
+        productionBoundaryRows: includeBlockedBoundaries ? productionBoundaryRows : [],
+        disabledActionClassRows: includeBlockedBoundaries
+          ? productionBoundaryRows.concat(forbiddenActions.map((action) => ({
+              rowKey: action,
+              boundary: action,
+              status: 'forbidden_by_blueprint_seed',
+              disabled: true,
+              safeAlternative: 'readiness_discussion_only',
+              sourceClass: 'blueprint_forbidden_action',
+            })))
+          : [],
+        safeNextGateRows: includeSafeNextSteps ? safeNextGateRows : [],
+        sourceActions: {
+          inspected: [
+            'dashboard-api.stadtwerkMauerTransferReadinessStatus',
+            'dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus',
+            'dashboard-api.stadtwerkMauerWorkbenchLandingStatus',
+            'dashboard-api.stadtwerkMauerWorkbenchHubStatus',
+            'dashboard-api.stadtwerkMauerAdministratorInventoryStatus',
+            'dashboard-api.stadtwerkMauerTenantDatabrowserStatus',
+            'dashboard-api.stadtwerkMauerCaseDetailStatus',
+            'dashboard-api.stadtwerkMauerRoleWorkbenchCatalogStatus',
+            'dashboard-api.stadtwerkMauerMastrDataOverlayStatus',
+            'dashboard-api.stadtwerkMauerVdmiProfileStatus',
+            'dashboard-api.stadtwerkMauerCapabilityProjectionStatus',
+            'dashboard-api.stadtwerkMauerEventReplayPreviewStatus',
+          ],
+          referenced: [
+            'integrations/budibase/README.md',
+            'integrations/budibase/manifests/stadtwerk-mauer-workbench.json',
+            'integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js',
+            'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json',
+          ],
+          notCalled: disabledActionClasses.concat([
+            'hitl.create',
+            'personal-agent.execute',
+            'secret.read',
+            'wallet.keyMaterial',
+          ]),
+        },
+        brokerDossierHydration: {
+          exposed: false,
+          reason:
+            'Budibase Workbench transfer-readiness slice only; Capability Broker, Hydration Registry and slim dossier formatter are intentionally deferred.',
+        },
       };
     },
 

@@ -8056,6 +8056,134 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // -- stadtwerkMauerTransferReadinessStatus -----------------------------
+  describe('stadtwerkMauerTransferReadinessStatus', () => {
+    it('returns scalar transfer-readiness rows for the Budibase Workbench', async () => {
+      const result = await broker.call('dashboard-api.stadtwerkMauerTransferReadinessStatus', {
+        tenantId: 'stadtwerk-mauer',
+        seedId: 'stadtwerk-mauer-pv-missing-nap-v1',
+        caseId: 'smm-budibase-workbench',
+      });
+
+      expect(result.capabilityKey).toBe('stadtwerk_mauer_transfer_readiness');
+      expect(result.safety).toBe('read_only_workbench_projection');
+      expect(result.status).toBe('ready_for_onboarding_discussion');
+      expect(result.brokerDossierHydration).toMatchObject({
+        exposed: false,
+      });
+      expect(result.transferSummaryRows[0]).toMatchObject({
+        tenantId: 'stadtwerk-mauer',
+        seedId: 'stadtwerk-mauer-pv-missing-nap-v1',
+        caseId: 'smm-budibase-workbench',
+        municipality: 'Mauer',
+        ags: '08226048',
+        postcode: '69256',
+      });
+      expect(result.dataClassRows).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            rowKey: 'public_context_layer',
+            transferState: 'reusable_read_only',
+            syntheticOnly: false,
+          }),
+          expect.objectContaining({
+            rowKey: 'synthetic_tenant_seed',
+            transferState: 'replace_for_real_tenant',
+            syntheticOnly: true,
+            tenantParameter: true,
+          }),
+          expect.objectContaining({
+            rowKey: 'sandbox_runtime_artifacts',
+            transferState: 'do_not_transfer',
+            productionBlocked: true,
+          }),
+        ])
+      );
+      expect(result.tenantParameterRows.map((row) => row.rowKey)).toEqual(
+        expect.arrayContaining([
+          'tenant_id',
+          'tenant_name',
+          'municipality_profile',
+          'grid_operator_hint',
+          'role_names',
+          'evidence_requirements',
+        ])
+      );
+      expect(result.disabledActionClassRows.map((row) => row.boundary)).toEqual(
+        expect.arrayContaining([
+          'tenant.provision',
+          'seed.import',
+          'rundeck.execute',
+          'budibase.table.write',
+          'public-context.mutate',
+          'external.connector.call',
+          'device-control.execute',
+          'personal_agent_hardcoding',
+        ])
+      );
+      expect(result.safeNextGateRows.map((row) => row.rowKey)).toEqual(
+        expect.arrayContaining([
+          'inspect_blueprint_verify',
+          'refresh_public_context_view',
+          'validate_transfer_parameters',
+        ])
+      );
+      expect(result.sourceActions.notCalled).toEqual(
+        expect.arrayContaining([
+          'tenant.provision',
+          'rundeck.execute',
+          'budibase.table.write',
+          'public-context.mutate',
+          'external.connector.call',
+          'device-control.execute',
+          'personal-agent.execute',
+        ])
+      );
+
+      expectScalarTableRows(result.transferSummaryRows);
+      expectScalarTableRows(result.dataClassRows);
+      expectScalarTableRows(result.tenantParameterRows);
+      expectScalarTableRows(result.reusableElementRows);
+      expectScalarTableRows(result.disabledActionClassRows);
+      expectScalarTableRows(result.safeNextGateRows);
+    });
+
+    it('binds the Budibase manifest to visible transfer-readiness tables', () => {
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.map((query) => query.name)).toEqual(
+        expect.arrayContaining([
+          'getStadtwerkMauerTransferReadinessSummaryRows',
+          'getStadtwerkMauerTransferReadinessDataClassRows',
+          'getStadtwerkMauerTransferReadinessTenantParameterRows',
+          'getStadtwerkMauerTransferReadinessReusableRows',
+          'getStadtwerkMauerTransferReadinessBoundaryRows',
+          'getStadtwerkMauerTransferReadinessSafeNextGateRows',
+        ])
+      );
+      expect(
+        STADTWERK_MAUER_WORKBENCH_MANIFEST.queries.find(
+          (query) => query.name === 'getStadtwerkMauerTransferReadinessSummaryRows'
+        )
+      ).toMatchObject({
+        method: 'GET',
+        path: '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+        transformer: 'return data.transferSummaryRows || []',
+      });
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.sections.map((section) => section.id)).toEqual(
+        expect.arrayContaining([
+          'transfer_readiness_summary',
+          'transfer_readiness_data_classes',
+          'transfer_readiness_parameters',
+          'transfer_readiness_reusable',
+          'transfer_readiness_boundaries',
+          'transfer_readiness_safe_next_gates',
+        ])
+      );
+      expect(STADTWERK_MAUER_WORKBENCH_MANIFEST.notes.join(' ')).toContain(
+        'Transfer Readiness binds to a read-only dashboard facade'
+      );
+    });
+  });
+
   // -- stadtwerkMauerWorkbenchHubStatus ----------------------------------
   describe('stadtwerkMauerWorkbenchHubStatus', () => {
     it('returns a read-only Hub launcher with target readiness and no-call guards', async () => {
