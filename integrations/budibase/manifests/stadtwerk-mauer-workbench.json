@@ -4046,6 +4046,246 @@
       }
     },
     {
+      "name": "getStadtwerkMauerTransferReadinessSummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return data.transferSummaryRows || []",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "municipality": {
+          "type": "string"
+        },
+        "ags": {
+          "type": "string"
+        },
+        "postcode": {
+          "type": "string"
+        },
+        "gridOperatorHint": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerTransferReadinessDataClassRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return data.dataClassRows || []",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "transferState": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "examples": {
+          "type": "string"
+        },
+        "syntheticOnly": {
+          "type": "boolean"
+        },
+        "tenantParameter": {
+          "type": "boolean"
+        },
+        "productionBlocked": {
+          "type": "boolean"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerTransferReadinessTenantParameterRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return data.tenantParameterRows || []",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "currentDemoValue": {
+          "type": "string"
+        },
+        "replacementRule": {
+          "type": "string"
+        },
+        "requiredForTransfer": {
+          "type": "boolean"
+        },
+        "syntheticDemoValue": {
+          "type": "boolean"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerTransferReadinessReusableRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return data.reusableElementRows || []",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "transferState": {
+          "type": "string"
+        },
+        "sourceRef": {
+          "type": "string"
+        },
+        "productionMutation": {
+          "type": "boolean"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerTransferReadinessBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return data.disabledActionClassRows || data.productionBoundaryRows || []",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerTransferReadinessSafeNextGateRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return data.safeNextGateRows || []",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "allowed": {
+          "type": "boolean"
+        },
+        "createsProductionState": {
+          "type": "boolean"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
       "name": "getVnbDeltaSignalQueueClassifierRows",
       "method": "POST",
       "path": "/api/dashboard/vnb-delta-signal-classifier/classify",
@@ -4786,6 +5026,42 @@
       "tableTitle": "Forbidden Actions and No-Call Guards"
     },
     {
+      "id": "transfer_readiness_summary",
+      "title": "Transfer Readiness",
+      "queryName": "getStadtwerkMauerTransferReadinessSummaryRows",
+      "tableTitle": "Transfer Readiness Summary"
+    },
+    {
+      "id": "transfer_readiness_data_classes",
+      "title": "Transfer Data Classes",
+      "queryName": "getStadtwerkMauerTransferReadinessDataClassRows",
+      "tableTitle": "Public, Synthetic, Runtime and Reusable Classes"
+    },
+    {
+      "id": "transfer_readiness_parameters",
+      "title": "Tenant Parameters",
+      "queryName": "getStadtwerkMauerTransferReadinessTenantParameterRows",
+      "tableTitle": "Tenant Parameters to Replace"
+    },
+    {
+      "id": "transfer_readiness_reusable",
+      "title": "Reusable Workbench Elements",
+      "queryName": "getStadtwerkMauerTransferReadinessReusableRows",
+      "tableTitle": "Reusable Blueprint and Workbench Elements"
+    },
+    {
+      "id": "transfer_readiness_boundaries",
+      "title": "Blocked Production Boundaries",
+      "queryName": "getStadtwerkMauerTransferReadinessBoundaryRows",
+      "tableTitle": "Blocked Production Boundaries"
+    },
+    {
+      "id": "transfer_readiness_safe_next_gates",
+      "title": "Safe Transfer Next Gates",
+      "queryName": "getStadtwerkMauerTransferReadinessSafeNextGateRows",
+      "tableTitle": "Safe Readiness Hints"
+    },
+    {
       "id": "vnb_delta_signal_queue_classifier",
       "title": "VNB Delta Classifier Rows",
       "queryName": "getVnbDeltaSignalQueueClassifierRows",
@@ -4844,6 +5120,7 @@
     "VDMI Profile and Synthetic Event Preview bind to existing dashboard read models with scalar role, capability, evidence, preview and no-call rows; Budibase refreshes queries only and never injects or executes synthetic events.",
     "Evidence Freshness binds to the existing evidence-freshness-guard read model with synthetic Stadtwerk Mauer signal metadata; Budibase renders scalar freshness, delta, evidence-gap and no-call rows only.",
     "Blueprint Verify binds to the existing operations-runbook verify wrapper and renders scalar summary, data-class, required-evidence, role-relation, next-gate and no-call rows for stadtwerk-mauer-pv-missing-nap-v1.",
+    "Transfer Readiness binds to a read-only dashboard facade that separates public context, synthetic seed values, sandbox runtime artifacts, tenant parameters, reusable Workbench elements and blocked production boundaries.",
     "VNB Delta / Signal Queue binds to existing classifier, queue, owner/deadline/evidence and leadership delta read models with synthetic caller-supplied signals; Budibase renders scalar operator rows and no-call guards only.",
     "Budibase renders the workbench; Cernion remains the system of record and command gate."
   ]

@@ -1522,6 +1522,8 @@ module.exports = {
             'dashboard-api.stadtwerkMauerWorkbenchSelectedTargetStatus',
           'GET /dashboard/stadtwerk-mauer-blueprint-pack-verify':
             'dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus',
+          'GET /dashboard/stadtwerk-mauer-transfer-readiness':
+            'dashboard-api.stadtwerkMauerTransferReadinessStatus',
           'GET /dashboard/fnav-fast-track-contract-gate':
             'dashboard-api.fnavFastTrackContractGateStatus',
           'GET /dashboard/cross-channel-vnb-signal-queue':

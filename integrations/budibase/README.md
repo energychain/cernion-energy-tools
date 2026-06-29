@@ -39,6 +39,7 @@ The workbench renders:
 - VNB delta signal queue rows from existing read-only dashboard bricks: `GET /api/dashboard/cross-channel-vnb-signal-queue`, `POST /api/dashboard/vnb-delta-signal-classifier/classify`, `GET /api/dashboard/owner-deadline-evidence-gate` and `GET /api/dashboard/leadership-delta-cockpit`
 - Evidence Freshness rows for the selected synthetic VNB signal from `GET /api/dashboard/evidence-freshness-guard`
 - Blueprint-Pack verify rows for `stadtwerk-mauer-pv-missing-nap-v1` from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, backed by the existing operations-runbook verify contract
+- Transfer Readiness rows from `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, separating public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Blueprint/Workbench elements and blocked production boundaries
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
 The action query is intentionally still guarded by Cernion scopes. A Budibase button may be

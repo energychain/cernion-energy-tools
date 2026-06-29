@@ -578,6 +578,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/stadtwerk-mauer-blueprint-pack-verify']).toBe(
         'dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus'
       );
+      expect(aliases['GET /dashboard/stadtwerk-mauer-transfer-readiness']).toBe(
+        'dashboard-api.stadtwerkMauerTransferReadinessStatus'
+      );
       expect(aliases['GET /dashboard/stadtwerk-mauer-tenant-databrowser']).toBe(
         'dashboard-api.stadtwerkMauerTenantDatabrowserStatus'
       );
