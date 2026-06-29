@@ -70,7 +70,9 @@ const EXTRACTORS = {
 
   locationFromPromptOrFacts(facts, question, _config = {}) {
     const q = String(question || '');
-    const plzCityMatch = q.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ](?:[A-Za-zäöüßÄÖÜ\-]{0,40})?)/);
+    const plzCityMatch = q.match(
+      /\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ](?:[A-Za-zäöüßÄÖÜ\-]{0,40})?)/
+    );
     const cityOnlyMatch = q.match(
       /\b(?:ich\s+wohne\s+in|wohne\s+in|wohnort\s+ist|standort\s+ist|ort\s+ist|lade\s+in|laden\s+in|in|bei|f[üu]r|fuer)\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ\-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zäöüßÄÖÜ\-]{2,}){0,2})\b/
     );
@@ -85,18 +87,23 @@ const EXTRACTORS = {
       plzCityMatch?.[1] ||
       (q.match(/\b(\d{5})\b/) || [])[1] ||
       null;
-    return cityFromPrompt || locationFact?.value || cityOnlyMatch?.[1]?.trim() || postalCode || null;
+    return (
+      cityFromPrompt || locationFact?.value || cityOnlyMatch?.[1]?.trim() || postalCode || null
+    );
   },
 
   cityFromPromptOrFacts(facts, question, _config = {}) {
     const q = String(question || '');
-    const plzCityMatch = q.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ](?:[A-Za-zäöüßÄÖÜ\-]{0,40})?)/);
+    const plzCityMatch = q.match(
+      /\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ](?:[A-Za-zäöüßÄÖÜ\-]{0,40})?)/
+    );
     const cityOnlyMatch = q.match(
       /\b(?:ich\s+wohne\s+in|wohne\s+in|wohnort\s+ist|standort\s+ist|ort\s+ist|lade\s+in|laden\s+in|in|bei|f[üu]r|fuer)\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ\-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zäöüßÄÖÜ\-]{2,}){0,2})\b/
     );
     const cityFromPrompt = plzCityMatch?.[2]?.trim() || cityOnlyMatch?.[1]?.trim() || null;
     const locationFact = (facts || []).find(
-      (f) => (f.factType === 'location' || f.factType === 'city') && (f.value || f.projectScope?.city)
+      (f) =>
+        (f.factType === 'location' || f.factType === 'city') && (f.value || f.projectScope?.city)
     );
     return cityFromPrompt || locationFact?.value || locationFact?.projectScope?.city || null;
   },
@@ -105,7 +112,8 @@ const EXTRACTORS = {
     const q = String(question || '');
     const plzMatch = q.match(/\b(\d{5})\b/);
     const locationFact = (facts || []).find(
-      (f) => (f.factType === 'location' || f.factType === 'postal_code') && f.projectScope?.postalCode
+      (f) =>
+        (f.factType === 'location' || f.factType === 'postal_code') && f.projectScope?.postalCode
     );
     return locationFact?.projectScope?.postalCode || plzMatch?.[1] || null;
   },
@@ -127,7 +135,7 @@ const EXTRACTORS = {
   knownContextPath(facts, _question, config = {}) {
     const targetPath = config.path;
     if (!targetPath) return null;
-    for (const fact of (facts || [])) {
+    for (const fact of facts || []) {
       const v = resolvePath(fact, targetPath);
       if (v != null) return v;
     }
@@ -189,7 +197,7 @@ function fieldSummaryFormatter(result, spec) {
   const parts = [];
   let firstFieldHit = false;
 
-  for (const fieldSpec of (spec.fields || [])) {
+  for (const fieldSpec of spec.fields || []) {
     const value = resolveFirstPath(result, fieldSpec.paths);
     if (value == null) continue;
     const formatted = formatField(value, fieldSpec);
@@ -209,13 +217,14 @@ function fieldSummaryFormatter(result, spec) {
         .filter((n) => n != null && !isNaN(Number(n)))
         .map(Number);
       if (vals.length > 0) {
-        const statVal = af.stat === 'avg'
-          ? vals.reduce((a, b) => a + b, 0) / vals.length
-          : af.stat === 'max'
-          ? Math.max(...vals)
-          : af.stat === 'min'
-          ? Math.min(...vals)
-          : vals[0];
+        const statVal =
+          af.stat === 'avg'
+            ? vals.reduce((a, b) => a + b, 0) / vals.length
+            : af.stat === 'max'
+              ? Math.max(...vals)
+              : af.stat === 'min'
+                ? Math.min(...vals)
+                : vals[0];
         const formatted = formatField(statVal, af);
         if (formatted) parts.push(formatted);
       }
@@ -253,15 +262,25 @@ function timeseriesStatsFormatter(result, spec) {
   const region = resolveFirstPath(result, spec.regionPaths);
   const eic = resolveFirstPath(result, spec.eicPaths);
   const avg =
-    stats.average ?? stats.avg ?? stats.avgLoadMW ?? stats.avgForecastMW ??
-    stats.avgPriceEURperMWh ?? stats.averagePriceEURperMWh ?? null;
+    stats.average ??
+    stats.avg ??
+    stats.avgLoadMW ??
+    stats.avgForecastMW ??
+    stats.avgPriceEURperMWh ??
+    stats.averagePriceEURperMWh ??
+    null;
   const max =
     stats.max ?? stats.maxLoadMW ?? stats.maxForecastMW ?? stats.maxPriceEURperMWh ?? null;
   const min =
     stats.min ?? stats.minLoadMW ?? stats.minForecastMW ?? stats.minPriceEURperMWh ?? null;
   const firstValue =
-    first?.value ?? first?.load ?? first?.loadMW ?? first?.total ??
-    first?.priceEURperMWh ?? first?.price ?? null;
+    first?.value ??
+    first?.load ??
+    first?.loadMW ??
+    first?.total ??
+    first?.priceEURperMWh ??
+    first?.price ??
+    null;
   const source = resolveFirstPath(result, spec.sourcePaths || []);
 
   if (region) parts.push(`Region: ${String(region).slice(0, 80)}`);
@@ -394,17 +413,52 @@ const KNOWN_FORMATTERS = new Set(Object.keys(FORMATTERS));
 // ── Blocked action prefixes ───────────────────────────────────────────────────
 
 const BLOCKED_ACTION_VERBS = [
-  '.create', '.update', '.delete', '.remove', '.save', '.promote', '.rollback',
-  '.deactivate', '.reload', '.reset', '.clear', '.purge', '.import',
-  '.approve', '.reject', '.escalate', '.send', '.notify', '.dispatch', '.trigger',
-  '.execute', '.run', '.invoke', '.emit', '.publish', '.subscribe', '.unsubscribe',
-  '.authenticate', '.logout', '.revoke', '.override', '.restore',
+  '.create',
+  '.update',
+  '.delete',
+  '.remove',
+  '.save',
+  '.promote',
+  '.rollback',
+  '.deactivate',
+  '.reload',
+  '.reset',
+  '.clear',
+  '.purge',
+  '.import',
+  '.approve',
+  '.reject',
+  '.escalate',
+  '.send',
+  '.notify',
+  '.dispatch',
+  '.trigger',
+  '.execute',
+  '.run',
+  '.invoke',
+  '.emit',
+  '.publish',
+  '.subscribe',
+  '.unsubscribe',
+  '.authenticate',
+  '.logout',
+  '.revoke',
+  '.override',
+  '.restore',
 ];
 
 const BLOCKED_SERVICE_PREFIXES = [
-  'hitl', 'webhooks', 'backup-orchestrator', 'token-manager', 'auth',
-  'nova', 'domain-routes', 'dossier-hydration', 'blueprint-management',
-  'personal-agent', 'capability-broker',
+  'hitl',
+  'webhooks',
+  'backup-orchestrator',
+  'token-manager',
+  'auth',
+  'nova',
+  'domain-routes',
+  'dossier-hydration',
+  'blueprint-management',
+  'personal-agent',
+  'capability-broker',
 ];
 
 function isBlockedAction(actionName) {
@@ -467,7 +521,11 @@ function validateRule(rule) {
   const warnings = [];
 
   if (!rule || typeof rule !== 'object') {
-    return { valid: false, errors: [{ field: 'rule', message: 'rule must be an object' }], warnings: [] };
+    return {
+      valid: false,
+      errors: [{ field: 'rule', message: 'rule must be an object' }],
+      warnings: [],
+    };
   }
 
   if (!rule.id || typeof rule.id !== 'string') {
@@ -477,33 +535,48 @@ function validateRule(rule) {
   if (!rule.action || typeof rule.action !== 'string') {
     errors.push({ field: 'action', message: 'action is required' });
   } else if (isBlockedAction(rule.action)) {
-    errors.push({ field: 'action', message: `action "${rule.action}" matches a blocked prefix or service` });
+    errors.push({
+      field: 'action',
+      message: `action "${rule.action}" matches a blocked prefix or service`,
+    });
   }
 
   if (rule.safety?.readOnly !== true) {
     errors.push({ field: 'safety.readOnly', message: 'safety.readOnly must be true' });
   }
   if (rule.safety?.allowsMutation === true) {
-    errors.push({ field: 'safety.allowsMutation', message: 'safety.allowsMutation must not be true' });
+    errors.push({
+      field: 'safety.allowsMutation',
+      message: 'safety.allowsMutation must not be true',
+    });
   }
   if (rule.safety?.hitlRequired === true) {
     errors.push({ field: 'safety.hitlRequired', message: 'safety.hitlRequired must not be true' });
   }
 
   if (rule.formatter?.type && !KNOWN_FORMATTERS.has(rule.formatter.type)) {
-    errors.push({ field: 'formatter.type', message: `unknown formatter type: ${rule.formatter.type}` });
+    errors.push({
+      field: 'formatter.type',
+      message: `unknown formatter type: ${rule.formatter.type}`,
+    });
   }
 
   if (rule.paramTemplate && typeof rule.paramTemplate === 'object') {
     for (const [key, spec] of Object.entries(rule.paramTemplate)) {
       if (spec && typeof spec === 'object' && spec.extractor) {
         if (!KNOWN_EXTRACTORS.has(spec.extractor)) {
-          errors.push({ field: `paramTemplate.${key}`, message: `unknown extractor: ${spec.extractor}` });
+          errors.push({
+            field: `paramTemplate.${key}`,
+            message: `unknown extractor: ${spec.extractor}`,
+          });
         }
         if (spec.extractor === 'regexCaptureSafe' && spec.config?.pattern) {
           const p = spec.config.pattern;
           if (typeof p !== 'string' || p.length < 3 || /^\.\*|\.\+|\.\?$/.test(p)) {
-            errors.push({ field: `paramTemplate.${key}.config.pattern`, message: `unsafe or too-broad regex: ${p}` });
+            errors.push({
+              field: `paramTemplate.${key}.config.pattern`,
+              message: `unsafe or too-broad regex: ${p}`,
+            });
           }
         }
       }
@@ -511,15 +584,24 @@ function validateRule(rule) {
   }
 
   const maxTimeout = 30000;
-  if (rule.timeoutMs != null && (typeof rule.timeoutMs !== 'number' || rule.timeoutMs > maxTimeout)) {
+  if (
+    rule.timeoutMs != null &&
+    (typeof rule.timeoutMs !== 'number' || rule.timeoutMs > maxTimeout)
+  ) {
     errors.push({ field: 'timeoutMs', message: `timeoutMs must be a number ≤ ${maxTimeout}` });
   }
 
   if (!rule.formatter || !rule.formatter.type) {
-    warnings.push({ field: 'formatter', message: 'no formatter type specified; results will always be null' });
+    warnings.push({
+      field: 'formatter',
+      message: 'no formatter type specified; results will always be null',
+    });
   }
   if (!rule.label) {
-    warnings.push({ field: 'label', message: 'no label; evidence entries will have no display name' });
+    warnings.push({
+      field: 'label',
+      message: 'no label; evidence entries will have no display name',
+    });
   }
 
   return { valid: errors.length === 0, errors, warnings };
@@ -573,7 +655,6 @@ const _safetyRejectedSet = new Set(); // actions that are enabled but blocked by
 function _loadStaticRules() {
   if (_staticRulesCache !== null) return _staticRulesCache;
   try {
-    // eslint-disable-next-line global-require
     _staticRulesCache = require(STATIC_RULES_PATH);
   } catch (_err) {
     _staticRulesCache = [];

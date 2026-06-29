@@ -336,8 +336,7 @@ const KCGG_GOVERNANCE_GATE_BLOCKED = 'KCGG_GOVERNANCE_GATE_BLOCKED';
 const IMOB_MATURITY_MODEL_MISSING = 'IMOB_MATURITY_MODEL_MISSING';
 const IMOB_PROCESS_QUALITY_LOW = 'IMOB_PROCESS_QUALITY_LOW';
 const IMOB_FINANCING_COST_MISSING = 'IMOB_FINANCING_COST_MISSING';
-const IMOB_REGULATORY_RETURN_HYPOTHESIS_MISSING =
-  'IMOB_REGULATORY_RETURN_HYPOTHESIS_MISSING';
+const IMOB_REGULATORY_RETURN_HYPOTHESIS_MISSING = 'IMOB_REGULATORY_RETURN_HYPOTHESIS_MISSING';
 const IMOB_ASSET_RISK_REFERENCE_MISSING = 'IMOB_ASSET_RISK_REFERENCE_MISSING';
 const IMOB_ISO_RISK_REFERENCE_MISSING = 'IMOB_ISO_RISK_REFERENCE_MISSING';
 const IMOB_DECISION_FORUM_MISSING = 'IMOB_DECISION_FORUM_MISSING';
@@ -1853,7 +1852,8 @@ const FINDING_CODE_METADATA = {
     agent: 'battery-redispatch-special-gate',
     step: 1,
     description: 'Battery storage MaLo/MeLo role or injection/withdrawal direction is incomplete',
-    descriptionDe: 'Speicher-MaLo/MeLo-Rolle oder Einspeise-/Lastaufnahme-Richtung ist unvollstaendig',
+    descriptionDe:
+      'Speicher-MaLo/MeLo-Rolle oder Einspeise-/Lastaufnahme-Richtung ist unvollstaendig',
   },
   BRS_METERING_CONCEPT_MISSING: {
     severity: 'error',
@@ -1895,7 +1895,8 @@ const FINDING_CODE_METADATA = {
     agent: 'battery-redispatch-special-gate',
     step: 1,
     description: 'Settlement, clearing or billing decision blocks the battery Redispatch gate',
-    descriptionDe: 'Settlement-, Clearing- oder Abrechnungsentscheidung blockiert das Speicher-Redispatch-Gate',
+    descriptionDe:
+      'Settlement-, Clearing- oder Abrechnungsentscheidung blockiert das Speicher-Redispatch-Gate',
   },
   BRS_GATE_READY: {
     severity: 'info',
@@ -1939,7 +1940,8 @@ const FINDING_CODE_METADATA = {
     agent: 'flexibility-conductor-role-model',
     step: 1,
     description: 'Flexibility conductor commercial value owner is missing',
-    descriptionDe: 'Owner fuer kaufmaennischen Mehrwert im Flexibilitaetsdirigent-Rollenmodell fehlt',
+    descriptionDe:
+      'Owner fuer kaufmaennischen Mehrwert im Flexibilitaetsdirigent-Rollenmodell fehlt',
   },
   FCRM_ESCALATION_PATH_MISSING: {
     severity: 'error',

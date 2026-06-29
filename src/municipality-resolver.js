@@ -62,11 +62,41 @@ function kavKategorieForPopulation(population) {
 // gridOperatorLabel / gridOperatorBdewHint from known VNB mapping.
 
 const ENERGY_OVERLAY = {
-  '08226048': { pvCapacityKw: 2650, biomassCapacityKw: 500, windCapacityKw: 0, gridOperatorLabel: 'Stadtwerk Mauer GmbH', gridOperatorBdewHint: 'local-bw-vnb' },           // Mauer
-  '08221000': { pvCapacityKw: 48000, biomassCapacityKw: 8000, windCapacityKw: 2000, gridOperatorLabel: 'Stadtwerke Heidelberg Netze GmbH', gridOperatorBdewHint: 'missing-evidence' }, // Heidelberg
-  '08226098': { pvCapacityKw: 7200, biomassCapacityKw: 800, windCapacityKw: 0, gridOperatorLabel: 'Stadtwerke Wiesloch GmbH', gridOperatorBdewHint: 'local-bw-vnb' },        // Wiesloch
-  '08226095': { pvCapacityKw: 5800, biomassCapacityKw: 200, windCapacityKw: 0, gridOperatorLabel: 'Stadtwerke Walldorf', gridOperatorBdewHint: 'missing-evidence' },          // Walldorf
-  '08226076': { pvCapacityKw: 3900, biomassCapacityKw: 0, windCapacityKw: 0, gridOperatorLabel: 'Gemeindewerke Sandhausen', gridOperatorBdewHint: 'missing-evidence' },       // Sandhausen
+  '08226048': {
+    pvCapacityKw: 2650,
+    biomassCapacityKw: 500,
+    windCapacityKw: 0,
+    gridOperatorLabel: 'Stadtwerk Mauer GmbH',
+    gridOperatorBdewHint: 'local-bw-vnb',
+  }, // Mauer
+  '08221000': {
+    pvCapacityKw: 48000,
+    biomassCapacityKw: 8000,
+    windCapacityKw: 2000,
+    gridOperatorLabel: 'Stadtwerke Heidelberg Netze GmbH',
+    gridOperatorBdewHint: 'missing-evidence',
+  }, // Heidelberg
+  '08226098': {
+    pvCapacityKw: 7200,
+    biomassCapacityKw: 800,
+    windCapacityKw: 0,
+    gridOperatorLabel: 'Stadtwerke Wiesloch GmbH',
+    gridOperatorBdewHint: 'local-bw-vnb',
+  }, // Wiesloch
+  '08226095': {
+    pvCapacityKw: 5800,
+    biomassCapacityKw: 200,
+    windCapacityKw: 0,
+    gridOperatorLabel: 'Stadtwerke Walldorf',
+    gridOperatorBdewHint: 'missing-evidence',
+  }, // Walldorf
+  '08226076': {
+    pvCapacityKw: 3900,
+    biomassCapacityKw: 0,
+    windCapacityKw: 0,
+    gridOperatorLabel: 'Gemeindewerke Sandhausen',
+    gridOperatorBdewHint: 'missing-evidence',
+  }, // Sandhausen
 };
 
 // ── Energy profile estimation from population ─────────────────────────────────
@@ -76,19 +106,26 @@ const ENERGY_OVERLAY = {
 
 function estimateEnergyFromPopulation(pop, overlay) {
   return {
-    pvCapacityKw: overlay && overlay.pvCapacityKw != null ? overlay.pvCapacityKw : Math.round(pop * 0.55),
-    biomassCapacityKw: overlay && overlay.biomassCapacityKw != null ? overlay.biomassCapacityKw : (pop < 10000 ? Math.round(pop * 0.09) : Math.round(pop * 0.04)),
+    pvCapacityKw:
+      overlay && overlay.pvCapacityKw != null ? overlay.pvCapacityKw : Math.round(pop * 0.55),
+    biomassCapacityKw:
+      overlay && overlay.biomassCapacityKw != null
+        ? overlay.biomassCapacityKw
+        : pop < 10000
+          ? Math.round(pop * 0.09)
+          : Math.round(pop * 0.04),
     windCapacityKw: overlay && overlay.windCapacityKw != null ? overlay.windCapacityKw : 0,
     storagePowerKw: overlay && overlay.storagePowerKw != null ? overlay.storagePowerKw : 0,
-    storageCapacityKWh: overlay && overlay.storageCapacityKWh != null ? overlay.storageCapacityKWh : null,
+    storageCapacityKWh:
+      overlay && overlay.storageCapacityKWh != null ? overlay.storageCapacityKWh : null,
   };
 }
 
 // ── Build Layer 1 indexes (Destatis, by AGS and by normalized name) ───────────
 
-const l1ByAgs = new Map();      // '05162028' → entry
-const l1ByName = new Map();     // 'rommerskirchen' → entry  (largest match per normalized name)
-const l1ByNameAll = new Map();  // 'leimen' → [entry Rheinland-Pfalz, entry Baden-Württemberg]
+const l1ByAgs = new Map(); // '05162028' → entry
+const l1ByName = new Map(); // 'rommerskirchen' → entry  (largest match per normalized name)
+const l1ByNameAll = new Map(); // 'leimen' → [entry Rheinland-Pfalz, entry Baden-Württemberg]
 
 for (const entry of gemeindenData) {
   if (!entry.ags) continue;
@@ -114,8 +151,8 @@ function selectLayer1ByName(key, stateHint) {
 
 // ── Build Layer 2 indexes (PLZ → name+state, name → PLZ) ─────────────────────
 
-const l2PlzToOrt = new Map();       // '41569' → { name:'Rommerskirchen', state:'Nordrhein-Westfalen' }
-const l2NameToPlz = new Map();      // 'rommerskirchen' → '41569'
+const l2PlzToOrt = new Map(); // '41569' → { name:'Rommerskirchen', state:'Nordrhein-Westfalen' }
+const l2NameToPlz = new Map(); // 'rommerskirchen' → '41569'
 const l2NameStateToPlz = new Map(); // 'leimen|Baden-Württemberg' → '69181'
 
 for (const row of rawPlzData) {
@@ -134,10 +171,25 @@ for (const row of rawPlzData) {
 function buildFullProfile(l1Entry, resolvedPlz, fallbackName) {
   const overlay = ENERGY_OVERLAY[l1Entry.ags] || null;
   const pop = l1Entry.ewz || 0;
-  const energy = pop > 0 ? estimateEnergyFromPopulation(pop, overlay) : { pvCapacityKw: 0, biomassCapacityKw: 0, windCapacityKw: 0, storagePowerKw: 0, storageCapacityKWh: null };
+  const energy =
+    pop > 0
+      ? estimateEnergyFromPopulation(pop, overlay)
+      : {
+          pvCapacityKw: 0,
+          biomassCapacityKw: 0,
+          windCapacityKw: 0,
+          storagePowerKw: 0,
+          storageCapacityKWh: null,
+        };
   const hasExplicitEnergy = overlay && overlay.pvCapacityKw != null;
-  const nameKey = String(l1Entry.name || fallbackName || '').toLowerCase().trim();
-  const postalCode = resolvedPlz || l2NameStateToPlz.get(`${nameKey}|${l1Entry.state || ''}`) || l2NameToPlz.get(nameKey) || null;
+  const nameKey = String(l1Entry.name || fallbackName || '')
+    .toLowerCase()
+    .trim();
+  const postalCode =
+    resolvedPlz ||
+    l2NameStateToPlz.get(`${nameKey}|${l1Entry.state || ''}`) ||
+    l2NameToPlz.get(nameKey) ||
+    null;
 
   return {
     found: true,
@@ -156,7 +208,9 @@ function buildFullProfile(l1Entry, resolvedPlz, fallbackName) {
     storagePowerKw: energy.storagePowerKw,
     storageCapacityKWh: energy.storageCapacityKWh,
     storageEvidenceStatus: energy.storagePowerKw > 0 ? 'assumption-backed' : 'missing-evidence',
-    gridOperatorLabel: (overlay && overlay.gridOperatorLabel) || `${l1Entry.state || 'lokaler'} Netzbetreiber (aufgeloest)`,
+    gridOperatorLabel:
+      (overlay && overlay.gridOperatorLabel) ||
+      `${l1Entry.state || 'lokaler'} Netzbetreiber (aufgeloest)`,
     gridOperatorBdewHint: (overlay && overlay.gridOperatorBdewHint) || 'missing-evidence',
     konzessionsabgabeKategorie: kavKategorieForPopulation(pop),
     kavRateNsCtPerKwh: kavRateForPopulation(pop),
@@ -205,7 +259,10 @@ function resolveMunicipalityProfile({ municipality, ags } = {}) {
 
   // ─ 3. Name input ──────────────────────────────────────────────────────────
   else if (raw) {
-    const key = raw.toLowerCase().replace(/\s*\(.*?\)\s*/g, '').trim();
+    const key = raw
+      .toLowerCase()
+      .replace(/\s*\(.*?\)\s*/g, '')
+      .trim();
     l1Entry = selectLayer1ByName(key) || null;
 
     if (!l1Entry) {
@@ -254,7 +311,8 @@ function resolveMunicipalityProfile({ municipality, ags } = {}) {
       kavRateNsCtPerKwh: null,
       avgHouseholdConsumptionKwh: 2400,
       avgHouseholdsPerEinwohner: 0.45,
-      sourceLabel: 'PLZ-Lookup (OpenPLZ via german-zip-codes); AGS und Einwohnerzahl fehlen — kein Destatis-GV100-Treffer; KAV/Budgetberechnung nicht moeglich',
+      sourceLabel:
+        'PLZ-Lookup (OpenPLZ via german-zip-codes); AGS und Einwohnerzahl fehlen — kein Destatis-GV100-Treffer; KAV/Budgetberechnung nicht moeglich',
       sourceStatus: 'plz-lookup-only',
     };
   }

@@ -109,7 +109,10 @@ module.exports = {
           const staticRules = getStaticRules();
           const runtimeIds = new Set(getRuntimeRules().map((r) => r.action || r.id));
           for (const rule of staticRules) {
-            result.push({ ...rule, source: runtimeIds.has(rule.action || rule.id) ? 'overridden' : 'static' });
+            result.push({
+              ...rule,
+              source: runtimeIds.has(rule.action || rule.id) ? 'overridden' : 'static',
+            });
           }
           for (const rule of getRuntimeRules()) {
             result.push({ ...rule, source: 'runtime' });
@@ -132,7 +135,9 @@ module.exports = {
             )
           );
           for (const doc of docs) {
-            result.push(doc.type === 'dossier-hydration-active' ? toActivePublic(doc) : toDraftPublic(doc));
+            result.push(
+              doc.type === 'dossier-hydration-active' ? toActivePublic(doc) : toDraftPublic(doc)
+            );
           }
         }
 
@@ -199,7 +204,8 @@ module.exports = {
         if (!actionExists) {
           validation.warnings.push({
             field: 'action',
-            message: `Action "${rule?.action}" is not currently registered in the broker. ` +
+            message:
+              `Action "${rule?.action}" is not currently registered in the broker. ` +
               'Verify the service is running before relying on this rule.',
           });
         }
@@ -256,7 +262,8 @@ module.exports = {
         if (!actionExists) {
           validation.warnings.push({
             field: 'action',
-            message: `Action "${doc.rule?.action}" is not currently registered in the broker. ` +
+            message:
+              `Action "${doc.rule?.action}" is not currently registered in the broker. ` +
               'Verify the service is running before relying on this rule.',
           });
         }
@@ -310,22 +317,22 @@ module.exports = {
 
         const testCases = Array.isArray(doc.testCases) ? doc.testCases : [];
         const testResults = testCases.map((tc) => {
-          if (!tc || typeof tc !== 'object') return { name: '(invalid)', passed: false, error: 'invalid test case' };
+          if (!tc || typeof tc !== 'object')
+            return { name: '(invalid)', passed: false, error: 'invalid test case' };
           const name = tc.name || String(tc.prompt || '').slice(0, 40);
           try {
             const params = compiled.extractParams(tc.userFacts || [], tc.prompt || '');
             const paramsOk = params !== null;
-            const formatted = tc.fixtureResult != null
-              ? compiled.formatEvidence(tc.fixtureResult)
-              : null;
+            const formatted =
+              tc.fixtureResult != null ? compiled.formatEvidence(tc.fixtureResult) : null;
 
             const paramsPassed = tc.requireParams !== false ? paramsOk : true;
-            const formatterPassed = tc.requireNonNullOutput !== false && tc.fixtureResult != null
-              ? formatted != null
-              : true;
-            const expectedMatch = tc.expectedOutput != null
-              ? formatted === tc.expectedOutput
-              : true;
+            const formatterPassed =
+              tc.requireNonNullOutput !== false && tc.fixtureResult != null
+                ? formatted != null
+                : true;
+            const expectedMatch =
+              tc.expectedOutput != null ? formatted === tc.expectedOutput : true;
 
             const passed = paramsPassed && formatterPassed && expectedMatch;
             return {
@@ -401,7 +408,11 @@ module.exports = {
         try {
           const prevActive = await this.db.get(activeDocId(ruleId));
           previousVersion = prevActive.version;
-          const archiveId = archiveDocId(ruleId, prevActive.version || 'unknown', Date.now().toString(36));
+          const archiveId = archiveDocId(
+            ruleId,
+            prevActive.version || 'unknown',
+            Date.now().toString(36)
+          );
           const archiveDoc = {
             ...prevActive,
             _id: archiveId,
@@ -436,7 +447,9 @@ module.exports = {
 
         await this.db.put({ ...doc, updatedAt: now });
 
-        this.logger.info(`[dossier-hydration] Promoted rule ${ruleId} v${doc.version} by ${promotedBy || 'unknown'}`);
+        this.logger.info(
+          `[dossier-hydration] Promoted rule ${ruleId} v${doc.version} by ${promotedBy || 'unknown'}`
+        );
 
         return {
           success: true,
@@ -522,7 +535,9 @@ module.exports = {
         const action = archiveDoc.rule?.action || id;
         setRuntimeRule(action, archiveDoc.rule);
 
-        this.logger.info(`[dossier-hydration] Rolled back ${id} to v${archiveDoc.version} by ${rolledBackBy || 'unknown'}`);
+        this.logger.info(
+          `[dossier-hydration] Rolled back ${id} to v${archiveDoc.version} by ${rolledBackBy || 'unknown'}`
+        );
 
         return {
           success: true,
@@ -546,12 +561,9 @@ module.exports = {
           activeDoc = await this.db.get(activeDocId(id));
         } catch (err) {
           if (err?.status === 404) {
-            throw new MoleculerClientError(
-              `No active runtime rule: ${id}`,
-              404,
-              'RULE_NOT_FOUND',
-              { ruleId: id }
-            );
+            throw new MoleculerClientError(`No active runtime rule: ${id}`, 404, 'RULE_NOT_FOUND', {
+              ruleId: id,
+            });
           }
           throw err;
         }
@@ -560,7 +572,9 @@ module.exports = {
         const action = activeDoc.rule?.action || id;
         const removed = removeRuntimeRule(action);
 
-        this.logger.info(`[dossier-hydration] Deactivated ${id} (runtime rule removed: ${removed})`);
+        this.logger.info(
+          `[dossier-hydration] Deactivated ${id} (runtime rule removed: ${removed})`
+        );
 
         return {
           success: true,
@@ -600,12 +614,9 @@ module.exports = {
       const docs = Array.isArray(response.docs) ? response.docs : [];
       const doc = docs.find((d) => d.draftId === draftId);
       if (!doc) {
-        throw new MoleculerClientError(
-          `Draft not found: ${draftId}`,
-          404,
-          'RULE_DRAFT_NOT_FOUND',
-          { draftId }
-        );
+        throw new MoleculerClientError(`Draft not found: ${draftId}`, 404, 'RULE_DRAFT_NOT_FOUND', {
+          draftId,
+        });
       }
       return doc;
     },

@@ -376,7 +376,11 @@ module.exports = {
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
         const { gridOperatorId, templateType, limit } = ctx.params;
-        const selector = { tenantId, type: 'vdmi-governance-instance', createdAt: { $exists: true } };
+        const selector = {
+          tenantId,
+          type: 'vdmi-governance-instance',
+          createdAt: { $exists: true },
+        };
         if (gridOperatorId) selector.gridOperatorId = gridOperatorId;
         if (templateType) selector.templateType = templateType;
         const result = await this.db.find({ selector, limit, sort: [{ createdAt: 'desc' }] });

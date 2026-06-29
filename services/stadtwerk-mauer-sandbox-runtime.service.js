@@ -61,7 +61,10 @@ function ensureSandboxTenant(tenantId) {
 }
 
 function shortText(value, max = NOTE_MAX_LENGTH) {
-  return String(value || '').trim().replace(/\s+/g, ' ').slice(0, max);
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .slice(0, max);
 }
 
 function looksSecretLike(value) {
@@ -328,7 +331,9 @@ module.exports = {
         const tenantId = resolveTenant(ctx, ctx.params.tenantId || SANDBOX_TENANT_ID);
         const sandboxBoundaryAllowed = tenantId === SANDBOX_TENANT_ID;
         const namespace = tenantNamespace(BASE_NAMESPACE, SANDBOX_TENANT_ID);
-        const runtimeDocs = sandboxBoundaryAllowed ? await this.listRuntimeDocs(ctx, namespace) : [];
+        const runtimeDocs = sandboxBoundaryAllowed
+          ? await this.listRuntimeDocs(ctx, namespace)
+          : [];
         const lastReset = sandboxBoundaryAllowed ? await this.getLastReset(ctx, namespace) : null;
         return this.buildStatus({ tenantId, runtimeDocs, lastReset, sandboxBoundaryAllowed });
       },
@@ -368,7 +373,9 @@ module.exports = {
       const docs = await this.listRuntimeDocs(ctx, namespace);
       return docs
         .map((doc) => doc.payload)
-        .filter((payload) => payload?.artifactKind === 'case_annotation' && payload.caseId === caseId)
+        .filter(
+          (payload) => payload?.artifactKind === 'case_annotation' && payload.caseId === caseId
+        )
         .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
     },
 

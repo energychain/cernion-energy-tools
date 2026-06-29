@@ -1318,7 +1318,10 @@ module.exports = {
         const params = ctx.params || {};
         const projectId = params.projectId;
         const tenantId = getTenantId(ctx);
-        const isPresent = (value) => /^(present|ready|valid|validated|provided|complete|ok|true|yes|ja|advisory-ready|reviewed)$/i.test(String(value || '').trim());
+        const isPresent = (value) =>
+          /^(present|ready|valid|validated|provided|complete|ok|true|yes|ja|advisory-ready|reviewed)$/i.test(
+            String(value || '').trim()
+          );
         const makeSignal = (code, label, value, statusWhenMissing, enablesDossierAddition) => {
           const supplied = isPresent(value);
           return {
@@ -1380,7 +1383,8 @@ module.exports = {
               {
                 missingDataPoint: 'project_context',
                 status: 'missing',
-                enablesDossierAddition: 'provide project id, municipality/territory, and planning scope',
+                enablesDossierAddition:
+                  'provide project id, municipality/territory, and planning scope',
                 category: 'znp_production_readiness_evidence_gate',
               },
             ]
@@ -1398,7 +1402,13 @@ module.exports = {
         }));
         const sourceActions = {
           inspected: ['znp.productionReadinessStatus'],
-          referenced: ['znp.project.metadata', 'znp.layer1', 'znp.layer2', 'znp.gfactor', 'nova.handoff'],
+          referenced: [
+            'znp.project.metadata',
+            'znp.layer1',
+            'znp.layer2',
+            'znp.gfactor',
+            'nova.handoff',
+          ],
           notCalled: [
             'overpass.fetch',
             'znp.addLayer1',
@@ -1429,7 +1439,11 @@ module.exports = {
         ];
 
         return {
-          productionReadinessStatusId: `znp-pr:${Buffer.from(`${tenantId || 'public'}:${projectId || 'missing'}`).toString('base64url').slice(0, 28)}`,
+          productionReadinessStatusId: `znp-pr:${Buffer.from(
+            `${tenantId || 'public'}:${projectId || 'missing'}`
+          )
+            .toString('base64url')
+            .slice(0, 28)}`,
           capabilityKey: 'znp_production_readiness_evidence_gate',
           safety: 'read_only',
           status,

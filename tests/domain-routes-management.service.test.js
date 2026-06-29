@@ -20,9 +20,7 @@ function makeRoute(overrides = {}) {
     capability: 'edm_metering_concept_evidence',
     score: 121,
     triggers: ['mk40', 'messkonzept-qualitaetspruefung', 'edm-qualitaetspruefschritte'],
-    combos: [
-      { all: ['edm', 'qualitaet'] },
-    ],
+    combos: [{ all: ['edm', 'qualitaet'] }],
     negativeTriggers: ['abrechnungsfreigabe'],
     coverageCluster: 'metering_edm',
     ...overrides,
@@ -57,7 +55,11 @@ function makeBroker() {
           if (task.includes('mk40') || task.includes('messkonzept-qualitaetspruefung')) {
             return { capability: 'edm_metering_concept_evidence', score: 121 };
           }
-          if (task.includes('vdmi') || task.includes('asset-relation') || task.includes('netzasset')) {
+          if (
+            task.includes('vdmi') ||
+            task.includes('asset-relation') ||
+            task.includes('netzasset')
+          ) {
             return { capability: 'vdmi_asset_validation_governance', score: 120 };
           }
           return { capability: 'query.ask', score: 50 };
@@ -374,9 +376,9 @@ describe('domain-routes-management.service', () => {
       const route = makeRoute({ id: undefined, score: 0 });
       const { draftId } = await broker.call('domain-routes.createDraft', { route });
 
-      await expect(
-        broker.call('domain-routes.promote', { id: draftId })
-      ).rejects.toMatchObject({ code: 409 });
+      await expect(broker.call('domain-routes.promote', { id: draftId })).rejects.toMatchObject({
+        code: 409,
+      });
     });
 
     it('archives previous active when re-promoting', async () => {
@@ -391,7 +393,10 @@ describe('domain-routes-management.service', () => {
         route: makeRoute({ id: 'repromote_test_route' }),
         version: '2.0.0',
       });
-      const result = await broker.call('domain-routes.promote', { id: d2, promotedBy: 'v2-promoter' });
+      const result = await broker.call('domain-routes.promote', {
+        id: d2,
+        promotedBy: 'v2-promoter',
+      });
 
       expect(result.success).toBe(true);
       expect(result.previousVersion).toBeTruthy();
@@ -467,9 +472,9 @@ describe('domain-routes-management.service', () => {
       });
       await broker.call('domain-routes.promote', { id: draftId, promotedBy: 'first-promote' });
 
-      await expect(
-        broker.call('domain-routes.rollback', { id: routeId })
-      ).rejects.toMatchObject({ code: 409 });
+      await expect(broker.call('domain-routes.rollback', { id: routeId })).rejects.toMatchObject({
+        code: 409,
+      });
     });
   });
 
@@ -612,9 +617,7 @@ describe('domain-routes-management.service', () => {
       });
       const result = await broker.call('domain-routes.createDraft', { route });
 
-      const hasActionWarning = result.validationWarnings.some(
-        (w) => w.field === 'fallbackActions'
-      );
+      const hasActionWarning = result.validationWarnings.some((w) => w.field === 'fallbackActions');
       expect(hasActionWarning).toBe(true);
     });
 
@@ -636,9 +639,9 @@ describe('domain-routes-management.service', () => {
       expect(runtimeCap).toBeTruthy();
 
       // Non-placeholder actions must have been dropped → fallback to safe default
-      expect(
-        runtimeCap.preferredActions.every((a) => a.startsWith('interface-placeholder.'))
-      ).toBe(true);
+      expect(runtimeCap.preferredActions.every((a) => a.startsWith('interface-placeholder.'))).toBe(
+        true
+      );
 
       // fallbackActions kept the one safe entry
       expect(runtimeCap.fallbackActions).toEqual(['interface-placeholder.requestEvidence']);
@@ -649,7 +652,10 @@ describe('domain-routes-management.service', () => {
       const route = makeRoute({
         id: routeId,
         capability: 'gap_cap_safe_actions_capability',
-        preferredActions: ['interface-placeholder.markGap', 'interface-placeholder.requestEvidence'],
+        preferredActions: [
+          'interface-placeholder.markGap',
+          'interface-placeholder.requestEvidence',
+        ],
       });
 
       const { draftId } = await broker.call('domain-routes.createDraft', { route });

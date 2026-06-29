@@ -72,8 +72,7 @@ const MVP_TOOLS = [
     hitlPolicy: 'must_not_create_or_resolve_human_approval',
     responseContract: 'hydration_registry_status_evidence',
     sideEffects: SIDE_EFFECT_NONE,
-    description:
-      'Calls only dossier-hydration-allowlisted read-only status/evidence actions.',
+    description: 'Calls only dossier-hydration-allowlisted read-only status/evidence actions.',
   },
 ];
 

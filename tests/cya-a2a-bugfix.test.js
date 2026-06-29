@@ -61,7 +61,7 @@ async function runConflictNegotiationLogic(
   let currentStates = { ...stakeholderStates };
   for (let round = 1; round <= maxRounds; round++) {
     const conflict = detectConflictsFn(currentStates);
-    // eslint-disable-next-line no-await-in-loop
+
     const consensus = await synthesizeConsensusFn({
       stakeholderStates: currentStates,
       sharedFacts,

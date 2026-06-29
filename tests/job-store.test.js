@@ -20,7 +20,7 @@ function loadFreshModule() {
   jest.resetModules();
   // Point job-store at our temp directory
   process.env.JOB_STORE_DIR = tempDir;
-  // eslint-disable-next-line global-require
+
   jobStore = require('../src/job-store');
 }
 

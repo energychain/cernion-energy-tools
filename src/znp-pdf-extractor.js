@@ -72,7 +72,7 @@ const COS_PHI = 0.95;
  */
 async function parsePdfBufferToText(buffer) {
   // Lazy-require so test mocks of this module suppress the pdf-parse import
-  // eslint-disable-next-line global-require
+
   const pdfParse = require('pdf-parse');
   const data = await pdfParse(buffer);
   const text = String(data.text || '').trim();

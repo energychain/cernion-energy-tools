@@ -52,7 +52,13 @@ describe('flexibility-conductor-role-model service', () => {
         'commercial-valuation',
         'escalation-handover',
       ],
-      dataSources: ['flex', 'grid-connection', 'grid-operations', 'forecast-engine', 'finance-agent'],
+      dataSources: [
+        'flex',
+        'grid-connection',
+        'grid-operations',
+        'forecast-engine',
+        'finance-agent',
+      ],
       controlCommandBoundary:
         'Dossier may describe allowed and forbidden actions but must not issue control commands',
       softwareMonitoringOwner: 'OT Plattformbetrieb',

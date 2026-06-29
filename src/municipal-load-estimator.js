@@ -23,9 +23,9 @@
 // Annual coincidence factors: fraction of generation likely consumed by local demand
 // at the time of production (temporal matching, H0+G0 municipal mix proxy)
 const COINCIDENCE_FACTORS = {
-  pv:      0.25,  // solar peaks midday; H0 troughs midday → low overlap
-  biomass: 0.62,  // baseload → moderate-high overlap with flat demand share
-  wind:    0.46,  // slightly winter-heavy wind vs winter H0 demand → moderate
+  pv: 0.25, // solar peaks midday; H0 troughs midday → low overlap
+  biomass: 0.62, // baseload → moderate-high overlap with flat demand share
+  wind: 0.46, // slightly winter-heavy wind vs winter H0 demand → moderate
 };
 
 function _density(profile, population) {
@@ -68,7 +68,7 @@ function sectorFractionsForProfile(profile) {
   }
   if (population >= 25000) {
     return {
-      commercialFraction: density && density > 900 ? 0.34 : 0.30,
+      commercialFraction: density && density > 900 ? 0.34 : 0.3,
       publicFraction: 0.055,
       modelLabel: 'Mittelstadt-Strukturproxy nach Einwohnerzahl/Dichte',
       ...fallbackEvidence,
@@ -191,14 +191,14 @@ function deriveTechnologyCorrelation({ annualLoad, valueRows, assumedMarketPrice
       generationKwh: genKwh,
       coincidenceFactor: cf,
       matchedKwh,
-      localCorrelationValueEur: Math.round(matchedKwh / 1000 * price),
+      localCorrelationValueEur: Math.round((matchedKwh / 1000) * price),
       unmatchedGenerationKwh: unmatchedGenKwh,
-      unmatchedGenerationValueEur: Math.round(unmatchedGenKwh / 1000 * price),
+      unmatchedGenerationValueEur: Math.round((unmatchedGenKwh / 1000) * price),
     });
   }
 
   const importDemandKwh = Math.max(0, totalDemandKwh - cumulativeMatchedKwh);
-  const importExposureEur = Math.round(importDemandKwh / 1000 * price);
+  const importExposureEur = Math.round((importDemandKwh / 1000) * price);
 
   return {
     techResults,

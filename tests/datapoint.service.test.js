@@ -192,7 +192,10 @@ describe('datapoint.service', () => {
     });
 
     it('filters by multiple comma-separated tags (AND semantics)', async () => {
-      await promoteFixture(broker, { name: 'dp-solar-stromdao', tags: ['solar', 'stromdao-netze'] });
+      await promoteFixture(broker, {
+        name: 'dp-solar-stromdao',
+        tags: ['solar', 'stromdao-netze'],
+      });
       await promoteFixture(broker, { name: 'dp-solar-only', tags: ['solar'] });
       await promoteFixture(broker, { name: 'dp-wind-stromdao', tags: ['wind', 'stromdao-netze'] });
 

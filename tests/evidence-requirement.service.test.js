@@ -37,7 +37,11 @@ describe('evidence-requirement.service', () => {
         dispatch: {
           handler(ctx) {
             dispatchedNotifications.push({ ...ctx.params, _meta: ctx.meta });
-            return { success: true, dispatch: { id: `disp-${Date.now()}`, status: 'sent' }, deduplicated: false };
+            return {
+              success: true,
+              dispatch: { id: `disp-${Date.now()}`, status: 'sent' },
+              deduplicated: false,
+            };
           },
         },
       },
@@ -49,7 +53,9 @@ describe('evidence-requirement.service', () => {
   afterAll(async () => {
     await broker.stop();
     for (const dir of [requirementDbPath, notificationDbPath]) {
-      try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_) {}
+      try {
+        fs.rmSync(dir, { recursive: true, force: true });
+      } catch (_) {}
     }
   });
 
@@ -107,23 +113,31 @@ describe('evidence-requirement.service', () => {
       { ...p, waitingSessions: ['session-4', 'session-5'] },
       meta('tenant-wait')
     );
-    expect(second.requirement.waitingSessions).toEqual(expect.arrayContaining(['session-4', 'session-5']));
+    expect(second.requirement.waitingSessions).toEqual(
+      expect.arrayContaining(['session-4', 'session-5'])
+    );
   });
 
   // ── role inference ───────────────────────────────────────────────────────
 
   test('inferRole: Netzbetreiber label → netzplanung', async () => {
-    const result = await broker.call('evidence-requirement.inferRole', { label: 'zuständiger Netzbetreiber' });
+    const result = await broker.call('evidence-requirement.inferRole', {
+      label: 'zuständiger Netzbetreiber',
+    });
     expect(result.responsibleRole).toBe('netzplanung');
   });
 
   test('inferRole: Lastprofil label → messwesen', async () => {
-    const result = await broker.call('evidence-requirement.inferRole', { label: 'Lastprofil als Viertelstundenzeitreihe' });
+    const result = await broker.call('evidence-requirement.inferRole', {
+      label: 'Lastprofil als Viertelstundenzeitreihe',
+    });
     expect(result.responsibleRole).toBe('messwesen');
   });
 
   test('inferRole: Genehmigung label → regulatory', async () => {
-    const result = await broker.call('evidence-requirement.inferRole', { label: 'Baugenehmigung vom Amt' });
+    const result = await broker.call('evidence-requirement.inferRole', {
+      label: 'Baugenehmigung vom Amt',
+    });
     expect(result.responsibleRole).toBe('regulatory');
   });
 
@@ -138,16 +152,32 @@ describe('evidence-requirement.service', () => {
     const tenantId = 'tenant-list-1';
     await broker.call(
       'evidence-requirement.upsert',
-      { requirementId: 'evreq:s1:vnb', label: 'Netzbetreiber', requestedFact: 'vnb', originSessionId: 's1', responsibleRole: 'netzplanung' },
+      {
+        requirementId: 'evreq:s1:vnb',
+        label: 'Netzbetreiber',
+        requestedFact: 'vnb',
+        originSessionId: 's1',
+        responsibleRole: 'netzplanung',
+      },
       meta(tenantId)
     );
     await broker.call(
       'evidence-requirement.upsert',
-      { requirementId: 'evreq:s1:lp', label: 'Lastprofil', requestedFact: 'lp', originSessionId: 's1', responsibleRole: 'messwesen' },
+      {
+        requirementId: 'evreq:s1:lp',
+        label: 'Lastprofil',
+        requestedFact: 'lp',
+        originSessionId: 's1',
+        responsibleRole: 'messwesen',
+      },
       meta(tenantId)
     );
 
-    const result = await broker.call('evidence-requirement.listOpenForRole', { role: 'netzplanung' }, meta(tenantId));
+    const result = await broker.call(
+      'evidence-requirement.listOpenForRole',
+      { role: 'netzplanung' },
+      meta(tenantId)
+    );
 
     expect(result.success).toBe(true);
     expect(result.count).toBe(1);
@@ -207,13 +237,22 @@ describe('evidence-requirement.service', () => {
     const tenantId = 'tenant-answer-1';
     await broker.call(
       'evidence-requirement.upsert',
-      { requirementId: 'evreq:s-ans:vnb', label: 'Netzbetreiber', requestedFact: 'vnb', originSessionId: 's-ans' },
+      {
+        requirementId: 'evreq:s-ans:vnb',
+        label: 'Netzbetreiber',
+        requestedFact: 'vnb',
+        originSessionId: 's-ans',
+      },
       meta(tenantId)
     );
 
     const result = await broker.call(
       'evidence-requirement.answerRequirement',
-      { requirementId: 'evreq:s-ans:vnb', answer: 'Stadtwerke Heidelberg', sourceSessionId: 's-ans-2' },
+      {
+        requirementId: 'evreq:s-ans:vnb',
+        answer: 'Stadtwerke Heidelberg',
+        sourceSessionId: 's-ans-2',
+      },
       meta(tenantId)
     );
 
@@ -228,7 +267,12 @@ describe('evidence-requirement.service', () => {
     const tenantId = 'tenant-answer-notif';
     await broker.call(
       'evidence-requirement.upsert',
-      { requirementId: 'evreq:s-notif:vnb', label: 'Netzbetreiber', requestedFact: 'vnb', originSessionId: 's-notif' },
+      {
+        requirementId: 'evreq:s-notif:vnb',
+        label: 'Netzbetreiber',
+        requestedFact: 'vnb',
+        originSessionId: 's-notif',
+      },
       meta(tenantId)
     );
 
@@ -238,7 +282,9 @@ describe('evidence-requirement.service', () => {
       meta(tenantId)
     );
 
-    const notifications = dispatchedNotifications.filter((n) => n.dispatchType === 'evidence_revalidated');
+    const notifications = dispatchedNotifications.filter(
+      (n) => n.dispatchType === 'evidence_revalidated'
+    );
     expect(notifications.length).toBeGreaterThanOrEqual(1);
     const notif = notifications[0];
     expect(notif.evidenceRequirementId).toBe('evreq:s-notif:vnb');
@@ -267,7 +313,8 @@ describe('evidence-requirement.service', () => {
     );
 
     const notifications = dispatchedNotifications.filter(
-      (n) => n.dispatchType === 'evidence_revalidated' && n.evidenceRequirementId === 'evreq:s-wait:vnb'
+      (n) =>
+        n.dispatchType === 'evidence_revalidated' && n.evidenceRequirementId === 'evreq:s-wait:vnb'
     );
     const sessionIds = notifications.map((n) => n.originSessionId);
     expect(sessionIds).toContain('s-wait');
@@ -279,7 +326,12 @@ describe('evidence-requirement.service', () => {
     const tenantId = 'tenant-no-auto';
     await broker.call(
       'evidence-requirement.upsert',
-      { requirementId: 'evreq:s-noauto:lp', label: 'Lastprofil', requestedFact: 'lp', originSessionId: 's-noauto' },
+      {
+        requirementId: 'evreq:s-noauto:lp',
+        label: 'Lastprofil',
+        requestedFact: 'lp',
+        originSessionId: 's-noauto',
+      },
       meta(tenantId)
     );
     const result = await broker.call(
@@ -296,11 +348,24 @@ describe('evidence-requirement.service', () => {
     const tenantId = 'tenant-already-val';
     await broker.call(
       'evidence-requirement.upsert',
-      { requirementId: 'evreq:s-val:vnb', label: 'Netzbetreiber', requestedFact: 'vnb', originSessionId: 's-val' },
+      {
+        requirementId: 'evreq:s-val:vnb',
+        label: 'Netzbetreiber',
+        requestedFact: 'vnb',
+        originSessionId: 's-val',
+      },
       meta(tenantId)
     );
-    await broker.call('evidence-requirement.answerRequirement', { requirementId: 'evreq:s-val:vnb', answer: 'X' }, meta(tenantId));
-    await broker.call('evidence-requirement.markValidated', { requirementId: 'evreq:s-val:vnb' }, meta(tenantId));
+    await broker.call(
+      'evidence-requirement.answerRequirement',
+      { requirementId: 'evreq:s-val:vnb', answer: 'X' },
+      meta(tenantId)
+    );
+    await broker.call(
+      'evidence-requirement.markValidated',
+      { requirementId: 'evreq:s-val:vnb' },
+      meta(tenantId)
+    );
 
     const result = await broker.call(
       'evidence-requirement.answerRequirement',
@@ -327,7 +392,12 @@ describe('evidence-requirement.service', () => {
     const tenantId = 'tenant-mark-val';
     await broker.call(
       'evidence-requirement.upsert',
-      { requirementId: 'evreq:s-mv:tab', label: 'verbindliche TAB', requestedFact: 'tab', originSessionId: 's-mv' },
+      {
+        requirementId: 'evreq:s-mv:tab',
+        label: 'verbindliche TAB',
+        requestedFact: 'tab',
+        originSessionId: 's-mv',
+      },
       meta(tenantId)
     );
     await broker.call(
@@ -352,13 +422,26 @@ describe('evidence-requirement.service', () => {
     const tenantId = 'tenant-val-notif';
     await broker.call(
       'evidence-requirement.upsert',
-      { requirementId: 'evreq:s-vn:req', label: 'Netzbetreiber', requestedFact: 'vnb', originSessionId: 's-vn' },
+      {
+        requirementId: 'evreq:s-vn:req',
+        label: 'Netzbetreiber',
+        requestedFact: 'vnb',
+        originSessionId: 's-vn',
+      },
       meta(tenantId)
     );
-    await broker.call('evidence-requirement.answerRequirement', { requirementId: 'evreq:s-vn:req', answer: 'X' }, meta(tenantId));
+    await broker.call(
+      'evidence-requirement.answerRequirement',
+      { requirementId: 'evreq:s-vn:req', answer: 'X' },
+      meta(tenantId)
+    );
     dispatchedNotifications.length = 0;
 
-    await broker.call('evidence-requirement.markValidated', { requirementId: 'evreq:s-vn:req' }, meta(tenantId));
+    await broker.call(
+      'evidence-requirement.markValidated',
+      { requirementId: 'evreq:s-vn:req' },
+      meta(tenantId)
+    );
 
     const notif = dispatchedNotifications.find((n) => n.revalidationStatus === 'validated');
     expect(notif).toBeDefined();
@@ -369,13 +452,30 @@ describe('evidence-requirement.service', () => {
     const tenantId = 'tenant-val-idem';
     await broker.call(
       'evidence-requirement.upsert',
-      { requirementId: 'evreq:s-vi:req', label: 'Netzbetreiber', requestedFact: 'vnb', originSessionId: 's-vi' },
+      {
+        requirementId: 'evreq:s-vi:req',
+        label: 'Netzbetreiber',
+        requestedFact: 'vnb',
+        originSessionId: 's-vi',
+      },
       meta(tenantId)
     );
-    await broker.call('evidence-requirement.answerRequirement', { requirementId: 'evreq:s-vi:req', answer: 'X' }, meta(tenantId));
-    await broker.call('evidence-requirement.markValidated', { requirementId: 'evreq:s-vi:req' }, meta(tenantId));
+    await broker.call(
+      'evidence-requirement.answerRequirement',
+      { requirementId: 'evreq:s-vi:req', answer: 'X' },
+      meta(tenantId)
+    );
+    await broker.call(
+      'evidence-requirement.markValidated',
+      { requirementId: 'evreq:s-vi:req' },
+      meta(tenantId)
+    );
 
-    const result = await broker.call('evidence-requirement.markValidated', { requirementId: 'evreq:s-vi:req' }, meta(tenantId));
+    const result = await broker.call(
+      'evidence-requirement.markValidated',
+      { requirementId: 'evreq:s-vi:req' },
+      meta(tenantId)
+    );
     expect(result.alreadyValidated).toBe(true);
   });
 
@@ -410,7 +510,11 @@ describe('evidence-requirement.service', () => {
 
   test('listWaitingSessions throws 404 for unknown requirement', async () => {
     await expect(
-      broker.call('evidence-requirement.listWaitingSessions', { requirementId: 'evreq:ghost:req' }, meta('tenant-ghost'))
+      broker.call(
+        'evidence-requirement.listWaitingSessions',
+        { requirementId: 'evreq:ghost:req' },
+        meta('tenant-ghost')
+      )
     ).rejects.toMatchObject({ code: 404, type: 'REQUIREMENT_NOT_FOUND' });
   });
 
@@ -419,13 +523,25 @@ describe('evidence-requirement.service', () => {
   test('fromVdmiEvidenceGaps creates requirements from VDMI gaps', async () => {
     const tenantId = 'tenant-vdmi-1';
     const evidenceGaps = [
-      { requirementId: 'grid-connection-check', label: 'Netzanschlussprüfung', reason: 'required_evidence_missing' },
-      { requirementId: 'tab-document', label: 'verbindliche TAB', reason: 'required_evidence_missing' },
+      {
+        requirementId: 'grid-connection-check',
+        label: 'Netzanschlussprüfung',
+        reason: 'required_evidence_missing',
+      },
+      {
+        requirementId: 'tab-document',
+        label: 'verbindliche TAB',
+        reason: 'required_evidence_missing',
+      },
     ];
 
     const result = await broker.call(
       'evidence-requirement.fromVdmiEvidenceGaps',
-      { evidenceGaps, originSessionId: 'vdmi-session-1', projectScope: { scopeKey: '74889 sinsheim|2mw' } },
+      {
+        evidenceGaps,
+        originSessionId: 'vdmi-session-1',
+        projectScope: { scopeKey: '74889 sinsheim|2mw' },
+      },
       meta(tenantId)
     );
 
@@ -437,7 +553,11 @@ describe('evidence-requirement.service', () => {
   test('fromVdmiEvidenceGaps uses responsibleRole heuristic from label', async () => {
     const tenantId = 'tenant-vdmi-role';
     const evidenceGaps = [
-      { requirementId: 'lp-req', label: 'Lastprofil Viertelstunde', reason: 'required_evidence_missing' },
+      {
+        requirementId: 'lp-req',
+        label: 'Lastprofil Viertelstunde',
+        reason: 'required_evidence_missing',
+      },
     ];
 
     const result = await broker.call(
@@ -447,7 +567,11 @@ describe('evidence-requirement.service', () => {
     );
 
     // Verify via listOpenForRole
-    const listed = await broker.call('evidence-requirement.listOpenForRole', { role: 'messwesen' }, meta(tenantId));
+    const listed = await broker.call(
+      'evidence-requirement.listOpenForRole',
+      { role: 'messwesen' },
+      meta(tenantId)
+    );
     expect(listed.count).toBeGreaterThanOrEqual(1);
   });
 
@@ -459,7 +583,11 @@ describe('evidence-requirement.service', () => {
     const params = { evidenceGaps, originSessionId: 'vdmi-idem-1' };
 
     await broker.call('evidence-requirement.fromVdmiEvidenceGaps', params, meta(tenantId));
-    const second = await broker.call('evidence-requirement.fromVdmiEvidenceGaps', params, meta(tenantId));
+    const second = await broker.call(
+      'evidence-requirement.fromVdmiEvidenceGaps',
+      params,
+      meta(tenantId)
+    );
 
     expect(second.created).toBe(0);
     expect(second.results[0].deduplicated).toBe(true);
@@ -489,11 +617,21 @@ describe('evidence-requirement.service', () => {
 
     await broker.call(
       'evidence-requirement.upsert',
-      { requirementId: 'evreq:s-iso:req', label: 'Netzbetreiber', requestedFact: 'vnb', originSessionId: 's-iso', responsibleRole: 'netzplanung' },
+      {
+        requirementId: 'evreq:s-iso:req',
+        label: 'Netzbetreiber',
+        requestedFact: 'vnb',
+        originSessionId: 's-iso',
+        responsibleRole: 'netzplanung',
+      },
       meta(tenantA)
     );
 
-    const result = await broker.call('evidence-requirement.listOpenForRole', { role: 'netzplanung' }, meta(tenantB));
+    const result = await broker.call(
+      'evidence-requirement.listOpenForRole',
+      { role: 'netzplanung' },
+      meta(tenantB)
+    );
     const ids = result.items.map((i) => i.requirementId);
     expect(ids).not.toContain('evreq:s-iso:req');
   });
@@ -607,17 +745,20 @@ describe('evidence-requirement.service', () => {
 
   describe('netzanschluss heuristic (relay-gap 2)', () => {
     test('Formale Netzanschlusszusage fehlt → netzplanung', async () => {
-      const result = await broker.call(
-        'evidence-requirement.inferRole',
-        { label: 'Formale Netzanschlusszusage fehlt' }
-      );
+      const result = await broker.call('evidence-requirement.inferRole', {
+        label: 'Formale Netzanschlusszusage fehlt',
+      });
       expect(result.responsibleRole).toBe('netzplanung');
     });
 
     test('fromVdmiEvidenceGaps: Netzanschlusszusage gap → netzplanung', async () => {
       const tenantId = 'tenant-vdmi-netzanschluss';
       const evidenceGaps = [
-        { requirementId: 'formal-netzanschlusszusage', label: 'Formale Netzanschlusszusage fehlt', reason: 'required_evidence_missing' },
+        {
+          requirementId: 'formal-netzanschlusszusage',
+          label: 'Formale Netzanschlusszusage fehlt',
+          reason: 'required_evidence_missing',
+        },
       ];
       const result = await broker.call(
         'evidence-requirement.fromVdmiEvidenceGaps',
@@ -627,23 +768,25 @@ describe('evidence-requirement.service', () => {
       expect(result.success).toBe(true);
       expect(result.created).toBe(1);
 
-      const listed = await broker.call('evidence-requirement.listOpenForRole', { role: 'netzplanung' }, meta(tenantId));
+      const listed = await broker.call(
+        'evidence-requirement.listOpenForRole',
+        { role: 'netzplanung' },
+        meta(tenantId)
+      );
       expect(listed.count).toBeGreaterThanOrEqual(1);
     });
 
     test('netzanschlusspruefung label → netzplanung', async () => {
-      const result = await broker.call(
-        'evidence-requirement.inferRole',
-        { label: 'Netzanschlussprüfung ausstehend' }
-      );
+      const result = await broker.call('evidence-requirement.inferRole', {
+        label: 'Netzanschlussprüfung ausstehend',
+      });
       expect(result.responsibleRole).toBe('netzplanung');
     });
 
     test('anschlusszusage label → netzplanung', async () => {
-      const result = await broker.call(
-        'evidence-requirement.inferRole',
-        { label: 'Anschlusszusage liegt nicht vor' }
-      );
+      const result = await broker.call('evidence-requirement.inferRole', {
+        label: 'Anschlusszusage liegt nicht vor',
+      });
       expect(result.responsibleRole).toBe('netzplanung');
     });
   });

@@ -262,7 +262,11 @@ module.exports = {
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
         const { gridOperatorId, decision, limit } = ctx.params;
-        const selector = { tenantId, type: 'vdmi-portfolio-gatekeeping', createdAt: { $exists: true } };
+        const selector = {
+          tenantId,
+          type: 'vdmi-portfolio-gatekeeping',
+          createdAt: { $exists: true },
+        };
         if (gridOperatorId) selector.gridOperatorId = gridOperatorId;
         if (decision) selector.decision = decision;
         const result = await this.db.find({ selector, limit, sort: [{ createdAt: 'desc' }] });

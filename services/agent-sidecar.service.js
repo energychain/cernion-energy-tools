@@ -16,10 +16,7 @@ const {
   buildCernionProviderCall,
   buildCernionSidecarDescriptor,
 } = require('../src/cernion-sidecar-provider');
-const {
-  buildMcpLikeToolsList,
-  callMcpLikeTool,
-} = require('../src/energy-sidecar-mcp-bridge');
+const { buildMcpLikeToolsList, callMcpLikeTool } = require('../src/energy-sidecar-mcp-bridge');
 const { summarizeDescriptorForDossier } = require('../src/energy-sidecar-descriptor');
 const {
   compileReadOnlyExecutionPlan,

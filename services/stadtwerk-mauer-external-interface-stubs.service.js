@@ -22,12 +22,14 @@ const STUB_FAMILIES = {
   customer_communication: {
     label: 'Kundenkommunikations-Stub',
     requiredEvidence: ['contactRef', 'messageTemplate', 'consentStatus'],
-    missingFollowUp: 'add contact, consent and template context for customer communication simulation evidence',
+    missingFollowUp:
+      'add contact, consent and template context for customer communication simulation evidence',
   },
   control_device_boundary: {
     label: 'Steuerungs-/Geraetegrenzen-Stub',
     requiredEvidence: ['assetId', 'controlScope', 'technicalBoundary'],
-    missingFollowUp: 'add controllable asset and control-scope context for control-boundary evidence',
+    missingFollowUp:
+      'add controllable asset and control-scope context for control-boundary evidence',
   },
   billing_settlement_tariff_placeholder: {
     label: 'Billing / Settlement / Tarif Placeholder',
@@ -75,7 +77,9 @@ function ensureSandboxTenant(tenantId) {
 }
 
 function normalizeStubFamily(stubFamily) {
-  const normalized = String(stubFamily || '').trim().toLowerCase();
+  const normalized = String(stubFamily || '')
+    .trim()
+    .toLowerCase();
   if (!STUB_FAMILIES[normalized]) {
     throw new MoleculerClientError(
       `Unsupported Stadtwerk Mauer stub family: ${stubFamily}`,
@@ -88,7 +92,9 @@ function normalizeStubFamily(stubFamily) {
 }
 
 function normalizeVariant(variant, missingEvidence) {
-  const normalized = String(variant || '').trim().toLowerCase();
+  const normalized = String(variant || '')
+    .trim()
+    .toLowerCase();
   if (RESPONSE_VARIANTS.has(normalized)) return normalized;
   return missingEvidence.length > 0 ? 'missing_data' : 'success';
 }
@@ -238,18 +244,24 @@ module.exports = {
         .filter((payload) => payload?.artifactKind === 'stub_transcript_placeholder')
         .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
       const artifactCount = docs.length;
-      const familyCounts = Object.fromEntries(Object.keys(STUB_FAMILIES).map((family) => [family, 0]));
-      const variantCounts = Object.fromEntries(Array.from(RESPONSE_VARIANTS).map((variant) => [variant, 0]));
+      const familyCounts = Object.fromEntries(
+        Object.keys(STUB_FAMILIES).map((family) => [family, 0])
+      );
+      const variantCounts = Object.fromEntries(
+        Array.from(RESPONSE_VARIANTS).map((variant) => [variant, 0])
+      );
       for (const transcript of transcripts) {
         if (familyCounts[transcript.stubFamily] != null) familyCounts[transcript.stubFamily] += 1;
-        if (variantCounts[transcript.responseVariant] != null) variantCounts[transcript.responseVariant] += 1;
+        if (variantCounts[transcript.responseVariant] != null)
+          variantCounts[transcript.responseVariant] += 1;
       }
 
       const missingEvidence = [];
       if (!sandboxBoundaryAllowed) {
         missingEvidence.push({
           missingDataPoint: 'stadtwerk_mauer_tenant_scope',
-          enablesDossierAddition: 'add proof that stub mutation is limited to tenant stadtwerk-mauer',
+          enablesDossierAddition:
+            'add proof that stub mutation is limited to tenant stadtwerk-mauer',
         });
       }
       if (transcripts.length === 0) {
@@ -350,7 +362,11 @@ module.exports = {
     sourceActionGuards() {
       return {
         inspected: ['stadtwerk-mauer-external-interface-stubs.getStatus'],
-        referenced: ['stadtwerk-mauer-sandbox-runtime.reset', 'object-store.query', 'object-store.put'],
+        referenced: [
+          'stadtwerk-mauer-sandbox-runtime.reset',
+          'object-store.query',
+          'object-store.put',
+        ],
         notCalled: [
           'mako.dispatch',
           'msb.connector.call',

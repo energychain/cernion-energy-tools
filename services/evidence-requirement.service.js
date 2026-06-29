@@ -31,7 +31,10 @@ const STATUS_VALIDATED = 'validated';
 // Role heuristic — map evidence label keywords to responsible roles.
 // Add/extend here; personal-agent routing and listOpenForRole both use this.
 const ROLE_HEURISTIC_PATTERNS = [
-  [/netzbetreiber|netzverkn[üu]pfungspunkt|umspannwerk|\btab\b|technische\s+anschlussbedingungen|netzkapazit[äa]t|spannungsebene|netzanschluss|netzanschlusszusage|anschlusszusage|netzanschlussprüfung|netzanschlusspr[üu]fung/i, 'netzplanung'],
+  [
+    /netzbetreiber|netzverkn[üu]pfungspunkt|umspannwerk|\btab\b|technische\s+anschlussbedingungen|netzkapazit[äa]t|spannungsebene|netzanschluss|netzanschlusszusage|anschlusszusage|netzanschlussprüfung|netzanschlusspr[üu]fung/i,
+    'netzplanung',
+  ],
   [/lastprofil|zeitreihe|viertelstunden|messung|smartmeter/i, 'messwesen'],
   [/genehmigung|baugenehmigung|recht|zulassung|behörde|beh[öo]rde|bebauungsplan/i, 'regulatory'],
   [/netzstudie|gutachten|machbarkeit/i, 'netzplanung'],
@@ -136,7 +139,12 @@ module.exports = {
         summary: 'List open evidence requirements for a given role',
         tags: ['evidence-requirement'],
         parameters: [
-          { name: 'role', in: 'query', required: true, schema: { type: 'string', example: 'netzplanung' } },
+          {
+            name: 'role',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', example: 'netzplanung' },
+          },
           { name: 'projectScopeKey', in: 'query', schema: { type: 'string' } },
         ],
       },
@@ -146,7 +154,9 @@ module.exports = {
         const projectScopeKey = trimString(ctx.params.projectScopeKey) || null;
 
         const docs = await this.getTenantRequirements(tenantId);
-        let items = docs.filter((doc) => doc.status === STATUS_OPEN && doc.responsibleRole === role);
+        let items = docs.filter(
+          (doc) => doc.status === STATUS_OPEN && doc.responsibleRole === role
+        );
 
         if (projectScopeKey) {
           items = items.filter((doc) => doc.projectScopeKey === projectScopeKey);
@@ -232,7 +242,8 @@ module.exports = {
       async handler(ctx) {
         const tenantId = this.resolveTenantId(ctx, ctx.params.tenantId);
         const requirementId = trimString(ctx.params.requirementId);
-        const validatedBy = trimString(ctx.params.validatedBy) || ctx.meta?.authUser?.userId || null;
+        const validatedBy =
+          trimString(ctx.params.validatedBy) || ctx.meta?.authUser?.userId || null;
 
         const docId = this.toDocId(tenantId, requirementId);
         const doc = await this.tryGetByDocId(docId);
@@ -296,7 +307,7 @@ module.exports = {
 
         const sessions = [
           doc.originSessionId,
-          ...((Array.isArray(doc.waitingSessions) ? doc.waitingSessions : [])),
+          ...(Array.isArray(doc.waitingSessions) ? doc.waitingSessions : []),
         ].filter(Boolean);
 
         return {
@@ -324,7 +335,12 @@ module.exports = {
       },
       async handler(ctx) {
         const tenantId = this.resolveTenantId(ctx, ctx.params.tenantId);
-        const { evidenceGaps = [], originSessionId, projectScope = null, responsibleRole = null } = ctx.params;
+        const {
+          evidenceGaps = [],
+          originSessionId,
+          projectScope = null,
+          responsibleRole = null,
+        } = ctx.params;
 
         const results = [];
         for (const gap of evidenceGaps) {
@@ -346,7 +362,12 @@ module.exports = {
           results.push({ requirementId, deduplicated, status: doc.status });
         }
 
-        return { success: true, tenantId, created: results.filter((r) => !r.deduplicated).length, results };
+        return {
+          success: true,
+          tenantId,
+          created: results.filter((r) => !r.deduplicated).length,
+          results,
+        };
       },
     },
 
@@ -415,7 +436,8 @@ module.exports = {
       const label = trimString(params.label);
       const requestedFact = trimString(params.requestedFact);
       const originSessionId = trimString(params.originSessionId);
-      const responsibleRole = trimString(params.responsibleRole) || inferResponsibleRole(label, requestedFact) || null;
+      const responsibleRole =
+        trimString(params.responsibleRole) || inferResponsibleRole(label, requestedFact) || null;
       const projectScope = params.projectScope || null;
       const projectScopeKey = normalizeProjectScope(projectScope);
       const waitingSessions = Array.isArray(params.waitingSessions)
@@ -433,9 +455,7 @@ module.exports = {
           ),
           updatedAt: nowIso(),
         };
-        if (
-          merged.waitingSessions.length !== (existing.waitingSessions || []).length
-        ) {
+        if (merged.waitingSessions.length !== (existing.waitingSessions || []).length) {
           await this.db.put(merged);
           return { doc: merged, deduplicated: true };
         }

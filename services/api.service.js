@@ -455,11 +455,23 @@ function requiresFullAccess(method, requestPath) {
   // Dossier Hydration Registry management — write/lifecycle endpoints require full access
   if (pathOnly === '/api/dossier-hydration/drafts' && m === 'POST') return true;
   if (pathOnly === '/api/dossier-hydration/reload' && m === 'POST') return true;
-  if (/^\/api\/dossier-hydration\/[^/]+(\/validate|\/test|\/promote|\/rollback|\/deactivate)?$/.test(pathOnly) && m === 'POST') return true;
+  if (
+    /^\/api\/dossier-hydration\/[^/]+(\/validate|\/test|\/promote|\/rollback|\/deactivate)?$/.test(
+      pathOnly
+    ) &&
+    m === 'POST'
+  )
+    return true;
   // Domain Routes Registry management — write/lifecycle endpoints require full access
   if (pathOnly === '/api/domain-routes/drafts' && m === 'POST') return true;
   if (pathOnly === '/api/domain-routes/reload' && m === 'POST') return true;
-  if (/^\/api\/domain-routes\/[^/]+(\/validate|\/test|\/promote|\/rollback|\/deactivate)?$/.test(pathOnly) && m === 'POST') return true;
+  if (
+    /^\/api\/domain-routes\/[^/]+(\/validate|\/test|\/promote|\/rollback|\/deactivate)?$/.test(
+      pathOnly
+    ) &&
+    m === 'POST'
+  )
+    return true;
 
   return false;
 }
@@ -1460,12 +1472,10 @@ module.exports = {
             'dashboard-api.noRegretMeasureProofGateStatus',
           'GET /dashboard/anschlusskapazitaet-evidence-queue':
             'dashboard-api.anschlusskapazitaetEvidenceQueueStatus',
-          'GET /dashboard/layer0-audit-drilldown':
-            'dashboard-api.layer0AuditDrilldownNoteStatus',
+          'GET /dashboard/layer0-audit-drilldown': 'dashboard-api.layer0AuditDrilldownNoteStatus',
           'GET /dashboard/legal-clarification-operating-model':
             'dashboard-api.legalClarificationOperatingModelStatus',
-          'GET /dashboard/dr-readiness-evidence':
-            'dashboard-api.drReadinessEvidenceStatus',
+          'GET /dashboard/dr-readiness-evidence': 'dashboard-api.drReadinessEvidenceStatus',
           'GET /dashboard/special-grid-usage-impact-map':
             'dashboard-api.specialGridUsageImpactMapStatus',
           'GET /dashboard/liquidity-planning-governance':
@@ -1534,30 +1544,24 @@ module.exports = {
             'dashboard-api.noRegretMeasureDefinitionGateStatus',
           'GET /dashboard/gas-grid-transformation-asset-cockpit':
             'dashboard-api.gasGridTransformationAssetCockpitStatus',
-          'GET /dashboard/leadership-delta-cockpit':
-            'dashboard-api.leadershipDeltaCockpitStatus',
+          'GET /dashboard/leadership-delta-cockpit': 'dashboard-api.leadershipDeltaCockpitStatus',
           'POST /dashboard/vnb-delta-signal-classifier/classify':
             'dashboard-api.vnbDeltaSignalClassifierStatus',
-          'GET /dashboard/evidence-freshness-guard':
-            'dashboard-api.evidenceFreshnessGuardStatus',
+          'GET /dashboard/evidence-freshness-guard': 'dashboard-api.evidenceFreshnessGuardStatus',
           'GET /dashboard/live-update-stream-contract':
             'dashboard-api.liveUpdateStreamContractStatus',
-          'GET /dashboard/smgw-connector-readiness':
-            'dashboard-api.smgwConnectorReadinessStatus',
+          'GET /dashboard/smgw-connector-readiness': 'dashboard-api.smgwConnectorReadinessStatus',
           'GET /dashboard/municipal-energy-value-analysis':
             'dashboard-api.municipalEnergyValueAnalysisStatus',
           'POST /stadtwerk-mauer-sandbox-runtime/events':
             'stadtwerk-mauer-sandbox-runtime.ingestEvent',
-          'POST /stadtwerk-mauer-sandbox-runtime/reset':
-            'stadtwerk-mauer-sandbox-runtime.reset',
-          'GET /stadtwerk-mauer-sandbox-runtime/status':
-            'stadtwerk-mauer-sandbox-runtime.status',
+          'POST /stadtwerk-mauer-sandbox-runtime/reset': 'stadtwerk-mauer-sandbox-runtime.reset',
+          'GET /stadtwerk-mauer-sandbox-runtime/status': 'stadtwerk-mauer-sandbox-runtime.status',
           'POST /stadtwerk-mauer/external-interface-stubs/call':
             'stadtwerk-mauer-external-interface-stubs.callStub',
           'GET /stadtwerk-mauer/external-interface-stubs/status':
             'stadtwerk-mauer-external-interface-stubs.getStatus',
-          'POST /stadtwerk-mauer/e2e-process-demo/run':
-            'stadtwerk-mauer-e2e-process-demo.runDemo',
+          'POST /stadtwerk-mauer/e2e-process-demo/run': 'stadtwerk-mauer-e2e-process-demo.runDemo',
           'GET /stadtwerk-mauer/e2e-process-demo/status':
             'stadtwerk-mauer-e2e-process-demo.getStatus',
           'GET /stadtwerk-mauer/mastr-data-overlay/status':
@@ -1566,8 +1570,7 @@ module.exports = {
             'dashboard-api.regulatoryChangeReadinessStatus',
           'GET /dashboard/investment-two-track-control':
             'dashboard-api.investmentTwoTrackControlStatus',
-          'GET /dashboard/sap-budget-psp-gate':
-            'dashboard-api.sapBudgetPspGateStatus',
+          'GET /dashboard/sap-budget-psp-gate': 'dashboard-api.sapBudgetPspGateStatus',
           'GET /dashboard/energy-tax-information-package':
             'dashboard-api.energyTaxInformationPackageStatus',
           'GET /dashboard/investment-risk-translation':
@@ -1592,8 +1595,7 @@ module.exports = {
             'dashboard-api.legacyControlTechnologyTransitionStatus',
           'GET /dashboard/controllability-submission-cockpit':
             'dashboard-api.controllabilitySubmissionCockpitStatus',
-          'GET /dashboard/crisis-decision-routine':
-            'dashboard-api.crisisDecisionRoutineStatus',
+          'GET /dashboard/crisis-decision-routine': 'dashboard-api.crisisDecisionRoutineStatus',
           'GET /dashboard/investment-committee-steering-cards':
             'dashboard-api.investmentCommitteeSteeringCardsStatus',
           'GET /dashboard/investment-data-review-queue':
@@ -1606,14 +1608,12 @@ module.exports = {
             'dashboard-api.meteringRolloutProcessIndicatorStatus',
           'GET /dashboard/heat-transformation-line-asset-model':
             'dashboard-api.heatTransformationLineAssetModelStatus',
-          'GET /dashboard/ki-floorwalker-governance':
-            'dashboard-api.kiFloorwalkerGovernanceStatus',
+          'GET /dashboard/ki-floorwalker-governance': 'dashboard-api.kiFloorwalkerGovernanceStatus',
           'GET /dashboard/investment-waterfall-governance':
             'dashboard-api.investmentWaterfallGovernanceStatus',
           'GET /dashboard/capacity-contract-risk-asset-cockpit':
             'dashboard-api.capacityContractRiskAssetCockpitStatus',
-          'GET /dashboard/imsys-taf2-compliance':
-            'dashboard-api.imsysTaf2ComplianceStatus',
+          'GET /dashboard/imsys-taf2-compliance': 'dashboard-api.imsysTaf2ComplianceStatus',
           'GET /dashboard/schedule-management-governance-roadmap':
             'dashboard-api.scheduleManagementGovernanceRoadmapStatus',
           'GET /dashboard/gas-transformation-dependency-map':
@@ -1636,8 +1636,7 @@ module.exports = {
             'dashboard-api.rolePermissionAccessReadinessGateStatus',
           'GET /dashboard/owner-deadline-evidence-gate':
             'dashboard-api.ownerDeadlineEvidenceGateStatus',
-          'GET /dashboard/automation-risk-gate':
-            'dashboard-api.automationRiskGateStatus',
+          'GET /dashboard/automation-risk-gate': 'dashboard-api.automationRiskGateStatus',
           'GET /dashboard/redispatch-project-controlling-kpi-cockpit':
             'dashboard-api.redispatchProjectControllingKpiCockpitStatus',
           'GET /dashboard/stadtwerk-mauer-vdmi-profile':
@@ -1922,8 +1921,7 @@ module.exports = {
           // Battery Redispatch Special Gate (v0.63)
           'POST /battery-redispatch-special-gate/evaluate':
             'battery-redispatch-special-gate.evaluate',
-          'GET /battery-redispatch-special-gate/gates':
-            'battery-redispatch-special-gate.listGates',
+          'GET /battery-redispatch-special-gate/gates': 'battery-redispatch-special-gate.listGates',
           'GET /battery-redispatch-special-gate/gates/:gateId':
             'battery-redispatch-special-gate.getGate',
           'GET /battery-redispatch-special-gate/:gateId/status':

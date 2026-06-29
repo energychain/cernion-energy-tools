@@ -1042,7 +1042,9 @@ describe('vnb-monitor.service', () => {
               data: [
                 {
                   type: 'text',
-                  json: { rows: [{ firmenname: 'STROMDAO Netze GmbH', umsetzungsquote_ee_ns: 75 }] },
+                  json: {
+                    rows: [{ firmenname: 'STROMDAO Netze GmbH', umsetzungsquote_ee_ns: 75 }],
+                  },
                 },
               ],
             }),

@@ -17,7 +17,11 @@ function buildServiceHarness() {
  * so we include a default authUser to pass the auth guard.
  * Tests for the auth guard explicitly omit authUser/apiToken/cernionToken.
  */
-function buildCtx(params, overrides = {}, meta = { tenantId: 'test-tenant', authUser: { authType: 'test', userId: 'test-user' } }) {
+function buildCtx(
+  params,
+  overrides = {},
+  meta = { tenantId: 'test-tenant', authUser: { authType: 'test', userId: 'test-user' } }
+) {
   return {
     meta,
     params,
@@ -43,7 +47,6 @@ const handler = PersonalAgentService.actions.answerDossier.handler;
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('answerDossier action', () => {
-
   // 1. Renderer package and mandatory sections present
   test('dossierMarkdown is a renderer package and contains all mandatory dossier headings', async () => {
     const service = buildServiceHarness();
@@ -67,7 +70,9 @@ describe('answerDossier action', () => {
     expect(result.dossierMarkdown).toContain('## Forbidden Claims');
     expect(result.dossierMarkdown).toContain('## Recommended Answer Structure');
     expect(result.dossierMarkdown).toContain('## Final Renderer Instruction');
-    expect(result.dossierMarkdown).toContain('Fuege keine Fakten, Gesetze, Quellen, Beispiele, Bewertungen oder Prozessentscheidungen hinzu');
+    expect(result.dossierMarkdown).toContain(
+      'Fuege keine Fakten, Gesetze, Quellen, Beispiele, Bewertungen oder Prozessentscheidungen hinzu'
+    );
   });
 
   // 2. Final Renderer Instruction contains original prompt verbatim
@@ -123,7 +128,9 @@ describe('answerDossier action', () => {
     });
     expect(result.dossierMarkdown).toContain('- tenant_id: test-tenant');
     expect(result.dossierMarkdown).toContain('- requested_context_tenant_id: test-tenant');
-    expect(result.dossierMarkdown).toContain('- tenant_scope_status: context_tenant_matches_auth_tenant');
+    expect(result.dossierMarkdown).toContain(
+      '- tenant_scope_status: context_tenant_matches_auth_tenant'
+    );
     expect(result.dossierMarkdown).toContain('- conversation_id: conversation-assets-001');
     expect(result.dossierMarkdown).toContain('- channel: n8n');
     expect(result.dossierMarkdown).toContain('- surface: external-renderer');
@@ -152,11 +159,15 @@ describe('answerDossier action', () => {
       conversationId: 'conversation-grid-connection-001',
     });
     expect(service.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('context.tenantId (other-tenant) differs from authenticated tenantId (test-tenant)')
+      expect.stringContaining(
+        'context.tenantId (other-tenant) differs from authenticated tenantId (test-tenant)'
+      )
     );
     expect(result.dossierMarkdown).toContain('- tenant_id: test-tenant');
     expect(result.dossierMarkdown).toContain('- requested_context_tenant_id: other-tenant');
-    expect(result.dossierMarkdown).toContain('- tenant_scope_status: context_tenant_ignored_auth_tenant_used');
+    expect(result.dossierMarkdown).toContain(
+      '- tenant_scope_status: context_tenant_ignored_auth_tenant_used'
+    );
   });
 
   // 3. Time budget defaults applied
@@ -218,7 +229,9 @@ describe('answerDossier action', () => {
     expect(result.answerMode).toBe('evidence_collection');
     expect(result.userContext).toBe('technical_operator');
     expect(result.processStage).toBe('evidence_collection');
-    expect(result.dossierMarkdown).toContain('Ohne validierte Evidence keine Beispiele, Paragraphen, Behörden, Netzbetreiber, Fristen oder typischen Verfahren nennen.');
+    expect(result.dossierMarkdown).toContain(
+      'Ohne validierte Evidence keine Beispiele, Paragraphen, Behörden, Netzbetreiber, Fristen oder typischen Verfahren nennen.'
+    );
     expect(result.dossierMarkdown).toContain('user-provided project fact (low)');
   });
 
@@ -385,7 +398,9 @@ describe('answerDossier action', () => {
     expect(result.userContext).toBe('technical_operator');
     expect(result.confidence).toBe('low');
     expect(result.dossierMarkdown).toContain('## Known Evidence\n_Keine Evidence verfügbar._');
-    expect(result.dossierMarkdown).toContain('Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden');
+    expect(result.dossierMarkdown).toContain(
+      'Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden'
+    );
   });
 
   test('answer dossier ignores anonymized LLM generator derivations as usable evidence', async () => {
@@ -397,7 +412,8 @@ describe('answerDossier action', () => {
           hits: [
             {
               source: 'knowledge-rag',
-              value: 'Anonymisierte Ableitung aus Thorstens Steuerimpuls-Routine via LLM Generator.',
+              value:
+                'Anonymisierte Ableitung aus Thorstens Steuerimpuls-Routine via LLM Generator.',
               retrievalHint: 'Rechenzentrum Mauer Netzanschluss 10 MW',
             },
           ],
@@ -417,7 +433,9 @@ describe('answerDossier action', () => {
     expect(result.userContext).toBe('technical_operator');
     expect(result.confidence).toBe('low');
     expect(result.dossierMarkdown).toContain('user-provided project fact (low)');
-    expect(result.dossierMarkdown).not.toContain('Anonymisierte Ableitung aus Thorstens Steuerimpuls-Routine');
+    expect(result.dossierMarkdown).not.toContain(
+      'Anonymisierte Ableitung aus Thorstens Steuerimpuls-Routine'
+    );
   });
 
   test('answer dossier stores user-provided project facts as tenant-scoped low evidence', async () => {
@@ -452,29 +470,52 @@ describe('answerDossier action', () => {
 
     const result = await handler.call(service, ctx);
 
-    const lowEvidencePuts = puts.filter((p) => p.namespace === 'tenant:test-tenant:answer_dossier_low_evidence');
+    const lowEvidencePuts = puts.filter(
+      (p) => p.namespace === 'tenant:test-tenant:answer_dossier_low_evidence'
+    );
     expect(lowEvidencePuts.length).toBeGreaterThanOrEqual(4);
     expect(lowEvidencePuts.map((p) => p.payload.factType)).toEqual(
-      expect.arrayContaining(['location', 'requested_power', 'asset_class', 'load_profile', 'requested_check_scope'])
+      expect.arrayContaining([
+        'location',
+        'requested_power',
+        'asset_class',
+        'load_profile',
+        'requested_check_scope',
+      ])
     );
-    const powerFact = lowEvidencePuts.find((p) => p.payload.factType === 'requested_power')?.payload;
+    const powerFact = lowEvidencePuts.find(
+      (p) => p.payload.factType === 'requested_power'
+    )?.payload;
     expect(powerFact?.projectScope?.scopeKey).toBe('69256 mauer|10 mw');
-    expect(powerFact?.semanticTags).toEqual(expect.arrayContaining(['oeo:electricity-demand', 'oeo:power-unit']));
+    expect(powerFact?.semanticTags).toEqual(
+      expect.arrayContaining(['oeo:electricity-demand', 'oeo:power-unit'])
+    );
     expect(powerFact?.oeoClasses?.map((entry) => entry.id)).toEqual(
       expect.arrayContaining(['electricity-demand', 'electrical-energy', 'unit-megawatt'])
     );
-    const checkScopeFact = lowEvidencePuts.find((p) => p.payload.factType === 'requested_check_scope')?.payload;
+    const checkScopeFact = lowEvidencePuts.find(
+      (p) => p.payload.factType === 'requested_check_scope'
+    )?.payload;
     expect(checkScopeFact?.semanticTags).toEqual(expect.arrayContaining(['oeo:electricity-grid']));
     expect(checkScopeFact?.oeoClasses?.map((entry) => entry.id)).toEqual(
-      expect.arrayContaining(['electricity-grid', 'distribution-grid', 'grid-component', 'voltage-level'])
+      expect.arrayContaining([
+        'electricity-grid',
+        'distribution-grid',
+        'grid-component',
+        'voltage-level',
+      ])
     );
-    expect(queries.some((p) => p.namespace === 'tenant:test-tenant:answer_dossier_low_evidence')).toBe(true);
+    expect(
+      queries.some((p) => p.namespace === 'tenant:test-tenant:answer_dossier_low_evidence')
+    ).toBe(true);
     expect(result.confidence).toBe('low');
     expect(result.dossierMarkdown).toContain('user-provided project fact (low)');
     expect(result.dossierMarkdown).toContain('Standort: 69256 Mauer');
     expect(result.dossierMarkdown).toContain('Evidence-Qualität: low');
     expect(result.dossierMarkdown).toContain('OEO: electricity demand');
-    expect(result.dossierMarkdown).toContain('Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden');
+    expect(result.dossierMarkdown).toContain(
+      'Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden'
+    );
   });
 
   test('answer dossier does not learn MaStR candidate-list rows as project facts', async () => {
@@ -511,8 +552,12 @@ describe('answerDossier action', () => {
     expect(payloads.find((p) => p.factType === 'requested_power')?.value).toBe('24.1 kW');
     expect(payloads.find((p) => p.value === '6.8 kW')).toBeUndefined();
     expect(payloads.find((p) => p.value === '8.9 kW')).toBeUndefined();
-    expect(payloads.find((p) => p.factType === 'asset_component' && p.label === 'Speicher')).toBeUndefined();
-    expect(payloads.find((p) => p.factType === 'requested_power')?.projectScope?.scopeKey).toBe('24.1 kw');
+    expect(
+      payloads.find((p) => p.factType === 'asset_component' && p.label === 'Speicher')
+    ).toBeUndefined();
+    expect(payloads.find((p) => p.factType === 'requested_power')?.projectScope?.scopeKey).toBe(
+      '24.1 kw'
+    );
     expect(result.dossierMarkdown).toContain('Geplante Anschlussleistung: 24.1 kW');
     expect(result.dossierMarkdown).not.toContain('Speicher: 6.8 kW');
   });
@@ -548,7 +593,11 @@ describe('answerDossier action', () => {
       .filter((p) => p.namespace === 'tenant:test-tenant:answer_dossier_low_evidence')
       .map((p) => p.payload);
     expect(payloads.map((p) => p.factType)).toEqual(
-      expect.arrayContaining(['available_document', 'missing_evidence_requirement', 'project_timeline'])
+      expect.arrayContaining([
+        'available_document',
+        'missing_evidence_requirement',
+        'project_timeline',
+      ])
     );
     expect(payloads.map((p) => p.value)).toEqual(
       expect.arrayContaining([
@@ -564,7 +613,9 @@ describe('answerDossier action', () => {
     );
     const requirement = payloads.find((p) => p.value === 'verfügbarer Netzverknüpfungspunkt');
     expect(requirement?.projectScope?.scopeKey).toBe('69256 mauer|10 mw');
-    expect(requirement?.semanticTags).toEqual(expect.arrayContaining(['cernion:evidence-requirement']));
+    expect(requirement?.semanticTags).toEqual(
+      expect.arrayContaining(['cernion:evidence-requirement'])
+    );
     expect(requirement?.oeoClasses?.map((entry) => entry.id)).toEqual(
       expect.arrayContaining(['electricity-grid', 'grid-component'])
     );
@@ -596,7 +647,9 @@ describe('answerDossier action', () => {
     expect(result.dossierMarkdown).toContain('- preliminary_answer_requested: true');
     expect(result.dossierMarkdown).toContain('nicht belastbare Arbeitshypothese');
     expect(result.dossierMarkdown).toContain('Low-Evidence-Basis');
-    expect(result.dossierMarkdown).toContain('Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden');
+    expect(result.dossierMarkdown).toContain(
+      'Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden'
+    );
   });
 
   test('answer dossier reuses only current-tenant low evidence in later sessions', async () => {
@@ -922,13 +975,31 @@ describe('answerDossier action', () => {
       expect.arrayContaining(['location', 'metering_concept', 'asset_component', 'asset_status'])
     );
     expect(payloads.map((p) => p.value)).toEqual(
-      expect.arrayContaining(['69168 Wiesloch', 'MK10', 'MK40', '5 kW', '7.5 kW', '10 kWp', 'demontiert'])
+      expect.arrayContaining([
+        '69168 Wiesloch',
+        'MK10',
+        'MK40',
+        '5 kW',
+        '7.5 kW',
+        '10 kWp',
+        'demontiert',
+      ])
     );
-    expect(payloads.find((p) => p.value === 'MK10')?.semanticTags).toEqual(expect.arrayContaining(['cernion:metering-concept']));
-    expect(payloads.find((p) => p.factType === 'asset_component' && p.value === '5 kW')?.label).toBe('Speicher');
-    expect(payloads.find((p) => p.factType === 'asset_component' && p.value === '7.5 kW')?.label).toBe('Wärmepumpe');
-    expect(payloads.find((p) => p.factType === 'asset_component' && p.value === '10 kWp')?.label).toBe('Neue PV-Anlage');
-    expect(payloads.find((p) => p.factType === 'asset_status' && p.value === 'demontiert')?.label).toBe('PV-Altanlage');
+    expect(payloads.find((p) => p.value === 'MK10')?.semanticTags).toEqual(
+      expect.arrayContaining(['cernion:metering-concept'])
+    );
+    expect(
+      payloads.find((p) => p.factType === 'asset_component' && p.value === '5 kW')?.label
+    ).toBe('Speicher');
+    expect(
+      payloads.find((p) => p.factType === 'asset_component' && p.value === '7.5 kW')?.label
+    ).toBe('Wärmepumpe');
+    expect(
+      payloads.find((p) => p.factType === 'asset_component' && p.value === '10 kWp')?.label
+    ).toBe('Neue PV-Anlage');
+    expect(
+      payloads.find((p) => p.factType === 'asset_status' && p.value === 'demontiert')?.label
+    ).toBe('PV-Altanlage');
     expect(result.dossierMarkdown).toContain('Messkonzept: MK10');
     expect(result.dossierMarkdown).toContain('Messkonzept: MK40');
     expect(result.dossierMarkdown).toContain('Speicher: 5 kW');
@@ -1022,7 +1093,9 @@ describe('answerDossier action', () => {
     expect(result1.dossierMarkdown).toContain('_Keine vorherige Dossier-Konversation');
 
     const persisted = store.get(`tenant:test-tenant:personal_agent_sessions:${sessionId}`);
-    expect(persisted.dossier.turns[0].dossierSummary).toContain('Missing evidence / Rueckfragebedarf');
+    expect(persisted.dossier.turns[0].dossierSummary).toContain(
+      'Missing evidence / Rueckfragebedarf'
+    );
 
     const result2 = await handler.call(
       service,
@@ -1031,7 +1104,9 @@ describe('answerDossier action', () => {
 
     expect(result2.dossierVersion).toBe(2);
     expect(result2.userContext).toBe('target_grid_planning');
-    expect(result2.priorConversationContext.turns[0].question).toBe('Kannst Du das bitte fachlich einschaetzen?');
+    expect(result2.priorConversationContext.turns[0].question).toBe(
+      'Kannst Du das bitte fachlich einschaetzen?'
+    );
     expect(result2.priorConversationContext.turns[0].dossierSummary).toContain('Rueckfragebedarf');
     expect(result2.dossierMarkdown).toContain('## Prior Conversation Context');
     expect(result2.dossierMarkdown).toContain('### Prior Dossier Turns');
@@ -1092,7 +1167,8 @@ describe('answerDossier action', () => {
       service,
       buildCtx(
         {
-          question: 'Ich möchte morgen mein E-Auto möglichst CO2 Neutral laden. Wann sind die besten 3 Stunden hierfür?',
+          question:
+            'Ich möchte morgen mein E-Auto möglichst CO2 Neutral laden. Wann sind die besten 3 Stunden hierfür?',
           sessionId,
           timeBudgetMs: 30000,
         },
@@ -1107,7 +1183,9 @@ describe('answerDossier action', () => {
 
     expect(brokerTasks[1]).toContain('E-Auto');
     expect(brokerTasks[1]).toContain('Heidelberg');
-    expect(co2Calls).toEqual(expect.arrayContaining([expect.objectContaining({ location: 'Heidelberg', forecast: true })]));
+    expect(co2Calls).toEqual(
+      expect.arrayContaining([expect.objectContaining({ location: 'Heidelberg', forecast: true })])
+    );
     expect(result2.userContext).toBe('technical_operator');
     expect(result2.answerMode).toBe('evidence_collection');
     expect(result2.hydration.succeeded).toContain('energy-market.co2Intensity');
@@ -1133,7 +1211,10 @@ describe('answerDossier action', () => {
     delete ctx.meta.apiToken;
     delete ctx.meta.cernionToken;
 
-    await expect(handler.call(service, ctx)).rejects.toMatchObject({ code: 401, type: 'AUTH_REQUIRED' });
+    await expect(handler.call(service, ctx)).rejects.toMatchObject({
+      code: 401,
+      type: 'AUTH_REQUIRED',
+    });
   });
 
   // ── Capability Broker integration (v0.63.4) ──────────────────────────────
@@ -1144,13 +1225,19 @@ describe('answerDossier action', () => {
     const ctx = buildCtx(
       { question: 'Netzkapazität Sinsheim' },
       {
-        'capability-broker.recommend': async () => ({ intent: 'grid_query', capability: 'grid_operator', confidence: 0.7 }),
+        'capability-broker.recommend': async () => ({
+          intent: 'grid_query',
+          capability: 'grid_operator',
+          confidence: 0.7,
+        }),
       }
     );
 
     await handler.call(service, ctx);
 
-    const brokerCall = ctx.call.mock.calls.find(([action]) => action === 'capability-broker.recommend');
+    const brokerCall = ctx.call.mock.calls.find(
+      ([action]) => action === 'capability-broker.recommend'
+    );
     expect(brokerCall).toBeDefined();
     expect(brokerCall[2]).toMatchObject({ meta: expect.objectContaining({ $gateway: false }) });
   });
@@ -1185,7 +1272,10 @@ describe('answerDossier action', () => {
       status: 'success',
       timedOut: false,
       source: 'capability-broker',
-      result: expect.objectContaining({ intent: 'grid_capacity_query', capability: 'grid_operator_identity_resolution' }),
+      result: expect.objectContaining({
+        intent: 'grid_capacity_query',
+        capability: 'grid_operator_identity_resolution',
+      }),
     });
     expect(typeof result.capabilityRouting.elapsedMs).toBe('number');
 
@@ -1258,7 +1348,9 @@ describe('answerDossier action', () => {
       'vdmi.negotiationTrace',
       'vdmi.agentRole',
     ]);
-    expect(result.dossierPlanning.actions.every((action) => action.hydration.status === 'no_rule')).toBe(true);
+    expect(
+      result.dossierPlanning.actions.every((action) => action.hydration.status === 'no_rule')
+    ).toBe(true);
     expect(result.dossierPlanning.followUps[0]).toMatchObject({
       missingDataPoint: 'marketRole',
       source: 'capability_broker_missing_input',
@@ -1413,7 +1505,9 @@ describe('answerDossier action', () => {
     expect(result.capabilityRouting.result?.confidence).toBe(0.99);
     // Dossier markdown must not present broker recommendation as validated evidence in Known Evidence section
     expect(result.dossierMarkdown).toContain('Advisory note');
-    const knownEvidenceMatch = result.dossierMarkdown.match(/## Known Evidence\n([\s\S]*?)(?=\n##)/);
+    const knownEvidenceMatch = result.dossierMarkdown.match(
+      /## Known Evidence\n([\s\S]*?)(?=\n##)/
+    );
     const knownEvidenceSection = knownEvidenceMatch ? knownEvidenceMatch[1] : '';
     expect(knownEvidenceSection).not.toContain('0.99');
   });
@@ -1708,7 +1802,9 @@ describe('answerDossier action', () => {
         'entsoe.dayAheadPrices',
       ])
     );
-    expect(Object.fromEntries(calls)['gas-storage.countryStorage']).toMatchObject({ country: 'DE' });
+    expect(Object.fromEntries(calls)['gas-storage.countryStorage']).toMatchObject({
+      country: 'DE',
+    });
     expect(Object.fromEntries(calls)['entsoe.loadForecast']).toMatchObject({
       region: 'Germany',
       resolution: 'hourly',
@@ -1772,9 +1868,18 @@ describe('answerDossier action', () => {
           preferredActions: ['grid-operator.submitApplication', 'process.triggerWorkflow'],
           fallbackActions: ['some-service.writeData'],
         }),
-        'grid-operator.submitApplication': async (p) => { forbiddenCalls.push(p); return {}; },
-        'process.triggerWorkflow': async (p) => { forbiddenCalls.push(p); return {}; },
-        'some-service.writeData': async (p) => { forbiddenCalls.push(p); return {}; },
+        'grid-operator.submitApplication': async (p) => {
+          forbiddenCalls.push(p);
+          return {};
+        },
+        'process.triggerWorkflow': async (p) => {
+          forbiddenCalls.push(p);
+          return {};
+        },
+        'some-service.writeData': async (p) => {
+          forbiddenCalls.push(p);
+          return {};
+        },
       }
     );
 
@@ -1908,9 +2013,18 @@ describe('answerDossier action', () => {
           preferredActions: ['grid-operator.submitApplication', 'process.createReceipt'],
           fallbackActions: ['document.store'],
         }),
-        'grid-operator.submitApplication': async (p) => { writeCalls.push(p); return { submitted: true }; },
-        'process.createReceipt': async (p) => { writeCalls.push(p); return { receipt: 'abc' }; },
-        'document.store': async (p) => { writeCalls.push(p); return { stored: true }; },
+        'grid-operator.submitApplication': async (p) => {
+          writeCalls.push(p);
+          return { submitted: true };
+        },
+        'process.createReceipt': async (p) => {
+          writeCalls.push(p);
+          return { receipt: 'abc' };
+        },
+        'document.store': async (p) => {
+          writeCalls.push(p);
+          return { stored: true };
+        },
       }
     );
 
@@ -2003,7 +2117,9 @@ describe('answerDossier action', () => {
     expect(result.finalDossierRequested).toBe(false);
     expect(result.finalDossierMarkdown).toBeNull();
     expect(result.dossierMarkdown).toContain('- final_dossier_mode: false');
-    expect(result.dossierMarkdown).toContain('Nutzerkontext ist unklar — eine gezielte Rückfrage formulieren');
+    expect(result.dossierMarkdown).toContain(
+      'Nutzerkontext ist unklar — eine gezielte Rückfrage formulieren'
+    );
   });
 
   test('final request suppresses every clarification instruction (not just one phrase) while keeping evidence gaps visible', async () => {
@@ -2059,12 +2175,16 @@ describe('answerDossier action', () => {
 
     expect(result.confidence).toBe('low');
     expect(result.finalDossierRequested).toBe(true);
-    expect(result.finalDossierMarkdown).not.toContain('Nur benennen, welche Evidence fehlt, welche Rückfragen nötig sind');
+    expect(result.finalDossierMarkdown).not.toContain(
+      'Nur benennen, welche Evidence fehlt, welche Rückfragen nötig sind'
+    );
     expect(result.finalDossierMarkdown).not.toContain('Wenn das Dossier eine Rueckfrage verlangt');
     expect(result.finalDossierMarkdown).not.toContain('stelle eine Rueckfrage oder formuliere');
     expect(result.finalDossierMarkdown).toContain('Keine Machbarkeitszusage');
     expect(result.finalDossierMarkdown).toContain('## Forbidden Claims');
-    expect(result.finalDossierMarkdown).toContain('Evidence-Lücken klar als Einschränkung/Annahme benennen');
+    expect(result.finalDossierMarkdown).toContain(
+      'Evidence-Lücken klar als Einschränkung/Annahme benennen'
+    );
   });
 
   // ── Evidence-first answer policy (issue #238) ───────────────────────────────
@@ -2080,9 +2200,18 @@ describe('answerDossier action', () => {
         return {
           status: 'available',
           hits: [
-            { source: 'Netzdokumentation', value: 'Trasse A12: Mittelspannung, Baujahr 2010, Status aktiv' },
-            { source: 'Netzdokumentation', value: 'Trasse B7: Mittelspannung, Baujahr 2015, Status aktiv' },
-            { source: 'Netzdokumentation', value: 'Trasse C3: Niederspannung, Baujahr 2019, Status geplant' },
+            {
+              source: 'Netzdokumentation',
+              value: 'Trasse A12: Mittelspannung, Baujahr 2010, Status aktiv',
+            },
+            {
+              source: 'Netzdokumentation',
+              value: 'Trasse B7: Mittelspannung, Baujahr 2015, Status aktiv',
+            },
+            {
+              source: 'Netzdokumentation',
+              value: 'Trasse C3: Niederspannung, Baujahr 2019, Status geplant',
+            },
           ],
         };
       },
@@ -2104,9 +2233,15 @@ describe('answerDossier action', () => {
       defensiveNonAnswer: false,
     });
     // The dossier/renderer instructions actually changed, not just the signal.
-    expect(result.dossierMarkdown).toContain('Vorhandene Evidence reicht für eine substantielle Antwort');
-    expect(result.dossierMarkdown).toContain('Substantielle Antwort auf Basis der vorhandenen Evidence');
-    expect(result.dossierMarkdown).not.toContain('Keine finalen Planungsaussagen, solange Evidence unvollständig ist.');
+    expect(result.dossierMarkdown).toContain(
+      'Vorhandene Evidence reicht für eine substantielle Antwort'
+    );
+    expect(result.dossierMarkdown).toContain(
+      'Substantielle Antwort auf Basis der vorhandenen Evidence'
+    );
+    expect(result.dossierMarkdown).not.toContain(
+      'Keine finalen Planungsaussagen, solange Evidence unvollständig ist.'
+    );
     // Evidence stays visible for auditability — it's surfaced, not summarized away.
     expect(result.dossierMarkdown).toContain('Trasse A12');
     expect(result.dossierMarkdown).toContain('## Response Policy');
@@ -2123,8 +2258,16 @@ describe('answerDossier action', () => {
         return {
           status: 'available',
           hits: [
-            { source: 'EDM-Validator', value: 'Plausibilitätsprüfung Zählerstand 2026-06-01: bestanden, Abweichung 0.4% zum Vormonat' },
-            { source: 'EDM-Validator', value: 'Plausibilitätsprüfung Zählerstand 2026-05-01: bestanden, Abweichung 1.1% zum Vormonat' },
+            {
+              source: 'EDM-Validator',
+              value:
+                'Plausibilitätsprüfung Zählerstand 2026-06-01: bestanden, Abweichung 0.4% zum Vormonat',
+            },
+            {
+              source: 'EDM-Validator',
+              value:
+                'Plausibilitätsprüfung Zählerstand 2026-05-01: bestanden, Abweichung 1.1% zum Vormonat',
+            },
           ],
         };
       },
@@ -2145,9 +2288,13 @@ describe('answerDossier action', () => {
       substantiveAnswerInstructed: true,
       defensiveNonAnswer: false,
     });
-    expect(result.dossierMarkdown).toContain('Vorhandene Evidence reicht für eine substantielle Antwort');
+    expect(result.dossierMarkdown).toContain(
+      'Vorhandene Evidence reicht für eine substantielle Antwort'
+    );
     expect(result.dossierMarkdown).toContain('Eine Rückfrage ist optional');
-    expect(result.dossierMarkdown).not.toContain('eine gezielte Rückfrage formulieren statt einer abschließenden Antwort');
+    expect(result.dossierMarkdown).not.toContain(
+      'eine gezielte Rückfrage formulieren statt einer abschließenden Antwort'
+    );
     expect(result.dossierMarkdown).toContain('Plausibilitätsprüfung Zählerstand');
     // Clarification is still offered, but coexists with — does not replace — the answer.
     expect(result.clarificationQuestions.length).toBeGreaterThan(0);
@@ -2166,7 +2313,10 @@ describe('answerDossier action', () => {
         timeBudgetMs: 30000,
       },
       {
-        'capability-broker.recommend': async () => ({ intent: 'co2_query', capability: 'energy_market' }),
+        'capability-broker.recommend': async () => ({
+          intent: 'co2_query',
+          capability: 'energy_market',
+        }),
         'energy-market.co2Intensity': async (p) => {
           co2Calls.push(p);
           return {
@@ -2188,8 +2338,12 @@ describe('answerDossier action', () => {
       defensiveNonAnswer: false,
     });
     expect(result.dossierMarkdown).toContain('Bestes 3h-Ladefenster');
-    expect(result.dossierMarkdown).toContain('Vorhandene Evidence reicht für eine substantielle Antwort');
-    expect(result.dossierMarkdown).not.toContain('Keine finalen Planungsaussagen, solange Evidence unvollständig ist.');
+    expect(result.dossierMarkdown).toContain(
+      'Vorhandene Evidence reicht für eine substantielle Antwort'
+    );
+    expect(result.dossierMarkdown).not.toContain(
+      'Keine finalen Planungsaussagen, solange Evidence unvollständig ist.'
+    );
   });
 
   // Guard 1: with no evidence at all, the dossier still falls back to a clarifying question
@@ -2205,7 +2359,9 @@ describe('answerDossier action', () => {
       substantiveAnswerInstructed: false,
       defensiveNonAnswer: true,
     });
-    expect(result.dossierMarkdown).toContain('eine gezielte Rückfrage formulieren statt einer abschließenden Antwort');
+    expect(result.dossierMarkdown).toContain(
+      'eine gezielte Rückfrage formulieren statt einer abschließenden Antwort'
+    );
     expect(result.clarificationQuestions.length).toBeGreaterThan(0);
   });
 
@@ -2241,9 +2397,18 @@ describe('answerDossier action', () => {
         return {
           status: 'available',
           hits: [
-            { source: 'Netzdokumentation', value: 'Trasse A12: Mittelspannung, Baujahr 2010, Status aktiv' },
-            { source: 'Netzdokumentation', value: 'Trasse B7: Mittelspannung, Baujahr 2015, Status aktiv' },
-            { source: 'Netzdokumentation', value: 'Trasse C3: Niederspannung, Baujahr 2019, Status geplant' },
+            {
+              source: 'Netzdokumentation',
+              value: 'Trasse A12: Mittelspannung, Baujahr 2010, Status aktiv',
+            },
+            {
+              source: 'Netzdokumentation',
+              value: 'Trasse B7: Mittelspannung, Baujahr 2015, Status aktiv',
+            },
+            {
+              source: 'Netzdokumentation',
+              value: 'Trasse C3: Niederspannung, Baujahr 2019, Status geplant',
+            },
           ],
         };
       },
@@ -2275,7 +2440,9 @@ describe('answerDossier action', () => {
     expect(result.dossierMarkdown).not.toContain('## Known Evidence');
     expect(result.dossierMarkdown).not.toContain('## Forbidden Claims');
     // Evidence is densified into per-fact bullets, not one long concatenated line.
-    expect(result.dossierMarkdown).toContain('Trasse A12: Mittelspannung, Baujahr 2010, Status aktiv');
+    expect(result.dossierMarkdown).toContain(
+      'Trasse A12: Mittelspannung, Baujahr 2010, Status aktiv'
+    );
   });
 
   test('dossierContract=slim (validation/check domain) frames missing evidence positively', async () => {
@@ -2285,7 +2452,11 @@ describe('answerDossier action', () => {
         return {
           status: 'available',
           hits: [
-            { source: 'EDM-Validator', value: 'Plausibilitätsprüfung Zählerstand 2026-06-01: bestanden, Abweichung 0.4% zum Vormonat' },
+            {
+              source: 'EDM-Validator',
+              value:
+                'Plausibilitätsprüfung Zählerstand 2026-06-01: bestanden, Abweichung 0.4% zum Vormonat',
+            },
           ],
         };
       },
@@ -2303,7 +2474,9 @@ describe('answerDossier action', () => {
     expect(result.userContext).toBe('unknown');
     expect(result.auditTrail.dossierContract).toBe('slim_v1');
     // Positive framing: "missingDataPoint -> enablesDossierAddition", not just a question.
-    expect(result.dossierMarkdown).toMatch(/Für wen erstellen wir dieses Dossier.*→.*zielgruppengerechtere Antwort/);
+    expect(result.dossierMarkdown).toMatch(
+      /Für wen erstellen wir dieses Dossier.*→.*zielgruppengerechtere Antwort/
+    );
     expect(result.dossierMarkdown).not.toContain('## Missing Evidence');
   });
 
@@ -2321,7 +2494,10 @@ describe('answerDossier action', () => {
         timeBudgetMs: 30000,
       },
       {
-        'capability-broker.recommend': async () => ({ intent: 'co2_query', capability: 'energy_market' }),
+        'capability-broker.recommend': async () => ({
+          intent: 'co2_query',
+          capability: 'energy_market',
+        }),
         'energy-market.co2Intensity': async (p) => {
           co2Calls.push(p);
           return {
@@ -2337,7 +2513,9 @@ describe('answerDossier action', () => {
     expect(co2Calls).toHaveLength(1);
     expect(result.auditTrail.dossierContract).toBe('slim_v1');
     expect(result.dossierMarkdown).toContain('Bestes 4h-Ladefenster');
-    expect(result.dossierMarkdown.toLowerCase()).not.toMatch(/netzbetreiber|vnb\b|\btab\b|netzanschluss|dso/);
+    expect(result.dossierMarkdown.toLowerCase()).not.toMatch(
+      /netzbetreiber|vnb\b|\btab\b|netzanschluss|dso/
+    );
   });
 
   test('dossierContract=slim is overridden back to rich for process-action (prepare_intent) dossiers', async () => {
@@ -2350,7 +2528,9 @@ describe('answerDossier action', () => {
     const result = await handler.call(service, ctx);
 
     expect(result.answerMode).toBe('prepare_intent');
-    expect(result.auditTrail.dossierContract).toBe('rich_v1 (slim_requested_overridden_process_risk)');
+    expect(result.auditTrail.dossierContract).toBe(
+      'rich_v1 (slim_requested_overridden_process_risk)'
+    );
     expect(result.dossierMarkdown).toContain('# CERNION RENDERER PACKAGE');
     expect(result.dossierMarkdown).toContain('## Recommended Answer Structure');
   });
@@ -2364,5 +2544,4 @@ describe('answerDossier action', () => {
     expect(result.auditTrail.dossierContract).toBe('rich_v1');
     expect(result.dossierMarkdown).toContain('# CERNION RENDERER PACKAGE');
   });
-
 });

@@ -24,11 +24,11 @@ describe('Community Service', () => {
             return {
               success: true,
               companyName: 'Netze BW GmbH',
-              mastrId: 'SNB12345678'
+              mastrId: 'SNB12345678',
             };
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
     broker.createService({
@@ -38,11 +38,11 @@ describe('Community Service', () => {
           handler(ctx) {
             return {
               success: true,
-              co2_intensity_gco2eq_kwh: 120
+              co2_intensity_gco2eq_kwh: 120,
             };
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
     await broker.start();
@@ -149,7 +149,7 @@ describe('Community Service', () => {
       expect(res.success).toBe(true);
       expect(res.reply).toContain('Live-Netzauskunft');
       expect(res.reply).toContain('Netze BW GmbH');
-      expect(res.sources.some(s => s.type === 'vnb_identity')).toBe(true);
+      expect(res.sources.some((s) => s.type === 'vnb_identity')).toBe(true);
     });
 
     it('should extract city name and perform VNB lookup delegation', async () => {
@@ -168,7 +168,7 @@ describe('Community Service', () => {
       expect(res.success).toBe(true);
       expect(res.reply).toContain('CO2-Intensität');
       expect(res.reply).toContain('120');
-      expect(res.sources.some(s => s.type === 'co2_forecast')).toBe(true);
+      expect(res.sources.some((s) => s.type === 'co2_forecast')).toBe(true);
     });
 
     it('should flag missing inputs when requesting location-dependent facts without location', async () => {

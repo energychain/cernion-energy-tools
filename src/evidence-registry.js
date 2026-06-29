@@ -170,7 +170,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'utilmd_masterdata_path',
         label: 'UTILMD-/Stammdatenweg (offizieller Nachweis)',
-        resolvedBy: ['dashboard-api.marketCommunicationEvidenceChainStatus', 'edm-validation.validate'],
+        resolvedBy: [
+          'dashboard-api.marketCommunicationEvidenceChainStatus',
+          'edm-validation.validate',
+        ],
         contextKeys: ['utilmdMasterdataPath', 'masterDataPath', 'officialMasterDataEvidence'],
         optional: false,
       },
@@ -184,21 +187,30 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'consumption_retrieval',
         label: 'Verbrauchsdatenabruf / EDM-Abrufstatus',
-        resolvedBy: ['dashboard-api.marketCommunicationEvidenceChainStatus', 'edm-validation.validate'],
+        resolvedBy: [
+          'dashboard-api.marketCommunicationEvidenceChainStatus',
+          'edm-validation.validate',
+        ],
         contextKeys: ['consumptionRetrievalStatus', 'edmRetrievalStatus'],
         optional: false,
       },
       {
         id: 'data_quality_status',
         label: 'Datenqualitaetsstatus fuer Abrechnungskontext',
-        resolvedBy: ['dashboard-api.marketCommunicationEvidenceChainStatus', 'edm-validation.validate'],
+        resolvedBy: [
+          'dashboard-api.marketCommunicationEvidenceChainStatus',
+          'edm-validation.validate',
+        ],
         contextKeys: ['dataQualityStatus', 'edmDataQualityStatus'],
         optional: false,
       },
       {
         id: 'next_billing_step',
         label: 'Naechster Abrechnungsschritt (nur Kontext, keine Freigabe)',
-        resolvedBy: ['dashboard-api.marketCommunicationEvidenceChainStatus', 'settlement.readiness'],
+        resolvedBy: [
+          'dashboard-api.marketCommunicationEvidenceChainStatus',
+          'settlement.readiness',
+        ],
         contextKeys: ['nextBillingStep', 'settlementNextStep'],
         optional: false,
       },
@@ -238,7 +250,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'aggregation_logic',
         label: 'Aggregationslogik',
-        resolvedBy: ['dashboard-api.energyTaxInformationPackageStatus', 'datasource-classifier.classify'],
+        resolvedBy: [
+          'dashboard-api.energyTaxInformationPackageStatus',
+          'datasource-classifier.classify',
+        ],
         contextKeys: ['aggregationLogic'],
         optional: false,
       },
@@ -266,7 +281,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'sla',
         label: 'SLA / Rueckfragefrist',
-        resolvedBy: ['dashboard-api.energyTaxInformationPackageStatus', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.energyTaxInformationPackageStatus',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['sla', 'responseSla'],
         optional: false,
       },
@@ -313,7 +331,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'impact_context',
         label: 'Finanz-/Asset-/Risikoauswirkung',
-        resolvedBy: ['dashboard-api.investmentRiskTranslationStatus', 'finance-agent.analyze', 'investment-planning.createPlan'],
+        resolvedBy: [
+          'dashboard-api.investmentRiskTranslationStatus',
+          'finance-agent.analyze',
+          'investment-planning.createPlan',
+        ],
         contextKeys: ['financialImpact', 'assetImpact', 'budgetRef', 'riskRef'],
         optional: false,
       },
@@ -381,28 +403,43 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'baseline_reference',
         label: 'Baseline-Referenz',
-        resolvedBy: ['dashboard-api.budgetWaterfallGovernanceStatus', 'investment-planning.createPlan'],
+        resolvedBy: [
+          'dashboard-api.budgetWaterfallGovernanceStatus',
+          'investment-planning.createPlan',
+        ],
         contextKeys: ['baselineRef'],
         optional: false,
       },
       {
         id: 'forecast_cutoff',
         label: 'Prognoseende',
-        resolvedBy: ['dashboard-api.budgetWaterfallGovernanceStatus', 'datapoint.health', 'datasource-registry.get'],
+        resolvedBy: [
+          'dashboard-api.budgetWaterfallGovernanceStatus',
+          'datapoint.health',
+          'datasource-registry.get',
+        ],
         contextKeys: ['forecastCutoff'],
         optional: false,
       },
       {
         id: 'carryover_logic',
         label: 'Uebertragslogik',
-        resolvedBy: ['dashboard-api.budgetWaterfallGovernanceStatus', 'investment-planning.createPlan', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.budgetWaterfallGovernanceStatus',
+          'investment-planning.createPlan',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['carryoverLogic'],
         optional: false,
       },
       {
         id: 'sign_convention',
         label: 'Vorzeichenlogik',
-        resolvedBy: ['dashboard-api.budgetWaterfallGovernanceStatus', 'finance-agent.analyze', 'presentation.generate'],
+        resolvedBy: [
+          'dashboard-api.budgetWaterfallGovernanceStatus',
+          'finance-agent.analyze',
+          'presentation.generate',
+        ],
         contextKeys: ['signConvention'],
         optional: false,
       },
@@ -477,21 +514,33 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'dependency_map',
         label: 'Abhaengigkeitskarte',
-        resolvedBy: ['dashboard-api.gasDecommissioningRoadmapStatus', 'vdmi.dossier', 'presentation.generate'],
+        resolvedBy: [
+          'dashboard-api.gasDecommissioningRoadmapStatus',
+          'vdmi.dossier',
+          'presentation.generate',
+        ],
         contextKeys: ['dependencyMap'],
         optional: false,
       },
       {
         id: 'investment_impact_ref',
         label: 'Investitionsfolge-Referenz',
-        resolvedBy: ['dashboard-api.gasDecommissioningRoadmapStatus', 'investment-planning.createPlan', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.gasDecommissioningRoadmapStatus',
+          'investment-planning.createPlan',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['investmentImpactRef'],
         optional: false,
       },
       {
         id: 'committee_gate_date',
         label: 'Gremiengate-Termin',
-        resolvedBy: ['dashboard-api.gasDecommissioningRoadmapStatus', 'hitl.create', 'presentation.generate'],
+        resolvedBy: [
+          'dashboard-api.gasDecommissioningRoadmapStatus',
+          'hitl.create',
+          'presentation.generate',
+        ],
         contextKeys: ['committeeGateDate'],
         optional: false,
       },
@@ -620,7 +669,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'financing_model',
         label: 'Off-Balancing-Finanzierungsmodell',
-        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.offBalancingMeteringPruefmatrixStatus',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['financingModel'],
         optional: false,
       },
@@ -634,56 +686,85 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'committee_gate',
         label: 'Gremiengate',
-        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'presentation.generate'],
+        resolvedBy: [
+          'dashboard-api.offBalancingMeteringPruefmatrixStatus',
+          'presentation.generate',
+        ],
         contextKeys: ['committeeGate'],
         optional: false,
       },
       {
         id: 'capex_opex_baseline',
         label: 'CAPEX/OPEX-Baseline',
-        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'investment-planning.createPlan', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.offBalancingMeteringPruefmatrixStatus',
+          'investment-planning.createPlan',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['capexOpexBaseline'],
         optional: false,
       },
       {
         id: 'eog_regulatory_effect',
         label: 'EOG-/Regulierungswirkung',
-        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'eog-calculator.scenario', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.offBalancingMeteringPruefmatrixStatus',
+          'eog-calculator.scenario',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['eogEffectEvidence', 'regulatoryEffectEvidence'],
         optional: false,
       },
       {
         id: 'cost_recognition_assumption',
         label: 'Kostenanerkennungsannahme',
-        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.offBalancingMeteringPruefmatrixStatus',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['costRecognitionAssumption'],
         optional: false,
       },
       {
         id: 'financier_conditions',
         label: 'Finanziererbedingungen',
-        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.offBalancingMeteringPruefmatrixStatus',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['financierConditions'],
         optional: false,
       },
       {
         id: 'data_quality_status',
         label: 'Datenqualitaetsstatus',
-        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'datapoint.health', 'datasource-registry.get'],
+        resolvedBy: [
+          'dashboard-api.offBalancingMeteringPruefmatrixStatus',
+          'datapoint.health',
+          'datasource-registry.get',
+        ],
         contextKeys: ['dataQualityStatus'],
         optional: false,
       },
       {
         id: 'interface_risk_status',
         label: 'Schnittstellenrisiko',
-        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'interface-placeholder.listGaps', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.offBalancingMeteringPruefmatrixStatus',
+          'interface-placeholder.listGaps',
+          'vdmi.dossier',
+        ],
         contextKeys: ['interfaceRiskStatus'],
         optional: false,
       },
       {
         id: 'grid_investment_space_proof',
         label: 'Nutzbarer Stromnetz-Investitionsspielraum',
-        resolvedBy: ['dashboard-api.offBalancingMeteringPruefmatrixStatus', 'investment-planning.createPlan', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.offBalancingMeteringPruefmatrixStatus',
+          'investment-planning.createPlan',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['gridInvestmentSpaceProof'],
         optional: false,
       },
@@ -716,7 +797,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'request_type',
         label: 'Anforderungstyp',
-        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'business-intelligence.describe'],
+        resolvedBy: [
+          'dashboard-api.automationRequirementsDecisionValueStatus',
+          'business-intelligence.describe',
+        ],
         contextKeys: ['requestType'],
         optional: false,
       },
@@ -737,21 +821,31 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'target_gate',
         label: 'Ziel-Gate',
-        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'presentation.generate'],
+        resolvedBy: [
+          'dashboard-api.automationRequirementsDecisionValueStatus',
+          'presentation.generate',
+        ],
         contextKeys: ['targetGate'],
         optional: false,
       },
       {
         id: 'source_system',
         label: 'Quellsystem',
-        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'datasource-registry.get'],
+        resolvedBy: [
+          'dashboard-api.automationRequirementsDecisionValueStatus',
+          'datasource-registry.get',
+        ],
         contextKeys: ['sourceSystem'],
         optional: false,
       },
       {
         id: 'moving_data_flow',
         label: 'Bewegungsdatenfluss',
-        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'datasource-registry.get', 'interface-placeholder.listGaps'],
+        resolvedBy: [
+          'dashboard-api.automationRequirementsDecisionValueStatus',
+          'datasource-registry.get',
+          'interface-placeholder.listGaps',
+        ],
         contextKeys: ['movingDataFlow'],
         optional: false,
       },
@@ -772,7 +866,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'decision_value',
         label: 'Entscheidungswert',
-        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'presentation.generate'],
+        resolvedBy: [
+          'dashboard-api.automationRequirementsDecisionValueStatus',
+          'presentation.generate',
+        ],
         contextKeys: ['decisionValue'],
         optional: false,
       },
@@ -800,14 +897,20 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_snapshot_ref',
         label: 'Quellensnapshot',
-        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'vdmi-evidence.inject'],
+        resolvedBy: [
+          'dashboard-api.automationRequirementsDecisionValueStatus',
+          'vdmi-evidence.inject',
+        ],
         contextKeys: ['sourceSnapshotRef'],
         optional: false,
       },
       {
         id: 'evidence_ref',
         label: 'Evidenzreferenzen',
-        resolvedBy: ['dashboard-api.automationRequirementsDecisionValueStatus', 'vdmi-evidence.inject'],
+        resolvedBy: [
+          'dashboard-api.automationRequirementsDecisionValueStatus',
+          'vdmi-evidence.inject',
+        ],
         contextKeys: ['evidenceRef'],
         optional: false,
       },
@@ -826,42 +929,60 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'financing_model',
         label: 'Off-Balancing-Finanzierungsmodell',
-        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.smartMeterOffBalancingPurposeLockStatus',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['financingModel'],
         optional: false,
       },
       {
         id: 'off_balance_volume_eur',
         label: 'Off-Balance-Volumen',
-        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.smartMeterOffBalancingPurposeLockStatus',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['offBalanceVolumeEur'],
         optional: false,
       },
       {
         id: 'freed_liquidity_eur',
         label: 'Freiwerdende Liquiditaet',
-        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.smartMeterOffBalancingPurposeLockStatus',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['freedLiquidityEur'],
         optional: false,
       },
       {
         id: 'financier_cost_eur',
         label: 'Finanzierer-Kosten',
-        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.smartMeterOffBalancingPurposeLockStatus',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['financierCostEur'],
         optional: false,
       },
       {
         id: 'capex_opex_totex_effect',
         label: 'CAPEX-/OPEX-/TOTEX-Wirkung',
-        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.smartMeterOffBalancingPurposeLockStatus',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['capexOpexTotexEffect'],
         optional: false,
       },
       {
         id: 'regulatory_recognition_status',
         label: 'Regulatorische Anerkennung',
-        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.smartMeterOffBalancingPurposeLockStatus',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['regulatoryRecognitionStatus'],
         optional: false,
       },
@@ -875,14 +996,24 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'investment_effect_missing',
         label: 'Operativer Investitionseffekt',
-        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'investment-planning.read'],
-        contextKeys: ['controlRoomInvestments', 'processInvestments', 'gridInfrastructureInvestments'],
+        resolvedBy: [
+          'dashboard-api.smartMeterOffBalancingPurposeLockStatus',
+          'investment-planning.read',
+        ],
+        contextKeys: [
+          'controlRoomInvestments',
+          'processInvestments',
+          'gridInfrastructureInvestments',
+        ],
         optional: false,
       },
       {
         id: 'budget_dilution_risk_open',
         label: 'Budgetverwaesserungsrisiko',
-        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.smartMeterOffBalancingPurposeLockStatus',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['budgetDilutionRisk'],
         optional: false,
       },
@@ -896,14 +1027,20 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_snapshot_ref',
         label: 'Quellensnapshot',
-        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'vdmi-evidence.inject'],
+        resolvedBy: [
+          'dashboard-api.smartMeterOffBalancingPurposeLockStatus',
+          'vdmi-evidence.inject',
+        ],
         contextKeys: ['sourceSnapshotRef'],
         optional: false,
       },
       {
         id: 'evidence_ref',
         label: 'Evidenzreferenzen',
-        resolvedBy: ['dashboard-api.smartMeterOffBalancingPurposeLockStatus', 'vdmi-evidence.inject'],
+        resolvedBy: [
+          'dashboard-api.smartMeterOffBalancingPurposeLockStatus',
+          'vdmi-evidence.inject',
+        ],
         contextKeys: ['evidenceRef'],
         optional: false,
       },
@@ -922,7 +1059,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_datapoints',
         label: 'Messdatenquellen',
-        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'datapoint.health', 'datasource-registry.get'],
+        resolvedBy: [
+          'dashboard-api.imsysScheduleValueChainReadinessStatus',
+          'datapoint.health',
+          'datasource-registry.get',
+        ],
         contextKeys: ['sourceDatapoints'],
         optional: false,
       },
@@ -936,28 +1077,43 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'forecast_window',
         label: 'Prognosefenster',
-        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'forecast-engine.run', 'forecast.read'],
+        resolvedBy: [
+          'dashboard-api.imsysScheduleValueChainReadinessStatus',
+          'forecast-engine.run',
+          'forecast.read',
+        ],
         contextKeys: ['forecastWindow'],
         optional: false,
       },
       {
         id: 'congestion_signal',
         label: 'Engpasssignal',
-        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'grid-operations.netzfahrplanGenerate'],
+        resolvedBy: [
+          'dashboard-api.imsysScheduleValueChainReadinessStatus',
+          'grid-operations.netzfahrplanGenerate',
+        ],
         contextKeys: ['congestionSignal'],
         optional: false,
       },
       {
         id: 'asset_scope',
         label: 'Asset-/NAP-/MeLo-Scope',
-        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'assets.effective', 'mastr-quality.audit'],
+        resolvedBy: [
+          'dashboard-api.imsysScheduleValueChainReadinessStatus',
+          'assets.effective',
+          'mastr-quality.audit',
+        ],
         contextKeys: ['assetScope'],
         optional: false,
       },
       {
         id: 'controllability_status',
         label: 'Steuerbarkeitsstatus',
-        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'flex.listDevices', 'redispatch-expost.audit'],
+        resolvedBy: [
+          'dashboard-api.imsysScheduleValueChainReadinessStatus',
+          'flex.listDevices',
+          'redispatch-expost.audit',
+        ],
         contextKeys: ['controllabilityStatus'],
         optional: false,
       },
@@ -971,7 +1127,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'netzfahrplan_assessment_ref',
         label: 'Netzfahrplan-Bewertung',
-        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'grid-operations.netzfahrplanGenerate'],
+        resolvedBy: [
+          'dashboard-api.imsysScheduleValueChainReadinessStatus',
+          'grid-operations.netzfahrplanGenerate',
+        ],
         contextKeys: ['netzfahrplanAssessmentRef'],
         optional: false,
       },
@@ -985,7 +1144,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'control_readiness',
         label: 'Leitwarten-/Control-Readiness',
-        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'vdmi.dossier', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.imsysScheduleValueChainReadinessStatus',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['controlReadiness'],
         optional: false,
       },
@@ -999,14 +1162,20 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_snapshot_ref',
         label: 'Quellensnapshot',
-        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'vdmi-evidence.inject'],
+        resolvedBy: [
+          'dashboard-api.imsysScheduleValueChainReadinessStatus',
+          'vdmi-evidence.inject',
+        ],
         contextKeys: ['sourceSnapshotRef'],
         optional: false,
       },
       {
         id: 'evidence_ref',
         label: 'Evidenzreferenzen',
-        resolvedBy: ['dashboard-api.imsysScheduleValueChainReadinessStatus', 'vdmi-evidence.inject'],
+        resolvedBy: [
+          'dashboard-api.imsysScheduleValueChainReadinessStatus',
+          'vdmi-evidence.inject',
+        ],
         contextKeys: ['evidenceRef'],
         optional: false,
       },
@@ -1025,22 +1194,39 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'sap_mapping',
         label: 'SAP-Zielsystem / interner Auftrag',
-        resolvedBy: ['dashboard-api.sapBudgetPspGateStatus', 'datasource-registry.get', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.sapBudgetPspGateStatus',
+          'datasource-registry.get',
+          'vdmi.dossier',
+        ],
         contextKeys: ['sapSystemRef', 'legacyInternalOrderId'],
         optional: false,
       },
       {
         id: 'psp_snapshot',
         label: 'PSP-Element und Uebertragssnapshot',
-        resolvedBy: ['dashboard-api.sapBudgetPspGateStatus', 'datapoint.health', 'datasource-registry.get'],
+        resolvedBy: [
+          'dashboard-api.sapBudgetPspGateStatus',
+          'datapoint.health',
+          'datasource-registry.get',
+        ],
         contextKeys: ['pspElementId', 'pspCarryOverEur', 'sourceSnapshotId'],
         optional: false,
       },
       {
         id: 'budget_values',
         label: 'Budget-, Plan- und Commitment-Werte',
-        resolvedBy: ['dashboard-api.sapBudgetPspGateStatus', 'investment-planning.createPlan', 'finance-agent.analyze'],
-        contextKeys: ['availableBudgetEur', 'plannedValueEur', 'committedValueEur', 'budgetOverhangEur'],
+        resolvedBy: [
+          'dashboard-api.sapBudgetPspGateStatus',
+          'investment-planning.createPlan',
+          'finance-agent.analyze',
+        ],
+        contextKeys: [
+          'availableBudgetEur',
+          'plannedValueEur',
+          'committedValueEur',
+          'budgetOverhangEur',
+        ],
         optional: false,
       },
       {
@@ -1053,14 +1239,22 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'asset_benefit',
         label: 'Assetnutzen und Priorisierung',
-        resolvedBy: ['dashboard-api.sapBudgetPspGateStatus', 'investment-planning.createPlan', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.sapBudgetPspGateStatus',
+          'investment-planning.createPlan',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['assetBenefit', 'priorityScore', 'avoidedCostsEur'],
         optional: false,
       },
       {
         id: 'finance_gate',
         label: 'Finance-Gate',
-        resolvedBy: ['dashboard-api.sapBudgetPspGateStatus', 'finance-agent.analyze', 'presentation.generate'],
+        resolvedBy: [
+          'dashboard-api.sapBudgetPspGateStatus',
+          'finance-agent.analyze',
+          'presentation.generate',
+        ],
         contextKeys: ['financeGate', 'financeReviewStatus'],
         optional: false,
       },
@@ -1074,7 +1268,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'data_quality',
         label: 'Datenqualitaet / Auditierbarkeit',
-        resolvedBy: ['dashboard-api.sapBudgetPspGateStatus', 'datapoint.health', 'datasource-registry.get'],
+        resolvedBy: [
+          'dashboard-api.sapBudgetPspGateStatus',
+          'datapoint.health',
+          'datasource-registry.get',
+        ],
         contextKeys: ['dataQualityStatus'],
         optional: false,
       },
@@ -1086,7 +1284,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'submission_contract',
         label: 'Taktischer Abgabevertrag',
-        resolvedBy: ['dashboard-api.investmentTwoTrackControlStatus', 'investment-planning.createPlan'],
+        resolvedBy: [
+          'dashboard-api.investmentTwoTrackControlStatus',
+          'investment-planning.createPlan',
+        ],
         contextKeys: ['submissionId', 'deadline', 'submissionFormat'],
         optional: false,
       },
@@ -1100,7 +1301,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'measures_and_budget',
         label: 'Massnahmen und Budgetrahmen',
-        resolvedBy: ['dashboard-api.investmentTwoTrackControlStatus', 'investment-planning.createPlan'],
+        resolvedBy: [
+          'dashboard-api.investmentTwoTrackControlStatus',
+          'investment-planning.createPlan',
+        ],
         contextKeys: ['measureCount', 'measures', 'budgetEnvelopeEur', 'financeBudgetEur'],
         optional: false,
       },
@@ -1121,7 +1325,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_datapoints',
         label: 'Invest-Datenpunkte / Snapshot',
-        resolvedBy: ['dashboard-api.investmentTwoTrackControlStatus', 'datapoint.health', 'datasource-registry.get'],
+        resolvedBy: [
+          'dashboard-api.investmentTwoTrackControlStatus',
+          'datapoint.health',
+          'datasource-registry.get',
+        ],
         contextKeys: ['sourceDatapoints', 'datapointIds', 'sourceSnapshotId'],
         optional: false,
       },
@@ -1175,14 +1383,22 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_datapoints',
         label: 'Quell-Datapoints / Snapshot',
-        resolvedBy: ['dashboard-api.regulatoryChangeReadinessStatus', 'datapoint.health', 'datapoint.validateSnapshot'],
+        resolvedBy: [
+          'dashboard-api.regulatoryChangeReadinessStatus',
+          'datapoint.health',
+          'datapoint.validateSnapshot',
+        ],
         contextKeys: ['sourceDatapoints', 'datapointIds', 'sourceSnapshotId'],
         optional: false,
       },
       {
         id: 'interval_profile_coverage',
         label: 'Viertelstundenprofil-Abdeckung',
-        resolvedBy: ['dashboard-api.regulatoryChangeReadinessStatus', 'edm-validation.validate', 'mscons-import.import'],
+        resolvedBy: [
+          'dashboard-api.regulatoryChangeReadinessStatus',
+          'edm-validation.validate',
+          'mscons-import.import',
+        ],
         contextKeys: ['intervalCoverage', 'quarterHourCoverage'],
         optional: false,
       },
@@ -1203,7 +1419,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'market_communication_cases',
         label: 'MaKo-Sonderfaelle / Testfaelle',
-        resolvedBy: ['dashboard-api.regulatoryChangeReadinessStatus', 'dashboard-api.marketCommunicationEvidenceChainStatus'],
+        resolvedBy: [
+          'dashboard-api.regulatoryChangeReadinessStatus',
+          'dashboard-api.marketCommunicationEvidenceChainStatus',
+        ],
         contextKeys: ['makoCases', 'marketCommunicationCases'],
         optional: false,
       },
@@ -1243,14 +1462,20 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'seeded_demo_event',
         label: 'Deterministisches Demo-Event',
-        resolvedBy: ['dashboard-api.stadtwerkMauerSandboxRuntimeStatus', 'stadtwerk-mauer-sandbox-runtime.ingestEvent'],
+        resolvedBy: [
+          'dashboard-api.stadtwerkMauerSandboxRuntimeStatus',
+          'stadtwerk-mauer-sandbox-runtime.ingestEvent',
+        ],
         contextKeys: ['eventId', 'eventType', 'caseId'],
         optional: false,
       },
       {
         id: 'reset_delete_proof',
         label: 'Reset-/Delete-Nachweis',
-        resolvedBy: ['dashboard-api.stadtwerkMauerSandboxRuntimeStatus', 'stadtwerk-mauer-sandbox-runtime.reset'],
+        resolvedBy: [
+          'dashboard-api.stadtwerkMauerSandboxRuntimeStatus',
+          'stadtwerk-mauer-sandbox-runtime.reset',
+        ],
         contextKeys: ['lastResetResult', 'resetDeleteReadiness'],
         optional: false,
       },
@@ -1366,7 +1591,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
         id: 'reset_boundary',
         label: 'Reset-Grenze ohne MaStR-Baseline-Loeschung',
         resolvedBy: ['dashboard-api.stadtwerkMauerMastrDataOverlayStatus'],
-        contextKeys: ['resetBoundary.deletesImportedMastrBaseline', 'resetBoundary.deletesDerivedSandboxArtifacts'],
+        contextKeys: [
+          'resetBoundary.deletesImportedMastrBaseline',
+          'resetBoundary.deletesDerivedSandboxArtifacts',
+        ],
         optional: false,
       },
     ],
@@ -1433,35 +1661,52 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'connection_intake',
         label: 'Netzanschluss-/Asset-Identifikation',
-        resolvedBy: ['dashboard-api.e2eControllabilityGovernanceStatus', 'grid-connection.validate', 'assets.effective'],
+        resolvedBy: [
+          'dashboard-api.e2eControllabilityGovernanceStatus',
+          'grid-connection.validate',
+          'assets.effective',
+        ],
         contextKeys: ['connectionIntake', 'gridConnectionId', 'assetId'],
         optional: false,
       },
       {
         id: 'metering_concept',
         label: 'Mess-/TAF-/EDM-Konzept',
-        resolvedBy: ['dashboard-api.e2eControllabilityGovernanceStatus', 'edm-messkonzept.evaluate', 'edm-validation.validate'],
+        resolvedBy: [
+          'dashboard-api.e2eControllabilityGovernanceStatus',
+          'edm-messkonzept.evaluate',
+          'edm-validation.validate',
+        ],
         contextKeys: ['meteringConcept', 'tafReadiness', 'edmValidationId'],
         optional: false,
       },
       {
         id: 'asset_control_capability',
         label: 'Asset-Steuerbarkeitsnachweis',
-        resolvedBy: ['dashboard-api.e2eControllabilityGovernanceStatus', 'grid-operations.controlMeasures'],
+        resolvedBy: [
+          'dashboard-api.e2eControllabilityGovernanceStatus',
+          'grid-operations.controlMeasures',
+        ],
         contextKeys: ['assetControlCapability', 'controlCapabilityEvidence'],
         optional: false,
       },
       {
         id: 'grid_operations_decision',
         label: 'Netzbetrieb/Redispatch-/§14a-Entscheidung',
-        resolvedBy: ['dashboard-api.e2eControllabilityGovernanceStatus', 'grid-operations.netzfahrplanGenerate'],
+        resolvedBy: [
+          'dashboard-api.e2eControllabilityGovernanceStatus',
+          'grid-operations.netzfahrplanGenerate',
+        ],
         contextKeys: ['gridOperationsDecision', 'redispatchReadiness', 'section14aReadiness'],
         optional: false,
       },
       {
         id: 'market_communication_handover',
         label: 'Marktkommunikations-Abgabe',
-        resolvedBy: ['dashboard-api.e2eControllabilityGovernanceStatus', 'dashboard-api.marketCommunicationEvidenceChainStatus'],
+        resolvedBy: [
+          'dashboard-api.e2eControllabilityGovernanceStatus',
+          'dashboard-api.marketCommunicationEvidenceChainStatus',
+        ],
         contextKeys: ['marketCommunicationHandover', 'makoHandoverStatus'],
         optional: false,
       },
@@ -1475,7 +1720,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'owner_deadline_open_measure',
         label: 'Owner, Frist und offene Massnahme',
-        resolvedBy: ['dashboard-api.e2eControllabilityGovernanceStatus', 'vdmi.dossier', 'hitl.summary'],
+        resolvedBy: [
+          'dashboard-api.e2eControllabilityGovernanceStatus',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
         contextKeys: ['owner', 'deadline', 'openMeasure'],
         optional: false,
       },
@@ -1487,28 +1736,44 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'asset_inventory',
         label: 'Asset-Inventar / MaStR-Bezug',
-        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'assets.effective', 'mastr-quality.audit'],
+        resolvedBy: [
+          'dashboard-api.controllabilityAssetHandoverStatus',
+          'assets.effective',
+          'mastr-quality.audit',
+        ],
         contextKeys: ['assetId', 'mastrId'],
         optional: false,
       },
       {
         id: 'nap_melo_mapping',
         label: 'NAP-/MeLo-Zuordnung',
-        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'assets.effective', 'mastr-quality.audit'],
+        resolvedBy: [
+          'dashboard-api.controllabilityAssetHandoverStatus',
+          'assets.effective',
+          'mastr-quality.audit',
+        ],
         contextKeys: ['napId', 'meloId'],
         optional: false,
       },
       {
         id: 'technical_status',
         label: 'Technikstatus',
-        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'assets.effective', 'redispatch-expost.audit'],
+        resolvedBy: [
+          'dashboard-api.controllabilityAssetHandoverStatus',
+          'assets.effective',
+          'redispatch-expost.audit',
+        ],
         contextKeys: ['technicalStatus'],
         optional: false,
       },
       {
         id: 'feedback_capability',
         label: 'Rueckmelde-/Fernsteuerbarkeitsfaehigkeit',
-        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'redispatch-expost.audit', 'grid-operations.controlMeasures'],
+        resolvedBy: [
+          'dashboard-api.controllabilityAssetHandoverStatus',
+          'redispatch-expost.audit',
+          'grid-operations.controlMeasures',
+        ],
         contextKeys: ['feedbackCapability'],
         optional: false,
       },
@@ -1522,21 +1787,33 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'data_source_snapshot',
         label: 'Quellen-/Snapshot-Nachweis',
-        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'datapoint.health', 'datasource-registry.get'],
+        resolvedBy: [
+          'dashboard-api.controllabilityAssetHandoverStatus',
+          'datapoint.health',
+          'datasource-registry.get',
+        ],
         contextKeys: ['dataSourceRefs', 'sourceSnapshotId'],
         optional: false,
       },
       {
         id: 'check_result',
         label: 'Pruefergebnis',
-        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'mastr-quality.audit', 'redispatch-expost.audit'],
+        resolvedBy: [
+          'dashboard-api.controllabilityAssetHandoverStatus',
+          'mastr-quality.audit',
+          'redispatch-expost.audit',
+        ],
         contextKeys: ['checkStatus', 'evidenceStatus'],
         optional: false,
       },
       {
         id: 'non_execution_reason',
         label: 'Nichtdurchfuehrungsbegruendung',
-        resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'vdmi.dossier', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.controllabilityAssetHandoverStatus',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['nonExecutionReason'],
         optional: true,
       },
@@ -1576,7 +1853,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'dictionary_version',
         label: 'Dictionary-/Versionsnachweis',
-        resolvedBy: ['dashboard-api.liquidityPlanningGovernanceStatus', 'datasource-registry.check'],
+        resolvedBy: [
+          'dashboard-api.liquidityPlanningGovernanceStatus',
+          'datasource-registry.check',
+        ],
         contextKeys: ['dictionaryVersion'],
         optional: false,
       },
@@ -1625,14 +1905,21 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'validation_rule',
         label: 'Validierungsregeln',
-        resolvedBy: ['dashboard-api.liquidityPlanningGovernanceStatus', 'datasource-registry.check'],
+        resolvedBy: [
+          'dashboard-api.liquidityPlanningGovernanceStatus',
+          'datasource-registry.check',
+        ],
         contextKeys: ['validationRules', 'plausibilityChecks'],
         optional: false,
       },
       {
         id: 'correction_owner',
         label: 'Korrektur-Owner/-Workflow',
-        resolvedBy: ['dashboard-api.liquidityPlanningGovernanceStatus', 'vdmi.dossier', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.liquidityPlanningGovernanceStatus',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['ownerRaci', 'correctionWorkflow'],
         optional: false,
       },
@@ -1651,7 +1938,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'project_identity',
         label: 'Energy-Sharing Community und VNB-Kontext',
-        resolvedBy: ['dashboard-api.energySharingSimulationGateStatus', 'energy-sharing.validate', 'grid-connection.validate'],
+        resolvedBy: [
+          'dashboard-api.energySharingSimulationGateStatus',
+          'energy-sharing.validate',
+          'grid-connection.validate',
+        ],
         contextKeys: ['communityId', 'gridOperatorId'],
         optional: false,
       },
@@ -1665,7 +1956,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'malo_metering_readiness',
         label: 'MaLo-/iMSys-/MSCONS-Reife',
-        resolvedBy: ['dashboard-api.energySharingSimulationGateStatus', 'datapoint.health', 'edm-validation.validate'],
+        resolvedBy: [
+          'dashboard-api.energySharingSimulationGateStatus',
+          'datapoint.health',
+          'edm-validation.validate',
+        ],
         contextKeys: ['maloStatus', 'meteringReadiness'],
         optional: false,
       },
@@ -1679,21 +1974,32 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'data_basis',
         label: 'Datenbasis fuer Lernpilot oder abrechnungsnahe Bewertung',
-        resolvedBy: ['dashboard-api.energySharingSimulationGateStatus', 'energy-sharing-allocation.allocate'],
+        resolvedBy: [
+          'dashboard-api.energySharingSimulationGateStatus',
+          'energy-sharing-allocation.allocate',
+        ],
         contextKeys: ['dataBasis'],
         optional: false,
       },
       {
         id: 'settlement_a96_evidence',
         label: 'Settlement-/A96-Evidenz',
-        resolvedBy: ['dashboard-api.energySharingSimulationGateStatus', 'settlement.prepareA96', 'settlement.reconcileA96'],
+        resolvedBy: [
+          'dashboard-api.energySharingSimulationGateStatus',
+          'settlement.prepareA96',
+          'settlement.reconcileA96',
+        ],
         contextKeys: ['a96EvidenceRef', 'settlementEvidenceRef'],
         optional: false,
       },
       {
         id: 'contract_evidence',
         label: 'Liefer-/Teilnahmevertrags-Evidenz',
-        resolvedBy: ['dashboard-api.energySharingSimulationGateStatus', 'vdmi.dossier', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.energySharingSimulationGateStatus',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['contractEvidenceRef'],
         optional: false,
       },
@@ -1707,7 +2013,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'owner_escalation',
         label: 'Owner und Eskalationskontakt',
-        resolvedBy: ['dashboard-api.energySharingSimulationGateStatus', 'vdmi.dossier', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.energySharingSimulationGateStatus',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['owner', 'escalationContact'],
         optional: false,
       },
@@ -1733,21 +2043,30 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'settlement_readiness_hardening',
         label: 'Settlement-Readiness-Härtung',
-        resolvedBy: ['dashboard-api.energySharing42cCutoverReadinessStatus', 'settlement.prepareA96'],
+        resolvedBy: [
+          'dashboard-api.energySharing42cCutoverReadinessStatus',
+          'settlement.prepareA96',
+        ],
         contextKeys: ['settlementHardeningStatus'],
         optional: false,
       },
       {
         id: 'allocation_load_test',
         label: 'Allokations-Lasttest-Evidenz',
-        resolvedBy: ['dashboard-api.energySharing42cCutoverReadinessStatus', 'energy-sharing-allocation.allocate'],
+        resolvedBy: [
+          'dashboard-api.energySharing42cCutoverReadinessStatus',
+          'energy-sharing-allocation.allocate',
+        ],
         contextKeys: ['allocationLoadTestStatus'],
         optional: false,
       },
       {
         id: 'incident_runbook',
         label: 'Runbook- und Incident-Evidenz',
-        resolvedBy: ['dashboard-api.energySharing42cCutoverReadinessStatus', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.energySharing42cCutoverReadinessStatus',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['runbookStatus'],
         optional: false,
       },
@@ -1780,7 +2099,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'endpoint_method',
         label: 'Endpoint und HTTP-Methode',
-        resolvedBy: ['dashboard-api.evuApiMigrationDiagnosticsStatus', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.evuApiMigrationDiagnosticsStatus',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['endpoint', 'method'],
         optional: false,
       },
@@ -1822,7 +2144,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'owner_next_step',
         label: 'Owner und naechster Schritt',
-        resolvedBy: ['dashboard-api.evuApiMigrationDiagnosticsStatus', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.evuApiMigrationDiagnosticsStatus',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['owner', 'nextStep'],
         optional: false,
       },
@@ -1841,7 +2166,12 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'decision_source_catalogue',
         label: 'NOVA Decision-Quellenkatalog',
-        resolvedBy: ['dashboard-api.novaDecisionLifecycleReadinessStatus', 'mastr-quality.audit', 'redispatch-expost.audit', 'vnb-monitor'],
+        resolvedBy: [
+          'dashboard-api.novaDecisionLifecycleReadinessStatus',
+          'mastr-quality.audit',
+          'redispatch-expost.audit',
+          'vnb-monitor',
+        ],
         contextKeys: ['sourceCatalogue', 'decisionKind'],
         optional: false,
       },
@@ -1895,7 +2225,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'affected_decision',
         label: 'Betroffene operative Entscheidung',
-        resolvedBy: ['dashboard-api.legalClarificationOperatingModelStatus', 'grid-operations.netzfahrplanGenerate', 'grid-connection.fnavValidate'],
+        resolvedBy: [
+          'dashboard-api.legalClarificationOperatingModelStatus',
+          'grid-operations.netzfahrplanGenerate',
+          'grid-connection.fnavValidate',
+        ],
         contextKeys: ['affectedDecision'],
         optional: false,
       },
@@ -1909,7 +2243,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'no_regret_data_needs',
         label: 'No-Regret-Datenbedarf',
-        resolvedBy: ['dashboard-api.legalClarificationOperatingModelStatus', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.legalClarificationOperatingModelStatus',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['noRegretDataNeeds'],
         optional: false,
       },
@@ -1949,7 +2286,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'application_status',
         label: 'Antrags-/Intake-Nachweis',
-        resolvedBy: ['dashboard-api.specialGridUsageImpactMapStatus', 'datapoint.health', 'datasource-registry.get'],
+        resolvedBy: [
+          'dashboard-api.specialGridUsageImpactMapStatus',
+          'datapoint.health',
+          'datasource-registry.get',
+        ],
         contextKeys: ['applicationStatus', 'caseId'],
         optional: false,
       },
@@ -1970,7 +2311,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'quantity_basis',
         label: 'Mengenbasis',
-        resolvedBy: ['dashboard-api.specialGridUsageImpactMapStatus', 'datapoint.health', 'datasource-registry.get'],
+        resolvedBy: [
+          'dashboard-api.specialGridUsageImpactMapStatus',
+          'datapoint.health',
+          'datasource-registry.get',
+        ],
         contextKeys: ['quantityBasis', 'sourceDatapoints'],
         optional: false,
       },
@@ -2012,7 +2357,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'owner_role',
         label: 'Owner / naechste Rolle',
-        resolvedBy: ['dashboard-api.specialGridUsageImpactMapStatus', 'vdmi.dossier', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.specialGridUsageImpactMapStatus',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['ownerRole'],
         optional: false,
       },
@@ -2066,7 +2415,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'owner',
         label: 'DR Owner',
-        resolvedBy: ['dashboard-api.drReadinessEvidenceStatus', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.drReadinessEvidenceStatus',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['owner'],
         optional: false,
       },
@@ -2099,14 +2451,21 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'cls_interface_scope',
         label: 'CLS-Schnittstellenumfang',
-        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.clsDigitalTwinComplianceGateStatus',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['clsInterfaceScope'],
         optional: false,
       },
       {
         id: 'data_flow_map',
         label: 'Datenflusskarte',
-        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'datasource-registry.get', 'datapoint.health'],
+        resolvedBy: [
+          'dashboard-api.clsDigitalTwinComplianceGateStatus',
+          'datasource-registry.get',
+          'datapoint.health',
+        ],
         contextKeys: ['dataFlowMap'],
         optional: false,
       },
@@ -2134,28 +2493,40 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'avv_status',
         label: 'AVV-Status',
-        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.clsDigitalTwinComplianceGateStatus',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['avvStatus'],
         optional: false,
       },
       {
         id: 'nda_status',
         label: 'NDA-Status',
-        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.clsDigitalTwinComplianceGateStatus',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['ndaStatus'],
         optional: false,
       },
       {
         id: 'works_council_status',
         label: 'Betriebsvereinbarung/BR-Status',
-        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.clsDigitalTwinComplianceGateStatus',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['worksCouncilStatus'],
         optional: false,
       },
       {
         id: 'dsfa_status',
         label: 'DSFA-Status',
-        resolvedBy: ['dashboard-api.clsDigitalTwinComplianceGateStatus', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.clsDigitalTwinComplianceGateStatus',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['dsfaStatus'],
         optional: false,
       },
@@ -2209,28 +2580,40 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'control_technology',
         label: 'Bestands-Steuertechnik',
-        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'grid-operations.controlMeasures'],
+        resolvedBy: [
+          'dashboard-api.legacyControlTechnologyTransitionStatus',
+          'grid-operations.controlMeasures',
+        ],
         contextKeys: ['controlTechnology'],
         optional: false,
       },
       {
         id: 'feedback_capability',
         label: 'Rueckmeldefaehigkeit',
-        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'edm-messkonzept.evaluate'],
+        resolvedBy: [
+          'dashboard-api.legacyControlTechnologyTransitionStatus',
+          'edm-messkonzept.evaluate',
+        ],
         contextKeys: ['feedbackCapability'],
         optional: false,
       },
       {
         id: 'switching_risk',
         label: 'Schaltrisiko',
-        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'grid-operations.controlMeasures'],
+        resolvedBy: [
+          'dashboard-api.legacyControlTechnologyTransitionStatus',
+          'grid-operations.controlMeasures',
+        ],
         contextKeys: ['switchingRisk'],
         optional: false,
       },
       {
         id: 'test_feasibility',
         label: 'Testbarkeit',
-        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.legacyControlTechnologyTransitionStatus',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['testFeasibility'],
         optional: false,
       },
@@ -2272,7 +2655,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_evidence_refs',
         label: 'Quellenreferenzen',
-        resolvedBy: ['dashboard-api.legacyControlTechnologyTransitionStatus', 'vdmi-evidence.inject'],
+        resolvedBy: [
+          'dashboard-api.legacyControlTechnologyTransitionStatus',
+          'vdmi-evidence.inject',
+        ],
         contextKeys: ['sourceEvidenceRefs'],
         optional: false,
       },
@@ -2305,35 +2691,53 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_list',
         label: 'Quellenliste',
-        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'datapoint.health', 'edm-validation.validate'],
+        resolvedBy: [
+          'dashboard-api.controllabilitySubmissionCockpitStatus',
+          'datapoint.health',
+          'edm-validation.validate',
+        ],
         contextKeys: ['sourceList'],
         optional: false,
       },
       {
         id: 'data_reconciliation_status',
         label: 'Datenabgleich',
-        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'edm-validation.validate'],
+        resolvedBy: [
+          'dashboard-api.controllabilitySubmissionCockpitStatus',
+          'edm-validation.validate',
+        ],
         contextKeys: ['dataReconciliationStatus'],
         optional: false,
       },
       {
         id: 'reason_catalog',
         label: 'Begruendungskatalog',
-        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'vdmi.findings', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.controllabilitySubmissionCockpitStatus',
+          'vdmi.findings',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['reasonCatalog'],
         optional: false,
       },
       {
         id: 'asset_group_statuses',
         label: 'Assetgruppenstatus',
-        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'grid-operations.controlMeasures'],
+        resolvedBy: [
+          'dashboard-api.controllabilitySubmissionCockpitStatus',
+          'grid-operations.controlMeasures',
+        ],
         contextKeys: ['assetGroupStatuses'],
         optional: false,
       },
       {
         id: 'open_measures',
         label: 'Offene Massnahmen',
-        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'hitl.summary', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.controllabilitySubmissionCockpitStatus',
+          'hitl.summary',
+          'vdmi.dossier',
+        ],
         contextKeys: ['openMeasures'],
         optional: false,
       },
@@ -2361,7 +2765,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_evidence_refs',
         label: 'Quellenreferenzen',
-        resolvedBy: ['dashboard-api.controllabilitySubmissionCockpitStatus', 'vdmi-evidence.inject'],
+        resolvedBy: [
+          'dashboard-api.controllabilitySubmissionCockpitStatus',
+          'vdmi-evidence.inject',
+        ],
         contextKeys: ['sourceEvidenceRefs'],
         optional: false,
       },
@@ -2422,7 +2829,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'next_gate',
         label: 'Naechstes Entscheidungsgate',
-        resolvedBy: ['dashboard-api.crisisDecisionRoutineStatus', 'nova.pendingDecisions', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.crisisDecisionRoutineStatus',
+          'nova.pendingDecisions',
+          'vdmi.dossier',
+        ],
         contextKeys: ['nextGate', 'decisionDeadline'],
         optional: false,
       },
@@ -2448,21 +2859,32 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'investment_item',
         label: 'Investmittelposition',
-        resolvedBy: ['dashboard-api.investmentCommitteeSteeringCardsStatus', 'investment-planning.createPlan'],
+        resolvedBy: [
+          'dashboard-api.investmentCommitteeSteeringCardsStatus',
+          'investment-planning.createPlan',
+        ],
         contextKeys: ['investmentItemId'],
         optional: false,
       },
       {
         id: 'asset_project_reference',
         label: 'Asset- oder Projektbezug',
-        resolvedBy: ['dashboard-api.investmentCommitteeSteeringCardsStatus', 'investment-planning.createPlan', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.investmentCommitteeSteeringCardsStatus',
+          'investment-planning.createPlan',
+          'vdmi.dossier',
+        ],
         contextKeys: ['assetId', 'projectId'],
         optional: false,
       },
       {
         id: 'review_status',
         label: 'Pruefstatus',
-        resolvedBy: ['dashboard-api.investmentCommitteeSteeringCardsStatus', 'vdmi.dossier', 'hitl.summary'],
+        resolvedBy: [
+          'dashboard-api.investmentCommitteeSteeringCardsStatus',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
         contextKeys: ['reviewStatus'],
         optional: false,
       },
@@ -2476,14 +2898,22 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'committee_window',
         label: 'Gremienfenster',
-        resolvedBy: ['dashboard-api.investmentCommitteeSteeringCardsStatus', 'vdmi.dossier', 'hitl.summary'],
+        resolvedBy: [
+          'dashboard-api.investmentCommitteeSteeringCardsStatus',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
         contextKeys: ['committeeWindow'],
         optional: false,
       },
       {
         id: 'owner',
         label: 'Accountable Owner',
-        resolvedBy: ['dashboard-api.investmentCommitteeSteeringCardsStatus', 'vdmi.dossier', 'hitl.summary'],
+        resolvedBy: [
+          'dashboard-api.investmentCommitteeSteeringCardsStatus',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
         contextKeys: ['owner'],
         optional: false,
       },
@@ -2497,7 +2927,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_refs',
         label: 'Quellenreferenzen',
-        resolvedBy: ['dashboard-api.investmentCommitteeSteeringCardsStatus', 'vdmi-evidence.inject'],
+        resolvedBy: [
+          'dashboard-api.investmentCommitteeSteeringCardsStatus',
+          'vdmi-evidence.inject',
+        ],
         contextKeys: ['sourceRef'],
         optional: false,
       },
@@ -2509,21 +2942,33 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_data_package',
         label: 'Datenpaket / Quelle',
-        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'datasource-registry.list', 'datasource-cache.query'],
+        resolvedBy: [
+          'dashboard-api.investmentDataReviewQueueStatus',
+          'datasource-registry.list',
+          'datasource-cache.query',
+        ],
         contextKeys: ['sourceId', 'dataPackageId'],
         optional: false,
       },
       {
         id: 'asset_project_reference',
         label: 'Asset- oder Projektbezug',
-        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'investment-planning.createPlan', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.investmentDataReviewQueueStatus',
+          'investment-planning.createPlan',
+          'vdmi.dossier',
+        ],
         contextKeys: ['assetRef', 'projectRef'],
         optional: false,
       },
       {
         id: 'quality_status',
         label: 'Datenqualitaetsstatus',
-        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'datasource-cache.query', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.investmentDataReviewQueueStatus',
+          'datasource-cache.query',
+          'vdmi.dossier',
+        ],
         contextKeys: ['qualityStatus'],
         optional: false,
       },
@@ -2537,21 +2982,33 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'bottleneck_ref',
         label: 'Engpass-/Netzwirkungsbezug',
-        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'investment-planning.createPlan', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.investmentDataReviewQueueStatus',
+          'investment-planning.createPlan',
+          'vdmi.dossier',
+        ],
         contextKeys: ['bottleneckRef'],
         optional: false,
       },
       {
         id: 'owner',
         label: 'Accountable Owner',
-        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'vdmi.dossier', 'hitl.summary'],
+        resolvedBy: [
+          'dashboard-api.investmentDataReviewQueueStatus',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
         contextKeys: ['owner'],
         optional: false,
       },
       {
         id: 'committee_window',
         label: 'Gremienfenster',
-        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'vdmi.dossier', 'hitl.summary'],
+        resolvedBy: [
+          'dashboard-api.investmentDataReviewQueueStatus',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
         contextKeys: ['committeeWindow'],
         optional: false,
       },
@@ -2565,7 +3022,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'review_status',
         label: 'Reviewstatus',
-        resolvedBy: ['dashboard-api.investmentDataReviewQueueStatus', 'vdmi.dossier', 'hitl.summary'],
+        resolvedBy: [
+          'dashboard-api.investmentDataReviewQueueStatus',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
         contextKeys: ['reviewStatus'],
         optional: false,
       },
@@ -2591,7 +3052,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'affected_process',
         label: 'Betroffener Prozess',
-        resolvedBy: ['dashboard-api.flexStrategicDemandIntakeStatus', 'flex.status', 'znp.projects'],
+        resolvedBy: [
+          'dashboard-api.flexStrategicDemandIntakeStatus',
+          'flex.status',
+          'znp.projects',
+        ],
         contextKeys: ['affectedProcess'],
         optional: false,
       },
@@ -2626,14 +3091,22 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'owner',
         label: 'Accountable Owner',
-        resolvedBy: ['dashboard-api.flexStrategicDemandIntakeStatus', 'vdmi.dossier', 'hitl.summary'],
+        resolvedBy: [
+          'dashboard-api.flexStrategicDemandIntakeStatus',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
         contextKeys: ['owner'],
         optional: false,
       },
       {
         id: 'next_decision_gate',
         label: 'Naechstes Entscheidungsgate',
-        resolvedBy: ['dashboard-api.flexStrategicDemandIntakeStatus', 'nova.pendingDecisions', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.flexStrategicDemandIntakeStatus',
+          'nova.pendingDecisions',
+          'vdmi.dossier',
+        ],
         contextKeys: ['nextDecisionGate'],
         optional: false,
       },
@@ -2648,7 +3121,14 @@ const EVIDENCE_REGISTRY = Object.freeze({
         id: 'source_refs',
         label: 'Quellenreferenzen',
         resolvedBy: ['dashboard-api.flexStrategicDemandIntakeStatus', 'vdmi-evidence.inject'],
-        contextKeys: ['sourceRef', 'flexContext', 'znpContext', 'novaContext', 'financeContext', 'vdmiContext'],
+        contextKeys: [
+          'sourceRef',
+          'flexContext',
+          'znpContext',
+          'novaContext',
+          'financeContext',
+          'vdmiContext',
+        ],
         optional: false,
       },
     ],
@@ -2659,14 +3139,23 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'technical_fact',
         label: 'Technischer Gas-Infrastruktur-Sachverhalt',
-        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'vdmi.dossier', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.gasInfrastructureRiskGovernanceStatus',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['technicalFact', 'caseId'],
         optional: false,
       },
       {
         id: 'impact_area',
         label: 'Auswirkungsraum',
-        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'assets.effective', 'grid-operations.summary', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.gasInfrastructureRiskGovernanceStatus',
+          'assets.effective',
+          'grid-operations.summary',
+          'vdmi.dossier',
+        ],
         contextKeys: ['impactArea', 'assetContext'],
         optional: false,
       },
@@ -2687,7 +3176,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'existing_mitigation',
         label: 'Bestehende Absicherung / Monitoring',
-        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'vdmi.dossier', 'hitl.summary'],
+        resolvedBy: [
+          'dashboard-api.gasInfrastructureRiskGovernanceStatus',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
         contextKeys: ['existingMitigation'],
         optional: false,
       },
@@ -2701,21 +3194,33 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'risk_register_decision',
         label: 'Risikoregister-Entscheidungspfad',
-        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'vdmi.dossier', 'hitl.summary'],
+        resolvedBy: [
+          'dashboard-api.gasInfrastructureRiskGovernanceStatus',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
         contextKeys: ['riskRegisterDecision'],
         optional: false,
       },
       {
         id: 'owner',
         label: 'Accountable Owner',
-        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'vdmi.dossier', 'hitl.summary'],
+        resolvedBy: [
+          'dashboard-api.gasInfrastructureRiskGovernanceStatus',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
         contextKeys: ['owner'],
         optional: false,
       },
       {
         id: 'next_decision_window',
         label: 'Naechstes Entscheidungsfenster',
-        resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'vdmi.dossier', 'hitl.summary'],
+        resolvedBy: [
+          'dashboard-api.gasInfrastructureRiskGovernanceStatus',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
         contextKeys: ['nextDecisionWindow'],
         optional: false,
       },
@@ -2730,7 +3235,13 @@ const EVIDENCE_REGISTRY = Object.freeze({
         id: 'source_refs',
         label: 'Quellenreferenzen',
         resolvedBy: ['dashboard-api.gasInfrastructureRiskGovernanceStatus', 'vdmi-evidence.inject'],
-        contextKeys: ['sourceRef', 'vdmiContext', 'hitlContext', 'interfacePlaceholderContext', 'assetContext'],
+        contextKeys: [
+          'sourceRef',
+          'vdmiContext',
+          'hitlContext',
+          'interfacePlaceholderContext',
+          'assetContext',
+        ],
         optional: false,
       },
     ],
@@ -2741,63 +3252,99 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'division',
         label: 'Sparte / Waermetransformations-Scope',
-        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'znp.listProjects', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.heatTransformationLineAssetModelStatus',
+          'znp.listProjects',
+          'vdmi.dossier',
+        ],
         contextKeys: ['division'],
         optional: false,
       },
       {
         id: 'line_asset_id',
         label: 'Line Asset ID',
-        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'znp.getProjectAssets', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.heatTransformationLineAssetModelStatus',
+          'znp.getProjectAssets',
+          'vdmi.dossier',
+        ],
         contextKeys: ['lineAssetId'],
         optional: false,
       },
       {
         id: 'geometry_ref',
         label: 'Geometrie-Referenz',
-        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'assets.effective', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.heatTransformationLineAssetModelStatus',
+          'assets.effective',
+          'vdmi.dossier',
+        ],
         contextKeys: ['geometryRef'],
         optional: false,
       },
       {
         id: 'connected_point_asset_ids',
         label: 'Topologische Punkt-Assets',
-        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'znp.getProjectAssets', 'assets.effective'],
+        resolvedBy: [
+          'dashboard-api.heatTransformationLineAssetModelStatus',
+          'znp.getProjectAssets',
+          'assets.effective',
+        ],
         contextKeys: ['connectedPointAssetIds'],
         optional: false,
       },
       {
         id: 'network_calculation_ref',
         label: 'Netzberechnungsreferenz',
-        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'datapoint.health', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.heatTransformationLineAssetModelStatus',
+          'datapoint.health',
+          'vdmi.dossier',
+        ],
         contextKeys: ['networkCalculationRef'],
         optional: false,
       },
       {
         id: 'data_quality_status',
         label: 'Datenqualitaetsstatus',
-        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'datapoint.health', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.heatTransformationLineAssetModelStatus',
+          'datapoint.health',
+          'vdmi.dossier',
+        ],
         contextKeys: ['dataQualityStatus'],
         optional: false,
       },
       {
         id: 'transformation_status',
         label: 'Waermetransformationsstatus',
-        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'znp.listProjects', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.heatTransformationLineAssetModelStatus',
+          'znp.listProjects',
+          'vdmi.dossier',
+        ],
         contextKeys: ['transformationStatus'],
         optional: false,
       },
       {
         id: 'future_option',
         label: 'Zukunftsoption / Technologieoption',
-        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'znp.listProjects', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.heatTransformationLineAssetModelStatus',
+          'znp.listProjects',
+          'vdmi.dossier',
+        ],
         contextKeys: ['futureOption'],
         optional: false,
       },
       {
         id: 'investment_need',
         label: 'Investitionsbedarf',
-        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'finance-agent.analyze', 'investment-planning.createPlan'],
+        resolvedBy: [
+          'dashboard-api.heatTransformationLineAssetModelStatus',
+          'finance-agent.analyze',
+          'investment-planning.createPlan',
+        ],
         contextKeys: ['investmentNeed'],
         optional: false,
       },
@@ -2818,7 +3365,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_refs',
         label: 'Quellenreferenzen',
-        resolvedBy: ['dashboard-api.heatTransformationLineAssetModelStatus', 'vdmi-evidence.inject'],
+        resolvedBy: [
+          'dashboard-api.heatTransformationLineAssetModelStatus',
+          'vdmi-evidence.inject',
+        ],
         contextKeys: ['sourceRef'],
         optional: false,
       },
@@ -2837,42 +3387,66 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'technical_measures',
         label: 'Technische Massnahmen',
-        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'assets.effective', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.heatAssetTariffSteeringStatus',
+          'assets.effective',
+          'vdmi.dossier',
+        ],
         contextKeys: ['technicalMeasures'],
         optional: false,
       },
       {
         id: 'tariff_impact_status',
         label: 'Tarifwirkung',
-        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'business-intelligence.dynamicTariffCalculator', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.heatAssetTariffSteeringStatus',
+          'business-intelligence.dynamicTariffCalculator',
+          'vdmi.dossier',
+        ],
         contextKeys: ['tariffImpactStatus'],
         optional: false,
       },
       {
         id: 'regulatory_uncertainty',
         label: 'Regulatorische Unsicherheit',
-        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'finance-agent.analyze', 'eog-calculator.scenario'],
+        resolvedBy: [
+          'dashboard-api.heatAssetTariffSteeringStatus',
+          'finance-agent.analyze',
+          'eog-calculator.scenario',
+        ],
         contextKeys: ['regulatoryUncertainty'],
         optional: false,
       },
       {
         id: 'funding_status',
         label: 'Foerderstatus',
-        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'finance-agent.analyze', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.heatAssetTariffSteeringStatus',
+          'finance-agent.analyze',
+          'vdmi.dossier',
+        ],
         contextKeys: ['fundingStatus'],
         optional: false,
       },
       {
         id: 'customer_impact',
         label: 'Kundenauswirkung',
-        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'business-intelligence.dynamicTariffCalculator', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.heatAssetTariffSteeringStatus',
+          'business-intelligence.dynamicTariffCalculator',
+          'vdmi.dossier',
+        ],
         contextKeys: ['customerImpact'],
         optional: false,
       },
       {
         id: 'investment_priority',
         label: 'Investment Priority',
-        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'finance-agent.analyze', 'investment-planning.createPlan'],
+        resolvedBy: [
+          'dashboard-api.heatAssetTariffSteeringStatus',
+          'finance-agent.analyze',
+          'investment-planning.createPlan',
+        ],
         contextKeys: ['investmentPriority'],
         optional: false,
       },
@@ -2893,7 +3467,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'blocked_follow_up_action',
         label: 'Blocked Follow-Up Action',
-        resolvedBy: ['dashboard-api.heatAssetTariffSteeringStatus', 'investment-planning.createPlan', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.heatAssetTariffSteeringStatus',
+          'investment-planning.createPlan',
+          'vdmi.dossier',
+        ],
         contextKeys: ['blockedFollowUpAction'],
         optional: false,
       },
@@ -2926,7 +3504,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'znp_alignment',
         label: 'Zielnetzbezug',
-        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'znp.assessPortfolio', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.techCommercialOfferCockpitStatus',
+          'znp.assessPortfolio',
+          'vdmi.dossier',
+        ],
         contextKeys: ['znpAlignment'],
         optional: false,
       },
@@ -2940,7 +3522,12 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'technical_restriction',
         label: 'Technische Restriktion',
-        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'grid-connection.validate', 'grid-operations.connectionCapacityCheck', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.techCommercialOfferCockpitStatus',
+          'grid-connection.validate',
+          'grid-operations.connectionCapacityCheck',
+          'vdmi.dossier',
+        ],
         contextKeys: ['technicalRestriction'],
         optional: false,
       },
@@ -2954,28 +3541,46 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'technical_status',
         label: 'Technischer Status',
-        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'grid-connection.validate', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.techCommercialOfferCockpitStatus',
+          'grid-connection.validate',
+          'vdmi.dossier',
+        ],
         contextKeys: ['technicalStatus'],
         optional: false,
       },
       {
         id: 'capacity_utilization',
         label: 'Auslastung',
-        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'grid-operations.capacityUtilization', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.techCommercialOfferCockpitStatus',
+          'grid-operations.capacityUtilization',
+          'vdmi.dossier',
+        ],
         contextKeys: ['capacityUtilization'],
         optional: false,
       },
       {
         id: 'fnav_contract_logic',
         label: 'fNAV Vertragslage',
-        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'grid-connection.fnavValidate', 'grid-operations.netzfahrplanGenerate', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.techCommercialOfferCockpitStatus',
+          'grid-connection.fnavValidate',
+          'grid-operations.netzfahrplanGenerate',
+          'vdmi.dossier',
+        ],
         contextKeys: ['fnavContractLogic'],
         optional: false,
       },
       {
         id: 'commercial_assumptions',
         label: 'Kaufmännische Annahmen',
-        resolvedBy: ['dashboard-api.techCommercialOfferCockpitStatus', 'finance-agent.fnavEconomics', 'finance-agent.analyze', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.techCommercialOfferCockpitStatus',
+          'finance-agent.fnavEconomics',
+          'finance-agent.analyze',
+          'vdmi.dossier',
+        ],
         contextKeys: ['commercialAssumptions'],
         optional: false,
       },
@@ -3008,21 +3613,33 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'use_case_priority',
         label: 'Use-Case-Prioritaet',
-        resolvedBy: ['dashboard-api.kiFloorwalkerGovernanceStatus', 'personal-agent.chat', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.kiFloorwalkerGovernanceStatus',
+          'personal-agent.chat',
+          'vdmi.dossier',
+        ],
         contextKeys: ['useCasePriority'],
         optional: false,
       },
       {
         id: 'allowed_dataspaces',
         label: 'Erlaubte Datenraeume',
-        resolvedBy: ['dashboard-api.kiFloorwalkerGovernanceStatus', 'datapoint.oemetadata', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.kiFloorwalkerGovernanceStatus',
+          'datapoint.oemetadata',
+          'vdmi.dossier',
+        ],
         contextKeys: ['allowedDataspaces'],
         optional: false,
       },
       {
         id: 'prompt_standards',
         label: 'Prompt-Standards / Prompt-Bausteine',
-        resolvedBy: ['dashboard-api.kiFloorwalkerGovernanceStatus', 'personal-agent.chat', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.kiFloorwalkerGovernanceStatus',
+          'personal-agent.chat',
+          'vdmi.dossier',
+        ],
         contextKeys: ['promptStandards'],
         optional: false,
       },
@@ -3076,21 +3693,33 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'budget_amount',
         label: 'Mittelbindung / Investitionsbudget',
-        resolvedBy: ['dashboard-api.investmentWaterfallGovernanceStatus', 'personal-agent.chat', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.investmentWaterfallGovernanceStatus',
+          'personal-agent.chat',
+          'vdmi.dossier',
+        ],
         contextKeys: ['budgetAmount'],
         optional: false,
       },
       {
         id: 'bottleneck_ref',
         label: 'Netzengpass / Netznutzungsbezug',
-        resolvedBy: ['dashboard-api.investmentWaterfallGovernanceStatus', 'datapoint.oemetadata', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.investmentWaterfallGovernanceStatus',
+          'datapoint.oemetadata',
+          'vdmi.dossier',
+        ],
         contextKeys: ['bottleneckRef'],
         optional: false,
       },
       {
         id: 'committee_window',
         label: 'Gremienfenster / Kalender-Slot',
-        resolvedBy: ['dashboard-api.investmentWaterfallGovernanceStatus', 'personal-agent.chat', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.investmentWaterfallGovernanceStatus',
+          'personal-agent.chat',
+          'vdmi.dossier',
+        ],
         contextKeys: ['committeeWindow'],
         optional: false,
       },
@@ -3118,7 +3747,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'mandate_status',
         label: 'Mandatsstatus',
-        resolvedBy: ['dashboard-api.investmentWaterfallGovernanceStatus', 'cya.generate', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.investmentWaterfallGovernanceStatus',
+          'cya.generate',
+          'vdmi.dossier',
+        ],
         contextKeys: ['mandateStatus'],
         optional: false,
       },
@@ -3144,21 +3777,33 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'taf2_obligation',
         label: 'TAF2-Pflicht Einbaufall',
-        resolvedBy: ['dashboard-api.imsysTaf2ComplianceStatus', 'personal-agent.chat', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.imsysTaf2ComplianceStatus',
+          'personal-agent.chat',
+          'vdmi.dossier',
+        ],
         contextKeys: ['taf2Obligation'],
         optional: false,
       },
       {
         id: 'target_deadline',
         label: 'Soll-Frist Einbau',
-        resolvedBy: ['dashboard-api.imsysTaf2ComplianceStatus', 'datapoint.oemetadata', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.imsysTaf2ComplianceStatus',
+          'datapoint.oemetadata',
+          'vdmi.dossier',
+        ],
         contextKeys: ['targetDeadline'],
         optional: false,
       },
       {
         id: 'tariff_model',
         label: 'Variables Tarifmodell',
-        resolvedBy: ['dashboard-api.imsysTaf2ComplianceStatus', 'personal-agent.chat', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.imsysTaf2ComplianceStatus',
+          'personal-agent.chat',
+          'vdmi.dossier',
+        ],
         contextKeys: ['tariffModel'],
         optional: false,
       },
@@ -3289,7 +3934,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_refs',
         label: 'Quellenreferenzen',
-        resolvedBy: ['dashboard-api.scheduleManagementGovernanceRoadmapStatus', 'vdmi-evidence.inject'],
+        resolvedBy: [
+          'dashboard-api.scheduleManagementGovernanceRoadmapStatus',
+          'vdmi-evidence.inject',
+        ],
         contextKeys: ['sourceRef'],
         optional: false,
       },
@@ -3439,7 +4087,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_refs',
         label: 'Quellenreferenzen',
-        resolvedBy: ['dashboard-api.gridConnectionTransformationGateStatus', 'vdmi-evidence.inject'],
+        resolvedBy: [
+          'dashboard-api.gridConnectionTransformationGateStatus',
+          'vdmi-evidence.inject',
+        ],
         contextKeys: ['sourceRef'],
         optional: false,
       },
@@ -3451,42 +4102,66 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'utilization',
         label: 'Netzauslastung',
-        resolvedBy: ['dashboard-api.capacityContractRiskAssetCockpitStatus', 'grid-operations.capacityUtilization', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.capacityContractRiskAssetCockpitStatus',
+          'grid-operations.capacityUtilization',
+          'vdmi.dossier',
+        ],
         contextKeys: ['utilization'],
         optional: false,
       },
       {
         id: 'bottleneck',
         label: 'Engpass-Situation',
-        resolvedBy: ['dashboard-api.capacityContractRiskAssetCockpitStatus', 'grid-operations.netzfahrplanGenerate', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.capacityContractRiskAssetCockpitStatus',
+          'grid-operations.netzfahrplanGenerate',
+          'vdmi.dossier',
+        ],
         contextKeys: ['bottleneck'],
         optional: false,
       },
       {
         id: 'contract_status',
         label: 'Vertragsstatus',
-        resolvedBy: ['dashboard-api.capacityContractRiskAssetCockpitStatus', 'grid-operations.netzfahrplanGenerate', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.capacityContractRiskAssetCockpitStatus',
+          'grid-operations.netzfahrplanGenerate',
+          'vdmi.dossier',
+        ],
         contextKeys: ['contractStatus'],
         optional: false,
       },
       {
         id: 'legal_status',
         label: 'Regulatorischer Legal-Status',
-        resolvedBy: ['dashboard-api.capacityContractRiskAssetCockpitStatus', 'personal-agent.chat', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.capacityContractRiskAssetCockpitStatus',
+          'personal-agent.chat',
+          'vdmi.dossier',
+        ],
         contextKeys: ['legalStatus'],
         optional: false,
       },
       {
         id: 'capex',
         label: 'CAPEX Investitionsoption',
-        resolvedBy: ['dashboard-api.capacityContractRiskAssetCockpitStatus', 'finance-agent.fnavEconomics', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.capacityContractRiskAssetCockpitStatus',
+          'finance-agent.fnavEconomics',
+          'vdmi.dossier',
+        ],
         contextKeys: ['capex'],
         optional: false,
       },
       {
         id: 'opex',
         label: 'OPEX Betriebskosten',
-        resolvedBy: ['dashboard-api.capacityContractRiskAssetCockpitStatus', 'finance-agent.analyze', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.capacityContractRiskAssetCockpitStatus',
+          'finance-agent.analyze',
+          'vdmi.dossier',
+        ],
         contextKeys: ['opex'],
         optional: false,
       },
@@ -3507,7 +4182,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_refs',
         label: 'Quellenreferenzen',
-        resolvedBy: ['dashboard-api.capacityContractRiskAssetCockpitStatus', 'vdmi-evidence.inject'],
+        resolvedBy: [
+          'dashboard-api.capacityContractRiskAssetCockpitStatus',
+          'vdmi-evidence.inject',
+        ],
         contextKeys: ['sourceRef'],
         optional: false,
       },
@@ -3519,49 +4197,77 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'division',
         label: 'Sparte / Messwesen-Scope',
-        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'datasource-registry.list', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.meteringRolloutProcessIndicatorStatus',
+          'datasource-registry.list',
+          'vdmi.dossier',
+        ],
         contextKeys: ['division'],
         optional: false,
       },
       {
         id: 'source_type',
         label: 'Quellentyp',
-        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'datasource-registry.list', 'edm.getTimeseriesSummary'],
+        resolvedBy: [
+          'dashboard-api.meteringRolloutProcessIndicatorStatus',
+          'datasource-registry.list',
+          'edm.getTimeseriesSummary',
+        ],
         contextKeys: ['sourceType'],
         optional: false,
       },
       {
         id: 'target_count',
         label: 'Soll-Zaehler / Rolloutziel',
-        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'datasource-cache.query', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.meteringRolloutProcessIndicatorStatus',
+          'datasource-cache.query',
+          'vdmi.dossier',
+        ],
         contextKeys: ['targetCount'],
         optional: false,
       },
       {
         id: 'actual_count',
         label: 'Ist-Zaehler / Rolloutstand',
-        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'datasource-cache.query', 'edm.getTimeseriesSummary'],
+        resolvedBy: [
+          'dashboard-api.meteringRolloutProcessIndicatorStatus',
+          'datasource-cache.query',
+          'edm.getTimeseriesSummary',
+        ],
         contextKeys: ['actualCount'],
         optional: false,
       },
       {
         id: 'backlog_count',
         label: 'Rueckstand',
-        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'in-memory-join.join', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.meteringRolloutProcessIndicatorStatus',
+          'in-memory-join.join',
+          'vdmi.dossier',
+        ],
         contextKeys: ['backlogCount', 'targetCount', 'actualCount'],
         optional: false,
       },
       {
         id: 'data_quality_status',
         label: 'Datenqualitaetsstatus',
-        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'datasource-cache.query', 'vdmi.dossier'],
+        resolvedBy: [
+          'dashboard-api.meteringRolloutProcessIndicatorStatus',
+          'datasource-cache.query',
+          'vdmi.dossier',
+        ],
         contextKeys: ['dataQualityStatus'],
         optional: false,
       },
       {
         id: 'contractor_load',
         label: 'Dienstleisterlast',
-        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'vdmi.dossier', 'hitl.summary'],
+        resolvedBy: [
+          'dashboard-api.meteringRolloutProcessIndicatorStatus',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
         contextKeys: ['contractorLoad'],
         optional: false,
       },
@@ -3582,14 +4288,22 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'owner',
         label: 'Accountable Owner',
-        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'vdmi.dossier', 'hitl.summary'],
+        resolvedBy: [
+          'dashboard-api.meteringRolloutProcessIndicatorStatus',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
         contextKeys: ['owner'],
         optional: false,
       },
       {
         id: 'next_control_step',
         label: 'Naechster Steuerungsschritt',
-        resolvedBy: ['dashboard-api.meteringRolloutProcessIndicatorStatus', 'vdmi.dossier', 'hitl.summary'],
+        resolvedBy: [
+          'dashboard-api.meteringRolloutProcessIndicatorStatus',
+          'vdmi.dossier',
+          'hitl.summary',
+        ],
         contextKeys: ['nextControlStep'],
         optional: false,
       },
@@ -3752,7 +4466,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'fnav_profile',
         label: 'fNAV request profile',
-        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'grid-connection.fnavValidate'],
+        resolvedBy: [
+          'dashboard-api.fnavFastTrackContractGateStatus',
+          'grid-connection.fnavValidate',
+        ],
         contextKeys: ['requestType', 'assetOrLoadType', 'requestedCapacityKW', 'fnavProfile'],
         optional: false,
       },
@@ -3766,14 +4483,20 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'netzsignal_priority_policy',
         label: 'Network-signal priority policy',
-        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'grid-connection.fnavValidate'],
+        resolvedBy: [
+          'dashboard-api.fnavFastTrackContractGateStatus',
+          'grid-connection.fnavValidate',
+        ],
         contextKeys: ['netzsignalPriorityPolicy', 'networkSignalPriority'],
         optional: false,
       },
       {
         id: 'schedule_obligation',
         label: 'Fahrplanpflicht',
-        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'grid-operations.netzfahrplanGenerate'],
+        resolvedBy: [
+          'dashboard-api.fnavFastTrackContractGateStatus',
+          'grid-operations.netzfahrplanGenerate',
+        ],
         contextKeys: ['scheduleObligation'],
         optional: false,
       },
@@ -3787,7 +4510,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'control_evidence_ref',
         label: 'Control evidence reference',
-        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.fnavFastTrackContractGateStatus',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['controlEvidenceRef'],
         optional: false,
       },
@@ -3815,21 +4541,30 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'commercial_impact',
         label: 'Commercial impact',
-        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'finance-agent.fnavEconomics'],
+        resolvedBy: [
+          'dashboard-api.fnavFastTrackContractGateStatus',
+          'finance-agent.fnavEconomics',
+        ],
         contextKeys: ['commercialImpact'],
         optional: true,
       },
       {
         id: 'marketing_boundary',
         label: 'Marketing boundary',
-        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'fnav-commercial-hedging.createScenario'],
+        resolvedBy: [
+          'dashboard-api.fnavFastTrackContractGateStatus',
+          'fnav-commercial-hedging.createScenario',
+        ],
         contextKeys: ['marketingBoundaries'],
         optional: true,
       },
       {
         id: 'break_criteria',
         label: 'Break criteria',
-        resolvedBy: ['dashboard-api.fnavFastTrackContractGateStatus', 'vdmi-portfolio-gatekeeping.gate'],
+        resolvedBy: [
+          'dashboard-api.fnavFastTrackContractGateStatus',
+          'vdmi-portfolio-gatekeeping.gate',
+        ],
         contextKeys: ['breakCriteria'],
         optional: true,
       },
@@ -3863,7 +4598,12 @@ const EVIDENCE_REGISTRY = Object.freeze({
         id: 'snapshot_identity',
         label: 'Known and current snapshot identity or hash',
         resolvedBy: ['dashboard-api.evidenceFreshnessGuardStatus'],
-        contextKeys: ['knownSnapshotHash', 'knownSnapshotId', 'currentSnapshotHash', 'currentSnapshotId'],
+        contextKeys: [
+          'knownSnapshotHash',
+          'knownSnapshotId',
+          'currentSnapshotHash',
+          'currentSnapshotId',
+        ],
         optional: false,
       },
       {
@@ -3883,7 +4623,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'blocked_decision',
         label: 'Blocked decision for escalation rationale',
-        resolvedBy: ['dashboard-api.evidenceFreshnessGuardStatus', 'dashboard-api.vnbDeltaSignalClassifierStatus'],
+        resolvedBy: [
+          'dashboard-api.evidenceFreshnessGuardStatus',
+          'dashboard-api.vnbDeltaSignalClassifierStatus',
+        ],
         contextKeys: ['blockedDecision', 'blockedDecisionHint'],
         optional: false,
       },
@@ -3930,7 +4673,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'evidence_status',
         label: 'Evidence status',
-        resolvedBy: ['dashboard-api.crossChannelVnbSignalQueueStatus', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.crossChannelVnbSignalQueueStatus',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['evidenceStatus', 'evidenceRefs'],
         optional: false,
       },
@@ -3970,7 +4716,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'book_value_source',
         label: 'Book value or residual-value source',
-        resolvedBy: ['dashboard-api.assetValuationTransformationGateStatus', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.assetValuationTransformationGateStatus',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['bookValueStatus', 'bookValueSource'],
         optional: false,
       },
@@ -3984,7 +4733,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'transformation_option_basis',
         label: 'Transformation option basis',
-        resolvedBy: ['dashboard-api.assetValuationTransformationGateStatus', 'gasnetz-waermeplanung.reconcile'],
+        resolvedBy: [
+          'dashboard-api.assetValuationTransformationGateStatus',
+          'gasnetz-waermeplanung.reconcile',
+        ],
         contextKeys: ['transformationOption', 'transformationOptionBasis'],
         optional: false,
       },
@@ -4031,14 +4783,20 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'capacity_assumption',
         label: 'Capacity assumption basis',
-        resolvedBy: ['dashboard-api.gasCapacityBookingReviewGateStatus', 'gasnetz-waermeplanung.reconcile'],
+        resolvedBy: [
+          'dashboard-api.gasCapacityBookingReviewGateStatus',
+          'gasnetz-waermeplanung.reconcile',
+        ],
         contextKeys: ['capacityAssumption', 'capacityAssumptionSource'],
         optional: false,
       },
       {
         id: 'cold_year_evidence',
         label: 'Cold-year stress evidence',
-        resolvedBy: ['dashboard-api.gasCapacityBookingReviewGateStatus', 'gasnetz-waermeplanung.reconcile'],
+        resolvedBy: [
+          'dashboard-api.gasCapacityBookingReviewGateStatus',
+          'gasnetz-waermeplanung.reconcile',
+        ],
         contextKeys: ['coldYearEvidence'],
         optional: false,
       },
@@ -4052,7 +4810,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'congestion_history_evidence',
         label: 'Congestion-history evidence',
-        resolvedBy: ['dashboard-api.gasCapacityBookingReviewGateStatus', 'gasnetz-waermeplanung.reconcile'],
+        resolvedBy: [
+          'dashboard-api.gasCapacityBookingReviewGateStatus',
+          'gasnetz-waermeplanung.reconcile',
+        ],
         contextKeys: ['congestionHistoryEvidence'],
         optional: false,
       },
@@ -4073,7 +4834,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'commercial_signoff',
         label: 'Commercial review status',
-        resolvedBy: ['dashboard-api.gasCapacityBookingReviewGateStatus', 'vdmi-portfolio-gatekeeping.gate'],
+        resolvedBy: [
+          'dashboard-api.gasCapacityBookingReviewGateStatus',
+          'vdmi-portfolio-gatekeeping.gate',
+        ],
         contextKeys: ['commercialSignoff'],
         optional: false,
       },
@@ -4099,14 +4863,20 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'capacity_assumption',
         label: 'Capacity assumption and evidence reference',
-        resolvedBy: ['dashboard-api.gasNetworkDecisionChainStatus', 'gasnetz-waermeplanung.reconcile'],
+        resolvedBy: [
+          'dashboard-api.gasNetworkDecisionChainStatus',
+          'gasnetz-waermeplanung.reconcile',
+        ],
         contextKeys: ['capacityAssumption', 'capacityEvidenceRef'],
         optional: false,
       },
       {
         id: 'decommissioning_path',
         label: 'Stilllegung or reuse path evidence',
-        resolvedBy: ['dashboard-api.gasNetworkDecisionChainStatus', 'gasnetz-waermeplanung.reconcile'],
+        resolvedBy: [
+          'dashboard-api.gasNetworkDecisionChainStatus',
+          'gasnetz-waermeplanung.reconcile',
+        ],
         contextKeys: ['decommissioningPath', 'decommissioningEvidenceRef'],
         optional: false,
       },
@@ -4167,21 +4937,30 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'water_price_reference',
         label: 'Water-price assumption or calculation reference',
-        resolvedBy: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus', 'regulatorische-entgeltlogik.evaluate'],
+        resolvedBy: [
+          'dashboard-api.waterPricingNetInvestmentAlignmentStatus',
+          'regulatorische-entgeltlogik.evaluate',
+        ],
         contextKeys: ['waterPriceReference', 'calculationReference'],
         optional: false,
       },
       {
         id: 'net_investment_reference',
         label: 'Net-investment or infrastructure-measure reference',
-        resolvedBy: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus', 'investment-planning.review'],
+        resolvedBy: [
+          'dashboard-api.waterPricingNetInvestmentAlignmentStatus',
+          'investment-planning.review',
+        ],
         contextKeys: ['netInvestmentReference', 'infrastructureMeasureReference'],
         optional: false,
       },
       {
         id: 'asset_accounting_reference',
         label: 'Anlagenbuchhaltung evidence reference',
-        resolvedBy: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus', 'reporting-governance.evaluate'],
+        resolvedBy: [
+          'dashboard-api.waterPricingNetInvestmentAlignmentStatus',
+          'reporting-governance.evaluate',
+        ],
         contextKeys: ['assetAccountingReference'],
         optional: false,
       },
@@ -4195,28 +4974,40 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'regulatory_impact_reference',
         label: 'Regulatory-impact or tariff-logic boundary reference',
-        resolvedBy: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus', 'regulatorische-entgeltlogik.evaluate'],
+        resolvedBy: [
+          'dashboard-api.waterPricingNetInvestmentAlignmentStatus',
+          'regulatorische-entgeltlogik.evaluate',
+        ],
         contextKeys: ['regulatoryImpactReference', 'tariffLogicReference'],
         optional: false,
       },
       {
         id: 'governance_owner',
         label: 'Governance or committee owner',
-        resolvedBy: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus', 'reporting-governance.evaluate'],
+        resolvedBy: [
+          'dashboard-api.waterPricingNetInvestmentAlignmentStatus',
+          'reporting-governance.evaluate',
+        ],
         contextKeys: ['governanceOwner', 'committeeOwner'],
         optional: false,
       },
       {
         id: 'review_window',
         label: 'Review period or target committee date',
-        resolvedBy: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus', 'vdmi-portfolio-gatekeeping.evaluate'],
+        resolvedBy: [
+          'dashboard-api.waterPricingNetInvestmentAlignmentStatus',
+          'vdmi-portfolio-gatekeeping.evaluate',
+        ],
         contextKeys: ['reviewPeriod', 'targetCommitteeDate'],
         optional: false,
       },
       {
         id: 'alignment_decision',
         label: 'Alignment decision state',
-        resolvedBy: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus', 'vdmi-portfolio-gatekeeping.evaluate'],
+        resolvedBy: [
+          'dashboard-api.waterPricingNetInvestmentAlignmentStatus',
+          'vdmi-portfolio-gatekeeping.evaluate',
+        ],
         contextKeys: ['alignmentDecision'],
         optional: false,
       },
@@ -4235,49 +5026,70 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'site_reference',
         label: 'Areal or site reference',
-        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'grid-connection.validate'],
+        resolvedBy: [
+          'dashboard-api.arealNetworkIntegrationOfferGateStatus',
+          'grid-connection.validate',
+        ],
         contextKeys: ['siteReference', 'areaReference'],
         optional: false,
       },
       {
         id: 'requested_connection_capacity',
         label: 'Requested connection capacity',
-        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'grid-connection.validate'],
+        resolvedBy: [
+          'dashboard-api.arealNetworkIntegrationOfferGateStatus',
+          'grid-connection.validate',
+        ],
         contextKeys: ['requestedConnectionCapacity', 'requestedCapacityKw'],
         optional: false,
       },
       {
         id: 'grid_capacity_evidence',
         label: 'Grid-capacity evidence reference',
-        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'grid-connection.validate'],
+        resolvedBy: [
+          'dashboard-api.arealNetworkIntegrationOfferGateStatus',
+          'grid-connection.validate',
+        ],
         contextKeys: ['gridCapacityEvidence', 'capacityEvidenceReference'],
         optional: false,
       },
       {
         id: 'target_grid_path',
         label: 'Target-grid path reference',
-        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'target-grid-planning.review'],
+        resolvedBy: [
+          'dashboard-api.arealNetworkIntegrationOfferGateStatus',
+          'target-grid-planning.review',
+        ],
         contextKeys: ['targetGridPath', 'zielnetzPath'],
         optional: false,
       },
       {
         id: 'investment_capex_reference',
         label: 'Investment or CAPEX impact reference',
-        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'investment-planning.review'],
+        resolvedBy: [
+          'dashboard-api.arealNetworkIntegrationOfferGateStatus',
+          'investment-planning.review',
+        ],
         contextKeys: ['investmentReference', 'capexReference'],
         optional: false,
       },
       {
         id: 'regulatory_impact_boundary',
         label: 'Regulatory-impact boundary reference',
-        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'regulatorische-entgeltlogik.evaluate'],
+        resolvedBy: [
+          'dashboard-api.arealNetworkIntegrationOfferGateStatus',
+          'regulatorische-entgeltlogik.evaluate',
+        ],
         contextKeys: ['regulatoryImpactBoundary', 'regulatoryImpactReference'],
         optional: false,
       },
       {
         id: 'commercial_offer_assumptions',
         label: 'Commercial offer-assumption reference',
-        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'offer-management.review'],
+        resolvedBy: [
+          'dashboard-api.arealNetworkIntegrationOfferGateStatus',
+          'offer-management.review',
+        ],
         contextKeys: ['commercialOfferAssumptions', 'offerAssumptionReference'],
         optional: false,
       },
@@ -4298,7 +5110,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'offer_decision_status',
         label: 'Offer decision status',
-        resolvedBy: ['dashboard-api.arealNetworkIntegrationOfferGateStatus', 'offer-management.review'],
+        resolvedBy: [
+          'dashboard-api.arealNetworkIntegrationOfferGateStatus',
+          'offer-management.review',
+        ],
         contextKeys: ['offerDecisionStatus'],
         optional: false,
       },
@@ -4453,7 +5268,11 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'blocked_decision',
         label: 'Blocked follow-up decision',
-        resolvedBy: ['dashboard-api.leadershipDeltaCockpitStatus', 'nova.listDecisions', 'hitl.list'],
+        resolvedBy: [
+          'dashboard-api.leadershipDeltaCockpitStatus',
+          'nova.listDecisions',
+          'hitl.list',
+        ],
         contextKeys: ['blockedDecision', 'status'],
         optional: false,
       },
@@ -4493,36 +5312,55 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'target_option',
         label: 'Target option for the gas asset segment',
-        resolvedBy: ['dashboard-api.gasGridTransformationAssetCockpitStatus', 'investment-planning.createPlan'],
+        resolvedBy: [
+          'dashboard-api.gasGridTransformationAssetCockpitStatus',
+          'investment-planning.createPlan',
+        ],
         contextKeys: ['targetOption'],
         optional: false,
       },
       {
         id: 'technical_reuse_status',
         label: 'Technical reuse or H2 assessment status',
-        resolvedBy: ['dashboard-api.gasGridTransformationAssetCockpitStatus', 'znp.assessPortfolio'],
+        resolvedBy: [
+          'dashboard-api.gasGridTransformationAssetCockpitStatus',
+          'znp.assessPortfolio',
+        ],
         contextKeys: ['technicalReuseStatus'],
         optional: false,
       },
       {
         id: 'decommissioning_cost_basis',
         label: 'Decommissioning, rollback or removal cost basis',
-        resolvedBy: ['dashboard-api.gasGridTransformationAssetCockpitStatus', 'investment-planning.createPlan'],
+        resolvedBy: [
+          'dashboard-api.gasGridTransformationAssetCockpitStatus',
+          'investment-planning.createPlan',
+        ],
         contextKeys: ['decommissioningCostEur', 'rollbackOrRemovalRisk'],
         optional: false,
       },
       {
         id: 'financial_impact_basis',
         label: 'Cashflow, TOTEX and regulatory recognition basis',
-        resolvedBy: ['dashboard-api.gasGridTransformationAssetCockpitStatus', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.gasGridTransformationAssetCockpitStatus',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['cashflowImpact', 'totexImpact', 'regulatoryRecognitionStatus'],
         optional: false,
       },
       {
         id: 'dependency_review',
         label: 'Heat, power-grid and customer-transition dependency review',
-        resolvedBy: ['dashboard-api.gasGridTransformationAssetCockpitStatus', 'znp.assessPortfolio'],
-        contextKeys: ['heatNetworkDependency', 'powerGridDependency', 'customerTransitionDependency'],
+        resolvedBy: [
+          'dashboard-api.gasGridTransformationAssetCockpitStatus',
+          'znp.assessPortfolio',
+        ],
+        contextKeys: [
+          'heatNetworkDependency',
+          'powerGridDependency',
+          'customerTransitionDependency',
+        ],
         optional: false,
       },
       {
@@ -4535,7 +5373,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_datapoints',
         label: 'Source datapoints or source actions',
-        resolvedBy: ['dashboard-api.gasGridTransformationAssetCockpitStatus', 'datasource-registry.get'],
+        resolvedBy: [
+          'dashboard-api.gasGridTransformationAssetCockpitStatus',
+          'datasource-registry.get',
+        ],
         contextKeys: ['sourceDatapoints', 'sourceActions'],
         optional: false,
       },
@@ -4568,21 +5409,31 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'budget_effect',
         label: 'Budget effect evidence',
-        resolvedBy: ['dashboard-api.investmentOwnerDeadlineBudgetGateStatus', 'finance-agent.analyze', 'investment-planning.review'],
+        resolvedBy: [
+          'dashboard-api.investmentOwnerDeadlineBudgetGateStatus',
+          'finance-agent.analyze',
+          'investment-planning.review',
+        ],
         contextKeys: ['budgetEffect'],
         optional: false,
       },
       {
         id: 'required_evidence',
         label: 'Required approval or measure evidence',
-        resolvedBy: ['dashboard-api.investmentOwnerDeadlineBudgetGateStatus', 'evidence-registry.lookup'],
+        resolvedBy: [
+          'dashboard-api.investmentOwnerDeadlineBudgetGateStatus',
+          'evidence-registry.lookup',
+        ],
         contextKeys: ['requiredEvidence'],
         optional: false,
       },
       {
         id: 'approval_status',
         label: 'Approval status',
-        resolvedBy: ['dashboard-api.investmentOwnerDeadlineBudgetGateStatus', 'investment-planning.review'],
+        resolvedBy: [
+          'dashboard-api.investmentOwnerDeadlineBudgetGateStatus',
+          'investment-planning.review',
+        ],
         contextKeys: ['approvalStatus'],
         optional: false,
       },
@@ -4596,14 +5447,20 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'next_escalation_step',
         label: 'Next escalation step',
-        resolvedBy: ['dashboard-api.investmentOwnerDeadlineBudgetGateStatus', 'presentation.generate'],
+        resolvedBy: [
+          'dashboard-api.investmentOwnerDeadlineBudgetGateStatus',
+          'presentation.generate',
+        ],
         contextKeys: ['nextEscalationStep'],
         optional: false,
       },
       {
         id: 'source_datapoints',
         label: 'Source datapoints and provenance',
-        resolvedBy: ['dashboard-api.investmentOwnerDeadlineBudgetGateStatus', 'datasource-registry.get'],
+        resolvedBy: [
+          'dashboard-api.investmentOwnerDeadlineBudgetGateStatus',
+          'datasource-registry.get',
+        ],
         contextKeys: ['sourceDatapoints', 'sourceActions'],
         optional: false,
       },
@@ -4629,28 +5486,41 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'budget_funding',
         label: 'Budget effect and funding owner basis',
-        resolvedBy: ['dashboard-api.noRegretMeasureDefinitionGateStatus', 'finance-agent.analyze', 'investment-planning.review'],
+        resolvedBy: [
+          'dashboard-api.noRegretMeasureDefinitionGateStatus',
+          'finance-agent.analyze',
+          'investment-planning.review',
+        ],
         contextKeys: ['budgetEffect', 'fundingOwner'],
         optional: false,
       },
       {
         id: 'regulatory_fit',
         label: 'Regulatory fit or constraint boundary',
-        resolvedBy: ['dashboard-api.noRegretMeasureDefinitionGateStatus', 'evidence-registry.lookup'],
+        resolvedBy: [
+          'dashboard-api.noRegretMeasureDefinitionGateStatus',
+          'evidence-registry.lookup',
+        ],
         contextKeys: ['regulatoryFit', 'constraintHint'],
         optional: false,
       },
       {
         id: 'prioritisation_rule',
         label: 'Prioritisation or nomination rule',
-        resolvedBy: ['dashboard-api.noRegretMeasureDefinitionGateStatus', 'investment-planning.review'],
+        resolvedBy: [
+          'dashboard-api.noRegretMeasureDefinitionGateStatus',
+          'investment-planning.review',
+        ],
         contextKeys: ['prioritisationRule', 'nominationRight'],
         optional: false,
       },
       {
         id: 'data_quality',
         label: 'Data-quality status and source snapshot',
-        resolvedBy: ['dashboard-api.noRegretMeasureDefinitionGateStatus', 'datasource-registry.get'],
+        resolvedBy: [
+          'dashboard-api.noRegretMeasureDefinitionGateStatus',
+          'datasource-registry.get',
+        ],
         contextKeys: ['dataQualityStatus', 'sourceSnapshot'],
         optional: false,
       },
@@ -4671,7 +5541,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_datapoints',
         label: 'Source datapoints and provenance',
-        resolvedBy: ['dashboard-api.noRegretMeasureDefinitionGateStatus', 'datasource-registry.get'],
+        resolvedBy: [
+          'dashboard-api.noRegretMeasureDefinitionGateStatus',
+          'datasource-registry.get',
+        ],
         contextKeys: ['sourceDatapoints', 'sourceActions'],
         optional: false,
       },
@@ -4697,63 +5570,90 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'margin_compensation_assumption',
         label: 'Margin compensation assumption',
-        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.transformationFinancingScenarioViewStatus',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['marginCompensationAssumption'],
         optional: false,
       },
       {
         id: 'capital_reallocation_option',
         label: 'Capital reallocation option',
-        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'investment-planning.createPlan'],
+        resolvedBy: [
+          'dashboard-api.transformationFinancingScenarioViewStatus',
+          'investment-planning.createPlan',
+        ],
         contextKeys: ['capitalReallocationOption'],
         optional: false,
       },
       {
         id: 'gas_decommissioning_path',
         label: 'Gas decommissioning or continued-use path',
-        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'gasnetz-waermeplanung.reconcile'],
+        resolvedBy: [
+          'dashboard-api.transformationFinancingScenarioViewStatus',
+          'gasnetz-waermeplanung.reconcile',
+        ],
         contextKeys: ['gasDecommissioningPath'],
         optional: false,
       },
       {
         id: 'rollback_cost_basis',
         label: 'Rollback or removal cost basis',
-        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'investment-planning.review'],
+        resolvedBy: [
+          'dashboard-api.transformationFinancingScenarioViewStatus',
+          'investment-planning.review',
+        ],
         contextKeys: ['rollbackCostBasis'],
         optional: false,
       },
       {
         id: 'heat_h2_option_basis',
         label: 'Heat/H2 investment option basis',
-        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'investment-planning.createPlan'],
+        resolvedBy: [
+          'dashboard-api.transformationFinancingScenarioViewStatus',
+          'investment-planning.createPlan',
+        ],
         contextKeys: ['heatInvestmentMeasure', 'h2OptionMeasure'],
         optional: false,
       },
       {
         id: 'municipal_burden_basis',
         label: 'Municipal, public-transport or shareholder burden basis',
-        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.transformationFinancingScenarioViewStatus',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['municipalBurdenAssumption', 'publicTransportShareholderBurden'],
         optional: false,
       },
       {
         id: 'operational_investment_need',
         label: 'Operational investment need',
-        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'investment-planning.createPlan'],
+        resolvedBy: [
+          'dashboard-api.transformationFinancingScenarioViewStatus',
+          'investment-planning.createPlan',
+        ],
         contextKeys: ['operationalInvestmentNeed'],
         optional: false,
       },
       {
         id: 'eog_regulatory_impact',
         label: 'EOG or regulatory impact assumption',
-        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'eog-calculator.scenario'],
+        resolvedBy: [
+          'dashboard-api.transformationFinancingScenarioViewStatus',
+          'eog-calculator.scenario',
+        ],
         contextKeys: ['eogImpact', 'regulatoryImpactAssumption'],
         optional: false,
       },
       {
         id: 'liquidity_impact_assumption',
         label: 'Liquidity impact assumption',
-        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'finance-agent.analyze'],
+        resolvedBy: [
+          'dashboard-api.transformationFinancingScenarioViewStatus',
+          'finance-agent.analyze',
+        ],
         contextKeys: ['liquidityImpact'],
         optional: false,
       },
@@ -4774,7 +5674,10 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'source_datapoints',
         label: 'Source datapoints or source actions',
-        resolvedBy: ['dashboard-api.transformationFinancingScenarioViewStatus', 'datasource-registry.get'],
+        resolvedBy: [
+          'dashboard-api.transformationFinancingScenarioViewStatus',
+          'datasource-registry.get',
+        ],
         contextKeys: ['sourceDatapoints', 'sourceActions'],
         optional: false,
       },
@@ -4786,28 +5689,40 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'connection_request_id',
         label: 'Connection request id',
-        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'grid-connection.validate'],
+        resolvedBy: [
+          'dashboard-api.anschlusskapazitaetEvidenceQueueStatus',
+          'grid-connection.validate',
+        ],
         contextKeys: ['connectionRequestId'],
         optional: false,
       },
       {
         id: 'netzverknuepfungspunkt_hint',
         label: 'Netzverknuepfungspunkt hint',
-        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'grid-connection.validate'],
+        resolvedBy: [
+          'dashboard-api.anschlusskapazitaetEvidenceQueueStatus',
+          'grid-connection.validate',
+        ],
         contextKeys: ['netzverknuepfungspunktHint'],
         optional: false,
       },
       {
         id: 'capacity_assumption',
         label: 'Capacity assumption',
-        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'grid-connection.capacityCheck'],
+        resolvedBy: [
+          'dashboard-api.anschlusskapazitaetEvidenceQueueStatus',
+          'grid-connection.capacityCheck',
+        ],
         contextKeys: ['capacityAssumptionKw'],
         optional: false,
       },
       {
         id: 'grid_restriction_hint',
         label: 'Grid restriction hint',
-        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'grid-connection.capacityCheck'],
+        resolvedBy: [
+          'dashboard-api.anschlusskapazitaetEvidenceQueueStatus',
+          'grid-connection.capacityCheck',
+        ],
         contextKeys: ['gridRestrictionHint'],
         optional: false,
       },
@@ -4821,21 +5736,30 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'legal_question_marker',
         label: 'Legal question marker',
-        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.anschlusskapazitaetEvidenceQueueStatus',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['legalQuestionMarker'],
         optional: false,
       },
       {
         id: 'fnav_option_marker',
         label: 'fNAV option marker',
-        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'interface-placeholder.requestEvidence'],
+        resolvedBy: [
+          'dashboard-api.anschlusskapazitaetEvidenceQueueStatus',
+          'interface-placeholder.requestEvidence',
+        ],
         contextKeys: ['fnavOptionMarker'],
         optional: false,
       },
       {
         id: 'evidence_status',
         label: 'Evidence status',
-        resolvedBy: ['dashboard-api.anschlusskapazitaetEvidenceQueueStatus', 'evidence-registry.lookup'],
+        resolvedBy: [
+          'dashboard-api.anschlusskapazitaetEvidenceQueueStatus',
+          'evidence-registry.lookup',
+        ],
         contextKeys: ['evidenceStatus'],
         optional: false,
       },

@@ -43,7 +43,9 @@ function buildSpatial(audit) {
  * Build temporal extent for an AuditReport.
  */
 function buildTemporal(audit) {
-  const referenceDate = audit.timestamp ? audit.timestamp.slice(0, 10) : new Date().toISOString().slice(0, 10);
+  const referenceDate = audit.timestamp
+    ? audit.timestamp.slice(0, 10)
+    : new Date().toISOString().slice(0, 10);
   return {
     referenceDate,
     timeseries: [
@@ -135,7 +137,9 @@ function buildSources(audit, auditId) {
  */
 function buildOemetadataForAudit(audit) {
   const auditId = (audit._id || audit.id || '').replace('mq:', '');
-  const publicationDate = audit.timestamp ? audit.timestamp.slice(0, 10) : new Date().toISOString().slice(0, 10);
+  const publicationDate = audit.timestamp
+    ? audit.timestamp.slice(0, 10)
+    : new Date().toISOString().slice(0, 10);
 
   // Map top-level OEO class: oeo:DataAnalysisProcedure
   const subjects = [
@@ -167,7 +171,8 @@ function buildOemetadataForAudit(audit) {
 
   return {
     '@id': `urn:cernion:audit:mq:${auditId}`,
-    '@context': 'https://raw.githubusercontent.com/OpenEnergyPlatform/oemetadata/v2.0.0/metadata/v200/context.json',
+    '@context':
+      'https://raw.githubusercontent.com/OpenEnergyPlatform/oemetadata/v2.0.0/metadata/v200/context.json',
 
     name: `audit-mastr-quality-${auditId}`,
     title: `MaStR Data Quality Audit Report - ${audit.gridOperator?.name || 'VNB'}`,
