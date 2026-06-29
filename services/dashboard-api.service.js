@@ -7453,8 +7453,18 @@ module.exports = {
           { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'seedId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'includeBlockedBoundaries', in: 'query', required: false, schema: { type: 'boolean' } },
-          { name: 'includeSafeNextSteps', in: 'query', required: false, schema: { type: 'boolean' } },
+          {
+            name: 'includeBlockedBoundaries',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean' },
+          },
+          {
+            name: 'includeSafeNextSteps',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean' },
+          },
         ],
         responses: {
           200: {
@@ -28646,7 +28656,7 @@ module.exports = {
               'Render the verify read model in Budibase',
               'Use /api/governance/role-workbench for role-specific case projection',
             ]
-        : ['Fix the Blueprint Pack seed contract before exposing it to Rundeck or Budibase'],
+          : ['Fix the Blueprint Pack seed contract before exposing it to Rundeck or Budibase'],
       };
     },
 
@@ -28681,7 +28691,8 @@ module.exports = {
         'tariff.mutate',
         'device-control.execute',
       ];
-      const gridOperatorHint = 'Syna GmbH (MaStR baseline); Stadtwerk Mauer is virtual demo overlay only';
+      const gridOperatorHint =
+        'Syna GmbH (MaStR baseline); Stadtwerk Mauer is virtual demo overlay only';
       const transferSummaryRows = [
         {
           rowKey: 'transfer_readiness',
@@ -28704,8 +28715,12 @@ module.exports = {
           category: 'public_context',
           transferState: 'reusable_read_only',
           label: 'Public context layer',
-          description: dataClasses.publicContextLayer?.description || 'Public MaStR/municipal context can be reused as read-only baseline.',
-          examples: (dataClasses.publicContextLayer?.examples || ['MaStR baseline', 'municipality profile']).join(', '),
+          description:
+            dataClasses.publicContextLayer?.description ||
+            'Public MaStR/municipal context can be reused as read-only baseline.',
+          examples: (
+            dataClasses.publicContextLayer?.examples || ['MaStR baseline', 'municipality profile']
+          ).join(', '),
           syntheticOnly: false,
           tenantParameter: false,
           productionBlocked: false,
@@ -28717,8 +28732,12 @@ module.exports = {
           category: 'synthetic_seed',
           transferState: 'replace_for_real_tenant',
           label: 'Synthetic Stadtwerk Mauer seed',
-          description: dataClasses.syntheticTenantSeed?.description || 'Invented demo tenant and case facts only.',
-          examples: (dataClasses.syntheticTenantSeed?.examples || [tenantId, caseId, seedId]).join(', '),
+          description:
+            dataClasses.syntheticTenantSeed?.description ||
+            'Invented demo tenant and case facts only.',
+          examples: (dataClasses.syntheticTenantSeed?.examples || [tenantId, caseId, seedId]).join(
+            ', '
+          ),
           syntheticOnly: true,
           tenantParameter: true,
           productionBlocked: false,
@@ -28730,8 +28749,16 @@ module.exports = {
           category: 'sandbox_runtime',
           transferState: 'do_not_transfer',
           label: 'Sandbox runtime artifacts',
-          description: dataClasses.sandboxRuntimeArtifact?.description || 'Demo output and replay artifacts are resettable sandbox state.',
-          examples: (dataClasses.sandboxRuntimeArtifact?.examples || ['annotations', 'verify runs', 'event replay preview']).join(', '),
+          description:
+            dataClasses.sandboxRuntimeArtifact?.description ||
+            'Demo output and replay artifacts are resettable sandbox state.',
+          examples: (
+            dataClasses.sandboxRuntimeArtifact?.examples || [
+              'annotations',
+              'verify runs',
+              'event replay preview',
+            ]
+          ).join(', '),
           syntheticOnly: true,
           tenantParameter: false,
           productionBlocked: true,
@@ -28743,7 +28770,8 @@ module.exports = {
           category: 'blueprint_workbench',
           transferState: 'reusable_with_parameters',
           label: 'Blueprint and Workbench structure',
-          description: 'Role, evidence, no-call guard and Workbench read-model patterns can transfer after tenant parameters are supplied.',
+          description:
+            'Role, evidence, no-call guard and Workbench read-model patterns can transfer after tenant parameters are supplied.',
           examples: 'role catalog, evidence requirements, no-call guards, safe next-gate hints',
           syntheticOnly: false,
           tenantParameter: true,
@@ -28755,12 +28783,45 @@ module.exports = {
       const tenantParameterRows = [
         ['tenant_id', 'Tenant ID', tenantId, 'replace_with_real_tenant_id'],
         ['tenant_name', 'Tenant name', 'Stadtwerk Mauer', 'replace_with_real_stadtwerk_name'],
-        ['municipality_profile', 'AGS/PLZ/municipality profile', '08226048 / 69256 / Mauer', 'confirm_real_municipality_profile'],
-        ['grid_operator_hint', 'Grid operator label/BDEW hint', gridOperatorHint, 'confirm_real_grid_operator_context'],
-        ['seed_case_label', 'Seed case label', `${caseId} / ${seed?.controlCase || 'electrician_missing_nap'}`, 'replace_with_real_or_customer_sandbox_case'],
-        ['role_names', 'Role names', roleRows.map((row) => row.roleId).filter(Boolean).join(', '), 'map_to_customer_roles'],
-        ['public_context_baseline_refs', 'Public context baseline refs', 'MaStR overlay, municipal profile, VDMI profile', 'refresh_or_verify_public_baseline_read_only'],
-        ['evidence_requirements', 'Evidence requirements', evidenceRows.join(', '), 'collect_customer_specific_evidence_before_production_use'],
+        [
+          'municipality_profile',
+          'AGS/PLZ/municipality profile',
+          '08226048 / 69256 / Mauer',
+          'confirm_real_municipality_profile',
+        ],
+        [
+          'grid_operator_hint',
+          'Grid operator label/BDEW hint',
+          gridOperatorHint,
+          'confirm_real_grid_operator_context',
+        ],
+        [
+          'seed_case_label',
+          'Seed case label',
+          `${caseId} / ${seed?.controlCase || 'electrician_missing_nap'}`,
+          'replace_with_real_or_customer_sandbox_case',
+        ],
+        [
+          'role_names',
+          'Role names',
+          roleRows
+            .map((row) => row.roleId)
+            .filter(Boolean)
+            .join(', '),
+          'map_to_customer_roles',
+        ],
+        [
+          'public_context_baseline_refs',
+          'Public context baseline refs',
+          'MaStR overlay, municipal profile, VDMI profile',
+          'refresh_or_verify_public_baseline_read_only',
+        ],
+        [
+          'evidence_requirements',
+          'Evidence requirements',
+          evidenceRows.join(', '),
+          'collect_customer_specific_evidence_before_production_use',
+        ],
       ].map(([rowKey, label, currentDemoValue, replacementRule]) => ({
         rowKey,
         label,
@@ -28772,10 +28833,30 @@ module.exports = {
         sourceClass: 'tenant_parameter',
       }));
       const reusableElementRows = [
-        ['workbench_manifest', 'Generated Budibase Workbench manifest', 'reuse_generated_render_shell', 'integrations/budibase/manifests/stadtwerk-mauer-workbench.json'],
-        ['blueprint_seed_contract', 'VDMI Blueprint seed contract', 'reuse_with_new_seed_values', 'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json'],
-        ['dashboard_read_models', 'Cernion dashboard read models', 'reuse_read_only_facades', 'services/dashboard-api.service.js'],
-        ['apply_script', 'Controlled Budibase apply script', 'reuse_for_generated_apply_only', 'integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js'],
+        [
+          'workbench_manifest',
+          'Generated Budibase Workbench manifest',
+          'reuse_generated_render_shell',
+          'integrations/budibase/manifests/stadtwerk-mauer-workbench.json',
+        ],
+        [
+          'blueprint_seed_contract',
+          'VDMI Blueprint seed contract',
+          'reuse_with_new_seed_values',
+          'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json',
+        ],
+        [
+          'dashboard_read_models',
+          'Cernion dashboard read models',
+          'reuse_read_only_facades',
+          'services/dashboard-api.service.js',
+        ],
+        [
+          'apply_script',
+          'Controlled Budibase apply script',
+          'reuse_for_generated_apply_only',
+          'integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js',
+        ],
       ].map(([rowKey, label, transferState, sourceRef]) => ({
         rowKey,
         label,
@@ -28796,8 +28877,16 @@ module.exports = {
       const safeNextGateRows = [
         ['inspect_blueprint_verify', 'Inspect Blueprint verify panel', 'safe_read_only'],
         ['refresh_public_context_view', 'Refresh public-context view', 'safe_read_only'],
-        ['validate_transfer_parameters', 'Validate tenant parameters for onboarding discussion', 'safe_read_only'],
-        ['verify_readiness_with_cernion_runbook_wrapper', 'Verify readiness through curated Cernion wrapper', 'safe_verify_only'],
+        [
+          'validate_transfer_parameters',
+          'Validate tenant parameters for onboarding discussion',
+          'safe_read_only',
+        ],
+        [
+          'verify_readiness_with_cernion_runbook_wrapper',
+          'Verify readiness through curated Cernion wrapper',
+          'safe_verify_only',
+        ],
       ].map(([rowKey, label, safety]) => ({
         rowKey,
         label,
@@ -28822,14 +28911,16 @@ module.exports = {
         reusableElementRows,
         productionBoundaryRows: includeBlockedBoundaries ? productionBoundaryRows : [],
         disabledActionClassRows: includeBlockedBoundaries
-          ? productionBoundaryRows.concat(forbiddenActions.map((action) => ({
-              rowKey: action,
-              boundary: action,
-              status: 'forbidden_by_blueprint_seed',
-              disabled: true,
-              safeAlternative: 'readiness_discussion_only',
-              sourceClass: 'blueprint_forbidden_action',
-            })))
+          ? productionBoundaryRows.concat(
+              forbiddenActions.map((action) => ({
+                rowKey: action,
+                boundary: action,
+                status: 'forbidden_by_blueprint_seed',
+                disabled: true,
+                safeAlternative: 'readiness_discussion_only',
+                sourceClass: 'blueprint_forbidden_action',
+              }))
+            )
           : [],
         safeNextGateRows: includeSafeNextSteps ? safeNextGateRows : [],
         sourceActions: {
