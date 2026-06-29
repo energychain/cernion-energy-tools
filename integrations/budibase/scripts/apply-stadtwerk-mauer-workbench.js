@@ -4,12 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DEFAULT_MANIFEST = path.join(
-  __dirname,
-  '..',
-  'manifests',
-  'stadtwerk-mauer-workbench.json'
-);
+const DEFAULT_MANIFEST = path.join(__dirname, '..', 'manifests', 'stadtwerk-mauer-workbench.json');
 
 function usage() {
   return `Usage:
@@ -58,7 +53,10 @@ function parseCookieJar(file) {
   return lines
     .map((line) => line.trim())
     .filter(Boolean)
-    .filter((line) => !line.startsWith('# Netscape') && !line.startsWith('# https') && !line.startsWith('# This'))
+    .filter(
+      (line) =>
+        !line.startsWith('# Netscape') && !line.startsWith('# https') && !line.startsWith('# This')
+    )
     .map((line) => {
       const httpOnly = line.startsWith('#HttpOnly_');
       const normalized = httpOnly ? line.replace(/^#HttpOnly_/, '') : line;
@@ -365,7 +363,9 @@ async function main() {
     return;
   }
   const manifest = readJson(args.manifest);
-  const budibaseBaseUrl = normalizeBaseUrl(process.env.BUDIBASE_BASE_URL || 'http://localhost:10000');
+  const budibaseBaseUrl = normalizeBaseUrl(
+    process.env.BUDIBASE_BASE_URL || 'http://localhost:10000'
+  );
   const cernionBaseUrl = normalizeBaseUrl(
     process.env[manifest.datasource.urlEnv] || manifest.datasource.defaultUrl
   );

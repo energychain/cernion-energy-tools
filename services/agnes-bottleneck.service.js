@@ -25,7 +25,6 @@ const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
 const PIPELINE_VERSION = '0.1.0';
-const OPENAPI_TAG = 'Agnes Bottleneck';
 const DOC_PREFIX = 'agnes:';
 
 // Constraint severity thresholds (configurable)
@@ -327,7 +326,11 @@ module.exports = {
         const tenantId = getTenantId(ctx);
         const { gridOperatorId, overallSeverity, limit } = ctx.params;
 
-        const selector = { tenantId, type: 'agnes-bottleneck-assessment', createdAt: { $exists: true } };
+        const selector = {
+          tenantId,
+          type: 'agnes-bottleneck-assessment',
+          createdAt: { $exists: true },
+        };
         if (gridOperatorId) selector.gridOperatorId = gridOperatorId;
         if (overallSeverity) selector.overallSeverity = overallSeverity;
 
