@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 99 static rules', () => {
+    it('loads all 100 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(99);
+      expect(rules.length).toBe(100);
     });
 
-    it('compiles all 99 static rules without error', () => {
+    it('compiles all 100 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(99);
+      expect(rules.length).toBe(100);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -112,6 +112,7 @@ describe('dossier-hydration-registry (unit)', () => {
         'knowledge-continuity-governance-gate.getStatus',
         'investment-maturity-off-balance-gate.getStatus',
         'gas-capacity-order-revision-gate.getStatus',
+        'dashboard-api.netzsignalDeltaGatingStatus',
         'dashboard-api.vnbDeltaSignalClassifierStatus',
         'dashboard-api.evidenceFreshnessGuardStatus',
       ];
@@ -1576,6 +1577,50 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Process: grid_connection_capacity');
       expect(formatted).toContain('Side-Effect Guard: mail.connector.ingest');
       expect(formatted).toContain('Boundary: Boundary: supplied input only');
+    });
+
+    it('dashboard-api.netzsignalDeltaGatingStatus is dossier-safe and formats delta-gating facts', () => {
+      const rule = getRule('dashboard-api.netzsignalDeltaGatingStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Netzsignal Delta-Gating; domain=netzanschluss; signalType=board-update; owner=Netzplanung; frist=2026-07-03; materiality=hoch; blockedDecision=Kapazitaetsfreigabe; nextEvidencePoint=NAP-Pruefung'
+        )
+      ).toEqual({
+        domain: 'netzanschluss',
+        signalType: 'board-update',
+        owner: 'Netzplanung',
+        dueDate: '2026-07-03',
+        materiality: 'hoch',
+        blockedDecision: 'Kapazitaetsfreigabe',
+        nextEvidencePoint: 'NAP-Pruefung',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'netzsignal_delta_gating',
+        classification: 'new_blocker',
+        escalationRecommendation:
+          'Prepare management escalation dossier; no escalation was dispatched.',
+        owner: 'Netzplanung',
+        dueDateStatus: 'near_term',
+        materiality: 'high',
+        blockedDecision: 'Kapazitaetsfreigabe',
+        missingEvidence: [{ missingDataPoint: 'freshness_proof' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add timestamp/hash/source proof' }],
+        sourceActions: { notCalled: ['mail.connector.ingest'] },
+        dossierEvidence: {
+          dossierFacts: ['Netzsignal Delta-Gating Classification: new_blocker'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: netzsignal_delta_gating');
+      expect(formatted).toContain('Classification: new_blocker');
+      expect(formatted).toContain('Owner: Netzplanung');
+      expect(formatted).toContain('Blocked Decision: Kapazitaetsfreigabe');
+      expect(formatted).toContain('Leading Gap: freshness_proof');
+      expect(formatted).toContain('Side-Effect Guard: mail.connector.ingest');
     });
 
     it('dashboard-api.evidenceFreshnessGuardStatus is dossier-safe and formats freshness facts', () => {

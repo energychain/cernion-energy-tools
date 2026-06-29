@@ -4571,6 +4571,88 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  netzsignal_delta_gating: {
+    sources: [
+      {
+        id: 'domain',
+        label: 'Operational domain',
+        resolvedBy: ['dashboard-api.netzsignalDeltaGatingStatus'],
+        contextKeys: ['domain'],
+        optional: false,
+      },
+      {
+        id: 'signal_type',
+        label: 'Signal type',
+        resolvedBy: ['dashboard-api.netzsignalDeltaGatingStatus'],
+        contextKeys: ['signalType'],
+        optional: false,
+      },
+      {
+        id: 'known_context_ref',
+        label: 'Known context reference',
+        resolvedBy: ['dashboard-api.netzsignalDeltaGatingStatus', 'vdmi.dossier'],
+        contextKeys: ['knownContextRef'],
+        optional: false,
+      },
+      {
+        id: 'freshness_proof',
+        label: 'Freshness proof',
+        resolvedBy: ['dashboard-api.netzsignalDeltaGatingStatus'],
+        contextKeys: ['freshnessProof'],
+        optional: false,
+      },
+      {
+        id: 'decision_topic',
+        label: 'Decision topic',
+        resolvedBy: ['dashboard-api.netzsignalDeltaGatingStatus', 'vdmi.dossier'],
+        contextKeys: ['decisionTopic'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Accountable owner',
+        resolvedBy: ['dashboard-api.netzsignalDeltaGatingStatus', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'due_date',
+        label: 'Due date',
+        resolvedBy: ['dashboard-api.netzsignalDeltaGatingStatus', 'vdmi.dossier'],
+        contextKeys: ['dueDate'],
+        optional: false,
+      },
+      {
+        id: 'materiality',
+        label: 'Management materiality',
+        resolvedBy: ['dashboard-api.netzsignalDeltaGatingStatus'],
+        contextKeys: ['materiality'],
+        optional: false,
+      },
+      {
+        id: 'new_fact',
+        label: 'New fact',
+        resolvedBy: ['dashboard-api.netzsignalDeltaGatingStatus'],
+        contextKeys: ['newFact'],
+        optional: false,
+      },
+      {
+        id: 'blocked_decision',
+        label: 'Blocked decision',
+        resolvedBy: ['dashboard-api.netzsignalDeltaGatingStatus', 'vdmi.dossier'],
+        contextKeys: ['blockedDecision'],
+        optional: false,
+      },
+      {
+        id: 'next_evidence_point',
+        label: 'Next evidence point',
+        resolvedBy: ['dashboard-api.netzsignalDeltaGatingStatus', 'vdmi.dossier'],
+        contextKeys: ['nextEvidencePoint'],
+        optional: false,
+      },
+    ],
+  },
+
   evidence_freshness_guard: {
     sources: [
       {

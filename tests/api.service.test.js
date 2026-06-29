@@ -623,6 +623,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/leadership-delta-cockpit']).toBe(
         'dashboard-api.leadershipDeltaCockpitStatus'
       );
+      expect(aliases['GET /dashboard/netzsignal-delta-gating']).toBe(
+        'dashboard-api.netzsignalDeltaGatingStatus'
+      );
       expect(aliases['POST /dashboard/vnb-delta-signal-classifier/classify']).toBe(
         'dashboard-api.vnbDeltaSignalClassifierStatus'
       );

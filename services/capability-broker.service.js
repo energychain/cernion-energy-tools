@@ -469,6 +469,24 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasNetzsignalDeltaGatingSpecificSignal =
+    /(netzsignal.?delta.?gating|netzsignal_delta_gating|delta.?gating|entscheidungsdelta|freshness proof|bekannter kontext|known context|neuer blocker|new blocker|managementsignal)/i.test(
+      haystack
+    ) &&
+    /(owner|frist|deadline|materialitaet|materialität|materiality|evidenzpunkt|evidence point|freshness|blocker|delta|entscheidung|nicht.?eskalieren|non.?escalation)/i.test(
+      haystack
+    ) &&
+    !/(mail.?ingest|mail.?scrap|outlook read|teams read|monitoring connector|connector ausfuehren|connector ausführen|external connector|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|notification dispatch|benachrichtigung senden|ticket create|hitl create|task create|aufgabe erstellen|budibase table write|personal-agent execute|persistiere rohinhalt|raw private content)/i.test(
+      haystack
+    );
+
+  if (hasNetzsignalDeltaGatingSpecificSignal) {
+    const netzsignalDeltaGatingCapability = findCapabilityByName('netzsignal_delta_gating');
+    if (netzsignalDeltaGatingCapability) {
+      return { capability: netzsignalDeltaGatingCapability, score: 146, usedFallback: false };
+    }
+  }
+
   const hasEvidenceFreshnessGuardSpecificSignal =
     /(evidence.?freshness.?guard|evidence_freshness_guard|freshness.?guard|vnb.?signal.?freshness|source timestamp|quellzeitpunkt|stale context|kontextanker|known anchor|snapshot.?alter|snapshot hash|known snapshot|current snapshot|new delta|neues delta|non.?escalation|nicht.?eskalation)/i.test(
       haystack

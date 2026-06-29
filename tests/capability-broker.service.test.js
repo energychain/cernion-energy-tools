@@ -919,6 +919,20 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Netzsignal Delta-Gating prompts to the read-only evidence classifier', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Klassifiziere Netzsignal Delta-Gating: bekannter Kontext, Freshness Proof, Entscheidungsdelta, neuer Blocker, Owner, Frist, Materialitaet und naechster Evidenzpunkt.',
+    });
+
+    expect(result.capability).toBe('netzsignal_delta_gating');
+    expect(result.recommendedCapabilities[0].capability).toBe('netzsignal_delta_gating');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.netzsignalDeltaGatingStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('ticket.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes steering artifact acceptance gate prompts to the read-only gate view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe Akzeptanz-Gate und Pflege-Gate fuer ein Steuerungsartefakt mit Rollout-Freigabe, Nutzungsnachweis, Pflegeowner, Stellvertretung und Eskalationskriterium.',

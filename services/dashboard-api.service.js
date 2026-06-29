@@ -143,6 +143,7 @@ module.exports = {
       transformationFinancingScenarioViewStatus: 5 * 60 * 1000, // 5 min
       gasGridTransformationAssetCockpitStatus: 5 * 60 * 1000, // 5 min
       leadershipDeltaCockpitStatus: 5 * 60 * 1000, // 5 min
+      netzsignalDeltaGatingStatus: 5 * 60 * 1000, // 5 min
       vnbDeltaSignalClassifierStatus: 5 * 60 * 1000, // 5 min
       evidenceFreshnessGuardStatus: 5 * 60 * 1000, // 5 min
       liveUpdateStreamContractStatus: 5 * 60 * 1000, // 5 min
@@ -10809,6 +10810,98 @@ module.exports = {
           async () => ({
             ...this.buildLeadershipDeltaCockpitStatus(params),
             timestamp: new Date().toISOString(),
+          })
+        );
+      },
+    },
+
+    // -- netzsignalDeltaGatingStatus ----------------------------------------
+    /**
+     * GET /api/dashboard/netzsignal-delta-gating
+     *
+     * Read-only evidence classifier for caller-supplied operational signal
+     * metadata. It separates known context, freshness proofs, decision deltas
+     * and new blockers without reading mail/Teams/monitoring or dispatching escalation.
+     */
+    netzsignalDeltaGatingStatus: {
+      rest: 'GET /netzsignal-delta-gating',
+      params: {
+        signalId: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+        domain: { type: 'string', optional: true, min: 1 },
+        signalType: { type: 'string', optional: true, min: 1 },
+        knownContextRef: { type: 'string', optional: true, min: 1 },
+        freshnessProof: { type: 'string', optional: true, min: 1 },
+        decisionTopic: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        dueDate: { type: 'string', optional: true, min: 1 },
+        materiality: { type: 'string', optional: true, min: 1 },
+        newFact: { type: 'string', optional: true, min: 1 },
+        blockedDecision: { type: 'string', optional: true, min: 1 },
+        nextEvidencePoint: { type: 'string', optional: true, min: 1 },
+        regulatoryReference: { type: 'string', optional: true, min: 1 },
+        assetReference: { type: 'string', optional: true, min: 1 },
+        revenueImpactHint: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Netzsignal Delta-Gating — read-only evidence classification',
+        description:
+          'Classifies caller-supplied operational signal metadata into known context, freshness-only, ' +
+          'decision-delta, new-blocker or insufficient-evidence states. The endpoint is read-only and ' +
+          'does not ingest Outlook, Teams, monitoring, ticket, HITL, MaKo, billing, settlement, tariff, ' +
+          'device-control, Budibase or external connector data.',
+        parameters: [
+          { name: 'signalId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'domain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'signalType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'knownContextRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'freshnessProof', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionTopic', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dueDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'materiality', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'newFact', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'blockedDecision', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextEvidencePoint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'revenueImpactHint', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Netzsignal delta-gating status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    classification: { type: 'string' },
+                    escalationRecommendation: { type: 'string' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `netzsignal-delta-gating:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.netzsignalDeltaGatingStatus,
+          async () => ({
+            ...this.buildNetzsignalDeltaGatingStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
           })
         );
       },
@@ -34421,6 +34514,233 @@ module.exports = {
             legalStatus: params.legalStatus || null,
           },
           missingEvidence: evidenceGaps,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildNetzsignalDeltaGatingStatus(params = {}) {
+      const present = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const lower = (value) => String(value || '').trim().toLowerCase();
+      const normalizeMateriality = (value) => {
+        const text = lower(value);
+        if (/hoch|high|kritisch|critical|red|rot|vorstand|management/.test(text)) return 'high';
+        if (/mittel|medium|amber|gelb|relevant/.test(text)) return 'medium';
+        if (/niedrig|low|green|gruen|grün/.test(text)) return 'low';
+        return present(value) ? String(value).trim() : 'missing';
+      };
+      const dueDateStatus = (value) => {
+        if (!present(value)) return 'missing';
+        const ts = Date.parse(value);
+        if (!Number.isFinite(ts)) return 'provided_unparsed';
+        const days = Math.ceil((ts - Date.now()) / (24 * 60 * 60 * 1000));
+        if (days < 0) return 'overdue';
+        if (days <= 2) return 'urgent_48h';
+        if (days <= 14) return 'near_term';
+        return 'scheduled';
+      };
+
+      const missingSpecs = [
+        {
+          key: 'domain',
+          value: params.domain,
+          label: 'Operational domain',
+          enablesDossierAddition: 'add domain such as Netzanschluss, Flex, Gas, Asset or Metering',
+        },
+        {
+          key: 'signal_type',
+          value: params.signalType,
+          label: 'Signal type',
+          enablesDossierAddition: 'add source signal type for repeatability',
+        },
+        {
+          key: 'known_context_ref',
+          value: params.knownContextRef,
+          label: 'Known context reference',
+          enablesDossierAddition: 'add baseline reference to prove known context or real delta',
+        },
+        {
+          key: 'freshness_proof',
+          value: params.freshnessProof,
+          label: 'Freshness proof',
+          enablesDossierAddition: 'add timestamp/hash/source proof for freshness classification',
+        },
+        {
+          key: 'decision_topic',
+          value: params.decisionTopic,
+          label: 'Decision topic',
+          enablesDossierAddition: 'add management decision topic',
+        },
+        {
+          key: 'owner',
+          value: params.owner,
+          label: 'Owner',
+          enablesDossierAddition: 'add accountable owner and Fachbereich',
+        },
+        {
+          key: 'due_date',
+          value: params.dueDate,
+          label: 'Due date',
+          enablesDossierAddition: 'add deadline and escalation window',
+        },
+        {
+          key: 'materiality',
+          value: params.materiality,
+          label: 'Materiality',
+          enablesDossierAddition: 'add management relevance / materiality',
+        },
+        {
+          key: 'new_fact',
+          value: params.newFact,
+          label: 'New fact',
+          enablesDossierAddition: 'add new fact to distinguish freshness from decision delta',
+        },
+        {
+          key: 'blocked_decision',
+          value: params.blockedDecision,
+          label: 'Blocked decision',
+          enablesDossierAddition: 'add blocked decision for escalation rationale',
+        },
+        {
+          key: 'next_evidence_point',
+          value: params.nextEvidencePoint,
+          label: 'Next evidence point',
+          enablesDossierAddition: 'add next evidence needed for escalation or non-escalation',
+        },
+      ];
+      const missingEvidence = missingSpecs
+        .filter((item) => !present(item.value))
+        .map((item) => ({
+          missingDataPoint: item.key,
+          label: item.label,
+          enablesDossierAddition: item.enablesDossierAddition,
+        }));
+      const normalizedMateriality = normalizeMateriality(params.materiality);
+      const normalizedDueDateStatus = dueDateStatus(params.dueDate);
+      const hasNewFact = present(params.newFact);
+      const hasBlockedDecision = present(params.blockedDecision);
+      const hasDecisionContext =
+        present(params.decisionTopic) && present(params.owner) && present(params.dueDate);
+      const hasKnownContext = present(params.knownContextRef);
+      const hasFreshnessProof = present(params.freshnessProof);
+      const hasManagementRelevance = ['high', 'medium'].includes(normalizedMateriality);
+
+      let classification = 'insufficient_evidence';
+      if (hasBlockedDecision && hasDecisionContext && hasNewFact) classification = 'new_blocker';
+      else if (hasNewFact && hasDecisionContext && hasManagementRelevance)
+        classification = 'decision_delta';
+      else if (hasFreshnessProof && hasKnownContext && !hasNewFact && !hasBlockedDecision)
+        classification = 'freshness_only';
+      else if (hasKnownContext && !hasFreshnessProof && !hasNewFact && !hasBlockedDecision)
+        classification = 'known_context';
+
+      const escalationRecommendation =
+        classification === 'new_blocker'
+          ? 'Prepare management escalation dossier; no escalation was dispatched.'
+          : classification === 'decision_delta'
+            ? 'Queue for management review once evidence is complete; no ticket was created.'
+            : classification === 'freshness_only'
+              ? 'Do not escalate; record freshness proof against known context.'
+              : classification === 'known_context'
+                ? 'Do not escalate; treat as known context until a new fact or blocker appears.'
+                : 'Hold as evidence gap; add missing owner, due date, materiality, new fact or blocker evidence.';
+      const nonEscalationRationale = ['known_context', 'freshness_only'].includes(classification)
+        ? escalationRecommendation
+        : null;
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'netzsignal_delta_gating',
+      }));
+      const dossierFacts = [
+        `Netzsignal Delta-Gating Classification: ${classification}`,
+        `Domain: ${params.domain || 'missing'}`,
+        `Materiality: ${normalizedMateriality}`,
+        `Due Date Status: ${normalizedDueDateStatus}`,
+        `Open Evidence Gaps: ${missingEvidence.length}`,
+      ];
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (params.blockedDecision) dossierFacts.push(`Blocked Decision: ${params.blockedDecision}`);
+
+      const sourceActions = {
+        inspected: ['dashboard-api.netzsignalDeltaGatingStatus'],
+        referenced: ['vdmi.dossier', 'evidence-planner.plan'],
+        notCalled: [
+          'mail.connector.ingest',
+          'outlook.connector.read',
+          'teams.connector.read',
+          'monitoring.connector.read',
+          'ticket.create',
+          'notification.dispatchInternal',
+          'hitl.create',
+          'workflow.execute',
+          'external.connector.call',
+          'budibase.table.write',
+          'public-context.mutate',
+          'tenant.provision',
+          'personal-agent.execute',
+          'mako.dispatch',
+          'billing.release',
+          'settlement.prepareBilling',
+          'tariff.mutate',
+          'device-control.execute',
+        ],
+      };
+
+      return {
+        capabilityKey: 'netzsignal_delta_gating',
+        safety: 'read_only_non_consequential_classification',
+        status: classification,
+        classification,
+        signalId: params.signalId || null,
+        caseId: params.caseId || null,
+        domain: params.domain || null,
+        signalType: params.signalType || null,
+        knownContextRef: params.knownContextRef || null,
+        freshnessProof: params.freshnessProof || null,
+        decisionTopic: params.decisionTopic || null,
+        owner: params.owner || null,
+        dueDate: params.dueDate || null,
+        dueDateStatus: normalizedDueDateStatus,
+        materiality: normalizedMateriality,
+        newFact: params.newFact || null,
+        blockedDecision: params.blockedDecision || null,
+        nextEvidencePoint: params.nextEvidencePoint || null,
+        regulatoryReference: params.regulatoryReference || null,
+        assetReference: params.assetReference || null,
+        revenueImpactHint: params.revenueImpactHint || null,
+        escalationRecommendation,
+        nonEscalationRationale,
+        missingEvidence,
+        positiveFollowUps,
+        sourceActions,
+        sourceBoundary: {
+          suppliedInputOnly: true,
+          connectorRead: false,
+          persistsRawPrivateContent: false,
+          createsExternalAction: false,
+        },
+        validationFindings: missingEvidence.map((item) => ({
+          code: `NETZSIGNAL_DG_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+          severity: ['owner', 'due_date', 'blocked_decision'].includes(item.missingDataPoint)
+            ? 'high'
+            : 'medium',
+          message: item.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          capabilityKey: 'netzsignal_delta_gating',
+          classification,
+          escalationRecommendation,
+          nonEscalationRationale,
+          owner: params.owner || null,
+          dueDate: params.dueDate || null,
+          dueDateStatus: normalizedDueDateStatus,
+          materiality: normalizedMateriality,
+          blockedDecision: params.blockedDecision || null,
+          nextEvidencePoint: params.nextEvidencePoint || null,
+          missingEvidence,
           positiveFollowUps,
           sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,

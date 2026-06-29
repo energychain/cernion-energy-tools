@@ -3737,6 +3737,78 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    describe('netzsignalDeltaGatingStatus', () => {
+      it('classifies freshness-only signals as non-escalation evidence', async () => {
+        const result = await broker.call('dashboard-api.netzsignalDeltaGatingStatus', {
+          signalId: 'signal-345-freshness',
+          domain: 'netzanschluss',
+          signalType: 'weekly-board-update',
+          knownContextRef: 'board-context-2026-26',
+          freshnessProof: 'snapshot-2026-06-29T21:00Z',
+        });
+
+        expect(result.capabilityKey).toBe('netzsignal_delta_gating');
+        expect(result.classification).toBe('freshness_only');
+        expect(result.nonEscalationRationale).toContain('Do not escalate');
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining(['decision_topic', 'owner', 'materiality', 'new_fact'])
+        );
+        expect(result.positiveFollowUps[0].category).toBe('netzsignal_delta_gating');
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'outlook.connector.read',
+            'teams.connector.read',
+            'monitoring.connector.read',
+            'hitl.create',
+            'budibase.table.write',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.sourceBoundary).toMatchObject({
+          suppliedInputOnly: true,
+          connectorRead: false,
+          createsExternalAction: false,
+        });
+      });
+
+      it('classifies decision deltas and new blockers from supplied metadata', async () => {
+        const decisionDelta = await broker.call('dashboard-api.netzsignalDeltaGatingStatus', {
+          signalId: 'signal-345-delta',
+          domain: 'flexibilitaet',
+          signalType: 'management-signal',
+          knownContextRef: 'flex-baseline-q2',
+          freshnessProof: 'teams-note-hash-123',
+          decisionTopic: 'Kapazitaetsfenster priorisieren',
+          owner: 'Netzplanung',
+          dueDate: '2026-07-03',
+          materiality: 'hoch',
+          newFact: 'neue Netzlastannahme',
+          nextEvidencePoint: 'NAP und Lastgang bestaetigen',
+        });
+        expect(decisionDelta.classification).toBe('decision_delta');
+        expect(decisionDelta.escalationRecommendation).toContain('management review');
+        expect(decisionDelta.materiality).toBe('high');
+
+        const blocker = await broker.call('dashboard-api.netzsignalDeltaGatingStatus', {
+          signalId: 'signal-345-blocker',
+          domain: 'assetmanagement',
+          signalType: 'monitoring-anchor',
+          knownContextRef: 'asset-plan-q2',
+          freshnessProof: 'monitoring-snapshot-456',
+          decisionTopic: 'Trafo-Verstaerkung freigeben',
+          owner: 'Assetmanagement',
+          dueDate: '2026-07-01',
+          materiality: 'hoch',
+          newFact: 'Kostenrahmen geaendert',
+          blockedDecision: 'Investitionsfreigabe blockiert',
+          nextEvidencePoint: 'Wirtschaftlichkeitsnotiz pruefen',
+        });
+        expect(blocker.classification).toBe('new_blocker');
+        expect(blocker.escalationRecommendation).toContain('management escalation dossier');
+        expect(blocker.missingEvidence).toEqual([]);
+      });
+    });
+
     describe('vnbDeltaSignalClassifierStatus', () => {
       it('classifies a supplied VNB signal without connector reads or side effects', async () => {
         const result = await broker.call('dashboard-api.vnbDeltaSignalClassifierStatus', {

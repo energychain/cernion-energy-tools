@@ -177,6 +177,28 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans Netzsignal Delta-Gating as caller-supplied evidence, not connector ingestion', () => {
+    const result = planEvidence(
+      { routeLabel: 'netzsignal_delta_gating' },
+      {
+        domain: 'netzanschluss',
+        signalType: 'board-update',
+        knownContextRef: 'context-345',
+        freshnessProof: 'snapshot-345',
+        owner: 'Netzplanung',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('netzsignal_delta_gating');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['domain', 'signal_type', 'known_context_ref', 'freshness_proof'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining(['decision_topic', 'due_date', 'materiality', 'new_fact'])
+    );
+  });
+
   it('plans legal clarification operating model as explicit legal and preparation evidence', () => {
     const result = planEvidence(
       { routeLabel: 'legal_clarification_operating_model' },
